@@ -1,0 +1,45 @@
+# ===== 多阶段构建：后端服务 =====
+FROM node:20-alpine AS server-builder
+
+WORKDIR /app
+
+# 安装pnpm
+RUN corepack enable && corepack prepare pnpm@9.15.0 --activate
+
+# 复制依赖文件
+COPY package.json pnpm-workspace.yaml ./
+COPY apps/server/package.json ./apps/server/
+COPY packages/shared-types/package.json ./packages/shared-types/
+COPY packages/shared-utils/package.json ./packages/shared-utils/
+
+# 安装依赖
+RUN pnpm install --frozen-lockfile
+
+# 复制源代码
+COPY . .
+
+# 构建
+RUN pnpm build --filter=@petcare/server
+
+# ===== 运行阶段 =====
+FROM node:20-alpine AS server-runner
+
+WORKDIR /app
+
+RUN corepack enable && corepack prepare pnpm@9.15.0 --activate
+
+# 复制构建产物和依赖
+COPY --from=server-builder /app/pnpm-workspace.yaml ./
+COPY --from=server-builder /app/package.json ./
+COPY --from=server-builder /app/apps/server/package.json ./apps/server/
+COPY --from=server-builder /app/packages/shared-types/package.json ./packages/shared-types/
+COPY --from=server-builder /app/packages/shared-utils/package.json ./packages/shared-utils/
+COPY --from=server-builder /app/node_modules ./node_modules
+COPY --from=server-builder /app/apps/server/node_modules ./apps/server/node_modules
+COPY --from=server-builder /app/packages/shared-types/node_modules ./packages/shared-types/node_modules
+COPY --from=server-builder /app/packages/shared-utils/node_modules ./packages/shared-utils/node_modules
+COPY --from=server-builder /app/apps/server/dist ./apps/server/dist
+
+EXPOSE 3001
+
+CMD ["pnpm", "start", "--filter=@petcare/server"]

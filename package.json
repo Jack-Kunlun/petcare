@@ -1,0 +1,67 @@
+{
+  "name": "petcare-monorepo",
+  "version": "1.0.0",
+  "private": true,
+  "type": "module",
+  "description": "PetCare宠伴 - 双模式O2O宠物服务平台",
+  "scripts": {
+    "build": "turbo run build",
+    "dev": "turbo run dev",
+    "lint": "turbo run lint",
+    "test": "turbo run test",
+    "test:e2e": "turbo run test:e2e",
+    "clean": "turbo run clean && rm -rf node_modules",
+    "format": "prettier --write \"**/*.{ts,tsx,md}\"",
+    "prepare": "husky"
+  },
+  "devDependencies": {
+    "@petcare/eslint-config-base": "workspace:*",
+    "turbo": "^2.6.0",
+    "prettier": "^3.9.0",
+    "typescript": "^5.9.0",
+    "eslint": "^9.39.0",
+    "@eslint/js": "^9.39.0",
+    "typescript-eslint": "^8.64.0",
+    "eslint-plugin-unicorn": "^62.0.0",
+    "eslint-plugin-import": "^2.32.0",
+    "@commitlint/cli": "^19.8.0",
+    "@commitlint/config-conventional": "^19.8.0",
+    "husky": "^9.1.7",
+    "lint-staged": "^17.0.0"
+  },
+  "engines": {
+    "node": ">=20.0.0",
+    "pnpm": ">=9.0.0"
+  },
+  "packageManager": "pnpm@9.15.0",
+  "lint-staged": {
+    "apps/admin/src/**/*.{ts,tsx}": [
+      "pnpm --filter @petcare/admin exec -- prettier --write",
+      "pnpm --filter @petcare/admin exec -- eslint . --fix",
+      "pnpm --filter @petcare/admin exec -- vitest run --changed"
+    ],
+    "apps/server/**/*.ts": [
+      "pnpm --filter @petcare/server exec -- prettier --write",
+      "pnpm --filter @petcare/server exec -- eslint . --fix",
+      "pnpm --filter @petcare/server exec -- jest --passWithNoTests --findRelatedTests"
+    ],
+    "packages/shared-types/**/*.ts": [
+      "pnpm --filter @petcare/shared-types exec -- prettier --write",
+      "pnpm --filter @petcare/shared-types exec -- eslint . --fix",
+      "pnpm --filter @petcare/shared-types exec -- vitest run --changed"
+    ],
+    "packages/shared-utils/**/*.ts": [
+      "pnpm --filter @petcare/shared-utils exec -- prettier --write",
+      "pnpm --filter @petcare/shared-utils exec -- eslint . --fix",
+      "pnpm --filter @petcare/shared-utils exec -- vitest run --changed"
+    ],
+    "packages/api-client/**/*.ts": [
+      "pnpm --filter @petcare/api-client exec -- prettier --write",
+      "pnpm --filter @petcare/api-client exec -- eslint . --fix",
+      "pnpm --filter @petcare/api-client exec -- vitest run --changed"
+    ],
+    "*.{md,json,yml,yaml}": [
+      "prettier --write"
+    ]
+  }
+}
