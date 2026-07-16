@@ -1,0 +1,16 @@
+{
+  "name": "@petcare/eslint-config-base",
+  "version": "1.0.0",
+  "description": "PetCare共享ESLint基础配置",
+  "type": "module",
+  "main": "index.js",
+  "exports": {
+    ".": "./index.js"
+  },
+  "peerDependencies": {
+    "eslint": "^9.0.0",
+    "typescript-eslint": "^8.0.0",
+    "eslint-plugin-unicorn": "^62.0.0",
+    "eslint-plugin-import": "^2.32.0"
+  }
+}

@@ -1,0 +1,30 @@
+{
+  "name": "@petcare/miniapp",
+  "version": "1.0.0",
+  "private": true,
+  "description": "PetCare宠伴小程序",
+  "scripts": {
+    "build:weapp": "taro build --type weapp",
+    "dev:weapp": "npm run build:weapp -- --watch",
+    "build:h5": "taro build --type h5",
+    "dev:h5": "npm run build:h5 -- --watch"
+  },
+  "dependencies": {
+    "@tarojs/runtime": "^4.1.12",
+    "@tarojs/taro": "^4.1.12",
+    "react": "^18.3.0",
+    "react-dom": "^18.3.0",
+    "mobx": "^6.15.0",
+    "mobx-react-lite": "^4.1.0",
+    "@petcare/shared-types": "workspace:*",
+    "@petcare/shared-utils": "workspace:*"
+  },
+  "devDependencies": {
+    "@tarojs/cli": "^4.1.12",
+    "@tarojs/webpack5-runner": "^4.1.12",
+    "@types/react": "^19.2.0",
+    "typescript": "^5.9.0",
+    "@pmmmwh/react-refresh-webpack-plugin": "^0.5.17",
+    "react-refresh": "^0.17.0"
+  }
+}

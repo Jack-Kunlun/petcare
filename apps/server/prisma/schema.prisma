@@ -1,0 +1,87 @@
+// apps/api/prisma/schema.prisma
+
+generator client {
+  provider = "prisma-client-js"
+}
+
+datasource db {
+  provider = "postgresql"
+  url      = env("DATABASE_URL")
+}
+
+model User {
+  id        String   @id @default(uuid())
+  openid    String?  @unique
+  phone     String   @unique
+  nickname  String
+  avatar    String?
+  role      String   @default("pet_owner")
+  status    String   @default("active")
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  pets          Pet[]
+  ordersAsOwner Order[] @relation("OrderOwner")
+  posts         Post[]
+  
+  @@index([phone])
+  @@index([role])
+}
+
+model Pet {
+  id          String @id @default(uuid())
+  ownerId     String
+  name        String
+  breed       String
+  age         Float
+  gender      String
+  photos      String[]
+  createdAt   DateTime @default(now())
+  updatedAt   DateTime @updatedAt
+  
+  owner User @relation(fields: [ownerId], references: [id], onDelete: Cascade)
+  orders Order[]
+  
+  @@index([ownerId])
+}
+
+model Order {
+  id            String @id @default(uuid())
+  orderType     String
+  serviceType   String
+  ownerId       String
+  providerId    String?
+  petId         String
+  serviceTime   DateTime
+  address       String
+  amount        Float
+  status        String @default("pending_confirm")
+  remark        String?
+  completedAt   DateTime?
+  createdAt     DateTime @default(now())
+  updatedAt     DateTime @updatedAt
+  
+  owner User @relation("OrderOwner", fields: [ownerId], references: [id])
+  pet   Pet  @relation(fields: [petId], references: [id])
+  
+  @@index([ownerId])
+  @@index([providerId])
+  @@index([status])
+}
+
+model Post {
+  id          String @id @default(uuid())
+  authorId    String
+  content     String
+  mediaUrls   String[]
+  tags        String[]
+  likesCount  Int @default(0)
+  status      String @default("published")
+  createdAt   DateTime @default(now())
+  updatedAt   DateTime @updatedAt
+  
+  author User @relation(fields: [authorId], references: [id], onDelete: Cascade)
+  
+  @@index([authorId])
+  @@index([createdAt])
+}

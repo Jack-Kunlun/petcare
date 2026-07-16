@@ -1,0 +1,31 @@
+{
+  "name": "@petcare/api-client",
+  "version": "1.0.0",
+  "description": "PetCare API客户端封装",
+  "type": "module",
+  "main": "dist/index.js",
+  "types": "dist/index.d.ts",
+  "scripts": {
+    "build": "tsc",
+    "dev": "tsc --watch",
+    "clean": "rm -rf dist",
+    "lint": "eslint .",
+    "lint:staged": "eslint . --fix",
+    "format": "prettier --write \"src/**/*.ts\"",
+    "format:staged": "prettier --write \"src/**/*.ts\"",
+    "test": "vitest",
+    "test:run": "vitest run",
+    "test:coverage": "vitest run --coverage"
+  },
+  "dependencies": {
+    "axios": "^1.13.0",
+    "@petcare/shared-types": "workspace:*"
+  },
+  "devDependencies": {
+    "@petcare/eslint-config-base": "workspace:*",
+    "typescript": "^5.9.0",
+    "vitest": "^4.0.0",
+    "@vitest/coverage-v8": "^4.0.0",
+    "eslint": "^9.39.0"
+  }
+}
