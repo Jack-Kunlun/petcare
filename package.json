@@ -44,7 +44,7 @@
       "pnpm --filter @petcare/admin exec -- eslint . --fix",
       "pnpm --filter @petcare/admin exec -- vitest run --changed"
     ],
-    "apps/server/**/*.ts": [
+    "apps/server/src/**/*.ts": [
       "pnpm --filter @petcare/server exec -- prettier --write",
       "pnpm --filter @petcare/server exec -- eslint . --fix",
       "pnpm --filter @petcare/server exec -- jest --passWithNoTests --findRelatedTests"
