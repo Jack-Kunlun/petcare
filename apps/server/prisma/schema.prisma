@@ -1,4 +1,4 @@
-// apps/api/prisma/schema.prisma
+// apps/server/prisma/schema.prisma
 
 generator client {
   provider = "prisma-client-js"
@@ -9,32 +9,84 @@ datasource db {
   url      = env("DATABASE_URL")
 }
 
+// ============================================
+// 用户相关
+// ============================================
+
 model User {
   id        String   @id @default(uuid())
   openid    String?  @unique
   phone     String   @unique
   nickname  String
   avatar    String?
-  role      String   @default("pet_owner")
-  status    String   @default("active")
+  userType  String   @default("pet_owner") // pet_owner / provider
+  status    String   @default("active")    // active / inactive / banned
   createdAt DateTime @default(now())
   updatedAt DateTime @updatedAt
 
+  profile       UserProfile?
   pets          Pet[]
-  ordersAsOwner Order[] @relation("OrderOwner")
+  ordersAsOwner Order[]           @relation("OrderOwner")
+  ordersAsProvider Order[]        @relation("OrderProvider")
   posts         Post[]
+  favorites     Favorite[]
+  notifications Notification[]
+  reviews       Review[]
+  comments      Comment[]
+  follows       Follow[]          @relation("Follower")
+  followings    Follow[]          @relation("Following")
+  creditScore   CreditScore?
+  creditRecords CreditRecord[]
+  complaints    Complaint[]       @relation("Complainant")
   
   @@index([phone])
-  @@index([role])
+  @@index([userType])
 }
 
+model UserProfile {
+  id        String   @id @default(uuid())
+  userId    String   @unique
+  realName  String?
+  gender    String?  // male / female
+  age       Int?
+  address   String?
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  user User @relation(fields: [userId], references: [id], onDelete: Cascade)
+}
+
+model Provider {
+  id                String   @id @default(uuid())
+  userId            String   @unique
+  idCardVerified    Boolean  @default(false)
+  wechatScore       Int?
+  trainingPassed    Boolean  @default(false)
+  certifiedSitter   Boolean  @default(false)
+  rejectRate        Float    @default(0.0) // 拒绝率
+  createdAt         DateTime @default(now())
+  updatedAt         DateTime @updatedAt
+
+  user User @relation(fields: [userId], references: [id], onDelete: Cascade)
+  
+  @@index([certifiedSitter])
+}
+
+// ============================================
+// 宠物相关
+// ============================================
+
 model Pet {
-  id          String @id @default(uuid())
+  id          String   @id @default(uuid())
   ownerId     String
   name        String
   breed       String
   age         Float
-  gender      String
+  weight      Float?
+  gender      String   // male / female
+  sterilized  Boolean  @default(false)
+  habits      String?  // 特殊习性
+  allergies   String?  // 过敏史
   photos      String[]
   createdAt   DateTime @default(now())
   updatedAt   DateTime @updatedAt
@@ -45,43 +97,349 @@ model Pet {
   @@index([ownerId])
 }
 
+// ============================================
+// 订单相关
+// ============================================
+
 model Order {
-  id            String @id @default(uuid())
-  orderType     String
-  serviceType   String
+  id            String   @id @default(uuid())
+  orderType     String   // reward / platform
+  serviceType   String   // feeding / walking / playing
   ownerId       String
   providerId    String?
   petId         String
   serviceTime   DateTime
   address       String
   amount        Float
-  status        String @default("pending_confirm")
+  status        String   @default("pending_confirm") // pending_confirm / confirmed / in_progress / completed / cancelled
   remark        String?
   completedAt   DateTime?
   createdAt     DateTime @default(now())
   updatedAt     DateTime @updatedAt
   
-  owner User @relation("OrderOwner", fields: [ownerId], references: [id])
-  pet   Pet  @relation(fields: [petId], references: [id])
+  owner      User             @relation("OrderOwner", fields: [ownerId], references: [id])
+  provider   User?            @relation("OrderProvider", fields: [providerId], references: [id])
+  pet        Pet              @relation(fields: [petId], references: [id])
+  reward     OrderReward?
+  platform   OrderPlatform?
+  intents    OrderIntent[]
+  sops       OrderSop[]
+  review     Review?
+  complaint  Complaint?
   
   @@index([ownerId])
   @@index([providerId])
   @@index([status])
+  @@index([orderType])
 }
 
-model Post {
-  id          String @id @default(uuid())
-  authorId    String
-  content     String
-  mediaUrls   String[]
-  tags        String[]
-  likesCount  Int @default(0)
-  status      String @default("published")
-  createdAt   DateTime @default(now())
-  updatedAt   DateTime @updatedAt
+model OrderReward {
+  id             String   @id @default(uuid())
+  orderId        String   @unique
+  rewardAmount   Float
+  priceRangeMin  Float
+  priceRangeMax  Float
+  expireTime     DateTime
+  createdAt      DateTime @default(now())
+
+  order Order @relation(fields: [orderId], references: [id], onDelete: Cascade)
+}
+
+model OrderPlatform {
+  id                 String   @id @default(uuid())
+  orderId            String   @unique
+  platformPrice      Float
+  assignedProviderId String?
+  createdAt          DateTime @default(now())
+
+  order Order @relation(fields: [orderId], references: [id], onDelete: Cascade)
+}
+
+model OrderIntent {
+  id            String   @id @default(uuid())
+  orderId       String
+  providerId    String
+  intentStatus  String   @default("pending") // pending / confirmed / rejected
+  createdAt     DateTime @default(now())
+  updatedAt     DateTime @updatedAt
+
+  order    Order @relation(fields: [orderId], references: [id], onDelete: Cascade)
+  provider User  @relation(fields: [providerId], references: [id], onDelete: Cascade)
   
-  author User @relation(fields: [authorId], references: [id], onDelete: Cascade)
+  @@unique([orderId, providerId])
+  @@index([orderId])
+  @@index([providerId])
+}
+
+model OrderSop {
+  id          String   @id @default(uuid())
+  orderId     String
+  stepNumber  Int      // 1-5
+  stepName    String   // 进门消毒 / 拍照打卡 / 执行服务 / 清理现场 / 离开拍照
+  photos      String[]
+  videos      String[]
+  completedAt DateTime?
+  createdAt   DateTime @default(now())
+
+  order Order @relation(fields: [orderId], references: [id], onDelete: Cascade)
+  
+  @@index([orderId])
+}
+
+// ============================================
+// 评价与纠纷
+// ============================================
+
+model Review {
+  id               String   @id @default(uuid())
+  orderId          String   @unique
+  reviewerId       String
+  attitudeRating   Int      // 1-5
+  professionalRating Int    // 1-5
+  punctualityRating Int     // 1-5
+  sopExecutionRating Int    // 1-5
+  overallRating    Int      // 1-5
+  content          String?
+  photos           String[]
+  createdAt        DateTime @default(now())
+
+  order    Order @relation(fields: [orderId], references: [id], onDelete: Cascade)
+  reviewer User  @relation(fields: [reviewerId], references: [id], onDelete: Cascade)
+  
+  @@index([reviewerId])
+}
+
+model Complaint {
+  id               String   @id @default(uuid())
+  orderId          String   @unique
+  complainantId    String
+  complaintType    String   // service_quality / safety / payment / other
+  evidence         String[] // 证据URL
+  expectedSolution String?
+  status           String   @default("pending") // pending / processing / resolved / closed
+  createdAt        DateTime @default(now())
+  updatedAt        DateTime @updatedAt
+
+  order       Order              @relation(fields: [orderId], references: [id], onDelete: Cascade)
+  complainant User               @relation("Complainant", fields: [complainantId], references: [id], onDelete: Cascade)
+  resolution  DisputeResolution?
+  
+  @@index([complainantId])
+  @@index([status])
+}
+
+model DisputeResolution {
+  id                String   @id @default(uuid())
+  complaintId       String   @unique
+  resolverId        String?  // 客服ID
+  resolutionType    String   // support_complainant / support_provider / shared_responsibility / insufficient_evidence
+  refundAmount      Float?
+  scoreAdjustment   Float?   // 评分调整
+  creditAdjustment  Int?     // 信用分调整
+  reason            String?
+  createdAt         DateTime @default(now())
+  updatedAt         DateTime @updatedAt
+
+  complaint Complaint @relation(fields: [complaintId], references: [id], onDelete: Cascade)
+  
+  @@index([resolverId])
+}
+
+// ============================================
+// 社区相关
+// ============================================
+
+model Post {
+  id            String   @id @default(uuid())
+  authorId      String
+  content       String
+  mediaUrls     String[]
+  tags          String[]
+  petId         String?
+  likesCount    Int      @default(0)
+  commentsCount Int      @default(0)
+  sharesCount   Int      @default(0)
+  status        String   @default("published") // published / draft / deleted
+  createdAt     DateTime @default(now())
+  updatedAt     DateTime @updatedAt
+  
+  author   User      @relation(fields: [authorId], references: [id], onDelete: Cascade)
+  pet      Pet?      @relation(fields: [petId], references: [id])
+  favorites Favorite[]
+  comments Comment[]
   
   @@index([authorId])
+  @@index([createdAt])
+}
+
+model Comment {
+  id               String   @id @default(uuid())
+  postId           String
+  commenterId      String
+  content          String
+  parentCommentId  String?
+  createdAt        DateTime @default(now())
+  updatedAt        DateTime @updatedAt
+
+  post    Post     @relation(fields: [postId], references: [id], onDelete: Cascade)
+  commenter User   @relation(fields: [commenterId], references: [id], onDelete: Cascade)
+  parent  Comment? @relation("ParentComment", fields: [parentCommentId], references: [id])
+  replies Comment[] @relation("ParentComment")
+  
+  @@index([postId])
+  @@index([commenterId])
+}
+
+model Follow {
+  id          String   @id @default(uuid())
+  followerId  String
+  followingId String
+  createdAt   DateTime @default(now())
+
+  follower  User @relation("Follower", fields: [followerId], references: [id], onDelete: Cascade)
+  following User @relation("Following", fields: [followingId], references: [id], onDelete: Cascade)
+  
+  @@unique([followerId, followingId])
+  @@index([followerId])
+  @@index([followingId])
+}
+
+model Favorite {
+  id        String   @id @default(uuid())
+  userId    String
+  postId    String
+  createdAt DateTime @default(now())
+  
+  user User @relation(fields: [userId], references: [id], onDelete: Cascade)
+  post Post @relation(fields: [postId], references: [id], onDelete: Cascade)
+  
+  @@unique([userId, postId])
+  @@index([userId])
+  @@index([postId])
+}
+
+// ============================================
+// 消息通知
+// ============================================
+
+model Notification {
+  id          String   @id @default(uuid())
+  userId      String
+  type        String   // message / order / system
+  title       String
+  content     String
+  referenceId String?  // 关联的业务ID（订单ID、帖子ID等）
+  isRead      Boolean  @default(false)
+  createdAt   DateTime @default(now())
+  
+  user User @relation(fields: [userId], references: [id], onDelete: Cascade)
+  
+  @@index([userId])
+  @@index([isRead])
+  @@index([createdAt])
+}
+
+// ============================================
+// RBAC权限管理
+// ============================================
+
+model Role {
+  id          String   @id @default(uuid())
+  roleName    String   @unique
+  description String?
+  isSystem    Boolean  @default(false)
+  isActive    Boolean  @default(true)
+  createdAt   DateTime @default(now())
+  updatedAt   DateTime @updatedAt
+
+  permissions     RolePermission[]
+  users           UserRole[]
+  
+  @@index([isActive])
+}
+
+model Permission {
+  id             String   @id @default(uuid())
+  permissionCode String   @unique
+  permissionName String
+  module         String   // user / order / content / finance / merchant / system
+  type           String   // menu / button / api
+  createdAt      DateTime @default(now())
+  updatedAt      DateTime @updatedAt
+
+  roles RolePermission[]
+  
+  @@index([module])
+  @@index([type])
+}
+
+model RolePermission {
+  id           String   @id @default(uuid())
+  roleId       String
+  permissionId String
+  createdAt    DateTime @default(now())
+
+  role       Role       @relation(fields: [roleId], references: [id], onDelete: Cascade)
+  permission Permission @relation(fields: [permissionId], references: [id], onDelete: Cascade)
+  
+  @@unique([roleId, permissionId])
+  @@index([roleId])
+  @@index([permissionId])
+}
+
+model UserRole {
+  id        String   @id @default(uuid())
+  userId    String
+  roleId    String
+  createdAt DateTime @default(now())
+
+  user User @relation(fields: [userId], references: [id], onDelete: Cascade)
+  role Role @relation(fields: [roleId], references: [id], onDelete: Cascade)
+  
+  @@unique([userId, roleId])
+  @@index([userId])
+  @@index([roleId])
+}
+
+model PermissionAuditLog {
+  id            String   @id @default(uuid())
+  operatorId    String
+  operationType String   // create_role / update_role / delete_role / assign_permission / remove_permission / assign_user_role / remove_user_role
+  targetType    String   // role / permission / user
+  targetId      String
+  changes       String?  // JSON格式记录变更
+  ip            String?
+  createdAt     DateTime @default(now())
+
+  @@index([operatorId])
+  @@index([createdAt])
+}
+
+// ============================================
+// 信用管理
+// ============================================
+
+model CreditScore {
+  id           String   @id @default(uuid())
+  userId       String   @unique
+  creditScore  Int      @default(100)
+  lastUpdated  DateTime @default(now())
+
+  user User @relation(fields: [userId], references: [id], onDelete: Cascade)
+  
+  @@index([creditScore])
+}
+
+model CreditRecord {
+  id            String   @id @default(uuid())
+  userId        String
+  changeAmount  Int      // 正数增加，负数减少
+  reason        String
+  relatedOrderId String?
+  createdAt     DateTime @default(now())
+
+  user User @relation(fields: [userId], references: [id], onDelete: Cascade)
+  
+  @@index([userId])
   @@index([createdAt])
 }
