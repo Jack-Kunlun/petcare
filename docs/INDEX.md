@@ -26,11 +26,12 @@
 
 业务需求和用户故事，帮助理解产品目标。
 
-| 文档                                                                       | 说明         | 适合人群       |
-| -------------------------------------------------------------------------- | ------------ | -------------- |
-| [01-prd.md](./01-requirements/01-prd.md)                                   | 产品需求文档 | PM、开发、测试 |
-| [02-user-stories.md](./01-requirements/02-user-stories.md)                 | 用户故事     | PM、开发       |
-| [03-competitive-analysis.md](./01-requirements/03-competitive-analysis.md) | 竞品分析     | PM、产品       |
+| 文档                                                                             | 说明              | 适合人群        |
+| -------------------------------------------------------------------------------- | ----------------- | --------------- |
+| [01-prd.md](./01-requirements/01-prd.md)                                         | 产品需求文档      | PM、开发、测试  |
+| [02-user-stories.md](./01-requirements/02-user-stories.md)                       | 用户故事          | PM、开发        |
+| [03-competitive-analysis.md](./01-requirements/03-competitive-analysis.md)       | 竞品分析          | PM、产品        |
+| [04-prototype-specification.md](./01-requirements/04-prototype-specification.md) | 原型规格文档(v41) | PM、前端、UI/UX |
 
 **使用场景**:
 

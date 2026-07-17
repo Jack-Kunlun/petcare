@@ -213,8 +213,9 @@ pnpm test:e2e              # E2E测试
 4. **[docs/06-api-specification/api-specification.md](./docs/06-api-specification/api-specification.md)** - API接口规范 📡
 5. **[docs/08-deployment/deployment.md](./docs/08-deployment/deployment.md)** - 完整部署指南 ⭐
 6. **[docs/01-requirements/01-prd.md](./docs/01-requirements/01-prd.md)** - 产品需求文档
-7. **[docs/03-technical-architecture/01-tech-stack.md](./docs/03-technical-architecture/01-tech-stack.md)** - 技术架构说明
-8. **[docs/09-development-guidelines/02-development-standards.md](./docs/09-development-guidelines/02-development-standards.md)** - 开发规范详细版
+7. **[docs/01-requirements/04-prototype-specification.md](./docs/01-requirements/04-prototype-specification.md)** - 原型规格文档(v41)
+8. **[docs/03-technical-architecture/01-tech-stack.md](./docs/03-technical-architecture/01-tech-stack.md)** - 技术架构说明
+9. **[docs/09-development-guidelines/02-development-standards.md](./docs/09-development-guidelines/02-development-standards.md)** - 开发规范详细版
 
 ### 安全相关
 
