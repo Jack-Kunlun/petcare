@@ -1,5 +1,3 @@
-import { definePageConfig } from '@tarojs/taro';
-
-export default definePageConfig({
-  navigationBarTitleText: '首页',
-});
+export default {
+  navigationBarTitleText: "首页",
+};
