@@ -1,78 +1,20 @@
-/* apps/miniapp/src/pages/index/index.css */
 .container {
-  padding: 20px;
-}
-
-.header {
-  text-align: center;
-  margin-bottom: 30px;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  min-height: 100vh;
+  padding: 40px;
 }
 
 .title {
-  font-size: 28px;
+  font-size: 36px;
   font-weight: bold;
   color: #333;
-  display: block;
+  margin-bottom: 16px;
 }
 
 .subtitle {
-  font-size: 14px;
-  color: #999;
-  margin-top: 8px;
-  display: block;
-}
-
-.mode-selector {
-  display: flex;
-  gap: 15px;
-  margin-bottom: 30px;
-}
-
-.mode-card {
-  flex: 1;
-  background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
-  border-radius: 12px;
-  padding: 20px;
-  color: white;
-}
-
-.mode-title {
-  font-size: 18px;
-  font-weight: bold;
-  display: block;
-  margin-bottom: 8px;
-}
-
-.mode-desc {
-  font-size: 12px;
-  opacity: 0.9;
-  display: block;
-}
-
-.section {
-  margin-top: 20px;
-}
-
-.section-title {
-  font-size: 18px;
-  font-weight: bold;
-  color: #333;
-  display: block;
-  margin-bottom: 15px;
-}
-
-.order-list {
-  background: white;
-  border-radius: 8px;
-  padding: 20px;
-}
-
-.order-item {
-  text-align: center;
-  padding: 20px;
-}
-
-.order-text {
-  color: #999;
-  font-size: 14px;
+  font-size: 16px;
+  color: #666;
 }

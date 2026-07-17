@@ -1,7 +1,8 @@
 // apps/miniapp/src/app.ts
 
-import { Component } from 'react';
-import './app.css';
+import { Component } from "react";
+import "./app.css";
+import "@taroify/core/styles/index.css";
 
 class App extends Component {
   componentDidMount() {}
