@@ -1,4 +1,6 @@
+import type { ApiErrorResponse } from "@petcare/shared-types";
 import axios, { AxiosError, InternalAxiosRequestConfig } from "axios";
+import { unwrapApiResponse } from "../api/api-response";
 import { AdminUser, CaptchaChallenge, LoginResponse, RefreshResponse } from "./auth.types";
 
 type RetriableRequest = InternalAxiosRequestConfig & { _authRetried?: boolean };
@@ -28,8 +30,14 @@ apiClient.interceptors.request.use((config) => {
 });
 
 apiClient.interceptors.response.use(
-  (response) => response,
-  async (error: AxiosError) => {
+  (response) => {
+    if (response.status !== 204) {
+      response.data = unwrapApiResponse(response.data);
+    }
+
+    return response;
+  },
+  async (error: AxiosError<ApiErrorResponse>) => {
     const request = error.config as RetriableRequest | undefined;
     const isRefreshRequest = request?.url?.includes("/auth/refresh");
 
