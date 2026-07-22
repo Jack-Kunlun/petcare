@@ -1,4 +1,3 @@
-import { BadRequestException, UnauthorizedException } from "@nestjs/common";
 import { PrismaService } from "../prisma/prisma.service";
 import { AuthService } from "./auth.service";
 import { CaptchaService } from "./captcha.service";
@@ -90,9 +89,11 @@ describe("AuthService", () => {
     prisma.user.findFirst.mockResolvedValue(databaseUser);
     passwordService.verify.mockResolvedValue(passwordValid);
 
-    await expect(service.loginWithPassword("admin", "wrong-password-value")).rejects.toEqual(
-      new UnauthorizedException("账号或凭据错误"),
-    );
+    await expect(service.loginWithPassword("admin", "wrong-password-value")).rejects.toMatchObject({
+      code: "AUTH_INVALID_CREDENTIALS",
+      clientMessage: "账号或凭据错误",
+      status: 401,
+    });
   });
 
   it("logs in with a consumed SMS verification code", async () => {
@@ -115,9 +116,13 @@ describe("AuthService", () => {
   it("rejects an invalid captcha before looking up an administrator", async () => {
     captchaService.verifyAndConsume.mockResolvedValue(false);
 
-    await expect(service.sendSmsCode("17679141878", "0123456789abcdef", "2345")).rejects.toEqual(
-      new BadRequestException("图形验证码错误或已过期"),
-    );
+    await expect(
+      service.sendSmsCode("17679141878", "0123456789abcdef", "2345"),
+    ).rejects.toMatchObject({
+      code: "AUTH_INVALID_CAPTCHA",
+      clientMessage: "图形验证码错误或已过期",
+      status: 400,
+    });
     expect(prisma.user.findFirst).not.toHaveBeenCalled();
     expect(verificationCodeService.send).not.toHaveBeenCalled();
   });

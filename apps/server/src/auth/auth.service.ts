@@ -1,4 +1,5 @@
-import { BadRequestException, Injectable, UnauthorizedException } from "@nestjs/common";
+import { HttpStatus, Injectable } from "@nestjs/common";
+import { ApiException } from "../common/http/api-exception";
 import { PrismaService } from "../prisma/prisma.service";
 import { AuthTokens } from "./auth.types";
 import { CaptchaService } from "./captcha.service";
@@ -65,7 +66,11 @@ export class AuthService {
     const captchaMatches = await this.captchaService.verifyAndConsume(captchaId, captchaCode);
 
     if (!captchaMatches) {
-      throw new BadRequestException("图形验证码错误或已过期");
+      throw new ApiException(
+        "AUTH_INVALID_CAPTCHA",
+        "图形验证码错误或已过期",
+        HttpStatus.BAD_REQUEST,
+      );
     }
 
     const user = await this.prismaService.user.findFirst({
@@ -190,7 +195,7 @@ export class AuthService {
     };
   }
 
-  private invalidCredentials(): UnauthorizedException {
-    return new UnauthorizedException("账号或凭据错误");
+  private invalidCredentials(): ApiException {
+    return new ApiException("AUTH_INVALID_CREDENTIALS", "账号或凭据错误", HttpStatus.UNAUTHORIZED);
   }
 }
