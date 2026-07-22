@@ -3,6 +3,8 @@
 import { UserAPI, OrderAPI } from "./endpoints";
 import ApiClient from "./http";
 
+export { ApiClientError, toApiClientError, unwrapApiResponse } from "./http";
+
 export class PetCareAPI {
   private client: ApiClient;
   public user: UserAPI;
