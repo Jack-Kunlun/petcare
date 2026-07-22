@@ -9,7 +9,6 @@ import {
   OrderListResponse,
   SubmitIntentRequest,
   UploadSopRecordRequest,
-  ApiResponse,
 } from "@petcare/shared-types";
 import type { AxiosInstance } from "axios";
 
@@ -20,41 +19,38 @@ export class OrderAPI {
    * 创建悬赏订单
    */
   async createRewardOrder(data: CreateRewardOrderRequest): Promise<CreateRewardOrderResponse> {
-    const response = await this.http.post<ApiResponse<CreateRewardOrderResponse>>(
-      "/orders/reward",
-      data,
-    );
+    const response = await this.http.post<CreateRewardOrderResponse>("/orders/reward", data);
 
-    return response.data.data!;
+    return response.data;
   }
 
   /**
    * 创建平台订单
    */
   async createPlatformOrder(data: CreatePlatformOrderRequest): Promise<Order> {
-    const response = await this.http.post<ApiResponse<Order>>("/orders/platform", data);
+    const response = await this.http.post<Order>("/orders/platform", data);
 
-    return response.data.data!;
+    return response.data;
   }
 
   /**
    * 获取订单列表
    */
   async getOrderList(query: OrderListQuery): Promise<OrderListResponse> {
-    const response = await this.http.get<ApiResponse<OrderListResponse>>("/orders", {
+    const response = await this.http.get<OrderListResponse>("/orders", {
       params: query,
     });
 
-    return response.data.data!;
+    return response.data;
   }
 
   /**
    * 获取订单详情
    */
   async getOrderDetail(orderId: string): Promise<Order> {
-    const response = await this.http.get<ApiResponse<Order>>(`/orders/${orderId}`);
+    const response = await this.http.get<Order>(`/orders/${orderId}`);
 
-    return response.data.data!;
+    return response.data;
   }
 
   /**

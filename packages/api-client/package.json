@@ -13,9 +13,9 @@
     "lint:staged": "eslint . --fix",
     "format": "prettier --write \"src/**/*.ts\"",
     "format:staged": "prettier --write \"src/**/*.ts\"",
-    "test": "vitest run --passWithNoTests",
-    "test:run": "vitest run",
-    "test:coverage": "vitest run --coverage"
+    "test": "vitest run src --passWithNoTests",
+    "test:run": "vitest run src",
+    "test:coverage": "vitest run src --coverage"
   },
   "dependencies": {
     "@petcare/shared-types": "workspace:*",
