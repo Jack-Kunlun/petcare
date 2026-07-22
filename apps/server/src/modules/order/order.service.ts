@@ -1,9 +1,18 @@
-// apps/api/src/modules/order/order.service.ts
-
-import { Injectable } from "@nestjs/common";
+import { HttpStatus, Injectable } from "@nestjs/common";
+import { ApiException } from "../../common/http/api-exception";
 import { ConfigService } from "../../config/config.service";
 import { PrismaService } from "../../prisma/prisma.service";
 import { CreateRewardOrderDto } from "./dto/create-order.dto";
+
+const publicOwnerSelect = {
+  id: true,
+  phone: true,
+  username: true,
+  nickname: true,
+  avatar: true,
+  userType: true,
+  status: true,
+} as const;
 
 @Injectable()
 export class OrderService {
@@ -25,9 +34,6 @@ export class OrderService {
         remark: dto.remark,
       },
     });
-
-    // 可以使用ConfigService获取API配置等（用于后续功能扩展）
-    // const apiBaseUrl = this.configService.apiBaseUrl;
 
     return { order };
   }
@@ -51,12 +57,18 @@ export class OrderService {
   }
 
   async findOne(id: string) {
-    return this.prisma.order.findUnique({
+    const order = await this.prisma.order.findUnique({
       where: { id },
       include: {
-        owner: true,
+        owner: { select: publicOwnerSelect },
         pet: true,
       },
     });
+
+    if (!order) {
+      throw new ApiException("RESOURCE_NOT_FOUND", "订单不存在", HttpStatus.NOT_FOUND);
+    }
+
+    return order;
   }
 }
