@@ -1,6 +1,7 @@
 import { MiddlewareConsumer, Module, NestModule } from "@nestjs/common";
-import { APP_INTERCEPTOR } from "@nestjs/core";
+import { APP_FILTER, APP_INTERCEPTOR } from "@nestjs/core";
 import { AuthModule } from "./auth/auth.module";
+import { ApiExceptionFilter } from "./common/http/api-exception.filter";
 import { ApiResponseInterceptor } from "./common/http/api-response.interceptor";
 import { RequestIdMiddleware } from "./common/http/request-id.middleware";
 import { ConfigModule } from "./config/config.module";
@@ -11,7 +12,10 @@ import { PrismaModule } from "./prisma/prisma.module";
 
 @Module({
   imports: [ConfigModule, PrismaModule, AuthModule, HealthModule, UserModule, OrderModule],
-  providers: [{ provide: APP_INTERCEPTOR, useClass: ApiResponseInterceptor }],
+  providers: [
+    { provide: APP_INTERCEPTOR, useClass: ApiResponseInterceptor },
+    { provide: APP_FILTER, useClass: ApiExceptionFilter },
+  ],
 })
 export class AppModule implements NestModule {
   configure(consumer: MiddlewareConsumer): void {
