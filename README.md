@@ -83,6 +83,14 @@ pnpm dev --filter=miniapp
 
 本地地址：Admin `http://localhost:8986`，Server `http://localhost:3000`。默认管理员支持“手机号或账号 + 密码”以及“手机号 + 验证码”两种登录方式。发送短信验证码前需要先填写图形验证码；点击验证码图片可以换一张。
 
+### API 响应协议
+
+Server 的 JSON 接口统一返回 `{ code, message, data, meta }`：成功业务码为 `SUCCESS`，错误使用稳定的字符串业务码并保留正确的 HTTP 状态；`meta.requestId` 与响应头 `X-Request-Id` 始终一致。Admin 和共享 API Client 会在 HTTP 边界统一解包，业务代码直接消费 `data`。
+
+- Swagger UI：<http://localhost:3000/api-docs>
+- 健康检查：<http://localhost:3000/health>
+- 完整规范：[API 接口规范](./docs/06-api-specification/01-api-specification.md)
+
 ### 构建
 
 ```bash
@@ -175,7 +183,7 @@ const jwtSecret = this.configService.jwtSecret;
 - [竞品分析](./docs/01-requirements/03-competitive-analysis.md)
 - **[原型规格文档(v41)](./docs/01-requirements/04-prototype-specification.md)**
 - [技术架构](./docs/03-technical-architecture/01-tech-stack.md)
-- **[API接口规范](./docs/06-api-specification/api-specification.md)** 📡
+- **[API接口规范](./docs/06-api-specification/01-api-specification.md)** 📡
 - [开发规范](./docs/09-development-guidelines/02-development-standards.md)
 - **[部署指南](./docs/08-deployment/deployment.md)** ⭐
 - **[部署架构图](./docs/08-deployment/deployment-architecture.html)** 🎨

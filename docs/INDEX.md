@@ -14,7 +14,7 @@
 2. [环境变量配置](./environment-variables.md) - 开发环境设置
 3. [产品需求文档](./01-requirements/01-prd.md) - 了解业务背景
 4. [技术架构](./03-technical-architecture/01-tech-stack.md) - 理解技术选型
-5. [API接口规范](./06-api-specification/api-specification.md) - 前后端协作基础
+5. [API接口规范](./06-api-specification/01-api-specification.md) - 前后端协作基础
 6. [开发规范](./09-development-guidelines/02-development-standards.md) - 编码标准
 7. [部署指南](./08-deployment/deployment.md) - 上线部署流程
 
@@ -116,9 +116,9 @@ API设计和规范文档。
 
 RESTful API设计规范和接口定义。
 
-| 文档                                                                | 说明           | 适合人群         |
-| ------------------------------------------------------------------- | -------------- | ---------------- |
-| [api-specification.md](./06-api-specification/api-specification.md) | API接口规范 📡 | 前后端开发、测试 |
+| 文档                                                                      | 说明           | 适合人群         |
+| ------------------------------------------------------------------------- | -------------- | ---------------- |
+| [01-api-specification.md](./06-api-specification/01-api-specification.md) | API接口规范 📡 | 前后端开发、测试 |
 
 **核心内容**:
 
@@ -256,7 +256,7 @@ Docker容器化部署和运维指南。
 
 1. [README.md](../README.md) - 项目概览
 2. [技术架构](./03-technical-architecture/01-tech-stack.md) - React + Vite技术栈
-3. [API接口规范](./06-api-specification/api-specification.md) - 接口调用规范
+3. [API接口规范](./06-api-specification/01-api-specification.md) - 接口调用规范
 4. [开发规范](./09-development-guidelines/02-development-standards.md) - 代码风格
 5. [菜单结构](./02-technical-design/02-menu-structure.md) - UI层级
 
@@ -273,7 +273,7 @@ Docker容器化部署和运维指南。
 
 1. [README.md](../README.md) - 项目概览
 2. [技术架构](./03-technical-architecture/01-tech-stack.md) - Nest.js + Prisma技术栈
-3. [API接口规范](./06-api-specification/api-specification.md) - API设计规范
+3. [API接口规范](./06-api-specification/01-api-specification.md) - API设计规范
 4. [开发规范](./09-development-guidelines/02-development-standards.md) - ConfigService使用
 5. [部署指南](./08-deployment/deployment.md) - Docker部署
 
@@ -291,7 +291,7 @@ Docker容器化部署和运维指南。
 
 1. [产品需求文档](./01-requirements/01-prd.md) - 功能需求
 2. [用户故事](./01-requirements/02-user-stories.md) - 验收标准
-3. [API接口规范](./06-api-specification/api-specification.md) - 接口测试依据
+3. [API接口规范](./06-api-specification/01-api-specification.md) - 接口测试依据
 4. [订单流程图](./02-technical-design/01-order-flow-diagram.md) - 业务流程
 
 **常用**:

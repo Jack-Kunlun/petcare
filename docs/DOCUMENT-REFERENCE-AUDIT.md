@@ -20,7 +20,7 @@
 | docs/01-requirements/01-prd.md                             | ✅ 存在 | 产品需求文档   |
 | docs/01-requirements/02-user-stories.md                    | ✅ 存在 | 用户故事       |
 | docs/03-technical-architecture/01-tech-stack.md            | ✅ 存在 | 技术架构       |
-| docs/06-api-specification/api-specification.md             | ✅ 存在 | API接口规范    |
+| docs/06-api-specification/01-api-specification.md          | ✅ 存在 | API接口规范    |
 | docs/08-deployment/deployment.md                           | ✅ 存在 | 部署指南       |
 | docs/08-deployment/deployment-architecture.html            | ✅ 存在 | 部署架构图     |
 | docs/09-development-guidelines/02-development-standards.md | ✅ 存在 | 开发规范       |
@@ -38,7 +38,7 @@
 ✅ ./docs/01-requirements/01-prd.md
 ✅ ./docs/01-requirements/02-user-stories.md
 ✅ ./docs/03-technical-architecture/01-tech-stack.md
-✅ ./docs/06-api-specification/api-specification.md
+✅ ./docs/06-api-specification/01-api-specification.md
 ✅ ./docs/09-development-guidelines/02-development-standards.md
 ✅ ./docs/08-deployment/deployment.md
 ✅ ./docs/08-deployment/deployment-architecture.html
@@ -55,7 +55,7 @@
 ```
 ✅ ./README.md
 ✅ ./docs/environment-variables.md
-✅ ./docs/06-api-specification/api-specification.md
+✅ ./docs/06-api-specification/01-api-specification.md
 ✅ ./docs/08-deployment/deployment.md
 ✅ ./docs/01-requirements/01-prd.md
 ✅ ./docs/03-technical-architecture/01-tech-stack.md
@@ -126,7 +126,7 @@ ls apps/admin/e2e/README.md
 
 ### 问题3: API规范文档缺少内部引用
 
-**位置**: docs/06-api-specification/api-specification.md
+**位置**: docs/06-api-specification/01-api-specification.md
 
 **现状**:
 
@@ -197,7 +197,7 @@ docs/
 
 - ✅ 已统一为小写+连字符格式
 - ✅ `environment-variables.md` (原ENVIRONMENT-VARIABLES.md)
-- ✅ `api-specification.md` (原API-SPECIFICATION.md)
+- ✅ `01-api-specification.md` (原API-SPECIFICATION.md)
 - ✅ `deployment.md` (原DEPLOYMENT.md)
 
 **结论**: 文件名现已统一为小写+连字符格式。
