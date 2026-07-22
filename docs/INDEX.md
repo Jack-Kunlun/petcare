@@ -62,10 +62,11 @@
 
 系统整体技术选型和架构设计。
 
-| 文档                                                                             | 说明         | 适合人群         |
-| -------------------------------------------------------------------------------- | ------------ | ---------------- |
-| [01-tech-stack.md](./03-technical-architecture/01-tech-stack.md)                 | 技术栈选型   | 全体开发         |
-| [02-monorepo-structure.md](./03-technical-architecture/02-monorepo-structure.md) | Monorepo结构 | 全栈开发、DevOps |
+| 文档                                                                                     | 说明               | 适合人群               |
+| ---------------------------------------------------------------------------------------- | ------------------ | ---------------------- |
+| [01-tech-stack.md](./03-technical-architecture/01-tech-stack.md)                         | 技术栈选型         | 全体开发               |
+| [02-monorepo-structure.md](./03-technical-architecture/02-monorepo-structure.md)         | Monorepo结构       | 全栈开发、DevOps       |
+| [03-architecture-evolution.md](./03-technical-architecture/03-architecture-evolution.md) | 架构基线与演进决策 | 后端开发、架构、DevOps |
 
 **使用场景**:
 

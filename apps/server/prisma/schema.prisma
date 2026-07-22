@@ -1,12 +1,13 @@
 // apps/server/prisma/schema.prisma
 
 generator client {
-  provider = "prisma-client-js"
+  provider     = "prisma-client"
+  output       = "../src/generated/prisma"
+  moduleFormat = "cjs"
 }
 
 datasource db {
   provider = "postgresql"
-  url      = env("DATABASE_URL")
 }
 
 // ============================================
@@ -14,62 +15,71 @@ datasource db {
 // ============================================
 
 model User {
-  id        String   @id @default(uuid())
-  openid    String?  @unique
-  phone     String   @unique
-  nickname  String
-  avatar    String?
-  userType  String   @default("pet_owner") // pet_owner / provider
-  status    String   @default("active")    // active / inactive / banned
-  createdAt DateTime @default(now())
-  updatedAt DateTime @updatedAt
+  id           String   @id @default(uuid())
+  openid       String?  @unique
+  phone        String   @unique
+  username     String?  @unique
+  passwordHash String?  @map("password_hash")
+  nickname     String
+  avatar       String?
+  userType     String   @default("pet_owner") @map("user_type") // pet_owner / provider
+  status       String   @default("active") // active / inactive / banned
+  createdAt    DateTime @default(now()) @map("created_at")
+  updatedAt    DateTime @updatedAt @map("updated_at")
 
-  profile       UserProfile?
-  pets          Pet[]
-  ordersAsOwner Order[]           @relation("OrderOwner")
+  profile          UserProfile?
+  provider         Provider?
+  pets             Pet[]
+  ordersAsOwner    Order[]        @relation("OrderOwner")
   ordersAsProvider Order[]        @relation("OrderProvider")
-  posts         Post[]
-  favorites     Favorite[]
-  notifications Notification[]
-  reviews       Review[]
-  comments      Comment[]
-  follows       Follow[]          @relation("Follower")
-  followings    Follow[]          @relation("Following")
-  creditScore   CreditScore?
-  creditRecords CreditRecord[]
-  complaints    Complaint[]       @relation("Complainant")
-  
+  orderIntents     OrderIntent[]
+  posts            Post[]
+  favorites        Favorite[]
+  notifications    Notification[]
+  reviews          Review[]
+  comments         Comment[]
+  follows          Follow[]       @relation("Follower")
+  followings       Follow[]       @relation("Following")
+  creditScore      CreditScore?
+  creditRecords    CreditRecord[]
+  roles            UserRole[]
+  complaints       Complaint[]    @relation("Complainant")
+
   @@index([phone])
   @@index([userType])
+  @@map("users")
 }
 
 model UserProfile {
   id        String   @id @default(uuid())
-  userId    String   @unique
-  realName  String?
-  gender    String?  // male / female
+  userId    String   @unique @map("user_id")
+  realName  String?  @map("real_name")
+  gender    String? // male / female
   age       Int?
   address   String?
-  createdAt DateTime @default(now())
-  updatedAt DateTime @updatedAt
+  createdAt DateTime @default(now()) @map("created_at")
+  updatedAt DateTime @updatedAt @map("updated_at")
 
   user User @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  @@map("user_profiles")
 }
 
 model Provider {
-  id                String   @id @default(uuid())
-  userId            String   @unique
-  idCardVerified    Boolean  @default(false)
-  wechatScore       Int?
-  trainingPassed    Boolean  @default(false)
-  certifiedSitter   Boolean  @default(false)
-  rejectRate        Float    @default(0.0) // 拒绝率
-  createdAt         DateTime @default(now())
-  updatedAt         DateTime @updatedAt
+  id              String   @id @default(uuid())
+  userId          String   @unique @map("user_id")
+  idCardVerified  Boolean  @default(false) @map("id_card_verified")
+  wechatScore     Int?     @map("wechat_score")
+  trainingPassed  Boolean  @default(false) @map("training_passed")
+  certifiedSitter Boolean  @default(false) @map("certified_sitter")
+  rejectRate      Float    @default(0.0) @map("reject_rate") // 拒绝率
+  createdAt       DateTime @default(now()) @map("created_at")
+  updatedAt       DateTime @updatedAt @map("updated_at")
 
   user User @relation(fields: [userId], references: [id], onDelete: Cascade)
-  
+
   @@index([certifiedSitter])
+  @@map("providers")
 }
 
 // ============================================
@@ -77,24 +87,26 @@ model Provider {
 // ============================================
 
 model Pet {
-  id          String   @id @default(uuid())
-  ownerId     String
-  name        String
-  breed       String
-  age         Float
-  weight      Float?
-  gender      String   // male / female
-  sterilized  Boolean  @default(false)
-  habits      String?  // 特殊习性
-  allergies   String?  // 过敏史
-  photos      String[]
-  createdAt   DateTime @default(now())
-  updatedAt   DateTime @updatedAt
-  
-  owner User @relation(fields: [ownerId], references: [id], onDelete: Cascade)
+  id         String   @id @default(uuid())
+  ownerId    String   @map("owner_id")
+  name       String
+  breed      String
+  age        Float
+  weight     Float?
+  gender     String // male / female
+  sterilized Boolean  @default(false)
+  habits     String? // 特殊习性
+  allergies  String? // 过敏史
+  photos     String[]
+  createdAt  DateTime @default(now()) @map("created_at")
+  updatedAt  DateTime @updatedAt @map("updated_at")
+
+  owner  User    @relation(fields: [ownerId], references: [id], onDelete: Cascade)
   orders Order[]
-  
+  posts  Post[]
+
   @@index([ownerId])
+  @@map("pets")
 }
 
 // ============================================
@@ -102,88 +114,95 @@ model Pet {
 // ============================================
 
 model Order {
-  id            String   @id @default(uuid())
-  orderType     String   // reward / platform
-  serviceType   String   // feeding / walking / playing
-  ownerId       String
-  providerId    String?
-  petId         String
-  serviceTime   DateTime
-  address       String
-  amount        Float
-  status        String   @default("pending_confirm") // pending_confirm / confirmed / in_progress / completed / cancelled
-  remark        String?
-  completedAt   DateTime?
-  createdAt     DateTime @default(now())
-  updatedAt     DateTime @updatedAt
-  
-  owner      User             @relation("OrderOwner", fields: [ownerId], references: [id])
-  provider   User?            @relation("OrderProvider", fields: [providerId], references: [id])
-  pet        Pet              @relation(fields: [petId], references: [id])
-  reward     OrderReward?
-  platform   OrderPlatform?
-  intents    OrderIntent[]
-  sops       OrderSop[]
-  review     Review?
-  complaint  Complaint?
-  
+  id          String    @id @default(uuid())
+  orderType   String    @map("order_type") // reward / platform
+  serviceType String    @map("service_type") // feeding / walking / playing
+  ownerId     String    @map("owner_id")
+  providerId  String?   @map("provider_id")
+  petId       String    @map("pet_id")
+  serviceTime DateTime  @map("service_time")
+  address     String
+  amount      Float
+  status      String    @default("pending_confirm") // pending_confirm / confirmed / in_progress / completed / cancelled
+  remark      String?
+  completedAt DateTime? @map("completed_at")
+  createdAt   DateTime  @default(now()) @map("created_at")
+  updatedAt   DateTime  @updatedAt @map("updated_at")
+
+  owner     User           @relation("OrderOwner", fields: [ownerId], references: [id])
+  provider  User?          @relation("OrderProvider", fields: [providerId], references: [id])
+  pet       Pet            @relation(fields: [petId], references: [id])
+  reward    OrderReward?
+  platform  OrderPlatform?
+  intents   OrderIntent[]
+  sops      OrderSop[]
+  review    Review?
+  complaint Complaint?
+
   @@index([ownerId])
   @@index([providerId])
   @@index([status])
   @@index([orderType])
+  @@map("orders")
 }
 
 model OrderReward {
-  id             String   @id @default(uuid())
-  orderId        String   @unique
-  rewardAmount   Float
-  priceRangeMin  Float
-  priceRangeMax  Float
-  expireTime     DateTime
-  createdAt      DateTime @default(now())
+  id            String   @id @default(uuid())
+  orderId       String   @unique @map("order_id")
+  rewardAmount  Float    @map("reward_amount")
+  priceRangeMin Float    @map("price_range_min")
+  priceRangeMax Float    @map("price_range_max")
+  expireTime    DateTime @map("expire_time")
+  createdAt     DateTime @default(now()) @map("created_at")
 
   order Order @relation(fields: [orderId], references: [id], onDelete: Cascade)
+
+  @@map("order_rewards")
 }
 
 model OrderPlatform {
   id                 String   @id @default(uuid())
-  orderId            String   @unique
-  platformPrice      Float
-  assignedProviderId String?
-  createdAt          DateTime @default(now())
+  orderId            String   @unique @map("order_id")
+  platformPrice      Float    @map("platform_price")
+  assignedProviderId String?  @map("assigned_provider_id")
+  createdAt          DateTime @default(now()) @map("created_at")
 
   order Order @relation(fields: [orderId], references: [id], onDelete: Cascade)
+
+  @@map("order_platforms")
 }
 
 model OrderIntent {
-  id            String   @id @default(uuid())
-  orderId       String
-  providerId    String
-  intentStatus  String   @default("pending") // pending / confirmed / rejected
-  createdAt     DateTime @default(now())
-  updatedAt     DateTime @updatedAt
+  id           String   @id @default(uuid())
+  orderId      String   @map("order_id")
+  providerId   String   @map("provider_id")
+  intentStatus String   @default("pending") @map("intent_status") // pending / confirmed / rejected
+  createdAt    DateTime @default(now()) @map("created_at")
+  updatedAt    DateTime @updatedAt @map("updated_at")
 
   order    Order @relation(fields: [orderId], references: [id], onDelete: Cascade)
   provider User  @relation(fields: [providerId], references: [id], onDelete: Cascade)
-  
+
   @@unique([orderId, providerId])
   @@index([orderId])
   @@index([providerId])
+  @@map("order_intents")
 }
 
 model OrderSop {
-  id          String   @id @default(uuid())
-  orderId     String
-  stepNumber  Int      // 1-5
-  stepName    String   // 进门消毒 / 拍照打卡 / 执行服务 / 清理现场 / 离开拍照
+  id          String    @id @default(uuid())
+  orderId     String    @map("order_id")
+  stepNumber  Int       @map("step_number") // 1-5
+  stepName    String    @map("step_name") // 进门消毒 / 拍照打卡 / 执行服务 / 清理现场 / 离开拍照
   photos      String[]
   videos      String[]
-  completedAt DateTime?
-  createdAt   DateTime @default(now())
+  completedAt DateTime? @map("completed_at")
+  createdAt   DateTime  @default(now()) @map("created_at")
 
   order Order @relation(fields: [orderId], references: [id], onDelete: Cascade)
-  
+
   @@index([orderId])
+  @@map("order_sops")
 }
 
 // ============================================
@@ -191,58 +210,61 @@ model OrderSop {
 // ============================================
 
 model Review {
-  id               String   @id @default(uuid())
-  orderId          String   @unique
-  reviewerId       String
-  attitudeRating   Int      // 1-5
-  professionalRating Int    // 1-5
-  punctualityRating Int     // 1-5
-  sopExecutionRating Int    // 1-5
-  overallRating    Int      // 1-5
-  content          String?
-  photos           String[]
-  createdAt        DateTime @default(now())
+  id                 String   @id @default(uuid())
+  orderId            String   @unique @map("order_id")
+  reviewerId         String   @map("reviewer_id")
+  attitudeRating     Int      @map("attitude_rating") // 1-5
+  professionalRating Int      @map("professional_rating") // 1-5
+  punctualityRating  Int      @map("punctuality_rating") // 1-5
+  sopExecutionRating Int      @map("sop_execution_rating") // 1-5
+  overallRating      Int      @map("overall_rating") // 1-5
+  content            String?
+  photos             String[]
+  createdAt          DateTime @default(now()) @map("created_at")
 
   order    Order @relation(fields: [orderId], references: [id], onDelete: Cascade)
   reviewer User  @relation(fields: [reviewerId], references: [id], onDelete: Cascade)
-  
+
   @@index([reviewerId])
+  @@map("reviews")
 }
 
 model Complaint {
   id               String   @id @default(uuid())
-  orderId          String   @unique
-  complainantId    String
-  complaintType    String   // service_quality / safety / payment / other
+  orderId          String   @unique @map("order_id")
+  complainantId    String   @map("complainant_id")
+  complaintType    String   @map("complaint_type") // service_quality / safety / payment / other
   evidence         String[] // 证据URL
-  expectedSolution String?
+  expectedSolution String?  @map("expected_solution")
   status           String   @default("pending") // pending / processing / resolved / closed
-  createdAt        DateTime @default(now())
-  updatedAt        DateTime @updatedAt
+  createdAt        DateTime @default(now()) @map("created_at")
+  updatedAt        DateTime @updatedAt @map("updated_at")
 
   order       Order              @relation(fields: [orderId], references: [id], onDelete: Cascade)
   complainant User               @relation("Complainant", fields: [complainantId], references: [id], onDelete: Cascade)
   resolution  DisputeResolution?
-  
+
   @@index([complainantId])
   @@index([status])
+  @@map("complaints")
 }
 
 model DisputeResolution {
-  id                String   @id @default(uuid())
-  complaintId       String   @unique
-  resolverId        String?  // 客服ID
-  resolutionType    String   // support_complainant / support_provider / shared_responsibility / insufficient_evidence
-  refundAmount      Float?
-  scoreAdjustment   Float?   // 评分调整
-  creditAdjustment  Int?     // 信用分调整
-  reason            String?
-  createdAt         DateTime @default(now())
-  updatedAt         DateTime @updatedAt
+  id               String   @id @default(uuid())
+  complaintId      String   @unique @map("complaint_id")
+  resolverId       String?  @map("resolver_id") // 客服ID
+  resolutionType   String   @map("resolution_type") // support_complainant / support_provider / shared_responsibility / insufficient_evidence
+  refundAmount     Float?   @map("refund_amount")
+  scoreAdjustment  Float?   @map("score_adjustment") // 评分调整
+  creditAdjustment Int?     @map("credit_adjustment") // 信用分调整
+  reason           String?
+  createdAt        DateTime @default(now()) @map("created_at")
+  updatedAt        DateTime @updatedAt @map("updated_at")
 
   complaint Complaint @relation(fields: [complaintId], references: [id], onDelete: Cascade)
-  
+
   @@index([resolverId])
+  @@map("dispute_resolutions")
 }
 
 // ============================================
@@ -251,71 +273,75 @@ model DisputeResolution {
 
 model Post {
   id            String   @id @default(uuid())
-  authorId      String
+  authorId      String   @map("author_id")
   content       String
-  mediaUrls     String[]
+  mediaUrls     String[] @map("media_urls")
   tags          String[]
-  petId         String?
-  likesCount    Int      @default(0)
-  commentsCount Int      @default(0)
-  sharesCount   Int      @default(0)
+  petId         String?  @map("pet_id")
+  likesCount    Int      @default(0) @map("likes_count")
+  commentsCount Int      @default(0) @map("comments_count")
+  sharesCount   Int      @default(0) @map("shares_count")
   status        String   @default("published") // published / draft / deleted
-  createdAt     DateTime @default(now())
-  updatedAt     DateTime @updatedAt
-  
-  author   User      @relation(fields: [authorId], references: [id], onDelete: Cascade)
-  pet      Pet?      @relation(fields: [petId], references: [id])
+  createdAt     DateTime @default(now()) @map("created_at")
+  updatedAt     DateTime @updatedAt @map("updated_at")
+
+  author    User       @relation(fields: [authorId], references: [id], onDelete: Cascade)
+  pet       Pet?       @relation(fields: [petId], references: [id])
   favorites Favorite[]
-  comments Comment[]
-  
+  comments  Comment[]
+
   @@index([authorId])
   @@index([createdAt])
+  @@map("posts")
 }
 
 model Comment {
-  id               String   @id @default(uuid())
-  postId           String
-  commenterId      String
-  content          String
-  parentCommentId  String?
-  createdAt        DateTime @default(now())
-  updatedAt        DateTime @updatedAt
+  id              String   @id @default(uuid())
+  postId          String   @map("post_id")
+  commenterId     String   @map("commenter_id")
+  content         String
+  parentCommentId String?  @map("parent_comment_id")
+  createdAt       DateTime @default(now()) @map("created_at")
+  updatedAt       DateTime @updatedAt @map("updated_at")
 
-  post    Post     @relation(fields: [postId], references: [id], onDelete: Cascade)
-  commenter User   @relation(fields: [commenterId], references: [id], onDelete: Cascade)
-  parent  Comment? @relation("ParentComment", fields: [parentCommentId], references: [id])
-  replies Comment[] @relation("ParentComment")
-  
+  post      Post      @relation(fields: [postId], references: [id], onDelete: Cascade)
+  commenter User      @relation(fields: [commenterId], references: [id], onDelete: Cascade)
+  parent    Comment?  @relation("ParentComment", fields: [parentCommentId], references: [id])
+  replies   Comment[] @relation("ParentComment")
+
   @@index([postId])
   @@index([commenterId])
+  @@map("comments")
 }
 
 model Follow {
   id          String   @id @default(uuid())
-  followerId  String
-  followingId String
-  createdAt   DateTime @default(now())
+  followerId  String   @map("follower_id")
+  followingId String   @map("following_id")
+  createdAt   DateTime @default(now()) @map("created_at")
 
   follower  User @relation("Follower", fields: [followerId], references: [id], onDelete: Cascade)
   following User @relation("Following", fields: [followingId], references: [id], onDelete: Cascade)
-  
+
   @@unique([followerId, followingId])
   @@index([followerId])
   @@index([followingId])
+  @@map("follows")
 }
 
 model Favorite {
   id        String   @id @default(uuid())
-  userId    String
-  postId    String
-  createdAt DateTime @default(now())
-  
+  userId    String   @map("user_id")
+  postId    String   @map("post_id")
+  createdAt DateTime @default(now()) @map("created_at")
+
   user User @relation(fields: [userId], references: [id], onDelete: Cascade)
   post Post @relation(fields: [postId], references: [id], onDelete: Cascade)
-  
+
   @@unique([userId, postId])
   @@index([userId])
   @@index([postId])
+  @@map("favorites")
 }
 
 // ============================================
@@ -324,19 +350,20 @@ model Favorite {
 
 model Notification {
   id          String   @id @default(uuid())
-  userId      String
-  type        String   // message / order / system
+  userId      String   @map("user_id")
+  type        String // message / order / system
   title       String
   content     String
-  referenceId String?  // 关联的业务ID（订单ID、帖子ID等）
-  isRead      Boolean  @default(false)
-  createdAt   DateTime @default(now())
-  
+  referenceId String?  @map("reference_id") // 关联的业务ID（订单ID、帖子ID等）
+  isRead      Boolean  @default(false) @map("is_read")
+  createdAt   DateTime @default(now()) @map("created_at")
+
   user User @relation(fields: [userId], references: [id], onDelete: Cascade)
-  
+
   @@index([userId])
   @@index([isRead])
   @@index([createdAt])
+  @@map("notifications")
 }
 
 // ============================================
@@ -345,74 +372,79 @@ model Notification {
 
 model Role {
   id          String   @id @default(uuid())
-  roleName    String   @unique
+  roleName    String   @unique @map("role_name")
   description String?
-  isSystem    Boolean  @default(false)
-  isActive    Boolean  @default(true)
-  createdAt   DateTime @default(now())
-  updatedAt   DateTime @updatedAt
+  isSystem    Boolean  @default(false) @map("is_system")
+  isActive    Boolean  @default(true) @map("is_active")
+  createdAt   DateTime @default(now()) @map("created_at")
+  updatedAt   DateTime @updatedAt @map("updated_at")
 
-  permissions     RolePermission[]
-  users           UserRole[]
-  
+  permissions RolePermission[]
+  users       UserRole[]
+
   @@index([isActive])
+  @@map("roles")
 }
 
 model Permission {
   id             String   @id @default(uuid())
-  permissionCode String   @unique
-  permissionName String
-  module         String   // user / order / content / finance / merchant / system
-  type           String   // menu / button / api
-  createdAt      DateTime @default(now())
-  updatedAt      DateTime @updatedAt
+  permissionCode String   @unique @map("permission_code")
+  permissionName String   @map("permission_name")
+  module         String // user / order / content / finance / merchant / system
+  type           String // menu / button / api
+  createdAt      DateTime @default(now()) @map("created_at")
+  updatedAt      DateTime @updatedAt @map("updated_at")
 
   roles RolePermission[]
-  
+
   @@index([module])
   @@index([type])
+  @@map("permissions")
 }
 
 model RolePermission {
   id           String   @id @default(uuid())
-  roleId       String
-  permissionId String
-  createdAt    DateTime @default(now())
+  roleId       String   @map("role_id")
+  permissionId String   @map("permission_id")
+  createdAt    DateTime @default(now()) @map("created_at")
 
   role       Role       @relation(fields: [roleId], references: [id], onDelete: Cascade)
   permission Permission @relation(fields: [permissionId], references: [id], onDelete: Cascade)
-  
+
   @@unique([roleId, permissionId])
   @@index([roleId])
   @@index([permissionId])
+  @@map("role_permissions")
 }
 
 model UserRole {
   id        String   @id @default(uuid())
-  userId    String
-  roleId    String
-  createdAt DateTime @default(now())
+  userId    String   @map("user_id")
+  roleId    String   @map("role_id")
+  createdAt DateTime @default(now()) @map("created_at")
 
   user User @relation(fields: [userId], references: [id], onDelete: Cascade)
   role Role @relation(fields: [roleId], references: [id], onDelete: Cascade)
-  
+
   @@unique([userId, roleId])
   @@index([userId])
   @@index([roleId])
+  @@map("user_roles")
 }
 
 model PermissionAuditLog {
   id            String   @id @default(uuid())
-  operatorId    String
-  operationType String   // create_role / update_role / delete_role / assign_permission / remove_permission / assign_user_role / remove_user_role
-  targetType    String   // role / permission / user
-  targetId      String
-  changes       String?  // JSON格式记录变更
+  operatorId    String   @map("operator_id")
+  operationType String   @map("operation_type") // create_role / update_role / delete_role / assign_permission / remove_permission / assign_user_role / remove_user_role
+  targetType    String   @map("target_type") // role / permission / user
+  targetId      String   @map("target_id")
+  changes       String? // JSON格式记录变更
   ip            String?
-  createdAt     DateTime @default(now())
+  createdAt     DateTime @default(now()) @map("created_at")
 
   @@index([operatorId])
   @@index([createdAt])
+  @@map("permission_audit_logs")
 }
 
 // ============================================
@@ -420,26 +452,28 @@ model PermissionAuditLog {
 // ============================================
 
 model CreditScore {
-  id           String   @id @default(uuid())
-  userId       String   @unique
-  creditScore  Int      @default(100)
-  lastUpdated  DateTime @default(now())
+  id          String   @id @default(uuid())
+  userId      String   @unique @map("user_id")
+  creditScore Int      @default(100) @map("credit_score")
+  lastUpdated DateTime @default(now()) @map("last_updated")
 
   user User @relation(fields: [userId], references: [id], onDelete: Cascade)
-  
+
   @@index([creditScore])
+  @@map("credit_scores")
 }
 
 model CreditRecord {
-  id            String   @id @default(uuid())
-  userId        String
-  changeAmount  Int      // 正数增加，负数减少
-  reason        String
-  relatedOrderId String?
-  createdAt     DateTime @default(now())
+  id             String   @id @default(uuid())
+  userId         String   @map("user_id")
+  changeAmount   Int      @map("change_amount") // 正数增加，负数减少
+  reason         String
+  relatedOrderId String?  @map("related_order_id")
+  createdAt      DateTime @default(now()) @map("created_at")
 
   user User @relation(fields: [userId], references: [id], onDelete: Cascade)
-  
+
   @@index([userId])
   @@index([createdAt])
+  @@map("credit_records")
 }

@@ -5,6 +5,7 @@ node_modules/
 # Build outputs
 dist/
 build/
+*.tsbuildinfo
 .next/
 out/
 .swc/
@@ -47,6 +48,7 @@ playwright/.cache/
 
 # Prisma
 prisma/migrations/
+apps/server/src/generated/
 
 # Temporary files
 tmp/
