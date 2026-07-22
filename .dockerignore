@@ -1,0 +1,12 @@
+.git
+.env
+.env.*
+!.env.example
+**/node_modules
+**/dist
+**/coverage
+apps/server/src/generated
+.turbo
+logs
+playwright-report
+test-results

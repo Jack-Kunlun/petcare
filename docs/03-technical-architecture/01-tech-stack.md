@@ -1,5 +1,7 @@
 # PetCare宠伴 - 技术架构设计文档
 
+> 架构基线：MVP 使用“模块化单体 + PostgreSQL + Redis/BullMQ Worker”。领域模块保持独立边界，并在满足明确的容量、合规或团队自治条件后逐步拆分。详见 [架构演进决策](./03-architecture-evolution.md)。
+
 ## 文档信息
 
 | 项目       | 内容        |
@@ -55,7 +57,7 @@
 | ------------- | ----------------------------------- | ------ | ----------------------- |
 | **框架**      | Nest.js                             | 10.x   | 企业级Node.js框架       |
 | **语言**      | TypeScript                          | 5.x    | 类型安全                |
-| **ORM**       | **Prisma**                          | 5.x    | 类型安全的数据库工具链  |
+| **ORM**       | **Prisma**                          | 7.8.x  | 类型安全的数据库工具链  |
 | **数据库**    | PostgreSQL                          | 15.x   | 关系型数据库，JSONB支持 |
 | **缓存**      | Redis                               | 7.x    | 会话、缓存、消息队列    |
 | **API文档**   | Swagger (OpenAPI)                   | 最新版 | 自动生成API文档         |
@@ -87,13 +89,21 @@
 
 ### 1.5 基础设施
 
-| 领域         | 技术选型                | 说明                   |
-| ------------ | ----------------------- | ---------------------- |
-| **容器化**   | Docker + Docker Compose | 本地开发环境           |
-| **CI/CD**    | GitHub Actions          | 自动化测试、构建、部署 |
-| **部署**     | K8s / Docker Swarm      | 后端服务编排           |
-| **静态托管** | Vercel / Nginx          | Admin前端部署          |
-| **监控**     | Prometheus + Grafana    | 后端指标监控           |
-| **日志聚合** | ELK Stack               | 日志收集分析           |
-| **域名解析** | 阿里云DNS / Cloudflare  | DNS管理                |
-| **SSL证书**  | Let's Encrypt           | HTTPS加密              |
+| 领域         | 技术选型                                   | 说明                                                                    |
+| ------------ | ------------------------------------------ | ----------------------------------------------------------------------- |
+| **容器化**   | Docker + Docker Compose                    | 本地开发环境                                                            |
+| **CI/CD**    | GitHub Actions                             | 自动化测试、构建、部署                                                  |
+| **部署**     | Docker Compose（当前）/ Kubernetes（后续） | 当前以单区域容器化部署为主；服务拆分和多副本运行成熟后再引入 Kubernetes |
+| **静态托管** | Vercel / Nginx                             | Admin前端部署                                                           |
+| **监控**     | Prometheus + Grafana                       | 后端指标监控                                                            |
+| **日志聚合** | ELK Stack                                  | 日志收集分析                                                            |
+| **域名解析** | 阿里云DNS / Cloudflare                     | DNS管理                                                                 |
+| **SSL证书**  | Let's Encrypt                              | HTTPS加密                                                               |
+
+---
+
+## 数据库命名约定
+
+Prisma 模型和字段在 TypeScript 中使用 PascalCase / camelCase，例如 `User.userType`；PostgreSQL 的物理表和列统一使用复数 `snake_case`，例如 `users.user_type`。通过 Prisma 的 `@@map` 和 `@map` 保持两者映射，业务代码不直接依赖物理数据库命名。
+
+新建或调整数据库结构时，使用 Prisma CLI 执行 schema 同步或生成迁移；已有生产数据时必须先评估并执行迁移，不可直接重置数据库。

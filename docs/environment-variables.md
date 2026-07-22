@@ -6,7 +6,7 @@
 
 | 变量名     | 必填 | 默认值        | 说明                               |
 | ---------- | ---- | ------------- | ---------------------------------- |
-| `PORT`     | 否   | `3001`        | 服务器端口号                       |
+| `PORT`     | 否   | `3000`        | 服务器端口号                       |
 | `NODE_ENV` | 否   | `development` | 运行环境（development/production） |
 
 ### 数据库配置（独立配置项）
@@ -47,18 +47,49 @@ REDIS_PORT=6379
 REDIS_PASSWORD=
 ```
 
+### 异步任务与 Worker 配置
+
+| 变量名                    | 必填 | 默认值      | 说明                                                |
+| ------------------------- | ---- | ----------- | --------------------------------------------------- |
+| `QUEUE_PREFIX`            | 否   | `petcare`   | BullMQ 队列前缀；不同环境必须使用不同前缀           |
+| `WORKER_CONCURRENCY`      | 否   | `5`         | 单个 Worker 的并发任务数，必须为正整数              |
+| `OUTBOX_POLL_INTERVAL_MS` | 否   | `1000`      | Transactional Outbox 轮询间隔（毫秒），必须为正整数 |
+| `ORDER_TIMEOUT_DELAY_MS`  | 否   | `172800000` | 悬赏订单超时关闭延迟（48 小时，毫秒），必须为正整数 |
+
+API 和独立 Worker 必须使用相同的 `QUEUE_PREFIX`；生产、预发和开发环境必须使用不同前缀，避免任务串扰。
+
 ### JWT配置
 
-| 变量名           | 必填 | 说明                                      |
-| ---------------- | ---- | ----------------------------------------- |
-| `JWT_SECRET`     | ✅   | JWT签名密钥（生产环境请使用强随机字符串） |
-| `JWT_EXPIRES_IN` | 否   | Token过期时间，默认`7d`                   |
+| 变量名                   | 必填 | 默认值 | 说明                                      |
+| ------------------------ | ---- | ------ | ----------------------------------------- |
+| `JWT_SECRET`             | ✅   | -      | JWT签名密钥（至少 32 位，生产环境需随机） |
+| `JWT_ACCESS_EXPIRES_IN`  | 否   | `15m`  | Access Token 有效期                       |
+| `JWT_REFRESH_EXPIRES_IN` | 否   | `7d`   | Refresh Token 有效期                      |
+
+### 管理员认证配置
+
+| 变量名                      | 必填 | 默认值  | 说明                                  |
+| --------------------------- | ---- | ------- | ------------------------------------- |
+| `DEFAULT_ADMIN_USERNAME`    | ✅   | `admin` | 初始管理员账号                        |
+| `DEFAULT_ADMIN_PHONE`       | ✅   | -       | 初始管理员手机号                      |
+| `DEFAULT_ADMIN_PASSWORD`    | ✅   | -       | 初始管理员密码，至少 12 位            |
+| `SMS_DEV_CODE`              | 否   | -       | 本地固定 6 位验证码；生产环境禁止配置 |
+| `SMS_CODE_TTL_SECONDS`      | 否   | `300`   | 验证码有效期                          |
+| `SMS_SEND_COOLDOWN_SECONDS` | 否   | `60`    | 同一手机号发送冷却时间                |
+| `SMS_HOURLY_LIMIT`          | 否   | `5`     | 同一手机号每小时发送上限              |
+| `SMS_MAX_ATTEMPTS`          | 否   | `5`     | 单个验证码最大校验失败次数            |
+| `CAPTCHA_TTL_SECONDS`       | 否   | `300`   | 图形验证码有效期，必须为正整数        |
+| `CAPTCHA_MAX_ATTEMPTS`      | 否   | `5`     | 图形验证码最大校验失败次数            |
+
+开发环境可设置 `SMS_DEV_CODE=246810` 进行本地联调。接口不会把验证码返回给前端；生产环境必须接入真实短信发送器，并移除该变量。
+
+发送短信验证码之前必须先通过图形验证码。图形验证码由 Server 生成无文本节点的 SVG，Redis 只保存 HMAC 摘要；校验成功后立即消费，同一个挑战不能重复使用。
 
 ### API配置
 
 | 变量名         | 必填 | 说明                                        |
 | -------------- | ---- | ------------------------------------------- |
-| `API_BASE_URL` | 否   | API基础URL，默认`http://localhost:3001/api` |
+| `API_BASE_URL` | 否   | API基础URL，默认`http://localhost:8986/api` |
 
 ### 第三方服务（可选）
 
@@ -94,37 +125,25 @@ REDIS_PASSWORD=
 
 ## 代码中的使用方式
 
-### Prisma数据库连接
+### ConfigService
 
-Prisma需要完整的 `DATABASE_URL` 连接字符串。在应用启动时，需要将独立配置拼接为完整URL：
+业务模块禁止直接读取 `process.env`。所有配置（包括数据库、Redis、队列和第三方密钥）都必须通过 `ConfigService` 获取；只有 `ConfigService` 本身可以读取环境变量。
 
 ```typescript
-// apps/server/src/config/database.ts
-const DATABASE_URL = `postgresql://${process.env.DB_USERNAME}:${process.env.DB_PASSWORD}@${process.env.DB_HOST}:${process.env.DB_PORT}/${process.env.DB_NAME}?schema=${process.env.DB_SCHEMA || "public"}`;
-```
+import { Injectable } from "@nestjs/common";
+import { ConfigService } from "../../config/config.service";
 
-或者在 `package.json` 的启动脚本中设置：
+@Injectable()
+export class ExampleService {
+  constructor(private readonly configService: ConfigService) {}
 
-```json
-{
-  "scripts": {
-    "start:dev": "cross-env DATABASE_URL=\"postgresql://${DB_USERNAME}:${DB_PASSWORD}@${DB_HOST}:${DB_PORT}/${DB_NAME}?schema=${DB_SCHEMA}\" nest start --watch"
+  getQueueSettings() {
+    return {
+      prefix: this.configService.queuePrefix,
+      concurrency: this.configService.workerConcurrency,
+    };
   }
 }
 ```
 
-### Redis连接
-
-Redis客户端初始化时使用独立配置：
-
-```typescript
-import { createClient } from "redis";
-
-const redisClient = createClient({
-  socket: {
-    host: process.env.REDIS_HOST,
-    port: parseInt(process.env.REDIS_PORT || "6379"),
-  },
-  password: process.env.REDIS_PASSWORD || undefined,
-});
-```
+Prisma CLI 在执行迁移时仍需要 `DATABASE_URL`。该值由部署环境或执行脚本根据独立的 `DB_*` 变量生成；业务代码不得自行拼接连接字符串。

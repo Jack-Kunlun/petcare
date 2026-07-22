@@ -12,6 +12,7 @@ module.exports = {
       {
         tsconfig: {
           jsx: 'react-jsx',
+          types: ['jest'],
         },
       },
     ],
