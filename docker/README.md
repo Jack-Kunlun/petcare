@@ -38,20 +38,20 @@ cp .env.example .env
 
 ```bash
 # 构建并启动所有服务
-docker-compose up -d --build
+docker compose up -d --build
 
 # 查看服务状态
-docker-compose ps
+docker compose ps
 
 # 查看日志
-docker-compose logs -f
+docker compose logs -f
 ```
 
 ### 3. 访问服务
 
-- **后台管理系统**: http://localhost:80
-- **API服务**: http://localhost:3001
-- **API文档**: http://localhost:3001/api-docs
+- **后台管理系统**: http://localhost:8986
+- **API服务**: http://localhost:3000
+- **API文档**: http://localhost:3000/api-docs
 - **PostgreSQL**: localhost:5432（外部访问）
 - **Redis**: localhost:6379（外部访问）
 

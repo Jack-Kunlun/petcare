@@ -45,7 +45,7 @@ PetCare 采用微服务架构，通过 Docker Compose 进行容器编排：
 | 服务       | 技术栈           | 端口        | 用途            |
 | ---------- | ---------------- | ----------- | --------------- |
 | Admin      | React + Nginx    | 80          | 后台管理系统    |
-| Server     | Nest.js + Prisma | 3001        | API 服务        |
+| Server     | Nest.js + Prisma | 3000        | API 服务        |
 | PostgreSQL | PostgreSQL 15    | 5432 (可选) | 关系型数据库    |
 | Redis      | Redis 7          | 6379 (可选) | 缓存 + 消息队列 |
 
@@ -63,7 +63,7 @@ PetCare 采用微服务架构，通过 Docker Compose 进行容器编排：
 
 ```bash
 docker --version        # Docker version 20.10.x
-docker-compose --version # Docker Compose version v2.x.x
+docker compose version # Docker Compose version v2.x.x
 ```
 
 ### 系统资源
@@ -118,37 +118,29 @@ EXPOSE_REDIS_PORT=6379
 
 ```bash
 # 构建并启动所有服务
-docker-compose up -d --build
+docker compose up -d --build
 
 # 查看服务状态
-docker-compose ps
+docker compose ps
 
 # 查看实时日志
-docker-compose logs -f
+docker compose logs -f
 ```
 
 ### 4. 访问应用
 
-- **后台管理系统**: http://localhost:80
-- **API 服务**: http://localhost:3001
-- **API 文档**: http://localhost:3001/api-docs (仅开发环境)
+- **后台管理系统**: http://localhost:8986
+- **API 服务**: http://localhost:3000
+- **API 文档**: http://localhost:3000/api-docs (仅开发环境)
+- **健康检查**: http://localhost:3000/health
 
 ### 5. 初始化数据库
 
-首次启动时，Prisma 会自动执行迁移：
+首次启动后，需显式执行 Prisma 迁移；镜像构建阶段已生成 Prisma Client：
 
 ```bash
-# 进入 Server 容器
-docker-compose exec server sh
-
 # 运行 Prisma 迁移
-npx prisma migrate deploy
-
-# 生成 Prisma Client
-npx prisma generate
-
-# 退出容器
-exit
+docker compose exec server pnpm --filter @petcare/server exec prisma migrate deploy
 ```
 
 ---
@@ -229,7 +221,7 @@ openssl rand -base64 48
 - Nginx 反向代理到 Server
 - 静态资源缓存策略
 
-**访问**: http://localhost:80
+**访问**: http://localhost:8986
 
 ### Server 后端
 
@@ -245,8 +237,9 @@ openssl rand -base64 48
 
 **访问**:
 
-- API: http://localhost:3001
-- Docs: http://localhost:3001/api-docs
+- API: http://localhost:3000
+- Docs: http://localhost:3000/api-docs (仅开发环境)
+- Health: http://localhost:3000/health
 
 ### PostgreSQL
 
@@ -481,13 +474,13 @@ docker-compose logs redis
 ```bash
 # 检查端口占用
 # Windows
-netstat -ano | findstr :3001
+netstat -ano | findstr :3000
 
 # macOS/Linux
-lsof -i :3001
+lsof -i :3000
 
 # 修改 .env.local 中的端口映射
-# 例如: 将 3001 改为 3002
+# 例如: 将 3000 改为 3001
 ```
 
 ### 权限问题

@@ -41,22 +41,35 @@ pnpm install
 
 ### 环境变量配置
 
-项目使用独立的环境变量配置，复制示例文件并填写实际值：
+项目使用独立的环境变量配置。本地开发统一读取根目录 `.env`：
 
 ```bash
-cp .env.example apps/server/.env.local
+cp .env.example .env
 ```
 
 **主要配置项：**
 
 - **数据库配置**：`DB_HOST`, `DB_PORT`, `DB_USERNAME`, `DB_PASSWORD`, `DB_NAME`, `DB_SCHEMA`
 - **Redis配置**：`REDIS_HOST`, `REDIS_PORT`, `REDIS_PASSWORD`
-- **JWT配置**：`JWT_SECRET`, `JWT_EXPIRES_IN`
+- **JWT配置**：`JWT_SECRET`, `JWT_ACCESS_EXPIRES_IN`, `JWT_REFRESH_EXPIRES_IN`
+- **管理员认证**：`DEFAULT_ADMIN_USERNAME`, `DEFAULT_ADMIN_PHONE`, `DEFAULT_ADMIN_PASSWORD`, `SMS_DEV_CODE`, `CAPTCHA_TTL_SECONDS`, `CAPTCHA_MAX_ATTEMPTS`
 - **第三方服务**：微信、阿里云OSS等
 
 详见：[环境变量配置指南](./docs/environment-variables.md)
 
 ### 开发环境启动
+
+先启动本地依赖容器，再同步数据库并初始化默认管理员：
+
+```bash
+docker compose up -d postgres redis
+cd apps/server
+pnpm exec prisma db push
+pnpm prisma:seed
+cd ../..
+```
+
+当 Server 在宿主机运行时，根 `.env` 中应使用 `DB_HOST=localhost`、`REDIS_HOST=localhost`。然后可直接从根目录启动：
 
 ```bash
 # 启动所有应用
@@ -67,6 +80,8 @@ pnpm dev --filter=admin
 pnpm dev --filter=server
 pnpm dev --filter=miniapp
 ```
+
+本地地址：Admin `http://localhost:8986`，Server `http://localhost:3000`。默认管理员支持“手机号或账号 + 密码”以及“手机号 + 验证码”两种登录方式。发送短信验证码前需要先填写图形验证码；点击验证码图片可以换一张。
 
 ### 构建
 
@@ -181,27 +196,31 @@ const jwtSecret = this.configService.jwtSecret;
 **快速启动：**
 
 ```bash
+# Docker Compose 读取项目根目录的 .env 文件
+cp .env.example .env
+
 # 使用 Docker Compose 启动所有服务
-docker-compose up -d
+docker compose up -d
 
 # 查看服务状态
-docker-compose ps
+docker compose ps
 
 # 查看日志
-docker-compose logs -f server
+docker compose logs -f server
 
 # 停止所有服务
-docker-compose down
+docker compose down
 
 # 停止并删除数据卷
-docker-compose down -v
+docker compose down -v
 ```
 
 **访问地址：**
 
-- 后台管理系统: http://localhost:80
-- API服务: http://localhost:3001
-- API文档: http://localhost:3001/api-docs
+- 后台管理系统: http://localhost:8986
+- API服务: http://localhost:3000
+- API文档: http://localhost:3000/api-docs
+- 健康检查: http://localhost:3000/health
 
 ## License
 

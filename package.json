@@ -6,7 +6,15 @@
   "description": "PetCare宠伴 - 双模式O2O宠物服务平台",
   "scripts": {
     "build": "turbo run build",
+    "build:admin": "pnpm --filter @petcare/admin build",
+    "build:miniapp": "pnpm --filter @petcare/miniapp build:weapp",
+    "build:miniapp:h5": "pnpm --filter @petcare/miniapp build:h5",
+    "build:server": "pnpm --filter @petcare/server build",
     "dev": "turbo run dev",
+    "dev:admin": "pnpm --filter @petcare/admin dev",
+    "dev:miniapp": "pnpm --filter @petcare/miniapp dev:weapp",
+    "dev:miniapp:h5": "pnpm --filter @petcare/miniapp dev:h5",
+    "dev:server": "pnpm --filter @petcare/server start:dev",
     "lint": "turbo run lint",
     "test": "turbo run test",
     "test:e2e": "turbo run test:e2e",
@@ -14,30 +22,31 @@
     "format": "prettier --write \"**/*.{ts,tsx,md}\"",
     "prepare": "husky",
     "changelog": "conventional-changelog -p conventionalcommits -i CHANGELOG.md -s -r 0",
-    "release": "pnpm changelog && git add CHANGELOG.md && git commit -m \"docs: update CHANGELOG for release\" && git tag"
+    "release": "pnpm changelog && git add CHANGELOG.md && git commit -m \"docs: update CHANGELOG for release\" && git tag",
+    "start:server": "pnpm --filter @petcare/server start:prod"
   },
   "devDependencies": {
-    "@commitlint/cli": "^19.8.0",
-    "@commitlint/config-conventional": "^19.8.0",
-    "@eslint/js": "^9.39.0",
+    "@commitlint/cli": "^21.2.1",
+    "@commitlint/config-conventional": "^21.2.0",
+    "@eslint/js": "9.39.0",
     "@petcare/eslint-config-base": "workspace:*",
     "conventional-changelog": "^8.1.0",
     "conventional-changelog-conventionalcommits": "^10.2.1",
-    "eslint": "^9.39.0",
+    "eslint": "9.39.0",
     "eslint-plugin-import": "^2.32.0",
     "eslint-plugin-unicorn": "^62.0.0",
     "husky": "^9.1.7",
-    "lint-staged": "^17.0.0",
-    "prettier": "^3.9.0",
-    "turbo": "^2.6.0",
-    "typescript": "^5.9.0",
-    "typescript-eslint": "^8.64.0"
+    "lint-staged": "^17.1.0",
+    "prettier": "3.9.0",
+    "turbo": "^2.10.5",
+    "typescript": "^6.0.3",
+    "typescript-eslint": "8.64.0"
   },
   "engines": {
     "node": ">=20.0.0",
     "pnpm": ">=9.0.0"
   },
-  "packageManager": "pnpm@9.15.0",
+  "packageManager": "pnpm@11.15.1",
   "lint-staged": {
     "apps/admin/src/**/*.{ts,tsx}": [
       "pnpm --filter @petcare/admin exec -- prettier --write",
