@@ -127,7 +127,10 @@ describe("VerificationCodeService", () => {
   it("enforces the send cooldown", async () => {
     await service.send("17679141878");
 
-    await expect(service.send("17679141878")).rejects.toMatchObject({ status: 429 });
+    await expect(service.send("17679141878")).rejects.toMatchObject({
+      code: "RATE_LIMIT_EXCEEDED",
+      status: 429,
+    });
   });
 
   it("enforces the hourly send limit", async () => {
@@ -137,6 +140,9 @@ describe("VerificationCodeService", () => {
       redis.values.delete("auth:otp:cooldown:17679141878");
     }, Promise.resolve());
 
-    await expect(service.send("17679141878")).rejects.toMatchObject({ status: 429 });
+    await expect(service.send("17679141878")).rejects.toMatchObject({
+      code: "RATE_LIMIT_EXCEEDED",
+      status: 429,
+    });
   });
 });

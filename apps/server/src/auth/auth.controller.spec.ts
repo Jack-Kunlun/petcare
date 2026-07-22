@@ -1,4 +1,3 @@
-import { UnauthorizedException } from "@nestjs/common";
 import { ConfigService } from "../config/config.service";
 import { AuthController } from "./auth.controller";
 import { AuthService } from "./auth.service";
@@ -108,7 +107,10 @@ describe("AuthController", () => {
   it("rejects refresh without a cookie", async () => {
     await expect(
       controller.refresh({ cookies: {} } as never, response as never),
-    ).rejects.toBeInstanceOf(UnauthorizedException);
+    ).rejects.toMatchObject({
+      code: "AUTH_SESSION_EXPIRED",
+      clientMessage: "登录状态已失效",
+    });
   });
 
   it("revokes the session and clears the refresh cookie", async () => {

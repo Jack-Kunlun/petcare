@@ -1,5 +1,6 @@
 import { createHmac, randomInt } from "node:crypto";
-import { HttpException, HttpStatus, Inject, Injectable } from "@nestjs/common";
+import { HttpStatus, Inject, Injectable } from "@nestjs/common";
+import { ApiException } from "../common/http/api-exception";
 import { ConfigService } from "../config/config.service";
 import { RedisService } from "../config/redis.service";
 import { SMS_SENDER, SmsSender } from "./sms/sms-sender";
@@ -87,6 +88,10 @@ export class VerificationCodeService {
   }
 
   private throwTooManyRequests(): never {
-    throw new HttpException("验证码发送过于频繁", HttpStatus.TOO_MANY_REQUESTS);
+    throw new ApiException(
+      "RATE_LIMIT_EXCEEDED",
+      "验证码发送过于频繁",
+      HttpStatus.TOO_MANY_REQUESTS,
+    );
   }
 }

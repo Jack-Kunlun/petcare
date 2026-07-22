@@ -1,9 +1,20 @@
-// apps/api/src/modules/user/user.service.ts
-
-import { Injectable } from "@nestjs/common";
+import { HttpStatus, Injectable } from "@nestjs/common";
+import { ApiException } from "../../common/http/api-exception";
 import { ConfigService } from "../../config/config.service";
 import { PrismaService } from "../../prisma/prisma.service";
 import { RegisterDto } from "./dto/register.dto";
+
+const publicUserSelect = {
+  id: true,
+  phone: true,
+  username: true,
+  nickname: true,
+  avatar: true,
+  userType: true,
+  status: true,
+  createdAt: true,
+  updatedAt: true,
+} as const;
 
 @Injectable()
 export class UserService {
@@ -13,21 +24,14 @@ export class UserService {
   ) {}
 
   async register(dto: RegisterDto) {
-    // TODO: 验证短信验证码
-
     const user = await this.prisma.user.create({
       data: {
         phone: dto.phone,
         nickname: dto.nickname,
         avatar: dto.avatar,
       },
+      select: publicUserSelect,
     });
-
-    // 使用ConfigService获取JWT配置（用于后续实现JWT token生成）
-    // const jwtSecret = this.configService.jwtSecret;
-    // const jwtExpiresIn = this.configService.jwtExpiresIn;
-
-    // TODO: 使用jwtSecret和jwtExpiresIn生成JWT token
 
     return {
       user,
@@ -37,8 +41,15 @@ export class UserService {
   }
 
   async findOne(id: string) {
-    return this.prisma.user.findUnique({
+    const user = await this.prisma.user.findUnique({
       where: { id },
+      select: publicUserSelect,
     });
+
+    if (!user) {
+      throw new ApiException("RESOURCE_NOT_FOUND", "用户不存在", HttpStatus.NOT_FOUND);
+    }
+
+    return user;
   }
 }
