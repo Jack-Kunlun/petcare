@@ -23,8 +23,11 @@ export class ApiResponseEnvelopeDto {
 }
 
 export class ApiErrorResponseDto extends ApiResponseEnvelopeDto {
-  @ApiProperty({ example: "AUTH_INVALID_CREDENTIALS" })
+  @ApiProperty({ example: "INTERNAL_SERVER_ERROR" })
   declare code: string;
+
+  @ApiProperty({ example: "请求失败" })
+  declare message: string;
 
   @ApiProperty({ nullable: true, example: null })
   declare data: null;
