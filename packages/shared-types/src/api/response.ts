@@ -1,38 +1,45 @@
-// packages/shared-types/src/api/response.ts
-
-/**
- * 统一API响应格式
- */
-export interface ApiResponse<T = unknown> {
-  code: number;
-  message: string;
-  data?: T;
+/** 统一 API 响应元数据。 */
+export interface ApiResponseMeta {
+  requestId: string;
+  timestamp: string;
 }
 
-/**
- * 成功响应快捷方法
- */
-export function successResponse<T>(data: T, message = "success"): ApiResponse<T> {
+/** 统一 API 响应格式。 */
+export interface ApiResponse<T = unknown> {
+  code: string;
+  message: string;
+  data: T;
+  meta: ApiResponseMeta;
+}
+
+export type ApiErrorResponse = ApiResponse<null>;
+
+export function successResponse<T>(
+  data: T,
+  meta: ApiResponseMeta,
+  message = "操作成功",
+): ApiResponse<T> {
   return {
-    code: 200,
+    code: "SUCCESS",
     message,
     data,
+    meta,
   };
 }
 
-/**
- * 错误响应快捷方法
- */
-export function errorResponse(message: string, code = 400): ApiResponse {
+export function errorResponse(
+  code: string,
+  message: string,
+  meta: ApiResponseMeta,
+): ApiErrorResponse {
   return {
     code,
     message,
+    data: null,
+    meta,
   };
 }
 
-/**
- * 分页响应格式
- */
 export interface PaginatedResponse<T> {
   items: T[];
   total: number;
