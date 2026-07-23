@@ -41,14 +41,14 @@
 - `meta.requestId`：本次请求的链路标识。
 - `meta.timestamp`：服务端生成的 ISO 8601 UTC 时间。
 
-分页接口的分页信息放在 `data` 内，保持现有业务结构：
+分页接口的分页信息放在 `data` 内，并统一使用公共分页字段：
 
 ```json
 {
   "code": "SUCCESS",
   "message": "操作成功",
   "data": {
-    "orders": [],
+    "list": [],
     "total": 0,
     "page": 1,
     "pageSize": 20

@@ -386,39 +386,7 @@ Controller 和 Service 只返回领域数据或抛出异常，不得手工再包
 
 ## 分页规范
 
-### 游标分页（推荐）
-
-适用于大数据量场景：
-
-**请求**：
-
-```
-GET /orders?cursor=abc123&limit=20
-```
-
-**响应**：
-
-```json
-{
-  "code": "SUCCESS",
-  "message": "操作成功",
-  "data": {
-    "items": [...],
-    "cursor": {
-      "next": "def456",
-      "hasMore": true
-    }
-  },
-  "meta": {
-    "requestId": "request-123",
-    "timestamp": "2026-07-22T14:00:00.000Z"
-  }
-}
-```
-
-### Offset 分页（传统）
-
-适用于小数据量场景：
+所有分页接口统一使用 `page` 和 `pageSize` 请求参数，分页业务数据固定放在统一响应的 `data` 中。不得使用 `items`、`orders` 等领域化列表字段，也不得由客户端进行字段重命名。
 
 **请求**：
 
@@ -433,7 +401,7 @@ GET /orders?page=1&pageSize=20
   "code": "SUCCESS",
   "message": "操作成功",
   "data": {
-    "orders": [...],
+    "list": [],
     "total": 100,
     "page": 1,
     "pageSize": 20
@@ -444,6 +412,11 @@ GET /orders?page=1&pageSize=20
   }
 }
 ```
+
+- `list`：当前页数据，没有记录时返回空数组。
+- `total`：符合查询条件的记录总数。
+- `page`：当前页码，从 1 开始。
+- `pageSize`：每页记录数。
 
 ---
 
@@ -773,6 +746,6 @@ POST /orders
 
 ---
 
-**最后更新**: 2026-07-22
+**最后更新**: 2026-07-23
 **维护者**: PetCare 后端团队  
 **版本**: v1.0

@@ -216,6 +216,8 @@ export interface UpdateUserRequest {
 ```typescript
 // packages/shared-types/src/api/order.ts
 
+import type { PaginatedResponse } from "./response";
+
 /**
  * 订单类型枚举
  */
@@ -296,12 +298,7 @@ export interface OrderListQuery {
 /**
  * 订单列表响应
  */
-export interface OrderListResponse {
-  orders: Order[];
-  total: number;
-  page: number;
-  pageSize: number;
-}
+export type OrderListResponse = PaginatedResponse<Order>;
 ```
 
 #### 示例3：统一响应格式
@@ -343,7 +340,7 @@ export function errorResponse(message: string, code = 400): ApiResponse {
  * 分页响应格式
  */
 export interface PaginatedResponse<T> {
-  items: T[];
+  list: T[];
   total: number;
   page: number;
   pageSize: number;
