@@ -18,6 +18,9 @@ describe("ConfigService authentication configuration", () => {
     delete process.env.DEFAULT_ADMIN_USERNAME;
     delete process.env.DEFAULT_ADMIN_PHONE;
     delete process.env.DEFAULT_ADMIN_PASSWORD;
+    delete process.env.LOG_LEVEL;
+    delete process.env.LOG_DIR;
+    delete process.env.NODE_ENV;
   });
 
   afterAll(() => {
@@ -73,5 +76,32 @@ describe("ConfigService authentication configuration", () => {
     expect(() => config.captchaMaxAttempts).toThrow(
       "CAPTCHA_MAX_ATTEMPTS must be a positive integer",
     );
+  });
+
+  describe("logging configuration", () => {
+    it("uses safe logging defaults", () => {
+      const config = new ConfigService();
+
+      expect(config.logLevel).toBe("info");
+      expect(config.logDirectory.replaceAll("\\", "/")).toMatch(/\/logs\/server$/);
+      expect(config.logRawRequestBody).toBe(false);
+    });
+
+    it("allows raw request bodies only for development debug logging", () => {
+      process.env.NODE_ENV = "development";
+      process.env.LOG_LEVEL = "debug";
+      expect(new ConfigService().logRawRequestBody).toBe(true);
+
+      process.env.NODE_ENV = "production";
+      expect(new ConfigService().logRawRequestBody).toBe(false);
+    });
+
+    it("rejects an unsupported log level", () => {
+      process.env.LOG_LEVEL = "trace";
+
+      expect(() => new ConfigService().logLevel).toThrow(
+        "LOG_LEVEL must be one of error, warn, info, http, verbose, debug, silly",
+      );
+    });
   });
 });
