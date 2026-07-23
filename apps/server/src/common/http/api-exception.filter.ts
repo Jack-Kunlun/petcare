@@ -1,5 +1,6 @@
-import { ArgumentsHost, Catch, ExceptionFilter, HttpException, Logger } from "@nestjs/common";
+import { ArgumentsHost, Catch, ExceptionFilter, HttpException } from "@nestjs/common";
 import { Response } from "express";
+import { AppLogger } from "../../logging/app-logger.service";
 import { ApiException } from "./api-exception";
 import { RequestWithId } from "./api-response.types";
 
@@ -10,7 +11,7 @@ interface MappedException {
 
 @Catch()
 export class ApiExceptionFilter implements ExceptionFilter {
-  private readonly logger = new Logger(ApiExceptionFilter.name);
+  constructor(private readonly logger: AppLogger) {}
 
   catch(exception: unknown, host: ArgumentsHost): void {
     const context = host.switchToHttp();
@@ -20,11 +21,18 @@ export class ApiExceptionFilter implements ExceptionFilter {
     const mapped = this.mapException(exception, status);
 
     if (status >= 500) {
-      this.logger.error({
+      const error =
+        exception instanceof Error
+          ? { name: exception.name, message: exception.message, stack: exception.stack }
+          : { value: exception };
+
+      this.logger.write("error", "http.exception", {
         requestId: request.requestId,
         method: request.method,
-        path: request.url,
-        exception,
+        path: request.path || request.url.split("?", 1)[0],
+        statusCode: status,
+        code: mapped.code,
+        error,
       });
     }
 

@@ -1,4 +1,5 @@
-import { ArgumentsHost, BadRequestException, Logger, NotFoundException } from "@nestjs/common";
+import { ArgumentsHost, BadRequestException, NotFoundException } from "@nestjs/common";
+import { AppLogger } from "../../logging/app-logger.service";
 import { ApiException } from "./api-exception";
 import { ApiExceptionFilter } from "./api-exception.filter";
 
@@ -7,14 +8,12 @@ const request = { requestId: "request-123", method: "GET", url: "/resource" };
 const host = {
   switchToHttp: () => ({ getRequest: () => request, getResponse: () => response }),
 } as unknown as ArgumentsHost;
-const filter = new ApiExceptionFilter();
+const logger = { write: jest.fn() } as unknown as AppLogger;
+const filter = new ApiExceptionFilter(logger);
 
 beforeEach(() => {
   jest.clearAllMocks();
-  jest.spyOn(Logger.prototype, "error").mockImplementation(() => undefined);
 });
-
-afterEach(() => jest.restoreAllMocks());
 
 describe("ApiExceptionFilter", () => {
   it.each([
@@ -59,7 +58,22 @@ describe("ApiExceptionFilter", () => {
         timestamp: expect.any(String),
       },
     });
-    expect(Logger.prototype.error).toHaveBeenCalledTimes(1);
+    expect(logger.write).toHaveBeenCalledWith(
+      "error",
+      "http.exception",
+      expect.objectContaining({
+        requestId: "request-123",
+        method: "GET",
+        path: "/resource",
+        statusCode: 500,
+        code: "INTERNAL_SERVER_ERROR",
+        error: expect.objectContaining({
+          name: "Error",
+          message: "postgresql://secret@db/internal",
+          stack: expect.any(String),
+        }),
+      }),
+    );
     expect(JSON.stringify(response.json.mock.calls)).not.toContain("postgresql://");
   });
 });
