@@ -9,6 +9,20 @@
 | `PORT`     | 否   | `3000`        | 服务器端口号                       |
 | `NODE_ENV` | 否   | `development` | 运行环境（development/production） |
 
+### 日志配置
+
+| 变量名      | 必填 | 默认值          | 说明                                                                    |
+| ----------- | ---- | --------------- | ----------------------------------------------------------------------- |
+| `LOG_LEVEL` | 否   | `info`          | `error`、`warn`、`info`、`http`、`verbose`、`debug` 或 `silly`          |
+| `LOG_DIR`   | 否   | `./logs/server` | 日志目录；相对路径以 monorepo 根目录为基准，Docker 中固定为 `/app/logs` |
+
+日志同时输出到控制台和文件。文件名为 `application-%DATE%.log`（全部日志）与
+`error-%DATE%.log`（仅错误日志），每天或达到 20MB 时轮转，归档使用 gzip 压缩并保留 14 天。
+
+请求正文和查询参数默认递归脱敏密码、Token、Cookie、Secret、验证码等凭据；生产环境还会掩码手机号、
+OpenID、邮箱和地址。仅在非生产环境显式设置 `LOG_LEVEL=debug` 时，才会额外写入
+`http.request.raw` 原始正文事件。原始正文可能包含敏感数据，只能用于短时本地排查；生产环境无法启用该行为。
+
 ### 数据库配置（独立配置项）
 
 | 变量名        | 必填 | 默认值      | 说明                  |
