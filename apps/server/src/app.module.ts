@@ -6,12 +6,21 @@ import { ApiResponseInterceptor } from "./common/http/api-response.interceptor";
 import { RequestIdMiddleware } from "./common/http/request-id.middleware";
 import { ConfigModule } from "./config/config.module";
 import { HealthModule } from "./health/health.module";
+import { LoggingModule } from "./logging/logging.module";
 import { OrderModule } from "./modules/order/order.module";
 import { UserModule } from "./modules/user/user.module";
 import { PrismaModule } from "./prisma/prisma.module";
 
 @Module({
-  imports: [ConfigModule, PrismaModule, AuthModule, HealthModule, UserModule, OrderModule],
+  imports: [
+    ConfigModule,
+    LoggingModule,
+    PrismaModule,
+    AuthModule,
+    HealthModule,
+    UserModule,
+    OrderModule,
+  ],
   providers: [
     { provide: APP_INTERCEPTOR, useClass: ApiResponseInterceptor },
     { provide: APP_FILTER, useClass: ApiExceptionFilter },
