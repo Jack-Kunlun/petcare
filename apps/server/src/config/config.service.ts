@@ -1,4 +1,11 @@
+import { isAbsolute, resolve } from "node:path";
 import { Injectable } from "@nestjs/common";
+
+export const LOG_LEVELS = ["error", "warn", "info", "http", "verbose", "debug", "silly"] as const;
+
+export type LogLevel = (typeof LOG_LEVELS)[number];
+
+const monorepoRoot = resolve(__dirname, "../../../..");
 
 @Injectable()
 export class ConfigService {
@@ -169,6 +176,27 @@ export class ConfigService {
 
   get nodeEnv(): string {
     return process.env.NODE_ENV || "development";
+  }
+
+  // 日志配置
+  get logLevel(): LogLevel {
+    const level = process.env.LOG_LEVEL?.trim() || "info";
+
+    if (!LOG_LEVELS.includes(level as LogLevel)) {
+      throw new Error(`LOG_LEVEL must be one of ${LOG_LEVELS.join(", ")}`);
+    }
+
+    return level as LogLevel;
+  }
+
+  get logDirectory(): string {
+    const directory = process.env.LOG_DIR?.trim() || "logs/server";
+
+    return isAbsolute(directory) ? directory : resolve(monorepoRoot, directory);
+  }
+
+  get logRawRequestBody(): boolean {
+    return this.nodeEnv !== "production" && this.logLevel === "debug";
   }
 
   // 异步任务配置。任务生产者和 Worker 必须使用同一队列前缀，
