@@ -39,7 +39,7 @@ export class OrderService {
   }
 
   async findAll(page = 1, pageSize = 20) {
-    const [orders, total] = await Promise.all([
+    const [list, total] = await Promise.all([
       this.prisma.order.findMany({
         skip: (page - 1) * pageSize,
         take: pageSize,
@@ -49,7 +49,7 @@ export class OrderService {
     ]);
 
     return {
-      orders,
+      list,
       total,
       page,
       pageSize,
