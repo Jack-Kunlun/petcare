@@ -4,11 +4,16 @@ import { SwaggerModule, DocumentBuilder } from "@nestjs/swagger";
 import cookieParser from "cookie-parser";
 import { AppModule } from "./app.module";
 import { ConfigService } from "./config/config.service";
+import { AppLogger } from "./logging/app-logger.service";
 
 async function bootstrap() {
-  const app = await NestFactory.create(AppModule);
+  const app = await NestFactory.create(AppModule, { bufferLogs: true });
+  const appLogger = app.get(AppLogger);
   const configService = app.get(ConfigService);
 
+  app.useLogger(appLogger);
+  app.flushLogs();
+  app.enableShutdownHooks();
   app.use(cookieParser());
 
   // 全局验证管道
@@ -44,6 +49,10 @@ async function bootstrap() {
   const port = configService.port;
 
   await app.listen(port);
+  appLogger.write("info", "server.started", {
+    port,
+    environment: configService.nodeEnv,
+  });
 }
 
 bootstrap();

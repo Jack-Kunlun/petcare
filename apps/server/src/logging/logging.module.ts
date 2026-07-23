@@ -2,6 +2,7 @@ import { Global, Module } from "@nestjs/common";
 import { ConfigModule } from "../config/config.module";
 import { ConfigService } from "../config/config.service";
 import { AppLogger } from "./app-logger.service";
+import { HttpLoggingMiddleware } from "./http-logging.middleware";
 import { LogSanitizer } from "./log-sanitizer";
 import { WINSTON_LOGGER } from "./logging.constants";
 import { createWinstonLogger } from "./winston-logger.factory";
@@ -16,8 +17,9 @@ import { createWinstonLogger } from "./winston-logger.factory";
       useFactory: createWinstonLogger,
     },
     AppLogger,
+    HttpLoggingMiddleware,
     LogSanitizer,
   ],
-  exports: [AppLogger, LogSanitizer],
+  exports: [AppLogger, HttpLoggingMiddleware, LogSanitizer],
 })
 export class LoggingModule {}
