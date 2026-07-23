@@ -87,7 +87,14 @@ docker-compose logs -f server
 
 # 查看最近100行日志
 docker-compose logs --tail=100 server
+
+# 跟踪宿主机上的 Server 结构化应用日志（PowerShell）
+Get-Content ./logs/server/application-*.log -Wait
 ```
+
+Server 还会把 JSON 日志写入 `logs/server/application-%DATE%.log` 和
+`logs/server/error-%DATE%.log`。文件按天或 20MB 轮转，gzip 压缩并保留 14 天。
+`LOG_LEVEL` 默认为 `info`；不要在共享或生产环境使用 `debug` 记录原始请求正文。
 
 ### 数据管理
 

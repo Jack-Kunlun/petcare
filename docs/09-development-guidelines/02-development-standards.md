@@ -532,6 +532,26 @@ export class HttpExceptionFilter implements ExceptionFilter {
 }
 ```
 
+#### 日志规范
+
+后端服务统一注入 `AppLogger` 记录结构化事件。禁止在业务代码中使用 `console.*`、直接创建 Winston
+实例或直接读取日志环境变量；日志配置统一通过 `ConfigService` 获取。
+
+```typescript
+@Injectable()
+export class OrderService {
+  constructor(private readonly logger: AppLogger) {}
+
+  handleTimeout(orderId: string): void {
+    this.logger.write("warn", "order.timeout", { orderId });
+  }
+}
+```
+
+事件名使用稳定的点分命名，元数据只记录排查所需字段。请求正文由 HTTP 日志中间件统一记录和脱敏，
+业务服务不得重复记录密码、Token、Cookie、验证码或第三方 Secret。生产环境还会掩码手机号、OpenID、
+邮箱和地址。只有非生产环境的 `LOG_LEVEL=debug` 会额外输出原始请求正文，仅可短时启用。
+
 ---
 
 ### 4.4 命名规范

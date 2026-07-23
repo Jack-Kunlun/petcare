@@ -106,6 +106,9 @@ services:
       # 服务器配置
       PORT: 3000
       NODE_ENV: production
+      # 日志配置；生产环境即使设置 debug 也不会记录原始请求正文
+      LOG_LEVEL: ${LOG_LEVEL:-info}
+      LOG_DIR: /app/logs
       # API配置
       API_BASE_URL: http://localhost:8986/api
       # Docker 管理端与本地 Vite 开发服务器的跨域来源
