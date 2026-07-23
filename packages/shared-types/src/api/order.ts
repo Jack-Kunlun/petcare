@@ -1,6 +1,7 @@
 // packages/shared-types/src/api/order.ts
 
 import { OrderType, OrderStatus, ServiceType } from "../enums";
+import type { PaginatedResponse } from "./response";
 
 /**
  * 订单基本信息
@@ -67,12 +68,7 @@ export interface OrderListQuery {
 /**
  * 订单列表响应
  */
-export interface OrderListResponse {
-  orders: Order[];
-  total: number;
-  page: number;
-  pageSize: number;
-}
+export type OrderListResponse = PaginatedResponse<Order>;
 
 /**
  * 接单意向

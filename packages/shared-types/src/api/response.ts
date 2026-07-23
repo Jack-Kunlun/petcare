@@ -41,7 +41,7 @@ export function errorResponse(
 }
 
 export interface PaginatedResponse<T> {
-  items: T[];
+  list: T[];
   total: number;
   page: number;
   pageSize: number;
