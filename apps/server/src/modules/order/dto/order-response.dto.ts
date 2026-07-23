@@ -51,7 +51,7 @@ export class CreateOrderResponseDto {
 
 export class OrderListResponseDto {
   @ApiProperty({ type: [OrderResponseDto] })
-  orders: OrderResponseDto[];
+  list: OrderResponseDto[];
 
   @ApiProperty({ example: 1 })
   total: number;

@@ -51,6 +51,23 @@ describe("Swagger response documentation", () => {
     });
   });
 
+  it("documents the unified order pagination data fields", () => {
+    const schema = document.components?.schemas?.OrderListResponseDto as {
+      properties?: Record<string, unknown>;
+    };
+
+    expect(schema.properties).toMatchObject({
+      list: {
+        type: "array",
+        items: { $ref: "#/components/schemas/OrderResponseDto" },
+      },
+      total: { type: "number", example: 1 },
+      page: { type: "number", example: 1 },
+      pageSize: { type: "number", example: 20 },
+    });
+    expect(schema.properties).not.toHaveProperty("orders");
+  });
+
   it("documents logout and standard errors", () => {
     expect(document.paths["/auth/logout"]?.post?.responses?.["204"]).toBeDefined();
     expect(document.paths["/users/{id}"]?.get?.responses?.["404"]).toBeDefined();

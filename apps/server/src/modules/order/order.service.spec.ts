@@ -17,6 +17,20 @@ describe("OrderService public responses", () => {
 
   beforeEach(() => jest.clearAllMocks());
 
+  it("returns the unified list-based pagination shape", async () => {
+    const orders = [{ id: "order-1" }];
+
+    prisma.order.findMany.mockResolvedValue(orders);
+    prisma.order.count.mockResolvedValue(1);
+
+    await expect(service.findAll(2, 10)).resolves.toEqual({
+      list: orders,
+      total: 1,
+      page: 2,
+      pageSize: 10,
+    });
+  });
+
   it("queries order details with a safe owner projection", async () => {
     prisma.order.findUnique.mockResolvedValue({ id: "order-1" });
 
