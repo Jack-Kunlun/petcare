@@ -171,7 +171,7 @@ export function errorResponse(
 }
 
 export interface PaginatedResponse<T> {
-  items: T[];
+  list: T[];
   total: number;
   page: number;
   pageSize: number;
@@ -882,7 +882,7 @@ export class CreateOrderResponseDto {
 }
 
 export class OrderListResponseDto {
-  @ApiProperty({ type: [OrderResponseDto] }) orders: OrderResponseDto[];
+  @ApiProperty({ type: [OrderResponseDto] }) list: OrderResponseDto[];
   @ApiProperty({ example: 1 }) total: number;
   @ApiProperty({ example: 1 }) page: number;
   @ApiProperty({ example: 20 }) pageSize: number;
