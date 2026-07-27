@@ -19,11 +19,13 @@
     "jsx": "react-jsx",
     "allowJs": true,
     "resolveJsonModule": true,
+    "skipLibCheck": true,
+    "types": ["jest", "node"],
     "typeRoots": ["node_modules/@types"],
     "paths": {
       "@/*": ["./src/*"]
     }
   },
-  "include": ["./src", "./types"],
+  "include": ["./src", "./types", "./config"],
   "compileOnSave": false
 }

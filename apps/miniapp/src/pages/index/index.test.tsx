@@ -7,6 +7,7 @@ describe("Index Page", () => {
   it("should display correct title", () => {
     // TODO: 添加标题文本测试
     const title = "PetCare宠伴";
+
     expect(title).toContain("PetCare");
   });
 });

@@ -1,16 +1,10 @@
 // apps/miniapp/src/app.ts
 
-import { Component } from "react";
+import { Component, type PropsWithChildren } from "react";
 import "./app.css";
 import "@taroify/core/styles/index.css";
 
-class App extends Component {
-  componentDidMount() {}
-
-  componentDidShow() {}
-
-  componentDidHide() {}
-
+class App extends Component<PropsWithChildren> {
   render() {
     return this.props.children;
   }
