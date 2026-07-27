@@ -53,6 +53,13 @@
       "pnpm --filter @petcare/admin exec -- eslint . --fix",
       "pnpm --filter @petcare/admin exec -- vitest run --changed"
     ],
+    "apps/miniapp/**/*.{ts,tsx,js,mjs}": [
+      "pnpm --filter @petcare/miniapp exec -- prettier --write",
+      "pnpm --filter @petcare/miniapp exec -- eslint --fix"
+    ],
+    "apps/miniapp/**/*.css": [
+      "pnpm --filter @petcare/miniapp exec -- prettier --write"
+    ],
     "apps/server/src/**/*.ts": [
       "pnpm --filter @petcare/server exec -- prettier --write",
       "pnpm --filter @petcare/server exec -- eslint . --fix",

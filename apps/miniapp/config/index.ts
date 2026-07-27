@@ -1,27 +1,27 @@
-import { defineConfig } from '@tarojs/cli';
+import { defineConfig } from "@tarojs/cli";
 
 export default defineConfig({
-  projectName: 'petcare-miniapp',
-  date: '2026-7-15',
+  projectName: "petcare-miniapp",
+  date: "2026-7-15",
   designWidth: 750,
   deviceRatio: {
     weapp: 2,
     h5: 1,
   },
-  sourceRoot: 'src',
-  outputRoot: 'dist',
+  sourceRoot: "src",
+  outputRoot: "dist",
   plugins: [],
   defineConstants: {
-    ENABLE_INNER_HTML: 'true',
-    ENABLE_ADJACENT_HTML: 'true',
-    ENABLE_SIZE_APIS: 'true',
-    ENABLE_TEMPLATE_CONTENT: 'true',
-    ENABLE_MUTATION_OBSERVER: 'true',
-    ENABLE_CLONE_NODE: 'true',
-    ENABLE_CONTAINS: 'true',
+    ENABLE_INNER_HTML: "true",
+    ENABLE_ADJACENT_HTML: "true",
+    ENABLE_SIZE_APIS: "true",
+    ENABLE_TEMPLATE_CONTENT: "true",
+    ENABLE_MUTATION_OBSERVER: "true",
+    ENABLE_CLONE_NODE: "true",
+    ENABLE_CONTAINS: "true",
   },
-  framework: 'react',
-  compiler: 'webpack5',
+  framework: "react",
+  compiler: "webpack5",
   cache: {
     enable: false,
   },
@@ -37,8 +37,8 @@ export default defineConfig({
     },
   },
   h5: {
-    publicPath: '/',
-    staticDirectory: 'static',
+    publicPath: "/",
+    staticDirectory: "static",
     postcss: {
       autoprefixer: {
         enable: true,
