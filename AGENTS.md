@@ -297,6 +297,20 @@ docker-compose up -d
 - **配置变更**: 同步更新 `.env.example` 和 `docs/environment-variables.md`
 - **文档更新**: 重要变更后更新相关文档
 
+## Agent 技能配置
+
+### Issue 跟踪系统
+
+项目工作项统一使用 GitHub Issues 管理。详细约定参见 `docs/agents/issue-tracker.md`。
+
+### Triage 标签
+
+项目使用五个默认分流标签。详细映射参见 `docs/agents/triage-labels.md`。
+
+### 领域文档
+
+项目采用多上下文布局，由根目录 `CONTEXT-MAP.md` 索引各应用和共享包的领域文档。详细约定参见 `docs/agents/domain.md`。
+
 ---
 
 **最后更新**: 2026-07-16  
