@@ -25,6 +25,8 @@ test("Server tsconfig 不依赖跨版本弃用屏蔽", async () => {
   assert.equal(serverTsconfig.compilerOptions.ignoreDeprecations, undefined);
   assert.equal(serverTsconfig.compilerOptions.baseUrl, undefined);
   assert.deepEqual(serverTsconfig.compilerOptions.paths["@/*"], ["./src/*"]);
+  assert.deepEqual(serverTsconfig.include, ["src/**/*.ts"]);
+  assert.deepEqual(serverTsconfig.exclude, ["node_modules", "dist", "test", "prisma"]);
 });
 
 test("所有工作区暴露标准生命周期", async () => {
@@ -52,6 +54,31 @@ test("Miniapp 内部脚本不嵌套 npm", async () => {
   const manifest = await readJson("apps/miniapp/package.json");
 
   assert.doesNotMatch(JSON.stringify(manifest.scripts), /\bnpm run\b/);
+});
+
+test("Miniapp 开发命令直接启用 Taro watch", async () => {
+  const manifest = await readJson("apps/miniapp/package.json");
+
+  assert.equal(manifest.scripts["dev:weapp"], "taro build --type weapp --watch");
+  assert.equal(manifest.scripts["dev:h5"], "taro build --type h5 --watch");
+});
+
+test("Miniapp 产物不依赖 WXSS 通配选择器或运行时 process", async () => {
+  const appCss = await readFile(resolve(root, "apps/miniapp/src/app.css"), "utf8");
+  const request = await readFile(resolve(root, "apps/miniapp/src/api/request.ts"), "utf8");
+  const config = await readFile(resolve(root, "apps/miniapp/config/index.ts"), "utf8");
+
+  assert.doesNotMatch(appCss, /@tailwind\s+(?:base|components)/);
+  assert.doesNotMatch(request, /\bprocess\.env\b/);
+  assert.match(config, /__API_BASE_URL__/);
+  assert.match(config, /deviceRatio:\s*\{\s*750:\s*1,\s*\}/);
+});
+
+test("Miniapp Jest 串行运行以避免 Taro 环境 worker 退出告警", async () => {
+  const manifest = await readJson("apps/miniapp/package.json");
+
+  assert.match(manifest.scripts.test, /--runInBand/);
+  assert.match(manifest.scripts["test:coverage"], /--runInBand/);
 });
 
 test("Miniapp 提供微信开发者工具和本地 API 配置", async () => {

@@ -1,13 +1,16 @@
 import { ApiResponse } from "@petcare/shared-types";
 import Taro from "@tarojs/taro";
 
+declare const __API_BASE_URL__: string | undefined;
+
 export type ApiRequestOptions = Omit<
   Taro.request.Option<unknown>,
   "url" | "success" | "fail" | "complete"
 >;
 
-const API_BASE_URL =
-  process.env.TARO_APP_API_BASE_URL?.replace(/\/+$/, "") || "http://localhost:3000";
+const configuredApiBaseUrl =
+  typeof __API_BASE_URL__ === "string" ? __API_BASE_URL__ : "http://localhost:3000";
+const API_BASE_URL = configuredApiBaseUrl.replace(/\/+$/, "") || "http://localhost:3000";
 
 export class MiniappApiError extends Error {
   constructor(
