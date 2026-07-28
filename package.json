@@ -54,36 +54,36 @@
   "packageManager": "pnpm@11.15.1",
   "lint-staged": {
     "apps/admin/src/**/*.{ts,tsx}": [
-      "pnpm --filter @petcare/admin exec -- prettier --write",
-      "pnpm --filter @petcare/admin exec -- eslint . --fix",
-      "pnpm --filter @petcare/admin exec -- vitest run --changed"
+      "corepack pnpm --filter @petcare/admin exec -- prettier --write",
+      "corepack pnpm --filter @petcare/admin exec -- eslint . --fix",
+      "corepack pnpm --filter @petcare/admin exec -- vitest run --changed"
     ],
     "apps/miniapp/**/*.{ts,tsx,js,mjs}": [
-      "pnpm --filter @petcare/miniapp exec -- prettier --write",
-      "pnpm --filter @petcare/miniapp exec -- eslint --fix"
+      "corepack pnpm --filter @petcare/miniapp exec -- prettier --write",
+      "corepack pnpm --filter @petcare/miniapp exec -- eslint --fix"
     ],
     "apps/miniapp/**/*.css": [
-      "pnpm --filter @petcare/miniapp exec -- prettier --write"
+      "corepack pnpm --filter @petcare/miniapp exec -- prettier --write"
     ],
     "apps/server/src/**/*.ts": [
-      "pnpm --filter @petcare/server exec -- prettier --write",
-      "pnpm --filter @petcare/server exec -- eslint . --fix",
-      "pnpm --filter @petcare/server exec -- jest --passWithNoTests --findRelatedTests"
+      "corepack pnpm --filter @petcare/server exec -- prettier --write",
+      "corepack pnpm --filter @petcare/server exec -- eslint . --fix",
+      "corepack pnpm --filter @petcare/server exec -- jest --passWithNoTests --findRelatedTests"
     ],
     "packages/shared-types/**/*.ts": [
-      "pnpm --filter @petcare/shared-types exec -- prettier --write",
-      "pnpm --filter @petcare/shared-types exec -- eslint . --fix",
-      "pnpm --filter @petcare/shared-types exec -- vitest run --changed"
+      "corepack pnpm --filter @petcare/shared-types exec -- prettier --write",
+      "corepack pnpm --filter @petcare/shared-types exec -- eslint . --fix",
+      "corepack pnpm --filter @petcare/shared-types exec -- vitest run --changed"
     ],
     "packages/shared-utils/**/*.ts": [
-      "pnpm --filter @petcare/shared-utils exec -- prettier --write",
-      "pnpm --filter @petcare/shared-utils exec -- eslint . --fix",
-      "pnpm --filter @petcare/shared-utils exec -- vitest run --changed"
+      "corepack pnpm --filter @petcare/shared-utils exec -- prettier --write",
+      "corepack pnpm --filter @petcare/shared-utils exec -- eslint . --fix",
+      "corepack pnpm --filter @petcare/shared-utils exec -- vitest run --changed"
     ],
     "packages/api-client/**/*.ts": [
-      "pnpm --filter @petcare/api-client exec -- prettier --write",
-      "pnpm --filter @petcare/api-client exec -- eslint . --fix",
-      "pnpm --filter @petcare/api-client exec -- vitest run --changed"
+      "corepack pnpm --filter @petcare/api-client exec -- prettier --write",
+      "corepack pnpm --filter @petcare/api-client exec -- eslint . --fix",
+      "corepack pnpm --filter @petcare/api-client exec -- vitest run --changed"
     ],
     "*.{md,json,yml,yaml}": [
       "prettier --write"
