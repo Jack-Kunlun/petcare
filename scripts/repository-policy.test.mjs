@@ -28,10 +28,13 @@ test("Hooks 使用 pnpm exec，换行策略为 Windows 脚本保留 CRLF", async
   const commitMsg = await readFile(resolve(root, ".husky/commit-msg"), "utf8");
   const preCommit = await readFile(resolve(root, ".husky/pre-commit"), "utf8");
   const attributes = await readFile(resolve(root, ".gitattributes"), "utf8");
+  const manifest = JSON.parse(await readFile(resolve(root, "package.json"), "utf8"));
+  const lintStaged = JSON.stringify(manifest["lint-staged"]);
 
-  assert.match(commitMsg, /pnpm exec commitlint --edit/);
-  assert.match(preCommit, /pnpm exec lint-staged/);
+  assert.match(commitMsg, /corepack pnpm exec commitlint --edit/);
+  assert.match(preCommit, /corepack pnpm exec lint-staged/);
   assert.doesNotMatch(`${commitMsg}\n${preCommit}`, /\bnpx\b/);
+  assert.doesNotMatch(lintStaged, /(?<!corepack )pnpm --filter/);
   assert.match(attributes, /^\*\.bat text eol=crlf$/m);
   assert.match(attributes, /^\*\.cmd text eol=crlf$/m);
 });
