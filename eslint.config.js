@@ -7,16 +7,7 @@ import baseConfig from "@petcare/eslint-config-base";
 export default [
   ...baseConfig,
   {
-    ignores: [
-      "node_modules",
-      "dist",
-      "build",
-      ".next",
-      "coverage",
-      "*.min.js",
-      "apps",
-      "packages",
-    ],
+    ignores: ["node_modules", "dist", "build", ".next", "coverage", "*.min.js", "apps", "packages"],
   },
   {
     files: ["**/*.{js,mjs,cjs}"],
