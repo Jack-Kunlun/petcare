@@ -91,6 +91,41 @@ export function validateStyleFile(scope, relativePath, source) {
   return violations;
 }
 
+export function validateAdminTheme(source) {
+  const violations = [];
+  const themeMatch = source.match(/@theme(?:\s+[^{]+)?\s*\{([\s\S]*?)\}/);
+  const theme = themeMatch?.[1] ?? "";
+  const requiredDeclarations = [
+    ["--spacing", "4px"],
+    ["--text-base", "14px"],
+    ["--breakpoint-md", "768px"],
+    ["--breakpoint-lg", "1024px"],
+    ["--container-md", "448px"],
+  ];
+
+  if (!themeMatch) {
+    violations.push("Admin 缺少 @theme 主题块");
+  }
+
+  for (const [name, value] of requiredDeclarations) {
+    const pattern = new RegExp(`${name}\\s*:\\s*${value.replace(".", "\\.")}\\s*;`);
+
+    if (!pattern.test(theme)) {
+      violations.push(`Admin @theme 缺少精确声明：${name}: ${value}`);
+    }
+  }
+
+  if (/\d(?:\.\d+)?(?:rem|rpx)\b/i.test(theme)) {
+    violations.push("Admin @theme 禁止 rem/rpx");
+  }
+
+  if (!/html\s*\{[^}]*font-size\s*:\s*14px\s*;/s.test(source)) {
+    violations.push("Admin html 缺少默认字号：font-size: 14px");
+  }
+
+  return violations;
+}
+
 export async function checkStylePolicy(repoRoot = DEFAULT_REPO_ROOT, scope = "all") {
   const scopes = scope === "all" ? ["miniapp", "admin"] : [scope];
   const violations = [];
