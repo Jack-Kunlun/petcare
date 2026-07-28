@@ -1,5 +1,10 @@
 # 双端 Tailwind 样式体系实施计划
 
+> **执行状态说明（2026-07-28）：** Task 1 已由提交 `8308c55` 完成，Task 2 的基础
+> `weapp-tailwindcss` 接入已由提交 `2326684` 完成。用户随后确认将 Miniapp 从
+> Tailwind v3 改为 v4 CSS-first，因此本计划的 Miniapp v3 步骤不再继续；剩余工作由
+> `2026-07-28-tailwind-v4-styling-system-continuation.md` 接替。
+
 > **For agentic workers:** REQUIRED SUB-SKILL: Use superpowers:subagent-driven-development (recommended) or superpowers:executing-plans to implement this plan task-by-task. Steps use checkbox (`- [ ]`) syntax for tracking.
 
 **Goal:** 将 Miniapp 当前页面样式迁移到安全的 Tailwind CSS v3 工具类，完善 `weapp-tailwindcss` 构建链路，并为 Admin 建立 Tailwind CSS v4 的 px 设计 token 与双端自动化样式门禁。
