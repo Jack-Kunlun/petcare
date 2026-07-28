@@ -81,6 +81,12 @@ test("Miniapp Jest 串行运行以避免 Taro 环境 worker 退出告警", async
   assert.match(manifest.scripts["test:coverage"], /--runInBand/);
 });
 
+test("Server 覆盖率串行运行以避免 Turbo 嵌套 worker 退出告警", async () => {
+  const manifest = await readJson("apps/server/package.json");
+
+  assert.match(manifest.scripts["test:coverage"], /--runInBand/);
+});
+
 test("Miniapp 提供微信开发者工具和本地 API 配置", async () => {
   const project = await readJson("apps/miniapp/project.config.json");
   const envExample = await readFile(resolve(root, ".env.example"), "utf8");
