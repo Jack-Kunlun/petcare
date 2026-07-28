@@ -19,6 +19,16 @@ export class ConfigService {
     return value;
   }
 
+  private getRequiredPositiveInteger(name: string): number {
+    const value = this.getRequiredString(name);
+
+    if (!/^\d+$/.test(value) || Number(value) <= 0) {
+      throw new Error(`${name} must be a positive integer`);
+    }
+
+    return Number(value);
+  }
+
   private getPositiveInteger(name: string, fallback: number): number {
     const value = process.env[name];
 
@@ -33,6 +43,140 @@ export class ConfigService {
     }
 
     return parsed;
+  }
+
+  validateForStartup(): void {
+    const errors: string[] = [];
+    const check = (name: string, reader: () => unknown): void => {
+      try {
+        reader();
+      } catch (error) {
+        errors.push(error instanceof Error ? error.message : `${name} is invalid`);
+      }
+    };
+    const required = [
+      "DB_HOST",
+      "DB_USERNAME",
+      "DB_PASSWORD",
+      "DB_NAME",
+      "DB_SCHEMA",
+      "REDIS_HOST",
+      "DEFAULT_ADMIN_USERNAME",
+    ] as const;
+
+    for (const name of required) {
+      check(name, () => this.getRequiredString(name));
+    }
+
+    check("NODE_ENV", () => this.validateNodeEnv());
+    check("PORT", () => this.port);
+    check("DB_PORT", () => this.getRequiredPositiveInteger("DB_PORT"));
+    check("REDIS_PORT", () => this.getRequiredPositiveInteger("REDIS_PORT"));
+    check("JWT_SECRET", () => this.jwtSecret);
+    check("JWT_ACCESS_EXPIRES_IN", () =>
+      this.validateDuration("JWT_ACCESS_EXPIRES_IN", this.jwtAccessExpiresIn),
+    );
+    check("JWT_REFRESH_EXPIRES_IN", () =>
+      this.validateDuration("JWT_REFRESH_EXPIRES_IN", this.jwtRefreshExpiresIn),
+    );
+    check("REFRESH_TOKEN_TTL_SECONDS", () => this.refreshTokenTtlSeconds);
+    check("DEFAULT_ADMIN_PHONE", () => this.defaultAdminPhone);
+    check("DEFAULT_ADMIN_PASSWORD", () => this.validateAdminPassword());
+    check("ALLOWED_ORIGINS", () => this.validateAllowedOrigins());
+    check("WECHAT", () => this.validateWechatConfiguration());
+    check("ALIYUN_OSS", () => this.validateOssConfiguration());
+
+    if (this.nodeEnv === "production") {
+      check("REDIS_PASSWORD", () => this.getRequiredString("REDIS_PASSWORD"));
+      check("SMS_DEV_CODE", () => this.smsDevCode);
+    }
+
+    if (errors.length > 0) {
+      throw new Error(`Invalid environment configuration:\n- ${errors.join("\n- ")}`);
+    }
+  }
+
+  private validateNodeEnv(): void {
+    if (!["development", "test", "production"].includes(this.nodeEnv)) {
+      throw new Error("NODE_ENV must be development, test, or production");
+    }
+  }
+
+  private validateDuration(name: string, value: string): void {
+    if (!/^\d+(?:ms|s|m|h|d|w)$/.test(value)) {
+      throw new Error(`${name} must be a positive duration such as 15m or 7d`);
+    }
+  }
+
+  private validateAdminPassword(): void {
+    if (this.defaultAdminPassword.length < 12) {
+      throw new Error("DEFAULT_ADMIN_PASSWORD must be at least 12 characters long");
+    }
+  }
+
+  private validateAllowedOrigins(): void {
+    for (const origin of this.allowedOrigins.split(",").map((value) => value.trim())) {
+      try {
+        const url = new URL(origin);
+
+        if (!["http:", "https:"].includes(url.protocol)) {
+          throw new Error("unsupported protocol");
+        }
+      } catch {
+        throw new Error("ALLOWED_ORIGINS must contain valid absolute HTTP URLs");
+      }
+    }
+  }
+
+  private validateOptionalGroup(names: readonly string[]): boolean {
+    const configured = names.filter((name) => Boolean(process.env[name]?.trim()));
+
+    if (configured.length === 0) {
+      return false;
+    }
+
+    const missing = names.filter((name) => !process.env[name]?.trim());
+
+    if (missing.length > 0) {
+      throw new Error(`${missing.join(", ")} are required when this integration is configured`);
+    }
+
+    return true;
+  }
+
+  private validateWechatConfiguration(): void {
+    if (!this.validateOptionalGroup(["WECHAT_APP_ID", "WECHAT_APP_SECRET"])) {
+      return;
+    }
+
+    if (!/^wx[a-zA-Z0-9]{16}$/.test(this.wechatAppId)) {
+      throw new Error("WECHAT_APP_ID has an invalid format");
+    }
+
+    if (!/^[a-f0-9]{32}$/i.test(this.wechatAppSecret)) {
+      throw new Error("WECHAT_APP_SECRET has an invalid format");
+    }
+  }
+
+  private validateOssConfiguration(): void {
+    if (
+      !this.validateOptionalGroup([
+        "ALIYUN_OSS_ACCESS_KEY_ID",
+        "ALIYUN_OSS_ACCESS_KEY_SECRET",
+        "ALIYUN_OSS_BUCKET",
+        "ALIYUN_OSS_REGION",
+      ])
+    ) {
+      return;
+    }
+
+    if (!/^[a-z0-9][a-z0-9-]{1,61}[a-z0-9]$/.test(this.aliyunOssBucket)) {
+      throw new Error("ALIYUN_OSS_BUCKET has an invalid format");
+    }
+
+    if (!/^[a-z0-9]+(?:-[a-z0-9]+)+$/.test(this.aliyunOssRegion)) {
+      throw new Error("ALIYUN_OSS_REGION has an invalid format");
+    }
   }
 
   // 数据库配置
