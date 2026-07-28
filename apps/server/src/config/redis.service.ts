@@ -46,6 +46,12 @@ export class RedisService implements OnModuleInit, OnModuleDestroy {
     return typeof value === "string" ? value : null;
   }
 
+  async getAndDelete(key: string): Promise<string | null> {
+    const value = await this.client.getDel(key);
+
+    return typeof value === "string" ? value : null;
+  }
+
   async setIfAbsent(key: string, value: string, ttl: number): Promise<boolean> {
     const result = await this.client.set(key, value, { EX: ttl, NX: true });
 

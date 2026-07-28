@@ -10,6 +10,16 @@ function createService(result: number) {
 }
 
 describe("RedisService one-time digest consumption", () => {
+  it("gets and deletes a short-lived value atomically", async () => {
+    const getDelMock = jest.fn().mockResolvedValue("openid-1");
+    const service = Object.create(RedisService.prototype) as RedisService;
+
+    Object.assign(service, { client: { getDel: getDelMock } });
+
+    await expect(service.getAndDelete("auth:wechat-bind:digest")).resolves.toBe("openid-1");
+    expect(getDelMock).toHaveBeenCalledWith("auth:wechat-bind:digest");
+  });
+
   it("passes keys and digest limits to the atomic Redis script", async () => {
     const { service, evalMock } = createService(1);
 
