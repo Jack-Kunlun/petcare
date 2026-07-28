@@ -91,6 +91,52 @@ export function validateStyleFile(scope, relativePath, source) {
   return violations;
 }
 
+export function extractMiniappThemeTokens(source) {
+  const tokens = new Set();
+  const tokenPattern = /--(?:spacing|color|text|radius|shadow)-([a-z][a-z0-9-]*):/g;
+
+  for (const match of source.matchAll(tokenPattern)) {
+    const name = match[1];
+
+    if (!name.endsWith("--line-height")) {
+      tokens.add(name);
+    }
+  }
+
+  return tokens;
+}
+
+export function validateMiniappTheme(source) {
+  const violations = [];
+  const themeMatch = source.match(/@theme(?:\s+[^{]+)?\s*\{([\s\S]*?)\}/);
+  const theme = themeMatch?.[1] ?? "";
+  const requiredDeclarations = [
+    ["--spacing-mm", "20px"],
+    ["--spacing-action", "240px"],
+    ["--text-base", "14px"],
+    ["--radius-button", "12px"],
+    ["--color-brand", "#20a66a"],
+  ];
+
+  if (!themeMatch) {
+    violations.push("Miniapp 缺少 @theme 主题块");
+  }
+
+  for (const [name, value] of requiredDeclarations) {
+    const pattern = new RegExp(`${name}\\s*:\\s*${escapeRegExp(value)}\\s*;`);
+
+    if (!pattern.test(theme)) {
+      violations.push(`Miniapp @theme 缺少精确声明：${name}: ${value}`);
+    }
+  }
+
+  if (/\d(?:\.\d+)?(?:rem|rpx)\b/i.test(theme)) {
+    violations.push("Miniapp @theme 禁止 rem/rpx");
+  }
+
+  return violations;
+}
+
 export function validateAdminTheme(source) {
   const violations = [];
   const themeMatch = source.match(/@theme(?:\s+[^{]+)?\s*\{([\s\S]*?)\}/);
@@ -108,7 +154,7 @@ export function validateAdminTheme(source) {
   }
 
   for (const [name, value] of requiredDeclarations) {
-    const pattern = new RegExp(`${name}\\s*:\\s*${value.replace(".", "\\.")}\\s*;`);
+    const pattern = new RegExp(`${name}\\s*:\\s*${escapeRegExp(value)}\\s*;`);
 
     if (!pattern.test(theme)) {
       violations.push(`Admin @theme 缺少精确声明：${name}: ${value}`);
@@ -143,6 +189,14 @@ export async function checkStylePolicy(repoRoot = DEFAULT_REPO_ROOT, scope = "al
       const relativePath = path.relative(repoRoot, file).replaceAll("\\", "/");
 
       violations.push(...validateStyleFile(currentScope, relativePath, source));
+
+      if (relativePath === "apps/miniapp/src/app.css") {
+        violations.push(...validateMiniappTheme(source));
+      }
+
+      if (relativePath === "apps/admin/src/index.css") {
+        violations.push(...validateAdminTheme(source));
+      }
 
       if (currentScope !== "miniapp" || !/\.[jt]sx?$/.test(file)) {
         continue;
@@ -179,6 +233,10 @@ async function collectSourceFiles(root) {
   }
 
   return files;
+}
+
+function escapeRegExp(value) {
+  return value.replace(/[.*+?^${}()|[\]\\]/g, "\\$&");
 }
 
 async function runCli() {

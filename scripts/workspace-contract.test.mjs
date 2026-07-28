@@ -42,7 +42,7 @@ test("所有工作区暴露标准生命周期", async () => {
 test("根级命令覆盖质量门禁与三端开发", async () => {
   const manifest = await readJson("package.json");
 
-  assert.equal(manifest.engines.node, ">=22.0.0 <23");
+  assert.equal(manifest.engines.node, ">=22.18.0 <23");
   assert.equal(manifest.engines.pnpm, ">=11.0.0 <12");
   assert.match(manifest.scripts.dev, /@petcare\/admin/);
   assert.match(manifest.scripts.dev, /@petcare\/server/);
