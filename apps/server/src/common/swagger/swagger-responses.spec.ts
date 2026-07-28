@@ -4,6 +4,8 @@ import { Test } from "@nestjs/testing";
 import { AuthController } from "../../auth/auth.controller";
 import { AuthService } from "../../auth/auth.service";
 import { CaptchaService } from "../../auth/captcha.service";
+import { WechatAuthController } from "../../auth/wechat-auth.controller";
+import { WechatAuthService } from "../../auth/wechat-auth.service";
 import { ConfigService } from "../../config/config.service";
 import { HealthController } from "../../health/health.controller";
 import { OrderController } from "../../modules/order/order.controller";
@@ -16,10 +18,17 @@ let document: OpenAPIObject;
 
 beforeAll(async () => {
   const moduleReference = await Test.createTestingModule({
-    controllers: [AuthController, HealthController, UserController, OrderController],
+    controllers: [
+      AuthController,
+      WechatAuthController,
+      HealthController,
+      UserController,
+      OrderController,
+    ],
     providers: [
       { provide: AuthService, useValue: {} },
       { provide: CaptchaService, useValue: {} },
+      { provide: WechatAuthService, useValue: {} },
       { provide: ConfigService, useValue: {} },
       { provide: UserService, useValue: {} },
       { provide: OrderService, useValue: {} },
@@ -38,6 +47,9 @@ afterAll(async () => app.close());
 describe("Swagger response documentation", () => {
   it("documents concrete success schemas for every route group", () => {
     expect(responseSchema("/auth/captcha", "get", "200")).toMatchObject({
+      allOf: expect.any(Array),
+    });
+    expect(responseSchema("/auth/wechat/login", "post", "200")).toMatchObject({
       allOf: expect.any(Array),
     });
     expect(responseSchema("/health", "get", "200")).toMatchObject({
@@ -73,6 +85,9 @@ describe("Swagger response documentation", () => {
     expect(document.paths["/users/{id}"]?.get?.responses?.["404"]).toBeDefined();
     expect(document.paths["/orders/{id}"]?.get?.responses?.["404"]).toBeDefined();
     expect(document.paths["/auth/login/password"]?.post?.responses?.["401"]).toBeDefined();
+    expect(document.paths["/auth/wechat/bind-phone"]?.post?.responses?.["409"]).toBeDefined();
+    expect(document.paths["/auth/wechat/login"]?.post?.responses?.["503"]).toBeDefined();
+    expect(document.paths["/auth/wechat/logout"]?.post?.responses?.["204"]).toBeDefined();
   });
 });
 

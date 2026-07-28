@@ -73,7 +73,10 @@ export class WechatAuthService {
     return { status: "phone_required", bindToken };
   }
 
-  async bindPhone(bindToken: string, phoneCode: string): Promise<WechatSession> {
+  async bindPhone(
+    bindToken: string,
+    phoneCode: string,
+  ): Promise<WechatSession & { status: "authenticated" }> {
     const phone = await this.wechatApiClient.getPhoneNumber(phoneCode);
     const openid = await this.redisService.getAndDelete(this.bindTokenKey(bindToken));
 
@@ -159,7 +162,10 @@ export class WechatAuthService {
       throw error;
     }
 
-    return this.issueSession(user);
+    return {
+      status: "authenticated",
+      ...(await this.issueSession(user)),
+    };
   }
 
   async refresh(refreshToken: string): Promise<WechatSession> {
