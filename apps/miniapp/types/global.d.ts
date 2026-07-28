@@ -19,5 +19,7 @@ declare namespace NodeJS {
     TARO_ENV: "weapp" | "swan" | "alipay" | "h5" | "rn" | "tt" | "qq" | "jd" | "harmony" | "jdrn";
     /** 当前构建使用的小程序 AppID。 */
     TARO_APP_ID: string;
+    /** 后端 API 根地址。 */
+    TARO_APP_API_BASE_URL?: string;
   }
 }
