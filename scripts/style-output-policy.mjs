@@ -12,10 +12,7 @@ const MINIAPP_REQUIRED_DECLARATIONS = [
   },
   {
     label: "height:20px",
-    patterns: [
-      /--spacing-mm\s*:\s*20px\b/,
-      /\.h-mm\s*\{[^}]*height\s*:\s*var\(--spacing-mm\)/s,
-    ],
+    patterns: [/--spacing-mm\s*:\s*20px\b/, /\.h-mm\s*\{[^}]*height\s*:\s*var\(--spacing-mm\)/s],
   },
   {
     label: "width:240px",

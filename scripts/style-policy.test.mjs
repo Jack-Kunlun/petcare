@@ -5,9 +5,12 @@ import test from "node:test";
 import { fileURLToPath } from "node:url";
 
 import {
+  checkStylePolicy,
+  extractMiniappThemeTokens,
   extractStaticClassNames,
   validateAdminTheme,
   validateMiniappClassName,
+  validateMiniappTheme,
   validateStyleFile,
 } from "./style-policy.mjs";
 
@@ -50,17 +53,10 @@ test("Miniapp 拒绝动态类名片段", () => {
 
 test("Miniapp 只允许 Tailwind v4 纯 CSS 入口 app.css", () => {
   assert.deepEqual(
-    validateStyleFile(
-      "miniapp",
-      "apps/miniapp/src/app.css",
-      "@theme { --spacing-mm: 20px; }",
-    ),
+    validateStyleFile("miniapp", "apps/miniapp/src/app.css", "@theme { --spacing-mm: 20px; }"),
     [],
   );
-  assert.notDeepEqual(
-    validateStyleFile("miniapp", "apps/miniapp/src/app.scss", "@theme {}"),
-    [],
-  );
+  assert.notDeepEqual(validateStyleFile("miniapp", "apps/miniapp/src/app.scss", "@theme {}"), []);
   assert.notDeepEqual(
     validateStyleFile("miniapp", "apps/miniapp/src/pages/index/index.scss", ".page {}"),
     [],
@@ -112,4 +108,69 @@ test("Admin 真实 Tailwind 入口满足 px 主题契约", async () => {
   const source = await readFile(path.join(repoRoot, "apps/admin/src/index.css"), "utf8");
 
   assert.deepEqual(validateAdminTheme(source), []);
+});
+
+test("Miniapp 主题提取语义 token 并拒绝非 px 关键值", () => {
+  const theme = `
+    @theme {
+      --spacing-mm: 20px;
+      --spacing-action: 240px;
+      --text-base: 14px;
+      --text-base--line-height: 20px;
+      --radius-button: 12px;
+      --color-brand: #20a66a;
+    }
+  `;
+
+  assert.deepEqual([...extractMiniappThemeTokens(theme)].sort(), [
+    "action",
+    "base",
+    "brand",
+    "button",
+    "mm",
+  ]);
+  assert.deepEqual(validateMiniappTheme(theme), []);
+  assert.notDeepEqual(validateMiniappTheme(theme.replace("20px", "1rem")), []);
+  assert.notDeepEqual(validateMiniappTheme(theme.replace("--color-brand: #20a66a;", "")), []);
+});
+
+test("Miniapp 真实入口满足 Tailwind v4 CSS-first 主题契约", async () => {
+  const source = await readFile(path.join(repoRoot, "apps/miniapp/src/app.css"), "utf8");
+
+  assert.deepEqual(validateMiniappTheme(source), []);
+  assert.match(source, /@import "tailwindcss\/theme\.css" layer\(theme\);/);
+  assert.match(source, /@import "tailwindcss\/utilities\.css" layer\(utilities\) source\("\."\);/);
+  assert.match(source, /@source inline\("h-mm"\);/);
+  assert.doesNotMatch(source, /preflight\.css|\d(?:\.\d+)?(?:rem|rpx)\b/i);
+  assert.deepEqual(await checkStylePolicy(repoRoot, "miniapp"), []);
+});
+
+test("样式质量命令和 VS Code Tailwind v4 入口配置完整", async () => {
+  const [rootPackage, miniappPackage, adminPackage, settings] = await Promise.all([
+    readJson(path.join(repoRoot, "package.json")),
+    readJson(path.join(repoRoot, "apps/miniapp/package.json")),
+    readJson(path.join(repoRoot, "apps/admin/package.json")),
+    readJson(path.join(repoRoot, ".vscode/settings.json")),
+  ]);
+
+  assert.equal(rootPackage.scripts["lint:styles"], "node scripts/style-policy.mjs all");
+  assert.match(rootPackage.scripts.lint, /^pnpm lint:styles && /);
+  assert.match(rootPackage.scripts["test:tooling"], /style-policy\.test\.mjs/);
+  assert.match(rootPackage.scripts["test:tooling"], /style-output-policy\.test\.mjs/);
+  assert.equal(
+    miniappPackage.scripts["lint:styles"],
+    "node ../../scripts/style-policy.mjs miniapp",
+  );
+  assert.match(miniappPackage.scripts.lint, /^pnpm lint:styles && /);
+  assert.equal(adminPackage.scripts["lint:styles"], "node ../../scripts/style-policy.mjs admin");
+  assert.match(adminPackage.scripts.lint, /^pnpm lint:styles && /);
+  assert.equal(settings["scss.lint.unknownAtRules"], "ignore");
+  assert.equal(
+    settings["tailwindCSS.experimental.configFile"]["apps/miniapp/src/app.css"],
+    "apps/miniapp/**",
+  );
+  assert.equal(
+    settings["tailwindCSS.experimental.configFile"]["apps/miniapp/tailwind.config.js"],
+    undefined,
+  );
 });

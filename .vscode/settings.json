@@ -9,9 +9,10 @@
   "files.associations": {
     "*.css": "tailwindcss"
   },
+  "scss.lint.unknownAtRules": "ignore",
   "tailwindCSS.experimental.configFile": {
     "apps/admin/src/index.css": "apps/admin/**",
-    "apps/miniapp/tailwind.config.js": "apps/miniapp/**"
+    "apps/miniapp/src/app.css": "apps/miniapp/**"
   },
   "typescript.enablePromptUseWorkspaceTs": true,
   "typescript.tsdk": "node_modules/typescript/lib"
