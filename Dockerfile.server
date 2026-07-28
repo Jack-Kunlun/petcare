@@ -39,7 +39,8 @@ COPY --from=server-builder /app/package.json ./
 COPY --from=server-builder /app/apps/server/package.json ./apps/server/
 COPY --from=server-builder /app/apps/server/prisma.config.ts ./apps/server/
 COPY --from=server-builder /app/apps/server/prisma ./apps/server/prisma
-COPY --from=server-builder /app/apps/server/src/config ./apps/server/src/config
+# Prisma seed 通过 tsx 执行，运行镜像需保留其 ConfigService、密码服务和生成客户端源码。
+COPY --from=server-builder /app/apps/server/src ./apps/server/src
 COPY --from=server-builder /app/packages/eslint-config-base/package.json ./packages/eslint-config-base/
 COPY --from=server-builder /app/packages/shared-types/package.json ./packages/shared-types/
 COPY --from=server-builder /app/packages/shared-utils/package.json ./packages/shared-utils/

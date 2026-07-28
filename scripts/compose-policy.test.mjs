@@ -30,3 +30,12 @@ test("环境模板指向根目录 .env", async () => {
   assert.match(example, /复制此文件为根目录 `.env`/);
   assert.doesNotMatch(example, /复制此文件为 `.env\.local`/);
 });
+
+test("Server 运行镜像保留 Prisma seed 所需源码", async () => {
+  const dockerfile = await readFile(resolve(root, "Dockerfile.server"), "utf8");
+
+  assert.match(
+    dockerfile,
+    /COPY --from=server-builder \/app\/apps\/server\/src \.\/apps\/server\/src/,
+  );
+});

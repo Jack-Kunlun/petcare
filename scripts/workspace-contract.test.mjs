@@ -54,3 +54,11 @@ test("Server 类型检查复用 Nest 构建边界，无产物包覆盖 Turbo 输
   assert.match(server.scripts["test:e2e"], /--env-file-if-exists=\.\.\/\.\.\/\.env/);
   assert.deepEqual(eslintTurbo.tasks.build.outputs, []);
 });
+
+test("空测试工作区允许生成零覆盖率报告，无产物任务不声明缓存输出", async () => {
+  const sharedUtils = await readJson("packages/shared-utils/package.json");
+  const eslintTurbo = await readJson("packages/eslint-config-base/turbo.json");
+
+  assert.match(sharedUtils.scripts["test:coverage"], /--passWithNoTests/);
+  assert.deepEqual(eslintTurbo.tasks["test:coverage"].outputs, []);
+});

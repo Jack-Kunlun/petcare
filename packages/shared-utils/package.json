@@ -16,7 +16,7 @@
     "format:staged": "prettier --write \"src/**/*.ts\"",
     "test": "vitest run --passWithNoTests",
     "test:run": "vitest run",
-    "test:coverage": "vitest run --coverage"
+    "test:coverage": "vitest run --coverage --passWithNoTests"
   },
   "devDependencies": {
     "@petcare/eslint-config-base": "workspace:*",
