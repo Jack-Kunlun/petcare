@@ -66,7 +66,7 @@ export function validateStyleFile(scope, relativePath, source) {
   const normalizedPath = relativePath.replaceAll("\\", "/");
 
   if (scope === "miniapp" && /\.(?:css|scss)$/.test(normalizedPath)) {
-    if (normalizedPath !== "apps/miniapp/src/app.scss") {
+    if (normalizedPath !== "apps/miniapp/src/app.css") {
       violations.push(`${normalizedPath}: Miniapp 禁止页面级样式文件`);
     }
     if (/\d(?:\.\d+)?(?:rem|rpx)\b/i.test(source)) {

@@ -3,7 +3,6 @@ import Taro from "@tarojs/taro";
 import { useRef, useState } from "react";
 import { MiniappApiError } from "../../api/request";
 import { useAuth } from "../../auth/auth.context";
-import "./index.css";
 
 interface PhoneNumberEvent {
   detail: {
@@ -88,14 +87,16 @@ export default function AuthPage() {
   };
 
   return (
-    <View className="auth-page min-h-screen">
-      <View className="auth-card">
-        <Text className="auth-title">登录 PetCare 宠伴</Text>
-        <Text className="auth-description">登录后可发布需求、接单并管理你的宠物服务。</Text>
+    <View className="box-border flex min-h-screen items-center justify-center bg-surface-muted px-section py-page-y">
+      <View className="box-border w-full rounded-card bg-white px-section py-page shadow-card">
+        <Text className="block text-heading font-bold text-ink-strong">登录 PetCare 宠伴</Text>
+        <Text className="mt-note block text-description text-muted-brand">
+          登录后可发布需求、接单并管理你的宠物服务。
+        </Text>
 
         {bindToken ? (
           <Button
-            className="auth-primary-button"
+            className="mt-section rounded-button border-none bg-brand text-white"
             openType="getPhoneNumber"
             loading={pending}
             disabled={pending}
@@ -105,7 +106,7 @@ export default function AuthPage() {
           </Button>
         ) : (
           <Button
-            className="auth-primary-button"
+            className="mt-section rounded-button border-none bg-brand text-white"
             loading={pending}
             disabled={pending}
             onClick={() => void handleLogin()}
@@ -114,7 +115,7 @@ export default function AuthPage() {
           </Button>
         )}
 
-        {error ? <Text className="auth-error">{error}</Text> : null}
+        {error ? <Text className="mt-compact block text-base text-danger">{error}</Text> : null}
       </View>
     </View>
   );

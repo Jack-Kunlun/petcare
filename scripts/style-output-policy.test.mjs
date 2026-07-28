@@ -27,9 +27,14 @@ async function createOutput(files) {
 
 test("Miniapp 接受纯 px WXSS", async () => {
   const root = await createOutput({
-    "app.wxss": "page{font-size:14px}.h-mm{height:20px}",
+    "app.wxss": [
+      ":host,page{--spacing-mm:20px;--spacing-action:240px;--radius-button:12px}",
+      "page{font-size:14px}",
+      ".h-mm{height:var(--spacing-mm)}",
+      ".w-action{width:var(--spacing-action)}",
+      ".rounded-button{border-radius:var(--radius-button)}",
+    ].join(""),
     "app.js": "App({})",
-    "pages/index/index.wxss": ".w-action{width:240px;border-radius:12px}",
   });
 
   assert.deepEqual(await checkMiniappOutput(root), []);
@@ -58,6 +63,23 @@ test("Miniapp 拒绝 NaN 构建产物和缺失的关键 px 声明", async () => 
   const violations = await checkMiniappOutput(root);
 
   assert.ok(violations.some((item) => item.includes("NaN")));
+  assert.ok(violations.some((item) => item.includes("height:20px")));
+  assert.ok(violations.some((item) => item.includes("width:240px")));
+  assert.ok(violations.some((item) => item.includes("border-radius:12px")));
+});
+
+test("Miniapp 拒绝只有主题变量但没有对应语义工具类", async () => {
+  const root = await createOutput({
+    "app.wxss": [
+      ":host,page{--spacing-mm:20px;--spacing-action:240px;--radius-button:12px}",
+      "page{font-size:14px}",
+    ].join(""),
+    "app.js": "App({})",
+  });
+
+  const violations = await checkMiniappOutput(root);
+
+  assert.ok(violations.some((item) => item.includes("height:20px")));
   assert.ok(violations.some((item) => item.includes("width:240px")));
   assert.ok(violations.some((item) => item.includes("border-radius:12px")));
 });

@@ -65,6 +65,22 @@ describe("Index Page", () => {
     });
   });
 
+  it("uses Miniapp-safe Tailwind tokens", () => {
+    jest.mocked(useAuth).mockReturnValue({
+      status: "guest",
+      user: null,
+      login: jest.fn(),
+      bindPhone: jest.fn(),
+      logout,
+    });
+
+    const { container } = render(<Index />);
+
+    expect(container.firstElementChild).toHaveClass("box-border", "flex", "min-h-screen", "p-page");
+    expect(screen.getByText("PetCare宠伴")).toHaveClass("text-hero", "text-ink");
+    expect(screen.getByText("微信登录")).toHaveClass("w-action", "rounded-button", "bg-brand");
+  });
+
   it("shows the current user and logs out", () => {
     jest.mocked(useAuth).mockReturnValue({
       status: "authenticated",

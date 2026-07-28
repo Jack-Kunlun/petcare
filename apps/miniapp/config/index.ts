@@ -8,8 +8,12 @@ import {
 const apiBaseUrl = process.env.TARO_APP_API_BASE_URL || "http://localhost:3000";
 const projectRoot = path.resolve(__dirname, "..");
 
+export const miniappCssEntry = path.resolve(projectRoot, "src/app.css");
+
 export const weappTailwindcssOptions: WeappTailwindcssOptions = {
+  cssEntries: [miniappCssEntry],
   cssOptions: {
+    cssPreflight: false,
     rem2rpx: false,
     px2rpx: false,
   },

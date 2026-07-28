@@ -87,6 +87,19 @@ describe("AuthPage", () => {
     expect(await screen.findByText("授权手机号并登录")).toBeInTheDocument();
   });
 
+  it("uses semantic Tailwind tokens without unsafe syntax", () => {
+    const { container } = render(<AuthPage />);
+
+    expect(container.firstElementChild).toHaveClass(
+      "min-h-screen",
+      "bg-surface-muted",
+      "px-section",
+      "py-page-y",
+    );
+    expect(screen.getByText("登录 PetCare 宠伴")).toHaveClass("text-heading", "text-ink-strong");
+    expect(screen.getByText("微信登录")).toHaveClass("rounded-button", "bg-brand");
+  });
+
   it("returns to the previous page for an already-bound user", async () => {
     login.mockResolvedValue({
       status: "authenticated",

@@ -47,9 +47,17 @@ test("Miniapp 拒绝动态类名片段", () => {
   );
 });
 
-test("Miniapp 只允许全局 app.scss", () => {
+test("Miniapp 只允许 Tailwind v4 纯 CSS 入口 app.css", () => {
   assert.deepEqual(
-    validateStyleFile("miniapp", "apps/miniapp/src/app.scss", "@tailwind utilities;"),
+    validateStyleFile(
+      "miniapp",
+      "apps/miniapp/src/app.css",
+      "@theme { --spacing-mm: 20px; }",
+    ),
+    [],
+  );
+  assert.notDeepEqual(
+    validateStyleFile("miniapp", "apps/miniapp/src/app.scss", "@theme {}"),
     [],
   );
   assert.notDeepEqual(
@@ -57,7 +65,7 @@ test("Miniapp 只允许全局 app.scss", () => {
     [],
   );
   assert.notDeepEqual(
-    validateStyleFile("miniapp", "apps/miniapp/src/app.scss", "page { width: 1rpx; }"),
+    validateStyleFile("miniapp", "apps/miniapp/src/app.css", "page { width: 1rpx; }"),
     [],
   );
 });
