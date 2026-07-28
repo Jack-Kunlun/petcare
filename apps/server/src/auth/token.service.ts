@@ -3,7 +3,12 @@ import { Injectable, UnauthorizedException } from "@nestjs/common";
 import { JwtService, JwtSignOptions } from "@nestjs/jwt";
 import { ConfigService } from "../config/config.service";
 import { RedisService } from "../config/redis.service";
-import { AccessTokenPayload, AdminPrincipal, AuthTokens, RefreshTokenPayload } from "./auth.types";
+import {
+  AccessTokenPayload,
+  AuthTokens,
+  RefreshTokenPayload,
+  SessionPrincipal,
+} from "./auth.types";
 
 @Injectable()
 export class TokenService {
@@ -13,7 +18,7 @@ export class TokenService {
     private readonly configService: ConfigService,
   ) {}
 
-  async issue(principal: AdminPrincipal): Promise<AuthTokens> {
+  async issue(principal: SessionPrincipal): Promise<AuthTokens> {
     const sessionId = randomUUID();
     const accessPayload: AccessTokenPayload = {
       sub: principal.userId,
@@ -51,13 +56,11 @@ export class TokenService {
   async consumeRefresh(refreshToken: string): Promise<{ userId: string; sessionId: string }> {
     const payload = await this.verifyRefresh(refreshToken);
     const key = this.sessionKey(payload.sid);
-    const storedDigest = await this.redisService.get(key);
+    const storedDigest = await this.redisService.getAndDelete(key);
 
     if (!storedDigest || !this.digestMatches(storedDigest, this.digest(refreshToken))) {
       throw this.unauthorized();
     }
-
-    await this.redisService.del(key);
 
     return { userId: payload.sub, sessionId: payload.sid };
   }

@@ -15,6 +15,14 @@ class InMemorySessionRedis {
     return this.values.get(key) ?? null;
   }
 
+  async getAndDelete(key: string): Promise<string | null> {
+    const value = this.values.get(key) ?? null;
+
+    this.values.delete(key);
+
+    return value;
+  }
+
   async del(...keys: string[]): Promise<void> {
     for (const key of keys) {
       this.values.delete(key);
@@ -67,6 +75,17 @@ describe("TokenService", () => {
     await expect(service.consumeRefresh(tokens.refreshToken)).rejects.toBeInstanceOf(
       UnauthorizedException,
     );
+  });
+
+  it("allows only one concurrent refresh rotation", async () => {
+    const tokens = await service.issue(principal);
+    const results = await Promise.allSettled([
+      service.consumeRefresh(tokens.refreshToken),
+      service.consumeRefresh(tokens.refreshToken),
+    ]);
+
+    expect(results.filter((result) => result.status === "fulfilled")).toHaveLength(1);
+    expect(results.filter((result) => result.status === "rejected")).toHaveLength(1);
   });
 
   it("revokes a refresh session during logout", async () => {

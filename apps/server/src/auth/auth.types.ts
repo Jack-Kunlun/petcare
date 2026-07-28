@@ -1,4 +1,4 @@
-export interface AdminPrincipal {
+export interface SessionPrincipal {
   userId: string;
   username: string | null;
   phone: string;
