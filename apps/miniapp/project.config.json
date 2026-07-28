@@ -1,0 +1,13 @@
+{
+  "appid": "wx3bdad4ab652f0d1d",
+  "compileType": "miniprogram",
+  "description": "PetCare 宠伴微信小程序",
+  "miniprogramRoot": "dist/",
+  "projectname": "petcare-miniapp",
+  "setting": {
+    "es6": true,
+    "minified": true,
+    "postcss": true,
+    "urlCheck": false
+  }
+}

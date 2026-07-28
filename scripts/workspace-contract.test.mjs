@@ -46,6 +46,15 @@ test("Miniapp 内部脚本不嵌套 npm", async () => {
   assert.doesNotMatch(JSON.stringify(manifest.scripts), /\bnpm run\b/);
 });
 
+test("Miniapp 提供微信开发者工具和本地 API 配置", async () => {
+  const project = await readJson("apps/miniapp/project.config.json");
+  const envExample = await readFile(resolve(root, ".env.example"), "utf8");
+
+  assert.equal(project.appid, "wx3bdad4ab652f0d1d");
+  assert.equal(project.miniprogramRoot, "dist/");
+  assert.match(envExample, /^TARO_APP_API_BASE_URL=http:\/\/localhost:3000$/m);
+});
+
 test("Server 类型检查复用 Nest 构建边界，无产物包覆盖 Turbo 输出", async () => {
   const server = await readJson("apps/server/package.json");
   const eslintTurbo = await readJson("packages/eslint-config-base/turbo.json");

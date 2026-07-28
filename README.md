@@ -7,7 +7,7 @@
 - **Monorepo**: Turborepo + pnpm
 - **Admin前端**: React 19 + Vite + shadcn/ui + TailwindCSS
 - **后端服务**: Nest.js + Prisma + PostgreSQL + Redis
-- **小程序**: Taro 4.x + React 18 + MobX
+- **小程序**: Taro 4.x + React 18 + React Context
 
 ## 项目结构
 
@@ -54,6 +54,7 @@ cp .env.example .env
 - **JWT配置**：`JWT_SECRET`, `JWT_ACCESS_EXPIRES_IN`, `JWT_REFRESH_EXPIRES_IN`
 - **管理员认证**：`DEFAULT_ADMIN_USERNAME`, `DEFAULT_ADMIN_PHONE`, `DEFAULT_ADMIN_PASSWORD`, `SMS_DEV_CODE`, `CAPTCHA_TTL_SECONDS`, `CAPTCHA_MAX_ATTEMPTS`
 - **第三方服务**：微信、阿里云OSS等
+- **小程序 API**：`TARO_APP_API_BASE_URL`（本地默认 `http://localhost:3000`）
 
 详见：[环境变量配置指南](./docs/environment-variables.md)
 
@@ -80,6 +81,11 @@ pnpm dev:miniapp
 ```
 
 本地地址：Admin `http://localhost:8986`，Server `http://localhost:3000`。默认管理员支持“手机号或账号 + 密码”以及“手机号 + 验证码”两种登录方式。发送短信验证码前需要先填写图形验证码；点击验证码图片可以换一张。
+
+小程序微信登录联调时，先执行 `pnpm dev:server` 和 `pnpm dev:miniapp`，再在微信开发者工具中导入
+`apps/miniapp`。AppID 已写入公开的项目配置；AppSecret 只能放在根目录 `.env` 的
+`WECHAT_APP_SECRET` 中。开发工具可关闭域名校验，本地请求直连 Server `3000` 端口；生产环境必须使用
+已在微信公众平台登记的 HTTPS request 域名。
 
 ### API 响应协议
 
