@@ -86,6 +86,17 @@ REDIS_PASSWORD=  # 可选
 - **所有子项目**: 继承共享配置
 - **根目录**: 独立配置（仅 lint 根级文件）
 
+### 样式规范
+
+- Admin 与 Miniapp 均使用 Tailwind CSS v4 CSS-first，默认字号为 `14px`
+- 两端优先直接使用 Tailwind 工具类，只有 Tailwind 无法合理表达时才使用独立 SCSS
+- Miniapp 自定义尺寸必须使用 `app.css` 的 `@theme` 语义 token；允许 `h-mm`，禁止 `h-[20px]`、`h-1/2`、`h-20px`
+- Miniapp 禁止页面级 CSS/SCSS、动态类名片段、未批准变体以及 `rem/rpx`
+- Tailwind 入口使用普通 CSS；SCSS 禁止 `@theme`、`@tailwind` 和 `@apply`
+- 样式变更必须通过 `pnpm lint:styles` 和对应端生产构建
+
+详见：[双端样式开发规范](./docs/09-development-guidelines/04-styling-standards.md)
+
 ### Git Hooks
 
 - **Husky**: 自动执行 pre-commit hooks

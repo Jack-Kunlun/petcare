@@ -132,6 +132,7 @@ pnpm check
 - **ESLint**: `packages/eslint-config-base` - 共享基础配置，所有子项目继承
 - **Commitlint**: `commitlint.config.js` - Git commit消息规范
 - **Husky**: `.husky/` - Git hooks自动化检查（提交前自动格式化和lint）
+- **Tailwind CSS v4**: Admin 与 Miniapp 均采用 CSS-first；默认字号 `14px`，尺寸使用自适应布局与 `px` token
 
 ### 常用命令
 
@@ -141,6 +142,9 @@ pnpm format
 
 # 检查代码规范
 pnpm lint
+
+# 检查双端 Tailwind 主题、类名和样式边界
+pnpm lint:styles
 
 # 检查类型
 pnpm typecheck
@@ -152,7 +156,8 @@ pnpm test
 pnpm check
 ```
 
-详见：[开发规范文档](./docs/09-development-guidelines/02-development-standards.md)
+详见：[开发规范文档](./docs/09-development-guidelines/02-development-standards.md)、
+[双端样式开发规范](./docs/09-development-guidelines/04-styling-standards.md)。
 
 ## 后端配置说明
 
