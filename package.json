@@ -23,7 +23,7 @@
     "format:check": "prettier --check .",
     "prepare": "husky",
     "changelog": "conventional-changelog -p conventionalcommits -i CHANGELOG.md -s -r 0",
-    "release": "pnpm changelog && git add CHANGELOG.md && git commit -m \"docs: update CHANGELOG for release\" && git tag",
+    "release": "pnpm changelog && git add CHANGELOG.md && git commit -m \"docs: 更新发布变更日志\" && git tag",
     "start:server": "pnpm --filter @petcare/server start:prod"
   },
   "devDependencies": {
