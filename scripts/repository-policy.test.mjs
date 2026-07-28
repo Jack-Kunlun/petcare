@@ -1,0 +1,37 @@
+import assert from "node:assert/strict";
+import { spawnSync } from "node:child_process";
+import { readFile } from "node:fs/promises";
+import { resolve } from "node:path";
+import test from "node:test";
+
+const root = resolve(import.meta.dirname, "..");
+const commitlintCli = resolve(root, "node_modules/@commitlint/cli/cli.js");
+
+function lintCommit(message) {
+  return spawnSync(process.execPath, [commitlintCli, "--color=false"], {
+    cwd: root,
+    encoding: "utf8",
+    input: `${message}\n`,
+  });
+}
+
+test("接受 Conventional Commits 中文主题", () => {
+  assert.equal(lintCommit("fix(server): 修复启动配置校验").status, 0);
+});
+
+test("拒绝纯英文主题和非法 type", () => {
+  assert.notEqual(lintCommit("fix: update server config").status, 0);
+  assert.notEqual(lintCommit("change: 更新服务配置").status, 0);
+});
+
+test("Hooks 使用 pnpm exec，换行策略为 Windows 脚本保留 CRLF", async () => {
+  const commitMsg = await readFile(resolve(root, ".husky/commit-msg"), "utf8");
+  const preCommit = await readFile(resolve(root, ".husky/pre-commit"), "utf8");
+  const attributes = await readFile(resolve(root, ".gitattributes"), "utf8");
+
+  assert.match(commitMsg, /pnpm exec commitlint --edit/);
+  assert.match(preCommit, /pnpm exec lint-staged/);
+  assert.doesNotMatch(`${commitMsg}\n${preCommit}`, /\bnpx\b/);
+  assert.match(attributes, /^\*\.bat text eol=crlf$/m);
+  assert.match(attributes, /^\*\.cmd text eol=crlf$/m);
+});

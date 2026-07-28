@@ -1,5 +1,17 @@
+const subjectContainsChinese = ({ subject }) => [
+  typeof subject === "string" && /\p{Script=Han}/u.test(subject),
+  "subject must contain Chinese characters",
+];
+
 export default {
   extends: ["@commitlint/config-conventional"],
+  plugins: [
+    {
+      rules: {
+        "subject-contains-chinese": subjectContainsChinese,
+      },
+    },
+  ],
   rules: {
     "type-enum": [
       2,
@@ -22,6 +34,7 @@ export default {
     "subject-case": [0],
     "subject-empty": [2, "never"],
     "subject-full-stop": [2, "never", "."],
+    "subject-contains-chinese": [2, "always"],
     "header-max-length": [2, "always", 100],
     "body-leading-blank": [2, "always"],
     "footer-leading-blank": [2, "always"],
