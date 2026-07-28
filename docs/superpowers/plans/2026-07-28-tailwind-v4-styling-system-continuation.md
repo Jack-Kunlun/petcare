@@ -4,7 +4,7 @@
 
 **Goal:** 将 Miniapp 升级为 Tailwind CSS v4 CSS-first，完成现有页面迁移，并继续完成 Admin px token、双端样式门禁、文档与全量验收。
 
-**Architecture:** Miniapp 的 `app.scss` 通过 `@theme` 提供唯一的 px 设计 token，并选择性导入 Tailwind theme/utilities 以排除 Preflight；`WeappTailwindcss` 使用绝对 `cssEntries` 直接生成和转译 v4 CSS。Admin 保持 `@tailwindcss/vite` CSS-first；根目录 Node 脚本验证源码规则、主题契约和最终构建产物。
+**Architecture:** Miniapp 的纯 CSS 入口 `app.css` 通过 `@theme` 提供唯一的 px 设计 token，并选择性导入 Tailwind theme/utilities 以排除 Preflight；`WeappTailwindcss` 使用绝对 `cssEntries` 直接生成和转译 v4 CSS。Admin 保持 `@tailwindcss/vite` CSS-first；根目录 Node 脚本验证源码规则、主题契约和最终构建产物。
 
 **Tech Stack:** Node.js 22.18+、pnpm 11、Taro 4.2、React 18/19、Tailwind CSS 4.3、weapp-tailwindcss 5.2.4、Dart Sass 1.102.0、Jest、Vitest、Node.js Test Runner。
 
@@ -12,7 +12,7 @@
 
 - Miniapp 与 Admin 均使用 Tailwind CSS v4 CSS-first。
 - `weapp-tailwindcss` 固定为 `5.2.4`，Node 范围保持 `>=22.18.0 <23`。
-- Miniapp 的 `app.scss` 是唯一 Tailwind 主题和全局样式入口。
+- Miniapp 的 `app.css` 是唯一 Tailwind 主题和全局样式入口；Tailwind 指令不得进入 SCSS。
 - Miniapp 删除传统 `tailwind.config.js` 与 `postcss.config.js`，只保留 v4 `cssEntries` 生成路径。
 - Miniapp 不导入 Tailwind Preflight；插件 `cssPreflight`、`rem2rpx`、`px2rpx` 和 Taro `pxtransform` 全部关闭。
 - 两端默认字体大小为 `14px`；Miniapp 最终 WXSS 只能使用 px，不得包含 rem/rpx。
@@ -28,7 +28,7 @@
 
 ### Miniapp v4 构建与页面
 
-- `apps/miniapp/src/app.scss`：v4 选择性入口、`@theme` px token、`page` 平台全局样式。
+- `apps/miniapp/src/app.css`：v4 选择性入口、`@theme` px token、`page` 平台全局样式。
 - `apps/miniapp/config/index.ts`：绝对 `cssEntries`、单位转换和 Webpack 插件注册。
 - `apps/miniapp/config/index.test.ts`：v4 构建配置契约。
 - `apps/miniapp/package.json`、`pnpm-lock.yaml`：Tailwind v4 依赖和构建命令。
@@ -57,7 +57,9 @@
 - Modify: `apps/miniapp/package.json`
 - Modify: `apps/miniapp/config/index.ts`
 - Modify: `apps/miniapp/config/index.test.ts`
-- Modify: `apps/miniapp/src/app.scss`
+- Create: `apps/miniapp/src/app.css`
+- Delete: `apps/miniapp/src/app.scss`
+- Modify: `apps/miniapp/src/app.ts`
 - Delete: `apps/miniapp/postcss.config.js`
 - Delete: `apps/miniapp/tailwind.config.js`
 - Modify: `apps/miniapp/src/pages/index/index.tsx`
@@ -90,7 +92,7 @@ expect(weappTailwindcssOptions.cssOptions).toEqual({
   px2rpx: false,
 });
 expect(weappTailwindcssOptions.cssEntries).toEqual([miniappCssEntry]);
-expect(miniappCssEntry).toMatch(/src[\\/]app\.scss$/);
+expect(miniappCssEntry).toMatch(/src[\\/]app\.css$/);
 expect(weappTailwindcssOptions.generator).not.toBe(false);
 expect(weappTailwindcssOptions.tailwindcssBasedir).toMatch(/apps[\\/]miniapp$/);
 expect(resolvedConfig.mini?.postcss?.pxtransform?.enable).toBe(false);
@@ -138,7 +140,7 @@ pnpm --filter @petcare/miniapp add -D tailwindcss@^4.3.3
 ```typescript
 const projectRoot = path.resolve(__dirname, "..");
 
-export const miniappCssEntry = path.resolve(projectRoot, "src/app.scss");
+export const miniappCssEntry = path.resolve(projectRoot, "src/app.css");
 
 export const weappTailwindcssOptions: WeappTailwindcssOptions = {
   cssEntries: [miniappCssEntry],
@@ -154,11 +156,11 @@ export const weappTailwindcssOptions: WeappTailwindcssOptions = {
 删除 `generator: false`。保留 Miniapp/H5 的 `webpackChain` 注册以及
 `mini.postcss.pxtransform.enable: false`。
 
-- [ ] **Step 5: 将 app.scss 改为 v4 CSS-first**
+- [ ] **Step 5: 将 Tailwind 入口改为纯 CSS**
 
-`apps/miniapp/src/app.scss` 使用以下完整入口和 token：
+创建 `apps/miniapp/src/app.css`，使用以下完整入口和 token：
 
-```scss
+```css
 @layer theme, base, components, utilities;
 
 @import "tailwindcss/theme.css" layer(theme);
@@ -166,10 +168,6 @@ export const weappTailwindcssOptions: WeappTailwindcssOptions = {
 
 @theme {
   --spacing: initial;
-  --color-*: initial;
-  --text-*: initial;
-  --radius-*: initial;
-  --shadow-*: initial;
 
   --color-transparent: transparent;
   --color-current: currentColor;
@@ -211,7 +209,7 @@ export const weappTailwindcssOptions: WeappTailwindcssOptions = {
   --shadow-card: 0 12px 40px rgb(26 77 54 / 8%);
 }
 
-// page 无法挂载 Tailwind 类名，保留为唯一全局平台样式。
+/* page 无法挂载 Tailwind 类名，保留为唯一全局平台样式。 */
 page {
   background-color: #f5f5f5;
   font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif;
@@ -219,7 +217,8 @@ page {
 }
 ```
 
-删除 `apps/miniapp/postcss.config.js` 和 `apps/miniapp/tailwind.config.js`。
+删除 `apps/miniapp/src/app.scss`、`apps/miniapp/postcss.config.js` 和
+`apps/miniapp/tailwind.config.js`，将 `app.ts` 改为 `import "./app.css";`。
 
 - [ ] **Step 6: 完成两个页面的静态工具类**
 
@@ -262,9 +261,9 @@ const MINIAPP_REQUIRED_DECLARATIONS = [
 ];
 ```
 
-真实页面目前不使用 `h-mm`，因此在 `app.scss` 增加：
+真实页面目前不使用 `h-mm`，因此在 `app.css` 增加：
 
-```scss
+```css
 @source inline("h-mm");
 ```
 
@@ -291,8 +290,8 @@ Expected: 所有测试、Lint、类型和构建通过；WXSS 包含 `14px`、`20
 - [ ] **Step 9: 提交**
 
 ```bash
-git add apps/miniapp/package.json apps/miniapp/config/index.ts apps/miniapp/config/index.test.ts apps/miniapp/src/app.scss apps/miniapp/src/pages/index/index.tsx apps/miniapp/src/pages/index/index.test.tsx apps/miniapp/src/pages/auth/index.tsx apps/miniapp/src/pages/auth/index.test.tsx scripts/style-output-policy.mjs scripts/style-output-policy.test.mjs pnpm-lock.yaml pnpm-workspace.yaml
-git add -u apps/miniapp/postcss.config.js apps/miniapp/tailwind.config.js apps/miniapp/src/pages/index/index.css apps/miniapp/src/pages/auth/index.css
+git add apps/miniapp/package.json apps/miniapp/config/index.ts apps/miniapp/config/index.test.ts apps/miniapp/src/app.css apps/miniapp/src/app.ts apps/miniapp/src/pages/index/index.tsx apps/miniapp/src/pages/index/index.test.tsx apps/miniapp/src/pages/auth/index.tsx apps/miniapp/src/pages/auth/index.test.tsx scripts/style-output-policy.mjs scripts/style-output-policy.test.mjs pnpm-lock.yaml pnpm-workspace.yaml
+git add -u apps/miniapp/src/app.scss apps/miniapp/postcss.config.js apps/miniapp/tailwind.config.js apps/miniapp/src/pages/index/index.css apps/miniapp/src/pages/auth/index.css
 git commit -m "refactor(miniapp): 升级 Tailwind v4 并重构页面"
 ```
 
@@ -446,7 +445,7 @@ assert.deepEqual(validateMiniappTheme(theme), []);
 assert.notDeepEqual(validateMiniappTheme("@theme { --spacing-mm: 1rem; }"), []);
 ```
 
-真实仓库契约必须断言 `app.scss` 包含完整 token、选择性 Tailwind import、`source(".")`
+真实仓库契约必须断言 `app.css` 包含完整 token、选择性 Tailwind import、`source(".")`
 与 `@source inline("h-mm")`，且不存在 `preflight.css`、rem、rpx。
 
 三个 package 契约必须断言：
@@ -484,10 +483,10 @@ Expected: FAIL，主题接口与 package 命令尚未实现。
 --text-base: 14px
 --radius-button: 12px
 --color-brand: #20a66a
-app.scss @theme 中不存在 rem/rpx
+app.css @theme 中不存在 rem/rpx
 ```
 
-`checkStylePolicy("miniapp")` 读取 `app.scss` 后调用该函数，并继续执行现有类名和文件边界规则。
+`checkStylePolicy("miniapp")` 读取 `app.css` 后调用该函数，并继续执行现有类名和文件边界规则。源码文件边界同时改为只允许 `apps/miniapp/src/app.css`。
 
 - [ ] **Step 4: 接入 package 和编辑器**
 
@@ -506,7 +505,7 @@ Miniapp/Admin 增加各自 `lint:styles`，并在自身 `lint` 前运行该命�
 "scss.lint.unknownAtRules": "ignore"
 ```
 
-将 Tailwind CSS IntelliSense 的 Miniapp 配置映射改为 `apps/miniapp/src/app.scss`，移除
+将 Tailwind CSS IntelliSense 的 Miniapp 配置映射改为 `apps/miniapp/src/app.css`，移除
 已删除的 `tailwind.config.js` 映射。
 
 - [ ] **Step 5: 验证并提交门禁**
@@ -552,11 +551,11 @@ git commit -m "chore(tooling): 接入双端样式质量门禁"
 
 ```text
 Miniapp/Admin 均使用 Tailwind v4 CSS-first
-Miniapp 使用 app.scss @theme 与绝对 cssEntries
+Miniapp 使用 app.css @theme 与绝对 cssEntries
 默认字号 14px，自适应容器 + px token
 h-mm 允许；h-[20px]、h-1/2、h-20px 禁止
 Miniapp 禁止页面样式文件、动态类名和未批准变体
-Miniapp app.scss 与 Admin 独立 SCSS 的边界
+Miniapp app.css 与独立 SCSS、Admin CSS 与独立 SCSS 的边界
 pnpm lint:styles、双端构建和产物检查命令
 微信开发者工具样式不刷新时关闭“代码自动热重载”并使用 Taro watch
 ```
