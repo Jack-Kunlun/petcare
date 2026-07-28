@@ -4,10 +4,10 @@
 
 ### 服务器配置
 
-| 变量名     | 必填 | 默认值        | 说明                               |
-| ---------- | ---- | ------------- | ---------------------------------- |
-| `PORT`     | 否   | `3000`        | 服务器端口号                       |
-| `NODE_ENV` | 否   | `development` | 运行环境（development/production） |
+| 变量名     | 必填 | 默认值        | 说明                                    |
+| ---------- | ---- | ------------- | --------------------------------------- |
+| `PORT`     | 否   | `3000`        | 服务器端口号                            |
+| `NODE_ENV` | 否   | `development` | 运行环境（development/test/production） |
 
 ### 日志配置
 
@@ -32,7 +32,7 @@ OpenID、邮箱和地址。仅在非生产环境显式设置 `LOG_LEVEL=debug` �
 | `DB_USERNAME` | ✅   | -           | 数据库用户名          |
 | `DB_PASSWORD` | ✅   | -           | 数据库密码            |
 | `DB_NAME`     | ✅   | `petcare`   | 数据库名称            |
-| `DB_SCHEMA`   | 否   | `public`    | PostgreSQL Schema名称 |
+| `DB_SCHEMA`   | ✅   | `public`    | PostgreSQL Schema名称 |
 
 示例：
 
@@ -40,18 +40,18 @@ OpenID、邮箱和地址。仅在非生产环境显式设置 `LOG_LEVEL=debug` �
 DB_HOST=localhost
 DB_PORT=5432
 DB_USERNAME=petcare
-DB_PASSWORD=password123
+DB_PASSWORD=replace-with-a-local-strong-password
 DB_NAME=petcare
 DB_SCHEMA=public
 ```
 
 ### Redis配置（独立配置项）
 
-| 变量名           | 必填 | 默认值      | 说明                          |
-| ---------------- | ---- | ----------- | ----------------------------- |
-| `REDIS_HOST`     | ✅   | `localhost` | Redis主机地址                 |
-| `REDIS_PORT`     | ✅   | `6379`      | Redis端口号                   |
-| `REDIS_PASSWORD` | 否   | -           | Redis密码（未启用认证时留空） |
+| 变量名           | 必填     | 默认值      | 说明                                        |
+| ---------------- | -------- | ----------- | ------------------------------------------- |
+| `REDIS_HOST`     | ✅       | `localhost` | Redis主机地址                               |
+| `REDIS_PORT`     | ✅       | `6379`      | Redis端口号                                 |
+| `REDIS_PASSWORD` | 生产必填 | -           | Redis密码；无认证的本地或隔离测试环境可留空 |
 
 示例：
 
@@ -74,11 +74,12 @@ API 和独立 Worker 必须使用相同的 `QUEUE_PREFIX`；生产、预发和�
 
 ### JWT配置
 
-| 变量名                   | 必填 | 默认值 | 说明                                      |
-| ------------------------ | ---- | ------ | ----------------------------------------- |
-| `JWT_SECRET`             | ✅   | -      | JWT签名密钥（至少 32 位，生产环境需随机） |
-| `JWT_ACCESS_EXPIRES_IN`  | 否   | `15m`  | Access Token 有效期                       |
-| `JWT_REFRESH_EXPIRES_IN` | 否   | `7d`   | Refresh Token 有效期                      |
+| 变量名                      | 必填 | 默认值   | 说明                                      |
+| --------------------------- | ---- | -------- | ----------------------------------------- |
+| `JWT_SECRET`                | ✅   | -        | JWT签名密钥（至少 32 位，生产环境需随机） |
+| `JWT_ACCESS_EXPIRES_IN`     | 否   | `15m`    | Access Token 有效期                       |
+| `JWT_REFRESH_EXPIRES_IN`    | 否   | `7d`     | Refresh Token 有效期                      |
+| `REFRESH_TOKEN_TTL_SECONDS` | 否   | `604800` | Redis 中 Refresh Token 会话有效期（秒）   |
 
 ### 管理员认证配置
 
@@ -116,26 +117,39 @@ API 和独立 Worker 必须使用相同的 `QUEUE_PREFIX`；生产、预发和�
 | `ALIYUN_OSS_BUCKET`            | 阿里云OSS Bucket名称       |
 | `ALIYUN_OSS_REGION`            | 阿里云OSS区域              |
 
+微信配置必须同时留空或同时提供。启用时，`WECHAT_APP_ID` 必须符合 `wx` 加 16 位字符的格式，
+`WECHAT_APP_SECRET` 必须为 32 位十六进制字符串。
+
+OSS 配置必须四项同时留空或同时提供；Bucket 只能使用小写字母、数字和连字符，Region 使用
+类似 `cn-hangzhou` 的格式。任何不完整或格式错误的字段组都会在 Server 监听端口前使启动失败。
+
 ## 使用方法
 
-1. 复制配置模板：
+1. 在仓库根目录复制配置模板：
 
    ```bash
-   # 在 apps/server 目录下创建 .env.local 文件
-   cp docs/ENVIRONMENT-VARIABLES.md apps/server/.env.local
+   cp .env.example .env
    ```
 
-2. 编辑 `.env.local` 文件，填入实际值
+2. 编辑根目录 `.env`，填入本地数据库、Redis、JWT 和默认管理员配置。
 
-3. 确保 `.env.local` 已添加到 `.gitignore`（默认已包含）
+3. 启动基础设施并初始化：
+
+   ```bash
+   docker compose up -d postgres redis
+   pnpm --filter @petcare/server prisma:push
+   pnpm --filter @petcare/server prisma:seed
+   ```
 
 ## 注意事项
 
-- ⚠️ **永远不要**将 `.env.local` 提交到Git仓库
+- ⚠️ **永远不要**将根目录 `.env` 提交到 Git 仓库
 - ⚠️ 生产环境的 `JWT_SECRET` 必须使用强随机字符串
+- ⚠️ 生产环境必须设置独立的 `DB_PASSWORD`、`REDIS_PASSWORD` 和默认管理员密码
+- ⚠️ 生产环境不得设置 `SMS_DEV_CODE`
 - ⚠️ 数据库密码不要使用弱口令
-- ✅ 每个开发者应有自己的本地 `.env.local` 文件
-- ✅ CI/CD环境中通过平台配置注入环境变量
+- ✅ 每个开发者应有自己的本地根 `.env`
+- ✅ CI/CD 环境只注入隔离测试凭据；生产值由部署平台注入
 
 ## 代码中的使用方式
 
@@ -160,4 +174,5 @@ export class ExampleService {
 }
 ```
 
-Prisma CLI 在执行迁移时仍需要 `DATABASE_URL`。该值由部署环境或执行脚本根据独立的 `DB_*` 变量生成；业务代码不得自行拼接连接字符串。
+Prisma CLI 通过 `apps/server/prisma.config.ts` 使用同一个 `ConfigService`，从独立 `DB_*`
+变量生成连接地址。业务模块不得自行拼接连接字符串。
