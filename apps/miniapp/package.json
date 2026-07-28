@@ -11,7 +11,7 @@
   },
   "scripts": {
     "build": "pnpm build:weapp",
-    "build:weapp": "taro build --type weapp",
+    "build:weapp": "taro build --type weapp && node ../../scripts/style-output-policy.mjs miniapp dist",
     "dev": "pnpm dev:weapp",
     "dev:weapp": "taro build --type weapp --watch",
     "build:h5": "taro build --type h5",
@@ -54,8 +54,8 @@
     "@babel/preset-env": "^7.29.7",
     "@babel/preset-react": "^7.29.7",
     "@babel/preset-typescript": "^7.29.7",
-    "@pmmmwh/react-refresh-webpack-plugin": "^0.6.2",
     "@petcare/eslint-config-base": "workspace:*",
+    "@pmmmwh/react-refresh-webpack-plugin": "^0.6.2",
     "@tarojs/cli": "4.2.1",
     "@tarojs/taro-loader": "4.2.1",
     "@tarojs/webpack5-runner": "4.2.1",
@@ -79,10 +79,12 @@
     "jest-environment-jsdom": "^30.4.1",
     "postcss": "^8.5.20",
     "react-refresh": "^0.18.0",
+    "sass": "1.102.0",
     "tailwindcss": "^3.4.19",
     "ts-jest": "29.4.10",
     "typescript": "^6.0.3",
     "typescript-eslint": "8.64.0",
+    "weapp-tailwindcss": "5.2.4",
     "webpack": "5.91.0"
   }
 }

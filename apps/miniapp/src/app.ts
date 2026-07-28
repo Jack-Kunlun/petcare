@@ -2,7 +2,7 @@
 
 import { Component, createElement, type PropsWithChildren } from "react";
 import { AuthProvider } from "./auth/auth.context";
-import "./app.css";
+import "./app.scss";
 import "@taroify/core/styles/index.css";
 
 class App extends Component<PropsWithChildren> {
