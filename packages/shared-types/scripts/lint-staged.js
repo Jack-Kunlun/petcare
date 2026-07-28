@@ -13,7 +13,7 @@ const projectRoot = path.resolve(__dirname, "..");
 try {
   execSync("eslint . --fix", {
     cwd: projectRoot,
-    stdio: "inherit"
+    stdio: "inherit",
   });
 } catch (error) {
   // eslint-disable-next-line no-undef

@@ -21,10 +21,7 @@ export default [
       },
     },
     rules: {
-      "react-refresh/only-export-components": [
-        "warn",
-        { allowConstantExport: true },
-      ],
+      "react-refresh/only-export-components": ["warn", { allowConstantExport: true }],
       "react-hooks/rules-of-hooks": "error",
       "react-hooks/exhaustive-deps": "warn",
       // react-router-dom v7 使用条件导出，import/named 无法正确解析
