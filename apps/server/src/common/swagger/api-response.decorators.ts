@@ -11,8 +11,10 @@ const errorDescriptions: Record<number, string> = {
   401: "登录状态无效",
   403: "无权执行此操作",
   404: "资源不存在",
+  409: "账号状态冲突",
   429: "请求过于频繁",
   500: "服务内部错误",
+  503: "第三方服务暂时不可用",
 };
 
 interface ApiSuccessResponseOptions {

@@ -123,6 +123,7 @@ describe("WechatAuthService", () => {
 
   it("creates a pet owner for a new authorized phone", async () => {
     await expect(service.bindPhone("bind-token", "phone-code")).resolves.toMatchObject({
+      status: "authenticated",
       accessToken: "access",
       user: { phone: "17679141878", nickname: "宠友1878" },
     });

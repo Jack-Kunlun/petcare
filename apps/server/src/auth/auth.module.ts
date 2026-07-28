@@ -14,10 +14,13 @@ import { DevelopmentSmsSender } from "./sms/development-sms.sender";
 import { SMS_SENDER } from "./sms/sms-sender";
 import { TokenService } from "./token.service";
 import { VerificationCodeService } from "./verification-code.service";
+import { WechatApiClient } from "./wechat-api.client";
+import { WechatAuthController } from "./wechat-auth.controller";
+import { WechatAuthService } from "./wechat-auth.service";
 
 @Module({
   imports: [PassportModule, JwtModule.register({})],
-  controllers: [AuthController],
+  controllers: [AuthController, WechatAuthController],
   providers: [
     RedisService,
     CaptchaService,
@@ -25,6 +28,8 @@ import { VerificationCodeService } from "./verification-code.service";
     VerificationCodeService,
     TokenService,
     AuthService,
+    WechatApiClient,
+    WechatAuthService,
     JwtStrategy,
     AccessTokenGuard,
     AdminGuard,
