@@ -51,5 +51,6 @@ test("Server 类型检查复用 Nest 构建边界，无产物包覆盖 Turbo 输
   const eslintTurbo = await readJson("packages/eslint-config-base/turbo.json");
 
   assert.equal(server.scripts.typecheck, "tsc --noEmit -p tsconfig.build.json");
+  assert.match(server.scripts["test:e2e"], /--env-file-if-exists=\.\.\/\.\.\/\.env/);
   assert.deepEqual(eslintTurbo.tasks.build.outputs, []);
 });
