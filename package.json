@@ -17,7 +17,7 @@
     "dev:server": "pnpm --filter @petcare/server start:dev",
     "typecheck": "turbo run typecheck",
     "lint": "turbo run lint",
-    "test:tooling": "node --test scripts/repository-policy.test.mjs scripts/clean.test.mjs scripts/workspace-contract.test.mjs",
+    "test:tooling": "node --test scripts/repository-policy.test.mjs scripts/clean.test.mjs scripts/workspace-contract.test.mjs scripts/compose-policy.test.mjs",
     "test": "pnpm test:tooling && turbo run test",
     "test:coverage": "turbo run test:coverage",
     "test:e2e": "pnpm --filter @petcare/server test:e2e && pnpm --filter @petcare/admin test:e2e",
