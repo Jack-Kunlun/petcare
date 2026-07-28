@@ -28,8 +28,8 @@ petcare-monorepo/
 
 ### 前置要求
 
-- Node.js >= 20.0.0（推荐使用 `.nvmrc` 锁定的版本）
-- pnpm >= 8.0.0
+- Node.js 22.x（使用 `.nvmrc` 锁定）
+- pnpm 11.x（项目锁定 `pnpm@11.15.1`）
 - PostgreSQL >= 15.0
 - Redis >= 7.0
 
@@ -63,10 +63,8 @@ cp .env.example .env
 
 ```bash
 docker compose up -d postgres redis
-cd apps/server
-pnpm exec prisma db push
-pnpm prisma:seed
-cd ../..
+pnpm --filter @petcare/server prisma:push
+pnpm --filter @petcare/server prisma:seed
 ```
 
 当 Server 在宿主机运行时，根 `.env` 中应使用 `DB_HOST=localhost`、`REDIS_HOST=localhost`。然后可直接从根目录启动：
@@ -76,9 +74,9 @@ cd ../..
 pnpm dev
 
 # 单独启动某个应用
-pnpm dev --filter=admin
-pnpm dev --filter=server
-pnpm dev --filter=miniapp
+pnpm dev:admin
+pnpm dev:server
+pnpm dev:miniapp
 ```
 
 本地地址：Admin `http://localhost:8986`，Server `http://localhost:3000`。默认管理员支持“手机号或账号 + 密码”以及“手机号 + 验证码”两种登录方式。发送短信验证码前需要先填写图形验证码；点击验证码图片可以换一张。
@@ -98,7 +96,9 @@ Server 的 JSON 接口统一返回 `{ code, message, data, meta }`：成功业�
 pnpm build
 
 # 单独构建某个应用
-pnpm build --filter=admin
+pnpm build:admin
+pnpm build:server
+pnpm build:miniapp
 ```
 
 ### 测试
@@ -107,8 +107,14 @@ pnpm build --filter=admin
 # 运行单元测试
 pnpm test
 
+# 运行类型检查
+pnpm typecheck
+
 # 运行E2E测试
 pnpm test:e2e
+
+# 执行格式、Lint、类型、单测和构建完整门禁
+pnpm check
 ```
 
 ## 开发规范
@@ -117,7 +123,7 @@ pnpm test:e2e
 
 - **EditorConfig**: `.editorconfig` - 跨平台编辑器配置（Mac/Windows/Linux）
 - **Prettier**: `.prettierrc.json` - 代码格式化（双引号、2空格缩进）
-- **ESLint**: `eslint.base.config.js` - 基础ESLint配置，所有子项目继承
+- **ESLint**: `packages/eslint-config-base` - 共享基础配置，所有子项目继承
 - **Commitlint**: `commitlint.config.js` - Git commit消息规范
 - **Husky**: `.husky/` - Git hooks自动化检查（提交前自动格式化和lint）
 
@@ -130,8 +136,14 @@ pnpm format
 # 检查代码规范
 pnpm lint
 
+# 检查类型
+pnpm typecheck
+
 # 运行所有测试
 pnpm test
+
+# 完整质量门禁
+pnpm check
 ```
 
 详见：[开发规范文档](./docs/09-development-guidelines/02-development-standards.md)
@@ -172,6 +184,8 @@ const jwtSecret = this.configService.jwtSecret;
 - ✅ 默认值管理 - 集中管理配置默认值
 - ✅ 易于测试 - 可以mock ConfigService
 - ✅ 统一入口 - 所有配置访问都通过ConfigService
+- ✅ 启动失败快 - 监听端口前集中校验必填值、端口、JWT 和允许来源
+- ✅ 可选集成成组校验 - 微信与 OSS 未启用时允许为空，启用后必须提供完整合法配置
 
 详见：[环境变量配置指南](./docs/environment-variables.md)
 
@@ -207,6 +221,9 @@ const jwtSecret = this.configService.jwtSecret;
 # Docker Compose 读取项目根目录的 .env 文件
 cp .env.example .env
 
+# 将示例敏感值替换为当前环境的独立强密钥后先校验配置
+docker compose config --quiet
+
 # 使用 Docker Compose 启动所有服务
 docker compose up -d
 
@@ -227,7 +244,7 @@ docker compose down -v
 
 - 后台管理系统: http://localhost:8986
 - API服务: http://localhost:3000
-- API文档: http://localhost:3000/api-docs
+- API文档: 仅宿主机开发模式提供 http://localhost:3000/api-docs
 - 健康检查: http://localhost:3000/health
 
 ## License

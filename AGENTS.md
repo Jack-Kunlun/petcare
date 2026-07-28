@@ -68,7 +68,7 @@ REDIS_PASSWORD=  # 可选
 ### 配置文件位置
 
 - `.env.example` - 环境变量示例（根目录）
-- `apps/server/.env.local` - 后端实际配置（不提交Git）
+- `.env` - 本地与 Docker 共用的实际配置（不提交 Git）
 
 ## 🛠️ 开发规范
 
@@ -232,7 +232,7 @@ pnpm test:e2e              # E2E测试
 ## 🚫 禁止事项
 
 1. **不要直接读取 `process.env`** - 必须通过 ConfigService
-2. **不要修改 `.env.local`** - 这是本地配置，不应提交
+2. **不要提交根目录 `.env`** - 该文件包含本地配置和敏感信息
 3. **不要跳过 lint 检查** - 提交前必须通过 lint
 4. **不要硬编码配置值** - 所有配置应从环境变量读取
 5. **不要手动修改 prisma/migrations/** - 使用 Prisma CLI 生成
@@ -269,19 +269,19 @@ pnpm test:e2e              # E2E测试
 
 ```bash
 # 开发环境
-cp .env.example .env.local
-docker-compose up -d --build
+cp .env.example .env
+docker compose --env-file .env up -d --build
 
 # 生产环境（不暴露数据库端口）
-# 在.env.local中设置: EXPOSE_DB_PORT= EXPOSE_REDIS_PORT=
-docker-compose up -d
+# 在 .env 中设置: EXPOSE_DB_PORT= EXPOSE_REDIS_PORT=
+docker compose --env-file .env up -d
 ```
 
 **访问地址：**
 
-- Admin前端: http://localhost:80
-- API服务: http://localhost:3001
-- API文档: http://localhost:3001/api-docs (仅开发环境)
+- Admin前端: http://localhost:8986
+- API服务: http://localhost:3000
+- API文档: http://localhost:3000/api-docs（仅宿主机非生产环境）
 
 详见：
 

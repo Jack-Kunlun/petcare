@@ -1,35 +1,12 @@
-# PetCare API 环境变量配置示例
+# PetCare 环境变量模板
 
-# 复制此文件为 .env 并填写实际值
+可执行的模板位于仓库根目录 [`.env.example`](../../.env.example)。
 
-# Database
+本地使用：
 
-DATABASE_URL="postgresql://user:password@localhost:5432/petcare?schema=public"
+```bash
+cp .env.example .env
+```
 
-# Redis
-
-REDIS_HOST=localhost
-REDIS_PORT=6379
-REDIS_PASSWORD=
-
-# JWT
-
-JWT_SECRET=your-super-secret-jwt-key-change-in-production
-JWT_EXPIRES_IN=7d
-
-# Server
-
-PORT=3001
-NODE_ENV=development
-
-# WeChat MiniApp
-
-WECHAT_APP_ID=your-wechat-app-id
-WECHAT_APP_SECRET=your-wechat-app-secret
-
-# OSS (阿里云对象存储)
-
-OSS_ACCESS_KEY=your-oss-access-key
-OSS_SECRET_KEY=your-oss-secret-key
-OSS_BUCKET=petcare
-OSS_REGION=oss-cn-hangzhou
+变量含义、必填条件和第三方字段组规则参见
+[环境变量配置指南](../environment-variables.md)。

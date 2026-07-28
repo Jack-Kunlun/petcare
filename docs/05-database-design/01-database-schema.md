@@ -721,22 +721,19 @@ erDiagram
 
 ---
 
-## 迁移脚本说明
+## 当前建表策略
 
-使用Prisma Migrate进行数据库迁移：
+项目仍处于早期建表阶段，当前直接使用 Prisma Schema 同步数据库，不维护迁移文件：
 
 ```bash
-# 生成迁移文件
-npx prisma migrate dev --name phase3_complete_schema
+# 同步数据库结构
+pnpm --filter @petcare/server prisma:push
 
-# 应用迁移
-npx prisma migrate deploy
-
-# 查看迁移历史
-npx prisma migrate status
+# 写入默认角色与管理员等初始数据
+pnpm --filter @petcare/server prisma:seed
 ```
 
-迁移文件位于：`apps/server/prisma/migrations/`
+进入稳定迭代或生产数据需要保留历史后，再启用 Prisma Migrate 并补充迁移与回滚规范。
 
 ---
 
