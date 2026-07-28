@@ -20,8 +20,9 @@
     "test:cov": "jest --coverage",
     "test:coverage": "jest --coverage",
     "test:debug": "node --inspect-brk -r tsconfig-paths/register -r ts-node/register node_modules/.bin/jest --runInBand",
-    "test:e2e": "jest --config ./test/jest-e2e.json",
+    "test:e2e": "node --env-file-if-exists=../../.env node_modules/jest/bin/jest.js --config ./test/jest-e2e.json --runInBand",
     "prisma:generate": "prisma generate",
+    "prisma:push": "node --env-file-if-exists=../../.env node_modules/prisma/build/index.js db push",
     "prisma:seed": "node --env-file-if-exists=../../.env node_modules/tsx/dist/cli.mjs prisma/seed.ts",
     "clean": "node ../../scripts/clean.mjs dist coverage .turbo"
   },
