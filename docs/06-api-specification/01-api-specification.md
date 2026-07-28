@@ -136,6 +136,120 @@ Cookie: petcare_refresh_token=<refresh-token>
 
 刷新成功后服务端轮换 Cookie，并返回与登录接口相同的 `data` 结构。
 
+### 小程序微信认证
+
+小程序认证使用独立的 `/auth/wechat/*` 接口。Access Token 通过 Bearer 请求头传递，
+Refresh Token 通过 JSON 正文传递，不使用后台管理的 Cookie。
+
+#### 微信登录
+
+```http
+POST /auth/wechat/login
+Content-Type: application/json
+
+{
+  "loginCode": "<Taro.login 返回的 code>"
+}
+```
+
+已绑定用户直接返回完整会话：
+
+```json
+{
+  "code": "SUCCESS",
+  "message": "操作成功",
+  "data": {
+    "status": "authenticated",
+    "accessToken": "<access-token>",
+    "refreshToken": "<refresh-token>",
+    "user": {
+      "id": "uuid",
+      "phone": "13800138000",
+      "nickname": "宠友1878",
+      "avatar": null,
+      "userType": "pet_owner"
+    }
+  },
+  "meta": {
+    "requestId": "request-123",
+    "timestamp": "2026-07-28T00:00:00.000Z"
+  }
+}
+```
+
+首次登录返回短时绑定挑战，不创建用户：
+
+```json
+{
+  "code": "SUCCESS",
+  "message": "操作成功",
+  "data": {
+    "status": "phone_required",
+    "bindToken": "<300 秒内有效的一次性令牌>"
+  },
+  "meta": {
+    "requestId": "request-123",
+    "timestamp": "2026-07-28T00:00:00.000Z"
+  }
+}
+```
+
+客户端不得提交或伪造 `openid`；Server 只接受微信接口交换得到的身份。
+
+#### 绑定授权手机号
+
+```http
+POST /auth/wechat/bind-phone
+Content-Type: application/json
+
+{
+  "bindToken": "<微信登录返回值>",
+  "phoneCode": "<getPhoneNumber 返回的 code>"
+}
+```
+
+成功返回 `status=authenticated` 的完整会话。手机号已有账号且尚未绑定微信时，只补充
+`openid`，保留原账号资料和角色；身份冲突返回 409。
+
+#### 刷新、退出和当前用户
+
+```http
+POST /auth/wechat/refresh
+Content-Type: application/json
+
+{ "refreshToken": "<refresh-token>" }
+```
+
+刷新成功会使旧 Refresh Token 立即失效并返回新的完整会话。
+
+```http
+POST /auth/wechat/logout
+Content-Type: application/json
+
+{ "refreshToken": "<refresh-token>" }
+```
+
+退出成功返回 204，无响应正文。
+
+```http
+GET /auth/wechat/me
+Authorization: Bearer <access-token>
+```
+
+`/me` 返回小程序用户安全字段，不要求管理员角色。
+
+#### 小程序认证错误码
+
+| 错误码                       | HTTP | 说明                         |
+| ---------------------------- | ---- | ---------------------------- |
+| `AUTH_WECHAT_LOGIN_FAILED`   | 401  | 微信登录凭证无效             |
+| `WECHAT_SERVICE_UNAVAILABLE` | 503  | 微信服务或服务端配置不可用   |
+| `AUTH_PHONE_AUTH_FAILED`     | 400  | 微信手机号授权失败           |
+| `AUTH_BIND_TOKEN_EXPIRED`    | 401  | 手机号绑定挑战过期或已消费   |
+| `AUTH_ACCOUNT_CONFLICT`      | 409  | 微信身份与手机号账号冲突     |
+| `AUTH_ACCOUNT_DISABLED`      | 403  | 用户账号被停用               |
+| `AUTH_SESSION_EXPIRED`       | 401  | Access 或 Refresh 会话已失效 |
+
 ### 请求头认证
 
 所有需要认证的接口必须在请求头携带Token：

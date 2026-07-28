@@ -102,9 +102,10 @@ API 和独立 Worker 必须使用相同的 `QUEUE_PREFIX`；生产、预发和�
 
 ### API配置
 
-| 变量名         | 必填 | 说明                                        |
-| -------------- | ---- | ------------------------------------------- |
-| `API_BASE_URL` | 否   | API基础URL，默认`http://localhost:8986/api` |
+| 变量名                  | 必填 | 说明                                                    |
+| ----------------------- | ---- | ------------------------------------------------------- |
+| `API_BASE_URL`          | 否   | Admin API基础URL，默认`http://localhost:8986/api`       |
+| `TARO_APP_API_BASE_URL` | 否   | Miniapp 请求 Server 的地址，默认`http://localhost:3000` |
 
 ### 第三方服务（可选）
 
@@ -119,6 +120,10 @@ API 和独立 Worker 必须使用相同的 `QUEUE_PREFIX`；生产、预发和�
 
 微信配置必须同时留空或同时提供。启用时，`WECHAT_APP_ID` 必须符合 `wx` 加 16 位字符的格式，
 `WECHAT_APP_SECRET` 必须为 32 位十六进制字符串。
+
+`WECHAT_APP_ID` 和 `WECHAT_APP_SECRET` 只由 Server 使用。Miniapp 只读取
+`TARO_APP_API_BASE_URL`，绝不能包含或读取 AppSecret。`apps/miniapp/project.config.json`
+中的 AppID 是公开项目标识，可以提交到仓库。
 
 OSS 配置必须四项同时留空或同时提供；Bucket 只能使用小写字母、数字和连字符，Region 使用
 类似 `cn-hangzhou` 的格式。任何不完整或格式错误的字段组都会在 Server 监听端口前使启动失败。
@@ -140,6 +145,17 @@ OSS 配置必须四项同时留空或同时提供；Bucket 只能使用小写字
    pnpm --filter @petcare/server prisma:push
    pnpm --filter @petcare/server prisma:seed
    ```
+
+4. 启动 Server 和 Miniapp 微信端监听构建：
+
+   ```bash
+   pnpm dev:server
+   pnpm dev:miniapp
+   ```
+
+5. 在微信开发者工具中导入 `apps/miniapp`。本地联调配置已关闭 request 域名校验；
+   生产发布前必须在微信公众平台配置 HTTPS 合法 request 域名，并将
+   `TARO_APP_API_BASE_URL` 设置为该地址。
 
 ## 注意事项
 
