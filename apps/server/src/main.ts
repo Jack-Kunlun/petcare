@@ -11,6 +11,7 @@ async function bootstrap() {
   const appLogger = app.get(AppLogger);
   const configService = app.get(ConfigService);
 
+  configService.validateForStartup();
   app.useLogger(appLogger);
   app.flushLogs();
   app.enableShutdownHooks();

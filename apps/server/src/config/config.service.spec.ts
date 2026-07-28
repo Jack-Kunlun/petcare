@@ -1,7 +1,31 @@
 import { ConfigService } from "./config.service";
 
-describe("ConfigService authentication configuration", () => {
+describe("ConfigService", () => {
   const originalEnv = process.env;
+  const validStartupEnv = {
+    NODE_ENV: "development",
+    PORT: "3000",
+    DB_HOST: "localhost",
+    DB_PORT: "5432",
+    DB_USERNAME: "user",
+    DB_PASSWORD: "local-database-password",
+    DB_NAME: "petcare",
+    DB_SCHEMA: "public",
+    REDIS_HOST: "localhost",
+    REDIS_PORT: "6379",
+    REDIS_PASSWORD: "",
+    JWT_SECRET: "local-jwt-secret-with-at-least-32-characters",
+    DEFAULT_ADMIN_USERNAME: "admin",
+    DEFAULT_ADMIN_PHONE: "13800138000",
+    DEFAULT_ADMIN_PASSWORD: "Local-Admin-Password-2026!",
+    ALLOWED_ORIGINS: "http://localhost:8986",
+    WECHAT_APP_ID: "",
+    WECHAT_APP_SECRET: "",
+    ALIYUN_OSS_ACCESS_KEY_ID: "",
+    ALIYUN_OSS_ACCESS_KEY_SECRET: "",
+    ALIYUN_OSS_BUCKET: "",
+    ALIYUN_OSS_REGION: "",
+  };
 
   beforeEach(() => {
     process.env = { ...originalEnv };
@@ -76,6 +100,81 @@ describe("ConfigService authentication configuration", () => {
     expect(() => config.captchaMaxAttempts).toThrow(
       "CAPTCHA_MAX_ATTEMPTS must be a positive integer",
     );
+  });
+
+  describe("startup validation", () => {
+    it("accepts complete startup configuration with disabled optional integrations", () => {
+      process.env = { ...originalEnv, ...validStartupEnv };
+
+      expect(() => new ConfigService().validateForStartup()).not.toThrow();
+    });
+
+    it("reports all missing required startup variables without exposing values", () => {
+      process.env = { NODE_ENV: "development" };
+
+      expect(() => new ConfigService().validateForStartup()).toThrow(
+        /DB_HOST.*DB_PASSWORD.*JWT_SECRET.*DEFAULT_ADMIN_PHONE/s,
+      );
+    });
+
+    it("rejects partially configured WeChat and OSS integrations", () => {
+      process.env = {
+        ...originalEnv,
+        ...validStartupEnv,
+        WECHAT_APP_ID: "wx3bdad4ab652f0d1d",
+        ALIYUN_OSS_BUCKET: "petcare-test",
+      };
+
+      expect(() => new ConfigService().validateForStartup()).toThrow(
+        /WECHAT_APP_SECRET.*ALIYUN_OSS_ACCESS_KEY_ID.*ALIYUN_OSS_REGION/s,
+      );
+    });
+
+    it("rejects malformed complete WeChat and OSS integrations", () => {
+      process.env = {
+        ...originalEnv,
+        ...validStartupEnv,
+        WECHAT_APP_ID: "invalid-app-id",
+        WECHAT_APP_SECRET: "invalid-secret",
+        ALIYUN_OSS_ACCESS_KEY_ID: "test-access-key",
+        ALIYUN_OSS_ACCESS_KEY_SECRET: "test-access-secret",
+        ALIYUN_OSS_BUCKET: "Invalid_Bucket",
+        ALIYUN_OSS_REGION: "cn-hangzhou",
+      };
+
+      expect(() => new ConfigService().validateForStartup()).toThrow(
+        /WECHAT_APP_ID.*ALIYUN_OSS_BUCKET/s,
+      );
+    });
+
+    it("rejects malformed ports, token durations, and allowed origins", () => {
+      process.env = {
+        ...originalEnv,
+        ...validStartupEnv,
+        DB_PORT: "5432x",
+        JWT_ACCESS_EXPIRES_IN: "soon",
+        JWT_REFRESH_EXPIRES_IN: "next-week",
+        ALLOWED_ORIGINS: "localhost:8986",
+      };
+
+      expect(() => new ConfigService().validateForStartup()).toThrow(
+        /DB_PORT.*JWT_ACCESS_EXPIRES_IN.*JWT_REFRESH_EXPIRES_IN.*ALLOWED_ORIGINS/s,
+      );
+    });
+
+    it("requires Redis authentication and rejects development SMS codes in production", () => {
+      process.env = {
+        ...originalEnv,
+        ...validStartupEnv,
+        NODE_ENV: "production",
+        REDIS_PASSWORD: "",
+        SMS_DEV_CODE: "246810",
+      };
+
+      expect(() => new ConfigService().validateForStartup()).toThrow(
+        /REDIS_PASSWORD.*SMS_DEV_CODE/s,
+      );
+    });
   });
 
   describe("logging configuration", () => {
