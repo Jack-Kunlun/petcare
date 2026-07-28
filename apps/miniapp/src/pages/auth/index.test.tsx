@@ -30,19 +30,27 @@ jest.mock("@tarojs/components", () => {
       children,
       onClick,
       onGetPhoneNumber,
+      loading,
+      openType,
       ...props
     }: React.PropsWithChildren<{
       onClick?: () => void;
       onGetPhoneNumber?: (event: { detail: { code?: string; errMsg?: string } }) => void;
-    }>) =>
-      React.createElement(
+      loading?: boolean;
+      openType?: string;
+    }>) => {
+      void loading;
+      void openType;
+
+      return React.createElement(
         "button",
         {
           ...props,
           onClick: onClick ?? (() => onGetPhoneNumber?.({ detail: mockPhoneDetail })),
         },
         children,
-      ),
+      );
+    },
   };
 });
 
