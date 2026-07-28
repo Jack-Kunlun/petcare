@@ -1,6 +1,31 @@
+import path from "node:path";
 import { defineConfig } from "@tarojs/cli";
+import {
+  WeappTailwindcss,
+  type UserDefinedOptions as WeappTailwindcssOptions,
+} from "weapp-tailwindcss/webpack";
 
 const apiBaseUrl = process.env.TARO_APP_API_BASE_URL || "http://localhost:3000";
+const projectRoot = path.resolve(__dirname, "..");
+
+export const weappTailwindcssOptions: WeappTailwindcssOptions = {
+  cssOptions: {
+    rem2rpx: false,
+    px2rpx: false,
+  },
+  tailwindcssBasedir: projectRoot,
+};
+
+export function registerWeappTailwindcss(chain: { merge(config: object): unknown }): void {
+  chain.merge({
+    plugin: {
+      weappTailwindcss: {
+        plugin: WeappTailwindcss,
+        args: [weappTailwindcssOptions],
+      },
+    },
+  });
+}
 
 export default defineConfig({
   projectName: "petcare-miniapp",
@@ -28,9 +53,10 @@ export default defineConfig({
     enable: false,
   },
   mini: {
+    webpackChain: registerWeappTailwindcss,
     postcss: {
       pxtransform: {
-        enable: true,
+        enable: false,
         config: {},
       },
       cssModules: {
@@ -41,6 +67,7 @@ export default defineConfig({
   h5: {
     publicPath: "/",
     staticDirectory: "static",
+    webpackChain: registerWeappTailwindcss,
     postcss: {
       autoprefixer: {
         enable: true,
