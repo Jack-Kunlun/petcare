@@ -47,7 +47,7 @@ PetCare 的 Admin 已使用 Tailwind CSS v4，Miniapp 正从 Tailwind CSS v3 升
 | 维度          | Miniapp                                      | Admin                                          |
 | ------------- | -------------------------------------------- | ---------------------------------------------- |
 | Tailwind 版本 | v4                                           | v4                                             |
-| 配置入口      | `app.scss` CSS-first `@theme`                | `index.css` CSS-first `@theme`                 |
+| 配置入口      | `app.css` CSS-first `@theme`                 | `index.css` CSS-first `@theme`                 |
 | 构建集成      | `weapp-tailwindcss` Webpack 插件             | `@tailwindcss/vite`                            |
 | 基础单位      | px                                           | px                                             |
 | 默认字体      | 14px                                         | 14px                                           |
@@ -63,7 +63,7 @@ PetCare 的 Admin 已使用 Tailwind CSS v4，Miniapp 正从 Tailwind CSS v3 升
 
 Miniapp 使用 Tailwind CSS v4 和 `weapp-tailwindcss` 的 Taro Webpack 5 原生生成器：
 
-1. `app.scss` 通过 `@import` 选择性引入 Tailwind theme 与 utilities，并通过 `source(".")` 扫描 `src`；
+1. `app.css` 通过 `@import` 选择性引入 Tailwind theme 与 utilities，并通过 `source(".")` 扫描 `src`；
 2. `WeappTailwindcss` 根据绝对路径 `cssEntries` 读取入口，生成 Tailwind v4 CSS；
 3. 插件执行 CSS 兼容处理和微信小程序类名转译；
 4. Taro 输出最终 JS、WXML 和 WXSS；
@@ -77,9 +77,9 @@ Miniapp 使用 Tailwind CSS v4 和 `weapp-tailwindcss` 的 Taro Webpack 5 原生
 - `cssOptions.cssPreflight: false`；
 - Miniapp 与 H5 的 Webpack 链都注册同一份插件配置；
 - Monorepo 显式设置 `tailwindcssBasedir`；
-- `cssEntries` 使用 `path.resolve(projectRoot, "src/app.scss")` 生成绝对路径；
+- `cssEntries` 使用 `path.resolve(projectRoot, "src/app.css")` 生成绝对路径；
 - Taro `mini.postcss.pxtransform.enable: false`；
-- `app.scss` 只导入 theme 与 utilities，不导入 `preflight.css`；
+- `app.css` 只导入 theme 与 utilities，不导入 `preflight.css`；
 - 删除 Miniapp 的 `postcss.config.js` 和 `tailwind.config.js`，不保留重复生成路径；
 - 不执行旧版 `weapp-tw patch`；
 - `weapp-tailwindcss` 使用当前稳定版 `5.2.4`，Dart Sass 使用当前稳定版 `1.102.0`；
@@ -93,7 +93,7 @@ Miniapp 的源样式和最终 WXSS 均保持 px：
 
 - 禁用 Taro 的 px → rpx 转换；
 - 禁用 `weapp-tailwindcss` 的 rem → rpx 转换；
-- `app.scss` 的 `@theme` 中使用显式 px token；
+- `app.css` 的 `@theme` 中使用显式 px token；
 - 不在 Miniapp 业务代码中使用 `rem` 或 `rpx`；
 - 默认字体大小通过全局 `page` 样式和 `text-base` token 均固定为 `14px`。
 
@@ -101,7 +101,7 @@ Miniapp 的源样式和最终 WXSS 均保持 px：
 
 ### 4.3 Token 与命名
 
-所有非 Tailwind 标准值必须先写入 `app.scss` 顶层的 `@theme`，再通过稳定别名使用。主题变量使用 Tailwind v4 官方命名空间：
+所有非 Tailwind 标准值必须先写入 `app.css` 顶层的 `@theme`，再通过稳定别名使用。主题变量使用 Tailwind v4 官方命名空间：
 
 - `--spacing-*` 生成间距和尺寸工具类；
 - `--text-*` 与 `--text-*--line-height` 生成字号与行高；
@@ -110,7 +110,7 @@ Miniapp 的源样式和最终 WXSS 均保持 px：
 - `--shadow-*` 生成阴影；
 - 经验证可用的断点和变体使用对应 v4 主题命名空间。
 
-Miniapp 将默认 `--spacing`、颜色、字号、圆角和阴影命名空间重置为 `initial`，再声明项目允许的 token。这样既避免默认 rem token 进入 WXSS，也让工具类集合与源码策略保持一致。
+Miniapp 将默认 `--spacing` 重置为 `initial`，再声明项目允许的间距 token。颜色、字号、圆角和阴影声明项目实际使用的 px token；不使用通配命名空间重置，因为 `weapp-tailwindcss` 的 CSS 后处理器无法解析 `--color-*` 这类 Tailwind 专用属性名。默认类名仍由源码策略禁止，最终 rem 由产物检查阻止。
 
 别名按以下优先级命名：
 
@@ -120,14 +120,9 @@ Miniapp 将默认 `--spacing`、颜色、字号、圆角和阴影命名空间重
 
 示例：
 
-```scss
+```css
 @theme {
   --spacing: initial;
-  --color-*: initial;
-  --text-*: initial;
-  --radius-*: initial;
-  --shadow-*: initial;
-
   --color-transparent: transparent;
   --color-current: currentColor;
   --color-white: #ffffff;
@@ -203,21 +198,21 @@ Miniapp 默认禁止以下 Tailwind 语法：
 
 变体采用默认拒绝策略：只有在 `weapp-tailwindcss` 转换后经过真机或开发者工具验证，并加入项目白名单的变体才可使用。初始白名单只保留本次现有页面确实需要且能够稳定编译的变体。
 
-### 4.5 SCSS 边界
+### 4.5 样式文件边界
 
-Miniapp 的 `app.scss` 是 Tailwind v4 主题、utilities 和全局平台样式的唯一入口。文件结构固定为：
+Miniapp 的 `app.css` 是 Tailwind v4 主题、utilities 和全局平台样式的唯一入口。Tailwind v4 官方不支持 Sass 预处理入口，`weapp-tailwindcss` 也要求 `cssEntries` 指向纯 CSS。文件结构固定为：
 
-```scss
+```css
 @layer theme, base, components, utilities;
 
 @import "tailwindcss/theme.css" layer(theme);
 @import "tailwindcss/utilities.css" layer(utilities) source(".");
 
 @theme {
-  // 项目 px token
+  /* 项目 px token */
 }
 
-// 无法挂载 Tailwind 类名的微信 page 全局样式
+/* 无法挂载 Tailwind 类名的微信 page 全局样式 */
 page {
   font-size: 14px;
 }
@@ -232,7 +227,7 @@ page {
 
 普通页面不得新增 `.css` 或 `.scss` 文件。现有 `pages/index/index.css` 与 `pages/auth/index.css` 的规则全部迁移到 TSX 的 Tailwind 类名后删除。
 
-不得在 SCSS 中使用 `@apply` 包装可直接写在组件上的工具类。确需保留的 SCSS 必须附有简短注释，说明无法使用 Tailwind 的平台或选择器原因。
+当前 Miniapp 不保留 SCSS。未来确需 Sass 能力时，必须使用独立 SCSS 文件，且不得包含 `@theme`、Tailwind import 或 `@apply`；文件必须附有简短注释说明无法使用 Tailwind 或原生 CSS 的原因。
 
 ### 4.6 现有页面迁移
 
@@ -283,7 +278,7 @@ Miniapp 检查至少覆盖：
 - 禁止数值编码别名，例如 `h-20px`；
 - 禁止页面级 CSS/SCSS 文件回归；
 - 禁止 Miniapp 业务样式出现 `rem` 或 `rpx`；
-- 校验实际使用的自定义别名能够在 `app.scss @theme` 中解析。
+- 校验实际使用的自定义别名能够在 `app.css @theme` 中解析。
 
 Admin 检查至少覆盖：
 
@@ -371,9 +366,9 @@ Admin 检查至少覆盖：
 
 ### 9.5 Tailwind v4 与 Sass 冲突
 
-风险：Sass 提前解释 Tailwind v4 指令或第三方 PostCSS 再次处理入口，形成重复生成。
+风险：将 Tailwind v4 `@theme` 和 import 放入 Sass，或由第三方 PostCSS 再次处理入口，形成解析错误或重复生成。
 
-处理：Miniapp 的 `app.scss` 只使用 Sass 可透传的顶层 CSS 指令，并由 `weapp-tailwindcss` 单独生成；Admin 保持 CSS 入口，独立 SCSS 不处理 Tailwind 指令。
+处理：Miniapp 与 Admin 的 Tailwind 入口均使用纯 CSS；独立 SCSS 不处理 Tailwind 指令。
 
 ### 9.6 v3 与 v4 双重生成
 
@@ -389,9 +384,9 @@ Admin 检查至少覆盖：
 2. Miniapp 的 Taro `pxtransform` 和插件 `rem2rpx` 均关闭；
 3. Miniapp 最终 WXSS 中默认字号为 `14px`，且不存在 `rem` 或 `rpx`；
 4. Miniapp 不存在 `h-[20px]`、`h-1/2`、`h-20px` 等禁止类名；
-5. 所有非标准 Miniapp 值均通过 `app.scss @theme` 语义 token 使用，`h-mm`、`w-action` 等关键类能生成；
+5. 所有非标准 Miniapp 值均通过 `app.css @theme` 语义 token 使用，`h-mm`、`w-action` 等关键类能生成；
 6. Miniapp 当前页面的普通 CSS 已迁移为 Tailwind 工具类；
-7. Miniapp 仅保留必要的全局 `app.scss`，无页面级样式文件；
+7. Miniapp 仅保留必要的 Tailwind v4 纯 CSS 入口 `app.css`，无页面级样式文件；
 8. Admin 保持 Tailwind v4 CSS-first 构建，默认字号为 `14px`，核心设计 token 使用 px；
 9. 两端新增 SCSS 均符合“Tailwind 无法实现时才使用”的边界；
 10. 样式源码检查和 Miniapp 产物检查能够阻止规则回退；
