@@ -1,0 +1,56 @@
+@layer theme, base, components, utilities;
+
+@import "tailwindcss/theme.css" layer(theme);
+@import "tailwindcss/utilities.css" layer(utilities) source(".");
+
+@theme {
+  --spacing: initial;
+
+  --color-transparent: transparent;
+  --color-current: currentColor;
+  --color-white: #ffffff;
+  --color-surface: #f5f5f5;
+  --color-surface-muted: #f6f8f7;
+  --color-ink: #333333;
+  --color-ink-strong: #163c2b;
+  --color-muted: #666666;
+  --color-muted-brand: #668074;
+  --color-brand: #20a66a;
+  --color-brand-strong: #178854;
+  --color-danger: #c83e3e;
+
+  --spacing-none: 0px;
+  --spacing-note: 12px;
+  --spacing-compact: 16px;
+  --spacing-section: 32px;
+  --spacing-page: 40px;
+  --spacing-page-y: 48px;
+  --spacing-mm: 20px;
+  --spacing-action: 240px;
+
+  --text-base: 14px;
+  --text-base--line-height: 20px;
+  --text-description: 15px;
+  --text-description--line-height: 24px;
+  --text-subtitle: 16px;
+  --text-subtitle--line-height: 24px;
+  --text-welcome: 18px;
+  --text-welcome--line-height: 26px;
+  --text-heading: 28px;
+  --text-heading--line-height: 36px;
+  --text-hero: 36px;
+  --text-hero--line-height: 44px;
+
+  --radius-button: 12px;
+  --radius-card: 20px;
+  --shadow-card: 0 12px 40px rgb(26 77 54 / 8%);
+}
+
+@source inline("h-mm");
+
+/* page 无法挂载 Tailwind 类名，保留为唯一全局平台样式。 */
+page {
+  background-color: #f5f5f5;
+  font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif;
+  font-size: 14px;
+}

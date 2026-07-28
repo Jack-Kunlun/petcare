@@ -5,7 +5,33 @@ import process from "node:process";
 import { fileURLToPath } from "node:url";
 
 const SCRIPT_PATH = fileURLToPath(import.meta.url);
-const MINIAPP_REQUIRED_DECLARATIONS = ["font-size:14px", "width:240px", "border-radius:12px"];
+const MINIAPP_REQUIRED_DECLARATIONS = [
+  {
+    label: "font-size:14px",
+    patterns: [/font-size\s*:\s*14px\b/],
+  },
+  {
+    label: "height:20px",
+    patterns: [
+      /--spacing-mm\s*:\s*20px\b/,
+      /\.h-mm\s*\{[^}]*height\s*:\s*var\(--spacing-mm\)/s,
+    ],
+  },
+  {
+    label: "width:240px",
+    patterns: [
+      /--spacing-action\s*:\s*240px\b/,
+      /\.w-action\s*\{[^}]*width\s*:\s*var\(--spacing-action\)/s,
+    ],
+  },
+  {
+    label: "border-radius:12px",
+    patterns: [
+      /--radius-button\s*:\s*12px\b/,
+      /\.rounded-button\s*\{[^}]*border-radius\s*:\s*var\(--radius-button\)/s,
+    ],
+  },
+];
 
 export async function checkMiniappOutput(outputRoot) {
   const files = await collectFiles(outputRoot);
@@ -52,8 +78,8 @@ export async function checkMiniappOutput(outputRoot) {
   const combinedWxss = wxssSources.join("\n");
 
   for (const declaration of MINIAPP_REQUIRED_DECLARATIONS) {
-    if (!combinedWxss.includes(declaration)) {
-      violations.push(`Miniapp WXSS 缺少关键声明：${declaration}`);
+    if (!declaration.patterns.every((pattern) => pattern.test(combinedWxss))) {
+      violations.push(`Miniapp WXSS 缺少关键声明：${declaration.label}`);
     }
   }
 
