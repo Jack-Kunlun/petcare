@@ -48,7 +48,7 @@ PetCare 的 Admin 已使用 Tailwind CSS v4，Miniapp 已安装 Tailwind CSS v3�
 | ------------- | -------------------------------------------- | ---------------------------------------------- |
 | Tailwind 版本 | v3                                           | v4                                             |
 | 配置入口      | `tailwind.config.js`                         | CSS-first `@theme`                             |
-| 构建集成      | PostCSS + `weapp-tailwindcss` Webpack 插件   | `@tailwindcss/vite`                            |
+| 构建集成      | `weapp-tailwindcss` Webpack 插件             | `@tailwindcss/vite`                            |
 | 基础单位      | px                                           | px                                             |
 | 默认字体      | 14px                                         | 14px                                           |
 | 响应式方式    | flex、grid、百分比、全宽、最大宽度与受控变体 | Tailwind 官方响应式工具类                      |
@@ -64,21 +64,25 @@ PetCare 的 Admin 已使用 Tailwind CSS v4，Miniapp 已安装 Tailwind CSS v3�
 Miniapp 保持 Tailwind CSS v3，并新增 `weapp-tailwindcss` 的 Taro Webpack 5 集成：
 
 1. Tailwind 根据 `src/**/*.{js,jsx,ts,tsx}` 扫描并生成 utilities；
-2. PostCSS 处理 Tailwind CSS；
-3. `UnifiedWebpackPluginV5` 使用 Taro 模式转换微信小程序不支持的选择器和转义类名；
-4. Taro 输出最终 JS、WXML 和 WXSS；
-5. 产物检查脚本验证单位、选择器和运行时代码。
+2. `WeappTailwindcss` 负责 Tailwind 生成、CSS 兼容处理和微信小程序类名转译；
+3. Taro 输出最终 JS、WXML 和 WXSS；
+4. 产物检查脚本验证单位、选择器和运行时代码。
 
 插件配置必须满足：
 
-- `appType: "taro"`；
-- `rem2rpx: false`；
+- 使用 `weapp-tailwindcss/webpack` 导出的 `WeappTailwindcss`；
+- `cssOptions.rem2rpx: false`；
+- `cssOptions.px2rpx: false`；
+- Miniapp 与 H5 的 Webpack 链都注册同一份插件配置；
+- Monorepo 显式设置 `tailwindcssBasedir`；
 - Taro `mini.postcss.pxtransform.enable: false`；
 - Tailwind `corePlugins.preflight: false`；
 - 只引入 Tailwind utilities，不引入会生成通用元素重置的 preflight；
-- 依赖版本使用安装时策略允许的最近稳定版本，并与项目 Node 22 版本约束匹配。
+- 不在 PostCSS 中重复注册 Tailwind，也不执行旧版 `weapp-tw patch`；
+- `weapp-tailwindcss` 使用当前稳定版 `5.2.4`，Dart Sass 使用当前稳定版 `1.102.0`；
+- 根目录 Node 版本范围收紧为 `>=22.18.0 <23`。
 
-如果 `weapp-tailwindcss` 当前稳定版本提高了 Node 22 的最低小版本要求，应同步收紧根目录 `engines.node`、文档和 CI Node 版本，避免“声明可安装但实际无法运行”。
+上述 Node 下限与 `weapp-tailwindcss@5.2.4` 的引擎要求一致，避免“声明可安装但实际无法运行”。
 
 ### 4.2 px 与响应式规则
 
