@@ -19,6 +19,14 @@ async function readJson(path) {
   return JSON.parse(await readFile(resolve(root, path), "utf8"));
 }
 
+test("Server tsconfig 不依赖跨版本弃用屏蔽", async () => {
+  const serverTsconfig = await readJson("apps/server/tsconfig.json");
+
+  assert.equal(serverTsconfig.compilerOptions.ignoreDeprecations, undefined);
+  assert.equal(serverTsconfig.compilerOptions.baseUrl, undefined);
+  assert.deepEqual(serverTsconfig.compilerOptions.paths["@/*"], ["./src/*"]);
+});
+
 test("所有工作区暴露标准生命周期", async () => {
   for (const path of manifests) {
     const manifest = await readJson(path);

@@ -88,7 +88,7 @@ export default function AuthPage() {
   };
 
   return (
-    <View className="auth-page">
+    <View className="auth-page min-h-screen">
       <View className="auth-card">
         <Text className="auth-title">登录 PetCare 宠伴</Text>
         <Text className="auth-description">登录后可发布需求、接单并管理你的宠物服务。</Text>
