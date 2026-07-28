@@ -190,10 +190,12 @@ Docker容器化部署和运维指南。
 | ---------------------------------------------------------------------------------------- | -------------- | -------- |
 | [01-development-guidelines.md](./09-development-guidelines/01-development-guidelines.md) | 开发指南       | 全体开发 |
 | [02-development-standards.md](./09-development-guidelines/02-development-standards.md)   | 开发规范详细版 | 全体开发 |
+| [04-styling-standards.md](./09-development-guidelines/04-styling-standards.md)           | 双端样式规范   | 前端开发 |
 
 **核心内容**:
 
 - 代码风格（ESLint + Prettier）
+- 双端 Tailwind v4、px token 与 CSS/SCSS 边界
 - Git提交规范（Conventional Commits）
 - 测试规范（Vitest + Playwright）
 - ConfigService使用规范
