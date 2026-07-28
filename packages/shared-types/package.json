@@ -8,7 +8,8 @@
   "scripts": {
     "build": "tsc",
     "dev": "tsc --watch",
-    "clean": "rm -rf dist",
+    "clean": "node ../../scripts/clean.mjs dist coverage .turbo",
+    "typecheck": "tsc --noEmit",
     "lint": "eslint .",
     "lint:staged": "eslint . --fix",
     "format": "prettier --write \"src/**/*.ts\"",

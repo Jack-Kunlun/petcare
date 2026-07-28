@@ -10,10 +10,12 @@
     "framework": "React"
   },
   "scripts": {
+    "build": "pnpm build:weapp",
     "build:weapp": "taro build --type weapp",
-    "dev:weapp": "npm run build:weapp -- --watch",
+    "dev": "pnpm dev:weapp",
+    "dev:weapp": "pnpm build:weapp -- --watch",
     "build:h5": "taro build --type h5",
-    "dev:h5": "npm run build:h5 -- --watch",
+    "dev:h5": "pnpm build:h5 -- --watch",
     "lint": "eslint .",
     "lint:fix": "eslint . --fix",
     "format": "prettier --ignore-path ../../.prettierignore --write .",
@@ -21,7 +23,8 @@
     "typecheck": "tsc --noEmit",
     "test": "jest",
     "test:watch": "jest --watch",
-    "test:coverage": "jest --coverage"
+    "test:coverage": "jest --coverage",
+    "clean": "node ../../scripts/clean.mjs dist coverage .temp .turbo"
   },
   "browserslist": [
     "last 3 versions",

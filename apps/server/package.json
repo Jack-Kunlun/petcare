@@ -4,7 +4,9 @@
   "description": "PetCare后端API服务",
   "scripts": {
     "prebuild": "pnpm prisma:generate",
+    "dev": "pnpm start:dev",
     "build": "nest build",
+    "typecheck": "tsc --noEmit -p tsconfig.build.json",
     "format": "prettier --write \"src/**/*.ts\"",
     "format:staged": "prettier --write \"src/**/*.ts\"",
     "start": "node --env-file-if-exists=../../.env node_modules/@nestjs/cli/bin/nest.js start",
@@ -16,10 +18,12 @@
     "test": "jest",
     "test:watch": "jest --watch",
     "test:cov": "jest --coverage",
+    "test:coverage": "jest --coverage",
     "test:debug": "node --inspect-brk -r tsconfig-paths/register -r ts-node/register node_modules/.bin/jest --runInBand",
     "test:e2e": "jest --config ./test/jest-e2e.json",
     "prisma:generate": "prisma generate",
-    "prisma:seed": "node --env-file-if-exists=../../.env node_modules/tsx/dist/cli.mjs prisma/seed.ts"
+    "prisma:seed": "node --env-file-if-exists=../../.env node_modules/tsx/dist/cli.mjs prisma/seed.ts",
+    "clean": "node ../../scripts/clean.mjs dist coverage .turbo"
   },
   "dependencies": {
     "@nestjs/common": "^11.1.28",
