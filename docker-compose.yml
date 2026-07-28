@@ -7,7 +7,7 @@ services:
     environment:
       POSTGRES_DB: ${DB_NAME:-petcare}
       POSTGRES_USER: ${DB_USERNAME:-user}
-      POSTGRES_PASSWORD: ${DB_PASSWORD:-password}
+      POSTGRES_PASSWORD: ${DB_PASSWORD:?DB_PASSWORD is required}
       POSTGRES_INITDB_ARGS: "--encoding=UTF8 --lc-collate=C --lc-ctype=C"
     ports:
       - "${EXPOSE_DB_PORT:-}:5432"
@@ -33,18 +33,24 @@ services:
     image: redis:7-alpine
     container_name: petcare-redis
     restart: unless-stopped
-    command: >
-      redis-server 
-      --appendonly yes 
-      --maxmemory 256mb 
-      --maxmemory-policy allkeys-lru
-      --requirepass ${REDIS_PASSWORD:-ChangeMeToStrongPassword123!}
+    command:
+      - redis-server
+      - --appendonly
+      - "yes"
+      - --maxmemory
+      - 256mb
+      - --maxmemory-policy
+      - allkeys-lru
+      - --requirepass
+      - ${REDIS_PASSWORD:?REDIS_PASSWORD is required}
+    environment:
+      REDIS_PASSWORD: ${REDIS_PASSWORD:?REDIS_PASSWORD is required}
     ports:
       - "${EXPOSE_REDIS_PORT:-}:6379"
     volumes:
       - redis-data:/data
     healthcheck:
-      test: ["CMD", "redis-cli", "-a", "${REDIS_PASSWORD:-ChangeMeToStrongPassword123!}", "ping"]
+      test: ["CMD-SHELL", 'redis-cli -a "$$REDIS_PASSWORD" ping | grep -q PONG']
       interval: 10s
       timeout: 5s
       retries: 5
@@ -74,29 +80,29 @@ services:
       DB_HOST: postgres
       DB_PORT: 5432
       DB_USERNAME: ${DB_USERNAME:-user}
-      DB_PASSWORD: ${DB_PASSWORD:-password}
+      DB_PASSWORD: ${DB_PASSWORD:?DB_PASSWORD is required}
       DB_NAME: ${DB_NAME:-petcare}
       DB_SCHEMA: public
       # Redis配置
       REDIS_HOST: redis
       REDIS_PORT: 6379
-      REDIS_PASSWORD: ${REDIS_PASSWORD:-ChangeMeToStrongPassword123!}
+      REDIS_PASSWORD: ${REDIS_PASSWORD:?REDIS_PASSWORD is required}
       # 异步任务配置；未来独立 Worker 与 API 必须使用相同值
       QUEUE_PREFIX: ${QUEUE_PREFIX:-petcare}
       WORKER_CONCURRENCY: ${WORKER_CONCURRENCY:-5}
       OUTBOX_POLL_INTERVAL_MS: ${OUTBOX_POLL_INTERVAL_MS:-1000}
       ORDER_TIMEOUT_DELAY_MS: ${ORDER_TIMEOUT_DELAY_MS:-172800000}
       # JWT配置
-      JWT_SECRET: ${JWT_SECRET:-change-this-to-a-random-secret-key-in-production}
+      JWT_SECRET: ${JWT_SECRET:?JWT_SECRET is required}
       JWT_EXPIRES_IN: ${JWT_EXPIRES_IN:-7d}
       JWT_ACCESS_EXPIRES_IN: ${JWT_ACCESS_EXPIRES_IN:-15m}
       JWT_REFRESH_EXPIRES_IN: ${JWT_REFRESH_EXPIRES_IN:-7d}
       REFRESH_TOKEN_TTL_SECONDS: ${REFRESH_TOKEN_TTL_SECONDS:-604800}
       # 管理员初始化与本地短信模拟
       DEFAULT_ADMIN_USERNAME: ${DEFAULT_ADMIN_USERNAME:-admin}
-      DEFAULT_ADMIN_PHONE: ${DEFAULT_ADMIN_PHONE:-}
-      DEFAULT_ADMIN_PASSWORD: ${DEFAULT_ADMIN_PASSWORD:-}
-      SMS_DEV_CODE: ${SMS_DEV_CODE:-}
+      DEFAULT_ADMIN_PHONE: ${DEFAULT_ADMIN_PHONE:?DEFAULT_ADMIN_PHONE is required}
+      DEFAULT_ADMIN_PASSWORD: ${DEFAULT_ADMIN_PASSWORD:?DEFAULT_ADMIN_PASSWORD is required}
+      SMS_DEV_CODE: ""
       SMS_CODE_TTL_SECONDS: ${SMS_CODE_TTL_SECONDS:-300}
       SMS_SEND_COOLDOWN_SECONDS: ${SMS_SEND_COOLDOWN_SECONDS:-60}
       SMS_HOURLY_LIMIT: ${SMS_HOURLY_LIMIT:-5}
@@ -116,6 +122,10 @@ services:
       # 微信小程序配置
       WECHAT_APP_ID: ${WECHAT_APP_ID:-}
       WECHAT_APP_SECRET: ${WECHAT_APP_SECRET:-}
+      ALIYUN_OSS_ACCESS_KEY_ID: ${ALIYUN_OSS_ACCESS_KEY_ID:-}
+      ALIYUN_OSS_ACCESS_KEY_SECRET: ${ALIYUN_OSS_ACCESS_KEY_SECRET:-}
+      ALIYUN_OSS_BUCKET: ${ALIYUN_OSS_BUCKET:-}
+      ALIYUN_OSS_REGION: ${ALIYUN_OSS_REGION:-}
     ports:
       - "3000:3000"
     volumes:
