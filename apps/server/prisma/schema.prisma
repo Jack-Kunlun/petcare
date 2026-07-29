@@ -44,6 +44,13 @@ model User {
   creditRecords                     CreditRecord[]
   roles                             UserRole[]
   complaints                        Complaint[]                        @relation("Complainant")
+  complaintsAsRespondent            Complaint[]                        @relation("Respondent")
+  assignedComplaints                Complaint[]                        @relation("ComplaintAssignee")
+  complaintStatements               ComplaintStatement[]               @relation("ComplaintStatementAuthor")
+  disputeDecisions                  DisputeDecision[]                  @relation("DisputeDecisionAdmin")
+  complaintAssignmentsMade          ComplaintAssignment[]              @relation("ComplaintAssignmentAssigner")
+  complaintAssignmentsReceived      ComplaintAssignment[]              @relation("ComplaintAssignmentAssignee")
+  complaintEvents                   ComplaintEvent[]                   @relation("ComplaintEventActor")
   certificationApplications         ProviderCertificationApplication[] @relation("CertificationApplicant")
   reviewedCertificationApplications ProviderCertificationApplication[] @relation("CertificationReviewer")
 
@@ -148,22 +155,22 @@ model Order {
   petId       String    @map("pet_id")
   serviceTime DateTime  @map("service_time")
   address     String
-  amount      Float
+  amount      Int
   status      String    @default("pending_confirm") // pending_confirm / confirmed / in_progress / completed / cancelled
   remark      String?
   completedAt DateTime? @map("completed_at")
   createdAt   DateTime  @default(now()) @map("created_at")
   updatedAt   DateTime  @updatedAt @map("updated_at")
 
-  owner     User           @relation("OrderOwner", fields: [ownerId], references: [id])
-  provider  User?          @relation("OrderProvider", fields: [providerId], references: [id])
-  pet       Pet            @relation(fields: [petId], references: [id])
-  reward    OrderReward?
-  platform  OrderPlatform?
-  intents   OrderIntent[]
-  sops      OrderSop[]
-  review    Review?
-  complaint Complaint?
+  owner      User           @relation("OrderOwner", fields: [ownerId], references: [id])
+  provider   User?          @relation("OrderProvider", fields: [providerId], references: [id])
+  pet        Pet            @relation(fields: [petId], references: [id])
+  reward     OrderReward?
+  platform   OrderPlatform?
+  intents    OrderIntent[]
+  sops       OrderSop[]
+  review     Review?
+  complaints Complaint[]
 
   @@index([ownerId])
   @@index([providerId])
@@ -175,9 +182,9 @@ model Order {
 model OrderReward {
   id            String   @id @default(uuid())
   orderId       String   @unique @map("order_id")
-  rewardAmount  Float    @map("reward_amount")
-  priceRangeMin Float    @map("price_range_min")
-  priceRangeMax Float    @map("price_range_max")
+  rewardAmount  Int      @map("reward_amount")
+  priceRangeMin Int      @map("price_range_min")
+  priceRangeMax Int      @map("price_range_max")
   expireTime    DateTime @map("expire_time")
   createdAt     DateTime @default(now()) @map("created_at")
 
@@ -189,7 +196,7 @@ model OrderReward {
 model OrderPlatform {
   id                 String   @id @default(uuid())
   orderId            String   @unique @map("order_id")
-  platformPrice      Float    @map("platform_price")
+  platformPrice      Int      @map("platform_price")
   assignedProviderId String?  @map("assigned_provider_id")
   createdAt          DateTime @default(now()) @map("created_at")
 
@@ -256,41 +263,125 @@ model Review {
 }
 
 model Complaint {
-  id               String   @id @default(uuid())
-  orderId          String   @unique @map("order_id")
-  complainantId    String   @map("complainant_id")
-  complaintType    String   @map("complaint_type") // service_quality / safety / payment / other
-  evidence         String[] // 证据URL
-  expectedSolution String?  @map("expected_solution")
-  status           String   @default("pending") // pending / processing / resolved / closed
-  createdAt        DateTime @default(now()) @map("created_at")
-  updatedAt        DateTime @updatedAt @map("updated_at")
+  id               String    @id @default(uuid())
+  orderId          String    @map("order_id")
+  complainantId    String    @map("complainant_id")
+  respondentId     String    @map("respondent_id")
+  assignedAdminId  String?   @map("assigned_admin_id")
+  complaintType    String    @map("complaint_type")
+  expectedSolution String?   @map("expected_solution")
+  status           String    @default("pending_response")
+  appealDeadlineAt DateTime? @map("appeal_deadline_at")
+  version          Int       @default(1)
+  createdAt        DateTime  @default(now()) @map("created_at")
+  updatedAt        DateTime  @updatedAt @map("updated_at")
+  closedAt         DateTime? @map("closed_at")
 
-  order       Order              @relation(fields: [orderId], references: [id], onDelete: Cascade)
-  complainant User               @relation("Complainant", fields: [complainantId], references: [id], onDelete: Cascade)
-  resolution  DisputeResolution?
+  order          Order                  @relation(fields: [orderId], references: [id], onDelete: Cascade)
+  complainant    User                   @relation("Complainant", fields: [complainantId], references: [id], onDelete: Cascade)
+  respondent     User                   @relation("Respondent", fields: [respondentId], references: [id], onDelete: Cascade)
+  assignedAdmin  User?                  @relation("ComplaintAssignee", fields: [assignedAdminId], references: [id], onDelete: SetNull)
+  statements     ComplaintStatement[]
+  decisions      DisputeDecision[]
+  assignments    ComplaintAssignment[]
+  events         ComplaintEvent[]
+  executionTasks DisputeExecutionTask[]
 
-  @@index([complainantId])
-  @@index([status])
+  @@index([status, assignedAdminId])
+  @@index([orderId, status])
+  @@index([appealDeadlineAt])
   @@map("complaints")
 }
 
-model DisputeResolution {
-  id               String   @id @default(uuid())
-  complaintId      String   @unique @map("complaint_id")
-  resolverId       String?  @map("resolver_id") // 客服ID
-  resolutionType   String   @map("resolution_type") // support_complainant / support_provider / shared_responsibility / insufficient_evidence
-  refundAmount     Float?   @map("refund_amount")
-  scoreAdjustment  Float?   @map("score_adjustment") // 评分调整
-  creditAdjustment Int?     @map("credit_adjustment") // 信用分调整
-  reason           String?
-  createdAt        DateTime @default(now()) @map("created_at")
-  updatedAt        DateTime @updatedAt @map("updated_at")
+model ComplaintStatement {
+  id           String   @id @default(uuid())
+  complaintId  String   @map("complaint_id")
+  stage        String
+  authorId     String   @map("author_id")
+  statement    String
+  evidenceUrls String[] @map("evidence_urls")
+  createdAt    DateTime @default(now()) @map("created_at")
 
   complaint Complaint @relation(fields: [complaintId], references: [id], onDelete: Cascade)
+  author    User      @relation("ComplaintStatementAuthor", fields: [authorId], references: [id], onDelete: Cascade)
 
-  @@index([resolverId])
-  @@map("dispute_resolutions")
+  @@unique([complaintId, stage, authorId])
+  @@map("complaint_statements")
+}
+
+model DisputeDecision {
+  id                     String   @id @default(uuid())
+  complaintId            String   @map("complaint_id")
+  decisionAdminId        String   @map("decision_admin_id")
+  level                  String
+  liability              String
+  reason                 String
+  refundAmount           Int      @map("refund_amount")
+  settlementAmount       Int      @map("settlement_amount")
+  complainantCreditDelta Int      @map("complainant_credit_delta")
+  respondentCreditDelta  Int      @map("respondent_credit_delta")
+  createdAt              DateTime @default(now()) @map("created_at")
+
+  complaint      Complaint              @relation(fields: [complaintId], references: [id], onDelete: Cascade)
+  decisionAdmin  User                   @relation("DisputeDecisionAdmin", fields: [decisionAdminId], references: [id], onDelete: Cascade)
+  executionTasks DisputeExecutionTask[]
+
+  @@unique([complaintId, level])
+  @@map("dispute_decisions")
+}
+
+model ComplaintAssignment {
+  id                String   @id @default(uuid())
+  complaintId       String   @map("complaint_id")
+  assigneeAdminId   String   @map("assignee_admin_id")
+  assignedByAdminId String   @map("assigned_by_admin_id")
+  createdAt         DateTime @default(now()) @map("created_at")
+
+  complaint       Complaint @relation(fields: [complaintId], references: [id], onDelete: Cascade)
+  assigneeAdmin   User      @relation("ComplaintAssignmentAssignee", fields: [assigneeAdminId], references: [id], onDelete: Cascade)
+  assignedByAdmin User      @relation("ComplaintAssignmentAssigner", fields: [assignedByAdminId], references: [id], onDelete: Cascade)
+
+  @@index([complaintId, createdAt])
+  @@map("complaint_assignments")
+}
+
+model ComplaintEvent {
+  id          String   @id @default(uuid())
+  complaintId String   @map("complaint_id")
+  actorId     String?  @map("actor_id")
+  action      String
+  fromStatus  String?  @map("from_status")
+  toStatus    String?  @map("to_status")
+  payload     String?
+  createdAt   DateTime @default(now()) @map("created_at")
+
+  complaint Complaint @relation(fields: [complaintId], references: [id], onDelete: Cascade)
+  actor     User?     @relation("ComplaintEventActor", fields: [actorId], references: [id], onDelete: SetNull)
+
+  @@index([complaintId, createdAt])
+  @@map("complaint_events")
+}
+
+model DisputeExecutionTask {
+  id             String    @id @default(uuid())
+  complaintId    String    @map("complaint_id")
+  decisionId     String    @map("decision_id")
+  decisionLevel  String    @map("decision_level")
+  taskType       String    @map("task_type")
+  payload        String?
+  status         String    @default("pending")
+  failureReason  String?   @map("failure_reason")
+  retryCount     Int       @default(0) @map("retry_count")
+  idempotencyKey String    @unique @map("idempotency_key")
+  completedAt    DateTime? @map("completed_at")
+  createdAt      DateTime  @default(now()) @map("created_at")
+  updatedAt      DateTime  @updatedAt @map("updated_at")
+
+  complaint Complaint       @relation(fields: [complaintId], references: [id], onDelete: Cascade)
+  decision  DisputeDecision @relation(fields: [decisionId], references: [id], onDelete: Cascade)
+
+  @@index([complaintId, status])
+  @@map("dispute_execution_tasks")
 }
 
 // ============================================
