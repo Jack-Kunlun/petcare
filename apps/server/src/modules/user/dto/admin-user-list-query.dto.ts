@@ -1,8 +1,14 @@
 import { ApiPropertyOptional } from "@nestjs/swagger";
+import { ADMIN_USER_STATUS, ADMIN_USER_TYPE } from "@petcare/shared-types";
+import type { AdminUserListQuery, AdminUserStatus, AdminUserType } from "@petcare/shared-types";
 import { Type } from "class-transformer";
 import { IsIn, IsInt, IsOptional, IsString, Max, MaxLength, Min } from "class-validator";
 
-export class AdminUserListQueryDto {
+const userTypes = Object.values(ADMIN_USER_TYPE);
+const userStatuses = Object.values(ADMIN_USER_STATUS);
+
+/** 校验并描述后台用户分页查询参数。 */
+export class AdminUserListQueryDto implements AdminUserListQuery {
   @ApiPropertyOptional({ default: 1, minimum: 1 })
   @IsOptional()
   @Type(() => Number)
@@ -24,13 +30,13 @@ export class AdminUserListQueryDto {
   @MaxLength(50)
   keyword?: string;
 
-  @ApiPropertyOptional({ enum: ["pet_owner", "provider"] })
+  @ApiPropertyOptional({ enum: userTypes })
   @IsOptional()
-  @IsIn(["pet_owner", "provider"])
-  userType?: "pet_owner" | "provider";
+  @IsIn(userTypes)
+  userType?: AdminUserType;
 
-  @ApiPropertyOptional({ enum: ["active", "inactive", "banned"] })
+  @ApiPropertyOptional({ enum: userStatuses })
   @IsOptional()
-  @IsIn(["active", "inactive", "banned"])
-  status?: "active" | "inactive" | "banned";
+  @IsIn(userStatuses)
+  status?: AdminUserStatus;
 }

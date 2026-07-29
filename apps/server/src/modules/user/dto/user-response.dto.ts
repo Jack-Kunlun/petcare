@@ -1,4 +1,10 @@
 import { ApiProperty } from "@nestjs/swagger";
+import type {
+  AdminProviderSummary,
+  AdminUserListItem,
+  AdminUserStatus,
+  AdminUserType,
+} from "@petcare/shared-types";
 
 export class UserResponseDto {
   @ApiProperty({ format: "uuid" })
@@ -17,16 +23,16 @@ export class UserResponseDto {
   avatar: string | null;
 
   @ApiProperty({ example: "pet_owner" })
-  userType: string;
+  userType: AdminUserType;
 
   @ApiProperty({ example: "active" })
-  status: string;
+  status: AdminUserStatus;
 
   @ApiProperty({ format: "date-time" })
-  createdAt: Date;
+  createdAt: string;
 
   @ApiProperty({ format: "date-time" })
-  updatedAt: Date;
+  updatedAt: string;
 }
 
 export class UserRegisterResponseDto {
@@ -40,7 +46,7 @@ export class UserRegisterResponseDto {
   refreshToken: string;
 }
 
-export class AdminProviderSummaryDto {
+export class AdminProviderSummaryDto implements AdminProviderSummary {
   @ApiProperty()
   idCardVerified: boolean;
 
@@ -51,7 +57,7 @@ export class AdminProviderSummaryDto {
   certifiedSitter: boolean;
 }
 
-export class AdminUserListItemDto extends UserResponseDto {
+export class AdminUserListItemDto extends UserResponseDto implements AdminUserListItem {
   @ApiProperty({ type: AdminProviderSummaryDto, nullable: true })
   provider: AdminProviderSummaryDto | null;
 }

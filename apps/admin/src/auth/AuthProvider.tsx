@@ -1,5 +1,5 @@
 import { ReactNode, useCallback, useEffect, useMemo, useState } from "react";
-import * as authApi from "./auth.api";
+import * as authApi from "../api/auth";
 import { AuthContext, AuthContextValue } from "./auth.context";
 import { AdminUser, AuthStatus } from "./auth.types";
 

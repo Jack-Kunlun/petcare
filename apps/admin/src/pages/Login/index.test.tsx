@@ -2,7 +2,7 @@ import { render, screen, waitFor } from "@testing-library/react";
 import userEvent from "@testing-library/user-event";
 import { MemoryRouter, Route, Routes } from "react-router-dom";
 import { beforeEach, describe, expect, it, vi } from "vitest";
-import Login from "./Login";
+import Login from ".";
 
 const auth = vi.hoisted(() => ({
   getCaptcha: vi.fn(),
@@ -23,7 +23,7 @@ const secondCaptcha = {
   expiresIn: 300,
 };
 
-vi.mock("../auth/auth.context", () => ({
+vi.mock("../../auth/auth.context", () => ({
   useAuth: () => ({
     status: "anonymous",
     user: null,

@@ -23,7 +23,7 @@ vi.mock("axios", () => ({
 
 describe("Admin Axios response boundary", () => {
   it("unwraps successful envelopes before auth functions consume them", async () => {
-    await import("./auth.api");
+    await import("./auth");
     const onFulfilled = axiosMocks.responseUse.mock.calls[0]?.[0] as (response: {
       status: number;
       data: unknown;
@@ -45,7 +45,7 @@ describe("Admin Axios response boundary", () => {
   });
 
   it("leaves 204 responses untouched", async () => {
-    await import("./auth.api");
+    await import("./auth");
     const onFulfilled = axiosMocks.responseUse.mock.calls[0]?.[0] as (response: {
       status: number;
       data: unknown;

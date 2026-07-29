@@ -1,3 +1,4 @@
+import type { AdminUserListItem, AdminUserStatus, AdminUserType } from "@petcare/shared-types";
 import { keepPreviousData, useQuery } from "@tanstack/react-query";
 import {
   AlertCircle,
@@ -11,8 +12,7 @@ import {
 } from "lucide-react";
 import { useState } from "react";
 import type { FormEvent } from "react";
-import { fetchAdminUsers } from "./users.api";
-import type { AdminUserListItem, AdminUserStatus, AdminUserType } from "./users.api";
+import { fetchAdminUsers } from "../../api/users";
 
 const PAGE_SIZE = 20;
 
@@ -33,6 +33,7 @@ const userTypeLabels: Record<AdminUserType, string> = {
   provider: "宠托师",
 };
 
+/** 将 ISO 时间格式化为用户列表使用的本地日期。 */
 function formatDate(value: string): string {
   return new Intl.DateTimeFormat("zh-CN", {
     year: "numeric",
@@ -41,6 +42,7 @@ function formatDate(value: string): string {
   }).format(new Date(value));
 }
 
+/** 根据用户类型和认证资料生成认证状态文案。 */
 function certificationLabel(user: AdminUserListItem): string {
   if (user.userType !== "provider") {
     return "不适用";

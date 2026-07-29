@@ -60,4 +60,57 @@ describe("OrderService public responses", () => {
       expect((error as ApiException).getStatus()).toBe(HttpStatus.NOT_FOUND);
     }
   });
+
+  it("returns a filtered admin order page with safe related-user projections", async () => {
+    prisma.order.findMany.mockResolvedValue([{ id: "order-1" }]);
+    prisma.order.count.mockResolvedValue(1);
+
+    await expect(
+      service.findAdminPage({
+        page: 2,
+        pageSize: 10,
+        keyword: "1767",
+        orderType: "reward",
+        serviceType: "feeding",
+        status: "pending_confirm",
+      }),
+    ).resolves.toEqual({
+      list: [{ id: "order-1" }],
+      total: 1,
+      page: 2,
+      pageSize: 10,
+    });
+
+    expect(prisma.order.findMany).toHaveBeenCalledWith({
+      where: {
+        AND: [
+          {
+            OR: [
+              { id: { contains: "1767", mode: "insensitive" } },
+              { owner: { phone: { contains: "1767" } } },
+              { owner: { nickname: { contains: "1767", mode: "insensitive" } } },
+              { pet: { name: { contains: "1767", mode: "insensitive" } } },
+            ],
+          },
+          { orderType: "reward" },
+          { serviceType: "feeding" },
+          { status: "pending_confirm" },
+        ],
+      },
+      orderBy: { createdAt: "desc" },
+      skip: 10,
+      take: 10,
+      include: {
+        owner: { select: expect.not.objectContaining({ passwordHash: true }) },
+        provider: { select: expect.not.objectContaining({ passwordHash: true }) },
+        pet: {
+          select: {
+            id: true,
+            name: true,
+            breed: true,
+          },
+        },
+      },
+    });
+  });
 });

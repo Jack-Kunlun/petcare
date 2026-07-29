@@ -97,6 +97,15 @@ REDIS_PASSWORD=  # 可选
 
 详见：[双端样式开发规范](./docs/09-development-guidelines/04-styling-standards.md)
 
+### 前端目录与 API 契约
+
+- 请求参数和响应类型统一定义在 `@petcare/shared-types`，前后端禁止重复声明。
+- Admin API 调用统一放在 `apps/admin/src/api/`，并按业务域拆分。
+- 页面使用模块目录，默认页为 `index.tsx`，编辑页为 `Edit.tsx`，详情页为 `Detail.tsx`。
+- 共享类型的每个字段、业务值以及公共函数必须包含说明用途的 JSDoc。
+
+详见：[前端目录与 API 契约规范](./docs/09-development-guidelines/05-frontend-structure-and-api-contracts.md)
+
 ### Git Hooks
 
 - **Husky**: 自动执行 pre-commit hooks
