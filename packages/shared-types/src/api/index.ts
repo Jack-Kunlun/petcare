@@ -6,3 +6,4 @@ export * from "./order";
 export * from "./auth";
 export * from "./admin";
 export * from "./provider-certification";
+export * from "./complaint-dispute";
