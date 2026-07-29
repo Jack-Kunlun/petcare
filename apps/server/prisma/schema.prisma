@@ -43,13 +43,21 @@ model User {
   creditScore                       CreditScore?
   creditRecords                     CreditRecord[]
   roles                             UserRole[]
+  /// 用户作为投诉方发起的投诉。
   complaints                        Complaint[]                        @relation("Complainant")
+  /// 用户作为被投诉方参与的投诉。
   complaintsAsRespondent            Complaint[]                        @relation("Respondent")
+  /// 管理员当前受理的投诉。
   assignedComplaints                Complaint[]                        @relation("ComplaintAssignee")
+  /// 用户提交的投诉陈述记录。
   complaintStatements               ComplaintStatement[]               @relation("ComplaintStatementAuthor")
+  /// 管理员作出的纠纷裁决。
   disputeDecisions                  DisputeDecision[]                  @relation("DisputeDecisionAdmin")
+  /// 管理员发起的投诉分配记录。
   complaintAssignmentsMade          ComplaintAssignment[]              @relation("ComplaintAssignmentAssigner")
+  /// 管理员接收的投诉分配记录。
   complaintAssignmentsReceived      ComplaintAssignment[]              @relation("ComplaintAssignmentAssignee")
+  /// 用户触发的投诉事件。
   complaintEvents                   ComplaintEvent[]                   @relation("ComplaintEventActor")
   certificationApplications         ProviderCertificationApplication[] @relation("CertificationApplicant")
   reviewedCertificationApplications ProviderCertificationApplication[] @relation("CertificationReviewer")
@@ -155,6 +163,7 @@ model Order {
   petId       String    @map("pet_id")
   serviceTime DateTime  @map("service_time")
   address     String
+  /// 订单金额，单位为分。
   amount      Int
   status      String    @default("pending_confirm") // pending_confirm / confirmed / in_progress / completed / cancelled
   remark      String?
@@ -170,6 +179,7 @@ model Order {
   intents    OrderIntent[]
   sops       OrderSop[]
   review     Review?
+  /// 订单关联的全部投诉，开放投诉唯一性由事务保证。
   complaints Complaint[]
 
   @@index([ownerId])
@@ -182,8 +192,11 @@ model Order {
 model OrderReward {
   id            String   @id @default(uuid())
   orderId       String   @unique @map("order_id")
+  /// 悬赏金额，单位为分。
   rewardAmount  Int      @map("reward_amount")
+  /// 可接受价格下限，单位为分。
   priceRangeMin Int      @map("price_range_min")
+  /// 可接受价格上限，单位为分。
   priceRangeMax Int      @map("price_range_max")
   expireTime    DateTime @map("expire_time")
   createdAt     DateTime @default(now()) @map("created_at")
@@ -196,6 +209,7 @@ model OrderReward {
 model OrderPlatform {
   id                 String   @id @default(uuid())
   orderId            String   @unique @map("order_id")
+  /// 平台定价金额，单位为分。
   platformPrice      Int      @map("platform_price")
   assignedProviderId String?  @map("assigned_provider_id")
   createdAt          DateTime @default(now()) @map("created_at")
@@ -263,28 +277,50 @@ model Review {
 }
 
 model Complaint {
+  /// 投诉唯一标识。
   id               String    @id @default(uuid())
+  /// 被投诉订单唯一标识。
   orderId          String    @map("order_id")
+  /// 投诉方用户唯一标识。
   complainantId    String    @map("complainant_id")
+  /// 被投诉方用户唯一标识。
   respondentId     String    @map("respondent_id")
+  /// 当前受理管理员唯一标识，未认领时为空。
   assignedAdminId  String?   @map("assigned_admin_id")
+  /// 投诉业务类型。
   complaintType    String    @map("complaint_type")
+  /// 投诉方期望的处理方案。
   expectedSolution String?   @map("expected_solution")
+  /// 投诉状态，取 pending_response、unassigned、processing_initial、initial_decided、processing_final、closed 或 withdrawn。
   status           String    @default("pending_response")
+  /// 初审后二次申诉的截止时间。
   appealDeadlineAt DateTime? @map("appeal_deadline_at")
+  /// 乐观并发控制版本号。
   version          Int       @default(1)
+  /// 投诉创建时间。
   createdAt        DateTime  @default(now()) @map("created_at")
+  /// 投诉最后更新时间。
   updatedAt        DateTime  @updatedAt @map("updated_at")
+  /// 投诉关闭时间，未关闭时为空。
   closedAt         DateTime? @map("closed_at")
 
+  /// 投诉所属订单。
   order          Order                  @relation(fields: [orderId], references: [id], onDelete: Cascade)
+  /// 发起投诉的用户。
   complainant    User                   @relation("Complainant", fields: [complainantId], references: [id], onDelete: Cascade)
+  /// 被投诉的用户。
   respondent     User                   @relation("Respondent", fields: [respondentId], references: [id], onDelete: Cascade)
+  /// 当前受理管理员。
   assignedAdmin  User?                  @relation("ComplaintAssignee", fields: [assignedAdminId], references: [id], onDelete: SetNull)
+  /// 投诉各阶段的陈述材料。
   statements     ComplaintStatement[]
+  /// 投诉的初审与终审裁决。
   decisions      DisputeDecision[]
+  /// 投诉的管理员分配历史。
   assignments    ComplaintAssignment[]
+  /// 投诉状态流转与操作事件。
   events         ComplaintEvent[]
+  /// 裁决产生的内部执行任务。
   executionTasks DisputeExecutionTask[]
 
   @@index([status, assignedAdminId])
@@ -294,15 +330,24 @@ model Complaint {
 }
 
 model ComplaintStatement {
+  /// 陈述记录唯一标识。
   id           String   @id @default(uuid())
+  /// 所属投诉唯一标识。
   complaintId  String   @map("complaint_id")
+  /// 陈述阶段，用于区分首次材料、首次回应和二次申诉。
   stage        String
+  /// 陈述提交人唯一标识。
   authorId     String   @map("author_id")
+  /// 陈述正文。
   statement    String
+  /// 陈述附带的证据地址列表。
   evidenceUrls String[] @map("evidence_urls")
+  /// 陈述提交时间。
   createdAt    DateTime @default(now()) @map("created_at")
 
+  /// 陈述所属投诉。
   complaint Complaint @relation(fields: [complaintId], references: [id], onDelete: Cascade)
+  /// 提交陈述的用户。
   author    User      @relation("ComplaintStatementAuthor", fields: [authorId], references: [id], onDelete: Cascade)
 
   @@unique([complaintId, stage, authorId])
@@ -310,20 +355,34 @@ model ComplaintStatement {
 }
 
 model DisputeDecision {
+  /// 裁决唯一标识。
   id                     String   @id @default(uuid())
+  /// 所属投诉唯一标识。
   complaintId            String   @map("complaint_id")
+  /// 作出裁决的管理员唯一标识。
   decisionAdminId        String   @map("decision_admin_id")
+  /// 裁决层级，取 initial 或 final。
   level                  String
+  /// 责任划分结果。
   liability              String
+  /// 裁决理由。
   reason                 String
+  /// 退还投诉方的金额，单位为分。
   refundAmount           Int      @map("refund_amount")
+  /// 结算给服务方的金额，单位为分。
   settlementAmount       Int      @map("settlement_amount")
+  /// 投诉方信用分调整值。
   complainantCreditDelta Int      @map("complainant_credit_delta")
+  /// 被投诉方信用分调整值。
   respondentCreditDelta  Int      @map("respondent_credit_delta")
+  /// 裁决创建时间。
   createdAt              DateTime @default(now()) @map("created_at")
 
+  /// 裁决所属投诉。
   complaint      Complaint              @relation(fields: [complaintId], references: [id], onDelete: Cascade)
+  /// 作出裁决的管理员。
   decisionAdmin  User                   @relation("DisputeDecisionAdmin", fields: [decisionAdminId], references: [id], onDelete: Cascade)
+  /// 裁决产生的内部执行任务。
   executionTasks DisputeExecutionTask[]
 
   @@unique([complaintId, level])
@@ -331,14 +390,22 @@ model DisputeDecision {
 }
 
 model ComplaintAssignment {
+  /// 分配记录唯一标识。
   id                String   @id @default(uuid())
+  /// 所属投诉唯一标识。
   complaintId       String   @map("complaint_id")
+  /// 接收投诉的管理员唯一标识。
   assigneeAdminId   String   @map("assignee_admin_id")
+  /// 发起分配的管理员唯一标识。
   assignedByAdminId String   @map("assigned_by_admin_id")
+  /// 分配发生时间。
   createdAt         DateTime @default(now()) @map("created_at")
 
+  /// 分配记录所属投诉。
   complaint       Complaint @relation(fields: [complaintId], references: [id], onDelete: Cascade)
+  /// 接收投诉的管理员。
   assigneeAdmin   User      @relation("ComplaintAssignmentAssignee", fields: [assigneeAdminId], references: [id], onDelete: Cascade)
+  /// 发起分配的管理员。
   assignedByAdmin User      @relation("ComplaintAssignmentAssigner", fields: [assignedByAdminId], references: [id], onDelete: Cascade)
 
   @@index([complaintId, createdAt])
@@ -346,16 +413,26 @@ model ComplaintAssignment {
 }
 
 model ComplaintEvent {
+  /// 事件唯一标识。
   id          String   @id @default(uuid())
+  /// 所属投诉唯一标识。
   complaintId String   @map("complaint_id")
+  /// 操作人唯一标识，系统事件时为空。
   actorId     String?  @map("actor_id")
+  /// 触发事件的业务动作。
   action      String
+  /// 动作发生前的共享投诉状态。
   fromStatus  String?  @map("from_status")
+  /// 动作完成后的共享投诉状态。
   toStatus    String?  @map("to_status")
+  /// 事件扩展数据，使用 JSON 字符串格式。
   payload     String?
+  /// 事件发生时间。
   createdAt   DateTime @default(now()) @map("created_at")
 
+  /// 事件所属投诉。
   complaint Complaint @relation(fields: [complaintId], references: [id], onDelete: Cascade)
+  /// 触发事件的用户，系统事件时为空。
   actor     User?     @relation("ComplaintEventActor", fields: [actorId], references: [id], onDelete: SetNull)
 
   @@index([complaintId, createdAt])
@@ -363,21 +440,36 @@ model ComplaintEvent {
 }
 
 model DisputeExecutionTask {
+  /// 执行任务唯一标识。
   id             String    @id @default(uuid())
+  /// 所属投诉唯一标识。
   complaintId    String    @map("complaint_id")
+  /// 来源裁决唯一标识。
   decisionId     String    @map("decision_id")
+  /// 来源裁决层级，取 initial 或 final。
   decisionLevel  String    @map("decision_level")
+  /// 内部副作用类型，如退款、结算或信用分调整。
   taskType       String    @map("task_type")
+  /// 执行任务参数，使用 JSON 字符串格式。
   payload        String?
+  /// 执行状态，取 pending、processing、succeeded 或 failed。
   status         String    @default("pending")
+  /// 最近一次执行失败原因。
   failureReason  String?   @map("failure_reason")
+  /// 已执行的重试次数。
   retryCount     Int       @default(0) @map("retry_count")
+  /// 防止重复执行同一内部副作用的幂等键。
   idempotencyKey String    @unique @map("idempotency_key")
+  /// 任务成功完成时间。
   completedAt    DateTime? @map("completed_at")
+  /// 任务创建时间。
   createdAt      DateTime  @default(now()) @map("created_at")
+  /// 任务最后更新时间。
   updatedAt      DateTime  @updatedAt @map("updated_at")
 
+  /// 任务所属投诉。
   complaint Complaint       @relation(fields: [complaintId], references: [id], onDelete: Cascade)
+  /// 任务来源裁决。
   decision  DisputeDecision @relation(fields: [decisionId], references: [id], onDelete: Cascade)
 
   @@index([complaintId, status])
