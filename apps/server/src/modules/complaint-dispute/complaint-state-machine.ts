@@ -37,13 +37,21 @@ export function getAllowedComplaintActions(context: ComplaintActionContext): Com
     case "pending_response":
       return getPendingResponseActions(context);
     case "unassigned":
+      if (context.viewerRole === "complainant") {
+        return ["withdraw"];
+      }
+
       return canClaim(context) ? ["claim"] : [];
     case processingStatusByDecisionLevel[DECISION_LEVEL.INITIAL]:
-      return getAssignedAdminActions(context, "initial_decide");
+      return context.viewerRole === "complainant"
+        ? ["withdraw"]
+        : getAssignedAdminActions(context, "initial_decide");
     case "initial_decided":
       return canSecondAppeal(context) ? ["second_appeal"] : [];
     case processingStatusByDecisionLevel[DECISION_LEVEL.FINAL]:
-      return getAssignedAdminActions(context, "final_decide");
+      return canSecondAppeal(context)
+        ? ["second_appeal"]
+        : getAssignedAdminActions(context, "final_decide");
     case "closed":
       return context.hasFailedExecution && isEligibleAdmin(context) ? ["retry_execution"] : [];
     case "withdrawn":

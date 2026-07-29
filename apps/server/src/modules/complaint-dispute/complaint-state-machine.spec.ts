@@ -30,6 +30,15 @@ describe("getAllowedComplaintActions", () => {
     ).toContain("withdraw");
   });
 
+  it.each(["pending_response", "unassigned", "processing_initial"] as const)(
+    "allows the complainant to withdraw before the initial decision in %s",
+    (status) => {
+      expect(getAllowedComplaintActions(base({ status, viewerRole: "complainant" }))).toContain(
+        "withdraw",
+      );
+    },
+  );
+
   it("opens second appeals until the exact deadline", () => {
     const deadline = new Date("2026-08-04T00:00:00.000Z");
 
@@ -66,11 +75,11 @@ describe("getAllowedComplaintActions", () => {
     ["pending_response", "respondent", ["respond"]],
     ["pending_response", "admin", []],
     ["pending_response", "other", []],
-    ["unassigned", "complainant", []],
+    ["unassigned", "complainant", ["withdraw"]],
     ["unassigned", "respondent", []],
     ["unassigned", "admin", ["claim"]],
     ["unassigned", "other", []],
-    ["processing_initial", "complainant", []],
+    ["processing_initial", "complainant", ["withdraw"]],
     ["processing_initial", "respondent", []],
     ["processing_initial", "admin", ["transfer", "initial_decide"]],
     ["processing_initial", "other", []],
@@ -162,6 +171,38 @@ describe("getAllowedComplaintActions", () => {
           }),
         ),
       ).not.toContain("second_appeal");
+    },
+  );
+
+  it.each(["complainant", "respondent"] as const)(
+    "keeps the original appeal window open for an eligible %s during final processing",
+    (viewerRole) => {
+      const deadline = new Date("2026-08-04T00:00:00.000Z");
+      const otherParty = base({
+        status: "processing_final",
+        viewerRole,
+        appealDeadlineAt: deadline,
+        now: new Date("2026-08-03T23:59:59.999Z"),
+        hasSecondAppealed: false,
+      });
+
+      expect(getAllowedComplaintActions(otherParty)).toContain("second_appeal");
+      expect(getAllowedComplaintActions({ ...otherParty, hasSecondAppealed: true })).not.toContain(
+        "second_appeal",
+      );
+      expect(getAllowedComplaintActions({ ...otherParty, now: deadline })).not.toContain(
+        "second_appeal",
+      );
+      expect(
+        getAllowedComplaintActions(
+          base({
+            status: "processing_final",
+            viewerRole: "admin",
+            assignedAdminId: "viewer-1",
+            appealDeadlineAt: deadline,
+          }),
+        ),
+      ).toContain("final_decide");
     },
   );
 
