@@ -17,6 +17,28 @@ describe("OrderService public responses", () => {
 
   beforeEach(() => jest.clearAllMocks());
 
+  it("stores reward order money as integer minor units", async () => {
+    prisma.order.create.mockResolvedValue({ id: "order-1" });
+
+    await service.createRewardOrder(
+      {
+        serviceType: "feeding",
+        petId: "pet-1",
+        serviceTime: "2026-08-01T10:00:00.000Z",
+        address: "测试地址",
+        rewardAmount: 12500,
+        remark: "",
+      },
+      "owner-1",
+    );
+
+    expect(prisma.order.create).toHaveBeenCalledWith(
+      expect.objectContaining({
+        data: expect.objectContaining({ amount: 12500 }),
+      }),
+    );
+  });
+
   it("returns the unified list-based pagination shape", async () => {
     const orders = [{ id: "order-1" }];
 
