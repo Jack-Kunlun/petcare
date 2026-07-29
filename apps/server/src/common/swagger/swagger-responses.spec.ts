@@ -10,6 +10,7 @@ import { ConfigService } from "../../config/config.service";
 import { HealthController } from "../../health/health.controller";
 import { OrderController } from "../../modules/order/order.controller";
 import { OrderService } from "../../modules/order/order.service";
+import { AdminUserController } from "../../modules/user/admin-user.controller";
 import { UserController } from "../../modules/user/user.controller";
 import { UserService } from "../../modules/user/user.service";
 
@@ -22,6 +23,7 @@ beforeAll(async () => {
       AuthController,
       WechatAuthController,
       HealthController,
+      AdminUserController,
       UserController,
       OrderController,
     ],
@@ -61,6 +63,9 @@ describe("Swagger response documentation", () => {
     expect(responseSchema("/orders", "get", "200")).toMatchObject({
       allOf: expect.any(Array),
     });
+    expect(responseSchema("/admin/users", "get", "200")).toMatchObject({
+      allOf: expect.any(Array),
+    });
   });
 
   it("documents the unified order pagination data fields", () => {
@@ -78,6 +83,22 @@ describe("Swagger response documentation", () => {
       pageSize: { type: "number", example: 20 },
     });
     expect(schema.properties).not.toHaveProperty("orders");
+  });
+
+  it("documents the unified admin user pagination data fields", () => {
+    const schema = document.components?.schemas?.AdminUserListResponseDto as {
+      properties?: Record<string, unknown>;
+    };
+
+    expect(schema.properties).toMatchObject({
+      list: {
+        type: "array",
+        items: { $ref: "#/components/schemas/AdminUserListItemDto" },
+      },
+      total: { type: "number", example: 120 },
+      page: { type: "number", example: 1 },
+      pageSize: { type: "number", example: 20 },
+    });
   });
 
   it("documents logout and standard errors", () => {
