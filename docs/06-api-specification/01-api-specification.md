@@ -607,11 +607,14 @@ Retry-After: 30
 
 | 方法   | 路径                 | 说明         | 权限       |
 | ------ | -------------------- | ------------ | ---------- |
-| GET    | `/users`             | 用户列表     | ADMIN      |
+| GET    | `/admin/users`       | 后台用户列表 | ADMIN      |
 | GET    | `/users/{id}`        | 用户详情     | 认证       |
 | PUT    | `/users/{id}`        | 更新用户信息 | 本人/ADMIN |
 | DELETE | `/users/{id}`        | 删除用户     | ADMIN      |
 | PATCH  | `/users/{id}/avatar` | 更新头像     | 本人       |
+
+`GET /admin/users` 支持 `page`、`pageSize`、`keyword`、`userType` 和 `status`
+查询参数，分页数据统一返回 `list`、`total`、`page`、`pageSize`。
 
 ### 宠物模块 (/pets)
 
