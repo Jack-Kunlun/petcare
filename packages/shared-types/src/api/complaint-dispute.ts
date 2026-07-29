@@ -25,6 +25,8 @@ export type ComplaintStatus = (typeof COMPLAINT_STATUS)[keyof typeof COMPLAINT_S
 export const COMPLAINT_ACTION = {
   /** 提交被投诉方的首次陈述。 */
   RESPOND: "respond",
+  /** 投诉方在初审前撤回投诉。 */
+  WITHDRAW: "withdraw",
   /** 在初审后提交二次申诉。 */
   SECOND_APPEAL: "second_appeal",
   /** 管理员认领待处理投诉。 */

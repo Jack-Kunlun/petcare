@@ -34,6 +34,7 @@ describe("complaint dispute contracts", () => {
   it("defines server-controlled allowed actions", () => {
     expect(COMPLAINT_ACTION).toMatchObject({
       RESPOND: "respond",
+      WITHDRAW: "withdraw",
       SECOND_APPEAL: "second_appeal",
       CLAIM: "claim",
       TRANSFER: "transfer",
