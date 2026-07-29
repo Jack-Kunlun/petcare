@@ -2,6 +2,7 @@ import { HttpStatus, Injectable } from "@nestjs/common";
 import { ApiException } from "../../common/http/api-exception";
 import { ConfigService } from "../../config/config.service";
 import { PrismaService } from "../../prisma/prisma.service";
+import { AdminUserListQueryDto } from "./dto/admin-user-list-query.dto";
 import { RegisterDto } from "./dto/register.dto";
 
 const publicUserSelect = {
@@ -14,6 +15,17 @@ const publicUserSelect = {
   status: true,
   createdAt: true,
   updatedAt: true,
+} as const;
+
+const adminUserListSelect = {
+  ...publicUserSelect,
+  provider: {
+    select: {
+      idCardVerified: true,
+      trainingPassed: true,
+      certifiedSitter: true,
+    },
+  },
 } as const;
 
 @Injectable()
@@ -51,5 +63,47 @@ export class UserService {
     }
 
     return user;
+  }
+
+  async findAdminPage(query: AdminUserListQueryDto) {
+    const keyword = query.keyword?.trim();
+    const filters: object[] = [];
+
+    if (keyword) {
+      filters.push({
+        OR: [
+          { phone: { contains: keyword } },
+          { username: { contains: keyword, mode: "insensitive" } },
+          { nickname: { contains: keyword, mode: "insensitive" } },
+        ],
+      });
+    }
+
+    if (query.userType) {
+      filters.push({ userType: query.userType });
+    }
+
+    if (query.status) {
+      filters.push({ status: query.status });
+    }
+
+    const where = filters.length > 0 ? { AND: filters } : {};
+    const [list, total] = await Promise.all([
+      this.prisma.user.findMany({
+        where,
+        orderBy: { createdAt: "desc" },
+        skip: (query.page - 1) * query.pageSize,
+        take: query.pageSize,
+        select: adminUserListSelect,
+      }),
+      this.prisma.user.count({ where }),
+    ]);
+
+    return {
+      list,
+      total,
+      page: query.page,
+      pageSize: query.pageSize,
+    };
   }
 }

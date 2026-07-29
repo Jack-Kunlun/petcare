@@ -39,3 +39,33 @@ export class UserRegisterResponseDto {
   @ApiProperty()
   refreshToken: string;
 }
+
+export class AdminProviderSummaryDto {
+  @ApiProperty()
+  idCardVerified: boolean;
+
+  @ApiProperty()
+  trainingPassed: boolean;
+
+  @ApiProperty()
+  certifiedSitter: boolean;
+}
+
+export class AdminUserListItemDto extends UserResponseDto {
+  @ApiProperty({ type: AdminProviderSummaryDto, nullable: true })
+  provider: AdminProviderSummaryDto | null;
+}
+
+export class AdminUserListResponseDto {
+  @ApiProperty({ type: [AdminUserListItemDto] })
+  list: AdminUserListItemDto[];
+
+  @ApiProperty({ example: 120 })
+  total: number;
+
+  @ApiProperty({ example: 1 })
+  page: number;
+
+  @ApiProperty({ example: 20 })
+  pageSize: number;
+}
