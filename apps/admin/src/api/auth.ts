@@ -1,7 +1,15 @@
-import type { ApiErrorResponse } from "@petcare/shared-types";
+import type {
+  AdminLoginResponse,
+  AdminRefreshResponse,
+  AdminSessionUser,
+  ApiErrorResponse,
+  CaptchaChallenge,
+  PasswordLoginRequest,
+  SendSmsCodeRequest,
+  SmsLoginRequest,
+} from "@petcare/shared-types";
 import axios, { AxiosError, InternalAxiosRequestConfig } from "axios";
-import { unwrapApiResponse } from "../api/api-response";
-import { AdminUser, CaptchaChallenge, LoginResponse, RefreshResponse } from "./auth.types";
+import { unwrapApiResponse } from "./api-response";
 
 type RetriableRequest = InternalAxiosRequestConfig & { _authRetried?: boolean };
 
@@ -13,10 +21,12 @@ export const apiClient = axios.create({
 let accessToken: string | null = null;
 let refreshPromise: Promise<string> | null = null;
 
+/** 设置仅保存在内存中的访问令牌。 */
 export function setAccessToken(token: string): void {
   accessToken = token;
 }
 
+/** 清除内存中的访问令牌。 */
 export function clearAccessToken(): void {
   accessToken = null;
 }
@@ -47,7 +57,7 @@ apiClient.interceptors.response.use(
 
     request._authRetried = true;
     refreshPromise ??= apiClient
-      .post<RefreshResponse>("/auth/refresh")
+      .post<AdminRefreshResponse>("/auth/refresh")
       .then((response) => {
         setAccessToken(response.data.accessToken);
 
@@ -65,56 +75,67 @@ apiClient.interceptors.response.use(
   },
 );
 
-export async function refreshSession(): Promise<RefreshResponse> {
-  const response = await apiClient.post<RefreshResponse>("/auth/refresh");
+/** 使用刷新令牌恢复管理员登录态。 */
+export async function refreshSession(): Promise<AdminRefreshResponse> {
+  const response = await apiClient.post<AdminRefreshResponse>("/auth/refresh");
 
   setAccessToken(response.data.accessToken);
 
   return response.data;
 }
 
-export async function getCurrentUser(): Promise<AdminUser> {
-  const response = await apiClient.get<AdminUser>("/auth/me");
+/** 获取当前登录管理员。 */
+export async function getCurrentUser(): Promise<AdminSessionUser> {
+  const response = await apiClient.get<AdminSessionUser>("/auth/me");
 
   return response.data;
 }
 
+/** 使用手机号或账号与密码登录。 */
 export async function loginWithPassword(
   identifier: string,
   password: string,
-): Promise<LoginResponse> {
-  const response = await apiClient.post<LoginResponse>("/auth/login/password", {
+): Promise<AdminLoginResponse> {
+  const request: PasswordLoginRequest = {
     identifier,
     password,
-  });
+  };
+  const response = await apiClient.post<AdminLoginResponse>("/auth/login/password", request);
 
   setAccessToken(response.data.accessToken);
 
   return response.data;
 }
 
-export async function loginWithSms(phone: string, code: string): Promise<LoginResponse> {
-  const response = await apiClient.post<LoginResponse>("/auth/login/sms", { phone, code });
+/** 使用手机号和短信验证码登录。 */
+export async function loginWithSms(phone: string, code: string): Promise<AdminLoginResponse> {
+  const request: SmsLoginRequest = { phone, code };
+  const response = await apiClient.post<AdminLoginResponse>("/auth/login/sms", request);
 
   setAccessToken(response.data.accessToken);
 
   return response.data;
 }
 
+/** 获取发送短信验证码前所需的图形验证码。 */
 export async function getCaptcha(): Promise<CaptchaChallenge> {
   const response = await apiClient.get<CaptchaChallenge>("/auth/captcha");
 
   return response.data;
 }
 
+/** 校验图形验证码并向指定手机号发送短信验证码。 */
 export async function sendSmsCode(
   phone: string,
   captchaId: string,
   captchaCode: string,
 ): Promise<void> {
-  await apiClient.post("/auth/sms/send", { phone, captchaId, captchaCode });
+  const request: SendSmsCodeRequest = { phone, captchaId, captchaCode };
+
+  await apiClient.post("/auth/sms/send", request);
 }
 
+/** 注销当前管理员会话并清除本地访问令牌。 */
 export async function logout(): Promise<void> {
   await apiClient.post("/auth/logout");
   clearAccessToken();

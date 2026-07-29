@@ -628,15 +628,20 @@ Retry-After: 30
 
 ### 订单模块 (/orders)
 
-| 方法  | 路径                    | 说明     | 权限     |
-| ----- | ----------------------- | -------- | -------- |
-| GET   | `/orders`               | 订单列表 | 认证     |
-| POST  | `/orders`               | 创建订单 | USER     |
-| GET   | `/orders/{id}`          | 订单详情 | 相关方   |
-| PUT   | `/orders/{id}`          | 更新订单 | 相关方   |
-| PATCH | `/orders/{id}/cancel`   | 取消订单 | 用户     |
-| PATCH | `/orders/{id}/confirm`  | 确认接单 | PROVIDER |
-| PATCH | `/orders/{id}/complete` | 完成订单 | PROVIDER |
+| 方法  | 路径                    | 说明         | 权限     |
+| ----- | ----------------------- | ------------ | -------- |
+| GET   | `/admin/orders`         | 后台订单列表 | ADMIN    |
+| GET   | `/orders`               | 订单列表     | 认证     |
+| POST  | `/orders`               | 创建订单     | USER     |
+| GET   | `/orders/{id}`          | 订单详情     | 相关方   |
+| PUT   | `/orders/{id}`          | 更新订单     | 相关方   |
+| PATCH | `/orders/{id}/cancel`   | 取消订单     | 用户     |
+| PATCH | `/orders/{id}/confirm`  | 确认接单     | PROVIDER |
+| PATCH | `/orders/{id}/complete` | 完成订单     | PROVIDER |
+
+`GET /admin/orders` 支持 `page`、`pageSize`、`keyword`、`orderType`、
+`serviceType` 和 `status` 查询参数，分页数据统一返回 `list`、`total`、`page`、
+`pageSize`。
 
 ### 服务模块 (/services)
 

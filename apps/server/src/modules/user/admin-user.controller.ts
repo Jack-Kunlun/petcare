@@ -17,6 +17,7 @@ import { UserService } from "./user.service";
 export class AdminUserController {
   constructor(private readonly userService: UserService) {}
 
+  /** 返回后台用户分页列表，查询参数已经由 DTO 完成转换与校验。 */
   @Get()
   @ApiOperation({ summary: "获取后台用户列表" })
   @ApiSuccessResponse(AdminUserListResponseDto)

@@ -65,6 +65,7 @@ export class UserService {
     return user;
   }
 
+  /** 根据后台筛选条件查询用户和宠托师认证摘要。 */
   async findAdminPage(query: AdminUserListQueryDto) {
     const keyword = query.keyword?.trim();
     const filters: object[] = [];

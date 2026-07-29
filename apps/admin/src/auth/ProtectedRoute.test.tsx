@@ -1,11 +1,11 @@
 import { render, screen } from "@testing-library/react";
 import { MemoryRouter, Route, Routes } from "react-router-dom";
 import { beforeEach, describe, expect, it, vi } from "vitest";
-import * as authApi from "./auth.api";
+import * as authApi from "../api/auth";
 import { AuthProvider } from "./AuthProvider";
 import { ProtectedRoute } from "./ProtectedRoute";
 
-vi.mock("./auth.api", () => ({
+vi.mock("../api/auth", () => ({
   clearAccessToken: vi.fn(),
   getCurrentUser: vi.fn(),
   loginWithPassword: vi.fn(),

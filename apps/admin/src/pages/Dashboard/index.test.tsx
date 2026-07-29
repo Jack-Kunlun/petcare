@@ -1,7 +1,7 @@
 import { render, screen } from "@testing-library/react";
 import { MemoryRouter } from "react-router-dom";
 import { describe, expect, it } from "vitest";
-import Dashboard from "./Dashboard";
+import Dashboard from ".";
 
 describe("Dashboard", () => {
   it("展示运营核心指标和待办事项", () => {

@@ -8,6 +8,7 @@ import { WechatAuthController } from "../../auth/wechat-auth.controller";
 import { WechatAuthService } from "../../auth/wechat-auth.service";
 import { ConfigService } from "../../config/config.service";
 import { HealthController } from "../../health/health.controller";
+import { AdminOrderController } from "../../modules/order/admin-order.controller";
 import { OrderController } from "../../modules/order/order.controller";
 import { OrderService } from "../../modules/order/order.service";
 import { AdminUserController } from "../../modules/user/admin-user.controller";
@@ -23,6 +24,7 @@ beforeAll(async () => {
       AuthController,
       WechatAuthController,
       HealthController,
+      AdminOrderController,
       AdminUserController,
       UserController,
       OrderController,
@@ -66,6 +68,9 @@ describe("Swagger response documentation", () => {
     expect(responseSchema("/admin/users", "get", "200")).toMatchObject({
       allOf: expect.any(Array),
     });
+    expect(responseSchema("/admin/orders", "get", "200")).toMatchObject({
+      allOf: expect.any(Array),
+    });
   });
 
   it("documents the unified order pagination data fields", () => {
@@ -94,6 +99,22 @@ describe("Swagger response documentation", () => {
       list: {
         type: "array",
         items: { $ref: "#/components/schemas/AdminUserListItemDto" },
+      },
+      total: { type: "number", example: 120 },
+      page: { type: "number", example: 1 },
+      pageSize: { type: "number", example: 20 },
+    });
+  });
+
+  it("documents the unified admin order pagination data fields", () => {
+    const schema = document.components?.schemas?.AdminOrderListResponseDto as {
+      properties?: Record<string, unknown>;
+    };
+
+    expect(schema.properties).toMatchObject({
+      list: {
+        type: "array",
+        items: { $ref: "#/components/schemas/AdminOrderListItemDto" },
       },
       total: { type: "number", example: 120 },
       page: { type: "number", example: 1 },

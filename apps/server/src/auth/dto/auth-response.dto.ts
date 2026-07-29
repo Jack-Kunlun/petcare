@@ -1,6 +1,7 @@
 import { ApiProperty } from "@nestjs/swagger";
+import type { AdminLoginResponse, AdminSessionUser, CaptchaChallenge } from "@petcare/shared-types";
 
-export class CaptchaResponseDto {
+export class CaptchaResponseDto implements CaptchaChallenge {
   @ApiProperty({ example: "0123456789abcdef0123456789abcdef" })
   captchaId: string;
 
@@ -16,7 +17,7 @@ export class MessageResponseDto {
   message: string;
 }
 
-export class AdminUserResponseDto {
+export class AdminUserResponseDto implements AdminSessionUser {
   @ApiProperty({ format: "uuid" })
   id: string;
 
@@ -33,7 +34,7 @@ export class AdminUserResponseDto {
   roles: string[];
 }
 
-export class AdminLoginResponseDto {
+export class AdminLoginResponseDto implements AdminLoginResponse {
   @ApiProperty()
   accessToken: string;
 

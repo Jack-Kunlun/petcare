@@ -543,6 +543,7 @@ PetCare宠伴
 | /api/admin/providers/{id}/approve | POST | 审核宠托师     | 管理员权限 |
 | /api/admin/disputes/{id}/resolve  | POST | 纠纷裁决       | 客服权限   |
 | /api/admin/users                  | GET  | 获取用户列表   | 管理员权限 |
+| /api/admin/orders                 | GET  | 获取订单列表   | 管理员权限 |
 | /api/admin/roles                  | GET  | 获取角色列表   | 超级管理员 |
 | /api/admin/roles                  | POST | 创建角色       | 超级管理员 |
 | /api/admin/permissions            | GET  | 获取权限点列表 | 超级管理员 |

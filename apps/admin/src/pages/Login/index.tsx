@@ -1,7 +1,7 @@
+import type { CaptchaChallenge } from "@petcare/shared-types";
 import { FormEvent, useCallback, useEffect, useState } from "react";
 import { Navigate, useNavigate } from "react-router-dom";
-import { useAuth } from "../auth/auth.context";
-import { CaptchaChallenge } from "../auth/auth.types";
+import { useAuth } from "../../auth/auth.context";
 
 type LoginMode = "password" | "sms";
 

@@ -1,14 +1,22 @@
 import { ApiProperty } from "@nestjs/swagger";
+import type {
+  AdminOrderListItem,
+  AdminOrderPetSummary,
+  AdminOrderStatus,
+  AdminOrderType,
+  AdminOrderUserSummary,
+  AdminServiceType,
+} from "@petcare/shared-types";
 
 export class OrderResponseDto {
   @ApiProperty({ format: "uuid" })
   id: string;
 
   @ApiProperty({ example: "reward" })
-  orderType: string;
+  orderType: AdminOrderType;
 
   @ApiProperty({ example: "feeding" })
-  serviceType: string;
+  serviceType: AdminServiceType;
 
   @ApiProperty({ format: "uuid" })
   ownerId: string;
@@ -20,7 +28,7 @@ export class OrderResponseDto {
   petId: string;
 
   @ApiProperty({ format: "date-time" })
-  serviceTime: Date;
+  serviceTime: string;
 
   @ApiProperty()
   address: string;
@@ -29,19 +37,19 @@ export class OrderResponseDto {
   amount: number;
 
   @ApiProperty({ example: "pending_confirm" })
-  status: string;
+  status: AdminOrderStatus;
 
   @ApiProperty({ nullable: true })
   remark: string | null;
 
   @ApiProperty({ format: "date-time", nullable: true })
-  completedAt: Date | null;
+  completedAt: string | null;
 
   @ApiProperty({ format: "date-time" })
-  createdAt: Date;
+  createdAt: string;
 
   @ApiProperty({ format: "date-time" })
-  updatedAt: Date;
+  updatedAt: string;
 }
 
 export class CreateOrderResponseDto {
@@ -63,7 +71,7 @@ export class OrderListResponseDto {
   pageSize: number;
 }
 
-export class OrderOwnerResponseDto {
+export class OrderOwnerResponseDto implements AdminOrderUserSummary {
   @ApiProperty({ format: "uuid" })
   id: string;
 
@@ -133,4 +141,40 @@ export class OrderDetailResponseDto extends OrderResponseDto {
 
   @ApiProperty({ type: OrderPetResponseDto })
   pet: OrderPetResponseDto;
+}
+
+export class AdminOrderPetSummaryDto implements AdminOrderPetSummary {
+  @ApiProperty({ format: "uuid" })
+  id: string;
+
+  @ApiProperty({ example: "豆包" })
+  name: string;
+
+  @ApiProperty({ example: "英短" })
+  breed: string;
+}
+
+export class AdminOrderListItemDto extends OrderResponseDto implements AdminOrderListItem {
+  @ApiProperty({ type: OrderOwnerResponseDto })
+  owner: OrderOwnerResponseDto;
+
+  @ApiProperty({ type: OrderOwnerResponseDto, nullable: true })
+  provider: OrderOwnerResponseDto | null;
+
+  @ApiProperty({ type: AdminOrderPetSummaryDto })
+  pet: AdminOrderPetSummaryDto;
+}
+
+export class AdminOrderListResponseDto {
+  @ApiProperty({ type: [AdminOrderListItemDto] })
+  list: AdminOrderListItemDto[];
+
+  @ApiProperty({ example: 120 })
+  total: number;
+
+  @ApiProperty({ example: 1 })
+  page: number;
+
+  @ApiProperty({ example: 20 })
+  pageSize: number;
 }

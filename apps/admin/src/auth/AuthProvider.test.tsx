@@ -1,11 +1,11 @@
 import { fireEvent, render, screen, waitFor } from "@testing-library/react";
 import { useState } from "react";
 import { beforeEach, describe, expect, it, vi } from "vitest";
-import * as authApi from "./auth.api";
+import * as authApi from "../api/auth";
 import { useAuth } from "./auth.context";
 import { AuthProvider } from "./AuthProvider";
 
-vi.mock("./auth.api", () => ({
+vi.mock("../api/auth", () => ({
   clearAccessToken: vi.fn(),
   getCaptcha: vi.fn(),
   getCurrentUser: vi.fn(),
