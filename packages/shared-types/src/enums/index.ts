@@ -48,28 +48,6 @@ export enum ServiceType {
 }
 
 /**
- * 投诉类型枚举
- */
-export enum ComplaintType {
-  LATE_ARRIVAL = "late_arrival", // 迟到
-  SOP_VIOLATION = "sop_violation", // SOP违规
-  PET_INJURY = "pet_injury", // 宠物受伤
-  PROPERTY_DAMAGE = "property_damage", // 财产损失
-  BAD_ATTITUDE = "bad_attitude", // 态度恶劣
-}
-
-/**
- * 投诉状态枚举
- */
-export enum ComplaintStatus {
-  PENDING = "pending", // 待处理
-  PROCESSING = "processing", // 处理中
-  RESOLVED = "resolved", // 已解决
-  APPEALED = "appealed", // 申诉中
-  CLOSED = "closed", // 已关闭
-}
-
-/**
  * 权限类型枚举
  */
 export enum PermissionType {
