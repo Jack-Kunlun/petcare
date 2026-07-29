@@ -13,6 +13,7 @@ import {
 import { useState } from "react";
 import type { FormEvent } from "react";
 import { fetchAdminUsers } from "../../api/users";
+import { UserManagementNavigation } from "./Navigation";
 
 const PAGE_SIZE = 20;
 
@@ -125,6 +126,7 @@ export default function UserManagement() {
 
   return (
     <div className="mx-auto flex w-full max-w-[1600px] flex-col gap-6">
+      <UserManagementNavigation />
       <section className="flex flex-col justify-between gap-4 sm:flex-row sm:items-end">
         <div>
           <p className="mb-1 text-sm font-medium text-blue-700">平台用户</p>

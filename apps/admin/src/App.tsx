@@ -7,6 +7,8 @@ import Login from "./pages/Login";
 import OrderManagement from "./pages/OrderManagement";
 import Settings from "./pages/Settings";
 import UserManagement from "./pages/UserManagement";
+import ProviderCertificationList from "./pages/UserManagement/Certification";
+import ProviderCertificationDetail from "./pages/UserManagement/Certification/Detail";
 
 function App() {
   return (
@@ -18,6 +20,8 @@ function App() {
             <Route path="/" element={<Layout />}>
               <Route index element={<Dashboard />} />
               <Route path="users" element={<UserManagement />} />
+              <Route path="users/certifications" element={<ProviderCertificationList />} />
+              <Route path="users/certifications/:id" element={<ProviderCertificationDetail />} />
               <Route path="orders" element={<OrderManagement />} />
               <Route path="settings" element={<Settings />} />
             </Route>
