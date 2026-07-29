@@ -30,7 +30,7 @@ describe("Header", () => {
     logout.mockResolvedValue(undefined);
   });
 
-  it("shows the current administrator and logs out", async () => {
+  it("展示当前管理员并支持退出登录", async () => {
     const user = userEvent.setup();
 
     render(
@@ -40,7 +40,7 @@ describe("Header", () => {
             path="*"
             element={
               <>
-                <Header />
+                <Header onMenuOpen={vi.fn()} />
                 <LocationProbe />
               </>
             }
@@ -54,5 +54,19 @@ describe("Header", () => {
 
     expect(logout).toHaveBeenCalledTimes(1);
     expect(await screen.findByText("/login")).toBeInTheDocument();
+  });
+
+  it("可从窄屏顶栏打开主导航", async () => {
+    const user = userEvent.setup();
+    const onMenuOpen = vi.fn();
+
+    render(
+      <MemoryRouter>
+        <Header onMenuOpen={onMenuOpen} />
+      </MemoryRouter>,
+    );
+
+    await user.click(screen.getByRole("button", { name: "打开导航" }));
+    expect(onMenuOpen).toHaveBeenCalledTimes(1);
   });
 });
