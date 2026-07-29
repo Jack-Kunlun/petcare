@@ -616,6 +616,27 @@ Retry-After: 30
 `GET /admin/users` 支持 `page`、`pageSize`、`keyword`、`userType` 和 `status`
 查询参数，分页数据统一返回 `list`、`total`、`page`、`pageSize`。
 
+### 宠托师认证审核模块 (/admin/provider-certifications)
+
+| 方法 | 路径                                          | 说明             | 权限  |
+| ---- | --------------------------------------------- | ---------------- | ----- |
+| GET  | `/admin/provider-certifications`              | 认证申请分页列表 | ADMIN |
+| GET  | `/admin/provider-certifications/{id}`         | 认证申请详情     | ADMIN |
+| POST | `/admin/provider-certifications/{id}/approve` | 通过认证申请     | ADMIN |
+| POST | `/admin/provider-certifications/{id}/reject`  | 驳回认证申请     | ADMIN |
+
+列表接口支持 `page`、`pageSize`、`keyword` 和 `status`。`status` 可取
+`pending`、`approved`、`rejected`，默认将待审核申请排在最前。分页响应统一返回
+`list`、`total`、`page`、`pageSize`。
+
+驳回请求正文为 `{ "reason": "驳回原因" }`，原因去除首尾空白后长度必须为
+2–500 个字符。只有 `pending` 申请可以审核；申请已经被其他管理员处理时返回
+HTTP 409 和错误码 `REVIEW_CONFLICT`。
+
+审核通过与 Provider 当前认证状态在同一数据库事务中更新。审核管理员从 Access
+Token 获取，客户端不得传入。接口只返回脱敏姓名、脱敏身份证号码和审核必需的证明
+材料地址，不返回身份证号码原文、密码、Token 或其他未声明的敏感字段。
+
 ### 宠物模块 (/pets)
 
 | 方法   | 路径         | 说明         | 权限       |
