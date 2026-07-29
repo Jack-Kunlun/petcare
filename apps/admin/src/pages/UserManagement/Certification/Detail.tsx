@@ -13,6 +13,12 @@ import { UserManagementNavigation } from "../Navigation";
 
 type DialogMode = "approve" | "reject" | null;
 
+const certificationStatusLabels = {
+  pending: "待审核",
+  approved: "已通过",
+  rejected: "已驳回",
+} as const;
+
 /** 将 ISO 时间格式化为认证详情使用的本地日期时间。 */
 function formatDateTime(value: string | null): string {
   if (!value) {
@@ -131,7 +137,7 @@ export default function ProviderCertificationDetail() {
           className="rounded-xl border border-red-200 bg-red-50 p-8 text-center"
         >
           <ShieldAlert aria-hidden="true" className="mx-auto h-8 w-8 text-red-600" />
-          <h1 className="mt-3 text-lg font-semibold text-red-950">认证详情加载失败</h1>
+          <h1 className="mt-3 text-xl font-semibold text-red-950">认证详情加载失败</h1>
           <button
             type="button"
             className="mt-4 h-11 cursor-pointer rounded-lg border border-red-300 px-4 text-sm"
@@ -155,11 +161,7 @@ export default function ProviderCertificationDetail() {
               </p>
             </div>
             <span className="w-fit rounded-full bg-slate-100 px-3 py-1.5 text-sm font-medium text-slate-700">
-              {application.status === "pending"
-                ? "待审核"
-                : (application.status === "approved"
-                  ? "已通过"
-                  : "已驳回")}
+              {certificationStatusLabels[application.status]}
             </span>
           </header>
 
@@ -289,9 +291,9 @@ export default function ProviderCertificationDetail() {
             role="dialog"
             aria-modal="true"
             aria-labelledby="approve-title"
-            className="w-full max-w-md rounded-xl bg-white p-6 shadow-2xl"
+            className="w-full max-w-[448px] rounded-xl bg-white p-6 shadow-2xl"
           >
-            <h2 id="approve-title" className="text-lg font-semibold text-slate-950">
+            <h2 id="approve-title" className="text-xl font-semibold text-slate-950">
               确认通过认证？
             </h2>
             <p className="mt-2 text-sm leading-6 text-slate-600">
@@ -324,9 +326,9 @@ export default function ProviderCertificationDetail() {
             role="dialog"
             aria-modal="true"
             aria-labelledby="reject-title"
-            className="w-full max-w-lg rounded-xl bg-white p-6 shadow-2xl"
+            className="w-full max-w-[512px] rounded-xl bg-white p-6 shadow-2xl"
           >
-            <h2 id="reject-title" className="text-lg font-semibold text-slate-950">
+            <h2 id="reject-title" className="text-xl font-semibold text-slate-950">
               驳回认证申请
             </h2>
             <form className="mt-4" onSubmit={submitReject}>
