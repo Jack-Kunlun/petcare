@@ -27,23 +27,25 @@ model User {
   createdAt    DateTime @default(now()) @map("created_at")
   updatedAt    DateTime @updatedAt @map("updated_at")
 
-  profile          UserProfile?
-  provider         Provider?
-  pets             Pet[]
-  ordersAsOwner    Order[]        @relation("OrderOwner")
-  ordersAsProvider Order[]        @relation("OrderProvider")
-  orderIntents     OrderIntent[]
-  posts            Post[]
-  favorites        Favorite[]
-  notifications    Notification[]
-  reviews          Review[]
-  comments         Comment[]
-  follows          Follow[]       @relation("Follower")
-  followings       Follow[]       @relation("Following")
-  creditScore      CreditScore?
-  creditRecords    CreditRecord[]
-  roles            UserRole[]
-  complaints       Complaint[]    @relation("Complainant")
+  profile                           UserProfile?
+  provider                          Provider?
+  pets                              Pet[]
+  ordersAsOwner                     Order[]                            @relation("OrderOwner")
+  ordersAsProvider                  Order[]                            @relation("OrderProvider")
+  orderIntents                      OrderIntent[]
+  posts                             Post[]
+  favorites                         Favorite[]
+  notifications                     Notification[]
+  reviews                           Review[]
+  comments                          Comment[]
+  follows                           Follow[]                           @relation("Follower")
+  followings                        Follow[]                           @relation("Following")
+  creditScore                       CreditScore?
+  creditRecords                     CreditRecord[]
+  roles                             UserRole[]
+  complaints                        Complaint[]                        @relation("Complainant")
+  certificationApplications         ProviderCertificationApplication[] @relation("CertificationApplicant")
+  reviewedCertificationApplications ProviderCertificationApplication[] @relation("CertificationReviewer")
 
   @@index([phone])
   @@index([userType])
@@ -80,6 +82,30 @@ model Provider {
 
   @@index([certifiedSitter])
   @@map("providers")
+}
+
+model ProviderCertificationApplication {
+  id             String    @id @default(uuid())
+  applicantId    String    @map("applicant_id")
+  realNameMasked String    @map("real_name_masked")
+  idCardMasked   String    @map("id_card_masked")
+  idCardFrontUrl String    @map("id_card_front_url")
+  idCardBackUrl  String    @map("id_card_back_url")
+  wechatScore    Int?      @map("wechat_score")
+  trainingPassed Boolean   @default(false) @map("training_passed")
+  status         String    @default("pending")
+  rejectReason   String?   @map("reject_reason")
+  reviewedById   String?   @map("reviewed_by_id")
+  reviewedAt     DateTime? @map("reviewed_at")
+  createdAt      DateTime  @default(now()) @map("created_at")
+  updatedAt      DateTime  @updatedAt @map("updated_at")
+
+  applicant  User  @relation("CertificationApplicant", fields: [applicantId], references: [id], onDelete: Cascade)
+  reviewedBy User? @relation("CertificationReviewer", fields: [reviewedById], references: [id], onDelete: SetNull)
+
+  @@index([status, createdAt])
+  @@index([applicantId, createdAt])
+  @@map("provider_certification_applications")
 }
 
 // ============================================
