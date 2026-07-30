@@ -5,6 +5,7 @@ import {
   type CreateComplaintRequest,
   type SubmitComplaintStatementRequest,
 } from "@petcare/shared-types";
+import { DISPUTE_RESOLVE_PERMISSION_CODE } from "../../auth/dispute-resolver.guard";
 import { ApiException } from "../../common/http/api-exception";
 import type { Prisma } from "../../generated/prisma/client";
 import { PrismaService } from "../../prisma/prisma.service";
@@ -24,6 +25,14 @@ type ComplaintCommandRecord = {
   appealDeadlineAt: Date | null;
   version: number;
 };
+
+/** 执行后台投诉命令的管理员身份。 */
+export interface AdminActor {
+  /** 当前管理员唯一标识。 */
+  id: string;
+  /** 当前访问令牌携带的已授权角色代码。 */
+  roles: string[];
+}
 
 @Injectable()
 export class ComplaintCommandService {
@@ -270,6 +279,139 @@ export class ComplaintCommandService {
     });
   }
 
+  /** 以状态和版本条件原子认领未分配案件。 */
+  async claim(id: string, admin: AdminActor, version: number): Promise<string> {
+    return this.prisma.$transaction(async (transaction) => {
+      const complaint = await this.findComplaint(transaction, id);
+
+      assertComplaintAction(this.toAdminActionContext(complaint, admin), "claim");
+
+      const updated = await transaction.complaint.updateMany({
+        where: {
+          id,
+          status: COMPLAINT_STATUS.UNASSIGNED,
+          version,
+        },
+        data: {
+          assignedAdminId: admin.id,
+          status: COMPLAINT_STATUS.PROCESSING_INITIAL,
+          version: { increment: 1 },
+        },
+      });
+
+      this.assertUpdated(updated.count);
+      await transaction.complaintAssignment.create({
+        data: {
+          complaintId: id,
+          assigneeAdminId: admin.id,
+          assignedByAdminId: admin.id,
+        },
+      });
+      await this.createEvent(
+        transaction,
+        complaint,
+        admin.id,
+        "claim",
+        COMPLAINT_STATUS.PROCESSING_INITIAL,
+      );
+
+      return id;
+    });
+  }
+
+  /** 由当前处理人或超级管理员将案件转交给有效管理员。 */
+  async transfer(
+    id: string,
+    admin: AdminActor,
+    targetAdminId: string,
+    reason: string,
+    version: number,
+  ): Promise<string> {
+    return this.prisma.$transaction(async (transaction) => {
+      const complaint = await this.findComplaint(transaction, id);
+
+      assertComplaintAction(this.toAdminActionContext(complaint, admin), "transfer");
+
+      const targetAdmin = await transaction.user.findFirst({
+        where: {
+          id: targetAdminId,
+          status: "active",
+          roles: {
+            some: {
+              role: {
+                isActive: true,
+                OR: [
+                  { roleName: "super_admin" },
+                  {
+                    permissions: {
+                      some: {
+                        permission: {
+                          permissionCode: DISPUTE_RESOLVE_PERMISSION_CODE,
+                        },
+                      },
+                    },
+                  },
+                ],
+              },
+            },
+          },
+        },
+        select: { id: true },
+      });
+
+      if (!targetAdmin) {
+        throw new ApiException(
+          "INVALID_COMPLAINT_ASSIGNEE",
+          "目标用户不是有效管理员",
+          HttpStatus.BAD_REQUEST,
+        );
+      }
+
+      const transferReason = reason.trim();
+
+      if (!transferReason) {
+        throw new ApiException(
+          "COMPLAINT_TRANSFER_REASON_REQUIRED",
+          "转交案件必须填写原因",
+          HttpStatus.BAD_REQUEST,
+        );
+      }
+
+      const updated = await transaction.complaint.updateMany({
+        where: {
+          id,
+          status: complaint.status,
+          version,
+        },
+        data: {
+          assignedAdminId: targetAdminId,
+          version: { increment: 1 },
+        },
+      });
+
+      this.assertUpdated(updated.count);
+      await transaction.complaintAssignment.create({
+        data: {
+          complaintId: id,
+          assigneeAdminId: targetAdminId,
+          assignedByAdminId: admin.id,
+        },
+      });
+      await transaction.complaintEvent.create({
+        data: {
+          complaintId: id,
+          actorId: admin.id,
+          action: "transfer",
+          fromStatus: complaint.status,
+          toStatus: complaint.status,
+          payload: JSON.stringify({ targetAdminId, reason: transferReason }),
+        },
+      });
+
+      return id;
+    });
+  }
+
   /** 允许投诉方在初裁前撤回投诉。 */
   async withdraw(id: string, actorId: string, version: number): Promise<string> {
     return this.prisma.$transaction(async (transaction) => {
@@ -357,6 +499,25 @@ export class ComplaintCommandService {
       isOrderParty: viewerRole !== "other",
       appealDeadlineAt: complaint.appealDeadlineAt,
       hasSecondAppealed,
+      hasFailedExecution: false,
+      now: new Date(),
+    };
+  }
+
+  /** 构建后台命令的状态机上下文，超级管理员身份仅来自角色代码。 */
+  private toAdminActionContext(
+    complaint: ComplaintCommandRecord,
+    admin: AdminActor,
+  ): ComplaintActionContext {
+    return {
+      status: complaint.status as ComplaintStatus,
+      viewerId: admin.id,
+      viewerRole: "admin",
+      assignedAdminId: complaint.assignedAdminId,
+      isSuperAdmin: admin.roles.includes("super_admin"),
+      isOrderParty: admin.id === complaint.complainantId || admin.id === complaint.respondentId,
+      appealDeadlineAt: complaint.appealDeadlineAt,
+      hasSecondAppealed: false,
       hasFailedExecution: false,
       now: new Date(),
     };

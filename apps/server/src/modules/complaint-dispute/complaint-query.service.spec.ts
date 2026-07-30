@@ -56,6 +56,74 @@ describe("ComplaintQueryService", () => {
     });
   });
 
+  it("returns the filtered administrator complaint page in the standard shape", async () => {
+    prisma.complaint.findMany.mockResolvedValue([
+      {
+        id: "complaint-1",
+        orderId: "order-1",
+        complainantId: "owner-1",
+        respondentId: "provider-1",
+        status: COMPLAINT_STATUS.PROCESSING_INITIAL,
+        assignedAdminId: "admin-1",
+        createdAt,
+        updatedAt,
+      },
+    ]);
+    prisma.complaint.count.mockResolvedValue(1);
+
+    const result = await service.findAdminPage({
+      page: 2,
+      pageSize: 10,
+      status: COMPLAINT_STATUS.PROCESSING_INITIAL,
+      keyword: " owner ",
+      handlerId: "admin-1",
+    });
+
+    expect(prisma.complaint.findMany).toHaveBeenCalledWith(
+      expect.objectContaining({
+        where: {
+          status: COMPLAINT_STATUS.PROCESSING_INITIAL,
+          assignedAdminId: "admin-1",
+          OR: [
+            { orderId: { contains: "owner", mode: "insensitive" } },
+            {
+              complainant: {
+                is: {
+                  OR: [
+                    { id: { contains: "owner", mode: "insensitive" } },
+                    { phone: { contains: "owner" } },
+                    { username: { contains: "owner", mode: "insensitive" } },
+                    { nickname: { contains: "owner", mode: "insensitive" } },
+                  ],
+                },
+              },
+            },
+            {
+              respondent: {
+                is: {
+                  OR: [
+                    { id: { contains: "owner", mode: "insensitive" } },
+                    { phone: { contains: "owner" } },
+                    { username: { contains: "owner", mode: "insensitive" } },
+                    { nickname: { contains: "owner", mode: "insensitive" } },
+                  ],
+                },
+              },
+            },
+          ],
+        },
+        skip: 10,
+        take: 10,
+      }),
+    );
+    expect(result).toEqual({
+      list: [expect.objectContaining({ id: "complaint-1", handlerId: "admin-1" })],
+      total: 1,
+      page: 2,
+      pageSize: 10,
+    });
+  });
+
   it.each([
     ["page below one", 0, 20],
     ["page size below one", 1, 0],
@@ -155,6 +223,41 @@ describe("ComplaintQueryService", () => {
 
     expect(ownerView.allowedActions).toContain(COMPLAINT_ACTION.SECOND_APPEAL);
     expect(providerView.allowedActions).not.toContain(COMPLAINT_ACTION.SECOND_APPEAL);
+  });
+
+  it("maps administrator detail and computes assignment-sensitive actions", async () => {
+    prisma.complaint.findUnique.mockResolvedValue(
+      complaintRecord({
+        status: COMPLAINT_STATUS.PROCESSING_INITIAL,
+        assignedAdminId: "admin-1",
+      }),
+    );
+
+    const assignedView = await service.findForAdmin(
+      "complaint-1",
+      { id: "admin-1", roles: ["complaint_admin"] },
+      updatedAt,
+    );
+    const superView = await service.findForAdmin(
+      "complaint-1",
+      { id: "admin-2", roles: ["super_admin"] },
+      updatedAt,
+    );
+
+    expect(assignedView.allowedActions).toEqual([
+      COMPLAINT_ACTION.TRANSFER,
+      COMPLAINT_ACTION.INITIAL_DECIDE,
+    ]);
+    expect(superView.allowedActions).toEqual([
+      COMPLAINT_ACTION.TRANSFER,
+      COMPLAINT_ACTION.INITIAL_DECIDE,
+    ]);
+    expect(assignedView).toMatchObject({
+      id: "complaint-1",
+      handlerId: "admin-1",
+      createdAt: createdAt.toISOString(),
+      updatedAt: updatedAt.toISOString(),
+    });
   });
 
   const baseStatements = [

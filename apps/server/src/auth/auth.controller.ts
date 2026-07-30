@@ -15,7 +15,6 @@ import { ApiException } from "../common/http/api-exception";
 import { ApiStandardErrors, ApiSuccessResponse } from "../common/swagger/api-response.decorators";
 import { ConfigService } from "../config/config.service";
 import { AccessTokenGuard } from "./access-token.guard";
-import { AdminGuard } from "./admin.guard";
 import { AuthService, LoginResult } from "./auth.service";
 import { AccessTokenPayload } from "./auth.types";
 import { CaptchaChallenge, CaptchaService } from "./captcha.service";
@@ -131,7 +130,7 @@ export class AuthController {
   }
 
   @Get("me")
-  @UseGuards(AccessTokenGuard, AdminGuard)
+  @UseGuards(AccessTokenGuard)
   @ApiBearerAuth()
   @ApiOperation({ summary: "获取当前管理员" })
   @ApiSuccessResponse(AdminUserResponseDto)

@@ -79,6 +79,22 @@ export interface SubmitComplaintStatementRequest {
   version: number;
 }
 
+/** 管理员认领投诉的请求参数。 */
+export interface ClaimComplaintRequest {
+  /** 客户端读取详情时获得的并发版本。 */
+  version: number;
+}
+
+/** 管理员转交投诉的请求参数。 */
+export interface TransferComplaintRequest {
+  /** 接收案件的目标管理员唯一标识。 */
+  targetAdminId: string;
+  /** 本次转交案件的原因。 */
+  reason: string;
+  /** 客户端读取详情时获得的并发版本。 */
+  version: number;
+}
+
 /** 投诉陈述的客户端视图。 */
 export interface ComplaintStatementView {
   /** 陈述记录唯一标识。 */

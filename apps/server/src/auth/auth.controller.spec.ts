@@ -1,4 +1,7 @@
+import { GUARDS_METADATA } from "@nestjs/common/constants";
 import { ConfigService } from "../config/config.service";
+import { AccessTokenGuard } from "./access-token.guard";
+import { AdminGuard } from "./admin.guard";
 import { AuthController } from "./auth.controller";
 import { AuthService } from "./auth.service";
 import { CaptchaService } from "./captcha.service";
@@ -130,5 +133,12 @@ describe("AuthController", () => {
 
   it("returns only safe current-user fields", async () => {
     await expect(controller.me({ user: { sub: "user-1" } } as never)).resolves.toEqual(user);
+  });
+
+  it("allows any authenticated RBAC administrator to load their own profile", () => {
+    const guards = Reflect.getMetadata(GUARDS_METADATA, AuthController.prototype.me) as unknown[];
+
+    expect(guards).toContain(AccessTokenGuard);
+    expect(guards).not.toContain(AdminGuard);
   });
 });

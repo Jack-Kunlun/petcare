@@ -8,6 +8,7 @@ import { AdminGuard } from "./admin.guard";
 import { AuthController } from "./auth.controller";
 import { AuthService } from "./auth.service";
 import { CaptchaService } from "./captcha.service";
+import { DisputeResolverGuard } from "./dispute-resolver.guard";
 import { JwtStrategy } from "./jwt.strategy";
 import { PasswordService } from "./password.service";
 import { DevelopmentSmsSender } from "./sms/development-sms.sender";
@@ -33,6 +34,7 @@ import { WechatAuthService } from "./wechat-auth.service";
     JwtStrategy,
     AccessTokenGuard,
     AdminGuard,
+    DisputeResolverGuard,
     {
       provide: SMS_SENDER,
       inject: [ConfigService],
@@ -45,6 +47,6 @@ import { WechatAuthService } from "./wechat-auth.service";
       },
     },
   ],
-  exports: [AuthService, AccessTokenGuard, AdminGuard],
+  exports: [AuthService, AccessTokenGuard, AdminGuard, DisputeResolverGuard],
 })
 export class AuthModule {}

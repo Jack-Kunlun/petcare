@@ -14,6 +14,13 @@ const activeAdmin = {
   passwordHash: "$argon2id$v=19$test",
   roles: [{ role: { roleName: "super_admin", isActive: true } }],
 };
+const activeDisputeResolver = {
+  ...activeAdmin,
+  id: "resolver-1",
+  username: "resolver",
+  phone: "17679141879",
+  roles: [{ role: { roleName: "complaint_resolver", isActive: true } }],
+};
 
 describe("AuthService", () => {
   let prisma: {
@@ -80,6 +87,19 @@ describe("AuthService", () => {
     });
   });
 
+  it("allows an active ordinary RBAC administrator to log in", async () => {
+    prisma.user.findFirst.mockResolvedValue(activeDisputeResolver);
+
+    await expect(
+      service.loginWithPassword("resolver", "Correct-Horse-Battery-Staple!42"),
+    ).resolves.toMatchObject({
+      user: {
+        id: "resolver-1",
+        roles: ["complaint_resolver"],
+      },
+    });
+  });
+
   it.each([
     ["missing account", null, true],
     ["wrong password", activeAdmin, false],
@@ -130,6 +150,14 @@ describe("AuthService", () => {
   it("sends an SMS only after consuming a valid captcha", async () => {
     await service.sendSmsCode("13800138000", "0123456789abcdef", "2345");
 
+    expect(prisma.user.findFirst).toHaveBeenCalledWith({
+      where: {
+        phone: "13800138000",
+        status: "active",
+        roles: { some: { role: { isActive: true } } },
+      },
+      select: { id: true },
+    });
     expect(verificationCodeService.send).toHaveBeenCalledWith("13800138000");
     expect(captchaService.verifyAndConsume.mock.invocationCallOrder[0]).toBeLessThan(
       prisma.user.findFirst.mock.invocationCallOrder[0],
