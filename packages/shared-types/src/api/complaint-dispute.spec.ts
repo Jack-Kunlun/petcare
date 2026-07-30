@@ -4,9 +4,11 @@ import {
   COMPLAINT_STATUS,
   DECISION_LEVEL,
   type AdminComplaintListResponse,
+  type ClaimComplaintRequest,
   type ComplaintDetail,
   type CreateComplaintRequest,
   type SubmitComplaintStatementRequest,
+  type TransferComplaintRequest,
 } from "./complaint-dispute";
 
 describe("complaint dispute contracts", () => {
@@ -66,6 +68,24 @@ describe("complaint dispute contracts", () => {
       expectedSolution: "申请部分退款",
     });
     expect(statementRequest.version).toBe(2);
+  });
+
+  it("shares every administrator assignment command field", () => {
+    const claimRequest: ClaimComplaintRequest = {
+      version: 2,
+    };
+    const transferRequest: TransferComplaintRequest = {
+      targetAdminId: "admin-2",
+      reason: "当前管理员需要回避该案件",
+      version: 3,
+    };
+
+    expect(claimRequest).toEqual({ version: 2 });
+    expect(transferRequest).toEqual({
+      targetAdminId: "admin-2",
+      reason: "当前管理员需要回避该案件",
+      version: 3,
+    });
   });
 
   it("shares the complete user complaint detail read model", () => {

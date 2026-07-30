@@ -1,4 +1,10 @@
-import { CanActivate, ExecutionContext, Injectable, UnauthorizedException } from "@nestjs/common";
+import {
+  CanActivate,
+  ExecutionContext,
+  ForbiddenException,
+  Injectable,
+  UnauthorizedException,
+} from "@nestjs/common";
 import { AuthService } from "./auth.service";
 import { AccessTokenPayload } from "./auth.types";
 
@@ -14,7 +20,11 @@ export class AdminGuard implements CanActivate {
       throw new UnauthorizedException("登录状态已失效");
     }
 
-    await this.authService.getCurrentUser(userId);
+    const user = await this.authService.getCurrentUser(userId);
+
+    if (!user.roles.includes("super_admin")) {
+      throw new ForbiddenException("无权访问该后台功能");
+    }
 
     return true;
   }

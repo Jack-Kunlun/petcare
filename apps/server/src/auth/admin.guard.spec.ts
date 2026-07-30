@@ -1,4 +1,4 @@
-import { ExecutionContext, UnauthorizedException } from "@nestjs/common";
+import { ExecutionContext, ForbiddenException, UnauthorizedException } from "@nestjs/common";
 import { AdminGuard } from "./admin.guard";
 import { AuthService } from "./auth.service";
 
@@ -29,6 +29,20 @@ describe("AdminGuard", () => {
 
     await expect(guard.canActivate(contextFor(undefined))).rejects.toBeInstanceOf(
       UnauthorizedException,
+    );
+  });
+
+  it("keeps general administrator endpoints restricted to super administrators", async () => {
+    const authService = {
+      getCurrentUser: jest.fn().mockResolvedValue({
+        id: "resolver-1",
+        roles: ["complaint_resolver"],
+      }),
+    } as unknown as AuthService;
+    const guard = new AdminGuard(authService);
+
+    await expect(guard.canActivate(contextFor({ sub: "resolver-1" }))).rejects.toBeInstanceOf(
+      ForbiddenException,
     );
   });
 });

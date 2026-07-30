@@ -19,6 +19,10 @@ describe("ComplaintCommandService", () => {
       findUnique: jest.fn(),
       create: jest.fn(),
     },
+    user: {
+      findFirst: jest.fn(),
+    },
+    complaintAssignment: { create: jest.fn() },
     complaintEvent: { create: jest.fn() },
   };
   const prisma = {
@@ -51,6 +55,7 @@ describe("ComplaintCommandService", () => {
     transaction.complaint.create.mockResolvedValue({ id: "complaint-1" });
     transaction.complaint.updateMany.mockResolvedValue({ count: 1 });
     transaction.complaintStatement.findUnique.mockResolvedValue(null);
+    transaction.user.findFirst.mockResolvedValue({ id: "admin-2" });
   });
 
   it("creates a complaint for an order party and records the first event", async () => {
@@ -192,6 +197,146 @@ describe("ComplaintCommandService", () => {
         version: 2,
       }),
     ).rejects.toMatchObject({ code: "COMPLAINT_ACTION_NOT_ALLOWED" });
+  });
+
+  it("allows exactly one administrator to win a concurrent claim", async () => {
+    transaction.complaint.findUnique.mockResolvedValue({
+      id: "complaint-1",
+      complainantId: "owner-1",
+      respondentId: "provider-1",
+      assignedAdminId: null,
+      status: COMPLAINT_STATUS.UNASSIGNED,
+      appealDeadlineAt: null,
+      version: 2,
+    });
+    transaction.complaint.updateMany
+      .mockResolvedValueOnce({ count: 1 })
+      .mockResolvedValueOnce({ count: 0 });
+
+    const results = await Promise.allSettled([
+      service.claim("complaint-1", { id: "admin-1", roles: ["complaint_admin"] }, 2),
+      service.claim("complaint-1", { id: "admin-2", roles: ["complaint_admin"] }, 2),
+    ]);
+
+    expect(results.map((result) => result.status)).toEqual(["fulfilled", "rejected"]);
+    expect(results[1]).toMatchObject({
+      reason: { code: "COMPLAINT_STATE_CONFLICT" },
+    });
+    expect(transaction.complaintAssignment.create).toHaveBeenCalledTimes(1);
+    expect(transaction.complaintEvent.create).toHaveBeenCalledTimes(1);
+  });
+
+  it("prevents an order-party administrator from claiming the complaint", async () => {
+    transaction.complaint.findUnique.mockResolvedValue({
+      id: "complaint-1",
+      complainantId: "admin-1",
+      respondentId: "provider-1",
+      assignedAdminId: null,
+      status: COMPLAINT_STATUS.UNASSIGNED,
+      appealDeadlineAt: null,
+      version: 2,
+    });
+
+    await expect(
+      service.claim("complaint-1", { id: "admin-1", roles: ["super_admin"] }, 2),
+    ).rejects.toMatchObject({ code: "COMPLAINT_ACTION_NOT_ALLOWED" });
+    expect(transaction.complaint.updateMany).not.toHaveBeenCalled();
+  });
+
+  it("prevents an ordinary administrator from transferring another administrator's case", async () => {
+    transaction.complaint.findUnique.mockResolvedValue({
+      id: "complaint-1",
+      complainantId: "owner-1",
+      respondentId: "provider-1",
+      assignedAdminId: "admin-1",
+      status: COMPLAINT_STATUS.PROCESSING_INITIAL,
+      appealDeadlineAt: null,
+      version: 3,
+    });
+
+    await expect(
+      service.transfer(
+        "complaint-1",
+        { id: "admin-2", roles: ["complaint_admin"] },
+        "admin-3",
+        "转交给当班管理员继续处理",
+        3,
+      ),
+    ).rejects.toMatchObject({ code: "COMPLAINT_ACTION_NOT_ALLOWED" });
+    expect(transaction.user.findFirst).not.toHaveBeenCalled();
+  });
+
+  it("allows a super administrator to override assignment and records the reason", async () => {
+    transaction.complaint.findUnique.mockResolvedValue({
+      id: "complaint-1",
+      complainantId: "owner-1",
+      respondentId: "provider-1",
+      assignedAdminId: "admin-1",
+      status: COMPLAINT_STATUS.PROCESSING_FINAL,
+      appealDeadlineAt: new Date("2026-08-04T12:00:00.000Z"),
+      version: 4,
+    });
+    transaction.user.findFirst.mockResolvedValue({ id: "admin-3" });
+
+    await service.transfer(
+      "complaint-1",
+      { id: "super-1", roles: ["super_admin"] },
+      "admin-3",
+      "原管理员临时离岗",
+      4,
+    );
+
+    expect(transaction.user.findFirst).toHaveBeenCalledWith({
+      where: {
+        id: "admin-3",
+        status: "active",
+        roles: {
+          some: {
+            role: {
+              isActive: true,
+              OR: [
+                { roleName: "super_admin" },
+                {
+                  permissions: {
+                    some: {
+                      permission: { permissionCode: "dispute.resolve" },
+                    },
+                  },
+                },
+              ],
+            },
+          },
+        },
+      },
+      select: { id: true },
+    });
+    expect(transaction.complaint.updateMany).toHaveBeenCalledWith({
+      where: {
+        id: "complaint-1",
+        status: COMPLAINT_STATUS.PROCESSING_FINAL,
+        version: 4,
+      },
+      data: {
+        assignedAdminId: "admin-3",
+        version: { increment: 1 },
+      },
+    });
+    expect(transaction.complaintAssignment.create).toHaveBeenCalledWith({
+      data: {
+        complaintId: "complaint-1",
+        assigneeAdminId: "admin-3",
+        assignedByAdminId: "super-1",
+      },
+    });
+    expect(transaction.complaintEvent.create).toHaveBeenCalledWith({
+      data: expect.objectContaining({
+        action: "transfer",
+        payload: JSON.stringify({
+          targetAdminId: "admin-3",
+          reason: "原管理员临时离岗",
+        }),
+      }),
+    });
   });
 
   it("rejects an empty first response", async () => {

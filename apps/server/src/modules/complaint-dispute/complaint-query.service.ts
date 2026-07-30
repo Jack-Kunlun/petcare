@@ -1,6 +1,7 @@
 import { HttpStatus, Injectable } from "@nestjs/common";
 import {
   DECISION_LEVEL,
+  type AdminComplaintListQuery,
   type AdminComplaintListItem,
   type AdminComplaintListResponse,
   type ComplaintDetail,
@@ -12,7 +13,7 @@ import {
 import { ApiException } from "../../common/http/api-exception";
 import type { Prisma } from "../../generated/prisma/client";
 import { PrismaService } from "../../prisma/prisma.service";
-import { getAllowedComplaintActions } from "./complaint-state-machine";
+import { getAllowedComplaintActions, type ComplaintActionContext } from "./complaint-state-machine";
 
 const complaintDetailSelect = {
   id: true,
@@ -123,6 +124,78 @@ export class ComplaintQueryService {
     };
   }
 
+  /** 按后台筛选条件分页返回投诉案件。 */
+  async findAdminPage(query: AdminComplaintListQuery): Promise<AdminComplaintListResponse> {
+    if (
+      !Number.isInteger(query.page) ||
+      !Number.isInteger(query.pageSize) ||
+      query.page < 1 ||
+      query.pageSize < 1 ||
+      query.pageSize > 100
+    ) {
+      throw new ApiException(
+        "INVALID_PAGINATION",
+        "分页参数必须为正整数且每页不超过 100 条",
+        HttpStatus.BAD_REQUEST,
+      );
+    }
+
+    const where: Prisma.ComplaintWhereInput = {};
+    const keyword = query.keyword?.trim();
+
+    if (query.status) {
+      where.status = query.status;
+    }
+
+    if (query.handlerId) {
+      where.assignedAdminId = query.handlerId;
+    }
+
+    if (keyword) {
+      const userKeywordFilter = {
+        OR: [
+          { id: { contains: keyword, mode: "insensitive" as const } },
+          { phone: { contains: keyword } },
+          { username: { contains: keyword, mode: "insensitive" as const } },
+          { nickname: { contains: keyword, mode: "insensitive" as const } },
+        ],
+      };
+
+      where.OR = [
+        { orderId: { contains: keyword, mode: "insensitive" } },
+        { complainant: { is: userKeywordFilter } },
+        { respondent: { is: userKeywordFilter } },
+      ];
+    }
+
+    const [records, total] = await Promise.all([
+      this.prisma.complaint.findMany({
+        where,
+        skip: (query.page - 1) * query.pageSize,
+        take: query.pageSize,
+        orderBy: { createdAt: "desc" },
+        select: {
+          id: true,
+          orderId: true,
+          complainantId: true,
+          respondentId: true,
+          status: true,
+          assignedAdminId: true,
+          createdAt: true,
+          updatedAt: true,
+        },
+      }),
+      this.prisma.complaint.count({ where }),
+    ]);
+
+    return {
+      list: records.map((record) => this.toListItem(record)),
+      total,
+      page: query.page,
+      pageSize: query.pageSize,
+    };
+  }
+
   /** 返回订单当事方可见的投诉详情与服务端计算动作。 */
   async findForUser(id: string, userId: string, now = new Date()): Promise<ComplaintDetail> {
     const complaint = await this.prisma.complaint.findUnique({
@@ -149,6 +222,55 @@ export class ComplaintQueryService {
     const hasSecondAppealed = complaint.statements.some(
       (statement) => statement.stage === "second_appeal" && statement.authorId === userId,
     );
+
+    return this.toDetail(complaint, {
+      status: complaint.status as ComplaintStatus,
+      viewerId: userId,
+      viewerRole,
+      assignedAdminId: complaint.assignedAdminId,
+      isSuperAdmin: false,
+      isOrderParty: true,
+      appealDeadlineAt: complaint.appealDeadlineAt,
+      hasSecondAppealed,
+      hasFailedExecution: complaint.executionTasks.length > 0,
+      now,
+    });
+  }
+
+  /** 返回管理员视角的投诉详情与基于分配关系计算的允许动作。 */
+  async findForAdmin(
+    id: string,
+    admin: { id: string; roles: string[] },
+    now = new Date(),
+  ): Promise<ComplaintDetail> {
+    const complaint = await this.prisma.complaint.findUnique({
+      where: { id },
+      select: complaintDetailSelect,
+    });
+
+    if (!complaint) {
+      throw new ApiException("RESOURCE_NOT_FOUND", "投诉不存在", HttpStatus.NOT_FOUND);
+    }
+
+    return this.toDetail(complaint, {
+      status: complaint.status as ComplaintStatus,
+      viewerId: admin.id,
+      viewerRole: "admin",
+      assignedAdminId: complaint.assignedAdminId,
+      isSuperAdmin: admin.roles.includes("super_admin"),
+      isOrderParty: admin.id === complaint.complainantId || admin.id === complaint.respondentId,
+      appealDeadlineAt: complaint.appealDeadlineAt,
+      hasSecondAppealed: false,
+      hasFailedExecution: complaint.executionTasks.length > 0,
+      now,
+    });
+  }
+
+  /** 复用投诉详情序列化并注入服务端计算的允许动作。 */
+  private toDetail(
+    complaint: ComplaintDetailRecord,
+    actionContext: ComplaintActionContext,
+  ): ComplaintDetail {
     const initialStatement = complaint.statements.find(
       (statement) => statement.stage === "initial",
     );
@@ -181,18 +303,7 @@ export class ComplaintQueryService {
       statements: complaint.statements.map((statement) => this.toStatement(statement)),
       events: complaint.events.map((event) => this.toEvent(event)),
       secondAppealDeadline: complaint.appealDeadlineAt?.toISOString() ?? null,
-      allowedActions: getAllowedComplaintActions({
-        status: complaint.status as ComplaintStatus,
-        viewerId: userId,
-        viewerRole,
-        assignedAdminId: complaint.assignedAdminId,
-        isSuperAdmin: false,
-        isOrderParty: true,
-        appealDeadlineAt: complaint.appealDeadlineAt,
-        hasSecondAppealed,
-        hasFailedExecution: complaint.executionTasks.length > 0,
-        now,
-      }),
+      allowedActions: getAllowedComplaintActions(actionContext),
       version: complaint.version,
       createdAt: complaint.createdAt.toISOString(),
       updatedAt: complaint.updatedAt.toISOString(),

@@ -79,7 +79,7 @@ export class AuthService {
         status: "active",
         roles: {
           some: {
-            role: { roleName: "super_admin", isActive: true },
+            role: { isActive: true },
           },
         },
       },
@@ -175,12 +175,7 @@ export class AuthService {
   }
 
   private isActiveAdministrator(user: AdminUserRecord | null): user is AdminUserRecord {
-    return (
-      user?.status === "active" &&
-      user.roles.some(
-        (assignment) => assignment.role.roleName === "super_admin" && assignment.role.isActive,
-      )
-    );
+    return user?.status === "active" && user.roles.some((assignment) => assignment.role.isActive);
   }
 
   private toSafeUser(user: AdminUserRecord): SafeAdminUser {
