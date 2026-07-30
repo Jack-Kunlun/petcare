@@ -3,6 +3,10 @@ import { COMPLAINT_STATUS } from "@petcare/shared-types";
 import { PrismaService } from "../../prisma/prisma.service";
 import { ComplaintCommandService } from "./complaint-command.service";
 
+function serializationFailure(): Error & { code: string } {
+  return Object.assign(new Error("transaction write conflict"), { code: "P2034" });
+}
+
 describe("ComplaintCommandService", () => {
   const transaction = {
     complaint: {
@@ -19,6 +23,7 @@ describe("ComplaintCommandService", () => {
   };
   const prisma = {
     order: { findUnique: jest.fn() },
+    complaint: { findFirst: jest.fn() },
     $transaction: jest.fn((callback: (tx: typeof transaction) => unknown) => callback(transaction)),
   };
   const service = new ComplaintCommandService(prisma as unknown as PrismaService);
@@ -31,8 +36,11 @@ describe("ComplaintCommandService", () => {
   };
 
   beforeEach(() => {
-    jest.clearAllMocks();
+    jest.resetAllMocks();
     jest.useRealTimers();
+    prisma.$transaction.mockImplementation((callback: (tx: typeof transaction) => unknown) =>
+      callback(transaction),
+    );
     prisma.order.findUnique.mockResolvedValue({
       id: "order-1",
       ownerId: "owner-1",
@@ -80,6 +88,57 @@ describe("ComplaintCommandService", () => {
     }
 
     await expect(service.createComplaint(actorId, validRequest)).rejects.toMatchObject({ code });
+  });
+
+  it("rechecks after P2034 and retries the whole create transaction", async () => {
+    prisma.$transaction
+      .mockImplementationOnce(() => Promise.reject(serializationFailure()))
+      .mockImplementationOnce((callback: (tx: typeof transaction) => unknown) =>
+        callback(transaction),
+      );
+    prisma.complaint.findFirst.mockResolvedValue(null);
+
+    await expect(service.createComplaint("owner-1", validRequest)).resolves.toBe("complaint-1");
+
+    expect(prisma.$transaction).toHaveBeenCalledTimes(2);
+    expect(prisma.complaint.findFirst).toHaveBeenCalledWith({
+      where: {
+        orderId: "order-1",
+        status: { notIn: [COMPLAINT_STATUS.CLOSED, COMPLAINT_STATUS.WITHDRAWN] },
+      },
+      select: { id: true },
+    });
+  });
+
+  it("maps P2034 to an open complaint when the recheck finds one", async () => {
+    prisma.$transaction.mockImplementationOnce(() => Promise.reject(serializationFailure()));
+    prisma.complaint.findFirst.mockResolvedValue({ id: "complaint-open" });
+
+    await expect(service.createComplaint("owner-1", validRequest)).rejects.toMatchObject({
+      code: "OPEN_COMPLAINT_EXISTS",
+      status: HttpStatus.CONFLICT,
+    });
+    expect(prisma.$transaction).toHaveBeenCalledTimes(1);
+  });
+
+  it("maps exhausted P2034 retries to OPEN_COMPLAINT_EXISTS", async () => {
+    prisma.$transaction.mockImplementation(() => Promise.reject(serializationFailure()));
+    prisma.complaint.findFirst.mockResolvedValue(null);
+
+    await expect(service.createComplaint("owner-1", validRequest)).rejects.toMatchObject({
+      code: "OPEN_COMPLAINT_EXISTS",
+      status: HttpStatus.CONFLICT,
+    });
+    expect(prisma.$transaction).toHaveBeenCalledTimes(3);
+  });
+
+  it("does not swallow non-P2034 Prisma errors during create", async () => {
+    const databaseError = Object.assign(new Error("database unavailable"), { code: "P1001" });
+
+    prisma.$transaction.mockImplementationOnce(() => Promise.reject(databaseError));
+
+    await expect(service.createComplaint("owner-1", validRequest)).rejects.toBe(databaseError);
+    expect(prisma.complaint.findFirst).not.toHaveBeenCalled();
   });
 
   it("records the first response and its transition event", async () => {

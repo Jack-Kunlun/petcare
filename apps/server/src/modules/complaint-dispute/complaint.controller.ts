@@ -3,6 +3,8 @@ import {
   Controller,
   DefaultValuePipe,
   Get,
+  HttpCode,
+  HttpStatus,
   Param,
   ParseIntPipe,
   ParseUUIDPipe,
@@ -76,6 +78,7 @@ export class ComplaintController {
 
   /** 提交被投诉方的首次回应。 */
   @Post(":id/respond")
+  @HttpCode(HttpStatus.OK)
   @ApiOperation({ summary: "提交首次投诉回应" })
   @ApiSuccessResponse(ComplaintResponseDto)
   @ApiStandardErrors(400, 401, 403, 404, 409, 500)
@@ -91,6 +94,7 @@ export class ComplaintController {
 
   /** 提交当前订单当事方的二次申诉。 */
   @Post(":id/appeals")
+  @HttpCode(HttpStatus.OK)
   @ApiOperation({ summary: "提交二次申诉" })
   @ApiSuccessResponse(ComplaintResponseDto)
   @ApiStandardErrors(400, 401, 403, 404, 409, 500)
@@ -106,6 +110,7 @@ export class ComplaintController {
 
   /** 由投诉方在初裁前撤回投诉。 */
   @Post(":id/withdraw")
+  @HttpCode(HttpStatus.OK)
   @ApiOperation({ summary: "撤回投诉" })
   @ApiSuccessResponse(ComplaintResponseDto)
   @ApiStandardErrors(400, 401, 403, 404, 409, 500)
