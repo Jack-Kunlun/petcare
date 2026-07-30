@@ -339,6 +339,39 @@ describe("ComplaintCommandService", () => {
     });
   });
 
+  it.each([
+    ["complainant", "owner-1"],
+    ["respondent", "provider-1"],
+  ])("rejects transferring a complaint to its %s", async (_party, targetAdminId) => {
+    transaction.complaint.findUnique.mockResolvedValue({
+      id: "complaint-1",
+      complainantId: "owner-1",
+      respondentId: "provider-1",
+      assignedAdminId: "admin-1",
+      status: COMPLAINT_STATUS.PROCESSING_INITIAL,
+      appealDeadlineAt: null,
+      version: 3,
+    });
+    transaction.user.findFirst.mockResolvedValue({ id: targetAdminId });
+
+    await expect(
+      service.transfer(
+        "complaint-1",
+        { id: "admin-1", roles: ["complaint_admin"] },
+        targetAdminId,
+        "转交给其他处理员",
+        3,
+      ),
+    ).rejects.toMatchObject({
+      code: "COMPLAINT_PARTY_CANNOT_BE_ASSIGNEE",
+      status: HttpStatus.BAD_REQUEST,
+    });
+
+    expect(transaction.user.findFirst).not.toHaveBeenCalled();
+    expect(transaction.complaint.updateMany).not.toHaveBeenCalled();
+    expect(transaction.complaintAssignment.create).not.toHaveBeenCalled();
+  });
+
   it("rejects an empty first response", async () => {
     transaction.complaint.findUnique.mockResolvedValue({
       id: "complaint-1",

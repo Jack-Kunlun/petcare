@@ -67,7 +67,11 @@ export class DisputeDecisionService {
       const action = isInitial ? "initial_decide" : "final_decide";
 
       assertComplaintAction(this.toActionContext(complaint, admin), action);
-      this.assertDecisionValues(complaint.order.amount, request);
+      this.assertDecisionValues(
+        complaint.order.amount,
+        complaint.order.providerId,
+        request,
+      );
 
       const existingDecision = await transaction.disputeDecision.findUnique({
         where: {
@@ -87,21 +91,6 @@ export class DisputeDecisionService {
         );
       }
 
-      const decision = await transaction.disputeDecision.create({
-        data: {
-          complaintId: id,
-          decisionAdminId: admin.id,
-          level,
-          liability: request.liability,
-          reason: request.reason.trim(),
-          refundAmount: request.refundAmount,
-          settlementAmount: request.settlementAmount,
-          complainantCreditDelta: request.complainantCreditDelta,
-          respondentCreditDelta: request.respondentCreditDelta,
-          createdAt: now,
-        },
-        select: { id: true },
-      });
       const updated = await transaction.complaint.updateMany({
         where: {
           id,
@@ -129,6 +118,22 @@ export class DisputeDecisionService {
           HttpStatus.CONFLICT,
         );
       }
+
+      const decision = await transaction.disputeDecision.create({
+        data: {
+          complaintId: id,
+          decisionAdminId: admin.id,
+          level,
+          liability: request.liability,
+          reason: request.reason.trim(),
+          refundAmount: request.refundAmount,
+          settlementAmount: request.settlementAmount,
+          complainantCreditDelta: request.complainantCreditDelta,
+          respondentCreditDelta: request.respondentCreditDelta,
+          createdAt: now,
+        },
+        select: { id: true },
+      });
 
       await transaction.complaintEvent.create({
         data: {
@@ -205,7 +210,19 @@ export class DisputeDecisionService {
   }
 
   /** 校验金额守恒、整数分与信用变化范围。 */
-  private assertDecisionValues(orderAmount: number, request: SubmitDisputeDecisionRequest): void {
+  private assertDecisionValues(
+    orderAmount: number,
+    providerId: string | null,
+    request: SubmitDisputeDecisionRequest,
+  ): void {
+    if (request.settlementAmount !== 0 && !providerId) {
+      throw new ApiException(
+        "DISPUTE_SETTLEMENT_PROVIDER_REQUIRED",
+        "订单没有服务方，不能生成结算",
+        HttpStatus.BAD_REQUEST,
+      );
+    }
+
     const amounts = [request.refundAmount, request.settlementAmount];
     const creditDeltas = [request.complainantCreditDelta, request.respondentCreditDelta];
     const invalidAmount =
@@ -242,7 +259,7 @@ export class DisputeDecisionService {
         taskType: "settlement",
         value: request.settlementAmount,
         payload: JSON.stringify({
-          userId: complaint.order.providerId ?? complaint.respondentId,
+          userId: complaint.order.providerId,
           amount: request.settlementAmount,
         }),
       },
