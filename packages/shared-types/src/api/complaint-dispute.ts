@@ -59,10 +59,14 @@ export type DecisionLevel = (typeof DECISION_LEVEL)[keyof typeof DECISION_LEVEL]
 export interface CreateComplaintRequest {
   /** 被投诉订单的唯一标识。 */
   orderId: string;
+  /** 投诉业务类型。 */
+  complaintType: string;
   /** 投诉原因说明。 */
   reason: string;
   /** 投诉方提交的证据材料地址。 */
   evidenceUrls: string[];
+  /** 投诉方期望的处理方案。 */
+  expectedSolution: string;
 }
 
 /** 提交投诉方或被投诉方陈述的请求参数。 */
@@ -71,6 +75,42 @@ export interface SubmitComplaintStatementRequest {
   statement: string;
   /** 陈述附带的证据材料地址。 */
   evidenceUrls: string[];
+  /** 客户端读取详情时获得的并发版本。 */
+  version: number;
+}
+
+/** 投诉陈述的客户端视图。 */
+export interface ComplaintStatementView {
+  /** 陈述记录唯一标识。 */
+  id: string;
+  /** 陈述阶段。 */
+  stage: string;
+  /** 陈述提交人唯一标识。 */
+  authorId: string;
+  /** 陈述正文。 */
+  statement: string;
+  /** 陈述附带的证据材料地址。 */
+  evidenceUrls: string[];
+  /** ISO 8601 格式的提交时间。 */
+  createdAt: string;
+}
+
+/** 投诉状态事件的客户端视图。 */
+export interface ComplaintEventView {
+  /** 事件唯一标识。 */
+  id: string;
+  /** 操作人唯一标识；系统事件时为 null。 */
+  actorId: string | null;
+  /** 触发事件的业务动作。 */
+  action: string;
+  /** 动作发生前的投诉状态；创建事件时为 null。 */
+  fromStatus: ComplaintStatus | null;
+  /** 动作完成后的投诉状态；无状态变更时为 null。 */
+  toStatus: ComplaintStatus | null;
+  /** JSON 格式的事件扩展数据；无扩展数据时为 null。 */
+  payload: string | null;
+  /** ISO 8601 格式的事件发生时间。 */
+  createdAt: string;
 }
 
 /** 后台投诉列表的筛选条件。 */
@@ -120,6 +160,10 @@ export interface ComplaintDetail {
   complainantId: string;
   /** 被投诉方用户唯一标识。 */
   respondentId: string;
+  /** 投诉业务类型。 */
+  complaintType: string;
+  /** 投诉方期望的处理方案。 */
+  expectedSolution: string | null;
   /** 当前投诉处理状态。 */
   status: ComplaintStatus;
   /** 投诉原因说明。 */
@@ -136,6 +180,10 @@ export interface ComplaintDetail {
   initialDecision: SubmitDisputeDecisionRequest | null;
   /** 终审裁决；尚未终审时为 null。 */
   finalDecision: SubmitDisputeDecisionRequest | null;
+  /** 各阶段按提交时间排列的陈述材料。 */
+  statements: ComplaintStatementView[];
+  /** 按发生时间排列的状态事件。 */
+  events: ComplaintEventView[];
   /** ISO 8601 格式的二次申诉截止时间；不适用时为 null。 */
   secondAppealDeadline: string | null;
   /** 服务端为当前访问者计算的允许动作。 */

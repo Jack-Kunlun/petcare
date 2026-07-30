@@ -1,0 +1,195 @@
+import { ApiProperty } from "@nestjs/swagger";
+import {
+  COMPLAINT_ACTION,
+  COMPLAINT_STATUS,
+  type AdminComplaintListItem,
+  type AdminComplaintListResponse,
+  type ComplaintAction,
+  type ComplaintDetail,
+  type ComplaintEventView,
+  type ComplaintStatementView,
+  type ComplaintStatus,
+  type SubmitDisputeDecisionRequest,
+} from "@petcare/shared-types";
+
+const complaintStatuses = Object.values(COMPLAINT_STATUS);
+const complaintActions = Object.values(COMPLAINT_ACTION);
+
+/** 投诉列表项的 Swagger 模型。 */
+export class ComplaintListItemDto implements AdminComplaintListItem {
+  @ApiProperty({ format: "uuid" })
+  id: string;
+
+  @ApiProperty({ format: "uuid" })
+  orderId: string;
+
+  @ApiProperty({ format: "uuid" })
+  complainantId: string;
+
+  @ApiProperty({ format: "uuid" })
+  respondentId: string;
+
+  @ApiProperty({ enum: complaintStatuses })
+  status: ComplaintStatus;
+
+  @ApiProperty({ format: "uuid", nullable: true })
+  handlerId: string | null;
+
+  @ApiProperty({ format: "date-time" })
+  createdAt: string;
+
+  @ApiProperty({ format: "date-time" })
+  updatedAt: string;
+}
+
+/** 用户投诉分页响应的 Swagger 模型。 */
+export class ComplaintListResponseDto implements AdminComplaintListResponse {
+  @ApiProperty({ type: [ComplaintListItemDto] })
+  list: ComplaintListItemDto[];
+
+  @ApiProperty()
+  total: number;
+
+  @ApiProperty()
+  page: number;
+
+  @ApiProperty()
+  pageSize: number;
+}
+
+/** 投诉陈述的 Swagger 模型。 */
+export class ComplaintStatementDto implements ComplaintStatementView {
+  @ApiProperty({ format: "uuid" })
+  id: string;
+
+  @ApiProperty()
+  stage: string;
+
+  @ApiProperty({ format: "uuid" })
+  authorId: string;
+
+  @ApiProperty()
+  statement: string;
+
+  @ApiProperty({ type: [String] })
+  evidenceUrls: string[];
+
+  @ApiProperty({ format: "date-time" })
+  createdAt: string;
+}
+
+/** 投诉事件的 Swagger 模型。 */
+export class ComplaintEventDto implements ComplaintEventView {
+  @ApiProperty({ format: "uuid" })
+  id: string;
+
+  @ApiProperty({ format: "uuid", nullable: true })
+  actorId: string | null;
+
+  @ApiProperty()
+  action: string;
+
+  @ApiProperty({ enum: complaintStatuses, nullable: true })
+  fromStatus: ComplaintStatus | null;
+
+  @ApiProperty({ enum: complaintStatuses, nullable: true })
+  toStatus: ComplaintStatus | null;
+
+  @ApiProperty({ nullable: true })
+  payload: string | null;
+
+  @ApiProperty({ format: "date-time" })
+  createdAt: string;
+}
+
+/** 投诉裁决的 Swagger 模型。 */
+export class ComplaintDecisionDto implements SubmitDisputeDecisionRequest {
+  @ApiProperty({
+    enum: ["complainant", "respondent", "shared", "insufficient_evidence"],
+  })
+  liability: SubmitDisputeDecisionRequest["liability"];
+
+  @ApiProperty()
+  reason: string;
+
+  @ApiProperty({ minimum: 0 })
+  refundAmount: number;
+
+  @ApiProperty({ minimum: 0 })
+  settlementAmount: number;
+
+  @ApiProperty({ minimum: -100, maximum: 100 })
+  complainantCreditDelta: number;
+
+  @ApiProperty({ minimum: -100, maximum: 100 })
+  respondentCreditDelta: number;
+
+  @ApiProperty({ minimum: 1 })
+  version: number;
+}
+
+/** 用户可见投诉详情的 Swagger 模型。 */
+export class ComplaintResponseDto implements ComplaintDetail {
+  @ApiProperty({ format: "uuid" })
+  id: string;
+
+  @ApiProperty({ format: "uuid" })
+  orderId: string;
+
+  @ApiProperty({ format: "uuid" })
+  complainantId: string;
+
+  @ApiProperty({ format: "uuid" })
+  respondentId: string;
+
+  @ApiProperty()
+  complaintType: string;
+
+  @ApiProperty({ nullable: true })
+  expectedSolution: string | null;
+
+  @ApiProperty({ enum: complaintStatuses })
+  status: ComplaintStatus;
+
+  @ApiProperty()
+  reason: string;
+
+  @ApiProperty({ type: [String] })
+  evidenceUrls: string[];
+
+  @ApiProperty({ nullable: true })
+  respondentStatement: string | null;
+
+  @ApiProperty({ type: [String] })
+  respondentEvidenceUrls: string[];
+
+  @ApiProperty({ format: "uuid", nullable: true })
+  handlerId: string | null;
+
+  @ApiProperty({ type: ComplaintDecisionDto, nullable: true })
+  initialDecision: ComplaintDecisionDto | null;
+
+  @ApiProperty({ type: ComplaintDecisionDto, nullable: true })
+  finalDecision: ComplaintDecisionDto | null;
+
+  @ApiProperty({ type: [ComplaintStatementDto] })
+  statements: ComplaintStatementDto[];
+
+  @ApiProperty({ type: [ComplaintEventDto] })
+  events: ComplaintEventDto[];
+
+  @ApiProperty({ format: "date-time", nullable: true })
+  secondAppealDeadline: string | null;
+
+  @ApiProperty({ enum: complaintActions, isArray: true })
+  allowedActions: ComplaintAction[];
+
+  @ApiProperty({ minimum: 1 })
+  version: number;
+
+  @ApiProperty({ format: "date-time" })
+  createdAt: string;
+
+  @ApiProperty({ format: "date-time" })
+  updatedAt: string;
+}
