@@ -13,6 +13,7 @@ import { assertComplaintAction, type ComplaintActionContext } from "./complaint-
 const initialStatementStage = "initial";
 const responseStatementStage = "response";
 const secondAppealStatementStage = "second_appeal";
+const maxCreateAttempts = 3;
 
 type ComplaintCommandRecord = {
   id: string;
@@ -51,27 +52,56 @@ export class ComplaintCommandService {
       throw new ApiException("FORBIDDEN", "仅订单当事方可以发起投诉", HttpStatus.FORBIDDEN);
     }
 
+    return this.createWithRetry(actorId, respondentId, request, maxCreateAttempts);
+  }
+
+  /** 遇到串行化冲突时复查开放投诉并有界重试整个创建事务。 */
+  private async createWithRetry(
+    actorId: string,
+    respondentId: string,
+    request: CreateComplaintRequest,
+    attemptsRemaining: number,
+  ): Promise<string> {
+    try {
+      return await this.createInTransaction(actorId, respondentId, request);
+    } catch (error) {
+      if (!this.isSerializationFailure(error)) {
+        throw error;
+      }
+
+      const existing = await this.prisma.complaint.findFirst({
+        where: this.openComplaintWhere(request.orderId),
+        select: { id: true },
+      });
+
+      if (existing || attemptsRemaining === 1) {
+        throw this.openComplaintExists();
+      }
+
+      return this.createWithRetry(actorId, respondentId, request, attemptsRemaining - 1);
+    }
+  }
+
+  /** 以串行化事务检查开放投诉并写入投诉、陈述及事件。 */
+  private createInTransaction(
+    actorId: string,
+    respondentId: string,
+    request: CreateComplaintRequest,
+  ): Promise<string> {
     return this.prisma.$transaction(
       async (transaction) => {
         const existing = await transaction.complaint.findFirst({
-          where: {
-            orderId: order.id,
-            status: { notIn: [COMPLAINT_STATUS.CLOSED, COMPLAINT_STATUS.WITHDRAWN] },
-          },
+          where: this.openComplaintWhere(request.orderId),
           select: { id: true },
         });
 
         if (existing) {
-          throw new ApiException(
-            "OPEN_COMPLAINT_EXISTS",
-            "该订单已有处理中投诉",
-            HttpStatus.CONFLICT,
-          );
+          throw this.openComplaintExists();
         }
 
         const complaint = await transaction.complaint.create({
           data: {
-            orderId: order.id,
+            orderId: request.orderId,
             complainantId: actorId,
             respondentId,
             complaintType: request.complaintType.trim(),
@@ -103,6 +133,24 @@ export class ComplaintCommandService {
       },
       { isolationLevel: "Serializable" },
     );
+  }
+
+  /** 构建同一订单开放投诉的查询条件。 */
+  private openComplaintWhere(orderId: string) {
+    return {
+      orderId,
+      status: { notIn: [COMPLAINT_STATUS.CLOSED, COMPLAINT_STATUS.WITHDRAWN] },
+    };
+  }
+
+  /** 判断错误是否为 Prisma 串行化事务冲突。 */
+  private isSerializationFailure(error: unknown): boolean {
+    return typeof error === "object" && error !== null && "code" in error && error.code === "P2034";
+  }
+
+  /** 返回开放投诉冲突的稳定客户端异常。 */
+  private openComplaintExists(): ApiException {
+    return new ApiException("OPEN_COMPLAINT_EXISTS", "该订单已有处理中投诉", HttpStatus.CONFLICT);
   }
 
   /** 提交被投诉方的唯一一次首次回应并进入待认领状态。 */
