@@ -332,6 +332,17 @@ export class ComplaintCommandService {
 
       assertComplaintAction(this.toAdminActionContext(complaint, admin), "transfer");
 
+      if (
+        targetAdminId === complaint.complainantId ||
+        targetAdminId === complaint.respondentId
+      ) {
+        throw new ApiException(
+          "COMPLAINT_PARTY_CANNOT_BE_ASSIGNEE",
+          "订单当事方不能处理自己的投诉案件",
+          HttpStatus.BAD_REQUEST,
+        );
+      }
+
       const targetAdmin = await transaction.user.findFirst({
         where: {
           id: targetAdminId,

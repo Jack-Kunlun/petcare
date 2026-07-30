@@ -119,6 +119,29 @@ describe("DisputeDecisionService", () => {
     });
   });
 
+  it("rejects a non-zero settlement when the order has no service provider", async () => {
+    transaction.complaint.findUnique.mockResolvedValue(
+      complaintRecord({
+        order: { amount: 5000, providerId: null },
+      }),
+    );
+
+    await expect(
+      service.decideInitial(
+        "complaint-1",
+        { id: "admin-1", roles: ["complaint_admin"] },
+        validRequest,
+      ),
+    ).rejects.toMatchObject({
+      code: "DISPUTE_SETTLEMENT_PROVIDER_REQUIRED",
+      status: HttpStatus.BAD_REQUEST,
+    });
+
+    expect(transaction.complaint.updateMany).not.toHaveBeenCalled();
+    expect(transaction.disputeDecision.create).not.toHaveBeenCalled();
+    expect(transaction.disputeExecutionTask.create).not.toHaveBeenCalled();
+  });
+
   it("closes the complaint with an immutable final decision", async () => {
     jest.useFakeTimers().setSystemTime(new Date("2026-08-05T12:00:00.000Z"));
     transaction.complaint.findUnique.mockResolvedValue(
@@ -200,6 +223,42 @@ describe("DisputeDecisionService", () => {
     expect(transaction.complaint.updateMany).not.toHaveBeenCalled();
     expect(transaction.complaintEvent.create).not.toHaveBeenCalled();
     expect(transaction.disputeExecutionTask.create).not.toHaveBeenCalled();
+  });
+
+  it("rejects a competing decision before inserting a duplicate decision row", async () => {
+    transaction.complaint.updateMany.mockResolvedValue({ count: 0 });
+
+    await expect(
+      service.decideInitial(
+        "complaint-1",
+        { id: "admin-1", roles: ["complaint_admin"] },
+        validRequest,
+      ),
+    ).rejects.toMatchObject({
+      code: "COMPLAINT_STATE_CONFLICT",
+      status: HttpStatus.CONFLICT,
+    });
+
+    expect(transaction.disputeDecision.create).not.toHaveBeenCalled();
+    expect(transaction.complaintEvent.create).not.toHaveBeenCalled();
+    expect(transaction.disputeExecutionTask.create).not.toHaveBeenCalled();
+  });
+
+  it("does not translate an unrelated P2002 failure", async () => {
+    const unrelatedUniqueFailure = {
+      code: "P2002",
+      meta: { target: ["idempotency_key"] },
+    };
+
+    transaction.disputeDecision.create.mockRejectedValue(unrelatedUniqueFailure);
+
+    await expect(
+      service.decideInitial(
+        "complaint-1",
+        { id: "admin-1", roles: ["complaint_admin"] },
+        validRequest,
+      ),
+    ).rejects.toBe(unrelatedUniqueFailure);
   });
 
   it.each([
