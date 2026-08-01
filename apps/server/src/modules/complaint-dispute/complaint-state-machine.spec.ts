@@ -100,6 +100,14 @@ describe("getAllowedComplaintActions", () => {
     ["withdrawn", "admin", []],
     ["withdrawn", "other", []],
   ] as const)("returns %j for %s viewed by %s", (status, viewerRole, expectedActions) => {
+    let appealDeadlineAt: Date | null = null;
+
+    if (status === "initial_decided") {
+      appealDeadlineAt = new Date("2026-08-02T00:00:00.000Z");
+    } else if (status === "processing_final") {
+      appealDeadlineAt = new Date("2026-08-01T00:00:00.000Z");
+    }
+
     expect(
       getAllowedComplaintActions(
         base({
@@ -109,8 +117,7 @@ describe("getAllowedComplaintActions", () => {
             viewerRole === "admin" && ["processing_initial", "processing_final"].includes(status)
               ? "viewer-1"
               : null,
-          appealDeadlineAt:
-            status === "initial_decided" ? new Date("2026-08-02T00:00:00.000Z") : null,
+          appealDeadlineAt,
         }),
       ),
     ).toEqual(expectedActions);
@@ -127,6 +134,7 @@ describe("getAllowedComplaintActions", () => {
       viewerRole: "admin",
       assignedAdminId: "another-admin",
       isSuperAdmin: true,
+      appealDeadlineAt: new Date("2026-08-01T00:00:00.000Z"),
     });
 
     expect(getAllowedComplaintActions(assignedAdmin)).toContain("initial_decide");
@@ -193,15 +201,20 @@ describe("getAllowedComplaintActions", () => {
       expect(getAllowedComplaintActions({ ...otherParty, now: deadline })).not.toContain(
         "second_appeal",
       );
+      const assignedAdmin = base({
+        status: "processing_final",
+        viewerRole: "admin",
+        assignedAdminId: "viewer-1",
+        appealDeadlineAt: deadline,
+        now: new Date("2026-08-03T23:59:59.999Z"),
+      });
+
+      expect(getAllowedComplaintActions(assignedAdmin)).not.toContain("final_decide");
       expect(
-        getAllowedComplaintActions(
-          base({
-            status: "processing_final",
-            viewerRole: "admin",
-            assignedAdminId: "viewer-1",
-            appealDeadlineAt: deadline,
-          }),
-        ),
+        getAllowedComplaintActions({
+          ...assignedAdmin,
+          now: deadline,
+        }),
       ).toContain("final_decide");
     },
   );

@@ -49,14 +49,27 @@ export function getAllowedComplaintActions(context: ComplaintActionContext): Com
     case "initial_decided":
       return canSecondAppeal(context) ? ["second_appeal"] : [];
     case processingStatusByDecisionLevel[DECISION_LEVEL.FINAL]:
-      return canSecondAppeal(context)
-        ? ["second_appeal"]
-        : getAssignedAdminActions(context, "final_decide");
+      return getFinalProcessingActions(context);
     case "closed":
       return context.hasFailedExecution && isEligibleAdmin(context) ? ["retry_execution"] : [];
     case "withdrawn":
       return [];
   }
+}
+
+/** 在完整申诉窗口结束前保留转交能力，但禁止管理员提前终审。 */
+function getFinalProcessingActions(context: ComplaintActionContext): ComplaintAction[] {
+  if (canSecondAppeal(context)) {
+    return ["second_appeal"];
+  }
+
+  const adminActions = getAssignedAdminActions(context, "final_decide");
+  const appealWindowExpired =
+    context.appealDeadlineAt !== null && context.now >= context.appealDeadlineAt;
+
+  return appealWindowExpired
+    ? adminActions
+    : adminActions.filter((action) => action !== "final_decide");
 }
 
 /** 断言当前访问者可执行指定投诉动作。 */
