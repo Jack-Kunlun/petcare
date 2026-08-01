@@ -108,6 +108,11 @@ describe("AdminComplaintController", () => {
       id: "admin-1",
       roles: ["complaint_admin"],
     });
+    expect(
+      JSON.stringify(
+        Reflect.getMetadata("swagger/apiResponse", AdminComplaintController.prototype.findAll),
+      ),
+    ).toContain("AdminComplaintListResponseDto");
   });
 
   it("forwards claim and transfer commands without trusting a super-admin request field", async () => {

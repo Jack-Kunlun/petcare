@@ -10,6 +10,8 @@ import {
   type AdminComplaintListResponse,
   type ComplaintDetail,
   type ComplaintEventView,
+  type ComplaintListItem,
+  type ComplaintListResponse,
   type ComplaintStatementView,
   type ComplaintStatus,
   type SubmitDisputeDecisionRequest,
@@ -18,6 +20,25 @@ import { ApiException } from "../../common/http/api-exception";
 import type { Prisma } from "../../generated/prisma/client";
 import { PrismaService } from "../../prisma/prisma.service";
 import { getAllowedComplaintActions, type ComplaintActionContext } from "./complaint-state-machine";
+
+const publicComplaintListSelect = {
+  id: true,
+  caseNumber: true,
+  orderId: true,
+  complaintType: true,
+  complainantId: true,
+  complainant: { select: { id: true, nickname: true, avatar: true } },
+  respondentId: true,
+  respondent: { select: { id: true, nickname: true, avatar: true } },
+  status: true,
+  appealDeadlineAt: true,
+  createdAt: true,
+  updatedAt: true,
+} as const;
+
+type PublicComplaintListRecord = Prisma.ComplaintGetPayload<{
+  select: typeof publicComplaintListSelect;
+}>;
 
 const complaintListSelect = {
   id: true,
@@ -107,7 +128,7 @@ export class ComplaintQueryService {
   constructor(private readonly prisma: PrismaService) {}
 
   /** 分页返回当前用户作为任一订单当事方的投诉。 */
-  async findMine(userId: string, page = 1, pageSize = 20): Promise<AdminComplaintListResponse> {
+  async findMine(userId: string, page = 1, pageSize = 20): Promise<ComplaintListResponse> {
     if (
       !Number.isInteger(page) ||
       !Number.isInteger(pageSize) ||
@@ -131,13 +152,13 @@ export class ComplaintQueryService {
         skip: (page - 1) * pageSize,
         take: pageSize,
         orderBy: { createdAt: "desc" },
-        select: complaintListSelect,
+        select: publicComplaintListSelect,
       }),
       this.prisma.complaint.count({ where }),
     ]);
 
     return {
-      list: records.map((record) => this.toListItem(record)),
+      list: records.map((record) => this.toPublicListItem(record, userId)),
       total,
       page,
       pageSize,
@@ -343,6 +364,23 @@ export class ComplaintQueryService {
       handler: record.assignedAdmin,
       appealDeadlineAt: record.appealDeadlineAt?.toISOString() ?? null,
       hasFailedExecution: record.executionTasks.length > 0,
+      createdAt: record.createdAt.toISOString(),
+      updatedAt: record.updatedAt.toISOString(),
+    };
+  }
+
+  /** 将数据库记录转换为当前用户可见且不含后台字段的列表项。 */
+  private toPublicListItem(record: PublicComplaintListRecord, userId: string): ComplaintListItem {
+    const counterpart = record.complainantId === userId ? record.respondent : record.complainant;
+
+    return {
+      id: record.id,
+      caseNumber: record.caseNumber,
+      orderId: record.orderId,
+      complaintType: record.complaintType,
+      status: record.status as ComplaintStatus,
+      counterpart,
+      appealDeadlineAt: record.appealDeadlineAt?.toISOString() ?? null,
       createdAt: record.createdAt.toISOString(),
       updatedAt: record.updatedAt.toISOString(),
     };

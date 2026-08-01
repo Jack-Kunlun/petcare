@@ -11,6 +11,8 @@ import {
   type AdminComplaintListResponse,
   type ClaimComplaintRequest,
   type ComplaintDetail,
+  type ComplaintListItem,
+  type ComplaintListResponse,
   type CreateComplaintRequest,
   type DisputeExecutionTaskDetailResponse,
   type DisputeExecutionTaskListResponse,
@@ -89,6 +91,36 @@ describe("complaint dispute contracts", () => {
     expect(item.caseNumber).toBe("CP1234567890ABCDEF1234567890ABCDEF");
     expect(item.complainant.nickname).toBe("豆包家长");
     expect(item.hasFailedExecution).toBe(true);
+  });
+
+  it("keeps the user complaint list contract free of administrator-only data", () => {
+    const item = {
+      id: "complaint-1",
+      caseNumber: "CP1234567890ABCDEF1234567890ABCDEF",
+      orderId: "order-1",
+      complaintType: "service_quality",
+      status: COMPLAINT_STATUS.PENDING_RESPONSE,
+      counterpart: { id: "provider-1", nickname: "安心宠护", avatar: null },
+      appealDeadlineAt: null,
+      createdAt: "2026-08-01T12:00:00.000Z",
+      updatedAt: "2026-08-02T12:00:00.000Z",
+    } satisfies ComplaintListItem;
+    const response: ComplaintListResponse = { list: [item], total: 1, page: 1, pageSize: 20 };
+
+    expect(Object.keys(response.list[0] ?? {})).toEqual([
+      "id",
+      "caseNumber",
+      "orderId",
+      "complaintType",
+      "status",
+      "counterpart",
+      "appealDeadlineAt",
+      "createdAt",
+      "updatedAt",
+    ]);
+    expect(response.list[0]).not.toHaveProperty("handler");
+    expect(response.list[0]).not.toHaveProperty("hasFailedExecution");
+    expect(response.list[0]?.counterpart).not.toHaveProperty("phone");
   });
 
   it("shares execution task list, detail, and retry responses", () => {

@@ -25,7 +25,7 @@ describe("ComplaintQueryService", () => {
 
   it("returns the current user's complaints in the standard page shape", async () => {
     prisma.complaint.findMany.mockResolvedValue([
-      listRecord({ status: COMPLAINT_STATUS.PENDING_RESPONSE, assignedAdminId: null }),
+      publicListRecord({ status: COMPLAINT_STATUS.PENDING_RESPONSE }),
     ]);
     prisma.complaint.count.mockResolvedValue(1);
 
@@ -40,16 +40,28 @@ describe("ComplaintQueryService", () => {
     );
     expect(result).toEqual({
       list: [
-        expect.objectContaining({
+        {
           id: "complaint-1",
+          caseNumber: "CP1234567890ABCDEF1234567890ABCDEF",
+          orderId: "order-1",
+          complaintType: "service_quality",
+          status: COMPLAINT_STATUS.PENDING_RESPONSE,
+          counterpart: { id: "provider-1", nickname: "安心宠护", avatar: null },
+          appealDeadlineAt: null,
           createdAt: createdAt.toISOString(),
           updatedAt: updatedAt.toISOString(),
-        }),
+        },
       ],
       total: 1,
       page: 1,
       pageSize: 20,
     });
+
+    const select = prisma.complaint.findMany.mock.calls[0]?.[0].select;
+
+    expect(JSON.stringify(select)).not.toContain("phone");
+    expect(JSON.stringify(select)).not.toContain("assignedAdmin");
+    expect(JSON.stringify(select)).not.toContain("executionTasks");
   });
 
   it("returns the filtered administrator complaint page in the standard shape", async () => {
@@ -359,6 +371,24 @@ describe("ComplaintQueryService", () => {
       assignedAdmin: { id: "admin-1", nickname: "值班管理员", phone: "17600000003" },
       appealDeadlineAt: new Date("2026-08-04T12:00:00.000Z"),
       executionTasks: [{ id: "task-1" }],
+      createdAt,
+      updatedAt,
+      ...overrides,
+    };
+  }
+
+  function publicListRecord(overrides: Record<string, unknown> = {}): Record<string, unknown> {
+    return {
+      id: "complaint-1",
+      caseNumber: "CP1234567890ABCDEF1234567890ABCDEF",
+      orderId: "order-1",
+      complaintType: "service_quality",
+      complainantId: "owner-1",
+      complainant: { id: "owner-1", nickname: "豆包家长", avatar: null },
+      respondentId: "provider-1",
+      respondent: { id: "provider-1", nickname: "安心宠护", avatar: null },
+      status: COMPLAINT_STATUS.PENDING_RESPONSE,
+      appealDeadlineAt: null,
       createdAt,
       updatedAt,
       ...overrides,

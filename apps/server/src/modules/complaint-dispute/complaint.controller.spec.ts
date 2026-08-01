@@ -4,6 +4,11 @@ import { AccessTokenGuard } from "../../auth/access-token.guard";
 import { ComplaintCommandService } from "./complaint-command.service";
 import { ComplaintQueryService } from "./complaint-query.service";
 import { ComplaintController } from "./complaint.controller";
+import {
+  AdminComplaintListItemDto,
+  ComplaintListItemDto,
+  ComplaintListUserSummaryDto,
+} from "./dto/complaint-response.dto";
 import type { CreateComplaintDto } from "./dto/create-complaint.dto";
 import type {
   RespondComplaintDto,
@@ -68,6 +73,42 @@ describe("ComplaintController", () => {
 
     expect(page).toEqual({ list: [], total: 0, page: 2, pageSize: 10 });
     expect(queryService.findMine).toHaveBeenCalledWith("user-1", 2, 10);
+    expect(
+      JSON.stringify(
+        Reflect.getMetadata("swagger/apiResponse", ComplaintController.prototype.findMine),
+      ),
+    ).toContain("ComplaintListResponseDto");
+  });
+
+  it("documents separate public and administrator list item schemas", () => {
+    const publicProperties = Reflect.getMetadata(
+      "swagger/apiModelPropertiesArray",
+      ComplaintListItemDto.prototype,
+    ) as string[];
+    const publicUserProperties = Reflect.getMetadata(
+      "swagger/apiModelPropertiesArray",
+      ComplaintListUserSummaryDto.prototype,
+    ) as string[];
+    const adminProperties = Reflect.getMetadata(
+      "swagger/apiModelPropertiesArray",
+      AdminComplaintListItemDto.prototype,
+    ) as string[];
+
+    expect(publicProperties).toEqual([
+      ":id",
+      ":caseNumber",
+      ":orderId",
+      ":complaintType",
+      ":status",
+      ":counterpart",
+      ":appealDeadlineAt",
+      ":createdAt",
+      ":updatedAt",
+    ]);
+    expect(publicUserProperties).toEqual([":id", ":nickname", ":avatar"]);
+    expect(adminProperties).toEqual(
+      expect.arrayContaining([":complainant", ":respondent", ":handler", ":hasFailedExecution"]),
+    );
   });
 
   it("passes the authenticated actor when reading complaint detail", async () => {

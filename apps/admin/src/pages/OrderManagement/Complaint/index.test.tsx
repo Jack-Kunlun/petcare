@@ -1,8 +1,8 @@
 import type { AdminComplaintListItem } from "@petcare/shared-types";
 import { QueryClient, QueryClientProvider } from "@tanstack/react-query";
-import { render, screen } from "@testing-library/react";
+import { render, screen, waitFor } from "@testing-library/react";
 import userEvent from "@testing-library/user-event";
-import { MemoryRouter, Route, Routes, useLocation } from "react-router-dom";
+import { MemoryRouter, Route, Routes, useLocation, useNavigate } from "react-router-dom";
 import { beforeEach, describe, expect, it, vi } from "vitest";
 import { fetchAdminComplaints } from "../../../api/complaints";
 import ComplaintWorkQueue from ".";
@@ -35,13 +35,25 @@ function LocationProbe() {
   return <output data-testid="location">{`${location.pathname}${location.search}`}</output>;
 }
 
-function renderPage(initialEntry = "/orders/complaints") {
+function HistoryBackButton() {
+  const navigate = useNavigate();
+
+  return (
+    <button type="button" onClick={() => void navigate(-1)}>
+      模拟浏览器后退
+    </button>
+  );
+}
+
+function renderPage(initialEntry: string | string[] = "/orders/complaints") {
   const queryClient = new QueryClient({
     defaultOptions: { queries: { retry: false, gcTime: 0 } },
   });
 
+  const initialEntries = Array.isArray(initialEntry) ? initialEntry : [initialEntry];
+
   return render(
-    <MemoryRouter initialEntries={[initialEntry]}>
+    <MemoryRouter initialEntries={initialEntries} initialIndex={initialEntries.length - 1}>
       <QueryClientProvider client={queryClient}>
         <Routes>
           <Route
@@ -50,6 +62,7 @@ function renderPage(initialEntry = "/orders/complaints") {
               <>
                 <ComplaintWorkQueue />
                 <LocationProbe />
+                <HistoryBackButton />
               </>
             }
           />
@@ -62,6 +75,7 @@ function renderPage(initialEntry = "/orders/complaints") {
 describe("ComplaintWorkQueue", () => {
   beforeEach(() => {
     vi.clearAllMocks();
+    vi.useRealTimers();
     vi.mocked(fetchAdminComplaints).mockResolvedValue({
       list: [complaint],
       total: 1,
@@ -112,6 +126,22 @@ describe("ComplaintWorkQueue", () => {
     expect(screen.getByTestId("location")).toHaveTextContent("page=1");
   });
 
+  it("hides stale rows while a newly selected queue is loading", async () => {
+    const user = userEvent.setup();
+
+    vi.mocked(fetchAdminComplaints)
+      .mockResolvedValueOnce({ list: [complaint], total: 1, page: 1, pageSize: 20 })
+      .mockReturnValueOnce(new Promise(() => undefined));
+    renderPage();
+    await screen.findAllByText("CP20260729001");
+
+    await user.click(screen.getByRole("button", { name: "待认领" }));
+
+    expect(screen.getByLabelText("正在加载投诉工作队列")).toBeInTheDocument();
+    expect(screen.queryByText("CP20260729001")).not.toBeInTheDocument();
+    expect(screen.queryByRole("link", { name: "查看案件 CP20260729001" })).not.toBeInTheDocument();
+  });
+
   it("normalizes combined URL filters into the complete query", async () => {
     renderPage(
       "/orders/complaints?queue=processing_final&page=2&keyword=%20ORDER-9%20&status=processing_final&handlerId=admin-9",
@@ -125,6 +155,28 @@ describe("ComplaintWorkQueue", () => {
       keyword: "ORDER-9",
       status: "processing_final",
       handlerId: "admin-9",
+    });
+  });
+
+  it("syncs filter drafts and request query when browser history changes", async () => {
+    const user = userEvent.setup();
+
+    renderPage([
+      "/orders/complaints?keyword=ORDER-OLD&handlerId=admin-old",
+      "/orders/complaints?keyword=ORDER-NOW&handlerId=admin-now",
+    ]);
+    await screen.findAllByText("CP20260729001");
+    expect(screen.getByRole("searchbox", { name: "搜索案件" })).toHaveValue("ORDER-NOW");
+    expect(screen.getByRole("searchbox", { name: "负责人标识" })).toHaveValue("admin-now");
+
+    await user.click(screen.getByRole("button", { name: "模拟浏览器后退" }));
+
+    await waitFor(() => {
+      expect(screen.getByRole("searchbox", { name: "搜索案件" })).toHaveValue("ORDER-OLD");
+      expect(screen.getByRole("searchbox", { name: "负责人标识" })).toHaveValue("admin-old");
+      expect(fetchAdminComplaints).toHaveBeenLastCalledWith(
+        expect.objectContaining({ keyword: "ORDER-OLD", handlerId: "admin-old" }),
+      );
     });
   });
 
@@ -185,12 +237,47 @@ describe("ComplaintWorkQueue", () => {
   });
 
   it("shows overdue and execution-failure markers with icons and text", async () => {
+    vi.mocked(fetchAdminComplaints).mockResolvedValue({
+      list: [
+        {
+          ...complaint,
+          status: "processing_initial",
+          appealDeadlineAt: null,
+        },
+      ],
+      total: 1,
+      page: 1,
+      pageSize: 20,
+    });
     renderPage();
 
     expect((await screen.findAllByText("阶段已超时"))[0]).toBeInTheDocument();
     expect(screen.getAllByText("执行异常")[0]).toBeInTheDocument();
     expect(screen.getAllByLabelText("超时提醒")[0]).toBeInTheDocument();
     expect(screen.getAllByLabelText("执行异常提醒")[0]).toBeInTheDocument();
+  });
+
+  it("does not mark a valid 72-hour appeal window as overdue", async () => {
+    const appealDeadlineAt = new Date(Date.now() + 72 * 60 * 60 * 1000).toISOString();
+
+    vi.mocked(fetchAdminComplaints).mockResolvedValue({
+      list: [
+        {
+          ...complaint,
+          status: "initial_decided",
+          updatedAt: "2026-07-20T00:00:00.000Z",
+          appealDeadlineAt,
+        },
+      ],
+      total: 1,
+      page: 1,
+      pageSize: 20,
+    });
+
+    renderPage();
+    await screen.findAllByText("CP20260729001");
+
+    expect(screen.queryByLabelText("超时提醒")).not.toBeInTheDocument();
   });
 
   it("uses the same response data for the desktop table and narrow-screen cards", async () => {
