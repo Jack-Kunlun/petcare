@@ -4,6 +4,7 @@ import { AuthProvider } from "./auth/AuthProvider";
 import { PermissionRoute } from "./auth/PermissionRoute";
 import { ProtectedRoute } from "./auth/ProtectedRoute";
 import Layout from "./components/Layout";
+import { LazyRouteBoundary } from "./components/LazyRouteBoundary";
 import Dashboard from "./pages/Dashboard";
 import Login from "./pages/Login";
 import OrderManagement from "./pages/OrderManagement";
@@ -19,18 +20,20 @@ const SettingsEdit = lazy(() => import("./pages/Settings/Edit"));
 
 function settingsRoute(element: ReactNode) {
   return (
-    <Suspense
-      fallback={
-        <p
-          aria-live="polite"
-          className="rounded-xl border border-slate-200 bg-white p-8 text-center text-slate-600"
-        >
-          正在加载系统设置…
-        </p>
-      }
-    >
-      {element}
-    </Suspense>
+    <LazyRouteBoundary>
+      <Suspense
+        fallback={
+          <p
+            aria-live="polite"
+            className="rounded-xl border border-slate-200 bg-white p-8 text-center text-slate-600"
+          >
+            正在加载系统设置…
+          </p>
+        }
+      >
+        {element}
+      </Suspense>
+    </LazyRouteBoundary>
   );
 }
 
