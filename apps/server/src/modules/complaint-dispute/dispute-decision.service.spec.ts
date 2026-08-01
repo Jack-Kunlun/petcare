@@ -46,6 +46,7 @@ describe("DisputeDecisionService", () => {
     transaction.complaint.updateMany.mockResolvedValue({ count: 1 });
     transaction.disputeDecision.findUnique.mockResolvedValue(null);
     transaction.disputeDecision.create.mockResolvedValue({ id: "decision-1" });
+    transaction.disputeExecutionTask.updateMany.mockResolvedValue({ count: 1 });
   });
 
   it("sets the exact 72-hour appeal deadline and creates only non-zero execution tasks", async () => {
@@ -119,6 +120,34 @@ describe("DisputeDecisionService", () => {
     });
   });
 
+  it("creates auditable refund and settlement tasks even when both amounts are zero", async () => {
+    await service.decideInitial(
+      "complaint-1",
+      { id: "admin-1", roles: ["complaint_admin"] },
+      {
+        ...validRequest,
+        refundAmount: 0,
+        settlementAmount: 0,
+        complainantCreditDelta: 0,
+        respondentCreditDelta: 0,
+      },
+    );
+
+    expect(transaction.disputeExecutionTask.create).toHaveBeenCalledTimes(2);
+    expect(transaction.disputeExecutionTask.create).toHaveBeenCalledWith({
+      data: expect.objectContaining({
+        taskType: "refund",
+        payload: JSON.stringify({ userId: "owner-1", amount: 0 }),
+      }),
+    });
+    expect(transaction.disputeExecutionTask.create).toHaveBeenCalledWith({
+      data: expect.objectContaining({
+        taskType: "settlement",
+        payload: JSON.stringify({ userId: "provider-1", amount: 0 }),
+      }),
+    });
+  });
+
   it("rejects a non-zero settlement when the order has no service provider", async () => {
     transaction.complaint.findUnique.mockResolvedValue(
       complaintRecord({
@@ -169,6 +198,18 @@ describe("DisputeDecisionService", () => {
         failureReason: null,
         completedAt: new Date("2026-08-04T12:00:00.000Z"),
         updatedAt: new Date("2026-08-04T12:00:00.000Z"),
+      },
+    });
+    expect(transaction.complaintEvent.create).toHaveBeenCalledWith({
+      data: {
+        complaintId: "complaint-1",
+        actorId: "admin-1",
+        action: "execution_superseded",
+        payload: JSON.stringify({
+          decisionLevel: DECISION_LEVEL.INITIAL,
+          reason: "final_decision_created",
+          count: 1,
+        }),
       },
     });
 

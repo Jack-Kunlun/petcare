@@ -136,7 +136,7 @@ export class DisputeDecisionService {
       });
 
       if (!isInitial) {
-        await transaction.disputeExecutionTask.updateMany({
+        const superseded = await transaction.disputeExecutionTask.updateMany({
           where: {
             complaintId: id,
             decisionLevel: DECISION_LEVEL.INITIAL,
@@ -151,6 +151,21 @@ export class DisputeDecisionService {
             updatedAt: now,
           },
         });
+
+        if (superseded.count > 0) {
+          await transaction.complaintEvent.create({
+            data: {
+              complaintId: id,
+              actorId: admin.id,
+              action: COMPLAINT_EVENT_ACTION.EXECUTION_SUPERSEDED,
+              payload: JSON.stringify({
+                decisionLevel: DECISION_LEVEL.INITIAL,
+                reason: "final_decision_created",
+                count: superseded.count,
+              }),
+            },
+          });
+        }
       }
 
       await transaction.complaintEvent.create({
@@ -267,7 +282,7 @@ export class DisputeDecisionService {
     }
   }
 
-  /** 将非零金额和信用变化转换为幂等内部任务。 */
+  /** 将全部金额指令和非零信用变化转换为幂等内部任务。 */
   private executionTasks(
     complaint: DecisionComplaintRecord,
     request: SubmitDisputeDecisionRequest,
@@ -308,7 +323,9 @@ export class DisputeDecisionService {
     ];
 
     return tasks
-      .filter((task) => task.value !== 0)
+      .filter(
+        (task) => task.taskType === "refund" || task.taskType === "settlement" || task.value !== 0,
+      )
       .map(({ taskType, payload }) => ({ taskType, payload }));
   }
 }

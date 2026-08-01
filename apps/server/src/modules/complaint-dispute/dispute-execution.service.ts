@@ -1,5 +1,6 @@
 import { HttpStatus, Injectable } from "@nestjs/common";
 import {
+  COMPLAINT_EVENT_ACTION,
   COMPLAINT_STATUS,
   DISPUTE_EXECUTION_TASK_STATUS,
   type DecisionLevel,
@@ -103,7 +104,7 @@ export class DisputeExecutionService {
               data: {
                 complaintId: task.complaintId,
                 actorId,
-                action: "execution_superseded",
+                action: COMPLAINT_EVENT_ACTION.EXECUTION_SUPERSEDED,
                 payload: JSON.stringify({
                   taskId: task.id,
                   taskType: task.taskType,
@@ -158,7 +159,7 @@ export class DisputeExecutionService {
           data: {
             complaintId: task.complaintId,
             actorId,
-            action: "execution_succeeded",
+            action: COMPLAINT_EVENT_ACTION.EXECUTION_SUCCEEDED,
             payload: JSON.stringify({ taskId: task.id, taskType: task.taskType }),
           },
         });
@@ -202,7 +203,7 @@ export class DisputeExecutionService {
             data: {
               complaintId: task.complaintId,
               actorId,
-              action: "execution_failed",
+              action: COMPLAINT_EVENT_ACTION.EXECUTION_FAILED,
               payload: JSON.stringify({ taskId: task.id, taskType: task.taskType, failureReason }),
             },
           });
@@ -319,7 +320,7 @@ export class DisputeExecutionService {
                   data: {
                     complaintId: task.complaintId,
                     actorId: null,
-                    action: "execution_recovered",
+                    action: COMPLAINT_EVENT_ACTION.EXECUTION_RECOVERED,
                     payload: JSON.stringify({
                       taskId: task.id,
                       fromStatus: DISPUTE_EXECUTION_TASK_STATUS.PROCESSING,
