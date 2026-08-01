@@ -47,21 +47,18 @@ describe("system settings contracts", () => {
 
   it("shares all five SOP steps", () => {
     const sop: SopConfig = {
-      orderConfirmation: "接单后确认服务时间与宠物需求",
-      beforeService: "服务前核验宠物状态与服务信息",
-      serviceExecution: "服务中遵循安全与操作规范",
-      serviceCompletion: "服务完成后确认交付结果",
-      serviceEvaluation: "邀请用户完成服务评价",
+      steps: Array.from({ length: 5 }, (_, index) => ({
+        stepNumber: index + 1,
+        stepName: `步骤${index + 1}`,
+        instruction: `这是步骤${index + 1}的完整执行说明，确保服务过程安全规范。`,
+        expectedDurationMinutes: 10,
+        minimumPhotoCount: 1,
+        videoRequired: false,
+      })),
       violationRules: [],
     };
 
-    expect([
-      sop.orderConfirmation,
-      sop.beforeService,
-      sop.serviceExecution,
-      sop.serviceCompletion,
-      sop.serviceEvaluation,
-    ]).toHaveLength(5);
+    expect(sop.steps).toHaveLength(5);
   });
 
   it("uses the fixed pagination shape for version history", () => {
@@ -93,10 +90,7 @@ describe("system settings contracts", () => {
 
   it("支持递归摘要、复合数组稳定键和固定差异响应", () => {
     const before: SystemConfigSummaryValue = {
-      rules: [
-        { scope: { type: "walking" }, stepNumber: 1, enabled: true },
-        null,
-      ],
+      rules: [{ scope: { type: "walking" }, stepNumber: 1, enabled: true }, null],
     };
     const strategies: SystemConfigArrayKeyStrategy[] = [
       { arrayPath: "rules", keyPaths: ["scope.type", "stepNumber"] },
