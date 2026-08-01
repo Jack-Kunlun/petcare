@@ -29,6 +29,14 @@ export interface LoginResult extends AuthTokens {
   user: SafeAdminUser;
 }
 
+/** 当前有效后台管理员的角色与权限授权信息。 */
+export interface CurrentUserAuthorization {
+  /** 当前仍有效的角色名称。 */
+  roles: string[];
+  /** 当前有效角色授予的权限代码。 */
+  permissions: string[];
+}
+
 const adminUserSelect = {
   id: true,
   username: true,
@@ -160,6 +168,47 @@ export class AuthService {
     }
 
     return this.toSafeUser(user);
+  }
+
+  /** 查询当前活动管理员的活动角色及其权限代码，不包含敏感用户字段。 */
+  async getCurrentUserAuthorization(userId: string): Promise<CurrentUserAuthorization | null> {
+    const user = await this.prismaService.user.findFirst({
+      where: {
+        id: userId,
+        status: "active",
+        roles: { some: { role: { isActive: true } } },
+      },
+      select: {
+        roles: {
+          where: { role: { isActive: true } },
+          select: {
+            role: {
+              select: {
+                roleName: true,
+                permissions: {
+                  select: { permission: { select: { permissionCode: true } } },
+                },
+              },
+            },
+          },
+        },
+      },
+    });
+
+    if (!user) {
+      return null;
+    }
+
+    return {
+      roles: user.roles.map((assignment) => assignment.role.roleName),
+      permissions: [
+        ...new Set(
+          user.roles.flatMap((assignment) =>
+            assignment.role.permissions.map((rolePermission) => rolePermission.permission.permissionCode),
+          ),
+        ),
+      ],
+    };
   }
 
   private async issueSession(user: AdminUserRecord): Promise<LoginResult> {
