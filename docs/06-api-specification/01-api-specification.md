@@ -700,6 +700,125 @@ Token 获取，客户端不得传入。接口只返回脱敏姓名、脱敏身�
 
 ---
 
+## 投诉纠纷模块 (`/complaints`、`/admin/complaints`)
+
+投诉属于订单管理子域。完整处理链路为：创建投诉 → 被投诉方首次回应 → 管理员初审 → 双方二次申诉 → 管理员终审。所有接口均使用 Bearer Access Token；用户端接口仅允许订单当事方访问，后台接口还需 `complaint_admin` 或 `super_admin` 角色。
+
+### 用户端接口
+
+| 方法 | 路径                             | 说明                                        | 权限       |
+| ---- | -------------------------------- | ------------------------------------------- | ---------- |
+| POST | `/complaints`                    | 为本人参与的订单创建投诉                    | 订单当事方 |
+| GET  | `/complaints?page=1&pageSize=20` | 查询当前用户参与的投诉                      | 订单当事方 |
+| GET  | `/complaints/{id}`               | 查询投诉详情及服务端计算的 `allowedActions` | 订单当事方 |
+| POST | `/complaints/{id}/respond`       | 被投诉方提交唯一一次首次回应                | 被投诉方   |
+| POST | `/complaints/{id}/appeals`       | 初审后提交唯一一次二次申诉                  | 投诉任一方 |
+| POST | `/complaints/{id}/withdraw`      | 初审前撤回投诉                              | 投诉方     |
+
+创建投诉请求字段：
+
+| 字段               | 类型     | 含义                                         |
+| ------------------ | -------- | -------------------------------------------- |
+| `orderId`          | UUID     | 被投诉订单唯一标识；当前用户必须是订单当事方 |
+| `complaintType`    | string   | 投诉业务类型                                 |
+| `reason`           | string   | 投诉原因                                     |
+| `evidenceUrls`     | string[] | 投诉方证据文件地址；无证据时传空数组         |
+| `expectedSolution` | string   | 投诉方期望处理方案                           |
+
+首次回应和二次申诉共用请求字段：`statement` 为本次陈述，`evidenceUrls` 为本次新增证据地址，`version` 为详情响应中的并发版本。二次申诉必须提供相对于既有材料的新理由，或至少一个新的证据 URL；同一方只能提交一次。撤回请求只包含 `version`。
+
+用户详情包含投诉与订单当事方标识、投诉原因和证据、首次回应、初审/终审、完整陈述 `statements`、状态审计时间线 `events`、`secondAppealDeadline`、服务端计算的 `allowedActions`、并发 `version` 以及创建/更新时间。客户端不得复制服务端状态转换规则，只能依据 `status` 和 `allowedActions` 渲染操作入口。
+
+### Admin 接口
+
+| 方法 | 路径                                                         | 说明                                               | 权限                              |
+| ---- | ------------------------------------------------------------ | -------------------------------------------------- | --------------------------------- |
+| GET  | `/admin/complaints`                                          | 按工作队列分页查询投诉                             | `complaint_admin` / `super_admin` |
+| GET  | `/admin/complaints/{id}`                                     | 查询案件卷宗详情                                   | `complaint_admin` / `super_admin` |
+| POST | `/admin/complaints/{id}/claim`                               | 原子认领未分配案件                                 | `complaint_admin` / `super_admin` |
+| POST | `/admin/complaints/{id}/transfer`                            | 转交案件给其他有效管理员                           | 当前处理人 / `super_admin`        |
+| POST | `/admin/complaints/{id}/decisions/initial`                   | 提交初审并开启二次申诉窗口                         | 当前处理人 / `super_admin`        |
+| POST | `/admin/complaints/{id}/decisions/final`                     | 申诉窗口到期后提交终审、关闭案件并替换初审执行任务 | 当前处理人 / `super_admin`        |
+| GET  | `/admin/complaints/{id}/execution-tasks?page=1&pageSize=100` | 查询该案件的内部裁决执行任务                       | `complaint_admin` / `super_admin` |
+| POST | `/admin/complaints/{id}/execution-tasks/{taskId}/retry`      | 重试该案件下失败的执行任务                         | `complaint_admin` / `super_admin` |
+
+管理员不得认领、转交或裁决自己作为订单当事方的案件。普通投诉管理员只有在成为当前处理人后才可裁决；`super_admin` 可处理任意非本人利益冲突案件。
+
+后台列表参数：
+
+| 字段        | 类型    | 含义                             |
+| ----------- | ------- | -------------------------------- |
+| `page`      | integer | 页码，从 1 开始                  |
+| `pageSize`  | integer | 每页条数                         |
+| `queue`     | string  | 工作队列，见下表，默认 `mine`    |
+| `status`    | string? | 可选的七状态筛选                 |
+| `keyword`   | string? | 可选的案件号、订单号或用户关键词 |
+| `handlerId` | UUID?   | 可选的处理管理员筛选             |
+
+工作队列值为：`mine`（我的未结案件）、`unassigned`（待认领）、`pending_response`（待首次回应）、`processing_initial`（待初审）、`initial_decided`（申诉期）、`processing_final`（待终审）、`execution_failed`（执行失败）、`closed`（已关闭或已撤回）。
+
+认领请求为 `{ "version": 1 }`；转交请求为 `{ "targetAdminId": "uuid", "reason": "转交原因", "version": 1 }`。初审和终审请求字段如下：
+
+| 字段                     | 类型    | 含义                                                             |
+| ------------------------ | ------- | ---------------------------------------------------------------- |
+| `liability`              | string  | `complainant`、`respondent`、`shared` 或 `insufficient_evidence` |
+| `reason`                 | string  | 去除首尾空白后 10～1000 字符的裁决理由                           |
+| `refundAmount`           | integer | 退还投诉方的金额，单位为分，必须大于等于 0                       |
+| `settlementAmount`       | integer | 结算给服务方的金额，单位为分，必须大于等于 0                     |
+| `complainantCreditDelta` | integer | 投诉方信用分调整，范围 -100～100                                 |
+| `respondentCreditDelta`  | integer | 被投诉方信用分调整，范围 -100～100                               |
+| `version`                | integer | 详情响应中的乐观并发版本                                         |
+
+退款额与结算额之和不得超过订单可分配金额 `order.allocatableAmount`。投诉、纠纷和受影响订单中的全部金额均为整数分，不使用浮点金额。
+
+### 分页响应
+
+用户投诉列表、后台投诉列表和执行任务列表的 `data` 都严格使用以下四个字段，不得使用 `items` 或领域化别名：
+
+```json
+{
+  "list": [],
+  "total": 0,
+  "page": 1,
+  "pageSize": 20
+}
+```
+
+`list` 是当前页记录，`total` 是符合筛选条件的总数，`page` 是从 1 开始的当前页，`pageSize` 是每页条数。
+
+### 投诉状态与 72 小时边界
+
+| 状态                 | 含义                                       |
+| -------------------- | ------------------------------------------ |
+| `pending_response`   | 等待被投诉方首次回应                       |
+| `unassigned`         | 已回应或回应期限已到，等待管理员认领       |
+| `processing_initial` | 已认领，等待初审                           |
+| `initial_decided`    | 初审完成，处于二次申诉窗口                 |
+| `processing_final`   | 至少一方已二次申诉或申诉窗口结束，等待终审 |
+| `closed`             | 终审结案，或无人申诉时按初审结果自动结案   |
+| `withdrawn`          | 投诉方在初审前撤回                         |
+
+初审成功时服务端写入 `secondAppealDeadline = 初审时间 + 72 小时`。投诉双方各有一次二次申诉机会；在截止时间之前提交有效，达到或超过截止时刻后拒绝并返回 `APPEAL_DEADLINE_EXPIRED`。任一方申诉后案件进入 `processing_final`，另一方在原 72 小时截止时间前仍可提交其唯一一次申诉；管理员在窗口到期前不能终审。窗口到期时，无人申诉的案件由服务端把不可变初审结果作为生效结果并自动关闭；存在申诉的案件允许当前处理人或无利益冲突的超级管理员终审。终审后关闭案件，不再允许申诉。
+
+所有状态变更、认领、转交、陈述、裁决及执行任务结果均写入案件时间线/审计事件。写操作必须携带最新 `version`；并发版本不一致时返回状态冲突，客户端应重新获取详情，不得自行推断下一状态。
+
+### 业务错误码
+
+| code                           | HTTP | 含义                                                  |
+| ------------------------------ | ---- | ----------------------------------------------------- |
+| `COMPLAINT_STATE_CONFLICT`     | 409  | 当前状态或并发版本已变化，操作不能应用                |
+| `COMPLAINT_ACTION_NOT_ALLOWED` | 409  | 当前身份、案件关系或状态不允许该操作                  |
+| `APPEAL_DEADLINE_EXPIRED`      | 409  | 二次申诉已达到或超过 72 小时截止时间                  |
+| `OPEN_COMPLAINT_EXISTS`        | 409  | 同一订单已存在未关闭且未撤回的投诉                    |
+| `DECISION_AMOUNT_INVALID`      | 400  | 裁决金额不是整数分、为负数或合计超过订单可分配金额    |
+| `EXECUTION_TASK_NOT_RETRYABLE` | 409  | 执行任务不属于当前投诉或当前状态不是可重试的 `failed` |
+
+### 内部裁决执行任务
+
+初审和终审都会为非零退款计划、服务方结算计划及双方信用分调整创建内部幂等任务。无人申诉时，窗口到期后执行初审任务并自动结案；存在二次申诉时，终审会把未执行的初审任务标记为 `superseded`，再执行终审任务。任务类型为 `refund`、`settlement`、`complainant_credit`、`respondent_credit`；状态为 `pending`、`processing`、`succeeded`、`failed`、`superseded`。每个裁决副作用使用唯一幂等键，重复消费或人工重试不会重复记账或重复调整信用分。
+
+本版本的退款与结算任务仅记录和执行项目内部账务副作用，**不会调用微信支付**。微信支付退款或转账接入属于后续版本，接入前不得把内部任务成功解释为第三方资金已到账。
+
 ## DTO 示例
 
 ### 用户DTO
