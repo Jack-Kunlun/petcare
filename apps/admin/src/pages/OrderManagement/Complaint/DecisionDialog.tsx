@@ -1,5 +1,6 @@
 import type { DecisionLevel, SubmitDisputeDecisionRequest } from "@petcare/shared-types";
 import { useState, type FormEvent } from "react";
+import { AccessibleModal } from "./AccessibleModal";
 
 interface DecisionDialogProps {
   /** 本次裁决层级。 */
@@ -50,6 +51,13 @@ export function DecisionDialog({
   const [preview, setPreview] = useState<SubmitDisputeDecisionRequest | null>(null);
   const [confirming, setConfirming] = useState(false);
 
+  /** 任一表单字段变化后作废已经生成的裁决快照。 */
+  function invalidatePreview() {
+    setPreview(null);
+    setConfirming(false);
+  }
+
+  /** 校验表单并构造不可变的裁决预览快照。 */
   function validate(): SubmitDisputeDecisionRequest | null {
     const refundAmount = parseInteger(refund);
     const settlementAmount = parseInteger(settlement);
@@ -105,6 +113,7 @@ export function DecisionDialog({
     };
   }
 
+  /** 通过表单提交动作生成最新影响预览。 */
   function showPreview(event: FormEvent<HTMLFormElement>) {
     event.preventDefault();
     const request = validate();
@@ -117,147 +126,168 @@ export function DecisionDialog({
   const title = level === "final" ? "作出最终裁决" : "作出初审裁决";
 
   return (
-    <div className="fixed inset-0 z-50 flex items-center justify-center overflow-y-auto bg-slate-950/50 p-4">
-      <section
-        role="dialog"
-        aria-modal="true"
-        aria-labelledby="decision-title"
-        className="my-6 w-full max-w-md rounded-xl bg-white p-6 shadow-2xl"
-      >
-        <h2 id="decision-title" className="text-xl font-semibold text-slate-950">
-          {title}
-        </h2>
-        <form className="mt-5 space-y-4" onSubmit={showPreview}>
-          <label className="block text-sm font-medium text-slate-800">
-            责任划分
-            <select
-              value={liability}
-              onChange={(event) => setLiability(event.target.value as typeof liability)}
-              className="mt-2 h-11 w-full rounded-lg border border-slate-300 px-3 focus:border-blue-600 focus:ring-2 focus:ring-blue-600/20"
-            >
-              <option value="complainant">投诉方责任</option>
-              <option value="respondent">被投诉方责任</option>
-              <option value="shared">双方共同责任</option>
-              <option value="insufficient_evidence">证据不足</option>
-            </select>
-          </label>
-          <label className="block text-sm font-medium text-slate-800">
-            裁决理由
-            <textarea
-              rows={4}
-              value={reason}
-              onChange={(event) => setReason(event.target.value)}
-              className="mt-2 w-full rounded-lg border border-slate-300 p-3 focus:border-blue-600 focus:ring-2 focus:ring-blue-600/20"
-            />
-          </label>
-          <div className="grid gap-4 sm:grid-cols-2">
-            <NumberField label="退款金额（分）" value={refund} setValue={setRefund} />
-            <NumberField label="结算金额（分）" value={settlement} setValue={setSettlement} />
-            <NumberField
-              label="投诉方信用分变化"
-              value={complainantCredit}
-              setValue={setComplainantCredit}
-            />
-            <NumberField
-              label="被投诉方信用分变化"
-              value={respondentCredit}
-              setValue={setRespondentCredit}
-            />
-          </div>
-          {error ? (
-            <p role="alert" className="text-sm text-red-700">
-              {error}
-            </p>
-          ) : null}
-          {preview ? (
-            <section
-              aria-label="裁决影响预览"
-              className="rounded-lg border border-blue-200 bg-blue-50 p-4 text-sm text-slate-800"
-            >
-              <h3 className="font-semibold text-slate-950">裁决影响预览</h3>
-              <div className="mt-3 grid gap-2 sm:grid-cols-2">
-                <p>退款 {money(preview.refundAmount)}</p>
-                <p>结算 {money(preview.settlementAmount)}</p>
-                <p>
-                  投诉方信用 {preview.complainantCreditDelta >= 0 ? "+" : ""}
-                  {preview.complainantCreditDelta}
-                </p>
-                <p>
-                  被投诉方信用 {preview.respondentCreditDelta >= 0 ? "+" : ""}
-                  {preview.respondentCreditDelta}
-                </p>
-              </div>
-              <p className="mt-3 font-medium text-blue-900">
-                {level === "final"
-                  ? "最终裁决提交后不可再次申诉"
-                  : "初审裁决提交后进入 72 小时申诉期"}
-              </p>
-            </section>
-          ) : null}
-          <div className="flex flex-wrap justify-end gap-3">
+    <AccessibleModal
+      labelledBy="decision-title"
+      initialFocusSelector={confirming ? "[data-confirmation-focus]" : "select"}
+      onEscape={() => (confirming ? setConfirming(false) : onClose())}
+    >
+      {confirming && preview ? (
+        <>
+          <h2 id="decision-title" className="text-xl font-semibold text-slate-950">
+            确认提交{level === "final" ? "最终" : "初审"}裁决
+          </h2>
+          <p className="mt-2 text-sm text-slate-600">
+            请再次核对裁决影响，提交后将立即进入后续流程。
+          </p>
+          <div className="mt-6 flex justify-end gap-3">
             <button
+              data-confirmation-focus
               type="button"
-              onClick={onClose}
+              onClick={() => setConfirming(false)}
               className="min-h-11 rounded-lg border border-slate-300 px-4 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-blue-600"
             >
-              取消
+              返回检查
             </button>
             <button
-              type="submit"
-              className="min-h-11 rounded-lg border border-blue-300 px-4 font-semibold text-blue-700 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-blue-600"
+              type="button"
+              disabled={pending}
+              onClick={() => onSubmit(preview)}
+              className="min-h-11 rounded-lg bg-blue-700 px-4 font-semibold text-white disabled:opacity-50 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-blue-600"
             >
-              预览裁决影响
+              确认提交
             </button>
+          </div>
+        </>
+      ) : (
+        <>
+          <h2 id="decision-title" className="text-xl font-semibold text-slate-950">
+            {title}
+          </h2>
+          <form className="mt-5 space-y-4" onSubmit={showPreview}>
+            <label className="block text-sm font-medium text-slate-800">
+              责任划分
+              <select
+                value={liability}
+                onChange={(event) => {
+                  invalidatePreview();
+                  setLiability(event.target.value as typeof liability);
+                }}
+                className="mt-2 h-11 w-full rounded-lg border border-slate-300 px-3 focus:border-blue-600 focus:ring-2 focus:ring-blue-600/20"
+              >
+                <option value="complainant">投诉方责任</option>
+                <option value="respondent">被投诉方责任</option>
+                <option value="shared">双方共同责任</option>
+                <option value="insufficient_evidence">证据不足</option>
+              </select>
+            </label>
+            <label className="block text-sm font-medium text-slate-800">
+              裁决理由
+              <textarea
+                rows={4}
+                value={reason}
+                onChange={(event) => {
+                  invalidatePreview();
+                  setReason(event.target.value);
+                }}
+                className="mt-2 w-full rounded-lg border border-slate-300 p-3 focus:border-blue-600 focus:ring-2 focus:ring-blue-600/20"
+              />
+            </label>
+            <div className="grid gap-4 sm:grid-cols-2">
+              <NumberField
+                label="退款金额（分）"
+                value={refund}
+                setValue={(value) => {
+                  invalidatePreview();
+                  setRefund(value);
+                }}
+              />
+              <NumberField
+                label="结算金额（分）"
+                value={settlement}
+                setValue={(value) => {
+                  invalidatePreview();
+                  setSettlement(value);
+                }}
+              />
+              <NumberField
+                label="投诉方信用分变化"
+                value={complainantCredit}
+                setValue={(value) => {
+                  invalidatePreview();
+                  setComplainantCredit(value);
+                }}
+              />
+              <NumberField
+                label="被投诉方信用分变化"
+                value={respondentCredit}
+                setValue={(value) => {
+                  invalidatePreview();
+                  setRespondentCredit(value);
+                }}
+              />
+            </div>
+            {error ? (
+              <p role="alert" className="text-sm text-red-700">
+                {error}
+              </p>
+            ) : null}
             {preview ? (
+              <section
+                aria-label="裁决影响预览"
+                className="rounded-lg border border-blue-200 bg-blue-50 p-4 text-sm text-slate-800"
+              >
+                <h3 className="font-semibold text-slate-950">裁决影响预览</h3>
+                <div className="mt-3 grid gap-2 sm:grid-cols-2">
+                  <p>退款 {money(preview.refundAmount)}</p>
+                  <p>结算 {money(preview.settlementAmount)}</p>
+                  <p>
+                    投诉方信用 {preview.complainantCreditDelta >= 0 ? "+" : ""}
+                    {preview.complainantCreditDelta}
+                  </p>
+                  <p>
+                    被投诉方信用 {preview.respondentCreditDelta >= 0 ? "+" : ""}
+                    {preview.respondentCreditDelta}
+                  </p>
+                </div>
+                <p className="mt-3 font-medium text-blue-900">
+                  {level === "final"
+                    ? "最终裁决提交后不可再次申诉"
+                    : "初审裁决提交后进入 72 小时申诉期"}
+                </p>
+              </section>
+            ) : null}
+            <div className="flex flex-wrap justify-end gap-3">
               <button
                 type="button"
-                onClick={() => setConfirming(true)}
-                className="min-h-11 rounded-lg bg-blue-700 px-4 font-semibold text-white focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-blue-600"
+                onClick={onClose}
+                className="min-h-11 rounded-lg border border-slate-300 px-4 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-blue-600"
               >
-                提交{level === "final" ? "最终" : "初审"}裁决
+                取消
               </button>
-            ) : null}
-          </div>
-        </form>
-        {confirming && preview ? (
-          <div className="fixed inset-0 z-60 flex items-center justify-center bg-slate-950/50 p-4">
-            <section
-              role="dialog"
-              aria-modal="true"
-              aria-label={`确认提交${level === "final" ? "最终" : "初审"}裁决`}
-              className="w-full max-w-md rounded-xl bg-white p-6 shadow-2xl"
-            >
-              <h3 className="text-xl font-semibold">
-                确认提交{level === "final" ? "最终" : "初审"}裁决
-              </h3>
-              <p className="mt-2 text-sm text-slate-600">
-                请再次核对裁决影响，提交后将立即进入后续流程。
-              </p>
-              <div className="mt-6 flex justify-end gap-3">
+              <button
+                type="submit"
+                className="min-h-11 rounded-lg border border-blue-300 px-4 font-semibold text-blue-700 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-blue-600"
+              >
+                预览裁决影响
+              </button>
+              {preview ? (
                 <button
                   type="button"
-                  onClick={() => setConfirming(false)}
-                  className="min-h-11 rounded-lg border px-4"
+                  onClick={() => setConfirming(true)}
+                  className="min-h-11 rounded-lg bg-blue-700 px-4 font-semibold text-white focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-blue-600"
                 >
-                  返回检查
+                  提交{level === "final" ? "最终" : "初审"}裁决
                 </button>
-                <button
-                  type="button"
-                  disabled={pending}
-                  onClick={() => onSubmit(preview)}
-                  className="min-h-11 rounded-lg bg-blue-700 px-4 font-semibold text-white disabled:opacity-50"
-                >
-                  确认提交
-                </button>
-              </div>
-            </section>
-          </div>
-        ) : null}
-      </section>
-    </div>
+              ) : null}
+            </div>
+          </form>
+        </>
+      )}
+    </AccessibleModal>
   );
 }
 
+/** 裁决整数值输入控件。 */
 function NumberField({
   label,
   value,

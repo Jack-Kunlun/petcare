@@ -87,12 +87,14 @@ export default function ComplaintDetailPage() {
     enabled: Boolean(id) && canRetry,
   });
 
+  /** 统一处理案件动作成功后的缓存刷新。 */
   async function succeeded() {
     setDialog(null);
     setActionError("");
     await invalidateComplaint(queryClient, id);
   }
 
+  /** 统一处理并发冲突与普通操作失败。 */
   async function failed(error: unknown) {
     setDialog(null);
 
@@ -252,6 +254,7 @@ export default function ComplaintDetailPage() {
   );
 }
 
+/** 渲染卷宗中的统一信息区块。 */
 function Section({
   title,
   icon,
@@ -272,6 +275,7 @@ function Section({
   );
 }
 
+/** 按固定业务顺序渲染连续案件卷宗。 */
 function Dossier({ complaint }: { complaint: AdminComplaintDetail }) {
   return (
     <>
@@ -342,6 +346,7 @@ function Dossier({ complaint }: { complaint: AdminComplaintDetail }) {
   );
 }
 
+/** 渲染订单摘要中的单个字段。 */
 function Item({ label, value }: { label: string; value: string }) {
   return (
     <div>
@@ -351,6 +356,7 @@ function Item({ label, value }: { label: string; value: string }) {
   );
 }
 
+/** 渲染单方当事人的后台识别摘要。 */
 function Party({ role, user }: { role: string; user: AdminComplaintDetail["complainant"] }) {
   return (
     <article className="rounded-lg border border-slate-200 p-4">
@@ -361,6 +367,7 @@ function Party({ role, user }: { role: string; user: AdminComplaintDetail["compl
   );
 }
 
+/** 渲染陈述所附的证据链接。 */
 function Evidence({ urls }: { urls: string[] }) {
   return urls.length > 0 ? (
     <ul className="mt-3 flex flex-wrap gap-2">
@@ -382,6 +389,7 @@ function Evidence({ urls }: { urls: string[] }) {
   );
 }
 
+/** 渲染一层已经形成的裁决结果。 */
 function Decision({ label, value }: { label: string; value: SubmitDisputeDecisionRequest }) {
   return (
     <article className="rounded-lg border border-slate-200 p-4">
@@ -395,6 +403,7 @@ function Decision({ label, value }: { label: string; value: SubmitDisputeDecisio
   );
 }
 
+/** 仅按服务端 allowedActions 渲染当前可用动作。 */
 function Workbench({
   actions,
   pending,
