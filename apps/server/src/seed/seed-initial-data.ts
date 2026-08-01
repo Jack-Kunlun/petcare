@@ -100,6 +100,18 @@ const permissions = [
     module: "system",
     type: "button",
   },
+  {
+    permissionCode: "system.fee_config",
+    permissionName: "费率配置",
+    module: "system",
+    type: "button",
+  },
+  {
+    permissionCode: "system.publish",
+    permissionName: "发布系统配置",
+    module: "system",
+    type: "button",
+  },
   { permissionCode: "system.view", permissionName: "系统设置菜单", module: "system", type: "menu" },
   {
     permissionCode: "rbac.role.read",
