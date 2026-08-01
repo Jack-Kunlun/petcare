@@ -4,7 +4,7 @@
 
 **Goal:** Faithfully separate and normalize the approved actual PetCare Logo artwork into a production-ready logo suite, then build three responsive website hero families, reusable brand elements, and their delivery documentation.
 
-**Architecture:** Treat identity assets and photographic assets as separate pipelines. `docs/10-brand-system/assets/petcare-brand-positioning-logo-v1.png` is the approved actual Logo artwork and production visual master; deterministic SVG paths faithfully separate and normalize it without redesign before reproducible raster export. Hero photography is generated without text, visually reviewed, then cropped and encoded through a deterministic image pipeline. A manifest and validator make the final package auditable.
+**Architecture:** Treat identity assets and photographic assets as separate pipelines. `docs/10-brand-system/assets/petcare-brand-positioning-logo-v1.png` is the approved source artwork; deterministic direct crops produce the transparent primary and full-lockup PNG production visual masters. Bézier SVG companions faithfully separate and normalize the approved stacked composition without redesign before reproducible raster export. Hero photography is generated without text, visually reviewed, then cropped and encoded through a deterministic image pipeline. A manifest and validator make the final package auditable.
 
 **Tech Stack:** SVG 1.1, CSS custom properties, built-in image generation, Python 3 with Pillow and CairoSVG from the bundled workspace runtime, PowerShell, Markdown.
 
@@ -16,7 +16,7 @@
 - Logo clear space is at least `0.25H`; header symbol height is 32px, brand display is 48px, and maximum display is 64px.
 - Hero images contain no text, buttons, generated logos, watermarks, medical scenes, cages, or cartoon styling.
 - Generate desktop `1920×720`, miniapp `750×340`, and social `1200×630` variants for all three hero families.
-- Treat `docs/10-brand-system/assets/petcare-brand-positioning-logo-v1.png` as the approved actual Logo artwork and production visual master; do not overwrite it.
+- Treat `docs/10-brand-system/assets/petcare-brand-positioning-logo-v1.png` as the approved source artwork; do not overwrite it. Treat the two exact extracted transparent PNGs as production visual masters and SVGs only as Bézier companions.
 - Use lowercase kebab-case file names.
 
 ---
@@ -112,21 +112,23 @@ git commit -m "docs(brand): 建立品牌资产交付清单"
 - Create: `docs/10-brand-system/deliverables/logo/svg/petcare-symbol-dark.svg`
 - Create: `docs/10-brand-system/deliverables/logo/svg/petcare-symbol-monochrome.svg`
 - Create: `docs/10-brand-system/deliverables/logo/svg/petcare-symbol-reverse.svg`
-- Create: `docs/10-brand-system/deliverables/logo/svg/petcare-logo-horizontal-color.svg`
-- Create: `docs/10-brand-system/deliverables/logo/svg/petcare-logo-horizontal-compact.svg`
-- Create: `docs/10-brand-system/deliverables/logo/svg/petcare-logo-horizontal-dark.svg`
-- Create: `docs/10-brand-system/deliverables/logo/svg/petcare-logo-horizontal-monochrome.svg`
-- Create: `docs/10-brand-system/deliverables/logo/svg/petcare-logo-horizontal-reverse.svg`
+- Create: `docs/10-brand-system/deliverables/logo/svg/petcare-logo-stacked-color.svg`
+- Create: `docs/10-brand-system/deliverables/logo/svg/petcare-logo-stacked-dark.svg`
+- Create: `docs/10-brand-system/deliverables/logo/svg/petcare-logo-stacked-monochrome.svg`
+- Create: `docs/10-brand-system/deliverables/logo/svg/petcare-logo-stacked-reverse.svg`
+- Create: `docs/10-brand-system/deliverables/logo/png/petcare-logo-approved-actual-primary.png`
+- Create: `docs/10-brand-system/deliverables/logo/png/petcare-logo-approved-actual-full-lockup.png`
+- Create: `scripts/brand-assets/extract_approved_logo_assets.ps1`
 - Modify: `docs/10-brand-system/deliverables/manifest.json`
 
 **Interfaces:**
 
-- Consumes: the approved actual Logo artwork and production visual master from Global Constraints.
-- Produces: self-contained SVGs with `viewBox`, accessible `<title>`, and no external image/font dependency.
+- Consumes: the approved actual Logo source artwork from Global Constraints.
+- Produces: two exact extracted transparent PNG production visual masters and self-contained Bézier SVG companions with `viewBox`, accessible `<title>`, and no external image/font dependency.
 
 - [ ] **Step 1: Faithfully separate and vectorize the approved actual mark**
 
-Use a `128×128` viewBox for the symbol. Trace the production visual master one-to-one: preserve the rounded ribbon house/shield, four-pane window, left dog and right cat silhouettes, their scale/direction/overlap/negative spaces, and the blue-to-mint ribbon relationship. Do not replace the animal relationship with a heart or simplify any contour. Use the approved Logo colors in the color master:
+Directly crop the approved source artwork into a `330×260` transparent primary visual master and `350×345` transparent full-lockup visual master. Use a `128×128` viewBox for the symbol and `330×260` for the stacked SVG companion. Trace the primary production visual master one-to-one: preserve the rounded ribbon house/shield, four-pane window, left dog and right cat silhouettes, their scale/direction/overlap/negative spaces, and the blue-to-mint ribbon relationship. Do not replace the animal relationship with a heart or simplify any contour. Use the approved Logo colors in the color master:
 
 ```xml
 <linearGradient id="petcare-mint-gradient" x1="64" y1="52" x2="64" y2="124" gradientUnits="userSpaceOnUse">
@@ -136,9 +138,9 @@ Use a `128×128` viewBox for the symbol. Trace the production visual master one-
 </linearGradient>
 ```
 
-- [ ] **Step 2: Build responsive wordmark variants**
+- [ ] **Step 2: Build the approved stacked wordmark variants**
 
-The standard and compact horizontal versions both include exactly Symbol + `PetCare`; do not add `宠伴`. If an optional tagline lockup is produced, it may contain exactly `Trusted Pet Companion Platform` beneath the wordmark. Reconstruct the original wordmark proportion and spacing as paths so the SVG does not depend on installed fonts.
+The canonical composition includes exactly Symbol stacked above `PetCare`; do not create a horizontal or compact substitute. The exact extracted full-lockup PNG additionally preserves `Trusted Pet Companion Platform` and the approved Chinese slogan from the source artwork. Reconstruct the original wordmark proportion, spacing, and vertical relationship as paths so the SVG does not depend on installed fonts.
 
 - [ ] **Step 3: Check SVG structure**
 
@@ -190,7 +192,7 @@ def write_ico(source_png: Path, output_path: Path, sizes: tuple[int, ...]) -> No
 def export_logo_suite(repo_root: Path) -> list[Path]: ...
 ```
 
-Export horizontal Logo at 32/64/96px high using the SVG master viewBox aspect ratio, Symbol at 16/20/24/28/32/48/64/128/256/512/1024px, and favicon at 16/32/48px.
+Export the stacked Logo at 260/520/780px high using the SVG companion viewBox aspect ratio, Symbol at 16/20/24/28/32/48/64/128/256/512/1024px, and favicon at 16/32/48px. Reproduce the two exact extracted PNG production visual masters with `scripts/brand-assets/extract_approved_logo_assets.ps1` before running the SVG exporter.
 
 - [ ] **Step 2: Run the exporter**
 
@@ -399,7 +401,7 @@ git commit -m "docs(brand): 完成品牌资产交付说明"
 
 - Every asset declared in `manifest.json` exists and validates.
 - SVG masters remain editable and contain no embedded raster or remote dependency.
-- Logo masters are faithful separations of the approved actual artwork, with no redesign, `宠伴`, or visible comparison drift.
+- Logo visual masters are exact transparent separations of the approved actual artwork; SVG companions preserve the approved stacked composition with no redesign or visible comparison drift.
 - Logo is legible at all required minimum sizes.
 - Three Hero families are visually consistent, text-free, and safe to crop.
 - Desktop, miniapp, and social variants preserve their copy safe zones.

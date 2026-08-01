@@ -19,7 +19,7 @@ import xml.etree.ElementTree as ET
 from pathlib import Path
 
 
-HORIZONTAL_HEIGHTS = (32, 64, 96)
+STACKED_HEIGHTS = (260, 520, 780)
 SYMBOL_SIZES = (16, 20, 24, 28, 32, 48, 64, 128, 256, 512, 1024)
 FAVICON_SIZES = (16, 32, 48)
 APP_ICON_SIZES = (32, 48, 64, 96, 128, 144, 180, 192, 512, 1024)
@@ -178,15 +178,15 @@ def export_logo_suite(repo_root: Path) -> list[Path]:
     png_directory = deliverables / "png"
     favicon_directory = deliverables / "favicon"
     app_icon_directory = deliverables / "app-icons"
-    horizontal_svg = svg_directory / "petcare-logo-horizontal-color.svg"
+    stacked_svg = svg_directory / "petcare-logo-stacked-color.svg"
     symbol_svg = svg_directory / "petcare-symbol-color.svg"
     outputs: list[Path] = []
 
-    horizontal_aspect_ratio = _svg_aspect_ratio(horizontal_svg)
-    for height in HORIZONTAL_HEIGHTS:
-        width = round(horizontal_aspect_ratio * height)
-        output = png_directory / f"petcare-logo-horizontal-color-{height}h.png"
-        render_svg(horizontal_svg, output, width, height)
+    stacked_aspect_ratio = _svg_aspect_ratio(stacked_svg)
+    for height in STACKED_HEIGHTS:
+        width = round(stacked_aspect_ratio * height)
+        output = png_directory / f"petcare-logo-stacked-color-{height}h.png"
+        render_svg(stacked_svg, output, width, height)
         outputs.append(output)
     for size in SYMBOL_SIZES:
         output = png_directory / f"petcare-symbol-color-{size}.png"
