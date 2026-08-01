@@ -134,6 +134,21 @@ export class AdminSystemSettingsController {
     );
   }
 
+  /** 获取指定服务类型的单个 SOP 历史版本。 */
+  @Get("sop/:serviceType/history/:versionId")
+  @RequirePermissions("system.view")
+  @ApiParam({ name: "serviceType", enum: ADMIN_SERVICE_TYPE })
+  @ApiParam({ name: "versionId", type: String })
+  @ApiOperation({ summary: "获取单个 SOP 历史版本" })
+  @ApiSuccessResponse(SopConfigVersionResponseDto)
+  @ApiStandardErrors(400, 401, 403, 404, 500)
+  getSopVersion(
+    @Param("serviceType", new ParseEnumPipe(ADMIN_SERVICE_TYPE)) serviceType: AdminServiceType,
+    @Param("versionId") versionId: string,
+  ) {
+    return this.publishing.getVersion<SopConfig>(sopConfigKey(serviceType), versionId);
+  }
+
   /** 保存指定服务类型 SOP 草稿。 */
   @Put("sop/:serviceType/draft")
   @RequirePermissions("system.sop_config")
@@ -228,6 +243,17 @@ export class AdminSystemSettingsController {
     );
   }
 
+  /** 获取单个评分阈值历史版本。 */
+  @Get("rating-threshold/history/:versionId")
+  @RequirePermissions("system.view")
+  @ApiParam({ name: "versionId", type: String })
+  @ApiOperation({ summary: "获取单个评分阈值历史版本" })
+  @ApiSuccessResponse(RatingThresholdVersionResponseDto)
+  @ApiStandardErrors(401, 403, 404, 500)
+  getRatingThresholdVersion(@Param("versionId") versionId: string) {
+    return this.publishing.getVersion<RatingThresholdConfig>("rating_threshold", versionId);
+  }
+
   /** 保存评分阈值草稿。 */
   @Put("rating-threshold/draft")
   @RequirePermissions("system.threshold_config")
@@ -298,6 +324,17 @@ export class AdminSystemSettingsController {
   @ApiStandardErrors(400, 401, 403, 500)
   getFeeHistory(@Query() query: SystemConfigHistoryQueryDto) {
     return this.publishing.listHistory<FeeConfig>("fee", query.page, query.pageSize);
+  }
+
+  /** 获取单个平台费率历史版本。 */
+  @Get("fee/history/:versionId")
+  @RequirePermissions("system.view")
+  @ApiParam({ name: "versionId", type: String })
+  @ApiOperation({ summary: "获取单个平台费率历史版本" })
+  @ApiSuccessResponse(FeeConfigVersionResponseDto)
+  @ApiStandardErrors(401, 403, 404, 500)
+  getFeeVersion(@Param("versionId") versionId: string) {
+    return this.publishing.getVersion<FeeConfig>("fee", versionId);
   }
 
   /** 保存费用草稿。 */

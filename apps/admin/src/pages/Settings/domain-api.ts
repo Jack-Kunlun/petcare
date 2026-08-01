@@ -17,6 +17,7 @@ import {
   fetchFeeDiff,
   fetchFeeDraft,
   fetchFeeHistory,
+  fetchFeeVersion,
   publishFeeDraft,
   restoreFeeDraft,
   saveFeeDraft,
@@ -26,6 +27,7 @@ import {
   fetchRatingThresholdDiff,
   fetchRatingThresholdDraft,
   fetchRatingThresholdHistory,
+  fetchRatingThresholdVersion,
   publishRatingThresholdDraft,
   restoreRatingThresholdDraft,
   saveRatingThresholdDraft,
@@ -35,6 +37,7 @@ import {
   fetchSopDiff,
   fetchSopDraft,
   fetchSopHistory,
+  fetchSopVersion,
   publishSopDraft,
   restoreSopDraft,
   saveSopDraft,
@@ -84,9 +87,13 @@ export async function fetchDomainCurrent(
   domain: SettingsPageDomain,
   serviceType: AdminServiceType,
 ): Promise<SettingsVersion> {
-  if (domain === "sop") {return fetchSopCurrent(serviceType);}
+  if (domain === "sop") {
+    return fetchSopCurrent(serviceType);
+  }
 
-  if (domain === "rating_threshold") {return fetchRatingThresholdCurrent();}
+  if (domain === "rating_threshold") {
+    return fetchRatingThresholdCurrent();
+  }
 
   return fetchFeeCurrent();
 }
@@ -96,13 +103,19 @@ export async function fetchDomainDraft(
   serviceType: AdminServiceType,
 ): Promise<SettingsDraft | null> {
   try {
-    if (domain === "sop") {return await fetchSopDraft(serviceType);}
+    if (domain === "sop") {
+      return await fetchSopDraft(serviceType);
+    }
 
-    if (domain === "rating_threshold") {return await fetchRatingThresholdDraft();}
+    if (domain === "rating_threshold") {
+      return await fetchRatingThresholdDraft();
+    }
 
     return await fetchFeeDraft();
   } catch (error) {
-    if (isNotFound(error)) {return null;}
+    if (isNotFound(error)) {
+      return null;
+    }
 
     throw error;
   }
@@ -112,9 +125,13 @@ export async function fetchDomainDiff(
   domain: SettingsPageDomain,
   serviceType: AdminServiceType,
 ): Promise<SystemConfigDiffResponse> {
-  if (domain === "sop") {return fetchSopDiff(serviceType);}
+  if (domain === "sop") {
+    return fetchSopDiff(serviceType);
+  }
 
-  if (domain === "rating_threshold") {return fetchRatingThresholdDiff();}
+  if (domain === "rating_threshold") {
+    return fetchRatingThresholdDiff();
+  }
 
   return fetchFeeDiff();
 }
@@ -126,11 +143,36 @@ export async function fetchDomainHistory(
 ): Promise<SystemConfigVersionListResponse<SettingsConfig>> {
   const params = { page: 1, pageSize };
 
-  if (domain === "sop") {return fetchSopHistory(serviceType, params);}
+  if (domain === "sop") {
+    return fetchSopHistory(serviceType, params);
+  }
 
-  if (domain === "rating_threshold") {return fetchRatingThresholdHistory(params);}
+  if (domain === "rating_threshold") {
+    return fetchRatingThresholdHistory(params);
+  }
 
   return fetchFeeHistory(params);
+}
+
+/** 按领域与版本记录 ID 读取单个已发布历史版本。 */
+export async function fetchDomainVersion(
+  domain: SettingsPageDomain,
+  serviceType: AdminServiceType,
+  versionId: string,
+): Promise<SettingsVersion> {
+  if (versionId === "latest") {
+    return fetchDomainCurrent(domain, serviceType);
+  }
+
+  if (domain === "sop") {
+    return fetchSopVersion(serviceType, versionId);
+  }
+
+  if (domain === "rating_threshold") {
+    return fetchRatingThresholdVersion(versionId);
+  }
+
+  return fetchFeeVersion(versionId);
 }
 
 export async function saveDomainDraft(
@@ -143,7 +185,10 @@ export async function saveDomainDraft(
   }
 
   if (domain === "rating_threshold") {
-    return saveRatingThresholdDraft({ ...request, config: request.config as RatingThresholdConfig });
+    return saveRatingThresholdDraft({
+      ...request,
+      config: request.config as RatingThresholdConfig,
+    });
   }
 
   return saveFeeDraft({ ...request, config: request.config as FeeConfig });
@@ -154,9 +199,13 @@ export async function publishDomainDraft(
   serviceType: AdminServiceType,
   request: PublishSystemConfigRequest,
 ): Promise<SettingsVersion> {
-  if (domain === "sop") {return publishSopDraft(serviceType, request);}
+  if (domain === "sop") {
+    return publishSopDraft(serviceType, request);
+  }
 
-  if (domain === "rating_threshold") {return publishRatingThresholdDraft(request);}
+  if (domain === "rating_threshold") {
+    return publishRatingThresholdDraft(request);
+  }
 
   return publishFeeDraft(request);
 }
@@ -166,9 +215,13 @@ export async function restoreDomainDraft(
   serviceType: AdminServiceType,
   request: RestoreSystemConfigRequest,
 ): Promise<SettingsDraft> {
-  if (domain === "sop") {return restoreSopDraft(serviceType, request);}
+  if (domain === "sop") {
+    return restoreSopDraft(serviceType, request);
+  }
 
-  if (domain === "rating_threshold") {return restoreRatingThresholdDraft(request);}
+  if (domain === "rating_threshold") {
+    return restoreRatingThresholdDraft(request);
+  }
 
   return restoreFeeDraft(request);
 }
