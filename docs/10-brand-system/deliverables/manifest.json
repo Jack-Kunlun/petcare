@@ -397,7 +397,11 @@
       "width": 48,
       "height": 48,
       "format": "ico",
-      "sizes": [16, 32, 48],
+      "sizes": [
+        16,
+        32,
+        48
+      ],
       "source": "logo/svg/petcare-symbol-color.svg"
     },
     {
@@ -687,6 +691,91 @@
       "safeZone": "left-40",
       "alt": "A cat and dog sharing a relaxed moment in a sunlit living room.",
       "source": "hero/source/hero-community-companion-source-v1.png"
+    },
+    {
+      "id": "element.gradient.linear",
+      "path": "elements/gradients/petcare-gradient-linear.svg",
+      "kind": "element",
+      "width": 1600,
+      "height": 480,
+      "format": "svg"
+    },
+    {
+      "id": "element.gradient.radial",
+      "path": "elements/gradients/petcare-gradient-radial.svg",
+      "kind": "element",
+      "width": 1600,
+      "height": 900,
+      "format": "svg"
+    },
+    {
+      "id": "element.background.soft",
+      "path": "elements/gradients/petcare-background-soft.svg",
+      "kind": "element",
+      "width": 1600,
+      "height": 900,
+      "format": "svg"
+    },
+    {
+      "id": "element.pattern.connection",
+      "path": "elements/patterns/petcare-connection-pattern.svg",
+      "kind": "element",
+      "width": 320,
+      "height": 320,
+      "format": "svg"
+    },
+    {
+      "id": "element.badge.symbol",
+      "path": "elements/badges/petcare-badge-symbol.svg",
+      "kind": "element",
+      "width": 176,
+      "height": 176,
+      "format": "svg"
+    },
+    {
+      "id": "element.badge.trusted-companion",
+      "path": "elements/badges/petcare-badge-trusted-companion.svg",
+      "kind": "element",
+      "width": 480,
+      "height": 112,
+      "format": "svg"
+    },
+    {
+      "id": "element.overlay.copy-left",
+      "path": "elements/overlays/petcare-overlay-copy-left.svg",
+      "kind": "element",
+      "width": 1600,
+      "height": 720,
+      "format": "svg"
+    },
+    {
+      "id": "element.overlay.copy-right",
+      "path": "elements/overlays/petcare-overlay-copy-right.svg",
+      "kind": "element",
+      "width": 1600,
+      "height": 720,
+      "format": "svg"
+    },
+    {
+      "id": "element.overlay.bottom",
+      "path": "elements/overlays/petcare-overlay-bottom.svg",
+      "kind": "element",
+      "width": 1600,
+      "height": 720,
+      "format": "svg"
     }
-  ]
+  ],
+  "overlayAccessibility": {
+    "lightOverlayDarkText": {
+      "text": "#202632",
+      "minimumBodyContrast": "4.5:1",
+      "minimumLargeContrast": "3:1"
+    },
+    "darkBottomOverlayWhiteText": {
+      "text": "#FFFFFF",
+      "minimumBodyContrast": "4.5:1",
+      "minimumLargeContrast": "3:1"
+    },
+    "note": "Verify contrast against each final composited crop; increase overlay opacity when sampled contrast falls below WCAG AA."
+  }
 }
