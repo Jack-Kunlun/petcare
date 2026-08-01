@@ -163,79 +163,53 @@ def write_svg(path: Path, content: str) -> Path:
     return path
 
 
-def create_elements() -> list[Path]:
-    """Create deterministic SVG elements using approved brand colors and symbol."""
-    gradients = DELIVERY / "elements" / "gradients"
-    patterns = DELIVERY / "elements" / "patterns"
-    badges = DELIVERY / "elements" / "badges"
-    overlays = DELIVERY / "elements" / "overlays"
+@dataclass(frozen=True)
+class ElementSpec:
+    asset_id: str
+    path: str
+    width: int
+    height: int
+    alt: str
+    svg: str
+
+
+def element_specs() -> tuple[ElementSpec, ...]:
+    """Return the single source of truth for all reusable SVG elements."""
     symbol_source = (DELIVERY / "logo" / "svg" / "petcare-symbol-color.svg").read_text(encoding="utf-8")
     symbol_markup = symbol_source.split("</title>", 1)[1].rsplit("</svg>", 1)[0].strip()
-    assets = [
-        write_svg(
-            gradients / "petcare-gradient-linear.svg",
-            '''<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 1600 480" role="img" aria-labelledby="title"><title id="title">PetCare blue to mint linear gradient</title><defs><linearGradient id="g" x1="0" y1="0" x2="1" y2="1"><stop offset="0" stop-color="#4A6CF7"/><stop offset="1" stop-color="#5BC8AF"/></linearGradient></defs><rect width="1600" height="480" rx="32" fill="url(#g)"/></svg>''',
-        ),
-        write_svg(
-            gradients / "petcare-gradient-radial.svg",
-            '''<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 1600 900" role="img" aria-labelledby="title"><title id="title">PetCare soft radial brand glow</title><defs><radialGradient id="g" cx="72%" cy="30%" r="72%"><stop offset="0" stop-color="#5BC8AF" stop-opacity=".38"/><stop offset=".45" stop-color="#4A6CF7" stop-opacity=".14"/><stop offset="1" stop-color="#FAFBFC" stop-opacity="0"/></radialGradient></defs><rect width="1600" height="900" fill="#FAFBFC"/><rect width="1600" height="900" fill="url(#g)"/></svg>''',
-        ),
-        write_svg(
-            gradients / "petcare-background-soft.svg",
-            '''<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 1600 900" role="img" aria-labelledby="title"><title id="title">PetCare soft website background</title><defs><linearGradient id="b" x1="0" y1="0" x2="1" y2="1"><stop stop-color="#FAFBFC"/><stop offset=".55" stop-color="#F1F5FF"/><stop offset="1" stop-color="#EFFBF8"/></linearGradient></defs><rect width="1600" height="900" fill="url(#b)"/><circle cx="1320" cy="120" r="320" fill="#5BC8AF" opacity=".08"/><circle cx="170" cy="760" r="380" fill="#4A6CF7" opacity=".07"/></svg>''',
-        ),
-        write_svg(
-            patterns / "petcare-connection-pattern.svg",
-            '''<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 320 320" role="img" aria-labelledby="title"><title id="title">PetCare connection pattern</title><defs><pattern id="p" width="80" height="80" patternUnits="userSpaceOnUse"><path d="M16 40h18m12 0h18M40 16v18m0 12v18" stroke="#4A6CF7" stroke-width="2" stroke-linecap="round" opacity=".16"/><circle cx="40" cy="40" r="6" fill="none" stroke="#5BC8AF" stroke-width="2" opacity=".32"/></pattern></defs><rect width="320" height="320" fill="url(#p)"/></svg>''',
-        ),
-        write_svg(
-            badges / "petcare-badge-symbol.svg",
-            f'''<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 176 176" role="img" aria-labelledby="title"><title id="title">PetCare approved symbol badge</title><circle cx="88" cy="88" r="84" fill="#FFFFFF" stroke="#E6EAF0" stroke-width="4"/><svg x="32" y="32" width="112" height="112" viewBox="0 0 128 128">{symbol_markup}</svg></svg>''',
-        ),
-        write_svg(
-            badges / "petcare-badge-trusted-companion.svg",
-            f'''<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 480 112" role="img" aria-labelledby="title"><title id="title">PetCare Trusted Companion badge</title><rect x="2" y="2" width="476" height="108" rx="56" fill="#FFFFFF" stroke="#E6EAF0" stroke-width="4"/><svg x="20" y="16" width="80" height="80" viewBox="0 0 128 128">{symbol_markup}</svg><text x="124" y="48" fill="#202632" font-family="Montserrat, Arial, sans-serif" font-size="25" font-weight="700">TRUSTED COMPANION</text><text x="124" y="78" fill="#667085" font-family="Noto Sans SC, Arial, sans-serif" font-size="18">每一次托付，都值得信赖</text></svg>''',
-        ),
-        write_svg(
-            overlays / "petcare-overlay-copy-left.svg",
-            '''<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 1600 720" role="img" aria-labelledby="title"><title id="title">PetCare left copy readability overlay</title><defs><linearGradient id="g" x1="0" y1="0" x2="1" y2="0"><stop stop-color="#FFFFFF" stop-opacity=".96"/><stop offset=".42" stop-color="#FFFFFF" stop-opacity=".82"/><stop offset=".68" stop-color="#FFFFFF" stop-opacity="0"/></linearGradient></defs><rect width="1600" height="720" fill="url(#g)"/></svg>''',
-        ),
-        write_svg(
-            overlays / "petcare-overlay-copy-right.svg",
-            '''<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 1600 720" role="img" aria-labelledby="title"><title id="title">PetCare right copy readability overlay</title><defs><linearGradient id="g" x1="1" y1="0" x2="0" y2="0"><stop stop-color="#FFFFFF" stop-opacity=".96"/><stop offset=".42" stop-color="#FFFFFF" stop-opacity=".82"/><stop offset=".68" stop-color="#FFFFFF" stop-opacity="0"/></linearGradient></defs><rect width="1600" height="720" fill="url(#g)"/></svg>''',
-        ),
-        write_svg(
-            overlays / "petcare-overlay-bottom.svg",
-            '''<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 1600 720" role="img" aria-labelledby="title"><title id="title">PetCare bottom caption readability overlay</title><defs><linearGradient id="g" x1="0" y1="1" x2="0" y2="0"><stop stop-color="#202632" stop-opacity=".94"/><stop offset=".38" stop-color="#202632" stop-opacity=".62"/><stop offset=".72" stop-color="#202632" stop-opacity="0"/></linearGradient></defs><rect width="1600" height="720" fill="url(#g)"/></svg>''',
-        ),
-    ]
-    return assets
+    return (
+        ElementSpec("element.gradient.linear", "elements/gradients/petcare-gradient-linear.svg", 1600, 480, "PetCare blue to mint linear gradient", '''<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 1600 480"><defs><linearGradient id="g" x2="1" y2="1"><stop stop-color="#4A6CF7"/><stop offset="1" stop-color="#5BC8AF"/></linearGradient></defs><rect width="1600" height="480" rx="32" fill="url(#g)"/></svg>'''),
+        ElementSpec("element.gradient.radial", "elements/gradients/petcare-gradient-radial.svg", 1600, 900, "PetCare soft radial brand surface", '''<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 1600 900"><defs><radialGradient id="g" cx="72%" cy="30%" r="72%"><stop stop-color="#5BC8AF" stop-opacity=".38"/><stop offset=".45" stop-color="#4A6CF7" stop-opacity=".14"/><stop offset="1" stop-color="#FAFBFC" stop-opacity="0"/></radialGradient></defs><rect width="1600" height="900" fill="#FAFBFC"/><rect width="1600" height="900" fill="url(#g)"/></svg>'''),
+        ElementSpec("element.glow.transparent", "elements/gradients/petcare-glow-transparent.svg", 1200, 720, "Transparent PetCare blue and mint soft glow", '''<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 1200 720"><defs><radialGradient id="a"><stop stop-color="#4A6CF7" stop-opacity=".28"/><stop offset="1" stop-color="#4A6CF7" stop-opacity="0"/></radialGradient><radialGradient id="b"><stop stop-color="#5BC8AF" stop-opacity=".30"/><stop offset="1" stop-color="#5BC8AF" stop-opacity="0"/></radialGradient></defs><ellipse cx="390" cy="330" rx="390" ry="300" fill="url(#a)"/><ellipse cx="820" cy="350" rx="380" ry="300" fill="url(#b)"/></svg>'''),
+        ElementSpec("element.background.soft", "elements/gradients/petcare-background-soft.svg", 1600, 900, "PetCare soft light website background", '''<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 1600 900"><defs><linearGradient id="b" x2="1" y2="1"><stop stop-color="#FAFBFC"/><stop offset=".55" stop-color="#F1F5FF"/><stop offset="1" stop-color="#EFFBF8"/></linearGradient></defs><rect width="1600" height="900" fill="url(#b)"/><circle cx="1320" cy="120" r="320" fill="#5BC8AF" opacity=".08"/><circle cx="170" cy="760" r="380" fill="#4A6CF7" opacity=".07"/></svg>'''),
+        ElementSpec("element.placeholder.light", "elements/placeholders/petcare-placeholder-light.svg", 1600, 900, "Light PetCare placeholder background", '''<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 1600 900"><rect width="1600" height="900" fill="#F8FAFC"/><path d="M0 720C360 570 590 820 930 650s470-90 670-210v460H0Z" fill="#4A6CF7" opacity=".045"/><circle cx="1280" cy="180" r="260" fill="#5BC8AF" opacity=".07"/></svg>'''),
+        ElementSpec("element.placeholder.dark", "elements/placeholders/petcare-placeholder-dark.svg", 1600, 900, "Dark PetCare placeholder background", '''<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 1600 900"><rect width="1600" height="900" fill="#202632"/><path d="M0 720C360 570 590 820 930 650s470-90 670-210v460H0Z" fill="#4A6CF7" opacity=".16"/><circle cx="1280" cy="180" r="260" fill="#5BC8AF" opacity=".12"/></svg>'''),
+        ElementSpec("element.pattern.connection", "elements/patterns/petcare-connection-pattern.svg", 320, 320, "PetCare connection pattern", '''<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 320 320"><defs><pattern id="p" width="80" height="80" patternUnits="userSpaceOnUse"><path d="M16 40h18m12 0h18M40 16v18m0 12v18" stroke="#4A6CF7" stroke-width="2" stroke-linecap="round" opacity=".16"/><circle cx="40" cy="40" r="6" fill="none" stroke="#5BC8AF" stroke-width="2" opacity=".32"/></pattern></defs><rect width="320" height="320" fill="url(#p)"/></svg>'''),
+        ElementSpec("element.badge.symbol", "elements/badges/petcare-badge-symbol.svg", 176, 176, "PetCare approved Symbol badge", f'''<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 176 176"><circle cx="88" cy="88" r="84" fill="#FFF" stroke="#E6EAF0" stroke-width="4"/><svg x="32" y="32" width="112" height="112" viewBox="0 0 128 128">{symbol_markup}</svg></svg>'''),
+        ElementSpec("element.badge.trusted-companion", "elements/badges/petcare-badge-trusted-companion.svg", 176, 112, "PetCare Trusted Companion icon badge", f'''<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 176 112"><rect x="2" y="2" width="172" height="108" rx="54" fill="#FFF" stroke="#E6EAF0" stroke-width="4"/><svg x="12" y="16" width="80" height="80" viewBox="0 0 128 128">{symbol_markup}</svg><circle cx="136" cy="56" r="24" fill="#EFFBF8" stroke="#5BC8AF" stroke-width="3"/><path d="m124 56 8 8 16-18" fill="none" stroke="#202632" stroke-width="5" stroke-linecap="round" stroke-linejoin="round"/></svg>'''),
+        ElementSpec("element.overlay.copy-left", "elements/overlays/petcare-overlay-copy-left.svg", 1600, 720, "Left Hero copy readability overlay", '''<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 1600 720"><defs><linearGradient id="g"><stop stop-color="#FFF" stop-opacity=".96"/><stop offset=".42" stop-color="#FFF" stop-opacity=".82"/><stop offset=".68" stop-color="#FFF" stop-opacity="0"/></linearGradient></defs><rect width="1600" height="720" fill="url(#g)"/></svg>'''),
+        ElementSpec("element.overlay.copy-right", "elements/overlays/petcare-overlay-copy-right.svg", 1600, 720, "Right Hero copy readability overlay", '''<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 1600 720"><defs><linearGradient id="g" x1="1" x2="0"><stop stop-color="#FFF" stop-opacity=".96"/><stop offset=".42" stop-color="#FFF" stop-opacity=".82"/><stop offset=".68" stop-color="#FFF" stop-opacity="0"/></linearGradient></defs><rect width="1600" height="720" fill="url(#g)"/></svg>'''),
+        ElementSpec("element.overlay.bottom", "elements/overlays/petcare-overlay-bottom.svg", 1600, 720, "Bottom Hero caption readability overlay", '''<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 1600 720"><defs><linearGradient id="g" x1="0" y1="1" x2="0" y2="0"><stop stop-color="#202632" stop-opacity=".94"/><stop offset=".38" stop-color="#202632" stop-opacity=".62"/><stop offset=".72" stop-color="#202632" stop-opacity="0"/></linearGradient></defs><rect width="1600" height="720" fill="url(#g)"/></svg>'''),
+    )
 
 
-def update_manifest() -> None:
+def create_elements(specs: tuple[ElementSpec, ...]) -> list[Path]:
+    return [write_svg(DELIVERY / spec.path, spec.svg) for spec in specs]
+
+
+def update_manifest(specs: tuple[ElementSpec, ...]) -> None:
     manifest = json.loads(MANIFEST_PATH.read_text(encoding="utf-8"))
     assets = manifest["assets"]
     assets[:] = [item for item in assets if not str(item["id"]).startswith("element.")]
-    element_specs = [
-        ("element.gradient.linear", "elements/gradients/petcare-gradient-linear.svg", 1600, 480),
-        ("element.gradient.radial", "elements/gradients/petcare-gradient-radial.svg", 1600, 900),
-        ("element.background.soft", "elements/gradients/petcare-background-soft.svg", 1600, 900),
-        ("element.pattern.connection", "elements/patterns/petcare-connection-pattern.svg", 320, 320),
-        ("element.badge.symbol", "elements/badges/petcare-badge-symbol.svg", 176, 176),
-        ("element.badge.trusted-companion", "elements/badges/petcare-badge-trusted-companion.svg", 480, 112),
-        ("element.overlay.copy-left", "elements/overlays/petcare-overlay-copy-left.svg", 1600, 720),
-        ("element.overlay.copy-right", "elements/overlays/petcare-overlay-copy-right.svg", 1600, 720),
-        ("element.overlay.bottom", "elements/overlays/petcare-overlay-bottom.svg", 1600, 720),
-    ]
-    for asset_id, path, width, height in element_specs:
+    for spec in specs:
         assets.append({
-            "id": asset_id,
-            "path": path,
+            "id": spec.asset_id,
+            "path": spec.path,
             "kind": "element",
-            "width": width,
-            "height": height,
+            "width": spec.width,
+            "height": spec.height,
             "format": "svg",
-            "alt": asset_id.removeprefix("element.").replace(".", " ").replace("-", " ").title(),
+            "alt": spec.alt,
             "source": "../PetCare-Brand-Book-v1.0.md",
         })
     manifest["overlayAccessibility"] = {
@@ -250,8 +224,9 @@ def main() -> None:
     exported: list[Path] = []
     for slug, data in THEMES.items():
         exported.extend(export_hero_family(SOURCE_DIR / data["source"], slug, data["safe_zone"]))
-    exported.extend(create_elements())
-    update_manifest()
+    specs = element_specs()
+    exported.extend(create_elements(specs))
+    update_manifest(specs)
     print(f"Generated {len(exported)} PetCare responsive and brand-element assets.")
 
 

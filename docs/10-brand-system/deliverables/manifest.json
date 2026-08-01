@@ -699,7 +699,7 @@
       "width": 1600,
       "height": 480,
       "format": "svg",
-      "alt": "Gradient Linear",
+      "alt": "PetCare blue to mint linear gradient",
       "source": "../PetCare-Brand-Book-v1.0.md"
     },
     {
@@ -709,7 +709,17 @@
       "width": 1600,
       "height": 900,
       "format": "svg",
-      "alt": "Gradient Radial",
+      "alt": "PetCare soft radial brand surface",
+      "source": "../PetCare-Brand-Book-v1.0.md"
+    },
+    {
+      "id": "element.glow.transparent",
+      "path": "elements/gradients/petcare-glow-transparent.svg",
+      "kind": "element",
+      "width": 1200,
+      "height": 720,
+      "format": "svg",
+      "alt": "Transparent PetCare blue and mint soft glow",
       "source": "../PetCare-Brand-Book-v1.0.md"
     },
     {
@@ -719,7 +729,27 @@
       "width": 1600,
       "height": 900,
       "format": "svg",
-      "alt": "Background Soft",
+      "alt": "PetCare soft light website background",
+      "source": "../PetCare-Brand-Book-v1.0.md"
+    },
+    {
+      "id": "element.placeholder.light",
+      "path": "elements/placeholders/petcare-placeholder-light.svg",
+      "kind": "element",
+      "width": 1600,
+      "height": 900,
+      "format": "svg",
+      "alt": "Light PetCare placeholder background",
+      "source": "../PetCare-Brand-Book-v1.0.md"
+    },
+    {
+      "id": "element.placeholder.dark",
+      "path": "elements/placeholders/petcare-placeholder-dark.svg",
+      "kind": "element",
+      "width": 1600,
+      "height": 900,
+      "format": "svg",
+      "alt": "Dark PetCare placeholder background",
       "source": "../PetCare-Brand-Book-v1.0.md"
     },
     {
@@ -729,7 +759,7 @@
       "width": 320,
       "height": 320,
       "format": "svg",
-      "alt": "Pattern Connection",
+      "alt": "PetCare connection pattern",
       "source": "../PetCare-Brand-Book-v1.0.md"
     },
     {
@@ -739,17 +769,17 @@
       "width": 176,
       "height": 176,
       "format": "svg",
-      "alt": "Badge Symbol",
+      "alt": "PetCare approved Symbol badge",
       "source": "../PetCare-Brand-Book-v1.0.md"
     },
     {
       "id": "element.badge.trusted-companion",
       "path": "elements/badges/petcare-badge-trusted-companion.svg",
       "kind": "element",
-      "width": 480,
+      "width": 176,
       "height": 112,
       "format": "svg",
-      "alt": "Badge Trusted Companion",
+      "alt": "PetCare Trusted Companion icon badge",
       "source": "../PetCare-Brand-Book-v1.0.md"
     },
     {
@@ -759,7 +789,7 @@
       "width": 1600,
       "height": 720,
       "format": "svg",
-      "alt": "Overlay Copy Left",
+      "alt": "Left Hero copy readability overlay",
       "source": "../PetCare-Brand-Book-v1.0.md"
     },
     {
@@ -769,7 +799,7 @@
       "width": 1600,
       "height": 720,
       "format": "svg",
-      "alt": "Overlay Copy Right",
+      "alt": "Right Hero copy readability overlay",
       "source": "../PetCare-Brand-Book-v1.0.md"
     },
     {
@@ -779,7 +809,7 @@
       "width": 1600,
       "height": 720,
       "format": "svg",
-      "alt": "Overlay Bottom",
+      "alt": "Bottom Hero caption readability overlay",
       "source": "../PetCare-Brand-Book-v1.0.md"
     }
   ],
