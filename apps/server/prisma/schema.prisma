@@ -673,12 +673,14 @@ model CreditScore {
 }
 
 model CreditRecord {
-  id             String   @id @default(uuid())
-  userId         String   @map("user_id")
-  changeAmount   Int      @map("change_amount") // 正数增加，负数减少
-  reason         String
-  relatedOrderId String?  @map("related_order_id")
-  createdAt      DateTime @default(now()) @map("created_at")
+  id                String   @id @default(uuid())
+  userId            String   @map("user_id")
+  changeAmount      Int      @map("change_amount") // 正数增加，负数减少
+  reason            String
+  relatedOrderId    String?  @map("related_order_id")
+  /// 触发信用变动的唯一业务引用，用于防止任务重复消费。
+  businessReference String?  @unique @map("business_reference")
+  createdAt         DateTime @default(now()) @map("created_at")
 
   user User @relation(fields: [userId], references: [id], onDelete: Cascade)
 

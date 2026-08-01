@@ -1,10 +1,12 @@
 import {
   Body,
   Controller,
+  DefaultValuePipe,
   Get,
   HttpCode,
   HttpStatus,
   Param,
+  ParseIntPipe,
   ParseUUIDPipe,
   Post,
   Query,
@@ -23,6 +25,7 @@ import {
 import { ComplaintCommandService, type AdminActor } from "./complaint-command.service";
 import { ComplaintQueryService } from "./complaint-query.service";
 import { DisputeDecisionService } from "./dispute-decision.service";
+import { DisputeExecutionService } from "./dispute-execution.service";
 import { AdminComplaintListQueryDto } from "./dto/admin-complaint-list-query.dto";
 import { ComplaintListResponseDto, ComplaintResponseDto } from "./dto/complaint-response.dto";
 import { SubmitDisputeDecisionDto } from "./dto/submit-dispute-decision.dto";
@@ -39,6 +42,7 @@ export class AdminComplaintController {
     private readonly commandService: ComplaintCommandService,
     private readonly queryService: ComplaintQueryService,
     private readonly decisionService: DisputeDecisionService,
+    private readonly executionService: DisputeExecutionService,
   ) {}
 
   /** 返回后台投诉案件分页列表。 */
@@ -57,6 +61,18 @@ export class AdminComplaintController {
   @ApiStandardErrors(400, 401, 403, 404, 500)
   findOne(@Param("id", new ParseUUIDPipe()) id: string, @Req() request: AuthRequest) {
     return this.queryService.findForAdmin(id, this.actor(request));
+  }
+
+  /** 分页返回指定投诉的裁决执行任务。 */
+  @Get(":id/execution-tasks")
+  @ApiOperation({ summary: "获取投诉裁决执行任务" })
+  @ApiStandardErrors(400, 401, 403, 500)
+  findExecutionTasks(
+    @Param("id", new ParseUUIDPipe()) id: string,
+    @Query("page", new DefaultValuePipe(1), ParseIntPipe) page: number,
+    @Query("pageSize", new DefaultValuePipe(100), ParseIntPipe) pageSize: number,
+  ) {
+    return this.executionService.findTasks(id, page, pageSize);
   }
 
   /** 由当前管理员原子认领未分配案件。 */
@@ -129,6 +145,19 @@ export class AdminComplaintController {
     await this.decisionService.decideFinal(id, admin, dto);
 
     return this.queryService.findForAdmin(id, admin);
+  }
+
+  /** 仅重试当前投诉下仍为失败状态的裁决执行任务。 */
+  @Post(":id/execution-tasks/:taskId/retry")
+  @HttpCode(HttpStatus.OK)
+  @ApiOperation({ summary: "重试失败的投诉裁决执行任务" })
+  @ApiStandardErrors(400, 401, 403, 404, 409, 500)
+  retryExecutionTask(
+    @Param("id", new ParseUUIDPipe()) id: string,
+    @Param("taskId", new ParseUUIDPipe()) taskId: string,
+    @Req() request: AuthRequest,
+  ) {
+    return this.executionService.retryTask(taskId, request.user!.sub, id);
   }
 
   /** 仅从访问令牌构建服务端信任的管理员身份。 */

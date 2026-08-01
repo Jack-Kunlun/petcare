@@ -8,6 +8,7 @@ import { ConfigModule } from "./config/config.module";
 import { HealthModule } from "./health/health.module";
 import { HttpLoggingMiddleware } from "./logging/http-logging.middleware";
 import { LoggingModule } from "./logging/logging.module";
+import { ComplaintDisputeModule } from "./modules/complaint-dispute/complaint-dispute.module";
 import { OrderModule } from "./modules/order/order.module";
 import { ProviderCertificationModule } from "./modules/provider-certification/provider-certification.module";
 import { UserModule } from "./modules/user/user.module";
@@ -22,6 +23,7 @@ import { PrismaModule } from "./prisma/prisma.module";
     HealthModule,
     UserModule,
     OrderModule,
+    ComplaintDisputeModule,
     ProviderCertificationModule,
   ],
   providers: [
