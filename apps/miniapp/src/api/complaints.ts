@@ -6,7 +6,7 @@ import type {
   SubmitComplaintStatementRequest,
   WithdrawComplaintRequest,
 } from "@petcare/shared-types";
-import { apiRequest } from "./request";
+import { requestWithSession } from "../auth/auth.session";
 
 const complaintEndpoints = {
   collection: "/complaints",
@@ -18,7 +18,7 @@ const complaintEndpoints = {
 
 /** 为订单创建投诉并返回最新投诉详情。 */
 export function createComplaint(request: CreateComplaintRequest): Promise<ComplaintDetail> {
-  return apiRequest(complaintEndpoints.collection, {
+  return requestWithSession(complaintEndpoints.collection, {
     method: "POST",
     data: request,
   });
@@ -28,12 +28,12 @@ export function createComplaint(request: CreateComplaintRequest): Promise<Compla
 export function listMyComplaints(query: ComplaintListQuery): Promise<ComplaintListResponse> {
   const search = `page=${query.page}&pageSize=${query.pageSize}`;
 
-  return apiRequest(`${complaintEndpoints.collection}?${search}`);
+  return requestWithSession(`${complaintEndpoints.collection}?${search}`);
 }
 
 /** 获取当前用户可见的投诉详情。 */
 export function getComplaintDetail(id: string): Promise<ComplaintDetail> {
-  return apiRequest(complaintEndpoints.detail(id));
+  return requestWithSession(complaintEndpoints.detail(id));
 }
 
 /** 提交被投诉方的首次回应并返回最新详情。 */
@@ -41,7 +41,7 @@ export function submitFirstResponse(
   id: string,
   request: SubmitComplaintStatementRequest,
 ): Promise<ComplaintDetail> {
-  return apiRequest(complaintEndpoints.respond(id), {
+  return requestWithSession(complaintEndpoints.respond(id), {
     method: "POST",
     data: request,
   });
@@ -52,7 +52,7 @@ export function submitSecondAppeal(
   id: string,
   request: SubmitComplaintStatementRequest,
 ): Promise<ComplaintDetail> {
-  return apiRequest(complaintEndpoints.appeals(id), {
+  return requestWithSession(complaintEndpoints.appeals(id), {
     method: "POST",
     data: request,
   });
@@ -63,7 +63,7 @@ export function withdrawComplaint(
   id: string,
   request: WithdrawComplaintRequest,
 ): Promise<ComplaintDetail> {
-  return apiRequest(complaintEndpoints.withdraw(id), {
+  return requestWithSession(complaintEndpoints.withdraw(id), {
     method: "POST",
     data: request,
   });
