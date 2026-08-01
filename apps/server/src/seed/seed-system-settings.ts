@@ -102,7 +102,7 @@ async function createPublishedVersion(
 
   await tx.systemConfigPointer.upsert({
     where: { configKey },
-    update: { publishedVersionId: version.id },
+    update: {},
     create: { configKey, publishedVersionId: version.id },
   });
 
@@ -185,7 +185,7 @@ export async function seedSystemSettings(prisma: PrismaClient, operatorId: strin
       create: {
         configVersionId: ratingVersion.id,
         evaluationWindow: 30,
-        minimumSampleSize: 10,
+        minimumSampleSize: 5,
         warningScore: 350,
         suspensionScore: 300,
         retrainingRequirement: "完成平台服务规范再培训并通过考核后恢复接单。",
