@@ -151,7 +151,7 @@ export class SopConfigDto implements SopConfig {
 
 /** 评分阈值配置模型。 */
 export class RatingThresholdConfigDto implements RatingThresholdConfig {
-  /** 评分统计窗口，单位为天。 */
+  /** 评分统计窗口，表示最近已评价订单数量。 */
   @ApiProperty({ minimum: 5, maximum: 100, example: 30 })
   @IsInt()
   @Min(5)

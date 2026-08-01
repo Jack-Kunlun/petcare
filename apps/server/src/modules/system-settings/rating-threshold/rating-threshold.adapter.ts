@@ -70,7 +70,12 @@ export class RatingThresholdAdapter implements ConfigDomainAdapter<RatingThresho
 
   /** 完整校验评分窗口、样本、阈值关系和培训说明。 */
   validate(config: RatingThresholdConfig): void {
-    requireIntegerInRange(config.evaluationWindow, 5, 100, "评分窗口必须在 5 至 100 天之间");
+    requireIntegerInRange(
+      config.evaluationWindow,
+      5,
+      100,
+      "评分窗口必须在最近 5 至 100 条评价之间",
+    );
     requireIntegerInRange(config.minimumSampleSize, 1, 100, "最小样本数必须为正整数");
 
     if (config.minimumSampleSize > config.evaluationWindow) {

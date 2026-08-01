@@ -10,6 +10,21 @@ datasource db {
   provider = "postgresql"
 }
 
+/// 服务者评分资格状态。
+enum ProviderRatingEligibilityStatus {
+  insufficient_sample
+  eligible
+  warning
+  suspended
+}
+
+/// 服务者再培训状态。
+enum ProviderRetrainingStatus {
+  not_required
+  required
+  completed
+}
+
 // ============================================
 // 用户相关
 // ============================================
@@ -103,7 +118,9 @@ model Provider {
   createdAt       DateTime @default(now()) @map("created_at")
   updatedAt       DateTime @updatedAt @map("updated_at")
 
-  user User @relation(fields: [userId], references: [id], onDelete: Cascade)
+  user              User                       @relation(fields: [userId], references: [id], onDelete: Cascade)
+  ratingEligibility ProviderRatingEligibility?
+  adminTodos        AdminTodo[]
 
   @@index([certifiedSitter])
   @@map("providers")
@@ -218,6 +235,10 @@ model OrderFeeSnapshot {
   id                        String   @id @default(uuid())
   /// 快照所属订单唯一标识。
   orderId                   String   @unique @map("order_id")
+  /// 费用计算使用的发布配置版本唯一标识。
+  feeConfigVersionId        String   @map("fee_config_version_id")
+  /// 费用计算使用的订单输入金额，单位为分。
+  inputAmountCents          Int      @map("input_amount_cents")
   /// 平台佣金比例，使用整数万分比。
   platformCommissionBps     Int      @map("platform_commission_bps")
   /// 按订单金额计算的平台佣金，单位为分。
@@ -234,8 +255,11 @@ model OrderFeeSnapshot {
   createdAt                 DateTime @default(now()) @map("created_at")
 
   /// 快照所属订单。
-  order Order @relation(fields: [orderId], references: [id], onDelete: Cascade)
+  order            Order               @relation(fields: [orderId], references: [id], onDelete: Cascade)
+  /// 费用计算使用的发布配置版本。
+  feeConfigVersion SystemConfigVersion @relation("OrderFeeSnapshotConfigVersion", fields: [feeConfigVersionId], references: [id], onDelete: Restrict)
 
+  @@index([feeConfigVersionId])
   @@map("order_fee_snapshots")
 }
 
@@ -349,9 +373,9 @@ model SystemConfigVersion {
   updatedAt       DateTime  @updatedAt @map("updated_at")
 
   /// 该版本复制或恢复时引用的来源版本。
-  sourceVersion         SystemConfigVersion?     @relation("SystemConfigVersionSource", fields: [sourceVersionId], references: [id], onDelete: SetNull)
+  sourceVersion         SystemConfigVersion?        @relation("SystemConfigVersionSource", fields: [sourceVersionId], references: [id], onDelete: SetNull)
   /// 从该版本复制或恢复生成的后续版本。
-  derivedVersions       SystemConfigVersion[]    @relation("SystemConfigVersionSource")
+  derivedVersions       SystemConfigVersion[]       @relation("SystemConfigVersionSource")
   /// 指向该发布版本的当前版本指针。
   publishedPointer      SystemConfigPointer?
   /// 该 SOP 版本冻结的步骤。
@@ -365,15 +389,19 @@ model SystemConfigVersion {
   /// 该版本关联的审计事件。
   auditEvents           SystemConfigAuditEvent[]
   /// 创建该配置版本的管理员。
-  createdBy             User                     @relation("SystemConfigVersionCreatedBy", fields: [createdById], references: [id], onDelete: Restrict)
+  createdBy             User                        @relation("SystemConfigVersionCreatedBy", fields: [createdById], references: [id], onDelete: Restrict)
   /// 最后更新该配置版本的管理员。
-  updatedBy             User                     @relation("SystemConfigVersionUpdatedBy", fields: [updatedById], references: [id], onDelete: Restrict)
+  updatedBy             User                        @relation("SystemConfigVersionUpdatedBy", fields: [updatedById], references: [id], onDelete: Restrict)
   /// 发布该配置版本的管理员；草稿阶段为空。
-  publishedBy           User?                    @relation("SystemConfigVersionPublishedBy", fields: [publishedById], references: [id], onDelete: SetNull)
+  publishedBy           User?                       @relation("SystemConfigVersionPublishedBy", fields: [publishedById], references: [id], onDelete: SetNull)
   /// 引用该 SOP 版本的订单。
-  sopOrders             Order[]                  @relation("OrderSopConfigVersion")
+  sopOrders             Order[]                     @relation("OrderSopConfigVersion")
   /// 引用该费用版本的订单。
-  feeOrders             Order[]                  @relation("OrderFeeConfigVersion")
+  feeOrders             Order[]                     @relation("OrderFeeConfigVersion")
+  /// 使用该费用版本完成计算的订单费用快照。
+  feeSnapshots          OrderFeeSnapshot[]          @relation("OrderFeeSnapshotConfigVersion")
+  /// 当前按该评分配置完成评估的服务者资格状态。
+  providerEligibilities ProviderRatingEligibility[] @relation("ProviderRatingEligibilityConfigVersion")
 
   @@unique([configKey, businessVersion])
   @@unique([configKey, draftSlot])
@@ -462,7 +490,7 @@ model RatingThresholdConfig {
   id                    String @id @default(uuid())
   /// 所属配置版本唯一标识，同时保证领域数据一对一。
   configVersionId       String @unique @map("config_version_id")
-  /// 评分统计窗口，单位为天。
+  /// 评分统计窗口，表示最近已评价订单数量。
   evaluationWindow      Int    @map("evaluation_window")
   /// 阈值生效所需最小评价样本数。
   minimumSampleSize     Int    @map("minimum_sample_size")
@@ -551,6 +579,72 @@ model Review {
 
   @@index([reviewerId])
   @@map("reviews")
+}
+
+/// 服务者当前评分资格及恢复接单所需状态。
+model ProviderRatingEligibility {
+  /// 资格状态唯一标识。
+  id                     String                          @id @default(uuid())
+  /// 服务者档案唯一标识，同时保证每位服务者只有一份当前资格状态。
+  providerId             String                          @unique @map("provider_id")
+  /// 最近一次评估使用的发布评分配置版本。
+  ratingConfigVersionId  String                          @map("rating_config_version_id")
+  /// 最近一次评估输入的唯一摘要，用于避免重复执行副作用。
+  evaluationKey          String                          @unique @map("evaluation_key")
+  /// 当前资格状态，取 insufficient_sample、eligible、warning 或 suspended。
+  status                 ProviderRatingEligibilityStatus @default(insufficient_sample)
+  /// 最近评价的整数百分制平均分；没有评价时为空。
+  averageScore           Int?                            @map("average_score")
+  /// 最近一次评估实际使用的评价样本数。
+  sampleSize             Int                             @default(0) @map("sample_size")
+  /// 暂停后恢复接单前必须满足的再培训要求。
+  retrainingRequirement  String?                         @map("retraining_requirement")
+  /// 再培训状态，取 not_required、required 或 completed。
+  retrainingStatus       ProviderRetrainingStatus        @default(not_required) @map("retraining_status")
+  /// 当前告警或暂停周期使用的副作用去重键；恢复后清空。
+  actionDeduplicationKey String?                         @map("action_deduplication_key")
+  /// 最近一次进入暂停接单状态的时间。
+  suspendedAt            DateTime?                       @map("suspended_at")
+  /// 最近一次完成评分资格评估的时间。
+  evaluatedAt            DateTime                        @default(now()) @map("evaluated_at")
+
+  /// 资格状态所属服务者档案。
+  provider      Provider            @relation(fields: [providerId], references: [id], onDelete: Cascade)
+  /// 最近一次评估使用的发布评分配置版本。
+  configVersion SystemConfigVersion @relation("ProviderRatingEligibilityConfigVersion", fields: [ratingConfigVersionId], references: [id], onDelete: Restrict)
+
+  @@index([status])
+  @@index([ratingConfigVersionId])
+  @@map("provider_rating_eligibilities")
+}
+
+/// 需要管理员处理的评分资格待办。
+model AdminTodo {
+  /// 待办唯一标识。
+  id               String   @id @default(uuid())
+  /// 待办关联的服务者档案唯一标识。
+  providerId       String   @map("provider_id")
+  /// 待办业务类型。
+  type             String
+  /// 管理员待办标题。
+  title            String
+  /// 管理员待办完整说明。
+  content          String
+  /// 待办状态，取 pending 或 completed。
+  status           String   @default("pending")
+  /// 业务唯一去重键，防止重复评估创建相同待办。
+  deduplicationKey String   @unique @map("deduplication_key")
+  /// 待办创建时间。
+  createdAt        DateTime @default(now()) @map("created_at")
+  /// 待办最后更新时间。
+  updatedAt        DateTime @updatedAt @map("updated_at")
+
+  /// 待办关联的服务者档案。
+  provider Provider @relation(fields: [providerId], references: [id], onDelete: Cascade)
+
+  @@index([status, createdAt])
+  @@index([providerId])
+  @@map("admin_todos")
 }
 
 model Complaint {
@@ -876,14 +970,16 @@ model Favorite {
 // ============================================
 
 model Notification {
-  id          String   @id @default(uuid())
-  userId      String   @map("user_id")
-  type        String // message / order / system
-  title       String
-  content     String
-  referenceId String?  @map("reference_id") // 关联的业务ID（订单ID、帖子ID等）
-  isRead      Boolean  @default(false) @map("is_read")
-  createdAt   DateTime @default(now()) @map("created_at")
+  id               String   @id @default(uuid())
+  userId           String   @map("user_id")
+  type             String // message / order / system
+  title            String
+  content          String
+  referenceId      String?  @map("reference_id") // 关联的业务ID（订单ID、帖子ID等）
+  /// 可空业务唯一去重键，防止重复评估创建相同通知。
+  deduplicationKey String?  @unique @map("deduplication_key")
+  isRead           Boolean  @default(false) @map("is_read")
+  createdAt        DateTime @default(now()) @map("created_at")
 
   user User @relation(fields: [userId], references: [id], onDelete: Cascade)
 
