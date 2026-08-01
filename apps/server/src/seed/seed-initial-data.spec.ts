@@ -2,6 +2,45 @@ import { PasswordService } from "../auth/password.service";
 import { PrismaClient } from "../generated/prisma/client";
 import { SeedOptions, seedInitialData } from "./seed-initial-data";
 
+const EXISTING_PERMISSION_CODES = [
+  "user.read",
+  "user.create",
+  "user.update",
+  "user.delete",
+  "user.view",
+  "user.approve_provider",
+  "order.read",
+  "order.create",
+  "order.update",
+  "order.cancel",
+  "order.view",
+  "order.export",
+  "content.read",
+  "content.delete",
+  "content.publish",
+  "content.view",
+  "finance.read",
+  "finance.withdrawal_approve",
+  "finance.refund",
+  "finance.view",
+  "dispute.read",
+  "dispute.resolve",
+  "dispute.view",
+  "system.config",
+  "system.sop_config",
+  "system.threshold_config",
+  "system.view",
+  "rbac.role.read",
+  "rbac.role.create",
+  "rbac.role.update",
+  "rbac.role.delete",
+  "rbac.permission.read",
+  "rbac.assign_role",
+  "rbac.view",
+  "stats.dashboard",
+  "stats.view",
+] as const;
+
 interface StoredPermission {
   id: string;
   permissionCode: string;
@@ -160,6 +199,12 @@ describe("seedInitialData", () => {
     await seedInitialData(state.prisma, options, passwordService);
 
     expect(state.permissions.length).toBeGreaterThan(0);
+    const permissionCodes = state.permissions.map((permission) => permission.permissionCode);
+
+    expect(permissionCodes).toHaveLength(EXISTING_PERMISSION_CODES.length + 2);
+    expect(permissionCodes).toEqual(
+      expect.arrayContaining([...EXISTING_PERMISSION_CODES, "system.fee_config", "system.publish"]),
+    );
     expect(state.roles).toEqual([
       expect.objectContaining({ roleName: "super_admin", isSystem: true, isActive: true }),
     ]);
@@ -174,6 +219,9 @@ describe("seedInitialData", () => {
     ]);
     expect(state.userRoles).toHaveLength(1);
     expect(state.rolePermissions).toHaveLength(state.permissions.length);
+    expect(state.rolePermissions.map((relation) => relation.permissionId)).toEqual(
+      expect.arrayContaining(state.permissions.map((permission) => permission.id)),
+    );
   });
 
   it("is idempotent", async () => {
