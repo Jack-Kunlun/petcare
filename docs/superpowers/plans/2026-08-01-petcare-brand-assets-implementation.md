@@ -4,9 +4,9 @@
 
 **Goal:** Faithfully separate and normalize the approved actual PetCare Logo artwork into a production-ready logo suite, then build three responsive website hero families, reusable brand elements, and their delivery documentation.
 
-**Architecture:** Treat identity assets and photographic assets as separate pipelines. `docs/10-brand-system/assets/petcare-brand-positioning-logo-v1.png` is the approved source artwork; deterministic direct crops produce the transparent primary and full-lockup PNG production visual masters. Bézier SVG companions faithfully separate and normalize the approved stacked composition without redesign before reproducible raster export. Hero photography is generated without text, visually reviewed, then cropped and encoded through a deterministic image pipeline. A manifest and validator make the final package auditable.
+**Architecture:** Treat identity assets and photographic assets as separate pipelines. `docs/10-brand-system/assets/petcare-brand-positioning-logo-v1.png` is the approved actual artwork; deterministic direct crops produce the transparent primary and full-lockup PNG production visual masters. Deterministic source-hash-bound pixel-path SVG companions preserve the approved composition without becoming an alternate design authority. All raster Logo derivatives are generated directly from the approved transparent PNG master. Hero photography is generated without text, visually reviewed, then cropped and encoded through a deterministic image pipeline. A manifest and validator make the final package auditable.
 
-**Tech Stack:** SVG 1.1, CSS custom properties, built-in image generation, Python 3 with Pillow and CairoSVG from the bundled workspace runtime, PowerShell, Markdown.
+**Tech Stack:** SVG 1.1, CSS custom properties, built-in image generation, Python 3 with pinned Pillow from the bundled workspace runtime, PowerShell, Markdown.
 
 ## Global Constraints
 
@@ -16,7 +16,7 @@
 - Logo clear space is at least `0.25H`; header symbol height is 32px, brand display is 48px, and maximum display is 64px.
 - Hero images contain no text, buttons, generated logos, watermarks, medical scenes, cages, or cartoon styling.
 - Generate desktop `1920×720`, miniapp `750×340`, and social `1200×630` variants for all three hero families.
-- Treat `docs/10-brand-system/assets/petcare-brand-positioning-logo-v1.png` as the approved source artwork; do not overwrite it. Treat the two exact extracted transparent PNGs as production visual masters and SVGs only as Bézier companions.
+- Treat `docs/10-brand-system/assets/petcare-brand-positioning-logo-v1.png` as approved actual artwork, not a reference; do not overwrite it. Treat the two exact extracted transparent PNGs as production visual masters and SVGs only as deterministic pixel-path companions.
 - Use lowercase kebab-case file names.
 
 ---
@@ -124,7 +124,7 @@ git commit -m "docs(brand): 建立品牌资产交付清单"
 **Interfaces:**
 
 - Consumes: the approved actual Logo source artwork from Global Constraints.
-- Produces: two exact extracted transparent PNG production visual masters and self-contained Bézier SVG companions with `viewBox`, accessible `<title>`, and no external image/font dependency.
+- Produces: two exact extracted transparent PNG production visual masters and self-contained, source-hash-bound pixel-path SVG companions with `viewBox`, accessible `<title>`, and no external image/font dependency.
 
 - [ ] **Step 1: Faithfully separate and vectorize the approved actual mark**
 
@@ -179,20 +179,12 @@ git commit -m "feat(brand): 交付品牌标识矢量母版"
 
 **Interfaces:**
 
-- Consumes: Task 2 SVG master paths.
+- Consumes: the approved actual transparent PNG production master and Task 2 SVG companion paths.
 - Produces: PNG sizes and ICO file listed in the manifest.
 
 - [ ] **Step 1: Implement deterministic exports**
 
-Expose these functions:
-
-```python
-def render_svg(svg_path: Path, output_path: Path, width: int, height: int) -> None: ...
-def write_ico(source_png: Path, output_path: Path, sizes: tuple[int, ...]) -> None: ...
-def export_logo_suite(repo_root: Path) -> list[Path]: ...
-```
-
-Export every color, dark, monochrome, and reverse stacked Logo at 260/520/780px high using each SVG companion viewBox aspect ratio, Symbol at 16/20/24/28/32/48/64/128/256/512/1024px, and favicon at 16/32/48px. Reproduce the two exact extracted PNG production visual masters with `scripts/brand-assets/extract_approved_logo_assets.ps1` before running the SVG exporter.
+Use pinned Pillow as the only rasterizer. Export every color, dark, monochrome, and reverse stacked Logo at 260/520/780px high directly from the approved PNG master, Symbol at 16/20/24/28/32/48/64/128/256/512/1024px, and favicon at 16/32/48px. The 260px color lockup must be byte-for-byte identical to the approved transparent production master. Reproduce the two exact extracted PNG production visual masters with `scripts/brand-assets/extract_approved_logo_assets.ps1` only when the approved actual artwork changes.
 
 - [ ] **Step 2: Run the exporter**
 
@@ -307,7 +299,10 @@ Create:
 
 - `petcare-gradient-linear.svg`
 - `petcare-gradient-radial.svg`
+- `petcare-glow-transparent.svg`
 - `petcare-background-soft.svg`
+- `petcare-placeholder-light.svg`
+- `petcare-placeholder-dark.svg`
 - `petcare-connection-pattern.svg`
 - `petcare-badge-symbol.svg`
 - `petcare-badge-trusted-companion.svg`
