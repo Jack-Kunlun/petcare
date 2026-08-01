@@ -44,6 +44,7 @@ describe("ProtectedRoute", () => {
       phone: "17679141878",
       nickname: "系统管理员",
       roles: ["super_admin"],
+      permissions: ["system.view"],
     });
 
     renderRoute();

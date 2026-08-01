@@ -12,14 +12,23 @@ const activeAdmin = {
   nickname: "系统管理员",
   status: "active",
   passwordHash: "$argon2id$v=19$test",
-  roles: [{ role: { roleName: "super_admin", isActive: true } }],
+  roles: [{
+    role: {
+      roleName: "super_admin",
+      isActive: true,
+      permissions: [
+        { permission: { permissionCode: "system.view" } },
+        { permission: { permissionCode: "system.publish" } },
+      ],
+    },
+  }],
 };
 const activeDisputeResolver = {
   ...activeAdmin,
   id: "resolver-1",
   username: "resolver",
   phone: "17679141879",
-  roles: [{ role: { roleName: "complaint_resolver", isActive: true } }],
+  roles: [{ role: { roleName: "complaint_resolver", isActive: true, permissions: [] } }],
 };
 
 describe("AuthService", () => {
@@ -83,6 +92,7 @@ describe("AuthService", () => {
         phone: "17679141878",
         nickname: "系统管理员",
         roles: ["super_admin"],
+        permissions: ["system.view", "system.publish"],
       },
     });
   });
