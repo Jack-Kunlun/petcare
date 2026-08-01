@@ -63,6 +63,14 @@ model User {
   disputeMoneyRecords               DisputeMoneyRecord[]
   certificationApplications         ProviderCertificationApplication[] @relation("CertificationApplicant")
   reviewedCertificationApplications ProviderCertificationApplication[] @relation("CertificationReviewer")
+  /// 该用户创建的系统配置版本。
+  systemConfigVersionsCreated       SystemConfigVersion[]              @relation("SystemConfigVersionCreatedBy")
+  /// 该用户最后更新的系统配置版本。
+  systemConfigVersionsUpdated       SystemConfigVersion[]              @relation("SystemConfigVersionUpdatedBy")
+  /// 该用户发布的系统配置版本。
+  systemConfigVersionsPublished     SystemConfigVersion[]              @relation("SystemConfigVersionPublishedBy")
+  /// 该用户执行的系统配置审计事件。
+  systemConfigAuditEvents           SystemConfigAuditEvent[]           @relation("SystemConfigAuditOperator")
 
   @@index([phone])
   @@index([userType])
@@ -356,6 +364,12 @@ model SystemConfigVersion {
   feeConfig             FeeConfig?
   /// 该版本关联的审计事件。
   auditEvents           SystemConfigAuditEvent[]
+  /// 创建该配置版本的管理员。
+  createdBy             User                     @relation("SystemConfigVersionCreatedBy", fields: [createdById], references: [id], onDelete: Restrict)
+  /// 最后更新该配置版本的管理员。
+  updatedBy             User                     @relation("SystemConfigVersionUpdatedBy", fields: [updatedById], references: [id], onDelete: Restrict)
+  /// 发布该配置版本的管理员；草稿阶段为空。
+  publishedBy           User?                    @relation("SystemConfigVersionPublishedBy", fields: [publishedById], references: [id], onDelete: SetNull)
   /// 引用该 SOP 版本的订单。
   sopOrders             Order[]                  @relation("OrderSopConfigVersion")
   /// 引用该费用版本的订单。
@@ -365,6 +379,9 @@ model SystemConfigVersion {
   @@unique([configKey, draftSlot])
   @@index([configKey, status])
   @@index([sourceVersionId])
+  @@index([createdById])
+  @@index([updatedById])
+  @@index([publishedById])
   @@map("system_config_versions")
 }
 
@@ -502,10 +519,13 @@ model SystemConfigAuditEvent {
 
   /// 事件关联的配置版本。
   configVersion SystemConfigVersion? @relation(fields: [configVersionId], references: [id], onDelete: SetNull)
+  /// 执行该配置操作的管理员。
+  operator      User                 @relation("SystemConfigAuditOperator", fields: [operatorId], references: [id], onDelete: Restrict)
 
   @@unique([configKey, idempotencyKey])
   @@index([configKey, createdAt])
   @@index([configVersionId])
+  @@index([operatorId])
   @@map("system_config_audit_events")
 }
 
