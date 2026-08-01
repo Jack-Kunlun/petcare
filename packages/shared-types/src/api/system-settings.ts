@@ -1,3 +1,5 @@
+import type { AdminServiceType } from "./admin";
+
 /** 系统配置支持的业务领域。 */
 export const SYSTEM_CONFIG_DOMAIN = {
   /** 服务标准作业流程与违规规则。 */
@@ -9,7 +11,12 @@ export const SYSTEM_CONFIG_DOMAIN = {
 } as const;
 
 /** 系统配置支持的业务领域。 */
-export type SystemConfigDomain = (typeof SYSTEM_CONFIG_DOMAIN)[keyof typeof SYSTEM_CONFIG_DOMAIN];
+export type SystemConfigDomain =
+  | Exclude<
+      (typeof SYSTEM_CONFIG_DOMAIN)[keyof typeof SYSTEM_CONFIG_DOMAIN],
+      typeof SYSTEM_CONFIG_DOMAIN.SOP
+    >
+  | SopConfigKey;
 
 /** 系统配置版本的发布状态。 */
 export const SYSTEM_CONFIG_STATUS = {
@@ -28,26 +35,75 @@ export type SystemConfigStatus = (typeof SYSTEM_CONFIG_STATUS)[keyof typeof SYST
 export const SYSTEM_CONFIG_ERROR_CODE = {
   /** 保存、发布或恢复时提交的乐观锁版本已过期。 */
   VERSION_CONFLICT: "SYSTEM_CONFIG_VERSION_CONFLICT",
+  /** 配置内容未通过领域完整性校验。 */
+  VALIDATION_FAILED: "SYSTEM_CONFIG_VALIDATION_FAILED",
+  /** 配置记录或指定版本不存在。 */
+  NOT_FOUND: "SYSTEM_CONFIG_NOT_FOUND",
+  /** 配置领域数据持久化失败。 */
+  PERSISTENCE_FAILED: "SYSTEM_CONFIG_PERSISTENCE_FAILED",
 } as const;
 
 /** 系统配置接口返回的稳定错误码。 */
 export type SystemConfigErrorCode =
   (typeof SYSTEM_CONFIG_ERROR_CODE)[keyof typeof SYSTEM_CONFIG_ERROR_CODE];
 
-/** 服务标准作业流程配置。 */
+/** 单个服务类型 SOP 使用的配置键。 */
+export type SopConfigKey = `sop:${AdminServiceType}`;
+
+/** 单个服务类型 SOP 的一个有序步骤。 */
+export interface SopConfigStep {
+  /** 从一开始且连续的步骤序号。 */
+  stepNumber: number;
+  /** 后台展示的步骤名称。 */
+  stepName: string;
+  /** 服务者执行该步骤时遵循的完整说明。 */
+  instruction: string;
+  /** 该步骤的合理预计时长，单位为分钟。 */
+  expectedDurationMinutes: number;
+  /** 该步骤要求上传的最少照片数量。 */
+  minimumPhotoCount: number;
+  /** 该步骤是否要求上传视频。 */
+  videoRequired: boolean;
+}
+
+/** SOP 违规规则支持的严重程度业务值。 */
+export const SOP_VIOLATION_SEVERITY = {
+  /** 轻微偏差，通常只需提醒和人工复核。 */
+  MINOR: "minor",
+  /** 中等违规，需要明确警告和人工处理。 */
+  MODERATE: "moderate",
+  /** 严重违规，需要升级人工处置。 */
+  SEVERE: "severe",
+} as const;
+
+/** SOP 违规规则的严重程度。 */
+export type SopViolationSeverity =
+  (typeof SOP_VIOLATION_SEVERITY)[keyof typeof SOP_VIOLATION_SEVERITY];
+
+/** SOP 违规规则及其人工处置指引。 */
+export interface SopViolationRule {
+  /** 规则唯一业务等级。 */
+  severity: SopViolationSeverity;
+  /** 违规条件和建议处理说明。 */
+  description: string;
+  /** 建议扣减服务费的整数万分比；为空表示不建议扣减。 */
+  serviceFeeDeductionBps: number | null;
+  /** 建议扣减的整数评分百分值。 */
+  ratingDeductionScore: number;
+  /** 建议暂停接单的天数。 */
+  suspensionDays: number;
+  /** 是否建议要求服务者重新培训。 */
+  retrainingRequired: boolean;
+  /** 后台展示规则时使用的稳定顺序。 */
+  sortOrder: number;
+}
+
+/** 单个服务类型的服务标准作业流程配置。 */
 export interface SopConfig {
-  /** 接单后的确认与预约沟通要求。 */
-  orderConfirmation: string;
-  /** 服务开始前的准备、核验与沟通要求。 */
-  beforeService: string;
-  /** 服务进行中的操作与安全要求。 */
-  serviceExecution: string;
-  /** 服务完成后的交付与确认要求。 */
-  serviceCompletion: string;
-  /** 服务结束后的评价与反馈要求。 */
-  serviceEvaluation: string;
-  /** 违反服务标准时适用的规则说明。 */
-  violationRules: string[];
+  /** 固定五个且从一开始连续的服务步骤。 */
+  steps: SopConfigStep[];
+  /** 仅供人工处置参考、不直接产生财务或信用副作用的违规规则。 */
+  violationRules: SopViolationRule[];
 }
 
 /** 服务者评分阈值配置。 */
@@ -134,9 +190,7 @@ export type SystemConfigSummaryArray = SystemConfigSummaryValue[];
 
 /** 系统配置领域适配器输出的递归 JSON 摘要值。 */
 export type SystemConfigSummaryValue =
-  | SystemConfigSummaryPrimitive
-  | SystemConfigSummaryObject
-  | SystemConfigSummaryArray;
+  SystemConfigSummaryPrimitive | SystemConfigSummaryObject | SystemConfigSummaryArray;
 
 /** 数组字段使用的显式稳定业务键策略。 */
 export interface SystemConfigArrayKeyStrategy {
@@ -239,12 +293,30 @@ export interface SystemConfigVersionListResponse<TConfig> {
   pageSize: number;
 }
 
-/** 系统设置页面所需的三个领域草稿概览。 */
+/** 系统配置历史列表的固定分页查询参数。 */
+export interface SystemConfigHistoryQuery {
+  /** 当前页码，从一开始。 */
+  page: number;
+  /** 每页返回记录数量上限。 */
+  pageSize: number;
+}
+
+/** 系统设置页面中单个配置键的发布与草稿概览。 */
+export interface SystemSettingDomainOverview<TConfig> {
+  /** 当前生效的已发布版本；尚未发布时为空。 */
+  current: SystemConfigVersion<TConfig> | null;
+  /** 当前可编辑草稿；没有待发布变更时为空。 */
+  draft: SystemConfigDraft<TConfig> | null;
+  /** 管理员进入领域后需要处理的提示文案。 */
+  pendingActions: string[];
+}
+
+/** 系统设置页面所需的全部配置键概览。 */
 export interface SystemSettingsOverviewResponse {
-  /** 服务标准作业流程领域的当前草稿。 */
-  sop: SystemConfigDraft<SopConfig>;
-  /** 服务者评分阈值领域的当前草稿。 */
-  ratingThreshold: SystemConfigDraft<RatingThresholdConfig>;
-  /** 平台费用领域的当前草稿。 */
-  fee: SystemConfigDraft<FeeConfig>;
+  /** 按服务类型拆分的服务标准作业流程概览。 */
+  sop: Record<AdminServiceType, SystemSettingDomainOverview<SopConfig>>;
+  /** 服务者评分阈值领域概览。 */
+  ratingThreshold: SystemSettingDomainOverview<RatingThresholdConfig>;
+  /** 平台费用领域概览。 */
+  fee: SystemSettingDomainOverview<FeeConfig>;
 }
