@@ -20,6 +20,7 @@ from pathlib import Path
 
 
 STACKED_HEIGHTS = (260, 520, 780)
+STACKED_VARIANTS = ("color", "dark", "monochrome", "reverse")
 SYMBOL_SIZES = (16, 20, 24, 28, 32, 48, 64, 128, 256, 512, 1024)
 FAVICON_SIZES = (16, 32, 48)
 APP_ICON_SIZES = (32, 48, 64, 96, 128, 144, 180, 192, 512, 1024)
@@ -172,22 +173,23 @@ def write_ico(source_png: Path, output_path: Path, sizes: tuple[int, ...]) -> No
 
 
 def export_logo_suite(repo_root: Path) -> list[Path]:
-    """Export all committed raster and favicon derivatives from color SVG masters."""
+    """Export all committed raster and favicon derivatives from committed SVG masters."""
     deliverables = repo_root / "docs" / "10-brand-system" / "deliverables" / "logo"
     svg_directory = deliverables / "svg"
     png_directory = deliverables / "png"
     favicon_directory = deliverables / "favicon"
     app_icon_directory = deliverables / "app-icons"
-    stacked_svg = svg_directory / "petcare-logo-stacked-color.svg"
     symbol_svg = svg_directory / "petcare-symbol-color.svg"
     outputs: list[Path] = []
 
-    stacked_aspect_ratio = _svg_aspect_ratio(stacked_svg)
-    for height in STACKED_HEIGHTS:
-        width = round(stacked_aspect_ratio * height)
-        output = png_directory / f"petcare-logo-stacked-color-{height}h.png"
-        render_svg(stacked_svg, output, width, height)
-        outputs.append(output)
+    for variant in STACKED_VARIANTS:
+        stacked_svg = svg_directory / f"petcare-logo-stacked-{variant}.svg"
+        stacked_aspect_ratio = _svg_aspect_ratio(stacked_svg)
+        for height in STACKED_HEIGHTS:
+            width = round(stacked_aspect_ratio * height)
+            output = png_directory / f"petcare-logo-stacked-{variant}-{height}h.png"
+            render_svg(stacked_svg, output, width, height)
+            outputs.append(output)
     for size in SYMBOL_SIZES:
         output = png_directory / f"petcare-symbol-color-{size}.png"
         render_svg(symbol_svg, output, size, size)

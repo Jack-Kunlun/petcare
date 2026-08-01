@@ -192,7 +192,7 @@ def write_ico(source_png: Path, output_path: Path, sizes: tuple[int, ...]) -> No
 def export_logo_suite(repo_root: Path) -> list[Path]: ...
 ```
 
-Export the stacked Logo at 260/520/780px high using the SVG companion viewBox aspect ratio, Symbol at 16/20/24/28/32/48/64/128/256/512/1024px, and favicon at 16/32/48px. Reproduce the two exact extracted PNG production visual masters with `scripts/brand-assets/extract_approved_logo_assets.ps1` before running the SVG exporter.
+Export every color, dark, monochrome, and reverse stacked Logo at 260/520/780px high using each SVG companion viewBox aspect ratio, Symbol at 16/20/24/28/32/48/64/128/256/512/1024px, and favicon at 16/32/48px. Reproduce the two exact extracted PNG production visual masters with `scripts/brand-assets/extract_approved_logo_assets.ps1` before running the SVG exporter.
 
 - [ ] **Step 2: Run the exporter**
 
