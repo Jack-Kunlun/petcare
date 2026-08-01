@@ -135,46 +135,45 @@ async function createPublishedVersion(
  */
 export async function seedSystemSettings(prisma: PrismaClient, operatorId: string): Promise<void> {
   await prisma.$transaction(async (tx) => {
-    const sopVersion = await createPublishedVersion(tx, "sop", operatorId);
-
     await Promise.all(
-      SERVICE_TYPES.flatMap((serviceType) =>
-        SOP_STEPS.map((step) =>
-          tx.sopConfigStep.upsert({
-            where: {
-              configVersionId_serviceType_stepNumber: {
+      SERVICE_TYPES.map(async (serviceType) => {
+        const sopVersion = await createPublishedVersion(tx, `sop:${serviceType}`, operatorId);
+
+        await Promise.all([
+          ...SOP_STEPS.map((step) =>
+            tx.sopConfigStep.upsert({
+              where: {
+                configVersionId_serviceType_stepNumber: {
+                  configVersionId: sopVersion.id,
+                  serviceType,
+                  stepNumber: step.stepNumber,
+                },
+              },
+              update: {},
+              create: {
                 configVersionId: sopVersion.id,
                 serviceType,
-                stepNumber: step.stepNumber,
+                ...step,
               },
-            },
-            update: {},
-            create: {
-              configVersionId: sopVersion.id,
-              serviceType,
-              ...step,
-            },
-          }),
-        ),
-      ),
-    );
-
-    await Promise.all(
-      VIOLATION_RULES.map((rule) =>
-        tx.sopViolationRule.upsert({
-          where: {
-            configVersionId_severity: {
-              configVersionId: sopVersion.id,
-              severity: rule.severity,
-            },
-          },
-          update: {},
-          create: {
-            configVersionId: sopVersion.id,
-            ...rule,
-          },
-        }),
-      ),
+            }),
+          ),
+          ...VIOLATION_RULES.map((rule) =>
+            tx.sopViolationRule.upsert({
+              where: {
+                configVersionId_severity: {
+                  configVersionId: sopVersion.id,
+                  severity: rule.severity,
+                },
+              },
+              update: {},
+              create: {
+                configVersionId: sopVersion.id,
+                ...rule,
+              },
+            }),
+          ),
+        ]);
+      }),
     );
 
     const ratingVersion = await createPublishedVersion(tx, "rating_threshold", operatorId);
