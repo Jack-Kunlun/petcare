@@ -173,4 +173,47 @@ describe("AuthService", () => {
     );
     expect(result.refreshToken).toBe("refresh");
   });
+
+  it("returns only active administrator roles and their permission codes for authorization", async () => {
+    prisma.user.findFirst.mockResolvedValue({
+      roles: [
+        {
+          role: {
+            roleName: "config_admin",
+            permissions: [
+              { permission: { permissionCode: "system.view" } },
+              { permission: { permissionCode: "system.publish" } },
+            ],
+          },
+        },
+      ],
+    });
+
+    await expect(service.getCurrentUserAuthorization("user-1")).resolves.toEqual({
+      roles: ["config_admin"],
+      permissions: ["system.view", "system.publish"],
+    });
+    expect(prisma.user.findFirst).toHaveBeenCalledWith({
+      where: {
+        id: "user-1",
+        status: "active",
+        roles: { some: { role: { isActive: true } } },
+      },
+      select: {
+        roles: {
+          where: { role: { isActive: true } },
+          select: {
+            role: {
+              select: {
+                roleName: true,
+                permissions: {
+                  select: { permission: { select: { permissionCode: true } } },
+                },
+              },
+            },
+          },
+        },
+      },
+    });
+  });
 });
