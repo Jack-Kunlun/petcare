@@ -41,6 +41,8 @@ export interface AdminSessionUser {
   nickname: string;
   /** 管理员拥有的角色编码。 */
   roles: string[];
+  /** 当前活动角色合并后的权限代码，用于前端可见性与路由提示。 */
+  permissions: string[];
 }
 
 /** 密码登录请求。 */
