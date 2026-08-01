@@ -143,7 +143,7 @@ describe("DisputeDecisionService", () => {
   });
 
   it("closes the complaint with an immutable final decision", async () => {
-    jest.useFakeTimers().setSystemTime(new Date("2026-08-05T12:00:00.000Z"));
+    jest.useFakeTimers().setSystemTime(new Date("2026-08-04T12:00:00.000Z"));
     transaction.complaint.findUnique.mockResolvedValue(
       complaintRecord({
         status: COMPLAINT_STATUS.PROCESSING_FINAL,
@@ -167,8 +167,8 @@ describe("DisputeDecisionService", () => {
       data: {
         status: "superseded",
         failureReason: null,
-        completedAt: new Date("2026-08-05T12:00:00.000Z"),
-        updatedAt: new Date("2026-08-05T12:00:00.000Z"),
+        completedAt: new Date("2026-08-04T12:00:00.000Z"),
+        updatedAt: new Date("2026-08-04T12:00:00.000Z"),
       },
     });
 
@@ -176,7 +176,7 @@ describe("DisputeDecisionService", () => {
       data: expect.objectContaining({
         complaintId: "complaint-1",
         level: DECISION_LEVEL.FINAL,
-        createdAt: new Date("2026-08-05T12:00:00.000Z"),
+        createdAt: new Date("2026-08-04T12:00:00.000Z"),
       }),
       select: { id: true },
     });
@@ -189,7 +189,7 @@ describe("DisputeDecisionService", () => {
       data: {
         status: COMPLAINT_STATUS.CLOSED,
         appealDeadlineAt: null,
-        closedAt: new Date("2026-08-05T12:00:00.000Z"),
+        closedAt: new Date("2026-08-04T12:00:00.000Z"),
         version: { increment: 1 },
       },
     });
@@ -209,6 +209,27 @@ describe("DisputeDecisionService", () => {
     });
   });
 
+  it("rejects a final decision while the other party still has appeal time", async () => {
+    jest.useFakeTimers().setSystemTime(new Date("2026-08-04T11:59:59.999Z"));
+    transaction.complaint.findUnique.mockResolvedValue(
+      complaintRecord({
+        status: COMPLAINT_STATUS.PROCESSING_FINAL,
+        appealDeadlineAt: new Date("2026-08-04T12:00:00.000Z"),
+        version: 5,
+      }),
+    );
+
+    await expect(
+      service.decideFinal(
+        "complaint-1",
+        { id: "admin-1", roles: ["complaint_admin"] },
+        { ...validRequest, version: 5 },
+      ),
+    ).rejects.toMatchObject({ code: "COMPLAINT_ACTION_NOT_ALLOWED" });
+    expect(transaction.complaint.updateMany).not.toHaveBeenCalled();
+    expect(transaction.disputeDecision.create).not.toHaveBeenCalled();
+  });
+
   it.each([
     [
       DECISION_LEVEL.INITIAL,
@@ -226,8 +247,15 @@ describe("DisputeDecisionService", () => {
       (request: typeof validRequest) =>
         service.decideFinal("complaint-1", { id: "admin-1", roles: ["complaint_admin"] }, request),
     ],
-  ] as const)("rejects a duplicate %s decision", async (_level, status, decide) => {
-    transaction.complaint.findUnique.mockResolvedValue(complaintRecord({ status }));
+  ] as const)("rejects a duplicate %s decision", async (level, status, decide) => {
+    jest.useFakeTimers().setSystemTime(new Date("2026-08-05T00:00:00.000Z"));
+    transaction.complaint.findUnique.mockResolvedValue(
+      complaintRecord({
+        status,
+        appealDeadlineAt:
+          level === DECISION_LEVEL.FINAL ? new Date("2026-08-04T00:00:00.000Z") : null,
+      }),
+    );
     transaction.disputeDecision.findUnique.mockResolvedValue({ id: "existing-decision" });
 
     await expect(decide(validRequest)).rejects.toMatchObject({
