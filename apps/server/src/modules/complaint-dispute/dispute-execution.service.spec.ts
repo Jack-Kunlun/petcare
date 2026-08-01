@@ -43,6 +43,9 @@ describe("DisputeExecutionService", () => {
     },
   };
   const prisma = {
+    complaint: {
+      findUnique: jest.fn(),
+    },
     disputeExecutionTask: {
       findFirst: jest.fn(),
       findUnique: jest.fn(),
@@ -73,6 +76,7 @@ describe("DisputeExecutionService", () => {
       decisions: [{ id: "decision-1", level: "final" }],
     });
     transaction.disputeExecutionTask.updateMany.mockResolvedValue({ count: 1 });
+    prisma.complaint.findUnique.mockResolvedValue({ version: 3 });
   });
 
   afterEach(() => {
@@ -439,7 +443,9 @@ describe("DisputeExecutionService", () => {
   it("rejects retry unless the task is failed and belongs to the requested complaint", async () => {
     prisma.disputeExecutionTask.findFirst.mockResolvedValue(null);
 
-    await expect(service.retryTask("task-1", "admin-1", "complaint-other")).rejects.toMatchObject({
+    await expect(
+      service.retryTask("task-1", "admin-1", "complaint-other", 3),
+    ).rejects.toMatchObject({
       code: "EXECUTION_TASK_NOT_RETRYABLE",
       status: 409,
     });
@@ -453,6 +459,17 @@ describe("DisputeExecutionService", () => {
       select: { id: true },
     });
     expect(prisma.disputeExecutionTask.updateMany).not.toHaveBeenCalled();
+  });
+
+  it("rejects retry when the complaint version is stale", async () => {
+    prisma.complaint.findUnique.mockResolvedValue({ version: 4 });
+
+    await expect(service.retryTask("task-1", "admin-1", "complaint-1", 3)).rejects.toMatchObject({
+      code: "COMPLAINT_STATE_CONFLICT",
+      status: 409,
+    });
+
+    expect(prisma.disputeExecutionTask.findFirst).not.toHaveBeenCalled();
   });
 
   it("records the administrator on a successful failed-task retry", async () => {
@@ -470,7 +487,7 @@ describe("DisputeExecutionService", () => {
     transaction.disputeExecutionTask.updateMany.mockResolvedValue({ count: 1 });
     transaction.complaintEvent.create.mockResolvedValue({});
 
-    await expect(service.retryTask("task-1", "admin-1", "complaint-1")).resolves.toMatchObject({
+    await expect(service.retryTask("task-1", "admin-1", "complaint-1", 3)).resolves.toMatchObject({
       status: "succeeded",
       retryCount: 2,
     });

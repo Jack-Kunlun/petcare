@@ -236,12 +236,30 @@ export class DisputeExecutionService {
   async retryTask(
     taskId: string,
     adminId: string,
-    complaintId?: string,
+    complaintId: string,
+    version: number,
   ): Promise<DisputeExecutionTaskView> {
+    const complaint = await this.prisma.complaint.findUnique({
+      where: { id: complaintId },
+      select: { version: true },
+    });
+
+    if (!complaint) {
+      throw new ApiException("RESOURCE_NOT_FOUND", "投诉不存在", HttpStatus.NOT_FOUND);
+    }
+
+    if (complaint.version !== version) {
+      throw new ApiException(
+        "COMPLAINT_STATE_CONFLICT",
+        "投诉状态已变化，请刷新后重试",
+        HttpStatus.CONFLICT,
+      );
+    }
+
     const failedTask = await this.prisma.disputeExecutionTask.findFirst({
       where: {
         id: taskId,
-        ...(complaintId ? { complaintId } : {}),
+        complaintId,
         status: DISPUTE_EXECUTION_TASK_STATUS.FAILED,
       },
       select: { id: true },

@@ -174,14 +174,14 @@ describe("AdminComplaintController", () => {
       pageSize: 100,
     });
     await expect(
-      controller.retryExecutionTask("complaint-1", "task-1", request),
+      controller.retryExecutionTask("complaint-1", "task-1", request, { version: 3 }),
     ).resolves.toMatchObject({
       id: "task-1",
       status: "succeeded",
     });
 
     expect(executionService.findTasks).toHaveBeenCalledWith("complaint-1", 1, 100);
-    expect(executionService.retryTask).toHaveBeenCalledWith("task-1", "admin-1", "complaint-1");
+    expect(executionService.retryTask).toHaveBeenCalledWith("task-1", "admin-1", "complaint-1", 3);
   });
 
   it("exposes the execution task list and retry routes", () => {
@@ -304,10 +304,11 @@ describe("AdminComplaintController", () => {
         .expect(HttpStatus.OK);
       await supertest(app.getHttpServer())
         .post(`/admin/complaints/${complaintId}/execution-tasks/${taskId}/retry`)
+        .send({ version: 3 })
         .expect(HttpStatus.OK);
 
       expect(executionService.findTasks).toHaveBeenCalledWith(complaintId, 1, 100);
-      expect(executionService.retryTask).toHaveBeenCalledWith(taskId, "admin-1", complaintId);
+      expect(executionService.retryTask).toHaveBeenCalledWith(taskId, "admin-1", complaintId, 3);
     } finally {
       await app?.close();
     }
