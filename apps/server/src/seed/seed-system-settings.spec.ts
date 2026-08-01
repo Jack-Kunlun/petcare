@@ -137,10 +137,24 @@ describe("seedSystemSettings", () => {
 
     await seedSystemSettings(state.prisma, "admin-1");
 
-    expect(state.versions).toHaveLength(3);
+    expect(state.versions).toHaveLength(5);
     expect(state.versions).toEqual(
       expect.arrayContaining([
-        expect.objectContaining({ configKey: "sop", status: "published", businessVersion: 1 }),
+        expect.objectContaining({
+          configKey: "sop:feeding",
+          status: "published",
+          businessVersion: 1,
+        }),
+        expect.objectContaining({
+          configKey: "sop:walking",
+          status: "published",
+          businessVersion: 1,
+        }),
+        expect.objectContaining({
+          configKey: "sop:playing",
+          status: "published",
+          businessVersion: 1,
+        }),
         expect.objectContaining({
           configKey: "rating_threshold",
           status: "published",
@@ -149,9 +163,28 @@ describe("seedSystemSettings", () => {
         expect.objectContaining({ configKey: "fee", status: "published", businessVersion: 1 }),
       ]),
     );
-    expect(state.pointers).toHaveLength(3);
+    expect(state.pointers).toEqual(
+      expect.arrayContaining([
+        expect.objectContaining({ configKey: "sop:feeding" }),
+        expect.objectContaining({ configKey: "sop:walking" }),
+        expect.objectContaining({ configKey: "sop:playing" }),
+        expect.objectContaining({ configKey: "rating_threshold" }),
+        expect.objectContaining({ configKey: "fee" }),
+      ]),
+    );
+    expect(state.pointers).toHaveLength(5);
+    expect(state.pointers).not.toContainEqual(expect.objectContaining({ configKey: "sop" }));
     expect(state.sopSteps).toHaveLength(15);
-    expect(state.violationRules).toHaveLength(3);
+
+    for (const serviceType of ["feeding", "walking", "playing"]) {
+      const version = state.versions.find(({ configKey }) => configKey === `sop:${serviceType}`);
+      const steps = state.sopSteps.filter((step) => step.configVersionId === version?.id);
+
+      expect(steps).toHaveLength(5);
+      expect(steps.every((step) => step.serviceType === serviceType)).toBe(true);
+    }
+
+    expect(state.violationRules).toHaveLength(9);
     expect(state.ratingConfigs).toEqual([
       expect.objectContaining({
         evaluationWindow: 30,
@@ -168,7 +201,7 @@ describe("seedSystemSettings", () => {
         minimumWithdrawalFeeCents: 100,
       }),
     ]);
-    expect(state.auditEvents).toHaveLength(3);
+    expect(state.auditEvents).toHaveLength(5);
   });
 
   it("重复执行不会增加配置版本或领域数据", async () => {
@@ -177,36 +210,53 @@ describe("seedSystemSettings", () => {
     await seedSystemSettings(state.prisma, "admin-1");
     await seedSystemSettings(state.prisma, "admin-1");
 
-    expect(state.versions).toHaveLength(3);
-    expect(state.pointers).toHaveLength(3);
+    expect(state.versions).toHaveLength(5);
+    expect(state.pointers).toHaveLength(5);
     expect(state.sopSteps).toHaveLength(15);
-    expect(state.violationRules).toHaveLength(3);
+    expect(state.violationRules).toHaveLength(9);
     expect(state.ratingConfigs).toHaveLength(1);
     expect(state.feeConfigs).toHaveLength(1);
-    expect(state.auditEvents).toHaveLength(3);
+    expect(state.auditEvents).toHaveLength(5);
   });
 
   it("已有后续发布版本及指针时不会回退到初始版本", async () => {
     const state = createFakePrisma();
 
-    state.versions.push({
-      id: "sop-version-2",
-      configKey: "sop",
-      status: "published",
-      businessVersion: 2,
-      revision: 1,
-      idempotencyKey: "publish:sop:v2",
-      changeSummary: "发布后续 SOP 配置",
-      publishedById: "admin-2",
-      publishedAt: new Date("2026-08-02T00:00:00.000Z"),
-    });
-    state.pointers.push({ configKey: "sop", publishedVersionId: "sop-version-2" });
+    for (const serviceType of ["feeding", "walking", "playing"]) {
+      state.versions.push({
+        id: `sop-${serviceType}-version-2`,
+        configKey: `sop:${serviceType}`,
+        status: "published",
+        businessVersion: 2,
+        revision: 1,
+        idempotencyKey: `publish:sop:${serviceType}:v2`,
+        changeSummary: "发布后续 SOP 配置",
+        publishedById: "admin-2",
+        publishedAt: new Date("2026-08-02T00:00:00.000Z"),
+      });
+      state.pointers.push({
+        configKey: `sop:${serviceType}`,
+        publishedVersionId: `sop-${serviceType}-version-2`,
+      });
+    }
 
     await seedSystemSettings(state.prisma, "admin-1");
 
-    expect(state.pointers).toContainEqual({
-      configKey: "sop",
-      publishedVersionId: "sop-version-2",
-    });
+    expect(state.pointers).toEqual(
+      expect.arrayContaining([
+        {
+          configKey: "sop:feeding",
+          publishedVersionId: "sop-feeding-version-2",
+        },
+        {
+          configKey: "sop:walking",
+          publishedVersionId: "sop-walking-version-2",
+        },
+        {
+          configKey: "sop:playing",
+          publishedVersionId: "sop-playing-version-2",
+        },
+      ]),
+    );
   });
 });
