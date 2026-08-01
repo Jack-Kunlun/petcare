@@ -331,7 +331,7 @@ describe("ComplaintDetail", () => {
     const { invalidate } = renderPage();
 
     await user.click(await screen.findByRole("button", { name: "重试退款任务" }));
-    expect(retryExecutionTask).toHaveBeenCalledWith("complaint-1", "task-1");
+    expect(retryExecutionTask).toHaveBeenCalledWith("complaint-1", "task-1", { version: 3 });
     expect(invalidate).toHaveBeenCalledWith({ queryKey: ["admin-complaints"] });
     expect(invalidate).toHaveBeenCalledWith({ queryKey: ["admin-complaint", "complaint-1"] });
   });

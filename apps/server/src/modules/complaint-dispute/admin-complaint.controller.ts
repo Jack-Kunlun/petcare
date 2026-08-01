@@ -35,6 +35,7 @@ import {
   DisputeExecutionTaskListResponseDto,
   RetryDisputeExecutionTaskResponseDto,
 } from "./dto/dispute-execution-response.dto";
+import { RetryDisputeExecutionTaskDto } from "./dto/retry-dispute-execution-task.dto";
 import { SubmitDisputeDecisionDto } from "./dto/submit-dispute-decision.dto";
 import { ClaimComplaintDto, TransferComplaintDto } from "./dto/transfer-complaint.dto";
 
@@ -165,8 +166,9 @@ export class AdminComplaintController {
     @Param("id", new ParseUUIDPipe()) id: string,
     @Param("taskId", new ParseUUIDPipe()) taskId: string,
     @Req() request: AuthRequest,
+    @Body() dto: RetryDisputeExecutionTaskDto,
   ) {
-    return this.executionService.retryTask(taskId, request.user!.sub, id);
+    return this.executionService.retryTask(taskId, request.user!.sub, id, dto.version);
   }
 
   /** 仅从访问令牌构建服务端信任的管理员身份。 */

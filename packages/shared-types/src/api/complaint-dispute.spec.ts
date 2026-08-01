@@ -21,6 +21,7 @@ import {
   type DisputeExecutionTaskDetailResponse,
   type DisputeExecutionTaskListResponse,
   type RetryDisputeExecutionTaskResponse,
+  type RetryDisputeExecutionTaskRequest,
   type SubmitComplaintStatementRequest,
   type TransferComplaintRequest,
   type WithdrawComplaintRequest,
@@ -207,6 +208,12 @@ describe("complaint dispute contracts", () => {
       FINAL_DECIDE: "final_decide",
       RETRY_EXECUTION: "retry_execution",
     });
+  });
+
+  it("requires the complaint concurrency version when retrying execution", () => {
+    const request: RetryDisputeExecutionTaskRequest = { version: 3 };
+
+    expect(request).toEqual({ version: 3 });
   });
 
   it("shares every user command field required by the complaint workflow", () => {

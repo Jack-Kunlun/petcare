@@ -4,6 +4,7 @@ import type {
   AdminComplaintDetail,
   ClaimComplaintRequest,
   DisputeExecutionTaskListResponse,
+  RetryDisputeExecutionTaskRequest,
   RetryDisputeExecutionTaskResponse,
   SubmitDisputeDecisionRequest,
   TransferComplaintRequest,
@@ -95,9 +96,11 @@ export async function fetchExecutionTasks(
 export async function retryExecutionTask(
   complaintId: string,
   taskId: string,
+  request: RetryDisputeExecutionTaskRequest,
 ): Promise<RetryDisputeExecutionTaskResponse> {
   const response = await apiClient.post<RetryDisputeExecutionTaskResponse>(
     `/admin/complaints/${complaintId}/execution-tasks/${taskId}/retry`,
+    request,
   );
 
   return response.data;

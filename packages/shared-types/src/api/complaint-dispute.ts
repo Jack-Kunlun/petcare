@@ -487,5 +487,11 @@ export type DisputeExecutionTaskListResponse = PaginatedResponse<DisputeExecutio
 /** 单条裁决执行任务的详情响应。 */
 export type DisputeExecutionTaskDetailResponse = DisputeExecutionTaskView;
 
+/** 管理员重试失败执行任务时提交的并发控制参数。 */
+export interface RetryDisputeExecutionTaskRequest {
+  /** 客户端读取投诉详情时获得的并发版本。 */
+  version: number;
+}
+
 /** 管理员重试后返回的最新裁决执行任务。 */
 export type RetryDisputeExecutionTaskResponse = DisputeExecutionTaskDetailResponse;

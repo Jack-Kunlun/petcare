@@ -112,7 +112,9 @@ describe("admin complaint API", () => {
     });
 
     await expect(submitFinalDecision("complaint-1", decision)).resolves.toEqual(detail);
-    await expect(retryExecutionTask("complaint-1", "task-1")).resolves.toEqual(task);
+    await expect(retryExecutionTask("complaint-1", "task-1", { version: 3 })).resolves.toEqual(
+      task,
+    );
 
     expect(apiClient.post).toHaveBeenNthCalledWith(
       1,
@@ -122,6 +124,7 @@ describe("admin complaint API", () => {
     expect(apiClient.post).toHaveBeenNthCalledWith(
       2,
       "/admin/complaints/complaint-1/execution-tasks/task-1/retry",
+      { version: 3 },
     );
   });
 });

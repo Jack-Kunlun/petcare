@@ -129,7 +129,7 @@ export default function ComplaintDetailPage() {
     onError: failed,
   });
   const retry = useMutation({
-    mutationFn: (taskId: string) => retryExecutionTask(id, taskId),
+    mutationFn: (taskId: string) => retryExecutionTask(id, taskId, { version: complaint!.version }),
     onSuccess: succeeded,
     onError: failed,
   });
