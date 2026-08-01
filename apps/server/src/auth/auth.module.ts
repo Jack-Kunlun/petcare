@@ -11,6 +11,7 @@ import { CaptchaService } from "./captcha.service";
 import { DisputeResolverGuard } from "./dispute-resolver.guard";
 import { JwtStrategy } from "./jwt.strategy";
 import { PasswordService } from "./password.service";
+import { PermissionGuard } from "./permission.guard";
 import { DevelopmentSmsSender } from "./sms/development-sms.sender";
 import { SMS_SENDER } from "./sms/sms-sender";
 import { TokenService } from "./token.service";
@@ -34,6 +35,7 @@ import { WechatAuthService } from "./wechat-auth.service";
     JwtStrategy,
     AccessTokenGuard,
     AdminGuard,
+    PermissionGuard,
     DisputeResolverGuard,
     {
       provide: SMS_SENDER,
@@ -47,6 +49,6 @@ import { WechatAuthService } from "./wechat-auth.service";
       },
     },
   ],
-  exports: [AuthService, AccessTokenGuard, AdminGuard, DisputeResolverGuard],
+  exports: [AuthService, AccessTokenGuard, AdminGuard, PermissionGuard, DisputeResolverGuard],
 })
 export class AuthModule {}
