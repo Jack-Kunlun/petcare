@@ -2,41 +2,143 @@ import { HttpStatus } from "@nestjs/common";
 import { ApiException } from "../../common/http/api-exception";
 import { ConfigService } from "../../config/config.service";
 import { PrismaService } from "../../prisma/prisma.service";
+import { OrderConfigSnapshotService } from "./order-config-snapshot.service";
 import { OrderService } from "./order.service";
 
 describe("OrderService public responses", () => {
   const prisma = {
+    $transaction: jest.fn(),
     order: {
       create: jest.fn(),
       findMany: jest.fn(),
       count: jest.fn(),
       findUnique: jest.fn(),
     },
+    orderSop: {
+      createMany: jest.fn(),
+    },
+    orderFeeSnapshot: {
+      create: jest.fn(),
+    },
   };
-  const service = new OrderService(prisma as unknown as PrismaService, {} as ConfigService);
+  const snapshots = {
+    createForOrder: jest.fn(),
+  };
+  const service = new OrderService(
+    prisma as unknown as PrismaService,
+    {} as ConfigService,
+    snapshots as unknown as OrderConfigSnapshotService,
+  );
 
-  beforeEach(() => jest.clearAllMocks());
+  beforeEach(() => {
+    jest.clearAllMocks();
+    prisma.$transaction.mockImplementation(async (callback) => callback(prisma));
+    prisma.order.create.mockResolvedValue({ id: "order-1" });
+    prisma.orderSop.createMany.mockResolvedValue({ count: 1 });
+    prisma.orderFeeSnapshot.create.mockResolvedValue({ id: "fee-snapshot-1" });
+    snapshots.createForOrder.mockResolvedValue({
+      sopConfigVersionId: "sop-v2",
+      feeConfigVersionId: "fee-v2",
+      sops: [
+        {
+          stepNumber: 1,
+          stepName: "进门消毒",
+          instruction: "进门后完成消毒",
+          expectedDurationMinutes: 5,
+          minimumPhotoCount: 1,
+          videoRequired: false,
+          violationGuidance: "[]",
+          photos: [],
+          videos: [],
+        },
+      ],
+      fee: {
+        feeConfigVersionId: "fee-v2",
+        inputAmountCents: 12500,
+        platformCommissionBps: 1000,
+        commissionAmountCents: 1250,
+        rewardServiceFeeCents: 200,
+        withdrawalFeeBps: 100,
+        minimumWithdrawalFeeCents: 100,
+        providerSettlementCents: 11050,
+      },
+    });
+  });
 
   it("stores reward order money as integer minor units", async () => {
-    prisma.order.create.mockResolvedValue({ id: "order-1" });
+    await expect(
+      service.createRewardOrder(
+        {
+          serviceType: "feeding",
+          petId: "pet-1",
+          serviceTime: "2026-08-01T10:00:00.000Z",
+          address: "测试地址",
+          rewardAmount: 12500,
+          remark: "",
+        },
+        "owner-1",
+      ),
+    ).resolves.toEqual({ order: { id: "order-1" } });
 
-    await service.createRewardOrder(
-      {
-        serviceType: "feeding",
-        petId: "pet-1",
-        serviceTime: "2026-08-01T10:00:00.000Z",
-        address: "测试地址",
-        rewardAmount: 12500,
-        remark: "",
-      },
-      "owner-1",
-    );
-
+    expect(prisma.$transaction).toHaveBeenCalledTimes(1);
+    expect(snapshots.createForOrder).toHaveBeenCalledWith("feeding", 12500, prisma);
     expect(prisma.order.create).toHaveBeenCalledWith(
       expect.objectContaining({
-        data: expect.objectContaining({ amount: 12500 }),
+        data: expect.objectContaining({
+          amount: 12500,
+          sopConfigVersionId: "sop-v2",
+          feeConfigVersionId: "fee-v2",
+        }),
       }),
     );
+    expect(prisma.orderSop.createMany).toHaveBeenCalledWith({
+      data: [
+        expect.objectContaining({
+          orderId: "order-1",
+          stepNumber: 1,
+          instruction: "进门后完成消毒",
+        }),
+      ],
+    });
+    expect(prisma.orderFeeSnapshot.create).toHaveBeenCalledWith({
+      data: expect.objectContaining({
+        orderId: "order-1",
+        feeConfigVersionId: "fee-v2",
+        inputAmountCents: 12500,
+        platformCommissionCents: 1250,
+      }),
+    });
+  });
+
+  it("订单或快照写入失败时返回稳定错误且不泄漏底层异常", async () => {
+    prisma.orderSop.createMany.mockRejectedValue(
+      new Error("P2003: foreign key constraint failed on order_sops"),
+    );
+
+    try {
+      await service.createRewardOrder(
+        {
+          serviceType: "feeding",
+          petId: "pet-1",
+          serviceTime: "2026-08-01T10:00:00.000Z",
+          address: "测试地址",
+          rewardAmount: 12500,
+          remark: "",
+        },
+        "owner-1",
+      );
+      throw new Error("Expected createRewardOrder to reject");
+    } catch (error) {
+      expect(error).toBeInstanceOf(ApiException);
+      expect(error).toMatchObject({
+        code: "ORDER_CREATION_FAILED",
+        clientMessage: "订单创建失败",
+      });
+      expect((error as Error).message).not.toContain("P2003");
+    }
+
+    expect(prisma.$transaction).toHaveBeenCalledTimes(1);
+    expect(prisma.orderFeeSnapshot.create).not.toHaveBeenCalled();
   });
 
   it("returns the unified list-based pagination shape", async () => {

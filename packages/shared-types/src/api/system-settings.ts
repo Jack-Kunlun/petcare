@@ -108,7 +108,7 @@ export interface SopConfig {
 
 /** 服务者评分阈值配置。 */
 export interface RatingThresholdConfig {
-  /** 用于计算评分的时间窗口，单位为天。 */
+  /** 用于计算评分的最近已评价订单数量。 */
   evaluationWindow: number;
   /** 评分生效所需的最小评价样本数。 */
   minimumSampleSize: number;
