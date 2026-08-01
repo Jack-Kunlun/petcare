@@ -9,6 +9,87 @@
   ],
   "assets": [
     {
+      "id": "logo.symbol.color.svg",
+      "path": "logo/svg/petcare-symbol-color.svg",
+      "kind": "logo",
+      "width": 128,
+      "height": 128,
+      "format": "svg",
+      "alt": "PetCare protective house with companion dog, cat, and heart symbol in brand colors."
+    },
+    {
+      "id": "logo.symbol.dark.svg",
+      "path": "logo/svg/petcare-symbol-dark.svg",
+      "kind": "logo",
+      "width": 128,
+      "height": 128,
+      "format": "svg",
+      "alt": "PetCare protective house with companion dog, cat, and heart symbol in dark blue."
+    },
+    {
+      "id": "logo.symbol.monochrome.svg",
+      "path": "logo/svg/petcare-symbol-monochrome.svg",
+      "kind": "logo",
+      "width": 128,
+      "height": 128,
+      "format": "svg",
+      "alt": "PetCare protective house with companion dog, cat, and heart symbol in black."
+    },
+    {
+      "id": "logo.symbol.reverse.svg",
+      "path": "logo/svg/petcare-symbol-reverse.svg",
+      "kind": "logo",
+      "width": 128,
+      "height": 128,
+      "format": "svg",
+      "alt": "PetCare protective house with companion dog, cat, and heart symbol in white."
+    },
+    {
+      "id": "logo.horizontal.color.svg",
+      "path": "logo/svg/petcare-logo-horizontal-color.svg",
+      "kind": "logo",
+      "width": 556,
+      "height": 128,
+      "format": "svg",
+      "alt": "PetCare 宠伴 horizontal logo in brand colors."
+    },
+    {
+      "id": "logo.horizontal.compact.svg",
+      "path": "logo/svg/petcare-logo-horizontal-compact.svg",
+      "kind": "logo",
+      "width": 440,
+      "height": 128,
+      "format": "svg",
+      "alt": "Compact PetCare horizontal logo in brand colors."
+    },
+    {
+      "id": "logo.horizontal.dark.svg",
+      "path": "logo/svg/petcare-logo-horizontal-dark.svg",
+      "kind": "logo",
+      "width": 556,
+      "height": 128,
+      "format": "svg",
+      "alt": "PetCare 宠伴 horizontal logo in dark blue."
+    },
+    {
+      "id": "logo.horizontal.monochrome.svg",
+      "path": "logo/svg/petcare-logo-horizontal-monochrome.svg",
+      "kind": "logo",
+      "width": 556,
+      "height": 128,
+      "format": "svg",
+      "alt": "PetCare 宠伴 horizontal logo in black."
+    },
+    {
+      "id": "logo.horizontal.reverse.svg",
+      "path": "logo/svg/petcare-logo-horizontal-reverse.svg",
+      "kind": "logo",
+      "width": 556,
+      "height": 128,
+      "format": "svg",
+      "alt": "PetCare 宠伴 horizontal logo in white."
+    },
+    {
       "id": "hero.trusted-care.desktop.png",
       "path": "hero/desktop/hero-trusted-care-desktop-v1.png",
       "kind": "hero",
