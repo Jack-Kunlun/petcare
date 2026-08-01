@@ -12,16 +12,18 @@ const activeAdmin = {
   nickname: "系统管理员",
   status: "active",
   passwordHash: "$argon2id$v=19$test",
-  roles: [{
-    role: {
-      roleName: "super_admin",
-      isActive: true,
-      permissions: [
-        { permission: { permissionCode: "system.view" } },
-        { permission: { permissionCode: "system.publish" } },
-      ],
+  roles: [
+    {
+      role: {
+        roleName: "super_admin",
+        isActive: true,
+        permissions: [
+          { permission: { permissionCode: "system.view" } },
+          { permission: { permissionCode: "system.publish" } },
+        ],
+      },
     },
-  }],
+  ],
 };
 const activeDisputeResolver = {
   ...activeAdmin,

@@ -19,12 +19,14 @@ const current = {
   publishedAt: "2026-08-01T08:00:00.000Z",
 };
 
-function renderSettings(permissions = [
-  "system.view",
-  "system.sop_config",
-  "system.threshold_config",
-  "system.fee_config",
-]) {
+function renderSettings(
+  permissions = [
+    "system.view",
+    "system.sop_config",
+    "system.threshold_config",
+    "system.fee_config",
+  ],
+) {
   const queryClient = new QueryClient({
     defaultOptions: { queries: { retry: false } },
   });
@@ -32,10 +34,18 @@ function renderSettings(permissions = [
   const auth: AuthContextValue = {
     status: "authenticated",
     user: {
-      id: "admin-1", username: "operator", phone: "13800138000", nickname: "运营主管",
-      roles: ["operator"], permissions,
+      id: "admin-1",
+      username: "operator",
+      phone: "13800138000",
+      nickname: "运营主管",
+      roles: ["operator"],
+      permissions,
     },
-    loginWithPassword: vi.fn(), loginWithSms: vi.fn(), getCaptcha: vi.fn(), sendSmsCode: vi.fn(), logout: vi.fn(),
+    loginWithPassword: vi.fn(),
+    loginWithSms: vi.fn(),
+    getCaptcha: vi.fn(),
+    sendSmsCode: vi.fn(),
+    logout: vi.fn(),
   };
 
   render(

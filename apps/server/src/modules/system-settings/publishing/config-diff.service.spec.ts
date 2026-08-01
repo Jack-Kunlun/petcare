@@ -81,7 +81,7 @@ describe("ConfigDiffService", () => {
     ).toEqual([
       {
         path: "rules[key=basic].value",
-        label: "value",
+        label: "key=basic · value",
         before: 1,
         after: 3,
         changeType: "modified",
@@ -107,14 +107,30 @@ describe("ConfigDiffService", () => {
       service.compare({
         before,
         after,
-        arrayKeyStrategies: [
-          { arrayPath: "steps", keyPaths: ["scope.type", "stepNumber"] },
-        ],
+        arrayKeyStrategies: [{ arrayPath: "steps", keyPaths: ["scope.type", "stepNumber"] }],
       }),
     ).toEqual([
       {
         path: "steps[scope.type=walking,stepNumber=1].value",
-        label: "value",
+        label: "scope.type=walking，stepNumber=1 · value",
+        before: "旧值",
+        after: "新值",
+        changeType: "modified",
+      },
+    ]);
+  });
+
+  it("转义数组业务键中的路径特殊字符并保留可读条目标签", () => {
+    expect(
+      service.compare({
+        before: { rules: [{ key: "vip],level=1\\beta", value: "旧值" }] },
+        after: { rules: [{ key: "vip],level=1\\beta", value: "新值" }] },
+        arrayKeyStrategies: [{ arrayPath: "rules", keyPaths: ["key"] }],
+      }),
+    ).toEqual([
+      {
+        path: String.raw`rules[key=vip\u005d\u002clevel\u003d1\\beta].value`,
+        label: String.raw`key=vip\u005d\u002clevel\u003d1\\beta · value`,
         before: "旧值",
         after: "新值",
         changeType: "modified",

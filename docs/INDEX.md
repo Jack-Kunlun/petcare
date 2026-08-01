@@ -26,12 +26,12 @@
 
 业务需求和用户故事，帮助理解产品目标。
 
-| 文档                                                                             | 说明              | 适合人群        |
-| -------------------------------------------------------------------------------- | ----------------- | --------------- |
-| [01-prd.md](./01-requirements/01-prd.md)                                         | 产品需求文档      | PM、开发、测试  |
-| [02-user-stories.md](./01-requirements/02-user-stories.md)                       | 用户故事          | PM、开发        |
-| [03-competitive-analysis.md](./01-requirements/03-competitive-analysis.md)       | 竞品分析          | PM、产品        |
-| [04-prototype-specification.md](./01-requirements/04-prototype-specification.md) | 原型规格文档(v41) | PM、前端、UI/UX |
+| 文档                                                                             | 说明                                     | 适合人群        |
+| -------------------------------------------------------------------------------- | ---------------------------------------- | --------------- |
+| [01-prd.md](./01-requirements/01-prd.md)                                         | 产品需求文档（含系统设置版本与订单快照） | PM、开发、测试  |
+| [02-user-stories.md](./01-requirements/02-user-stories.md)                       | 用户故事                                 | PM、开发        |
+| [03-competitive-analysis.md](./01-requirements/03-competitive-analysis.md)       | 竞品分析                                 | PM、产品        |
+| [04-prototype-specification.md](./01-requirements/04-prototype-specification.md) | 原型规格文档(v41)                        | PM、前端、UI/UX |
 
 **使用场景**:
 
@@ -127,7 +127,8 @@ RESTful API设计规范和接口定义。
 - 请求/响应格式规范
 - 错误处理标准
 - 分页和速率限制
-- 完整API列表（8个模块）
+- 完整API列表（含后台系统设置的草稿、发布、恢复和历史接口）
+- 系统设置稳定错误码、整数单位与订单版本快照约束
 
 **使用场景**:
 
@@ -186,11 +187,12 @@ Docker容器化部署和运维指南。
 
 代码规范和开发流程标准。
 
-| 文档                                                                                     | 说明           | 适合人群 |
-| ---------------------------------------------------------------------------------------- | -------------- | -------- |
-| [01-development-guidelines.md](./09-development-guidelines/01-development-guidelines.md) | 开发指南       | 全体开发 |
-| [02-development-standards.md](./09-development-guidelines/02-development-standards.md)   | 开发规范详细版 | 全体开发 |
-| [04-styling-standards.md](./09-development-guidelines/04-styling-standards.md)           | 双端样式规范   | 前端开发 |
+| 文档                                                                                                                 | 说明                                      | 适合人群   |
+| -------------------------------------------------------------------------------------------------------------------- | ----------------------------------------- | ---------- |
+| [01-development-guidelines.md](./09-development-guidelines/01-development-guidelines.md)                             | 开发指南                                  | 全体开发   |
+| [02-development-standards.md](./09-development-guidelines/02-development-standards.md)                               | 开发规范详细版                            | 全体开发   |
+| [04-styling-standards.md](./09-development-guidelines/04-styling-standards.md)                                       | 双端样式规范                              | 前端开发   |
+| [05-frontend-structure-and-api-contracts.md](./09-development-guidelines/05-frontend-structure-and-api-contracts.md) | 前端目录与 API 契约规范（含系统设置示例） | 前后端开发 |
 
 **核心内容**:
 
@@ -200,6 +202,7 @@ Docker容器化部署和运维指南。
 - 测试规范（Vitest + Playwright）
 - ConfigService使用规范
 - Docker开发环境配置
+- 系统设置的共享契约、无障碍错误关联和路由分包约定
 
 **使用场景**:
 

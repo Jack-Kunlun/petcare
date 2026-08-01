@@ -483,7 +483,27 @@ export default function SettingsEdit() {
               最近发布历史
             </h2>
             {historyQuery.isPending ? <p className="mt-3 text-slate-600">正在加载历史…</p> : null}
-            {historyQuery.data?.list.length === 0 ? (
+            {historyQuery.isError ? (
+              <div
+                role="alert"
+                aria-label="最近发布历史加载失败"
+                className="mt-3 rounded-lg border border-red-200 bg-red-50 p-4 text-red-950"
+              >
+                <p className="font-semibold">最近发布历史加载失败</p>
+                <p className="mt-1 text-sm">配置编辑不受影响，可稍后单独重试历史查询。</p>
+                <button
+                  type="button"
+                  disabled={historyQuery.isFetching}
+                  onClick={() => {
+                    void historyQuery.refetch();
+                  }}
+                  className="mt-3 min-h-11 cursor-pointer rounded-lg border border-red-700 px-4 py-2 font-semibold outline-none hover:bg-red-100 focus-visible:ring-2 focus-visible:ring-red-800 disabled:cursor-not-allowed disabled:opacity-40"
+                >
+                  重新加载发布历史
+                </button>
+              </div>
+            ) : null}
+            {historyQuery.isSuccess && historyQuery.data.list.length === 0 ? (
               <p className="mt-3 rounded-lg bg-slate-50 p-4 text-slate-600">暂无已发布版本。</p>
             ) : null}
             <ul className="mt-3 grid gap-3 sm:grid-cols-2 lg:grid-cols-3">

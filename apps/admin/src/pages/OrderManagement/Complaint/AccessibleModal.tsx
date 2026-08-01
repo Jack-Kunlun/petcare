@@ -6,7 +6,7 @@ const focusableSelector = [
   "select:not([disabled])",
   "textarea:not([disabled])",
   "a[href]",
-  "[tabindex]:not([tabindex=\"-1\"])",
+  "[tabindex]:not([tabindex='-1'])",
 ].join(",");
 
 interface AccessibleModalProps {
