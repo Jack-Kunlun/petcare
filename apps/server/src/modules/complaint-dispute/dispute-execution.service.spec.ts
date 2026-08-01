@@ -32,6 +32,9 @@ describe("DisputeExecutionService", () => {
     creditRecord: {
       createMany: jest.fn(),
     },
+    disputeMoneyRecord: {
+      createMany: jest.fn(),
+    },
     creditScore: {
       upsert: jest.fn(),
     },
@@ -162,6 +165,76 @@ describe("DisputeExecutionService", () => {
     expect(transaction.creditScore.upsert).not.toHaveBeenCalled();
   });
 
+  it.each([
+    ["refund", "owner-1", 1000],
+    ["settlement", "provider-1", 0],
+  ])("writes an auditable idempotent %s money record", async (taskType, userId, amount) => {
+    jest.useFakeTimers().setSystemTime(new Date("2026-08-04T12:00:00.000Z"));
+    prisma.disputeExecutionTask.findUnique.mockResolvedValue(
+      taskRecord({
+        taskType,
+        payload: JSON.stringify({ userId, amount }),
+        idempotencyKey: `complaint-1:final:${taskType}`,
+      }),
+    );
+    transaction.disputeMoneyRecord.createMany.mockResolvedValue({ count: 1 });
+
+    await expect(service.executeTask("task-1")).resolves.toMatchObject({ status: "succeeded" });
+
+    expect(transaction.disputeMoneyRecord.createMany).toHaveBeenCalledWith({
+      data: [
+        {
+          userId,
+          orderId: "order-1",
+          complaintId: "complaint-1",
+          executionTaskId: "task-1",
+          type: taskType,
+          amount,
+          businessReference: `complaint-1:final:${taskType}`,
+        },
+      ],
+      skipDuplicates: true,
+    });
+  });
+
+  it("treats an existing money business reference as an idempotent success", async () => {
+    prisma.disputeExecutionTask.findUnique.mockResolvedValue(
+      taskRecord({
+        taskType: "refund",
+        payload: JSON.stringify({ userId: "owner-1", amount: 1000 }),
+      }),
+    );
+    transaction.disputeMoneyRecord.createMany.mockResolvedValue({ count: 0 });
+
+    await expect(service.executeTask("task-1")).resolves.toMatchObject({ status: "succeeded" });
+
+    expect(transaction.disputeMoneyRecord.createMany).toHaveBeenCalledTimes(1);
+  });
+
+  it("does not mark a money task succeeded when its ledger write fails", async () => {
+    prisma.disputeExecutionTask.findUnique.mockResolvedValue(
+      taskRecord({
+        taskType: "refund",
+        payload: JSON.stringify({ userId: "owner-1", amount: 1000 }),
+      }),
+    );
+    transaction.disputeMoneyRecord.createMany.mockRejectedValue(
+      new Error("money store unavailable"),
+    );
+
+    await expect(service.executeTask("task-1")).resolves.toMatchObject({
+      status: "failed",
+      failureReason: "money store unavailable",
+    });
+
+    expect(transaction.complaintEvent.create).toHaveBeenCalledWith({
+      data: expect.objectContaining({ action: "execution_failed" }),
+    });
+    expect(transaction.disputeExecutionTask.updateMany).not.toHaveBeenCalledWith(
+      expect.objectContaining({ data: expect.objectContaining({ status: "succeeded" }) }),
+    );
+  });
+
   it("does not execute an effect after losing the conditional claim", async () => {
     prisma.disputeExecutionTask.findUnique
       .mockResolvedValueOnce(taskRecord())
@@ -189,6 +262,7 @@ describe("DisputeExecutionService", () => {
 
     expect(transaction.disputeExecutionTask.updateMany).not.toHaveBeenCalled();
     expect(transaction.creditRecord.createMany).not.toHaveBeenCalled();
+    expect(transaction.complaintEvent.create).not.toHaveBeenCalled();
   });
 
   it("supersedes an initial task when a final decision exists", async () => {
@@ -219,6 +293,18 @@ describe("DisputeExecutionService", () => {
       },
     });
     expect(transaction.creditRecord.createMany).not.toHaveBeenCalled();
+    expect(transaction.complaintEvent.create).toHaveBeenCalledWith({
+      data: {
+        complaintId: "complaint-1",
+        actorId: null,
+        action: "execution_superseded",
+        payload: JSON.stringify({
+          taskId: "task-1",
+          taskType: "respondent_credit",
+          reason: "newer_decision",
+        }),
+      },
+    });
   });
 
   it("records failure metadata and exposes the next retry time", async () => {
@@ -248,10 +334,20 @@ describe("DisputeExecutionService", () => {
 
   it("recovers stale claims and processes only the requested due-task batch", async () => {
     jest.useFakeTimers().setSystemTime(new Date("2026-08-04T12:00:00.000Z"));
-    prisma.disputeExecutionTask.updateMany.mockResolvedValue({ count: 1 });
+    transaction.disputeExecutionTask.updateMany.mockResolvedValue({ count: 1 });
     prisma.disputeExecutionTask.findMany.mockResolvedValue([
-      { id: "task-1", status: "processing" },
-      { id: "task-2", status: "failed" },
+      {
+        id: "task-1",
+        complaintId: "complaint-1",
+        taskType: "respondent_credit",
+        status: "processing",
+      },
+      {
+        id: "task-2",
+        complaintId: "complaint-1",
+        taskType: "refund",
+        status: "failed",
+      },
     ]);
     prisma.disputeExecutionTask.findUnique
       .mockResolvedValueOnce(
@@ -271,9 +367,9 @@ describe("DisputeExecutionService", () => {
 
     await expect(service.processDueTasks(2)).resolves.toHaveLength(2);
 
-    expect(prisma.disputeExecutionTask.updateMany).toHaveBeenCalledWith({
+    expect(transaction.disputeExecutionTask.updateMany).toHaveBeenCalledWith({
       where: {
-        id: { in: ["task-1"] },
+        id: "task-1",
         status: "processing",
         updatedAt: { lte: new Date("2026-08-04T11:55:00.000Z") },
       },
@@ -281,6 +377,19 @@ describe("DisputeExecutionService", () => {
         status: "pending",
         failureReason: "任务处理超时，已恢复等待执行",
         updatedAt: new Date("2026-08-04T12:00:00.000Z"),
+      },
+    });
+    expect(transaction.complaintEvent.create).toHaveBeenCalledWith({
+      data: {
+        complaintId: "complaint-1",
+        actorId: null,
+        action: "execution_recovered",
+        payload: JSON.stringify({
+          taskId: "task-1",
+          fromStatus: "processing",
+          toStatus: "pending",
+          reason: "processing_timeout",
+        }),
       },
     });
     expect(prisma.disputeExecutionTask.findMany).toHaveBeenCalledWith({
@@ -300,7 +409,7 @@ describe("DisputeExecutionService", () => {
       },
       orderBy: { updatedAt: "asc" },
       take: 2,
-      select: { id: true, status: true },
+      select: { id: true, complaintId: true, taskType: true, status: true },
     });
   });
 

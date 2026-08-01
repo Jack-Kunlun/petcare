@@ -98,6 +98,21 @@ export class DisputeExecutionService {
             },
           });
 
+          if (superseded.count > 0) {
+            await transaction.complaintEvent.create({
+              data: {
+                complaintId: task.complaintId,
+                actorId,
+                action: "execution_superseded",
+                payload: JSON.stringify({
+                  taskId: task.id,
+                  taskType: task.taskType,
+                  reason: "newer_decision",
+                }),
+              },
+            });
+          }
+
           return superseded.count > 0 ? ("superseded" as const) : ("claim_lost" as const);
         }
 
@@ -274,24 +289,48 @@ export class DisputeExecutionService {
       },
       orderBy: { updatedAt: "asc" },
       take: limit,
-      select: { id: true, status: true },
+      select: { id: true, complaintId: true, taskType: true, status: true },
     });
     const staleTaskIds = tasks
       .filter((task) => task.status === DISPUTE_EXECUTION_TASK_STATUS.PROCESSING)
       .map((task) => task.id);
 
     if (staleTaskIds.length > 0) {
-      await this.prisma.disputeExecutionTask.updateMany({
-        where: {
-          id: { in: staleTaskIds },
-          status: DISPUTE_EXECUTION_TASK_STATUS.PROCESSING,
-          updatedAt: { lte: staleBefore },
-        },
-        data: {
-          status: DISPUTE_EXECUTION_TASK_STATUS.PENDING,
-          failureReason: "任务处理超时，已恢复等待执行",
-          updatedAt: now,
-        },
+      await this.prisma.$transaction(async (transaction) => {
+        await Promise.all(
+          tasks
+            .filter(({ id }) => staleTaskIds.includes(id))
+            .map(async (task) => {
+              const recovered = await transaction.disputeExecutionTask.updateMany({
+                where: {
+                  id: task.id,
+                  status: DISPUTE_EXECUTION_TASK_STATUS.PROCESSING,
+                  updatedAt: { lte: staleBefore },
+                },
+                data: {
+                  status: DISPUTE_EXECUTION_TASK_STATUS.PENDING,
+                  failureReason: "任务处理超时，已恢复等待执行",
+                  updatedAt: now,
+                },
+              });
+
+              if (recovered.count > 0) {
+                await transaction.complaintEvent.create({
+                  data: {
+                    complaintId: task.complaintId,
+                    actorId: null,
+                    action: "execution_recovered",
+                    payload: JSON.stringify({
+                      taskId: task.id,
+                      fromStatus: DISPUTE_EXECUTION_TASK_STATUS.PROCESSING,
+                      toStatus: DISPUTE_EXECUTION_TASK_STATUS.PENDING,
+                      reason: "processing_timeout",
+                    }),
+                  },
+                });
+              }
+            }),
+        );
       });
     }
 
@@ -354,6 +393,21 @@ export class DisputeExecutionService {
       ) {
         throw new Error("Invalid money execution payload");
       }
+
+      await transaction.disputeMoneyRecord.createMany({
+        data: [
+          {
+            userId: payload.userId,
+            orderId: task.complaint.orderId,
+            complaintId: task.complaintId,
+            executionTaskId: task.id,
+            type: task.taskType,
+            amount: payload.amount as number,
+            businessReference: task.idempotencyKey,
+          },
+        ],
+        skipDuplicates: true,
+      });
 
       return;
     }
