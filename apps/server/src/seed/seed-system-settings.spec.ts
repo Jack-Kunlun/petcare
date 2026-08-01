@@ -153,7 +153,12 @@ describe("seedSystemSettings", () => {
     expect(state.sopSteps).toHaveLength(15);
     expect(state.violationRules).toHaveLength(3);
     expect(state.ratingConfigs).toEqual([
-      expect.objectContaining({ warningScore: 350, suspensionScore: 300 }),
+      expect.objectContaining({
+        evaluationWindow: 30,
+        minimumSampleSize: 5,
+        warningScore: 350,
+        suspensionScore: 300,
+      }),
     ]);
     expect(state.feeConfigs).toEqual([
       expect.objectContaining({
@@ -179,5 +184,29 @@ describe("seedSystemSettings", () => {
     expect(state.ratingConfigs).toHaveLength(1);
     expect(state.feeConfigs).toHaveLength(1);
     expect(state.auditEvents).toHaveLength(3);
+  });
+
+  it("已有后续发布版本及指针时不会回退到初始版本", async () => {
+    const state = createFakePrisma();
+
+    state.versions.push({
+      id: "sop-version-2",
+      configKey: "sop",
+      status: "published",
+      businessVersion: 2,
+      revision: 1,
+      idempotencyKey: "publish:sop:v2",
+      changeSummary: "发布后续 SOP 配置",
+      publishedById: "admin-2",
+      publishedAt: new Date("2026-08-02T00:00:00.000Z"),
+    });
+    state.pointers.push({ configKey: "sop", publishedVersionId: "sop-version-2" });
+
+    await seedSystemSettings(state.prisma, "admin-1");
+
+    expect(state.pointers).toContainEqual({
+      configKey: "sop",
+      publishedVersionId: "sop-version-2",
+    });
   });
 });
