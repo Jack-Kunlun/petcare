@@ -14,7 +14,13 @@ interface AdminUserRecord {
   nickname: string;
   status: string;
   passwordHash: string | null;
-  roles: Array<{ role: { roleName: string; isActive: boolean } }>;
+  roles: Array<{
+    role: {
+      roleName: string;
+      isActive: boolean;
+      permissions: Array<{ permission: { permissionCode: string } }>;
+    };
+  }>;
 }
 
 export interface SafeAdminUser {
@@ -23,6 +29,7 @@ export interface SafeAdminUser {
   phone: string;
   nickname: string;
   roles: string[];
+  permissions: string[];
 }
 
 export interface LoginResult extends AuthTokens {
@@ -50,6 +57,9 @@ const adminUserSelect = {
         select: {
           roleName: true,
           isActive: true,
+          permissions: {
+            select: { permission: { select: { permissionCode: true } } },
+          },
         },
       },
     },
@@ -236,6 +246,17 @@ export class AuthService {
       roles: user.roles
         .filter((assignment) => assignment.role.isActive)
         .map((assignment) => assignment.role.roleName),
+      permissions: [
+        ...new Set(
+          user.roles
+            .filter((assignment) => assignment.role.isActive)
+            .flatMap((assignment) =>
+              assignment.role.permissions.map(
+                (rolePermission) => rolePermission.permission.permissionCode,
+              ),
+            ),
+        ),
+      ],
     };
   }
 

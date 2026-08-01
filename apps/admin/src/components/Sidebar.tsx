@@ -1,19 +1,24 @@
-import { ChevronRight, House, Settings, ShieldCheck, ShoppingBag, Users, X } from "lucide-react";
+import { ChevronRight, House, Settings, ShieldCheck, ShoppingBag, Users, X, type LucideIcon } from "lucide-react";
 import { NavLink } from "react-router-dom";
 
-const menuItems = [
+const menuItems: Array<{ icon: LucideIcon; label: string; path: string; permission?: string }> = [
   { icon: House, label: "运营概览", path: "/" },
   { icon: Users, label: "用户管理", path: "/users" },
   { icon: ShoppingBag, label: "订单管理", path: "/orders" },
-  { icon: Settings, label: "系统设置", path: "/settings" },
+  { icon: Settings, label: "系统设置", path: "/settings", permission: "system.view" },
 ];
 
 interface SidebarProps {
   open?: boolean;
   onClose?: () => void;
+  permissions?: string[];
 }
 
-export function Sidebar({ open = false, onClose }: SidebarProps) {
+export function Sidebar({ open = false, onClose, permissions }: SidebarProps) {
+  const visibleMenuItems = menuItems.filter(
+    (item) => !item.permission || permissions === undefined || permissions.includes(item.permission),
+  );
+
   return (
     <>
       {open ? (
@@ -54,7 +59,7 @@ export function Sidebar({ open = false, onClose }: SidebarProps) {
           <p className="px-3 pb-2 text-xs font-semibold uppercase tracking-widest text-slate-500">
             工作台
           </p>
-          {menuItems.map((item) => {
+          {visibleMenuItems.map((item) => {
             const Icon = item.icon;
 
             return (
