@@ -1,6 +1,7 @@
 import { QueryClient, QueryClientProvider } from "@tanstack/react-query";
 import { render, screen } from "@testing-library/react";
 import userEvent from "@testing-library/user-event";
+import { MemoryRouter } from "react-router-dom";
 import { beforeEach, describe, expect, it, vi } from "vitest";
 import { fetchAdminOrders } from "../../api/orders";
 import OrderManagement from ".";
@@ -16,7 +17,9 @@ function renderPage() {
 
   return render(
     <QueryClientProvider client={queryClient}>
-      <OrderManagement />
+      <MemoryRouter initialEntries={["/orders"]}>
+        <OrderManagement />
+      </MemoryRouter>
     </QueryClientProvider>,
   );
 }
@@ -80,6 +83,17 @@ describe("OrderManagement", () => {
       serviceType: undefined,
       status: undefined,
     });
+  });
+
+  it("展示订单列表与投诉与纠纷的二级导航", () => {
+    renderPage();
+
+    expect(screen.getByRole("navigation", { name: "订单管理二级导航" })).toBeInTheDocument();
+    expect(screen.getByRole("link", { name: "订单列表" })).toHaveAttribute("href", "/orders");
+    expect(screen.getByRole("link", { name: "投诉与纠纷" })).toHaveAttribute(
+      "href",
+      "/orders/complaints",
+    );
   });
 
   it("选择订单状态后重新查询第一页", async () => {
