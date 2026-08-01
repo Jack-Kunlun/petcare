@@ -55,6 +55,38 @@ export const DECISION_LEVEL = {
 /** 裁决层级。 */
 export type DecisionLevel = (typeof DECISION_LEVEL)[keyof typeof DECISION_LEVEL];
 
+/** 裁决执行任务的处理状态。 */
+export const DISPUTE_EXECUTION_TASK_STATUS = {
+  /** 等待消费者首次执行。 */
+  PENDING: "pending",
+  /** 已被消费者原子领取并正在执行。 */
+  PROCESSING: "processing",
+  /** 内部副作用已成功完成。 */
+  SUCCEEDED: "succeeded",
+  /** 最近一次执行失败，可由维护任务或管理员重试。 */
+  FAILED: "failed",
+} as const;
+
+/** 裁决执行任务的处理状态。 */
+export type DisputeExecutionTaskStatus =
+  (typeof DISPUTE_EXECUTION_TASK_STATUS)[keyof typeof DISPUTE_EXECUTION_TASK_STATUS];
+
+/** 裁决执行任务的内部副作用类型。 */
+export const DISPUTE_EXECUTION_TASK_TYPE = {
+  /** 记录退还投诉方的金额计划。 */
+  REFUND: "refund",
+  /** 记录结算给服务方的金额计划。 */
+  SETTLEMENT: "settlement",
+  /** 调整投诉方信用分。 */
+  COMPLAINANT_CREDIT: "complainant_credit",
+  /** 调整被投诉方信用分。 */
+  RESPONDENT_CREDIT: "respondent_credit",
+} as const;
+
+/** 裁决执行任务的内部副作用类型。 */
+export type DisputeExecutionTaskType =
+  (typeof DISPUTE_EXECUTION_TASK_TYPE)[keyof typeof DISPUTE_EXECUTION_TASK_TYPE];
+
 /** 创建投诉的请求参数。 */
 export interface CreateComplaintRequest {
   /** 被投诉订单的唯一标识。 */
@@ -238,14 +270,29 @@ export interface DisputeExecutionTaskView {
   complaintId: string;
   /** 对应裁决层级。 */
   decisionLevel: DecisionLevel;
+  /** 需要执行的内部副作用类型。 */
+  taskType: DisputeExecutionTaskType;
   /** 执行状态。 */
-  status: "pending" | "processing" | "succeeded" | "failed";
+  status: DisputeExecutionTaskStatus;
   /** 失败原因；未失败时为 null。 */
   failureReason: string | null;
   /** 已执行的重试次数。 */
   retryCount: number;
+  /** ISO 8601 格式的下次自动重试时间；无需重试时为 null。 */
+  nextRetryAt: string | null;
+  /** ISO 8601 格式的成功完成时间；尚未成功时为 null。 */
+  completedAt: string | null;
   /** ISO 8601 格式的创建时间。 */
   createdAt: string;
   /** ISO 8601 格式的最后更新时间。 */
   updatedAt: string;
 }
+
+/** 后台裁决执行任务列表的分页响应。 */
+export type DisputeExecutionTaskListResponse = PaginatedResponse<DisputeExecutionTaskView>;
+
+/** 单条裁决执行任务的详情响应。 */
+export type DisputeExecutionTaskDetailResponse = DisputeExecutionTaskView;
+
+/** 管理员重试后返回的最新裁决执行任务。 */
+export type RetryDisputeExecutionTaskResponse = DisputeExecutionTaskDetailResponse;

@@ -1,18 +1,24 @@
-import { HttpStatus, RequestMethod } from "@nestjs/common";
+import { type INestApplication, HttpStatus, RequestMethod } from "@nestjs/common";
 import {
   GUARDS_METADATA,
   HTTP_CODE_METADATA,
   METHOD_METADATA,
+  MODULE_METADATA,
   PATH_METADATA,
 } from "@nestjs/common/constants";
+import { Test } from "@nestjs/testing";
 import { COMPLAINT_STATUS } from "@petcare/shared-types";
 import { validate } from "class-validator";
+import supertest from "supertest";
+import { AppModule } from "../../app.module";
 import { AccessTokenGuard } from "../../auth/access-token.guard";
 import { DisputeResolverGuard } from "../../auth/dispute-resolver.guard";
 import { AdminComplaintController } from "./admin-complaint.controller";
 import { ComplaintCommandService } from "./complaint-command.service";
+import { ComplaintDisputeModule } from "./complaint-dispute.module";
 import { ComplaintQueryService } from "./complaint-query.service";
 import { DisputeDecisionService } from "./dispute-decision.service";
+import { DisputeExecutionService } from "./dispute-execution.service";
 import { AdminComplaintListQueryDto } from "./dto/admin-complaint-list-query.dto";
 import { SubmitDisputeDecisionDto } from "./dto/submit-dispute-decision.dto";
 import { ClaimComplaintDto, TransferComplaintDto } from "./dto/transfer-complaint.dto";
@@ -30,10 +36,15 @@ describe("AdminComplaintController", () => {
     decideInitial: jest.fn(),
     decideFinal: jest.fn(),
   };
+  const executionService = {
+    findTasks: jest.fn(),
+    retryTask: jest.fn(),
+  };
   const controller = new AdminComplaintController(
     commandService as unknown as ComplaintCommandService,
     queryService as unknown as ComplaintQueryService,
     decisionService as unknown as DisputeDecisionService,
+    executionService as unknown as DisputeExecutionService,
   );
   const request = {
     user: {
@@ -49,6 +60,17 @@ describe("AdminComplaintController", () => {
     commandService.transfer.mockResolvedValue("complaint-1");
     decisionService.decideInitial.mockResolvedValue("complaint-1");
     decisionService.decideFinal.mockResolvedValue("complaint-1");
+    executionService.findTasks.mockResolvedValue({
+      list: [],
+      total: 0,
+      page: 1,
+      pageSize: 100,
+    });
+    executionService.retryTask.mockResolvedValue({
+      id: "task-1",
+      complaintId: "complaint-1",
+      status: "succeeded",
+    });
     queryService.findAdminPage.mockResolvedValue({ list: [], total: 0, page: 1, pageSize: 20 });
     queryService.findForAdmin.mockResolvedValue(detail);
   });
@@ -133,6 +155,37 @@ describe("AdminComplaintController", () => {
     );
   });
 
+  it("lists execution tasks and retries only within the route complaint", async () => {
+    await expect(controller.findExecutionTasks("complaint-1", 1, 100)).resolves.toEqual({
+      list: [],
+      total: 0,
+      page: 1,
+      pageSize: 100,
+    });
+    await expect(
+      controller.retryExecutionTask("complaint-1", "task-1", request),
+    ).resolves.toMatchObject({
+      id: "task-1",
+      status: "succeeded",
+    });
+
+    expect(executionService.findTasks).toHaveBeenCalledWith("complaint-1", 1, 100);
+    expect(executionService.retryTask).toHaveBeenCalledWith("task-1", "admin-1", "complaint-1");
+  });
+
+  it("exposes the execution task list and retry routes", () => {
+    const listHandler = AdminComplaintController.prototype.findExecutionTasks;
+    const retryHandler = AdminComplaintController.prototype.retryExecutionTask;
+
+    expect(Reflect.getMetadata(PATH_METADATA, listHandler)).toBe(":id/execution-tasks");
+    expect(Reflect.getMetadata(METHOD_METADATA, listHandler)).toBe(RequestMethod.GET);
+    expect(Reflect.getMetadata(PATH_METADATA, retryHandler)).toBe(
+      ":id/execution-tasks/:taskId/retry",
+    );
+    expect(Reflect.getMetadata(METHOD_METADATA, retryHandler)).toBe(RequestMethod.POST);
+    expect(Reflect.getMetadata(HTTP_CODE_METADATA, retryHandler)).toBe(HttpStatus.OK);
+  });
+
   it.each(["claim", "transfer", "decideInitial", "decideFinal"] as const)(
     "uses HTTP 200 for %s",
     (methodName) => {
@@ -175,5 +228,67 @@ describe("AdminComplaintController", () => {
         "version",
       ]),
     );
+  });
+
+  it("registers the complaint module and exposes its execution task routes", async () => {
+    const complaintId = "11111111-1111-4111-8111-111111111111";
+    const taskId = "22222222-2222-4222-8222-222222222222";
+    let app: INestApplication | undefined;
+
+    expect(Reflect.getMetadata(MODULE_METADATA.IMPORTS, AppModule) as unknown[]).toContain(
+      ComplaintDisputeModule,
+    );
+    expect(
+      Reflect.getMetadata(MODULE_METADATA.CONTROLLERS, ComplaintDisputeModule) as unknown[],
+    ).toContain(AdminComplaintController);
+
+    executionService.findTasks.mockResolvedValue({
+      list: [],
+      total: 0,
+      page: 1,
+      pageSize: 100,
+    });
+    const moduleReference = await Test.createTestingModule({
+      controllers: [AdminComplaintController],
+      providers: [
+        { provide: ComplaintCommandService, useValue: commandService },
+        { provide: ComplaintQueryService, useValue: queryService },
+        { provide: DisputeDecisionService, useValue: decisionService },
+        { provide: DisputeExecutionService, useValue: executionService },
+      ],
+    })
+      .overrideGuard(AccessTokenGuard)
+      .useValue({
+        canActivate(context: {
+          switchToHttp(): { getRequest(): { user?: { sub: string; roles: string[] } } };
+        }) {
+          context.switchToHttp().getRequest().user = {
+            sub: "admin-1",
+            roles: ["complaint_admin"],
+          };
+
+          return true;
+        },
+      })
+      .overrideGuard(DisputeResolverGuard)
+      .useValue({ canActivate: () => true })
+      .compile();
+
+    try {
+      app = moduleReference.createNestApplication();
+      await app.init();
+
+      await supertest(app.getHttpServer())
+        .get(`/admin/complaints/${complaintId}/execution-tasks`)
+        .expect(HttpStatus.OK);
+      await supertest(app.getHttpServer())
+        .post(`/admin/complaints/${complaintId}/execution-tasks/${taskId}/retry`)
+        .expect(HttpStatus.OK);
+
+      expect(executionService.findTasks).toHaveBeenCalledWith(complaintId, 1, 100);
+      expect(executionService.retryTask).toHaveBeenCalledWith(taskId, "admin-1", complaintId);
+    } finally {
+      await app?.close();
+    }
   });
 });

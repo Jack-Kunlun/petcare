@@ -3,10 +3,15 @@ import {
   COMPLAINT_ACTION,
   COMPLAINT_STATUS,
   DECISION_LEVEL,
+  DISPUTE_EXECUTION_TASK_TYPE,
+  DISPUTE_EXECUTION_TASK_STATUS,
   type AdminComplaintListResponse,
   type ClaimComplaintRequest,
   type ComplaintDetail,
   type CreateComplaintRequest,
+  type DisputeExecutionTaskDetailResponse,
+  type DisputeExecutionTaskListResponse,
+  type RetryDisputeExecutionTaskResponse,
   type SubmitComplaintStatementRequest,
   type TransferComplaintRequest,
 } from "./complaint-dispute";
@@ -34,6 +39,39 @@ describe("complaint dispute contracts", () => {
     };
 
     expect(Object.keys(response)).toEqual(["list", "total", "page", "pageSize"]);
+  });
+
+  it("shares execution task list, detail, and retry responses", () => {
+    expect(Object.values(DISPUTE_EXECUTION_TASK_TYPE)).toEqual([
+      "refund",
+      "settlement",
+      "complainant_credit",
+      "respondent_credit",
+    ]);
+
+    const task = {
+      id: "task-1",
+      complaintId: "complaint-1",
+      decisionLevel: DECISION_LEVEL.FINAL,
+      taskType: "respondent_credit",
+      status: DISPUTE_EXECUTION_TASK_STATUS.FAILED,
+      failureReason: "temporary failure",
+      retryCount: 2,
+      nextRetryAt: "2026-08-04T12:02:00.000Z",
+      completedAt: null,
+      createdAt: "2026-08-04T12:00:00.000Z",
+      updatedAt: "2026-08-04T12:00:00.000Z",
+    } satisfies RetryDisputeExecutionTaskResponse;
+    const detail: DisputeExecutionTaskDetailResponse = task;
+    const response: DisputeExecutionTaskListResponse = {
+      list: [detail],
+      total: 1,
+      page: 1,
+      pageSize: 100,
+    };
+
+    expect(Object.keys(response)).toEqual(["list", "total", "page", "pageSize"]);
+    expect(response.list[0]).toEqual(task);
   });
 
   it("defines server-controlled allowed actions", () => {

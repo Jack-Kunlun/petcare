@@ -1,0 +1,317 @@
+import { PrismaService } from "../../prisma/prisma.service";
+import { DisputeExecutionService } from "./dispute-execution.service";
+
+function taskRecord(overrides: Record<string, unknown> = {}): Record<string, unknown> {
+  return {
+    id: "task-1",
+    complaintId: "complaint-1",
+    decisionId: "decision-1",
+    decisionLevel: "final",
+    taskType: "respondent_credit",
+    payload: JSON.stringify({ userId: "provider-1", delta: -5 }),
+    status: "pending",
+    failureReason: null,
+    retryCount: 0,
+    idempotencyKey: "complaint-1:final:respondent_credit",
+    completedAt: null,
+    createdAt: new Date("2026-08-04T11:59:00.000Z"),
+    updatedAt: new Date("2026-08-04T11:59:00.000Z"),
+    complaint: { orderId: "order-1" },
+    ...overrides,
+  };
+}
+
+describe("DisputeExecutionService", () => {
+  const transaction = {
+    disputeExecutionTask: {
+      updateMany: jest.fn(),
+    },
+    creditRecord: {
+      createMany: jest.fn(),
+    },
+    creditScore: {
+      update: jest.fn(),
+    },
+    complaintEvent: {
+      create: jest.fn(),
+    },
+  };
+  const prisma = {
+    disputeExecutionTask: {
+      findFirst: jest.fn(),
+      findUnique: jest.fn(),
+      findMany: jest.fn(),
+      count: jest.fn(),
+      updateMany: jest.fn(),
+    },
+    creditRecord: {
+      createMany: jest.fn(),
+    },
+    creditScore: {
+      update: jest.fn(),
+    },
+    complaintEvent: {
+      create: jest.fn(),
+    },
+    $transaction: jest.fn(),
+  };
+  const service = new DisputeExecutionService(prisma as unknown as PrismaService);
+
+  beforeEach(() => {
+    jest.resetAllMocks();
+    prisma.$transaction.mockImplementation(
+      async (callback: (client: typeof transaction) => unknown) => callback(transaction),
+    );
+  });
+
+  afterEach(() => {
+    jest.useRealTimers();
+  });
+
+  it("does not apply an already succeeded task twice", async () => {
+    prisma.disputeExecutionTask.findUnique.mockResolvedValue(
+      taskRecord({
+        status: "succeeded",
+        completedAt: new Date("2026-08-04T12:00:00.000Z"),
+      }),
+    );
+
+    await expect(service.executeTask("task-1")).resolves.toMatchObject({
+      id: "task-1",
+      status: "succeeded",
+    });
+
+    expect(prisma.disputeExecutionTask.updateMany).not.toHaveBeenCalled();
+    expect(prisma.creditRecord.createMany).not.toHaveBeenCalled();
+    expect(prisma.creditScore.update).not.toHaveBeenCalled();
+  });
+
+  it("writes one uniquely referenced credit record before changing the score", async () => {
+    jest.useFakeTimers().setSystemTime(new Date("2026-08-04T12:00:00.000Z"));
+    prisma.disputeExecutionTask.findUnique.mockResolvedValue(taskRecord());
+    prisma.disputeExecutionTask.updateMany.mockResolvedValue({ count: 1 });
+    transaction.creditRecord.createMany.mockResolvedValue({ count: 1 });
+    transaction.creditScore.update.mockResolvedValue({});
+    transaction.disputeExecutionTask.updateMany.mockResolvedValue({ count: 1 });
+    transaction.complaintEvent.create.mockResolvedValue({});
+
+    await expect(service.executeTask("task-1")).resolves.toMatchObject({
+      status: "succeeded",
+      retryCount: 1,
+      completedAt: "2026-08-04T12:00:00.000Z",
+    });
+
+    expect(prisma.disputeExecutionTask.updateMany).toHaveBeenCalledWith({
+      where: { id: "task-1", status: { in: ["pending", "failed"] } },
+      data: {
+        status: "processing",
+        retryCount: { increment: 1 },
+        failureReason: null,
+        completedAt: null,
+        updatedAt: new Date("2026-08-04T12:00:00.000Z"),
+      },
+    });
+    expect(transaction.creditRecord.createMany).toHaveBeenCalledWith({
+      data: [
+        {
+          userId: "provider-1",
+          changeAmount: -5,
+          reason: "投诉裁决信用分调整",
+          relatedOrderId: "order-1",
+          businessReference: "complaint-1:final:respondent_credit",
+        },
+      ],
+      skipDuplicates: true,
+    });
+    expect(transaction.creditScore.update).toHaveBeenCalledWith({
+      where: { userId: "provider-1" },
+      data: {
+        creditScore: { increment: -5 },
+        lastUpdated: new Date("2026-08-04T12:00:00.000Z"),
+      },
+    });
+  });
+
+  it("does not change credit again when the unique business reference already exists", async () => {
+    jest.useFakeTimers().setSystemTime(new Date("2026-08-04T12:00:00.000Z"));
+    prisma.disputeExecutionTask.findUnique.mockResolvedValue(taskRecord());
+    prisma.disputeExecutionTask.updateMany.mockResolvedValue({ count: 1 });
+    transaction.creditRecord.createMany.mockResolvedValue({ count: 0 });
+    transaction.disputeExecutionTask.updateMany.mockResolvedValue({ count: 1 });
+    transaction.complaintEvent.create.mockResolvedValue({});
+
+    await expect(service.executeTask("task-1")).resolves.toMatchObject({
+      status: "succeeded",
+      retryCount: 1,
+    });
+
+    expect(transaction.creditRecord.createMany).toHaveBeenCalledWith(
+      expect.objectContaining({ skipDuplicates: true }),
+    );
+    expect(transaction.creditScore.update).not.toHaveBeenCalled();
+  });
+
+  it("does not execute an effect after losing the conditional claim", async () => {
+    prisma.disputeExecutionTask.findUnique
+      .mockResolvedValueOnce(taskRecord())
+      .mockResolvedValueOnce(taskRecord({ status: "processing" }));
+    prisma.disputeExecutionTask.updateMany.mockResolvedValue({ count: 0 });
+
+    await expect(service.executeTask("task-1")).resolves.toMatchObject({
+      status: "processing",
+    });
+
+    expect(prisma.$transaction).not.toHaveBeenCalled();
+    expect(transaction.creditScore.update).not.toHaveBeenCalled();
+  });
+
+  it("records failure metadata and exposes the next retry time", async () => {
+    jest.useFakeTimers().setSystemTime(new Date("2026-08-04T12:00:00.000Z"));
+    prisma.disputeExecutionTask.findUnique.mockResolvedValue(taskRecord());
+    prisma.disputeExecutionTask.updateMany.mockResolvedValue({ count: 1 });
+    prisma.$transaction.mockRejectedValueOnce(new Error("credit store unavailable"));
+    transaction.disputeExecutionTask.updateMany.mockResolvedValue({ count: 1 });
+    transaction.complaintEvent.create.mockResolvedValue({});
+
+    await expect(service.executeTask("task-1")).resolves.toMatchObject({
+      status: "failed",
+      failureReason: "credit store unavailable",
+      retryCount: 1,
+      nextRetryAt: "2026-08-04T12:01:00.000Z",
+    });
+
+    expect(transaction.disputeExecutionTask.updateMany).toHaveBeenCalledWith({
+      where: { id: "task-1", status: "processing" },
+      data: {
+        status: "failed",
+        failureReason: "credit store unavailable",
+        updatedAt: new Date("2026-08-04T12:00:00.000Z"),
+      },
+    });
+  });
+
+  it("recovers stale claims and processes only the requested due-task batch", async () => {
+    jest.useFakeTimers().setSystemTime(new Date("2026-08-04T12:00:00.000Z"));
+    prisma.disputeExecutionTask.updateMany.mockResolvedValue({ count: 1 });
+    prisma.disputeExecutionTask.findMany.mockResolvedValue([
+      { id: "task-1", status: "processing" },
+      { id: "task-2", status: "failed" },
+    ]);
+    prisma.disputeExecutionTask.findUnique
+      .mockResolvedValueOnce(
+        taskRecord({
+          id: "task-1",
+          status: "succeeded",
+          completedAt: new Date("2026-08-04T11:59:30.000Z"),
+        }),
+      )
+      .mockResolvedValueOnce(
+        taskRecord({
+          id: "task-2",
+          status: "succeeded",
+          completedAt: new Date("2026-08-04T11:59:40.000Z"),
+        }),
+      );
+
+    await expect(service.processDueTasks(2)).resolves.toHaveLength(2);
+
+    expect(prisma.disputeExecutionTask.updateMany).toHaveBeenCalledWith({
+      where: {
+        id: { in: ["task-1"] },
+        status: "processing",
+        updatedAt: { lte: new Date("2026-08-04T11:55:00.000Z") },
+      },
+      data: {
+        status: "pending",
+        failureReason: "任务处理超时，已恢复等待执行",
+        updatedAt: new Date("2026-08-04T12:00:00.000Z"),
+      },
+    });
+    expect(prisma.disputeExecutionTask.findMany).toHaveBeenCalledWith({
+      where: {
+        OR: [
+          { status: "pending" },
+          {
+            status: "failed",
+            updatedAt: { lte: new Date("2026-08-04T11:59:00.000Z") },
+          },
+          {
+            status: "processing",
+            updatedAt: { lte: new Date("2026-08-04T11:55:00.000Z") },
+          },
+        ],
+      },
+      orderBy: { updatedAt: "asc" },
+      take: 2,
+      select: { id: true, status: true },
+    });
+  });
+
+  it("rejects retry unless the task is failed and belongs to the requested complaint", async () => {
+    prisma.disputeExecutionTask.findFirst.mockResolvedValue(null);
+
+    await expect(service.retryTask("task-1", "admin-1", "complaint-other")).rejects.toMatchObject({
+      code: "RESOURCE_NOT_FOUND",
+      status: 404,
+    });
+
+    expect(prisma.disputeExecutionTask.findFirst).toHaveBeenCalledWith({
+      where: {
+        id: "task-1",
+        complaintId: "complaint-other",
+        status: "failed",
+      },
+      select: { id: true },
+    });
+    expect(prisma.disputeExecutionTask.updateMany).not.toHaveBeenCalled();
+  });
+
+  it("records the administrator on a successful failed-task retry", async () => {
+    jest.useFakeTimers().setSystemTime(new Date("2026-08-04T12:00:00.000Z"));
+    prisma.disputeExecutionTask.findFirst.mockResolvedValue({ id: "task-1" });
+    prisma.disputeExecutionTask.findUnique.mockResolvedValue(
+      taskRecord({
+        taskType: "refund",
+        payload: JSON.stringify({ userId: "owner-1", amount: 1000 }),
+        status: "failed",
+        retryCount: 1,
+      }),
+    );
+    prisma.disputeExecutionTask.updateMany.mockResolvedValue({ count: 1 });
+    transaction.disputeExecutionTask.updateMany.mockResolvedValue({ count: 1 });
+    transaction.complaintEvent.create.mockResolvedValue({});
+
+    await expect(service.retryTask("task-1", "admin-1", "complaint-1")).resolves.toMatchObject({
+      status: "succeeded",
+      retryCount: 2,
+    });
+
+    expect(transaction.complaintEvent.create).toHaveBeenCalledWith({
+      data: {
+        complaintId: "complaint-1",
+        actorId: "admin-1",
+        action: "execution_succeeded",
+        payload: JSON.stringify({ taskId: "task-1", taskType: "refund" }),
+      },
+    });
+  });
+
+  it("returns execution tasks in the unified pagination shape", async () => {
+    prisma.disputeExecutionTask.findMany.mockResolvedValue([taskRecord({ status: "failed" })]);
+    prisma.disputeExecutionTask.count.mockResolvedValue(1);
+
+    await expect(service.findTasks("complaint-1", 1, 20)).resolves.toMatchObject({
+      list: [
+        {
+          id: "task-1",
+          complaintId: "complaint-1",
+          status: "failed",
+          nextRetryAt: "2026-08-04T12:00:00.000Z",
+        },
+      ],
+      total: 1,
+      page: 1,
+      pageSize: 20,
+    });
+  });
+});
