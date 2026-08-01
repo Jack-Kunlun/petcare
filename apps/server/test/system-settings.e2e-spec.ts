@@ -2,6 +2,7 @@ import { spawnSync } from "node:child_process";
 import path from "node:path";
 import { INestApplication, ValidationPipe } from "@nestjs/common";
 import { Test } from "@nestjs/testing";
+import { FeeConfig, SopConfig } from "@petcare/shared-types";
 import { Client } from "pg";
 import request from "supertest";
 import { PasswordService } from "../src/auth/password.service";
@@ -10,6 +11,10 @@ import { AppLogger } from "../src/logging/app-logger.service";
 import { PrismaService } from "../src/prisma/prisma.service";
 import { seedInitialData } from "../src/seed/seed-initial-data";
 import { seedSystemSettings } from "../src/seed/seed-system-settings";
+import {
+  buildDropSchemaIfExistsStatement,
+  IsolatedPostgresSchemaLifecycle,
+} from "./support/isolated-postgres-schema";
 
 const schemaName = `system_settings_e2e_${process.pid}_${Date.now()}`;
 const adminCredentials = {
@@ -20,12 +25,6 @@ const viewerCredentials = {
   identifier: "settings-e2e-viewer",
   password: "Settings-E2e-Viewer-2026!",
 };
-
-function assertIsolatedSchema(): void {
-  if (!/^system_settings_e2e_\d+_\d+$/u.test(schemaName) || schemaName === "public") {
-    throw new Error("System settings E2E requires an isolated disposable schema");
-  }
-}
 
 function pushSchema(): void {
   const prismaCli = path.resolve(__dirname, "../node_modules/prisma/build/index.js");
@@ -41,7 +40,6 @@ function pushSchema(): void {
 }
 
 async function dropSchema(): Promise<void> {
-  assertIsolatedSchema();
   const client = new Client({
     host: process.env.DB_HOST || "localhost",
     port: Number(process.env.DB_PORT || 5432),
@@ -53,7 +51,7 @@ async function dropSchema(): Promise<void> {
   await client.connect();
 
   try {
-    await client.query(`DROP SCHEMA "${schemaName}" CASCADE`);
+    await client.query(buildDropSchemaIfExistsStatement(schemaName));
   } finally {
     await client.end();
   }
@@ -62,21 +60,25 @@ async function dropSchema(): Promise<void> {
 describe("System settings closed loop (e2e)", () => {
   let app: INestApplication;
   let prisma: PrismaService;
-  let schemaReady = false;
   let adminToken: string;
   let viewerToken: string;
   let petId: string;
-  const originalSchema = process.env.DB_SCHEMA;
-  const originalJwtSecret = process.env.JWT_SECRET;
-  const originalNodeEnv = process.env.NODE_ENV;
+  const lifecycle = new IsolatedPostgresSchemaLifecycle({
+    schemaName,
+    environment: process.env,
+    overrides: {
+      JWT_SECRET: "settings-e2e-only-jwt-secret-2026-08-02",
+      NODE_ENV: "test",
+    },
+    initialize: async () => pushSchema(),
+    close: async () => {
+      await app?.close();
+    },
+    drop: dropSchema,
+  });
 
   beforeAll(async () => {
-    assertIsolatedSchema();
-    process.env.DB_SCHEMA = schemaName;
-    process.env.JWT_SECRET = "settings-e2e-only-jwt-secret-2026-08-02";
-    process.env.NODE_ENV = "test";
-    pushSchema();
-    schemaReady = true;
+    await lifecycle.setup();
 
     const { AppModule } = await import("../src/app.module");
     const moduleRef = await Test.createTestingModule({ imports: [AppModule] })
@@ -166,20 +168,7 @@ describe("System settings closed loop (e2e)", () => {
   }, 120_000);
 
   afterAll(async () => {
-    await app?.close();
-
-    try {
-      if (schemaReady) {
-        await dropSchema();
-      }
-    } finally {
-      if (originalSchema === undefined) delete process.env.DB_SCHEMA;
-      else process.env.DB_SCHEMA = originalSchema;
-      if (originalJwtSecret === undefined) delete process.env.JWT_SECRET;
-      else process.env.JWT_SECRET = originalJwtSecret;
-      if (originalNodeEnv === undefined) delete process.env.NODE_ENV;
-      else process.env.NODE_ENV = originalNodeEnv;
-    }
+    await lifecycle.teardown();
   }, 30_000);
 
   async function login(credentials: typeof adminCredentials): Promise<string> {
@@ -204,6 +193,80 @@ describe("System settings closed loop (e2e)", () => {
       .expect(201);
   }
 
+  async function readOrderSnapshot(orderId: string) {
+    return prisma.order.findUniqueOrThrow({
+      where: { id: orderId },
+      select: {
+        sopConfigVersionId: true,
+        feeConfigVersionId: true,
+        sops: {
+          orderBy: { stepNumber: "asc" },
+          select: {
+            stepNumber: true,
+            stepName: true,
+            instruction: true,
+            expectedDurationMinutes: true,
+            minimumPhotoCount: true,
+            videoRequired: true,
+            violationGuidance: true,
+            photos: true,
+            videos: true,
+            completedAt: true,
+          },
+        },
+        feeSnapshot: {
+          select: {
+            feeConfigVersionId: true,
+            inputAmountCents: true,
+            platformCommissionBps: true,
+            platformCommissionCents: true,
+            rewardServiceFeeCents: true,
+            withdrawalFeeBps: true,
+            minimumWithdrawalFeeCents: true,
+            providerSettlementCents: true,
+          },
+        },
+      },
+    });
+  }
+
+  function expectSopSnapshot(
+    snapshot: Awaited<ReturnType<typeof readOrderSnapshot>>,
+    config: SopConfig,
+    versionId: string,
+  ): void {
+    expect(snapshot.sopConfigVersionId).toBe(versionId);
+    expect(snapshot.sops).toEqual(
+      config.steps.map((step) => ({
+        ...step,
+        violationGuidance: JSON.stringify(config.violationRules),
+        photos: [],
+        videos: [],
+        completedAt: null,
+      })),
+    );
+  }
+
+  function expectFeeSnapshot(
+    snapshot: Awaited<ReturnType<typeof readOrderSnapshot>>,
+    config: FeeConfig,
+    versionId: string,
+    expectedCommissionCents: number,
+    expectedSettlementCents: number,
+  ): void {
+    expect(snapshot.feeConfigVersionId).toBe(versionId);
+    expect(snapshot.feeSnapshot).toEqual({
+      feeConfigVersionId: versionId,
+      inputAmountCents: 10_000,
+      platformCommissionBps: config.platformCommissionBps,
+      platformCommissionCents: expectedCommissionCents,
+      rewardServiceFeeCents: config.rewardServiceFeeCents,
+      withdrawalFeeBps: config.withdrawalFeeBps,
+      minimumWithdrawalFeeCents: config.minimumWithdrawalFeeCents,
+      providerSettlementCents: expectedSettlementCents,
+    });
+  }
+
   it("保存发布配置、冻结订单快照、恢复历史并保护并发与权限边界", async () => {
     const initialSop = await request(app.getHttpServer())
       .get("/admin/system-settings/sop/feeding/current")
@@ -215,11 +278,20 @@ describe("System settings closed loop (e2e)", () => {
       .expect(200);
     const oldOrderResponse = await createRewardOrder();
     const oldOrder = oldOrderResponse.body.data.order;
+    const oldSnapshot = await readOrderSnapshot(oldOrder.id);
 
     expect(oldOrder).toMatchObject({
       sopConfigVersionId: initialSop.body.data.id,
       feeConfigVersionId: initialFee.body.data.id,
     });
+    expectSopSnapshot(oldSnapshot, initialSop.body.data.config, initialSop.body.data.id);
+    expectFeeSnapshot(
+      oldSnapshot,
+      initialFee.body.data.config,
+      initialFee.body.data.id,
+      1000,
+      8800,
+    );
 
     const forbidden = await request(app.getHttpServer())
       .put("/admin/system-settings/fee/draft")
@@ -248,6 +320,7 @@ describe("System settings closed loop (e2e)", () => {
       .send({ revision: sopDraft.body.data.revision, idempotencyKey: "e2e-sop-publish-v2" })
       .expect(200);
     const sopUpdatedOrder = (await createRewardOrder()).body.data.order;
+    const sopUpdatedSnapshot = await readOrderSnapshot(sopUpdatedOrder.id);
     const oldOrderAfterSopPublish = await request(app.getHttpServer())
       .get(`/orders/${oldOrder.id}`)
       .expect(200);
@@ -255,6 +328,15 @@ describe("System settings closed loop (e2e)", () => {
     expect(sopUpdatedOrder.sopConfigVersionId).toBe(publishedSop.body.data.id);
     expect(sopUpdatedOrder.sopConfigVersionId).not.toBe(oldOrder.sopConfigVersionId);
     expect(oldOrderAfterSopPublish.body.data.sopConfigVersionId).toBe(oldOrder.sopConfigVersionId);
+    expectSopSnapshot(sopUpdatedSnapshot, publishedSop.body.data.config, publishedSop.body.data.id);
+    expectFeeSnapshot(
+      sopUpdatedSnapshot,
+      initialFee.body.data.config,
+      initialFee.body.data.id,
+      1000,
+      8800,
+    );
+    expect(await readOrderSnapshot(oldOrder.id)).toEqual(oldSnapshot);
 
     const feeConfig = { ...initialFee.body.data.config, platformCommissionBps: 1200 };
     const feeDraft = await request(app.getHttpServer())
@@ -268,6 +350,7 @@ describe("System settings closed loop (e2e)", () => {
       .send({ revision: feeDraft.body.data.revision, idempotencyKey: "e2e-fee-publish-v2" })
       .expect(200);
     const feeUpdatedOrder = (await createRewardOrder()).body.data.order;
+    const feeUpdatedSnapshot = await readOrderSnapshot(feeUpdatedOrder.id);
     const oldOrderAfterFeePublish = await request(app.getHttpServer())
       .get(`/orders/${oldOrder.id}`)
       .expect(200);
@@ -275,6 +358,15 @@ describe("System settings closed loop (e2e)", () => {
     expect(feeUpdatedOrder.feeConfigVersionId).toBe(publishedFee.body.data.id);
     expect(feeUpdatedOrder.feeConfigVersionId).not.toBe(oldOrder.feeConfigVersionId);
     expect(oldOrderAfterFeePublish.body.data.feeConfigVersionId).toBe(oldOrder.feeConfigVersionId);
+    expectSopSnapshot(feeUpdatedSnapshot, publishedSop.body.data.config, publishedSop.body.data.id);
+    expectFeeSnapshot(
+      feeUpdatedSnapshot,
+      publishedFee.body.data.config,
+      publishedFee.body.data.id,
+      1200,
+      8600,
+    );
+    expect(await readOrderSnapshot(oldOrder.id)).toEqual(oldSnapshot);
 
     const restoredFeeDraft = await request(app.getHttpServer())
       .post("/admin/system-settings/fee/restore")
@@ -295,6 +387,22 @@ describe("System settings closed loop (e2e)", () => {
       .expect(200);
 
     expect(restoredFee.body.data.config).toEqual(initialFee.body.data.config);
+    const restoredFeeOrder = (await createRewardOrder()).body.data.order;
+    const restoredFeeSnapshot = await readOrderSnapshot(restoredFeeOrder.id);
+
+    expectSopSnapshot(
+      restoredFeeSnapshot,
+      publishedSop.body.data.config,
+      publishedSop.body.data.id,
+    );
+    expectFeeSnapshot(
+      restoredFeeSnapshot,
+      restoredFee.body.data.config,
+      restoredFee.body.data.id,
+      1000,
+      8800,
+    );
+    expect(await readOrderSnapshot(oldOrder.id)).toEqual(oldSnapshot);
 
     const concurrencyDraft = await request(app.getHttpServer())
       .put("/admin/system-settings/fee/draft")
@@ -342,5 +450,6 @@ describe("System settings closed loop (e2e)", () => {
         (version: { id: string }) => version.id === firstPublish.body.data.id,
       ),
     ).toHaveLength(1);
+    expect(await readOrderSnapshot(oldOrder.id)).toEqual(oldSnapshot);
   }, 60_000);
 });
