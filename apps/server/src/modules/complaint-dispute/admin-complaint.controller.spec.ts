@@ -7,7 +7,7 @@ import {
   PATH_METADATA,
 } from "@nestjs/common/constants";
 import { Test } from "@nestjs/testing";
-import { COMPLAINT_STATUS } from "@petcare/shared-types";
+import { COMPLAINT_QUEUE, COMPLAINT_STATUS } from "@petcare/shared-types";
 import { validate } from "class-validator";
 import supertest from "supertest";
 import { AppModule } from "../../app.module";
@@ -91,10 +91,11 @@ describe("AdminComplaintController", () => {
     const query = {
       page: 1,
       pageSize: 20,
+      queue: COMPLAINT_QUEUE.MINE,
       status: COMPLAINT_STATUS.UNASSIGNED,
     } as AdminComplaintListQueryDto;
 
-    await expect(controller.findAll(query)).resolves.toEqual({
+    await expect(controller.findAll(query, request)).resolves.toEqual({
       list: [],
       total: 0,
       page: 1,
@@ -102,7 +103,7 @@ describe("AdminComplaintController", () => {
     });
     await expect(controller.findOne("complaint-1", request)).resolves.toBe(detail);
 
-    expect(queryService.findAdminPage).toHaveBeenCalledWith(query);
+    expect(queryService.findAdminPage).toHaveBeenCalledWith(query, "admin-1");
     expect(queryService.findForAdmin).toHaveBeenCalledWith("complaint-1", {
       id: "admin-1",
       roles: ["complaint_admin"],
@@ -208,6 +209,9 @@ describe("AdminComplaintController", () => {
   );
 
   it("validates assignment and decision request fields at the HTTP boundary", async () => {
+    const queueErrors = await validate(
+      Object.assign(new AdminComplaintListQueryDto(), { queue: "unknown_queue" }),
+    );
     const transferErrors = await validate(
       Object.assign(new TransferComplaintDto(), {
         targetAdminId: "not-a-uuid",
@@ -230,6 +234,7 @@ describe("AdminComplaintController", () => {
     expect(transferErrors.map((error) => error.property)).toEqual(
       expect.arrayContaining(["targetAdminId", "reason", "version"]),
     );
+    expect(queueErrors.map((error) => error.property)).toContain("queue");
     expect(decisionErrors.map((error) => error.property)).toEqual(
       expect.arrayContaining([
         "reason",

@@ -4,6 +4,7 @@ import {
   COMPLAINT_STATUS,
   type AdminComplaintListItem,
   type AdminComplaintListResponse,
+  type AdminComplaintUserSummary,
   type ComplaintAction,
   type ComplaintDetail,
   type ComplaintEventView,
@@ -15,25 +16,58 @@ import {
 const complaintStatuses = Object.values(COMPLAINT_STATUS);
 const complaintActions = Object.values(COMPLAINT_ACTION);
 
+/** 后台投诉列表中的用户展示摘要。 */
+export class ComplaintListUserSummaryDto implements AdminComplaintUserSummary {
+  @ApiProperty({ format: "uuid" })
+  id: string;
+
+  @ApiProperty()
+  nickname: string;
+
+  @ApiProperty()
+  phone: string;
+}
+
 /** 投诉列表项的 Swagger 模型。 */
 export class ComplaintListItemDto implements AdminComplaintListItem {
   @ApiProperty({ format: "uuid" })
   id: string;
 
+  @ApiProperty()
+  caseNumber: string;
+
   @ApiProperty({ format: "uuid" })
   orderId: string;
+
+  @ApiProperty()
+  complaintType: string;
 
   @ApiProperty({ format: "uuid" })
   complainantId: string;
 
+  @ApiProperty({ type: ComplaintListUserSummaryDto })
+  complainant: ComplaintListUserSummaryDto;
+
   @ApiProperty({ format: "uuid" })
   respondentId: string;
+
+  @ApiProperty({ type: ComplaintListUserSummaryDto })
+  respondent: ComplaintListUserSummaryDto;
 
   @ApiProperty({ enum: complaintStatuses })
   status: ComplaintStatus;
 
   @ApiProperty({ format: "uuid", nullable: true })
   handlerId: string | null;
+
+  @ApiProperty({ type: ComplaintListUserSummaryDto, nullable: true })
+  handler: ComplaintListUserSummaryDto | null;
+
+  @ApiProperty({ format: "date-time", nullable: true })
+  appealDeadlineAt: string | null;
+
+  @ApiProperty()
+  hasFailedExecution: boolean;
 
   @ApiProperty({ format: "date-time" })
   createdAt: string;

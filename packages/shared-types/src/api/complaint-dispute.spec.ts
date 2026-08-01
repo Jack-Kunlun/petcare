@@ -1,10 +1,13 @@
 import { describe, expect, it } from "vitest";
 import {
   COMPLAINT_ACTION,
+  COMPLAINT_QUEUE,
   COMPLAINT_STATUS,
   DECISION_LEVEL,
   DISPUTE_EXECUTION_TASK_TYPE,
   DISPUTE_EXECUTION_TASK_STATUS,
+  type AdminComplaintListItem,
+  type AdminComplaintListQuery,
   type AdminComplaintListResponse,
   type ClaimComplaintRequest,
   type ComplaintDetail,
@@ -43,6 +46,49 @@ describe("complaint dispute contracts", () => {
     };
 
     expect(Object.keys(response)).toEqual(["list", "total", "page", "pageSize"]);
+  });
+
+  it("shares every administrator complaint work queue", () => {
+    expect(Object.values(COMPLAINT_QUEUE)).toEqual([
+      "mine",
+      "unassigned",
+      "pending_response",
+      "processing_initial",
+      "initial_decided",
+      "processing_final",
+      "execution_failed",
+      "closed",
+    ]);
+  });
+
+  it("shares the complete administrator complaint list read model", () => {
+    const query = {
+      page: 1,
+      pageSize: 20,
+      queue: COMPLAINT_QUEUE.MINE,
+    } satisfies AdminComplaintListQuery;
+    const item = {
+      id: "complaint-1",
+      caseNumber: "CP1234567890ABCDEF1234567890ABCDEF",
+      orderId: "order-1",
+      complaintType: "service_quality",
+      complainantId: "owner-1",
+      complainant: { id: "owner-1", nickname: "豆包家长", phone: "17600000001" },
+      respondentId: "provider-1",
+      respondent: { id: "provider-1", nickname: "安心宠护", phone: "17600000002" },
+      status: COMPLAINT_STATUS.INITIAL_DECIDED,
+      handlerId: "admin-1",
+      handler: { id: "admin-1", nickname: "值班管理员", phone: "17600000003" },
+      appealDeadlineAt: "2026-08-04T12:00:00.000Z",
+      hasFailedExecution: true,
+      createdAt: "2026-08-01T12:00:00.000Z",
+      updatedAt: "2026-08-02T12:00:00.000Z",
+    } satisfies AdminComplaintListItem;
+
+    expect(query.queue).toBe("mine");
+    expect(item.caseNumber).toBe("CP1234567890ABCDEF1234567890ABCDEF");
+    expect(item.complainant.nickname).toBe("豆包家长");
+    expect(item.hasFailedExecution).toBe(true);
   });
 
   it("shares execution task list, detail, and retry responses", () => {

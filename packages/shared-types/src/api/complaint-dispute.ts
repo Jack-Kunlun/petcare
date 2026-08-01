@@ -21,6 +21,29 @@ export const COMPLAINT_STATUS = {
 /** 投诉纠纷的当前处理阶段。 */
 export type ComplaintStatus = (typeof COMPLAINT_STATUS)[keyof typeof COMPLAINT_STATUS];
 
+/** 后台投诉工作队列。 */
+export const COMPLAINT_QUEUE = {
+  /** 当前管理员负责且尚未结案的案件。 */
+  MINE: "mine",
+  /** 尚未被管理员认领的案件。 */
+  UNASSIGNED: "unassigned",
+  /** 等待被投诉方首次回应的案件。 */
+  PENDING_RESPONSE: "pending_response",
+  /** 等待管理员作出初审裁决的案件。 */
+  PROCESSING_INITIAL: "processing_initial",
+  /** 处于初审后二次申诉期的案件。 */
+  INITIAL_DECIDED: "initial_decided",
+  /** 等待管理员作出终审裁决的案件。 */
+  PROCESSING_FINAL: "processing_final",
+  /** 存在失败裁决执行任务的案件。 */
+  EXECUTION_FAILED: "execution_failed",
+  /** 已关闭或已撤回的案件。 */
+  CLOSED: "closed",
+} as const;
+
+/** 后台投诉工作队列值。 */
+export type AdminComplaintQueue = (typeof COMPLAINT_QUEUE)[keyof typeof COMPLAINT_QUEUE];
+
 /** 由服务端根据当前状态和操作人计算的可执行动作。 */
 export const COMPLAINT_ACTION = {
   /** 提交被投诉方的首次陈述。 */
@@ -169,6 +192,8 @@ export interface AdminComplaintListQuery {
   page: number;
   /** 每页条数。 */
   pageSize: number;
+  /** 当前选择的后台投诉工作队列。 */
+  queue: AdminComplaintQueue;
   /** 可选的投诉状态筛选。 */
   status?: ComplaintStatus;
   /** 可选的订单号或用户关键字筛选。 */
@@ -177,20 +202,44 @@ export interface AdminComplaintListQuery {
   handlerId?: string;
 }
 
+/** 后台投诉列表使用的用户展示摘要。 */
+export interface AdminComplaintUserSummary {
+  /** 用户唯一标识。 */
+  id: string;
+  /** 用户在后台列表中显示的昵称。 */
+  nickname: string;
+  /** 用户用于后台识别与检索的手机号。 */
+  phone: string;
+}
+
 /** 后台投诉列表中的单条投诉摘要。 */
 export interface AdminComplaintListItem {
   /** 投诉唯一标识。 */
   id: string;
+  /** 供运营人员识别的稳定案件编号。 */
+  caseNumber: string;
   /** 被投诉订单的唯一标识。 */
   orderId: string;
+  /** 投诉业务类型。 */
+  complaintType: string;
   /** 投诉方用户唯一标识。 */
   complainantId: string;
+  /** 投诉方展示摘要。 */
+  complainant: AdminComplaintUserSummary;
   /** 被投诉方用户唯一标识。 */
   respondentId: string;
+  /** 被投诉方展示摘要。 */
+  respondent: AdminComplaintUserSummary;
   /** 当前投诉处理状态。 */
   status: ComplaintStatus;
   /** 当前处理管理员标识；未认领时为 null。 */
   handlerId: string | null;
+  /** 当前负责人展示摘要；未认领时为空。 */
+  handler: AdminComplaintUserSummary | null;
+  /** ISO 8601 格式的二次申诉截止时间；不在申诉期时为空。 */
+  appealDeadlineAt: string | null;
+  /** 是否存在需要人工关注的失败裁决执行任务。 */
+  hasFailedExecution: boolean;
   /** ISO 8601 格式的投诉创建时间。 */
   createdAt: string;
   /** ISO 8601 格式的最后更新时间。 */

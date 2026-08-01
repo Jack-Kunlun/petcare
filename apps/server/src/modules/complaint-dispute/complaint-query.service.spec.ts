@@ -1,4 +1,9 @@
-import { COMPLAINT_ACTION, COMPLAINT_STATUS } from "@petcare/shared-types";
+import {
+  COMPLAINT_ACTION,
+  COMPLAINT_QUEUE,
+  COMPLAINT_STATUS,
+  DISPUTE_EXECUTION_TASK_STATUS,
+} from "@petcare/shared-types";
 import { PrismaService } from "../../prisma/prisma.service";
 import { ComplaintQueryService } from "./complaint-query.service";
 
@@ -20,16 +25,7 @@ describe("ComplaintQueryService", () => {
 
   it("returns the current user's complaints in the standard page shape", async () => {
     prisma.complaint.findMany.mockResolvedValue([
-      {
-        id: "complaint-1",
-        orderId: "order-1",
-        complainantId: "owner-1",
-        respondentId: "provider-1",
-        status: COMPLAINT_STATUS.PENDING_RESPONSE,
-        assignedAdminId: null,
-        createdAt,
-        updatedAt,
-      },
+      listRecord({ status: COMPLAINT_STATUS.PENDING_RESPONSE, assignedAdminId: null }),
     ]);
     prisma.complaint.count.mockResolvedValue(1);
 
@@ -58,33 +54,30 @@ describe("ComplaintQueryService", () => {
 
   it("returns the filtered administrator complaint page in the standard shape", async () => {
     prisma.complaint.findMany.mockResolvedValue([
-      {
-        id: "complaint-1",
-        orderId: "order-1",
-        complainantId: "owner-1",
-        respondentId: "provider-1",
-        status: COMPLAINT_STATUS.PROCESSING_INITIAL,
-        assignedAdminId: "admin-1",
-        createdAt,
-        updatedAt,
-      },
+      listRecord({ status: COMPLAINT_STATUS.PROCESSING_INITIAL }),
     ]);
     prisma.complaint.count.mockResolvedValue(1);
 
-    const result = await service.findAdminPage({
-      page: 2,
-      pageSize: 10,
-      status: COMPLAINT_STATUS.PROCESSING_INITIAL,
-      keyword: " owner ",
-      handlerId: "admin-1",
-    });
+    const result = await service.findAdminPage(
+      {
+        page: 2,
+        pageSize: 10,
+        queue: COMPLAINT_QUEUE.PROCESSING_INITIAL,
+        status: COMPLAINT_STATUS.PROCESSING_INITIAL,
+        keyword: " owner ",
+        handlerId: "admin-1",
+      },
+      "admin-1",
+    );
 
     expect(prisma.complaint.findMany).toHaveBeenCalledWith(
       expect.objectContaining({
         where: {
+          AND: [{ status: COMPLAINT_STATUS.PROCESSING_INITIAL }],
           status: COMPLAINT_STATUS.PROCESSING_INITIAL,
           assignedAdminId: "admin-1",
           OR: [
+            { caseNumber: { contains: "owner", mode: "insensitive" } },
             { orderId: { contains: "owner", mode: "insensitive" } },
             {
               complainant: {
@@ -117,11 +110,51 @@ describe("ComplaintQueryService", () => {
       }),
     );
     expect(result).toEqual({
-      list: [expect.objectContaining({ id: "complaint-1", handlerId: "admin-1" })],
+      list: [
+        expect.objectContaining({
+          id: "complaint-1",
+          caseNumber: "CP1234567890ABCDEF1234567890ABCDEF",
+          complaintType: "service_quality",
+          complainant: { id: "owner-1", nickname: "豆包家长", phone: "17600000001" },
+          respondent: { id: "provider-1", nickname: "安心宠护", phone: "17600000002" },
+          handler: { id: "admin-1", nickname: "值班管理员", phone: "17600000003" },
+          appealDeadlineAt: "2026-08-04T12:00:00.000Z",
+          hasFailedExecution: true,
+        }),
+      ],
       total: 1,
       page: 2,
       pageSize: 10,
     });
+  });
+
+  it.each([
+    [
+      COMPLAINT_QUEUE.MINE,
+      { assignedAdminId: "admin-1", status: { notIn: ["closed", "withdrawn"] } },
+    ],
+    [COMPLAINT_QUEUE.UNASSIGNED, { status: COMPLAINT_STATUS.UNASSIGNED }],
+    [COMPLAINT_QUEUE.PENDING_RESPONSE, { status: COMPLAINT_STATUS.PENDING_RESPONSE }],
+    [COMPLAINT_QUEUE.PROCESSING_INITIAL, { status: COMPLAINT_STATUS.PROCESSING_INITIAL }],
+    [COMPLAINT_QUEUE.INITIAL_DECIDED, { status: COMPLAINT_STATUS.INITIAL_DECIDED }],
+    [COMPLAINT_QUEUE.PROCESSING_FINAL, { status: COMPLAINT_STATUS.PROCESSING_FINAL }],
+    [
+      COMPLAINT_QUEUE.EXECUTION_FAILED,
+      { executionTasks: { some: { status: DISPUTE_EXECUTION_TASK_STATUS.FAILED } } },
+    ],
+    [
+      COMPLAINT_QUEUE.CLOSED,
+      { status: { in: [COMPLAINT_STATUS.CLOSED, COMPLAINT_STATUS.WITHDRAWN] } },
+    ],
+  ])("maps the %s administrator queue to its Prisma condition", async (queue, condition) => {
+    prisma.complaint.findMany.mockResolvedValue([]);
+    prisma.complaint.count.mockResolvedValue(0);
+
+    await service.findAdminPage({ page: 1, pageSize: 20, queue }, "admin-1");
+
+    expect(prisma.complaint.findMany).toHaveBeenCalledWith(
+      expect.objectContaining({ where: { AND: [condition] } }),
+    );
   });
 
   it.each([
@@ -307,6 +340,27 @@ describe("ComplaintQueryService", () => {
         },
       ],
       executionTasks: [],
+      ...overrides,
+    };
+  }
+
+  function listRecord(overrides: Record<string, unknown> = {}): Record<string, unknown> {
+    return {
+      id: "complaint-1",
+      caseNumber: "CP1234567890ABCDEF1234567890ABCDEF",
+      orderId: "order-1",
+      complaintType: "service_quality",
+      complainantId: "owner-1",
+      complainant: { id: "owner-1", nickname: "豆包家长", phone: "17600000001" },
+      respondentId: "provider-1",
+      respondent: { id: "provider-1", nickname: "安心宠护", phone: "17600000002" },
+      status: COMPLAINT_STATUS.INITIAL_DECIDED,
+      assignedAdminId: "admin-1",
+      assignedAdmin: { id: "admin-1", nickname: "值班管理员", phone: "17600000003" },
+      appealDeadlineAt: new Date("2026-08-04T12:00:00.000Z"),
+      executionTasks: [{ id: "task-1" }],
+      createdAt,
+      updatedAt,
       ...overrides,
     };
   }
