@@ -23,8 +23,35 @@ import {
 
 const DRAFT_SLOT = "active";
 
-function isUniqueConstraintError(error: unknown): boolean {
-  return typeof error === "object" && error !== null && "code" in error && error.code === "P2002";
+function isRecord(value: unknown): value is Record<string, unknown> {
+  return typeof value === "object" && value !== null;
+}
+
+function normalizedConstraintField(value: unknown): string {
+  return typeof value === "string" ? value.replaceAll(/[^a-z]/giu, "").toLowerCase() : "";
+}
+
+function isDraftSlotConflict(error: unknown): boolean {
+  if (!isRecord(error) || error.code !== "P2002") {
+    return false;
+  }
+
+  const meta = isRecord(error.meta) ? error.meta : {};
+  const modelName = meta.modelName ?? error.modelName;
+
+  if (modelName !== "SystemConfigVersion") {
+    return false;
+  }
+
+  if (Array.isArray(meta.target)) {
+    const target = new Set(meta.target.map(normalizedConstraintField));
+
+    return target.size === 2 && target.has("configkey") && target.has("draftslot");
+  }
+
+  const target = normalizedConstraintField(meta.target);
+
+  return target.includes("configkey") && target.includes("draftslot");
 }
 
 /** 管理草稿、发布、历史恢复、幂等和审计的领域无关内核。 */
@@ -133,7 +160,7 @@ export class ConfigPublishingService {
         return this.toDraft(draft, request.config);
       });
     } catch (error) {
-      if (isUniqueConstraintError(error)) {
+      if (isDraftSlotConflict(error)) {
         throw systemConfigVersionConflict();
       }
 
@@ -198,22 +225,29 @@ export class ConfigPublishingService {
     domain: SystemConfigDomain,
     command: PublishSystemConfigCommand,
   ): Promise<PublishSystemConfigResponse<TConfig>> {
-    const prior = await this.prisma.systemConfigVersion.findUnique({
-      where: { idempotencyKey: command.idempotencyKey },
-    });
+    try {
+      const prior = await this.findIdempotentResult<TConfig>(
+        domain,
+        command.idempotencyKey,
+      );
 
-    if (prior) {
-      return this.idempotentResult<TConfig>(domain, prior);
+      if (prior) {
+        return prior;
+      }
+    } catch (error) {
+      return this.failPublish(domain, command, error);
     }
 
     try {
       return await this.prisma.$transaction(async (tx) => {
-        const duplicate = await tx.systemConfigVersion.findUnique({
-          where: { idempotencyKey: command.idempotencyKey },
-        });
+        const duplicate = await this.findIdempotentResult<TConfig>(
+          domain,
+          command.idempotencyKey,
+          tx,
+        );
 
         if (duplicate) {
-          return this.idempotentResult<TConfig>(domain, duplicate, tx);
+          return duplicate;
         }
 
         const draft = await tx.systemConfigVersion.findFirst({
@@ -280,16 +314,20 @@ export class ConfigPublishingService {
         return this.toPublished(published, config);
       });
     } catch (error) {
-      const concurrentResult = await this.prisma.systemConfigVersion.findUnique({
-        where: { idempotencyKey: command.idempotencyKey },
-      });
+      try {
+        const concurrentResult = await this.findIdempotentResult<TConfig>(
+          domain,
+          command.idempotencyKey,
+        );
 
-      if (concurrentResult) {
-        return this.idempotentResult<TConfig>(domain, concurrentResult);
+        if (concurrentResult) {
+          return concurrentResult;
+        }
+      } catch (idempotencyError) {
+        return this.failPublish(domain, command, idempotencyError);
       }
 
-      await this.recordFailedPublish(domain, command);
-      throw error;
+      return this.failPublish(domain, command, error);
     }
   }
 
@@ -305,62 +343,70 @@ export class ConfigPublishingService {
 
     const adapter = this.adapter<TConfig>(domain);
 
-    return this.prisma.$transaction(async (tx) => {
-      const existing = await tx.systemConfigVersion.findFirst({
-        where: { configKey: domain, status: "draft", draftSlot: DRAFT_SLOT },
-      });
+    try {
+      return await this.prisma.$transaction(async (tx) => {
+        const existing = await tx.systemConfigVersion.findFirst({
+          where: { configKey: domain, status: "draft", draftSlot: DRAFT_SLOT },
+        });
 
-      if (existing) {
+        if (existing) {
+          throw systemConfigVersionConflict();
+        }
+
+        const source = await tx.systemConfigVersion.findFirst({
+          where: {
+            configKey: domain,
+            businessVersion: command.version,
+            status: { in: ["published", "superseded"] },
+          },
+        });
+
+        if (!source) {
+          throw systemConfigNotFound();
+        }
+
+        const config = await adapter.load(source.id, tx);
+
+        adapter.validate(config);
+        const latest = await tx.systemConfigVersion.findFirst({
+          where: { configKey: domain },
+          orderBy: { businessVersion: "desc" },
+        });
+        const draft = await tx.systemConfigVersion.create({
+          data: {
+            configKey: domain,
+            status: "draft",
+            businessVersion: (latest?.businessVersion ?? 0) + 1,
+            revision: 1,
+            draftSlot: DRAFT_SLOT,
+            createdById: actorId,
+            updatedById: actorId,
+            sourceVersionId: source.id,
+            changeSummary: command.changeSummary,
+          },
+        });
+
+        await adapter.persist(draft.id, config, tx);
+        await tx.systemConfigAuditEvent.create({
+          data: {
+            configKey: domain,
+            configVersionId: draft.id,
+            operatorId: actorId,
+            action: "restore_as_draft",
+            idempotencyKey: `restore:${source.id}:${draft.id}`,
+            changeSummary: command.changeSummary,
+          },
+        });
+
+        return this.toDraft(draft, config);
+      });
+    } catch (error) {
+      if (isDraftSlotConflict(error)) {
         throw systemConfigVersionConflict();
       }
 
-      const source = await tx.systemConfigVersion.findFirst({
-        where: {
-          configKey: domain,
-          businessVersion: command.version,
-          status: { in: ["published", "superseded"] },
-        },
-      });
-
-      if (!source) {
-        throw systemConfigNotFound();
-      }
-
-      const config = await adapter.load(source.id, tx);
-
-      adapter.validate(config);
-      const latest = await tx.systemConfigVersion.findFirst({
-        where: { configKey: domain },
-        orderBy: { businessVersion: "desc" },
-      });
-      const draft = await tx.systemConfigVersion.create({
-        data: {
-          configKey: domain,
-          status: "draft",
-          businessVersion: (latest?.businessVersion ?? 0) + 1,
-          revision: 1,
-          draftSlot: DRAFT_SLOT,
-          createdById: actorId,
-          updatedById: actorId,
-          sourceVersionId: source.id,
-          changeSummary: command.changeSummary,
-        },
-      });
-
-      await adapter.persist(draft.id, config, tx);
-      await tx.systemConfigAuditEvent.create({
-        data: {
-          configKey: domain,
-          configVersionId: draft.id,
-          operatorId: actorId,
-          action: "restore_as_draft",
-          idempotencyKey: `restore:${source.id}:${draft.id}`,
-          changeSummary: command.changeSummary,
-        },
-      });
-
-      return this.toDraft(draft, config);
-    });
+      throw error;
+    }
   }
 
   private adapter<TConfig = unknown>(domain: SystemConfigDomain): ConfigDomainAdapter<TConfig> {
@@ -388,6 +434,26 @@ export class ConfigPublishingService {
     const config = await this.adapter<TConfig>(domain).load(version.id, tx);
 
     return this.toPublished(version, config);
+  }
+
+  private async findIdempotentResult<TConfig>(
+    domain: SystemConfigDomain,
+    idempotencyKey: string,
+    tx: PrismaTransaction = this.prisma as unknown as PrismaTransaction,
+  ): Promise<PublishSystemConfigResponse<TConfig> | null> {
+    const version = await tx.systemConfigVersion.findUnique({ where: { idempotencyKey } });
+
+    return version ? this.idempotentResult<TConfig>(domain, version, tx) : null;
+  }
+
+  private async failPublish(
+    domain: SystemConfigDomain,
+    command: PublishSystemConfigCommand,
+    error: unknown,
+  ): Promise<never> {
+    await this.recordFailedPublish(domain, command);
+
+    throw error;
   }
 
   private async recordFailedPublish(

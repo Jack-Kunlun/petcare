@@ -390,12 +390,64 @@ describe("ConfigPublishingService", () => {
   it("并发创建唯一草稿失败时返回稳定版本冲突", async () => {
     const { prisma, service } = createSubject();
 
-    prisma.$transaction.mockRejectedValue({ code: "P2002" });
+    prisma.$transaction.mockRejectedValue({
+      code: "P2002",
+      modelName: "SystemConfigVersion",
+      meta: {
+        target: ["configKey", "draftSlot"],
+      },
+    });
 
     await expect(
       service.saveDraft(
         "fee",
         { revision: 0, config, changeSummary: "并发建立草稿" },
+        "admin-1",
+      ),
+    ).rejects.toMatchObject({
+      code: SYSTEM_CONFIG_ERROR_CODE.VERSION_CONFLICT,
+      status: 409,
+    });
+  });
+
+  it("适配器持久化的其他 P2002 原样传播", async () => {
+    const { prisma, adapter, service } = createSubject();
+    const persistError = {
+      code: "P2002",
+      meta: {
+        modelName: "FeeConfig",
+        target: ["config_version_id"],
+      },
+    };
+
+    prisma.systemConfigVersion.findFirst.mockResolvedValue(draftVersion);
+    prisma.systemConfigVersion.updateMany.mockResolvedValue({ count: 1 });
+    adapter.persist.mockRejectedValue(persistError);
+
+    await expect(
+      service.saveDraft(
+        "fee",
+        { revision: 3, config, changeSummary: "保存配置" },
+        "admin-1",
+      ),
+    ).rejects.toBe(persistError);
+  });
+
+  it("并发恢复创建活动草稿时返回稳定版本冲突", async () => {
+    const { prisma, service } = createSubject();
+
+    prisma.$transaction.mockRejectedValue({
+      code: "P2002",
+      meta: {
+        modelName: "SystemConfigVersion",
+        target: ["config_key", "draft_slot"],
+      },
+    });
+
+    await expect(
+      service.restoreAsDraft(
+        "fee",
+        { version: 1, revision: 0, changeSummary: "并发恢复" },
         "admin-1",
       ),
     ).rejects.toMatchObject({
@@ -420,6 +472,79 @@ describe("ConfigPublishingService", () => {
       }),
     ).resolves.toMatchObject({ id: "published-fee-2", version: 2, config });
     expect(prisma.systemConfigAuditEvent.create).not.toHaveBeenCalled();
+  });
+
+  it("初始幂等键属于其他领域时记录脱敏失败审计", async () => {
+    const { prisma, service } = createSubject();
+
+    prisma.systemConfigVersion.findUnique.mockResolvedValue({
+      ...publishedVersion,
+      configKey: "sop",
+      changeSummary: "敏感跨领域正文",
+    });
+
+    await expect(
+      service.publish("fee", {
+        revision: 3,
+        idempotencyKey: "cross-domain-key",
+        actorId: "admin-1",
+      }),
+    ).rejects.toMatchObject({ code: SYSTEM_CONFIG_ERROR_CODE.VERSION_CONFLICT });
+    expect(prisma.systemConfigAuditEvent.create).toHaveBeenCalledWith(
+      expect.objectContaining({ data: expect.objectContaining({ action: "publish_failed" }) }),
+    );
+    expect(JSON.stringify(prisma.systemConfigAuditEvent.create.mock.calls)).not.toContain(
+      "敏感跨领域正文",
+    );
+  });
+
+  it("初始幂等结果加载失败时记录脱敏失败审计", async () => {
+    const { prisma, adapter, service } = createSubject();
+    const loadError = new Error("敏感重放正文");
+
+    prisma.systemConfigVersion.findUnique.mockResolvedValue(publishedVersion);
+    adapter.load.mockRejectedValue(loadError);
+
+    await expect(
+      service.publish("fee", {
+        revision: 3,
+        idempotencyKey: "replay-load-failed",
+        actorId: "admin-1",
+      }),
+    ).rejects.toBe(loadError);
+    expect(prisma.systemConfigAuditEvent.create).toHaveBeenCalledWith(
+      expect.objectContaining({ data: expect.objectContaining({ action: "publish_failed" }) }),
+    );
+    expect(JSON.stringify(prisma.systemConfigAuditEvent.create.mock.calls)).not.toContain(
+      "敏感重放正文",
+    );
+  });
+
+  it("并发重查得到非法状态时记录脱敏失败审计", async () => {
+    const { prisma, service } = createSubject();
+
+    prisma.systemConfigVersion.findUnique
+      .mockResolvedValueOnce(null)
+      .mockResolvedValueOnce({
+        ...publishedVersion,
+        status: "draft",
+        changeSummary: "敏感非法状态正文",
+      });
+    prisma.$transaction.mockRejectedValue({ code: "P2002" });
+
+    await expect(
+      service.publish("fee", {
+        revision: 3,
+        idempotencyKey: "invalid-concurrent-result",
+        actorId: "admin-1",
+      }),
+    ).rejects.toMatchObject({ code: SYSTEM_CONFIG_ERROR_CODE.VERSION_CONFLICT });
+    expect(prisma.systemConfigAuditEvent.create).toHaveBeenCalledWith(
+      expect.objectContaining({ data: expect.objectContaining({ action: "publish_failed" }) }),
+    );
+    expect(JSON.stringify(prisma.systemConfigAuditEvent.create.mock.calls)).not.toContain(
+      "敏感非法状态正文",
+    );
   });
 
   it("pointer 更新后审计失败会回滚整个事务状态", async () => {
