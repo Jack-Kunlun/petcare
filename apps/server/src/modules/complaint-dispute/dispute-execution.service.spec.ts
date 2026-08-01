@@ -331,8 +331,8 @@ describe("DisputeExecutionService", () => {
     prisma.disputeExecutionTask.findFirst.mockResolvedValue(null);
 
     await expect(service.retryTask("task-1", "admin-1", "complaint-other")).rejects.toMatchObject({
-      code: "RESOURCE_NOT_FOUND",
-      status: 404,
+      code: "EXECUTION_TASK_NOT_RETRYABLE",
+      status: 409,
     });
 
     expect(prisma.disputeExecutionTask.findFirst).toHaveBeenCalledWith({

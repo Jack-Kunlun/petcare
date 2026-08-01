@@ -247,10 +247,18 @@ export class DisputeDecisionService {
       (delta) => !Number.isInteger(delta) || delta < -100 || delta > 100,
     );
 
-    if (invalidAmount || invalidCreditDelta) {
+    if (invalidAmount) {
+      throw new ApiException(
+        "DECISION_AMOUNT_INVALID",
+        "裁决金额必须为有效整数分且总额不得超过订单金额",
+        HttpStatus.BAD_REQUEST,
+      );
+    }
+
+    if (invalidCreditDelta) {
       throw new ApiException(
         "INVALID_DISPUTE_DECISION",
-        "裁决金额或信用分调整不合法",
+        "裁决信用分调整不合法",
         HttpStatus.BAD_REQUEST,
       );
     }

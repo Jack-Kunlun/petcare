@@ -236,6 +236,25 @@ export class ComplaintCommandService {
         throw new ApiException("RESOURCE_NOT_FOUND", "投诉不存在", HttpStatus.NOT_FOUND);
       }
 
+      const isOrderParty =
+        actorId === complaint.complainantId || actorId === complaint.respondentId;
+      const isAppealState =
+        complaint.status === COMPLAINT_STATUS.INITIAL_DECIDED ||
+        complaint.status === COMPLAINT_STATUS.PROCESSING_FINAL;
+
+      if (
+        isOrderParty &&
+        isAppealState &&
+        complaint.appealDeadlineAt !== null &&
+        new Date() >= complaint.appealDeadlineAt
+      ) {
+        throw new ApiException(
+          "APPEAL_DEADLINE_EXPIRED",
+          "二次申诉期限已结束",
+          HttpStatus.CONFLICT,
+        );
+      }
+
       const existingAppeal = await transaction.complaintStatement.findUnique({
         where: {
           complaintId_stage_authorId: {

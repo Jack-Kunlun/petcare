@@ -549,6 +549,9 @@ describe("ComplaintCommandService", () => {
         evidenceUrls: [],
         version: 2,
       }),
-    ).rejects.toMatchObject({ code: "COMPLAINT_ACTION_NOT_ALLOWED" });
+    ).rejects.toMatchObject({
+      code: "APPEAL_DEADLINE_EXPIRED",
+      status: HttpStatus.CONFLICT,
+    });
   });
 });
