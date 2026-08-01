@@ -405,9 +405,10 @@ describe("Settings domain editors", () => {
 
     renderEdit("/settings/rating_threshold/edit");
 
-    expect(await screen.findByRole("spinbutton", { name: "预警评分" })).toHaveValue(3.5);
     expect(await screen.findByRole("alert", { name: "草稿状态加载失败" })).toBeInTheDocument();
-    expect(screen.getByRole("button", { name: "保存草稿" })).toBeDisabled();
+    expect(screen.getByText("当前版本已加载；草稿状态确认前编辑器保持关闭。")).toBeInTheDocument();
+    expect(screen.queryByRole("spinbutton", { name: "预警评分" })).not.toBeInTheDocument();
+    expect(screen.queryByRole("button", { name: "保存草稿" })).not.toBeInTheDocument();
     expect(screen.queryByRole("alert", { name: "当前生效版本加载失败" })).not.toBeInTheDocument();
     await user.click(screen.getByRole("button", { name: "重新加载草稿状态" }));
 
@@ -493,6 +494,103 @@ describe("Settings domain editors", () => {
       expect(screen.getByText(/当前草稿修订版：/)).toHaveTextContent("7");
     },
   );
+
+  it("表单未修改时草稿 refetch 会原子采用新配置、摘要和 revision", async () => {
+    const remoteConfig = { ...rating, warningScore: 375 };
+
+    setupRatingDraft();
+    vi.mocked(ratingApi.fetchRatingThresholdDraft)
+      .mockResolvedValueOnce({
+        id: "rating-draft",
+        domain: "rating_threshold",
+        revision: 2,
+        config: rating,
+        changeSummary: "原草稿摘要",
+        updatedBy: "admin-1",
+        updatedAt: "2026-08-02T00:00:00.000Z",
+      })
+      .mockResolvedValueOnce({
+        id: "rating-draft",
+        domain: "rating_threshold",
+        revision: 4,
+        config: remoteConfig,
+        changeSummary: "服务端新草稿摘要",
+        updatedBy: "admin-2",
+        updatedAt: "2026-08-02T01:00:00.000Z",
+      });
+    const queryClient = renderEdit("/settings/rating_threshold/edit");
+
+    expect(await screen.findByRole("spinbutton", { name: "预警评分" })).toHaveValue(3.5);
+    expect(screen.getByLabelText(/变更摘要/)).toHaveValue("原草稿摘要");
+    await queryClient.invalidateQueries({
+      queryKey: ["system-settings", "rating_threshold", "feeding", "draft"],
+    });
+
+    await waitFor(() =>
+      expect(screen.getByRole("spinbutton", { name: "预警评分" })).toHaveValue(3.75),
+    );
+    expect(screen.getByLabelText(/变更摘要/)).toHaveValue("服务端新草稿摘要");
+    expect(screen.getByText(/当前草稿修订版：/)).toHaveTextContent("4");
+  });
+
+  it("表单已修改时草稿 refetch 保留本地 payload 与旧 revision 并按旧 revision 保存", async () => {
+    const user = userEvent.setup();
+    const remoteConfig = { ...rating, warningScore: 375 };
+    const localConfig = { ...rating, warningScore: 380 };
+
+    setupRatingDraft();
+    vi.mocked(ratingApi.fetchRatingThresholdDraft)
+      .mockResolvedValueOnce({
+        id: "rating-draft",
+        domain: "rating_threshold",
+        revision: 2,
+        config: rating,
+        changeSummary: "原草稿摘要",
+        updatedBy: "admin-1",
+        updatedAt: "2026-08-02T00:00:00.000Z",
+      })
+      .mockResolvedValueOnce({
+        id: "rating-draft",
+        domain: "rating_threshold",
+        revision: 4,
+        config: remoteConfig,
+        changeSummary: "其他管理员的新草稿",
+        updatedBy: "admin-2",
+        updatedAt: "2026-08-02T01:00:00.000Z",
+      });
+    vi.mocked(ratingApi.saveRatingThresholdDraft).mockResolvedValue({
+      id: "rating-draft",
+      domain: "rating_threshold",
+      revision: 3,
+      config: localConfig,
+      changeSummary: "本地修改摘要",
+      updatedBy: "admin-1",
+      updatedAt: "2026-08-02T02:00:00.000Z",
+    });
+    const queryClient = renderEdit("/settings/rating_threshold/edit");
+    const warning = await screen.findByRole("spinbutton", { name: "预警评分" });
+
+    await user.clear(warning);
+    await user.type(warning, "3.8");
+    await user.clear(screen.getByLabelText(/变更摘要/));
+    await user.type(screen.getByLabelText(/变更摘要/), "本地修改摘要");
+    await queryClient.invalidateQueries({
+      queryKey: ["system-settings", "rating_threshold", "feeding", "draft"],
+    });
+
+    expect(screen.getByRole("spinbutton", { name: "预警评分" })).toHaveValue(3.8);
+    expect(screen.getByLabelText(/变更摘要/)).toHaveValue("本地修改摘要");
+    expect(screen.getByText(/当前草稿修订版：/)).toHaveTextContent("2");
+    await user.click(screen.getByRole("button", { name: "保存草稿" }));
+
+    await waitFor(() =>
+      expect(ratingApi.saveRatingThresholdDraft).toHaveBeenCalledWith({
+        revision: 2,
+        config: localConfig,
+        changeSummary: "本地修改摘要",
+      }),
+    );
+  });
 
   it("保存草稿时提交当前 revision 并展示服务端新 revision", async () => {
     const user = userEvent.setup();
@@ -585,6 +683,99 @@ describe("Settings domain editors", () => {
     });
   });
 
+  it("发布后草稿变为 null 时切换到新 current，并以 revision 0 创建后续草稿", async () => {
+    const user = userEvent.setup();
+    const draftConfig = { ...rating, warningScore: 375 };
+    const publishedConfig = { ...rating, warningScore: 390 };
+    const noDraft = new axios.AxiosError("not found", "ERR_BAD_REQUEST", undefined, undefined, {
+      status: 404,
+      data: {
+        code: "SYSTEM_CONFIG_DRAFT_NOT_FOUND",
+        message: "草稿不存在",
+        data: null,
+        meta: {},
+      },
+    } as never);
+
+    setupRatingDraft(draftConfig);
+    vi.mocked(ratingApi.fetchRatingThresholdCurrent)
+      .mockResolvedValueOnce({
+        id: "rating-v1",
+        domain: "rating_threshold",
+        version: 1,
+        status: "published",
+        config: rating,
+        changeSummary: "旧发布版本",
+        publishedBy: "admin-1",
+        publishedAt: "2026-08-01T00:00:00.000Z",
+      })
+      .mockResolvedValueOnce({
+        id: "rating-v2",
+        domain: "rating_threshold",
+        version: 2,
+        status: "published",
+        config: publishedConfig,
+        changeSummary: "刚发布的新版本",
+        publishedBy: "admin-1",
+        publishedAt: "2026-08-02T02:00:00.000Z",
+      });
+    vi.mocked(ratingApi.fetchRatingThresholdDraft)
+      .mockResolvedValueOnce({
+        id: "rating-draft",
+        domain: "rating_threshold",
+        revision: 2,
+        config: draftConfig,
+        changeSummary: "待发布草稿",
+        updatedBy: "admin-1",
+        updatedAt: "2026-08-02T00:00:00.000Z",
+      })
+      .mockRejectedValueOnce(noDraft);
+    vi.mocked(ratingApi.fetchRatingThresholdDiff).mockResolvedValue([
+      { path: "warningScore", label: "预警评分", before: 350, after: 375, changeType: "modified" },
+    ]);
+    vi.mocked(ratingApi.publishRatingThresholdDraft).mockResolvedValue({
+      id: "rating-v2",
+      domain: "rating_threshold",
+      version: 2,
+      status: "published",
+      config: publishedConfig,
+      changeSummary: "刚发布的新版本",
+      publishedBy: "admin-1",
+      publishedAt: "2026-08-02T02:00:00.000Z",
+    });
+    vi.mocked(ratingApi.saveRatingThresholdDraft).mockResolvedValue({
+      id: "rating-draft-next",
+      domain: "rating_threshold",
+      revision: 1,
+      config: publishedConfig,
+      changeSummary: "基于新版本继续调整",
+      updatedBy: "admin-1",
+      updatedAt: "2026-08-02T03:00:00.000Z",
+    });
+
+    renderEdit("/settings/rating_threshold/edit");
+    await screen.findByRole("spinbutton", { name: "预警评分" });
+    await user.click(screen.getByRole("button", { name: "检查并发布" }));
+    await user.click(await screen.findByRole("button", { name: "继续发布" }));
+    await user.click(screen.getByRole("button", { name: "确认发布" }));
+
+    await waitFor(() =>
+      expect(screen.getByRole("spinbutton", { name: "预警评分" })).toHaveValue(3.9),
+    );
+    expect(screen.getByText(/当前草稿修订版：/)).toHaveTextContent("0");
+    expect(screen.getByLabelText(/变更摘要/)).toHaveValue("");
+    await user.type(screen.getByLabelText(/变更摘要/), "基于新版本继续调整");
+    await user.click(screen.getByRole("button", { name: "保存草稿" }));
+
+    await waitFor(() =>
+      expect(ratingApi.saveRatingThresholdDraft).toHaveBeenCalledWith({
+        revision: 0,
+        config: publishedConfig,
+        changeSummary: "基于新版本继续调整",
+      }),
+    );
+  });
+
   it("字段差异加载失败时显示错误并可重试，成功前不能继续发布", async () => {
     const user = userEvent.setup();
 
@@ -616,7 +807,7 @@ describe("Settings domain editors", () => {
     expect(ratingApi.fetchRatingThresholdDiff).toHaveBeenCalledTimes(2);
   });
 
-  it("409 会关闭陈旧确认、保留本地输入并刷新服务端 revision", async () => {
+  it("409 会关闭陈旧确认，并在 refetch 后保留本地输入与原绑定 revision", async () => {
     const user = userEvent.setup();
 
     setupRatingDraft();
@@ -629,6 +820,15 @@ describe("Settings domain editors", () => {
       updatedBy: "admin-2",
       updatedAt: "2026-08-02T03:00:00.000Z",
     };
+    const conflict = new axios.AxiosError("conflict", "ERR_BAD_REQUEST", undefined, undefined, {
+      status: 409,
+      data: {
+        code: SYSTEM_CONFIG_ERROR_CODE.VERSION_CONFLICT,
+        message: "版本冲突",
+        data: null,
+        meta: {},
+      },
+    } as never);
 
     vi.mocked(ratingApi.fetchRatingThresholdDraft)
       .mockResolvedValueOnce({
@@ -648,25 +848,10 @@ describe("Settings domain editors", () => {
         config: { ...rating, warningScore: 375 },
         changeSummary: "调整评分规则",
       })
-      .mockResolvedValueOnce({
-        ...serverDraft,
-        revision: 5,
-        config: { ...rating, warningScore: 375 },
-        changeSummary: "协调并重新保存评分规则",
-      });
+      .mockRejectedValueOnce(conflict);
     vi.mocked(ratingApi.fetchRatingThresholdDiff).mockResolvedValue([
       { path: "warningScore", label: "预警评分", before: 350, after: 375, changeType: "modified" },
     ]);
-    const conflict = new axios.AxiosError("conflict", "ERR_BAD_REQUEST", undefined, undefined, {
-      status: 409,
-      data: {
-        code: SYSTEM_CONFIG_ERROR_CODE.VERSION_CONFLICT,
-        message: "版本冲突",
-        data: null,
-        meta: {},
-      },
-    } as never);
-
     vi.mocked(ratingApi.publishRatingThresholdDraft).mockRejectedValue(conflict);
 
     renderEdit("/settings/rating_threshold/edit");
@@ -693,13 +878,13 @@ describe("Settings domain editors", () => {
 
     await waitFor(() =>
       expect(ratingApi.saveRatingThresholdDraft).toHaveBeenLastCalledWith({
-        revision: 4,
+        revision: 3,
         config: { ...rating, warningScore: 375 },
         changeSummary: "协调并重新保存评分规则",
       }),
     );
-    expect(await screen.findByText("草稿已保存，当前修订版为 5。")).toBeInTheDocument();
-    expect(screen.getByRole("button", { name: "检查并发布" })).toBeEnabled();
+    expect(screen.getByText(/当前草稿修订版：/)).toHaveTextContent("3");
+    expect(screen.getByRole("button", { name: "检查并发布" })).toBeDisabled();
   });
 
   it("提交字段错误时聚焦错误摘要且不发送保存请求", async () => {
