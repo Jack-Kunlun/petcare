@@ -23,6 +23,9 @@ function taskRecord(overrides: Record<string, unknown> = {}): Record<string, unk
 
 describe("DisputeExecutionService", () => {
   const transaction = {
+    complaint: {
+      findUnique: jest.fn(),
+    },
     disputeExecutionTask: {
       updateMany: jest.fn(),
     },
@@ -30,7 +33,7 @@ describe("DisputeExecutionService", () => {
       createMany: jest.fn(),
     },
     creditScore: {
-      update: jest.fn(),
+      upsert: jest.fn(),
     },
     complaintEvent: {
       create: jest.fn(),
@@ -62,6 +65,11 @@ describe("DisputeExecutionService", () => {
     prisma.$transaction.mockImplementation(
       async (callback: (client: typeof transaction) => unknown) => callback(transaction),
     );
+    transaction.complaint.findUnique.mockResolvedValue({
+      status: "closed",
+      decisions: [{ id: "decision-1", level: "final" }],
+    });
+    transaction.disputeExecutionTask.updateMany.mockResolvedValue({ count: 1 });
   });
 
   afterEach(() => {
@@ -89,9 +97,8 @@ describe("DisputeExecutionService", () => {
   it("writes one uniquely referenced credit record before changing the score", async () => {
     jest.useFakeTimers().setSystemTime(new Date("2026-08-04T12:00:00.000Z"));
     prisma.disputeExecutionTask.findUnique.mockResolvedValue(taskRecord());
-    prisma.disputeExecutionTask.updateMany.mockResolvedValue({ count: 1 });
     transaction.creditRecord.createMany.mockResolvedValue({ count: 1 });
-    transaction.creditScore.update.mockResolvedValue({});
+    transaction.creditScore.upsert.mockResolvedValue({});
     transaction.disputeExecutionTask.updateMany.mockResolvedValue({ count: 1 });
     transaction.complaintEvent.create.mockResolvedValue({});
 
@@ -101,7 +108,7 @@ describe("DisputeExecutionService", () => {
       completedAt: "2026-08-04T12:00:00.000Z",
     });
 
-    expect(prisma.disputeExecutionTask.updateMany).toHaveBeenCalledWith({
+    expect(transaction.disputeExecutionTask.updateMany).toHaveBeenCalledWith({
       where: { id: "task-1", status: { in: ["pending", "failed"] } },
       data: {
         status: "processing",
@@ -123,9 +130,14 @@ describe("DisputeExecutionService", () => {
       ],
       skipDuplicates: true,
     });
-    expect(transaction.creditScore.update).toHaveBeenCalledWith({
+    expect(transaction.creditScore.upsert).toHaveBeenCalledWith({
       where: { userId: "provider-1" },
-      data: {
+      create: {
+        userId: "provider-1",
+        creditScore: 95,
+        lastUpdated: new Date("2026-08-04T12:00:00.000Z"),
+      },
+      update: {
         creditScore: { increment: -5 },
         lastUpdated: new Date("2026-08-04T12:00:00.000Z"),
       },
@@ -135,7 +147,6 @@ describe("DisputeExecutionService", () => {
   it("does not change credit again when the unique business reference already exists", async () => {
     jest.useFakeTimers().setSystemTime(new Date("2026-08-04T12:00:00.000Z"));
     prisma.disputeExecutionTask.findUnique.mockResolvedValue(taskRecord());
-    prisma.disputeExecutionTask.updateMany.mockResolvedValue({ count: 1 });
     transaction.creditRecord.createMany.mockResolvedValue({ count: 0 });
     transaction.disputeExecutionTask.updateMany.mockResolvedValue({ count: 1 });
     transaction.complaintEvent.create.mockResolvedValue({});
@@ -148,28 +159,72 @@ describe("DisputeExecutionService", () => {
     expect(transaction.creditRecord.createMany).toHaveBeenCalledWith(
       expect.objectContaining({ skipDuplicates: true }),
     );
-    expect(transaction.creditScore.update).not.toHaveBeenCalled();
+    expect(transaction.creditScore.upsert).not.toHaveBeenCalled();
   });
 
   it("does not execute an effect after losing the conditional claim", async () => {
     prisma.disputeExecutionTask.findUnique
       .mockResolvedValueOnce(taskRecord())
       .mockResolvedValueOnce(taskRecord({ status: "processing" }));
-    prisma.disputeExecutionTask.updateMany.mockResolvedValue({ count: 0 });
+    transaction.disputeExecutionTask.updateMany.mockResolvedValue({ count: 0 });
 
     await expect(service.executeTask("task-1")).resolves.toMatchObject({
       status: "processing",
     });
 
-    expect(prisma.$transaction).not.toHaveBeenCalled();
-    expect(transaction.creditScore.update).not.toHaveBeenCalled();
+    expect(prisma.$transaction).toHaveBeenCalledTimes(1);
+    expect(transaction.creditScore.upsert).not.toHaveBeenCalled();
+  });
+
+  it("does not claim or apply a task until the complaint is closed", async () => {
+    prisma.disputeExecutionTask.findUnique
+      .mockResolvedValueOnce(taskRecord())
+      .mockResolvedValueOnce(taskRecord());
+    transaction.complaint.findUnique.mockResolvedValue({
+      status: "initial_decided",
+      decisions: [{ id: "decision-1", level: "initial" }],
+    });
+
+    await expect(service.executeTask("task-1")).resolves.toMatchObject({ status: "pending" });
+
+    expect(transaction.disputeExecutionTask.updateMany).not.toHaveBeenCalled();
+    expect(transaction.creditRecord.createMany).not.toHaveBeenCalled();
+  });
+
+  it("supersedes an initial task when a final decision exists", async () => {
+    jest.useFakeTimers().setSystemTime(new Date("2026-08-04T12:00:00.000Z"));
+    prisma.disputeExecutionTask.findUnique.mockResolvedValue(
+      taskRecord({ decisionId: "decision-initial", decisionLevel: "initial" }),
+    );
+    transaction.complaint.findUnique.mockResolvedValue({
+      status: "closed",
+      decisions: [
+        { id: "decision-final", level: "final" },
+        { id: "decision-initial", level: "initial" },
+      ],
+    });
+
+    await expect(service.executeTask("task-1")).resolves.toMatchObject({
+      status: "superseded",
+      completedAt: "2026-08-04T12:00:00.000Z",
+    });
+
+    expect(transaction.disputeExecutionTask.updateMany).toHaveBeenCalledWith({
+      where: { id: "task-1", status: { in: ["pending", "failed"] } },
+      data: {
+        status: "superseded",
+        failureReason: null,
+        completedAt: new Date("2026-08-04T12:00:00.000Z"),
+        updatedAt: new Date("2026-08-04T12:00:00.000Z"),
+      },
+    });
+    expect(transaction.creditRecord.createMany).not.toHaveBeenCalled();
   });
 
   it("records failure metadata and exposes the next retry time", async () => {
     jest.useFakeTimers().setSystemTime(new Date("2026-08-04T12:00:00.000Z"));
     prisma.disputeExecutionTask.findUnique.mockResolvedValue(taskRecord());
-    prisma.disputeExecutionTask.updateMany.mockResolvedValue({ count: 1 });
-    prisma.$transaction.mockRejectedValueOnce(new Error("credit store unavailable"));
+    transaction.creditRecord.createMany.mockRejectedValue(new Error("credit store unavailable"));
     transaction.disputeExecutionTask.updateMany.mockResolvedValue({ count: 1 });
     transaction.complaintEvent.create.mockResolvedValue({});
 
@@ -181,9 +236,10 @@ describe("DisputeExecutionService", () => {
     });
 
     expect(transaction.disputeExecutionTask.updateMany).toHaveBeenCalledWith({
-      where: { id: "task-1", status: "processing" },
+      where: { id: "task-1", status: { in: ["pending", "failed"] } },
       data: {
         status: "failed",
+        retryCount: { increment: 1 },
         failureReason: "credit store unavailable",
         updatedAt: new Date("2026-08-04T12:00:00.000Z"),
       },

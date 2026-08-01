@@ -17,6 +17,10 @@ import {
 } from "./complaint-dispute";
 
 describe("complaint dispute contracts", () => {
+  it("shares the superseded terminal execution status", () => {
+    expect(DISPUTE_EXECUTION_TASK_STATUS.SUPERSEDED).toBe("superseded");
+  });
+
   it("exposes every state required by the two-level decision workflow", () => {
     expect(Object.values(COMPLAINT_STATUS)).toEqual([
       "pending_response",

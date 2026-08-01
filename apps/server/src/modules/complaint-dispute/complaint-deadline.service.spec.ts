@@ -1,4 +1,5 @@
 import { COMPLAINT_STATUS, DECISION_LEVEL } from "@petcare/shared-types";
+import { AppLogger } from "../../logging/app-logger.service";
 import { PrismaService } from "../../prisma/prisma.service";
 import { ComplaintDeadlineService } from "./complaint-deadline.service";
 import { DisputeExecutionService } from "./dispute-execution.service";
@@ -28,9 +29,11 @@ describe("ComplaintDeadlineService", () => {
   const executionService = {
     processDueTasks: jest.fn(),
   };
+  const logger = { write: jest.fn() };
   const service = new ComplaintDeadlineService(
     prisma as unknown as PrismaService,
     executionService as unknown as DisputeExecutionService,
+    logger as unknown as AppLogger,
   );
 
   beforeEach(() => {
@@ -46,7 +49,7 @@ describe("ComplaintDeadlineService", () => {
     jest.restoreAllMocks();
   });
 
-  it("closes an expired initial decision and creates final execution tasks once", async () => {
+  it("closes an expired initial decision and only ensures its missing tasks", async () => {
     const now = new Date("2026-08-04T12:00:00.000Z");
 
     prisma.complaint.findMany.mockResolvedValue([{ id: "complaint-1", version: 3 }]);
@@ -73,7 +76,6 @@ describe("ComplaintDeadlineService", () => {
       ],
     });
     transaction.complaint.updateMany.mockResolvedValue({ count: 1 });
-    transaction.disputeDecision.upsert.mockResolvedValue({ id: "decision-final" });
     transaction.disputeExecutionTask.createMany.mockResolvedValue({ count: 3 });
     transaction.complaintEvent.create.mockResolvedValue({});
 
@@ -102,53 +104,32 @@ describe("ComplaintDeadlineService", () => {
         version: { increment: 1 },
       },
     });
-    expect(transaction.disputeDecision.upsert).toHaveBeenCalledWith({
-      where: {
-        complaintId_level: {
-          complaintId: "complaint-1",
-          level: DECISION_LEVEL.FINAL,
-        },
-      },
-      create: {
-        complaintId: "complaint-1",
-        decisionAdminId: "admin-1",
-        level: DECISION_LEVEL.FINAL,
-        liability: "respondent",
-        reason: "服务未按订单约定完成",
-        refundAmount: 1000,
-        settlementAmount: 2000,
-        complainantCreditDelta: 0,
-        respondentCreditDelta: -5,
-        createdAt: now,
-      },
-      update: {},
-      select: { id: true },
-    });
+    expect(transaction.disputeDecision.upsert).not.toHaveBeenCalled();
     expect(transaction.disputeExecutionTask.createMany).toHaveBeenCalledWith({
       data: [
         {
           complaintId: "complaint-1",
-          decisionId: "decision-final",
-          decisionLevel: DECISION_LEVEL.FINAL,
+          decisionId: "decision-initial",
+          decisionLevel: DECISION_LEVEL.INITIAL,
           taskType: "refund",
           payload: JSON.stringify({ userId: "owner-1", amount: 1000 }),
-          idempotencyKey: "complaint-1:final:refund",
+          idempotencyKey: "complaint-1:initial:refund",
         },
         {
           complaintId: "complaint-1",
-          decisionId: "decision-final",
-          decisionLevel: DECISION_LEVEL.FINAL,
+          decisionId: "decision-initial",
+          decisionLevel: DECISION_LEVEL.INITIAL,
           taskType: "settlement",
           payload: JSON.stringify({ userId: "provider-1", amount: 2000 }),
-          idempotencyKey: "complaint-1:final:settlement",
+          idempotencyKey: "complaint-1:initial:settlement",
         },
         {
           complaintId: "complaint-1",
-          decisionId: "decision-final",
-          decisionLevel: DECISION_LEVEL.FINAL,
+          decisionId: "decision-initial",
+          decisionLevel: DECISION_LEVEL.INITIAL,
           taskType: "respondent_credit",
           payload: JSON.stringify({ userId: "provider-1", delta: -5 }),
-          idempotencyKey: "complaint-1:final:respondent_credit",
+          idempotencyKey: "complaint-1:initial:respondent_credit",
         },
       ],
       skipDuplicates: true,
@@ -162,7 +143,6 @@ describe("ComplaintDeadlineService", () => {
         toStatus: COMPLAINT_STATUS.CLOSED,
         payload: JSON.stringify({
           initialDecisionId: "decision-initial",
-          finalDecisionId: "decision-final",
         }),
         createdAt: now,
       },
@@ -229,5 +209,19 @@ describe("ComplaintDeadlineService", () => {
 
     expect(prisma.complaint.findMany).toHaveBeenCalledWith(expect.objectContaining({ take: 100 }));
     expect(executionService.processDueTasks).toHaveBeenCalledWith(100);
+  });
+
+  it("still consumes due tasks and logs when deadline closing fails", async () => {
+    jest.useFakeTimers().setSystemTime(new Date("2026-08-04T12:00:00.000Z"));
+    prisma.complaint.findMany.mockRejectedValue(new Error("poison complaint"));
+    executionService.processDueTasks.mockResolvedValue([]);
+
+    service.onModuleInit();
+    await jest.advanceTimersByTimeAsync(60_000);
+
+    expect(executionService.processDueTasks).toHaveBeenCalledWith(100);
+    expect(logger.write).toHaveBeenCalledWith("error", "complaint.deadline_maintenance_failed", {
+      error: "poison complaint",
+    });
   });
 });

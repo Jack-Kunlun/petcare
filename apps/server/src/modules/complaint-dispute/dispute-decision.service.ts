@@ -2,6 +2,7 @@ import { HttpStatus, Injectable } from "@nestjs/common";
 import {
   COMPLAINT_STATUS,
   DECISION_LEVEL,
+  DISPUTE_EXECUTION_TASK_STATUS,
   type ComplaintStatus,
   type DecisionLevel,
   type SubmitDisputeDecisionRequest,
@@ -67,11 +68,7 @@ export class DisputeDecisionService {
       const action = isInitial ? "initial_decide" : "final_decide";
 
       assertComplaintAction(this.toActionContext(complaint, admin), action);
-      this.assertDecisionValues(
-        complaint.order.amount,
-        complaint.order.providerId,
-        request,
-      );
+      this.assertDecisionValues(complaint.order.amount, complaint.order.providerId, request);
 
       const existingDecision = await transaction.disputeDecision.findUnique({
         where: {
@@ -134,6 +131,24 @@ export class DisputeDecisionService {
         },
         select: { id: true },
       });
+
+      if (!isInitial) {
+        await transaction.disputeExecutionTask.updateMany({
+          where: {
+            complaintId: id,
+            decisionLevel: DECISION_LEVEL.INITIAL,
+            status: {
+              in: [DISPUTE_EXECUTION_TASK_STATUS.PENDING, DISPUTE_EXECUTION_TASK_STATUS.FAILED],
+            },
+          },
+          data: {
+            status: DISPUTE_EXECUTION_TASK_STATUS.SUPERSEDED,
+            failureReason: null,
+            completedAt: now,
+            updatedAt: now,
+          },
+        });
+      }
 
       await transaction.complaintEvent.create({
         data: {

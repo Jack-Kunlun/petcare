@@ -452,7 +452,7 @@ model DisputeExecutionTask {
   taskType       String    @map("task_type")
   /// 执行任务参数，使用 JSON 字符串格式。
   payload        String?
-  /// 执行状态，取 pending、processing、succeeded 或 failed。
+  /// 执行状态，取 pending、processing、succeeded、failed 或 superseded。
   status         String    @default("pending")
   /// 最近一次执行失败原因。
   failureReason  String?   @map("failure_reason")
