@@ -59,6 +59,12 @@ function createPrismaMock() {
     systemConfigAuditEvent: {
       create: jest.fn(),
     },
+    orderSop: {
+      updateMany: jest.fn(),
+    },
+    orderFeeSnapshot: {
+      updateMany: jest.fn(),
+    },
   };
 
   prisma.$transaction.mockImplementation((work: (tx: typeof prisma) => unknown) => work(prisma));
@@ -128,6 +134,8 @@ describe("ConfigPublishingService", () => {
     expect(prisma.systemConfigAuditEvent.create).toHaveBeenCalledWith(
       expect.objectContaining({ data: expect.objectContaining({ action: "publish" }) }),
     );
+    expect(prisma.orderSop.updateMany).not.toHaveBeenCalled();
+    expect(prisma.orderFeeSnapshot.updateMany).not.toHaveBeenCalled();
   });
 
   it("拒绝陈旧 revision", async () => {

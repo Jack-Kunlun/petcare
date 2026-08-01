@@ -42,8 +42,9 @@ export class SystemSettingsOverviewService {
   /** 精确读取配置键当前指针指向的已发布版本。 */
   async getCurrent<TConfig>(
     domain: SystemConfigDomain,
+    tx: PrismaTransaction = this.prisma as unknown as PrismaTransaction,
   ): Promise<PublishedConfigVersion<TConfig> | null> {
-    const pointer = await this.prisma.systemConfigPointer.findUnique({
+    const pointer = await tx.systemConfigPointer.findUnique({
       where: { configKey: domain },
       include: { publishedVersion: true },
     });
@@ -58,10 +59,7 @@ export class SystemSettingsOverviewService {
       throw systemConfigNotFound();
     }
 
-    const config = (await adapter.load(
-      pointer.publishedVersionId,
-      this.prisma as unknown as PrismaTransaction,
-    )) as TConfig;
+    const config = (await adapter.load(pointer.publishedVersionId, tx)) as TConfig;
 
     return this.toPublished(pointer.publishedVersion, config);
   }

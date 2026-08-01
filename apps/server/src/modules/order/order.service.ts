@@ -1,9 +1,11 @@
 import { HttpStatus, Injectable } from "@nestjs/common";
+import { AdminServiceType } from "@petcare/shared-types";
 import { ApiException } from "../../common/http/api-exception";
 import { ConfigService } from "../../config/config.service";
 import { PrismaService } from "../../prisma/prisma.service";
 import { AdminOrderListQueryDto } from "./dto/admin-order-list-query.dto";
 import { CreateRewardOrderDto } from "./dto/create-order.dto";
+import { OrderConfigSnapshotService } from "./order-config-snapshot.service";
 
 const publicOwnerSelect = {
   id: true,
@@ -32,23 +34,63 @@ export class OrderService {
   constructor(
     private prisma: PrismaService,
     private configService: ConfigService,
+    private readonly snapshots: OrderConfigSnapshotService,
   ) {}
 
+  /** 在同一事务内创建悬赏订单及其 SOP、费用不可变快照。 */
   async createRewardOrder(dto: CreateRewardOrderDto, ownerId: string) {
-    const order = await this.prisma.order.create({
-      data: {
-        orderType: "reward",
-        serviceType: dto.serviceType,
-        ownerId,
-        petId: dto.petId,
-        serviceTime: new Date(dto.serviceTime),
-        amount: dto.rewardAmount,
-        address: dto.address,
-        remark: dto.remark,
-      },
-    });
+    try {
+      return await this.prisma.$transaction(async (tx) => {
+        const snapshot = await this.snapshots.createForOrder(
+          dto.serviceType as AdminServiceType,
+          dto.rewardAmount,
+          tx,
+        );
+        const order = await tx.order.create({
+          data: {
+            orderType: "reward",
+            serviceType: dto.serviceType,
+            ownerId,
+            petId: dto.petId,
+            serviceTime: new Date(dto.serviceTime),
+            amount: dto.rewardAmount,
+            address: dto.address,
+            remark: dto.remark,
+            sopConfigVersionId: snapshot.sopConfigVersionId,
+            feeConfigVersionId: snapshot.feeConfigVersionId,
+          },
+        });
 
-    return { order };
+        await tx.orderSop.createMany({
+          data: snapshot.sops.map((step) => ({ orderId: order.id, ...step })),
+        });
+        await tx.orderFeeSnapshot.create({
+          data: {
+            orderId: order.id,
+            feeConfigVersionId: snapshot.fee.feeConfigVersionId,
+            inputAmountCents: snapshot.fee.inputAmountCents,
+            platformCommissionBps: snapshot.fee.platformCommissionBps,
+            platformCommissionCents: snapshot.fee.commissionAmountCents,
+            rewardServiceFeeCents: snapshot.fee.rewardServiceFeeCents,
+            withdrawalFeeBps: snapshot.fee.withdrawalFeeBps,
+            minimumWithdrawalFeeCents: snapshot.fee.minimumWithdrawalFeeCents,
+            providerSettlementCents: snapshot.fee.providerSettlementCents,
+          },
+        });
+
+        return { order };
+      });
+    } catch (error) {
+      if (error instanceof ApiException) {
+        throw error;
+      }
+
+      throw new ApiException(
+        "ORDER_CREATION_FAILED",
+        "订单创建失败",
+        HttpStatus.INTERNAL_SERVER_ERROR,
+      );
+    }
   }
 
   async findAll(page = 1, pageSize = 20) {

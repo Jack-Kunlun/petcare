@@ -19,8 +19,8 @@ describe("RatingThresholdAdapter", () => {
   });
 
   it.each([
-    [{ ...validRating, evaluationWindow: 4 }, "评分窗口必须在 5 至 100 天之间"],
-    [{ ...validRating, evaluationWindow: 30.5 }, "评分窗口必须在 5 至 100 天之间"],
+    [{ ...validRating, evaluationWindow: 4 }, "评分窗口必须在最近 5 至 100 条评价之间"],
+    [{ ...validRating, evaluationWindow: 30.5 }, "评分窗口必须在最近 5 至 100 条评价之间"],
     [{ ...validRating, minimumSampleSize: 31 }, "最小样本数不得超过评分窗口"],
     [{ ...validRating, warningScore: 501 }, "警告阈值必须在 100 至 500 之间"],
     [{ ...validRating, suspensionScore: 99 }, "暂停阈值必须在 100 至 500 之间"],
