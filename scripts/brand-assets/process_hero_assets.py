@@ -143,6 +143,8 @@ def create_elements() -> list[Path]:
     patterns = DELIVERY / "elements" / "patterns"
     badges = DELIVERY / "elements" / "badges"
     overlays = DELIVERY / "elements" / "overlays"
+    symbol_source = (DELIVERY / "logo" / "svg" / "petcare-symbol-color.svg").read_text(encoding="utf-8")
+    symbol_markup = symbol_source.split("</title>", 1)[1].rsplit("</svg>", 1)[0].strip()
     assets = [
         write_svg(
             gradients / "petcare-gradient-linear.svg",
@@ -162,11 +164,11 @@ def create_elements() -> list[Path]:
         ),
         write_svg(
             badges / "petcare-badge-symbol.svg",
-            '''<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 176 176" role="img" aria-labelledby="title"><title id="title">PetCare approved symbol badge</title><circle cx="88" cy="88" r="84" fill="#FFFFFF" stroke="#E6EAF0" stroke-width="4"/><image href="../../logo/svg/petcare-symbol-color.svg" x="32" y="32" width="112" height="112"/></svg>''',
+            f'''<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 176 176" role="img" aria-labelledby="title"><title id="title">PetCare approved symbol badge</title><circle cx="88" cy="88" r="84" fill="#FFFFFF" stroke="#E6EAF0" stroke-width="4"/><svg x="32" y="32" width="112" height="112" viewBox="0 0 128 128">{symbol_markup}</svg></svg>''',
         ),
         write_svg(
             badges / "petcare-badge-trusted-companion.svg",
-            '''<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 480 112" role="img" aria-labelledby="title"><title id="title">PetCare Trusted Companion badge</title><rect x="2" y="2" width="476" height="108" rx="56" fill="#FFFFFF" stroke="#E6EAF0" stroke-width="4"/><image href="../../logo/svg/petcare-symbol-color.svg" x="20" y="16" width="80" height="80"/><text x="124" y="48" fill="#202632" font-family="Montserrat, Arial, sans-serif" font-size="25" font-weight="700">TRUSTED COMPANION</text><text x="124" y="78" fill="#667085" font-family="Noto Sans SC, Arial, sans-serif" font-size="18">每一次托付，都值得信赖</text></svg>''',
+            f'''<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 480 112" role="img" aria-labelledby="title"><title id="title">PetCare Trusted Companion badge</title><rect x="2" y="2" width="476" height="108" rx="56" fill="#FFFFFF" stroke="#E6EAF0" stroke-width="4"/><svg x="20" y="16" width="80" height="80" viewBox="0 0 128 128">{symbol_markup}</svg><text x="124" y="48" fill="#202632" font-family="Montserrat, Arial, sans-serif" font-size="25" font-weight="700">TRUSTED COMPANION</text><text x="124" y="78" fill="#667085" font-family="Noto Sans SC, Arial, sans-serif" font-size="18">每一次托付，都值得信赖</text></svg>''',
         ),
         write_svg(
             overlays / "petcare-overlay-copy-left.svg",
