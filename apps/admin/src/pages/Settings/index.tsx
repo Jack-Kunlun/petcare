@@ -75,7 +75,9 @@ function DomainCard<TConfig>({
         <div>
           <dt className="text-xs font-medium text-slate-500">最近发布</dt>
           <dd className="mt-1 text-slate-900">
-            {current ? `${current.publishedBy || "未知管理员"} · ${formatDate(current.publishedAt)}` : "尚无记录"}
+            {current
+              ? `${current.publishedBy || "未知管理员"} · ${formatDate(current.publishedAt)}`
+              : "尚无记录"}
           </dd>
         </div>
       </dl>
@@ -118,7 +120,10 @@ function SettingsSkeleton() {
   return (
     <div aria-label="正在加载系统设置" className="grid gap-4 lg:grid-cols-3">
       {[0, 1, 2].map((item) => (
-        <div key={item} className="h-72 animate-pulse rounded-xl bg-slate-200 motion-reduce:animate-none" />
+        <div
+          key={item}
+          className="h-72 animate-pulse rounded-xl bg-slate-200 motion-reduce:animate-none"
+        />
       ))}
     </div>
   );
@@ -155,7 +160,9 @@ export default function Settings() {
       <header className="mb-6 flex flex-col gap-3 sm:flex-row sm:items-end sm:justify-between">
         <div>
           <p className="font-medium text-blue-800">配置控制台</p>
-          <h1 className="mt-1 text-2xl font-bold tracking-tight text-slate-950 sm:text-3xl">系统设置</h1>
+          <h1 className="mt-1 text-2xl font-bold tracking-tight text-slate-950 sm:text-3xl">
+            系统设置
+          </h1>
           <p className="mt-2 max-w-[720px] leading-6 text-slate-600">
             集中维护服务流程、服务者评分规则与平台费率。所有变更先保存为草稿，经差异确认后发布。
           </p>
@@ -207,7 +214,10 @@ export default function Settings() {
             historyPath="/settings/sop/history"
             canEdit={permissions.has("system.sop_config")}
             extra={
-              <ul aria-label="SOP 服务类型状态" className="mt-4 grid grid-cols-3 gap-2 text-center text-xs">
+              <ul
+                aria-label="SOP 服务类型状态"
+                className="mt-4 grid grid-cols-3 gap-2 text-center text-xs"
+              >
                 {[
                   ["喂养", data.sop.feeding],
                   ["遛宠", data.sop.walking],
@@ -216,7 +226,10 @@ export default function Settings() {
                   const overview = item as SystemSettingDomainOverview<SopConfig>;
 
                   return (
-                    <li key={label as string} className="rounded-md border border-slate-200 px-2 py-2 text-slate-700">
+                    <li
+                      key={label as string}
+                      className="rounded-md border border-slate-200 px-2 py-2 text-slate-700"
+                    >
                       <span className="block font-semibold text-slate-950">{label as string}</span>
                       {overview.draft ? "有草稿" : `v${overview.current?.version ?? "-"}`}
                     </li>

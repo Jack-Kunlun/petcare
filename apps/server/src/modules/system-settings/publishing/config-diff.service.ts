@@ -54,6 +54,14 @@ interface IndexedSummaryItem {
   item: SystemConfigSummaryValue;
 }
 
+function escapeDescriptorPart(value: string | number | boolean): string {
+  return String(value)
+    .replaceAll("\\", "\\\\")
+    .replaceAll("]", "\\u005d")
+    .replaceAll(",", "\\u002c")
+    .replaceAll("=", "\\u003d");
+}
+
 function indexByStrategy(
   items: SystemConfigSummaryValue[],
   strategy: SystemConfigArrayKeyStrategy,
@@ -74,7 +82,11 @@ function indexByStrategy(
     }
 
     indexed.set(identity, {
-      descriptor: parts.map((part) => `${part.path}=${String(part.value)}`).join(","),
+      descriptor: parts
+        .map(
+          (part) => `${part.path}=${escapeDescriptorPart(part.value as string | number | boolean)}`,
+        )
+        .join(","),
       item,
     });
   }
@@ -85,8 +97,17 @@ function indexByStrategy(
 function labelFor(path: string): string {
   const segments = path.split(".");
   const segment = segments[segments.length - 1] ?? path;
+  const descriptors = [...path.matchAll(/\[([^\]]+)\]/gu)];
+  const descriptor = descriptors[descriptors.length - 1]?.[1];
+  const fieldLabel = segment.replace(/\[[^\]]+\]$/u, "");
 
-  return segment.replace(/\[[^\]]+\]$/u, "");
+  if (descriptor) {
+    return segment.endsWith("]")
+      ? descriptor.replaceAll(",", "，")
+      : `${descriptor.replaceAll(",", "，")} · ${fieldLabel}`;
+  }
+
+  return fieldLabel;
 }
 
 /** 生成领域无关、按显式策略匹配数组项的稳定配置差异。 */
@@ -147,13 +168,7 @@ export class ConfigDiffService {
         const afterItem = afterByKey.get(key);
         const descriptor = beforeItem?.descriptor ?? afterItem?.descriptor ?? key;
 
-        this.walk(
-          beforeItem?.item,
-          afterItem?.item,
-          `${path}[${descriptor}]`,
-          strategies,
-          output,
-        );
+        this.walk(beforeItem?.item, afterItem?.item, `${path}[${descriptor}]`, strategies, output);
       }
 
       return;
@@ -163,13 +178,7 @@ export class ConfigDiffService {
       const keys = [...new Set([...Object.keys(before), ...Object.keys(after)])].sort();
 
       for (const key of keys) {
-        this.walk(
-          before[key],
-          after[key],
-          path ? `${path}.${key}` : key,
-          strategies,
-          output,
-        );
+        this.walk(before[key], after[key], path ? `${path}.${key}` : key, strategies, output);
       }
 
       return;

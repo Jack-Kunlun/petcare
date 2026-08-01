@@ -8,7 +8,10 @@ import { seedSystemSettings } from "../src/seed/seed-system-settings";
 const configService = new ConfigService();
 const logger = new Logger("PrismaSeed");
 const prisma = new PrismaClient({
-  adapter: new PrismaPg({ connectionString: configService.databaseUrl }),
+  adapter: new PrismaPg(
+    { connectionString: configService.databaseUrl },
+    { schema: configService.databaseSchema },
+  ),
 });
 
 async function main(): Promise<void> {

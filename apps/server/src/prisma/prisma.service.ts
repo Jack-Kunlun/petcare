@@ -7,7 +7,10 @@ import { PrismaClient } from "../generated/prisma/client";
 export class PrismaService extends PrismaClient implements OnModuleInit, OnModuleDestroy {
   constructor(private configService: ConfigService) {
     super({
-      adapter: new PrismaPg({ connectionString: configService.databaseUrl }),
+      adapter: new PrismaPg(
+        { connectionString: configService.databaseUrl },
+        { schema: configService.databaseSchema },
+      ),
     });
   }
 

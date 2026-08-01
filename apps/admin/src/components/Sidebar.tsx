@@ -1,4 +1,13 @@
-import { ChevronRight, House, Settings, ShieldCheck, ShoppingBag, Users, X, type LucideIcon } from "lucide-react";
+import {
+  ChevronRight,
+  House,
+  Settings,
+  ShieldCheck,
+  ShoppingBag,
+  Users,
+  X,
+  type LucideIcon,
+} from "lucide-react";
 import { NavLink } from "react-router-dom";
 
 const menuItems: Array<{ icon: LucideIcon; label: string; path: string; permission?: string }> = [
@@ -16,7 +25,8 @@ interface SidebarProps {
 
 export function Sidebar({ open = false, onClose, permissions }: SidebarProps) {
   const visibleMenuItems = menuItems.filter(
-    (item) => !item.permission || permissions === undefined || permissions.includes(item.permission),
+    (item) =>
+      !item.permission || permissions === undefined || permissions.includes(item.permission),
   );
 
   return (

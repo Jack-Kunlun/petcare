@@ -66,6 +66,12 @@ describe("ConfigService", () => {
     expect(config.defaultAdminUsername).toBe("admin");
   });
 
+  it("exposes the configured database schema to runtime adapters", () => {
+    process.env.DB_SCHEMA = "system_settings_e2e_123";
+
+    expect(new ConfigService().databaseSchema).toBe("system_settings_e2e_123");
+  });
+
   it("requires the default administrator phone and password", () => {
     const config = new ConfigService();
 

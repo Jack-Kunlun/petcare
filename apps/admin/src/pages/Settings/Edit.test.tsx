@@ -230,6 +230,14 @@ describe("Settings domain editors", () => {
       expect.objectContaining({ warningScore: 375 }),
       expect.objectContaining({}),
     );
+
+    await user.clear(warning);
+    await user.type(warning, "3.756");
+    await user.tab();
+
+    const warningError = screen.getByText("最多保留两位小数");
+
+    expect(warning).toHaveAttribute("aria-describedby", warningError.id);
   });
 
   it("费率编辑器阻止超过两位小数并在字段旁展示错误", async () => {
@@ -245,7 +253,9 @@ describe("Settings domain editors", () => {
     await user.type(commission, "10.555");
     await user.tab();
 
-    expect(screen.getByText("最多保留两位小数")).toBeInTheDocument();
+    const commissionError = screen.getByText("最多保留两位小数");
+
+    expect(commission).toHaveAttribute("aria-describedby", commissionError.id);
     expect(onChange).toHaveBeenLastCalledWith(null, {
       platformCommissionBps: "最多保留两位小数",
     });
@@ -282,6 +292,29 @@ describe("Settings domain editors", () => {
     expect(await screen.findByDisplayValue("walking-步骤 1")).toBeInTheDocument();
     expect(screen.getAllByRole("group", { name: /第 \d 步/ })).toHaveLength(5);
     await waitFor(() => expect(sopApi.fetchSopCurrent).toHaveBeenCalledWith("walking"));
+  });
+
+  it("最近发布历史加载失败时独立提示并可重试，不阻断配置编辑", async () => {
+    const user = userEvent.setup();
+
+    setupRatingDraft();
+    vi.mocked(ratingApi.fetchRatingThresholdHistory)
+      .mockRejectedValueOnce(new Error("history unavailable"))
+      .mockResolvedValueOnce({
+        list: [],
+        total: 0,
+        page: 1,
+        pageSize: 20,
+      });
+
+    renderEdit("/settings/rating_threshold/edit");
+
+    expect(await screen.findByRole("spinbutton", { name: "预警评分" })).toBeEnabled();
+    expect(await screen.findByRole("alert", { name: "最近发布历史加载失败" })).toBeInTheDocument();
+    await user.click(screen.getByRole("button", { name: "重新加载发布历史" }));
+
+    expect(await screen.findByText("暂无已发布版本。")).toBeInTheDocument();
+    expect(ratingApi.fetchRatingThresholdHistory).toHaveBeenCalledTimes(2);
   });
 
   it("保存草稿时提交当前 revision 并展示服务端新 revision", async () => {
