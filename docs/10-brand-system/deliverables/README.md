@@ -75,6 +75,15 @@ Do not substitute system Secondary for the approved Logo mint inside the Logo, a
 
 All files above are in `logo/svg/`.
 
+Version usage:
+
+- **Color:** default version on white and light neutral brand surfaces.
+- **Dark:** one-color dark-navy version for light surfaces and constrained production.
+- **Monochrome:** grayscale workflows, black-and-white documents, and single-ink reproduction.
+- **Reverse:** white version for dark solid surfaces or controlled photographic backgrounds.
+- **Stacked Logo:** brand identity, sign-in, launch, presentation, and communication surfaces with enough vertical space.
+- **Symbol:** favicon, app icon, avatar, compact navigation, and other size-constrained UI.
+
 ### Raster derivatives
 
 - Stacked Logo: color, dark, monochrome, and reverse at `260h`, `520h`, and `780h`.
@@ -108,7 +117,15 @@ Each theme includes:
 - Miniapp: `750x340` PNG and WebP.
 - Social: `1200x630` PNG and WebP.
 
-The complete generation/edit prompts, provenance, dates, and source relationships are stored in `manifest.json` under `sourceProvenance`. Do not regenerate a selected source unless a new brand review explicitly approves the replacement.
+The complete generation/edit prompts, provenance, dates, and source relationships are stored in `manifest.json` under `sourceProvenance`. Use these exact entries:
+
+| Theme | Provenance ID | Source path | Prompt field |
+| --- | --- | --- | --- |
+| Trusted Care | `hero.trusted-care.source` | `hero/source/hero-trusted-care-source-v1.png` | `sourceProvenance[id=hero.trusted-care.source].prompt` |
+| Professional Care | `hero.professional-care.source` | `hero/source/hero-professional-care-source-v1.png` | `sourceProvenance[id=hero.professional-care.source].prompt` |
+| Community Companion | `hero.community-companion.source` | `hero/source/hero-community-companion-source-v1.png` | `sourceProvenance[id=hero.community-companion.source].prompt` |
+
+Do not regenerate a selected source unless a new brand review explicitly approves the replacement.
 
 ### Responsive image example
 
@@ -177,8 +194,11 @@ If a carousel autoplays:
 Run from the repository root:
 
 ```powershell
-# Re-extract the approved actual transparent raster masters
-powershell -ExecutionPolicy Bypass -File scripts/brand-assets/extract_approved_logo_assets.ps1
+# Re-extract the approved actual transparent raster masters on Windows PowerShell
+powershell.exe -ExecutionPolicy Bypass -File scripts/brand-assets/extract_approved_logo_assets.ps1
+
+# PowerShell 7 alternative on Windows, Linux, or macOS
+pwsh -File scripts/brand-assets/extract_approved_logo_assets.ps1
 
 # Rebuild Logo derivatives
 python scripts/brand-assets/export_logo_assets.py
