@@ -12,6 +12,7 @@ import {
   type ClaimComplaintRequest,
   type ComplaintDetail,
   type ComplaintListItem,
+  type ComplaintListQuery,
   type ComplaintListResponse,
   type CreateComplaintRequest,
   type DisputeExecutionTaskDetailResponse,
@@ -19,6 +20,7 @@ import {
   type RetryDisputeExecutionTaskResponse,
   type SubmitComplaintStatementRequest,
   type TransferComplaintRequest,
+  type WithdrawComplaintRequest,
 } from "./complaint-dispute";
 
 describe("complaint dispute contracts", () => {
@@ -182,12 +184,16 @@ describe("complaint dispute contracts", () => {
       evidenceUrls: ["https://cdn.example/new-evidence.jpg"],
       version: 2,
     };
+    const listQuery: ComplaintListQuery = { page: 2, pageSize: 10 };
+    const withdrawRequest: WithdrawComplaintRequest = { version: 3 };
 
     expect(createRequest).toMatchObject({
       complaintType: "service_quality",
       expectedSolution: "申请部分退款",
     });
     expect(statementRequest.version).toBe(2);
+    expect(listQuery).toEqual({ page: 2, pageSize: 10 });
+    expect(withdrawRequest).toEqual({ version: 3 });
   });
 
   it("shares every administrator assignment command field", () => {

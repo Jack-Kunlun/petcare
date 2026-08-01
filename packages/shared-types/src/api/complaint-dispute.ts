@@ -136,6 +136,20 @@ export interface SubmitComplaintStatementRequest {
   version: number;
 }
 
+/** 查询当前用户投诉列表的分页参数。 */
+export interface ComplaintListQuery {
+  /** 页码，从 1 开始。 */
+  page: number;
+  /** 每页返回的投诉数量。 */
+  pageSize: number;
+}
+
+/** 撤回投诉的请求参数。 */
+export interface WithdrawComplaintRequest {
+  /** 客户端读取详情时获得的并发版本。 */
+  version: number;
+}
+
 /** 管理员认领投诉的请求参数。 */
 export interface ClaimComplaintRequest {
   /** 客户端读取详情时获得的并发版本。 */
