@@ -59,6 +59,8 @@ model User {
   complaintAssignmentsReceived      ComplaintAssignment[]              @relation("ComplaintAssignmentAssignee")
   /// 用户触发的投诉事件。
   complaintEvents                   ComplaintEvent[]                   @relation("ComplaintEventActor")
+  /// 用户因投诉裁决产生的退款或结算内部账务记录。
+  disputeMoneyRecords               DisputeMoneyRecord[]
   certificationApplications         ProviderCertificationApplication[] @relation("CertificationApplicant")
   reviewedCertificationApplications ProviderCertificationApplication[] @relation("CertificationReviewer")
 
@@ -171,16 +173,18 @@ model Order {
   createdAt   DateTime  @default(now()) @map("created_at")
   updatedAt   DateTime  @updatedAt @map("updated_at")
 
-  owner      User           @relation("OrderOwner", fields: [ownerId], references: [id])
-  provider   User?          @relation("OrderProvider", fields: [providerId], references: [id])
-  pet        Pet            @relation(fields: [petId], references: [id])
-  reward     OrderReward?
-  platform   OrderPlatform?
-  intents    OrderIntent[]
-  sops       OrderSop[]
-  review     Review?
+  owner               User                 @relation("OrderOwner", fields: [ownerId], references: [id])
+  provider            User?                @relation("OrderProvider", fields: [providerId], references: [id])
+  pet                 Pet                  @relation(fields: [petId], references: [id])
+  reward              OrderReward?
+  platform            OrderPlatform?
+  intents             OrderIntent[]
+  sops                OrderSop[]
+  review              Review?
   /// 订单关联的全部投诉，开放投诉唯一性由事务保证。
-  complaints Complaint[]
+  complaints          Complaint[]
+  /// 订单因投诉裁决产生的退款或结算内部账务记录。
+  disputeMoneyRecords DisputeMoneyRecord[]
 
   @@index([ownerId])
   @@index([providerId])
@@ -324,6 +328,8 @@ model Complaint {
   events         ComplaintEvent[]
   /// 裁决产生的内部执行任务。
   executionTasks DisputeExecutionTask[]
+  /// 投诉裁决产生的退款或结算内部账务记录。
+  moneyRecords   DisputeMoneyRecord[]
 
   @@index([status, assignedAdminId])
   @@index([orderId, status])
@@ -470,12 +476,49 @@ model DisputeExecutionTask {
   updatedAt      DateTime  @updatedAt @map("updated_at")
 
   /// 任务所属投诉。
-  complaint Complaint       @relation(fields: [complaintId], references: [id], onDelete: Cascade)
+  complaint   Complaint           @relation(fields: [complaintId], references: [id], onDelete: Cascade)
   /// 任务来源裁决。
-  decision  DisputeDecision @relation(fields: [decisionId], references: [id], onDelete: Cascade)
+  decision    DisputeDecision     @relation(fields: [decisionId], references: [id], onDelete: Cascade)
+  /// 该执行任务产生的唯一内部账务记录；非金额任务为空。
+  moneyRecord DisputeMoneyRecord?
 
   @@index([complaintId, status])
   @@map("dispute_execution_tasks")
+}
+
+model DisputeMoneyRecord {
+  /// 内部账务记录唯一标识。
+  id                String   @id @default(uuid())
+  /// 收款或退款用户唯一标识。
+  userId            String   @map("user_id")
+  /// 关联订单唯一标识。
+  orderId           String   @map("order_id")
+  /// 关联投诉唯一标识。
+  complaintId       String   @map("complaint_id")
+  /// 产生该记录的纠纷执行任务唯一标识。
+  executionTaskId   String   @unique @map("execution_task_id")
+  /// 账务类型，取 refund 或 settlement。
+  type              String
+  /// 账务金额，单位为分；零金额仍保留审计记录。
+  amount            Int
+  /// 与执行任务幂等键一致的唯一业务引用。
+  businessReference String   @unique @map("business_reference")
+  /// 账务记录创建时间。
+  createdAt         DateTime @default(now()) @map("created_at")
+
+  /// 账务记录对应用户。
+  user          User                 @relation(fields: [userId], references: [id], onDelete: Restrict)
+  /// 账务记录对应订单。
+  order         Order                @relation(fields: [orderId], references: [id], onDelete: Restrict)
+  /// 账务记录对应投诉。
+  complaint     Complaint            @relation(fields: [complaintId], references: [id], onDelete: Restrict)
+  /// 账务记录来源执行任务。
+  executionTask DisputeExecutionTask @relation(fields: [executionTaskId], references: [id], onDelete: Restrict)
+
+  @@index([complaintId, type, createdAt])
+  @@index([userId, createdAt])
+  @@index([orderId, createdAt])
+  @@map("dispute_money_records")
 }
 
 // ============================================
