@@ -1,8 +1,11 @@
 import { describe, expect, it } from "vitest";
 import {
   COMPLAINT_ACTION,
+  COMPLAINT_EVENT_ACTION,
   COMPLAINT_QUEUE,
+  COMPLAINT_STATEMENT_STAGE,
   COMPLAINT_STATUS,
+  COMPLAINT_TYPE,
   DECISION_LEVEL,
   DISPUTE_EXECUTION_TASK_TYPE,
   DISPUTE_EXECUTION_TASK_STATUS,
@@ -24,6 +27,41 @@ import {
 } from "./complaint-dispute";
 
 describe("complaint dispute contracts", () => {
+  it("shares every supported complaint business type", () => {
+    expect(Object.values(COMPLAINT_TYPE)).toEqual([
+      "service_quality",
+      "safety",
+      "payment",
+      "other",
+    ]);
+  });
+
+  it("shares every persisted complaint statement stage", () => {
+    expect(Object.values(COMPLAINT_STATEMENT_STAGE)).toEqual([
+      "initial",
+      "response",
+      "second_appeal",
+    ]);
+  });
+
+  it("shares every persisted complaint event action", () => {
+    expect(Object.values(COMPLAINT_EVENT_ACTION)).toEqual([
+      "create",
+      "respond",
+      "second_appeal",
+      "claim",
+      "transfer",
+      "withdraw",
+      "initial_decide",
+      "final_decide",
+      "appeal_timeout_close",
+      "execution_succeeded",
+      "execution_failed",
+      "execution_superseded",
+      "execution_recovered",
+    ]);
+  });
+
   it("shares the superseded terminal execution status", () => {
     expect(DISPUTE_EXECUTION_TASK_STATUS.SUPERSEDED).toBe("superseded");
   });

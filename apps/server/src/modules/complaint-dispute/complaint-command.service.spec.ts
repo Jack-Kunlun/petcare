@@ -1,5 +1,5 @@
 import { HttpStatus } from "@nestjs/common";
-import { COMPLAINT_STATUS } from "@petcare/shared-types";
+import { COMPLAINT_STATUS, COMPLAINT_TYPE } from "@petcare/shared-types";
 import { PrismaService } from "../../prisma/prisma.service";
 import { ComplaintCommandService } from "./complaint-command.service";
 
@@ -33,7 +33,7 @@ describe("ComplaintCommandService", () => {
   const service = new ComplaintCommandService(prisma as unknown as PrismaService);
   const validRequest = {
     orderId: "order-1",
-    complaintType: "service_quality",
+    complaintType: COMPLAINT_TYPE.SERVICE_QUALITY,
     reason: "服务过程与约定不符",
     evidenceUrls: ["https://cdn.example/evidence.jpg"],
     expectedSolution: "申请部分退款",

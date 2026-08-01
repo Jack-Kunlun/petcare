@@ -1,7 +1,10 @@
 import { ApiProperty } from "@nestjs/swagger";
 import {
   COMPLAINT_ACTION,
+  COMPLAINT_EVENT_ACTION,
+  COMPLAINT_STATEMENT_STAGE,
   COMPLAINT_STATUS,
+  COMPLAINT_TYPE,
   type AdminComplaintListItem,
   type AdminComplaintListResponse,
   type AdminComplaintDetail,
@@ -10,16 +13,22 @@ import {
   type ComplaintAction,
   type ComplaintDetail,
   type ComplaintEventView,
+  type ComplaintEventAction,
   type ComplaintListItem,
   type ComplaintListResponse,
   type ComplaintListUserSummary,
   type ComplaintStatementView,
+  type ComplaintStatementStage,
   type ComplaintStatus,
+  type ComplaintType,
   type SubmitDisputeDecisionRequest,
 } from "@petcare/shared-types";
 
 const complaintStatuses = Object.values(COMPLAINT_STATUS);
 const complaintActions = Object.values(COMPLAINT_ACTION);
+const complaintTypes = Object.values(COMPLAINT_TYPE);
+const complaintStatementStages = Object.values(COMPLAINT_STATEMENT_STAGE);
+const complaintEventActions = Object.values(COMPLAINT_EVENT_ACTION);
 
 /** 用户投诉列表中的对方安全展示摘要。 */
 export class ComplaintListUserSummaryDto implements ComplaintListUserSummary {
@@ -44,8 +53,8 @@ export class ComplaintListItemDto implements ComplaintListItem {
   @ApiProperty({ format: "uuid" })
   orderId: string;
 
-  @ApiProperty()
-  complaintType: string;
+  @ApiProperty({ enum: complaintTypes })
+  complaintType: ComplaintType;
 
   @ApiProperty({ enum: complaintStatuses })
   status: ComplaintStatus;
@@ -101,8 +110,8 @@ export class AdminComplaintListItemDto implements AdminComplaintListItem {
   @ApiProperty({ format: "uuid" })
   orderId: string;
 
-  @ApiProperty()
-  complaintType: string;
+  @ApiProperty({ enum: complaintTypes })
+  complaintType: ComplaintType;
 
   @ApiProperty({ format: "uuid" })
   complainantId: string;
@@ -158,8 +167,8 @@ export class ComplaintStatementDto implements ComplaintStatementView {
   @ApiProperty({ format: "uuid" })
   id: string;
 
-  @ApiProperty()
-  stage: string;
+  @ApiProperty({ enum: complaintStatementStages })
+  stage: ComplaintStatementStage;
 
   @ApiProperty({ format: "uuid" })
   authorId: string;
@@ -182,8 +191,8 @@ export class ComplaintEventDto implements ComplaintEventView {
   @ApiProperty({ format: "uuid", nullable: true })
   actorId: string | null;
 
-  @ApiProperty()
-  action: string;
+  @ApiProperty({ enum: complaintEventActions })
+  action: ComplaintEventAction;
 
   @ApiProperty({ enum: complaintStatuses, nullable: true })
   fromStatus: ComplaintStatus | null;
@@ -238,8 +247,8 @@ export class ComplaintResponseDto implements ComplaintDetail {
   @ApiProperty({ format: "uuid" })
   respondentId: string;
 
-  @ApiProperty()
-  complaintType: string;
+  @ApiProperty({ enum: complaintTypes })
+  complaintType: ComplaintType;
 
   @ApiProperty({ nullable: true })
   expectedSolution: string | null;

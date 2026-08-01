@@ -1,8 +1,10 @@
 import {
+  COMPLAINT_TYPE,
   type AdminComplaintListItem,
   type AdminComplaintListQuery,
   type AdminComplaintQueue,
   type ComplaintStatus,
+  type ComplaintType,
 } from "@petcare/shared-types";
 import { useQuery } from "@tanstack/react-query";
 import {
@@ -76,11 +78,11 @@ const statusClasses: Record<ComplaintStatus, string> = {
     "inline-flex items-center rounded-full bg-slate-100 px-2 py-1 text-xs font-medium text-slate-600 ring-1 ring-inset ring-slate-500/20",
 };
 
-const complaintTypeLabels: Record<string, string> = {
-  service_quality: "服务质量",
-  service_attitude: "服务态度",
-  payment_dispute: "费用争议",
-  safety_incident: "安全事件",
+const complaintTypeLabels: Record<ComplaintType, string> = {
+  [COMPLAINT_TYPE.SERVICE_QUALITY]: "服务质量",
+  [COMPLAINT_TYPE.SAFETY]: "安全问题",
+  [COMPLAINT_TYPE.PAYMENT]: "支付争议",
+  [COMPLAINT_TYPE.OTHER]: "其他投诉",
 };
 
 function isQueue(value: string | null): value is AdminComplaintQueue {
@@ -101,6 +103,7 @@ function optionalTrimmed(value: string | null): string | undefined {
   return value?.trim() || undefined;
 }
 
+/** 将案件当前阶段的停留毫秒数格式化为便于运营人员阅读的时长。 */
 function formatStageDuration(updatedAt: string, now = Date.now()): string {
   const milliseconds = Math.max(0, now - new Date(updatedAt).getTime());
   const hours = Math.floor(milliseconds / (60 * 60 * 1000));
@@ -116,6 +119,7 @@ function formatStageDuration(updatedAt: string, now = Date.now()): string {
   return `停留 ${Math.max(1, Math.floor(milliseconds / (60 * 1000)))} 分钟`;
 }
 
+/** 将二次申诉截止时间格式化为剩余天数或小时数。 */
 function formatAppealCountdown(deadline: string | null, now = Date.now()): string {
   if (!deadline) {
     return "无申诉倒计时";
@@ -132,6 +136,7 @@ function formatAppealCountdown(deadline: string | null, now = Date.now()): strin
   return hours >= 48 ? `申诉剩余 ${Math.ceil(hours / 24)} 天` : `申诉剩余 ${hours} 小时`;
 }
 
+/** 根据案件状态对应的 SLA 或申诉截止时间判断当前阶段是否超时。 */
 function isStageOverdue(item: AdminComplaintListItem, now = Date.now()): boolean {
   if (item.status === "initial_decided") {
     return item.appealDeadlineAt !== null && now >= new Date(item.appealDeadlineAt).getTime();

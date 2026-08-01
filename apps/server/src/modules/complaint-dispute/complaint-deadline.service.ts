@@ -1,5 +1,5 @@
 import { Injectable, type OnModuleDestroy, type OnModuleInit } from "@nestjs/common";
-import { COMPLAINT_STATUS, DECISION_LEVEL } from "@petcare/shared-types";
+import { COMPLAINT_EVENT_ACTION, COMPLAINT_STATUS, DECISION_LEVEL } from "@petcare/shared-types";
 import type { Prisma } from "../../generated/prisma/client";
 import { AppLogger } from "../../logging/app-logger.service";
 import { PrismaService } from "../../prisma/prisma.service";
@@ -185,7 +185,7 @@ export class ComplaintDeadlineService implements OnModuleInit, OnModuleDestroy {
       data: {
         complaintId: complaint.id,
         actorId: null,
-        action: "appeal_timeout_close",
+        action: COMPLAINT_EVENT_ACTION.APPEAL_TIMEOUT_CLOSE,
         fromStatus: COMPLAINT_STATUS.INITIAL_DECIDED,
         toStatus: COMPLAINT_STATUS.CLOSED,
         payload: JSON.stringify({

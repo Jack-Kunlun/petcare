@@ -1,7 +1,11 @@
 import { ApiProperty } from "@nestjs/swagger";
-import type { CreateComplaintRequest } from "@petcare/shared-types";
+import {
+  COMPLAINT_TYPE,
+  type ComplaintType,
+  type CreateComplaintRequest,
+} from "@petcare/shared-types";
 import { Transform } from "class-transformer";
-import { ArrayMaxSize, IsArray, IsString, IsUrl, IsUUID, Length } from "class-validator";
+import { ArrayMaxSize, IsArray, IsEnum, IsString, IsUrl, IsUUID, Length } from "class-validator";
 
 /** 校验并描述用户创建投诉的请求。 */
 export class CreateComplaintDto implements CreateComplaintRequest {
@@ -9,11 +13,10 @@ export class CreateComplaintDto implements CreateComplaintRequest {
   @IsUUID()
   orderId: string;
 
-  @ApiProperty({ example: "service_quality", maxLength: 50 })
+  @ApiProperty({ enum: Object.values(COMPLAINT_TYPE), example: COMPLAINT_TYPE.SERVICE_QUALITY })
   @Transform(({ value }) => (typeof value === "string" ? value.trim() : value))
-  @IsString()
-  @Length(1, 50)
-  complaintType: string;
+  @IsEnum(COMPLAINT_TYPE)
+  complaintType: ComplaintType;
 
   @ApiProperty({ minLength: 5, maxLength: 1000, example: "服务过程与约定不符" })
   @Transform(({ value }) => (typeof value === "string" ? value.trim() : value))
