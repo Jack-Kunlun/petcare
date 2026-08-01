@@ -1,0 +1,210 @@
+{
+  "schemaVersion": 1,
+  "assetIdPrefixes": [
+    "logo.",
+    "hero.trusted-care.",
+    "hero.professional-care.",
+    "hero.community-companion.",
+    "element."
+  ],
+  "assets": [
+    {
+      "id": "hero.trusted-care.desktop.png",
+      "path": "hero/desktop/hero-trusted-care-desktop-v1.png",
+      "kind": "hero",
+      "width": 1920,
+      "height": 720,
+      "format": "png",
+      "safeZone": "left-40",
+      "alt": "A cat and dog resting peacefully in a modern living room with natural light.",
+      "source": "hero/source/hero-trusted-care-source-v1.png"
+    },
+    {
+      "id": "hero.trusted-care.desktop.webp",
+      "path": "hero/desktop/hero-trusted-care-desktop-v1.webp",
+      "kind": "hero",
+      "width": 1920,
+      "height": 720,
+      "format": "webp",
+      "safeZone": "left-40",
+      "alt": "A cat and dog resting peacefully in a modern living room with natural light.",
+      "source": "hero/source/hero-trusted-care-source-v1.png"
+    },
+    {
+      "id": "hero.trusted-care.miniapp.png",
+      "path": "hero/miniapp/hero-trusted-care-miniapp-v1.png",
+      "kind": "hero",
+      "width": 750,
+      "height": 340,
+      "format": "png",
+      "safeZone": "left-40",
+      "alt": "A cat and dog resting peacefully in a modern living room with natural light.",
+      "source": "hero/source/hero-trusted-care-source-v1.png"
+    },
+    {
+      "id": "hero.trusted-care.miniapp.webp",
+      "path": "hero/miniapp/hero-trusted-care-miniapp-v1.webp",
+      "kind": "hero",
+      "width": 750,
+      "height": 340,
+      "format": "webp",
+      "safeZone": "left-40",
+      "alt": "A cat and dog resting peacefully in a modern living room with natural light.",
+      "source": "hero/source/hero-trusted-care-source-v1.png"
+    },
+    {
+      "id": "hero.trusted-care.social.png",
+      "path": "hero/social/hero-trusted-care-social-v1.png",
+      "kind": "hero",
+      "width": 1200,
+      "height": 630,
+      "format": "png",
+      "safeZone": "left-40",
+      "alt": "A cat and dog resting peacefully in a modern living room with natural light.",
+      "source": "hero/source/hero-trusted-care-source-v1.png"
+    },
+    {
+      "id": "hero.trusted-care.social.webp",
+      "path": "hero/social/hero-trusted-care-social-v1.webp",
+      "kind": "hero",
+      "width": 1200,
+      "height": 630,
+      "format": "webp",
+      "safeZone": "left-40",
+      "alt": "A cat and dog resting peacefully in a modern living room with natural light.",
+      "source": "hero/source/hero-trusted-care-source-v1.png"
+    },
+    {
+      "id": "hero.professional-care.desktop.png",
+      "path": "hero/desktop/hero-professional-care-desktop-v1.png",
+      "kind": "hero",
+      "width": 1920,
+      "height": 720,
+      "format": "png",
+      "safeZone": "right-40",
+      "alt": "A tidy home pet-care station with fresh water, measured food, and a cat nearby.",
+      "source": "hero/source/hero-professional-care-source-v1.png"
+    },
+    {
+      "id": "hero.professional-care.desktop.webp",
+      "path": "hero/desktop/hero-professional-care-desktop-v1.webp",
+      "kind": "hero",
+      "width": 1920,
+      "height": 720,
+      "format": "webp",
+      "safeZone": "right-40",
+      "alt": "A tidy home pet-care station with fresh water, measured food, and a cat nearby.",
+      "source": "hero/source/hero-professional-care-source-v1.png"
+    },
+    {
+      "id": "hero.professional-care.miniapp.png",
+      "path": "hero/miniapp/hero-professional-care-miniapp-v1.png",
+      "kind": "hero",
+      "width": 750,
+      "height": 340,
+      "format": "png",
+      "safeZone": "right-40",
+      "alt": "A tidy home pet-care station with fresh water, measured food, and a cat nearby.",
+      "source": "hero/source/hero-professional-care-source-v1.png"
+    },
+    {
+      "id": "hero.professional-care.miniapp.webp",
+      "path": "hero/miniapp/hero-professional-care-miniapp-v1.webp",
+      "kind": "hero",
+      "width": 750,
+      "height": 340,
+      "format": "webp",
+      "safeZone": "right-40",
+      "alt": "A tidy home pet-care station with fresh water, measured food, and a cat nearby.",
+      "source": "hero/source/hero-professional-care-source-v1.png"
+    },
+    {
+      "id": "hero.professional-care.social.png",
+      "path": "hero/social/hero-professional-care-social-v1.png",
+      "kind": "hero",
+      "width": 1200,
+      "height": 630,
+      "format": "png",
+      "safeZone": "right-40",
+      "alt": "A tidy home pet-care station with fresh water, measured food, and a cat nearby.",
+      "source": "hero/source/hero-professional-care-source-v1.png"
+    },
+    {
+      "id": "hero.professional-care.social.webp",
+      "path": "hero/social/hero-professional-care-social-v1.webp",
+      "kind": "hero",
+      "width": 1200,
+      "height": 630,
+      "format": "webp",
+      "safeZone": "right-40",
+      "alt": "A tidy home pet-care station with fresh water, measured food, and a cat nearby.",
+      "source": "hero/source/hero-professional-care-source-v1.png"
+    },
+    {
+      "id": "hero.community-companion.desktop.png",
+      "path": "hero/desktop/hero-community-companion-desktop-v1.png",
+      "kind": "hero",
+      "width": 1920,
+      "height": 720,
+      "format": "png",
+      "safeZone": "left-40",
+      "alt": "A cat and dog sharing a relaxed moment in a sunlit living room.",
+      "source": "hero/source/hero-community-companion-source-v1.png"
+    },
+    {
+      "id": "hero.community-companion.desktop.webp",
+      "path": "hero/desktop/hero-community-companion-desktop-v1.webp",
+      "kind": "hero",
+      "width": 1920,
+      "height": 720,
+      "format": "webp",
+      "safeZone": "left-40",
+      "alt": "A cat and dog sharing a relaxed moment in a sunlit living room.",
+      "source": "hero/source/hero-community-companion-source-v1.png"
+    },
+    {
+      "id": "hero.community-companion.miniapp.png",
+      "path": "hero/miniapp/hero-community-companion-miniapp-v1.png",
+      "kind": "hero",
+      "width": 750,
+      "height": 340,
+      "format": "png",
+      "safeZone": "left-40",
+      "alt": "A cat and dog sharing a relaxed moment in a sunlit living room.",
+      "source": "hero/source/hero-community-companion-source-v1.png"
+    },
+    {
+      "id": "hero.community-companion.miniapp.webp",
+      "path": "hero/miniapp/hero-community-companion-miniapp-v1.webp",
+      "kind": "hero",
+      "width": 750,
+      "height": 340,
+      "format": "webp",
+      "safeZone": "left-40",
+      "alt": "A cat and dog sharing a relaxed moment in a sunlit living room.",
+      "source": "hero/source/hero-community-companion-source-v1.png"
+    },
+    {
+      "id": "hero.community-companion.social.png",
+      "path": "hero/social/hero-community-companion-social-v1.png",
+      "kind": "hero",
+      "width": 1200,
+      "height": 630,
+      "format": "png",
+      "safeZone": "left-40",
+      "alt": "A cat and dog sharing a relaxed moment in a sunlit living room.",
+      "source": "hero/source/hero-community-companion-source-v1.png"
+    },
+    {
+      "id": "hero.community-companion.social.webp",
+      "path": "hero/social/hero-community-companion-social-v1.webp",
+      "kind": "hero",
+      "width": 1200,
+      "height": 630,
+      "format": "webp",
+      "safeZone": "left-40",
+      "alt": "A cat and dog sharing a relaxed moment in a sunlit living room.",
+      "source": "hero/source/hero-community-companion-source-v1.png"
+    }
+  ]
+}
