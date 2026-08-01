@@ -214,10 +214,37 @@ export class ConfigPublishingService {
     const adapter = this.adapter<TConfig>(domain);
     const tx = this.prisma as unknown as PrismaTransaction;
     const list = await Promise.all(
-      versions.map(async (version) => this.toPublished(version, await adapter.load(version.id, tx))),
+      versions.map(async (version) =>
+        this.toPublished(version, await adapter.load(version.id, tx)),
+      ),
     );
 
     return { list, total, page, pageSize };
+  }
+
+  /** 按 ID 获取属于指定领域的已发布或已归档历史版本。 */
+  async getVersion<TConfig>(
+    domain: SystemConfigDomain,
+    versionId: string,
+  ): Promise<PublishedConfigVersion<TConfig>> {
+    const version = await this.prisma.systemConfigVersion.findFirst({
+      where: {
+        id: versionId,
+        configKey: domain,
+        status: { in: ["published", "superseded"] },
+      },
+    });
+
+    if (!version) {
+      throw systemConfigNotFound();
+    }
+
+    const config = await this.adapter<TConfig>(domain).load(
+      version.id,
+      this.prisma as unknown as PrismaTransaction,
+    );
+
+    return this.toPublished(version, config);
   }
 
   /** 原子发布草稿；相同幂等键始终返回首次发布结果。 */
@@ -226,10 +253,7 @@ export class ConfigPublishingService {
     command: PublishSystemConfigCommand,
   ): Promise<PublishSystemConfigResponse<TConfig>> {
     try {
-      const prior = await this.findIdempotentResult<TConfig>(
-        domain,
-        command.idempotencyKey,
-      );
+      const prior = await this.findIdempotentResult<TConfig>(domain, command.idempotencyKey);
 
       if (prior) {
         return prior;
@@ -309,7 +333,9 @@ export class ConfigPublishingService {
             changeSummary: draft.changeSummary,
           },
         });
-        const published = await tx.systemConfigVersion.findUniqueOrThrow({ where: { id: draft.id } });
+        const published = await tx.systemConfigVersion.findUniqueOrThrow({
+          where: { id: draft.id },
+        });
 
         return this.toPublished(published, config);
       });
@@ -424,10 +450,7 @@ export class ConfigPublishingService {
     version: SystemConfigVersion,
     tx: PrismaTransaction = this.prisma as unknown as PrismaTransaction,
   ): Promise<PublishedConfigVersion<TConfig>> {
-    if (
-      version.configKey !== domain ||
-      !["published", "superseded"].includes(version.status)
-    ) {
+    if (version.configKey !== domain || !["published", "superseded"].includes(version.status)) {
       throw systemConfigVersionConflict();
     }
 
