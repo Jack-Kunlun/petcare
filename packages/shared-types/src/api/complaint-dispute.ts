@@ -1,5 +1,68 @@
 import type { PaginatedResponse } from "./response";
 
+/** 用户创建投诉时选择的业务类型。 */
+export const COMPLAINT_TYPE = {
+  /** 服务结果、过程或交付质量不符合约定。 */
+  SERVICE_QUALITY: "service_quality",
+  /** 服务过程存在人身、宠物或财产安全问题。 */
+  SAFETY: "safety",
+  /** 支付、退款或结算金额存在争议。 */
+  PAYMENT: "payment",
+  /** 不属于已明确分类的其他投诉。 */
+  OTHER: "other",
+} as const;
+
+/** 用户创建投诉时选择的业务类型。 */
+export type ComplaintType = (typeof COMPLAINT_TYPE)[keyof typeof COMPLAINT_TYPE];
+
+/** 投诉材料在纠纷处理流程中的提交阶段。 */
+export const COMPLAINT_STATEMENT_STAGE = {
+  /** 投诉方创建案件时提交的首次陈述。 */
+  INITIAL: "initial",
+  /** 被投诉方针对首次投诉提交的回应。 */
+  RESPONSE: "response",
+  /** 任一订单当事方在初审后提交的二次申诉。 */
+  SECOND_APPEAL: "second_appeal",
+} as const;
+
+/** 投诉材料在纠纷处理流程中的提交阶段。 */
+export type ComplaintStatementStage =
+  (typeof COMPLAINT_STATEMENT_STAGE)[keyof typeof COMPLAINT_STATEMENT_STAGE];
+
+/** 投诉事件时间线中持久化的业务动作。 */
+export const COMPLAINT_EVENT_ACTION = {
+  /** 投诉方创建投诉案件。 */
+  CREATE: "create",
+  /** 被投诉方提交首次回应。 */
+  RESPOND: "respond",
+  /** 订单当事方提交二次申诉。 */
+  SECOND_APPEAL: "second_appeal",
+  /** 管理员认领未分配案件。 */
+  CLAIM: "claim",
+  /** 管理员将案件转交给另一管理员。 */
+  TRANSFER: "transfer",
+  /** 投诉方主动撤回案件。 */
+  WITHDRAW: "withdraw",
+  /** 管理员作出初审裁决。 */
+  INITIAL_DECIDE: "initial_decide",
+  /** 管理员作出终审裁决。 */
+  FINAL_DECIDE: "final_decide",
+  /** 二次申诉期限届满后系统自动结案。 */
+  APPEAL_TIMEOUT_CLOSE: "appeal_timeout_close",
+  /** 裁决产生的业务副作用执行成功。 */
+  EXECUTION_SUCCEEDED: "execution_succeeded",
+  /** 裁决产生的业务副作用执行失败。 */
+  EXECUTION_FAILED: "execution_failed",
+  /** 初审执行任务因终审裁决生效而被替代。 */
+  EXECUTION_SUPERSEDED: "execution_superseded",
+  /** 先前停滞的执行任务已恢复到可继续处理的状态。 */
+  EXECUTION_RECOVERED: "execution_recovered",
+} as const;
+
+/** 投诉事件时间线中持久化的业务动作。 */
+export type ComplaintEventAction =
+  (typeof COMPLAINT_EVENT_ACTION)[keyof typeof COMPLAINT_EVENT_ACTION];
+
 /** 投诉纠纷的当前处理阶段。 */
 export const COMPLAINT_STATUS = {
   /** 等待被投诉方首次回应。 */
@@ -117,7 +180,7 @@ export interface CreateComplaintRequest {
   /** 被投诉订单的唯一标识。 */
   orderId: string;
   /** 投诉业务类型。 */
-  complaintType: string;
+  complaintType: ComplaintType;
   /** 投诉原因说明。 */
   reason: string;
   /** 投诉方提交的证据材料地址。 */
@@ -171,7 +234,7 @@ export interface ComplaintStatementView {
   /** 陈述记录唯一标识。 */
   id: string;
   /** 陈述阶段。 */
-  stage: string;
+  stage: ComplaintStatementStage;
   /** 陈述提交人唯一标识。 */
   authorId: string;
   /** 陈述正文。 */
@@ -189,7 +252,7 @@ export interface ComplaintEventView {
   /** 操作人唯一标识；系统事件时为 null。 */
   actorId: string | null;
   /** 触发事件的业务动作。 */
-  action: string;
+  action: ComplaintEventAction;
   /** 动作发生前的投诉状态；创建事件时为 null。 */
   fromStatus: ComplaintStatus | null;
   /** 动作完成后的投诉状态；无状态变更时为 null。 */
@@ -235,7 +298,7 @@ export interface ComplaintListItem {
   /** 被投诉订单唯一标识。 */
   orderId: string;
   /** 投诉业务类型。 */
-  complaintType: string;
+  complaintType: ComplaintType;
   /** 当前投诉处理状态。 */
   status: ComplaintStatus;
   /** 与当前用户相对的另一方安全展示摘要。 */
@@ -270,7 +333,7 @@ export interface AdminComplaintListItem {
   /** 被投诉订单的唯一标识。 */
   orderId: string;
   /** 投诉业务类型。 */
-  complaintType: string;
+  complaintType: ComplaintType;
   /** 投诉方用户唯一标识。 */
   complainantId: string;
   /** 投诉方展示摘要。 */
@@ -309,7 +372,7 @@ export interface ComplaintDetail {
   /** 被投诉方用户唯一标识。 */
   respondentId: string;
   /** 投诉业务类型。 */
-  complaintType: string;
+  complaintType: ComplaintType;
   /** 投诉方期望的处理方案。 */
   expectedSolution: string | null;
   /** 当前投诉处理状态。 */

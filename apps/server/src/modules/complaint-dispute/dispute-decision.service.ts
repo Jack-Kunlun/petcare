@@ -1,5 +1,6 @@
 import { HttpStatus, Injectable } from "@nestjs/common";
 import {
+  COMPLAINT_EVENT_ACTION,
   COMPLAINT_STATUS,
   DECISION_LEVEL,
   DISPUTE_EXECUTION_TASK_STATUS,
@@ -65,7 +66,9 @@ export class DisputeDecisionService {
       const complaint = await this.findComplaint(transaction, id);
       const isInitial = level === DECISION_LEVEL.INITIAL;
       const nextStatus = isInitial ? COMPLAINT_STATUS.INITIAL_DECIDED : COMPLAINT_STATUS.CLOSED;
-      const action = isInitial ? "initial_decide" : "final_decide";
+      const action = isInitial
+        ? COMPLAINT_EVENT_ACTION.INITIAL_DECIDE
+        : COMPLAINT_EVENT_ACTION.FINAL_DECIDE;
 
       assertComplaintAction(this.toActionContext(complaint, admin), action);
       this.assertDecisionValues(complaint.order.amount, complaint.order.providerId, request);

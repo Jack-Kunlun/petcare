@@ -1,7 +1,10 @@
 import { randomUUID } from "node:crypto";
 import { HttpStatus, Injectable } from "@nestjs/common";
 import {
+  COMPLAINT_EVENT_ACTION,
+  COMPLAINT_STATEMENT_STAGE,
   COMPLAINT_STATUS,
+  type ComplaintEventAction,
   type ComplaintStatus,
   type CreateComplaintRequest,
   type SubmitComplaintStatementRequest,
@@ -12,9 +15,6 @@ import type { Prisma } from "../../generated/prisma/client";
 import { PrismaService } from "../../prisma/prisma.service";
 import { assertComplaintAction, type ComplaintActionContext } from "./complaint-state-machine";
 
-const initialStatementStage = "initial";
-const responseStatementStage = "response";
-const secondAppealStatementStage = "second_appeal";
 const maxCreateAttempts = 3;
 
 type ComplaintCommandRecord = {
@@ -124,7 +124,7 @@ export class ComplaintCommandService {
             status: COMPLAINT_STATUS.PENDING_RESPONSE,
             statements: {
               create: {
-                stage: initialStatementStage,
+                stage: COMPLAINT_STATEMENT_STAGE.INITIAL,
                 authorId: actorId,
                 statement: request.reason.trim(),
                 evidenceUrls: request.evidenceUrls,
@@ -138,7 +138,7 @@ export class ComplaintCommandService {
           data: {
             complaintId: complaint.id,
             actorId,
-            action: "create",
+            action: COMPLAINT_EVENT_ACTION.CREATE,
             fromStatus: null,
             toStatus: COMPLAINT_STATUS.PENDING_RESPONSE,
           },
@@ -193,7 +193,7 @@ export class ComplaintCommandService {
       await transaction.complaintStatement.create({
         data: {
           complaintId: id,
-          stage: responseStatementStage,
+          stage: COMPLAINT_STATEMENT_STAGE.RESPONSE,
           authorId: actorId,
           statement,
           evidenceUrls: request.evidenceUrls,
@@ -203,7 +203,7 @@ export class ComplaintCommandService {
         transaction,
         complaint,
         actorId,
-        "respond",
+        COMPLAINT_EVENT_ACTION.RESPOND,
         COMPLAINT_STATUS.UNASSIGNED,
       );
 
@@ -259,7 +259,7 @@ export class ComplaintCommandService {
         where: {
           complaintId_stage_authorId: {
             complaintId: id,
-            stage: secondAppealStatementStage,
+            stage: COMPLAINT_STATEMENT_STAGE.SECOND_APPEAL,
             authorId: actorId,
           },
         },
@@ -292,13 +292,19 @@ export class ComplaintCommandService {
       await transaction.complaintStatement.create({
         data: {
           complaintId: id,
-          stage: secondAppealStatementStage,
+          stage: COMPLAINT_STATEMENT_STAGE.SECOND_APPEAL,
           authorId: actorId,
           statement: reason,
           evidenceUrls: request.evidenceUrls,
         },
       });
-      await this.createEvent(transaction, complaint, actorId, "second_appeal", nextStatus);
+      await this.createEvent(
+        transaction,
+        complaint,
+        actorId,
+        COMPLAINT_EVENT_ACTION.SECOND_APPEAL,
+        nextStatus,
+      );
 
       return id;
     });
@@ -336,7 +342,7 @@ export class ComplaintCommandService {
         transaction,
         complaint,
         admin.id,
-        "claim",
+        COMPLAINT_EVENT_ACTION.CLAIM,
         COMPLAINT_STATUS.PROCESSING_INITIAL,
       );
 
@@ -434,7 +440,7 @@ export class ComplaintCommandService {
         data: {
           complaintId: id,
           actorId: admin.id,
-          action: "transfer",
+          action: COMPLAINT_EVENT_ACTION.TRANSFER,
           fromStatus: complaint.status,
           toStatus: complaint.status,
           payload: JSON.stringify({ targetAdminId, reason: transferReason }),
@@ -466,7 +472,7 @@ export class ComplaintCommandService {
         transaction,
         complaint,
         actorId,
-        "withdraw",
+        COMPLAINT_EVENT_ACTION.WITHDRAW,
         COMPLAINT_STATUS.WITHDRAWN,
       );
 
@@ -590,7 +596,7 @@ export class ComplaintCommandService {
     transaction: Prisma.TransactionClient,
     complaint: ComplaintCommandRecord,
     actorId: string,
-    action: string,
+    action: ComplaintEventAction,
     toStatus: ComplaintStatus,
   ): Promise<void> {
     await transaction.complaintEvent.create({

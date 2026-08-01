@@ -1,6 +1,7 @@
 import { HttpStatus, Injectable } from "@nestjs/common";
 import {
   COMPLAINT_QUEUE,
+  COMPLAINT_STATEMENT_STAGE,
   COMPLAINT_STATUS,
   DECISION_LEVEL,
   DISPUTE_EXECUTION_TASK_STATUS,
@@ -14,7 +15,10 @@ import {
   type ComplaintListItem,
   type ComplaintListResponse,
   type ComplaintStatementView,
+  type ComplaintStatementStage,
   type ComplaintStatus,
+  type ComplaintEventAction,
+  type ComplaintType,
   type SubmitDisputeDecisionRequest,
 } from "@petcare/shared-types";
 import { ApiException } from "../../common/http/api-exception";
@@ -148,19 +152,7 @@ export class ComplaintQueryService {
 
   /** 分页返回当前用户作为任一订单当事方的投诉。 */
   async findMine(userId: string, page = 1, pageSize = 20): Promise<ComplaintListResponse> {
-    if (
-      !Number.isInteger(page) ||
-      !Number.isInteger(pageSize) ||
-      page < 1 ||
-      pageSize < 1 ||
-      pageSize > 100
-    ) {
-      throw new ApiException(
-        "INVALID_PAGINATION",
-        "分页参数必须为正整数且每页不超过 100 条",
-        HttpStatus.BAD_REQUEST,
-      );
-    }
+    this.assertPagination(page, pageSize);
 
     const where = {
       OR: [{ complainantId: userId }, { respondentId: userId }],
@@ -189,19 +181,7 @@ export class ComplaintQueryService {
     query: AdminComplaintListQuery,
     adminId: string,
   ): Promise<AdminComplaintListResponse> {
-    if (
-      !Number.isInteger(query.page) ||
-      !Number.isInteger(query.pageSize) ||
-      query.page < 1 ||
-      query.pageSize < 1 ||
-      query.pageSize > 100
-    ) {
-      throw new ApiException(
-        "INVALID_PAGINATION",
-        "分页参数必须为正整数且每页不超过 100 条",
-        HttpStatus.BAD_REQUEST,
-      );
-    }
+    this.assertPagination(query.page, query.pageSize);
 
     const where: Prisma.ComplaintWhereInput = {
       AND: [this.queueWhere(query.queue, adminId)],
@@ -277,7 +257,9 @@ export class ComplaintQueryService {
     }
 
     const hasSecondAppealed = complaint.statements.some(
-      (statement) => statement.stage === "second_appeal" && statement.authorId === userId,
+      (statement) =>
+        statement.stage === COMPLAINT_STATEMENT_STAGE.SECOND_APPEAL &&
+        statement.authorId === userId,
     );
 
     return this.toDetail(complaint, {
@@ -343,11 +325,12 @@ export class ComplaintQueryService {
     actionContext: ComplaintActionContext,
   ): ComplaintDetail {
     const initialStatement = complaint.statements.find(
-      (statement) => statement.stage === "initial",
+      (statement) => statement.stage === COMPLAINT_STATEMENT_STAGE.INITIAL,
     );
     const respondentStatement = complaint.statements.find(
       (statement) =>
-        statement.stage === "response" && statement.authorId === complaint.respondentId,
+        statement.stage === COMPLAINT_STATEMENT_STAGE.RESPONSE &&
+        statement.authorId === complaint.respondentId,
     );
     const initialDecision = complaint.decisions.find(
       (decision) => decision.level === DECISION_LEVEL.INITIAL,
@@ -361,7 +344,7 @@ export class ComplaintQueryService {
       orderId: complaint.orderId,
       complainantId: complaint.complainantId,
       respondentId: complaint.respondentId,
-      complaintType: complaint.complaintType,
+      complaintType: complaint.complaintType as ComplaintType,
       expectedSolution: complaint.expectedSolution,
       status: complaint.status as ComplaintStatus,
       reason: initialStatement?.statement ?? "",
@@ -387,7 +370,7 @@ export class ComplaintQueryService {
       id: record.id,
       caseNumber: record.caseNumber,
       orderId: record.orderId,
-      complaintType: record.complaintType,
+      complaintType: record.complaintType as ComplaintType,
       complainantId: record.complainantId,
       complainant: record.complainant,
       respondentId: record.respondentId,
@@ -410,7 +393,7 @@ export class ComplaintQueryService {
       id: record.id,
       caseNumber: record.caseNumber,
       orderId: record.orderId,
-      complaintType: record.complaintType,
+      complaintType: record.complaintType as ComplaintType,
       status: record.status as ComplaintStatus,
       counterpart,
       appealDeadlineAt: record.appealDeadlineAt?.toISOString() ?? null,
@@ -452,7 +435,7 @@ export class ComplaintQueryService {
   ): ComplaintStatementView {
     return {
       id: statement.id,
-      stage: statement.stage,
+      stage: statement.stage as ComplaintStatementStage,
       authorId: statement.authorId,
       statement: statement.statement,
       evidenceUrls: statement.evidenceUrls,
@@ -465,7 +448,7 @@ export class ComplaintQueryService {
     return {
       id: event.id,
       actorId: event.actorId,
-      action: event.action,
+      action: event.action as ComplaintEventAction,
       fromStatus: event.fromStatus as ComplaintStatus | null,
       toStatus: event.toStatus as ComplaintStatus | null,
       payload: event.payload,
@@ -487,5 +470,22 @@ export class ComplaintQueryService {
       respondentCreditDelta: decision.respondentCreditDelta,
       version,
     };
+  }
+
+  /** 校验公共分页边界，避免用户端与管理端查询产生不一致的容错行为。 */
+  private assertPagination(page: number, pageSize: number): void {
+    if (
+      !Number.isInteger(page) ||
+      !Number.isInteger(pageSize) ||
+      page < 1 ||
+      pageSize < 1 ||
+      pageSize > 100
+    ) {
+      throw new ApiException(
+        "INVALID_PAGINATION",
+        "分页参数必须为正整数且每页不超过 100 条",
+        HttpStatus.BAD_REQUEST,
+      );
+    }
   }
 }
