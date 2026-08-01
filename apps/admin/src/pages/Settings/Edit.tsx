@@ -7,7 +7,7 @@ import type {
 import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
 import axios from "axios";
 import { AlertCircle, ArrowLeft, CheckCircle2, History, LoaderCircle, Save } from "lucide-react";
-import { useEffect, useRef, useState } from "react";
+import { useEffect, useMemo, useRef, useState } from "react";
 import { Link, useParams, useSearchParams } from "react-router-dom";
 import { isSystemConfigVersionConflict } from "../../api/system-settings/client";
 import { useAuth } from "../../auth/auth.context";
@@ -35,8 +35,14 @@ const SERVICE_TYPES: Array<{ value: AdminServiceType; label: string }> = [
   { value: "playing", label: "陪玩" },
 ];
 
-type LoadedEditorSource =
-  { scope: string; kind: "current" } | { scope: string; kind: "draft"; revision: number };
+type EditorSnapshot = {
+  scope: string;
+  kind: "current" | "draft";
+  revision: number;
+  config: SettingsConfig;
+  changeSummary: string;
+  sourceToken: string;
+};
 
 function errorMessage(error: unknown): string {
   if (axios.isAxiosError<{ message?: string }>(error)) {
@@ -63,16 +69,13 @@ export default function SettingsEdit() {
   const permissionSet = new Set(auth.user?.permissions ?? []);
   const canEdit = meta ? permissionSet.has(meta.editPermission) : false;
   const canPublish = canEdit && permissionSet.has("system.publish");
-  const [localConfig, setLocalConfig] = useState<SettingsConfig | null>(null);
+  const [editorSnapshot, setEditorSnapshot] = useState<EditorSnapshot | null>(null);
   const [fieldErrors, setFieldErrors] = useState<SettingsFieldErrors>({});
-  const [changeSummary, setChangeSummary] = useState("");
   const [dirty, setDirty] = useState(false);
   const [attempted, setAttempted] = useState(false);
   const [dialogOpen, setDialogOpen] = useState(false);
   const [notice, setNotice] = useState<{ kind: "success" | "error"; message: string } | null>(null);
   const [conflict, setConflict] = useState<string | null>(null);
-  const loadedEditorSource = useRef<LoadedEditorSource | null>(null);
-  const [editorSource, setEditorSource] = useState<LoadedEditorSource | null>(null);
 
   const currentQuery = useQuery({
     queryKey: settingsQueryKeys.current(domain ?? "invalid", serviceType),
@@ -95,65 +98,58 @@ export default function SettingsEdit() {
     enabled: Boolean(domain && canPublish && dialogOpen && draftQuery.data),
   });
 
+  const desiredEditorSnapshot = useMemo<EditorSnapshot | null>(() => {
+    if (!draftQuery.isSuccess) {
+      return null;
+    }
+
+    if (draftQuery.data) {
+      return {
+        scope,
+        kind: "draft",
+        revision: draftQuery.data.revision,
+        config: draftQuery.data.config,
+        changeSummary: draftQuery.data.changeSummary,
+        sourceToken: `draft:${draftQuery.data.revision}:${JSON.stringify(draftQuery.data.config)}:${draftQuery.data.changeSummary}`,
+      };
+    }
+
+    if (currentQuery.data) {
+      return {
+        scope,
+        kind: "current",
+        revision: 0,
+        config: currentQuery.data.config,
+        changeSummary: "",
+        sourceToken: `current:${currentQuery.data.version}:${JSON.stringify(currentQuery.data.config)}`,
+      };
+    }
+
+    return null;
+  }, [scope, currentQuery.data, draftQuery.data, draftQuery.isSuccess]);
+
   useEffect(() => {
-    if (loadedEditorSource.current?.scope !== scope) {
-      loadedEditorSource.current = null;
-      setEditorSource(null);
-      setLocalConfig(null);
+    if (editorSnapshot?.scope !== scope) {
+      setEditorSnapshot(desiredEditorSnapshot);
       setFieldErrors({});
-      setChangeSummary("");
       setDirty(false);
       setAttempted(false);
       setConflict(null);
       setNotice(null);
-    }
-
-    if (draftQuery.data) {
-      const nextSource: LoadedEditorSource = {
-        scope,
-        kind: "draft",
-        revision: draftQuery.data.revision,
-      };
-
-      if (loadedEditorSource.current?.kind !== "draft") {
-        loadedEditorSource.current = nextSource;
-        setEditorSource(nextSource);
-        setLocalConfig(draftQuery.data.config);
-        setChangeSummary(draftQuery.data.changeSummary);
-        setDirty(false);
-
-        return;
-      }
-
-      if (loadedEditorSource.current.revision !== draftQuery.data.revision) {
-        loadedEditorSource.current = nextSource;
-        setEditorSource(nextSource);
-      }
 
       return;
     }
 
-    const currentMayBeUsed =
-      draftQuery.isError || (draftQuery.isSuccess && draftQuery.data === null);
-
-    if (currentQuery.data && currentMayBeUsed && !loadedEditorSource.current) {
-      const nextSource: LoadedEditorSource = { scope, kind: "current" };
-
-      loadedEditorSource.current = nextSource;
-      setEditorSource(nextSource);
-      setLocalConfig(currentQuery.data.config);
-      setChangeSummary("");
-      setDirty(false);
+    if (!dirty) {
+      setEditorSnapshot(desiredEditorSnapshot);
+      setFieldErrors({});
+      setAttempted(false);
     }
-  }, [scope, currentQuery.data, draftQuery.data, draftQuery.isError, draftQuery.isSuccess]);
+  }, [scope, desiredEditorSnapshot, dirty, editorSnapshot?.scope]);
 
-  let boundRevision: number | null = null;
-
-  if (editorSource?.kind === "draft") {
-    boundRevision = editorSource.revision;
-  } else if (editorSource?.kind === "current" && draftQuery.isSuccess && draftQuery.data === null) {
-    boundRevision = 0;
-  }
+  const localConfig = editorSnapshot?.config ?? null;
+  const changeSummary = editorSnapshot?.changeSummary ?? "";
+  const boundRevision = editorSnapshot?.revision ?? null;
 
   const saveMutation = useMutation({
     mutationFn: async () => {
@@ -172,12 +168,15 @@ export default function SettingsEdit() {
       });
     },
     onSuccess: (draft) => {
-      const nextSource: LoadedEditorSource = { scope, kind: "draft", revision: draft.revision };
-
-      loadedEditorSource.current = nextSource;
-      setEditorSource(nextSource);
+      setEditorSnapshot({
+        scope,
+        kind: "draft",
+        revision: draft.revision,
+        config: draft.config,
+        changeSummary: draft.changeSummary,
+        sourceToken: `draft:${draft.revision}:${JSON.stringify(draft.config)}:${draft.changeSummary}`,
+      });
       queryClient.setQueryData(settingsQueryKeys.draft(domain!, serviceType), draft);
-      setLocalConfig(draft.config);
       setDirty(false);
       setConflict(null);
       setNotice({ kind: "success", message: `草稿已保存，当前修订版为 ${draft.revision}。` });
@@ -189,7 +188,7 @@ export default function SettingsEdit() {
     onError: async (error) => {
       if (isSystemConfigVersionConflict(error)) {
         setConflict(
-          "服务端草稿已更新。你的本地输入仍保留在表单中；已刷新服务端修订号，请核对后再次保存。",
+          "服务端草稿已更新。你的本地输入和原修订版仍保留；已读取服务端最新状态，请协调后重试。",
         );
         await draftQuery.refetch();
 
@@ -233,7 +232,7 @@ export default function SettingsEdit() {
       if (isSystemConfigVersionConflict(error)) {
         setDirty(true);
         setConflict(
-          "发布确认已过期并关闭。你的本地输入仍保留在表单中；已刷新服务端草稿，请重新检查差异。",
+          "发布确认已过期并关闭。你的本地输入和原修订版仍保留；已读取服务端最新状态，请协调后重试。",
         );
         await draftQuery.refetch();
 
@@ -257,7 +256,9 @@ export default function SettingsEdit() {
     );
   }
 
-  const loading = !localConfig && (currentQuery.isPending || draftQuery.isPending);
+  const loading =
+    !localConfig &&
+    (draftQuery.isPending || (draftQuery.isSuccess && !draftQuery.data && currentQuery.isPending));
   const revision = boundRevision ?? "不可用";
   const summaryError = attempted && !changeSummary.trim() ? "请填写本次变更摘要" : null;
   const hasErrors = Object.keys(fieldErrors).length > 0 || Boolean(summaryError) || !localConfig;
@@ -277,7 +278,7 @@ export default function SettingsEdit() {
 
   function handleEditorChange(value: SettingsConfig | null, errors: SettingsFieldErrors) {
     if (value) {
-      setLocalConfig(value);
+      setEditorSnapshot((snapshot) => (snapshot ? { ...snapshot, config: value } : snapshot));
     }
 
     setFieldErrors(errors);
@@ -435,7 +436,11 @@ export default function SettingsEdit() {
           className="mt-4 rounded-xl border border-red-200 bg-red-50 p-5 text-red-950"
         >
           <p className="font-semibold">草稿状态加载失败</p>
-          <p className="mt-1">当前版本与编辑区不受影响；确认草稿 revision 前不会保存。</p>
+          <p className="mt-1">
+            {currentQuery.data
+              ? "当前版本已加载；草稿状态确认前编辑器保持关闭。"
+              : "草稿状态确认前编辑器保持关闭；可分别重试当前版本和草稿查询。"}
+          </p>
           <button
             type="button"
             disabled={draftQuery.isFetching}
@@ -453,21 +458,21 @@ export default function SettingsEdit() {
         <div className="mt-6">
           {domain === "sop" ? (
             <SopEditor
-              key={`${scope}:${editorSource?.kind}:${boundRevision ?? "unavailable"}`}
+              key={editorSnapshot?.sourceToken}
               initialValue={localConfig as SopConfig}
               onChange={handleEditorChange}
             />
           ) : null}
           {domain === "rating_threshold" ? (
             <RatingThresholdEditor
-              key={`${scope}:${editorSource?.kind}:${boundRevision ?? "unavailable"}`}
+              key={editorSnapshot?.sourceToken}
               initialValue={localConfig as RatingThresholdConfig}
               onChange={handleEditorChange}
             />
           ) : null}
           {domain === "fee" ? (
             <FeeEditor
-              key={`${scope}:${editorSource?.kind}:${boundRevision ?? "unavailable"}`}
+              key={editorSnapshot?.sourceToken}
               initialValue={localConfig as FeeConfig}
               onChange={handleEditorChange}
             />
@@ -484,7 +489,9 @@ export default function SettingsEdit() {
                 rows={3}
                 value={changeSummary}
                 onChange={(event) => {
-                  setChangeSummary(event.target.value);
+                  setEditorSnapshot((snapshot) =>
+                    snapshot ? { ...snapshot, changeSummary: event.target.value } : snapshot,
+                  );
                   setDirty(true);
                 }}
                 aria-invalid={Boolean(summaryError)}

@@ -27,6 +27,13 @@ schema，并按 `db push → build → seed → 启动临时 Server/Admin → Pl
 动态分配的端口，不会复用本机已有服务，也绝不会重置或 seed `public`。即使构建、
 seed、启动或测试失败，runner 仍会关闭已启动服务并删除隔离 schema。
 
+runner 在 POSIX 上把受管命令放入独立进程组，收到 `SIGINT`/`SIGTERM` 后先终止
+完整进程组，再关闭服务和删除 schema，最终分别以 130/143 退出。Windows 使用
+`taskkill.exe /PID <pid> /T /F` 清理受管进程树。Node.js 在 Windows 上的
+`child.kill("SIGINT" | "SIGTERM")` 是强制终止，不能用于证明 Ctrl+C handler
+或 finally 清理已执行；因此真实 OS signal 生命周期测试仅在 POSIX 运行，Windows
+测试直接验证受控关闭后子孙 PID 与监听端口均消失。
+
 失败时会保留 `playwright-report/`、截图、视频和 trace。
 
 开发排查可在 `apps/admin` 中运行：
