@@ -3,6 +3,7 @@
 from __future__ import annotations
 
 import json
+import re
 import sys
 import xml.etree.ElementTree as ET
 from pathlib import Path
@@ -38,8 +39,9 @@ def validate_raster(path: Path, expected_width: int, expected_height: int) -> li
 def validate_svg(path: Path) -> list[str]:
     errors: list[str] = []
     try:
-        root = ET.parse(path).getroot()
-    except ET.ParseError as error:
+        source = path.read_text(encoding="utf-8")
+        root = ET.fromstring(source)
+    except (OSError, UnicodeError, ET.ParseError) as error:
         return [f"{path}: invalid SVG XML ({error})"]
     if root.tag.rsplit("}", 1)[-1] != "svg":
         errors.append(f"{path}: root element is not svg")
@@ -52,6 +54,14 @@ def validate_svg(path: Path) -> list[str]:
                 errors.append(f"{path}: external SVG dependency is not allowed ({value})")
             if isinstance(value, str) and ("http://" in value or "https://" in value or "data:" in value):
                 errors.append(f"{path}: remote or embedded dependency is not allowed")
+        for css_text in (element.text, element.tail):
+            if not css_text:
+                continue
+            if "@import" in css_text.lower():
+                errors.append(f"{path}: CSS @import is not allowed")
+            for match in re.findall(r"url\(\s*['\"]?([^)'\"\s]+)", css_text, flags=re.IGNORECASE):
+                if not match.startswith("#"):
+                    errors.append(f"{path}: external CSS dependency is not allowed ({match})")
     return errors
 
 
@@ -78,9 +88,12 @@ def validate_manifest(root: Path) -> list[str]:
     errors: list[str] = []
     manifest_path = root / "manifest.json"
     try:
-        manifest: dict[str, Any] = json.loads(manifest_path.read_text(encoding="utf-8"))
+        manifest: Any = json.loads(manifest_path.read_text(encoding="utf-8"))
     except (OSError, json.JSONDecodeError) as error:
         return [f"{manifest_path}: invalid manifest ({error})"]
+
+    if not isinstance(manifest, dict):
+        return [f"{manifest_path}: manifest root must be an object"]
 
     assets = manifest.get("assets")
     if not isinstance(assets, list):
@@ -134,13 +147,19 @@ def validate_manifest(root: Path) -> list[str]:
         if isinstance(source, str) and not _resolve_reference(root, source).is_file():
             errors.append(f"{asset_id}: broken source reference {source}")
 
-    for source in manifest.get("sourceProvenance", []):
-        if isinstance(source, dict):
-            source_path = source.get("sourcePath")
-            if not isinstance(source_path, str) or not _resolve_reference(root, source_path).is_file():
-                errors.append(f"sourceProvenance: broken sourcePath {source_path}")
-            if not str(source.get("prompt", "")).strip():
-                errors.append(f"sourceProvenance: missing prompt for {source.get('id')}")
+    provenance = manifest.get("sourceProvenance")
+    if not isinstance(provenance, list):
+        errors.append(f"{manifest_path}: sourceProvenance must be a list")
+        provenance = []
+    for index, source in enumerate(provenance):
+        if not isinstance(source, dict):
+            errors.append(f"sourceProvenance[{index}]: entry must be an object")
+            continue
+        source_path = source.get("sourcePath")
+        if not isinstance(source_path, str) or not _resolve_reference(root, source_path).is_file():
+            errors.append(f"sourceProvenance[{index}]: broken sourcePath {source_path}")
+        if not str(source.get("prompt", "")).strip():
+            errors.append(f"sourceProvenance[{index}]: missing prompt for {source.get('id')}")
 
     approved = manifest.get("approvedLogoArtwork", {})
     approved_path = approved.get("path") if isinstance(approved, dict) else None
