@@ -7,12 +7,15 @@ rasterizer and its PNG screenshots retain the masters' transparent background.
 
 from __future__ import annotations
 
+import base64
 import os
 import shutil
 import io
 import struct
 import subprocess
 import tempfile
+import time
+import xml.etree.ElementTree as ET
 from pathlib import Path
 
 
@@ -20,6 +23,10 @@ HORIZONTAL_HEIGHTS = (32, 64, 96)
 SYMBOL_SIZES = (16, 20, 24, 28, 32, 48, 64, 128, 256, 512, 1024)
 FAVICON_SIZES = (16, 32, 48)
 APP_ICON_SIZES = (32, 48, 64, 96, 128, 144, 180, 192, 512, 1024)
+BROWSER_RENDER_ATTEMPTS = 3
+BROWSER_RENDER_POLL_COUNT = 20
+BROWSER_RENDER_POLL_SECONDS = 0.25
+BROWSER_VIRTUAL_TIME_MS = 2000
 
 
 def _browser_executable() -> str:
@@ -40,29 +47,65 @@ def _browser_executable() -> str:
 def _render_file(source_path: Path, output_path: Path, width: int, height: int) -> None:
     browser = _browser_executable()
     output_path.parent.mkdir(parents=True, exist_ok=True)
-    with tempfile.TemporaryDirectory(prefix="petcare-logo-render-") as temporary_directory:
+    # Keep the wrapper page on the same drive as the SVG. Chromium blocks a
+    # file:// page on another drive from loading the local SVG resource.
+    with tempfile.TemporaryDirectory(
+        prefix="petcare-logo-render-", dir=output_path.parent
+    ) as temporary_directory:
         page_path = Path(temporary_directory) / "render.html"
+        if source_path.suffix.lower() == ".svg":
+            asset_markup = source_path.read_text(encoding="utf-8")
+            asset_selector = "svg"
+        elif source_path.suffix.lower() == ".png":
+            encoded = base64.b64encode(source_path.read_bytes()).decode("ascii")
+            asset_markup = f'<img src="data:image/png;base64,{encoded}" alt="" />'
+            asset_selector = "img"
+        else:
+            raise ValueError(f"Unsupported browser render source: {source_path}")
         page_path.write_text(
             "<!doctype html><html><head><style>"
-            f"html,body,img{{margin:0;padding:0;width:{width}px;height:{height}px;overflow:hidden;}}"
-            "img{display:block;object-fit:fill;}"
-            "</style></head><body>"
-            f'<img src="{source_path.resolve().as_uri()}" alt="" />'
-            "</body></html>",
+            f"html,body,{asset_selector}{{margin:0;padding:0;width:{width}px;height:{height}px;overflow:hidden;}}"
+            f"{asset_selector}{{display:block;object-fit:fill;}}"
+            f"</style></head><body>{asset_markup}</body></html>",
             encoding="utf-8",
         )
-        command = [
-            browser,
-            "--headless=new",
-            "--disable-gpu",
-            "--hide-scrollbars",
-            "--force-device-scale-factor=1",
-            "--default-background-color=00000000",
-            f"--window-size={width},{height}",
-            f"--screenshot={output_path.resolve()}",
-            page_path.as_uri(),
-        ]
-        subprocess.run(command, check=True, capture_output=True, text=True)
+        output_path.unlink(missing_ok=True)
+        for attempt in range(BROWSER_RENDER_ATTEMPTS):
+            command = [
+                browser,
+                "--headless=new",
+                "--disable-gpu",
+                "--hide-scrollbars",
+                "--no-first-run",
+                "--no-default-browser-check",
+                f"--user-data-dir={Path(temporary_directory) / f'browser-profile-{attempt}'}",
+                "--force-device-scale-factor=1",
+                "--run-all-compositor-stages-before-draw",
+                f"--virtual-time-budget={BROWSER_VIRTUAL_TIME_MS}",
+                "--default-background-color=00000000",
+                f"--window-size={width},{height}",
+                f"--screenshot={output_path.resolve()}",
+                page_path.as_uri(),
+            ]
+            subprocess.run(command, check=True, capture_output=True, text=True)
+            for _ in range(BROWSER_RENDER_POLL_COUNT):
+                if output_path.is_file() and output_path.stat().st_size:
+                    return
+                time.sleep(BROWSER_RENDER_POLL_SECONDS)
+        raise RuntimeError(f"Browser did not produce {output_path}")
+
+
+def _svg_aspect_ratio(svg_path: Path) -> float:
+    """Read the committed master's viewBox ratio without hard-coding lockup width."""
+    root = ET.parse(svg_path).getroot()
+    view_box = root.attrib.get("viewBox", "").split()
+    if len(view_box) != 4:
+        raise ValueError(f"Missing or invalid viewBox: {svg_path}")
+    width = float(view_box[2])
+    height = float(view_box[3])
+    if width <= 0 or height <= 0:
+        raise ValueError(f"Non-positive viewBox: {svg_path}")
+    return width / height
 
 
 def render_svg(svg_path: Path, output_path: Path, width: int, height: int) -> None:
@@ -139,8 +182,9 @@ def export_logo_suite(repo_root: Path) -> list[Path]:
     symbol_svg = svg_directory / "petcare-symbol-color.svg"
     outputs: list[Path] = []
 
+    horizontal_aspect_ratio = _svg_aspect_ratio(horizontal_svg)
     for height in HORIZONTAL_HEIGHTS:
-        width = round(556 * height / 128)
+        width = round(horizontal_aspect_ratio * height)
         output = png_directory / f"petcare-logo-horizontal-color-{height}h.png"
         render_svg(horizontal_svg, output, width, height)
         outputs.append(output)
