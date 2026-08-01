@@ -7,6 +7,7 @@ import {
   type SubmitComplaintStatementRequest,
   type WithdrawComplaintRequest,
 } from "@petcare/shared-types";
+import { requestWithSession } from "../auth/auth.session";
 import {
   createComplaint,
   getComplaintDetail,
@@ -15,17 +16,21 @@ import {
   submitSecondAppeal,
   withdrawComplaint,
 } from "./complaints";
-import { apiRequest } from "./request";
 
-jest.mock("./request", () => ({
-  apiRequest: jest.fn(),
+jest.mock("../auth/auth.session", () => ({
+  requestWithSession: jest.fn(),
 }));
 
+const complaintId = "11111111-1111-4111-8111-111111111111";
+const orderId = "22222222-2222-4222-8222-222222222222";
+const complainantId = "33333333-3333-4333-8333-333333333333";
+const respondentId = "44444444-4444-4444-8444-444444444444";
+
 const detail: ComplaintDetail = {
-  id: "complaint-1",
-  orderId: "order-1",
-  complainantId: "owner-1",
-  respondentId: "provider-1",
+  id: complaintId,
+  orderId,
+  complainantId,
+  respondentId,
   complaintType: "service_quality",
   expectedSolution: "重新服务",
   status: COMPLAINT_STATUS.PENDING_RESPONSE,
@@ -52,7 +57,7 @@ const list: ComplaintListResponse = {
   pageSize: 10,
 };
 
-const mockedRequest = jest.mocked(apiRequest);
+const mockedRequestWithSession = jest.mocked(requestWithSession);
 
 describe("complaints API", () => {
   beforeEach(() => {
@@ -61,39 +66,39 @@ describe("complaints API", () => {
 
   it("creates a complaint through the shared request client", async () => {
     const request: CreateComplaintRequest = {
-      orderId: "order-1",
+      orderId,
       complaintType: "service_quality",
       reason: "服务步骤缺失",
       evidenceUrls: ["https://cdn.example/evidence.mp4"],
       expectedSolution: "重新服务",
     };
 
-    mockedRequest.mockResolvedValue(detail);
+    mockedRequestWithSession.mockResolvedValue(detail);
 
     await expect(createComplaint(request)).resolves.toBe(detail);
 
-    expect(mockedRequest).toHaveBeenCalledWith("/complaints", {
+    expect(mockedRequestWithSession).toHaveBeenCalledWith("/complaints", {
       method: "POST",
       data: request,
     });
   });
 
   it("lists the current user's complaints with pagination", async () => {
-    mockedRequest.mockResolvedValue(list);
+    mockedRequestWithSession.mockResolvedValue(list);
 
     const query: ComplaintListQuery = { page: 2, pageSize: 10 };
 
     await expect(listMyComplaints(query)).resolves.toBe(list);
 
-    expect(mockedRequest).toHaveBeenCalledWith("/complaints?page=2&pageSize=10");
+    expect(mockedRequestWithSession).toHaveBeenCalledWith("/complaints?page=2&pageSize=10");
   });
 
   it("loads a complaint detail", async () => {
-    mockedRequest.mockResolvedValue(detail);
+    mockedRequestWithSession.mockResolvedValue(detail);
 
-    await expect(getComplaintDetail("complaint-1")).resolves.toBe(detail);
+    await expect(getComplaintDetail(complaintId)).resolves.toBe(detail);
 
-    expect(mockedRequest).toHaveBeenCalledWith("/complaints/complaint-1");
+    expect(mockedRequestWithSession).toHaveBeenCalledWith(`/complaints/${complaintId}`);
   });
 
   it("submits the first response", async () => {
@@ -103,11 +108,11 @@ describe("complaints API", () => {
       version: 1,
     };
 
-    mockedRequest.mockResolvedValue(detail);
+    mockedRequestWithSession.mockResolvedValue(detail);
 
-    await expect(submitFirstResponse("complaint-1", request)).resolves.toBe(detail);
+    await expect(submitFirstResponse(complaintId, request)).resolves.toBe(detail);
 
-    expect(mockedRequest).toHaveBeenCalledWith("/complaints/complaint-1/respond", {
+    expect(mockedRequestWithSession).toHaveBeenCalledWith(`/complaints/${complaintId}/respond`, {
       method: "POST",
       data: request,
     });
@@ -120,11 +125,11 @@ describe("complaints API", () => {
       version: 3,
     };
 
-    mockedRequest.mockResolvedValue(detail);
+    mockedRequestWithSession.mockResolvedValue(detail);
 
-    await expect(submitSecondAppeal("complaint-1", request)).resolves.toBe(detail);
+    await expect(submitSecondAppeal(complaintId, request)).resolves.toBe(detail);
 
-    expect(mockedRequest).toHaveBeenCalledWith("/complaints/complaint-1/appeals", {
+    expect(mockedRequestWithSession).toHaveBeenCalledWith(`/complaints/${complaintId}/appeals`, {
       method: "POST",
       data: request,
     });
@@ -133,11 +138,11 @@ describe("complaints API", () => {
   it("withdraws a complaint with its current version", async () => {
     const request: WithdrawComplaintRequest = { version: 2 };
 
-    mockedRequest.mockResolvedValue(detail);
+    mockedRequestWithSession.mockResolvedValue(detail);
 
-    await expect(withdrawComplaint("complaint-1", request)).resolves.toBe(detail);
+    await expect(withdrawComplaint(complaintId, request)).resolves.toBe(detail);
 
-    expect(mockedRequest).toHaveBeenCalledWith("/complaints/complaint-1/withdraw", {
+    expect(mockedRequestWithSession).toHaveBeenCalledWith(`/complaints/${complaintId}/withdraw`, {
       method: "POST",
       data: request,
     });
