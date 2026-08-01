@@ -54,6 +54,12 @@ def validate_svg(path: Path) -> list[str]:
                 errors.append(f"{path}: external SVG dependency is not allowed ({value})")
             if isinstance(value, str) and ("http://" in value or "https://" in value or "data:" in value):
                 errors.append(f"{path}: remote or embedded dependency is not allowed")
+            if isinstance(value, str):
+                if "@import" in value.lower():
+                    errors.append(f"{path}: CSS @import is not allowed")
+                for match in re.findall(r"url\(\s*['\"]?([^)'\"\s]+)", value, flags=re.IGNORECASE):
+                    if not match.startswith("#"):
+                        errors.append(f"{path}: external CSS dependency is not allowed ({match})")
         for css_text in (element.text, element.tail):
             if not css_text:
                 continue
