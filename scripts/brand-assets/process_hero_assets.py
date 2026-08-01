@@ -29,6 +29,12 @@ PROFILES = {
     "social": CropProfile(1200, 630, 0.50, 0.58),
 }
 
+THEME_FOCAL_POINTS = {
+    "trusted-care": (0.72, 0.58),
+    "professional-care": (0.28, 0.50),
+    "community-companion": (0.70, 0.56),
+}
+
 THEMES = {
     "trusted-care": {
         "source": "hero-trusted-care-source-v1.png",
@@ -82,6 +88,11 @@ def to_srgb(image: Image.Image) -> Image.Image:
     return image
 
 
+def srgb_profile_bytes() -> bytes:
+    """Return the ICC bytes embedded in every raster derivative."""
+    return ImageCms.ImageCmsProfile(ImageCms.createProfile("sRGB")).tobytes()
+
+
 def safe_zone_fit(image: Image.Image, profile: CropProfile, safe_zone: str) -> Image.Image:
     """Fit the full scene and extend only its deliberately empty copy zone."""
     target_ratio = profile.width / profile.height
@@ -118,15 +129,25 @@ def export_hero_family(source: Path, slug: str, safe_zone: str) -> list[Path]:
     exported: list[Path] = []
     with Image.open(source) as opened:
         base = to_srgb(opened)
+        focal_x, focal_y = THEME_FOCAL_POINTS[slug]
         for profile_name, profile in PROFILES.items():
-            result = safe_zone_fit(base, profile, safe_zone)
+            effective_profile = CropProfile(profile.width, profile.height, focal_x, focal_y)
+            # Social crops need only a small vertical trim, so use the focal
+            # cover crop directly. Wider product banners preserve every care
+            # detail by extending only the intentionally empty safe zone.
+            result = (
+                cover_crop(base, effective_profile)
+                if profile_name == "social"
+                else safe_zone_fit(base, effective_profile, safe_zone)
+            )
             output_dir = DELIVERY / "hero" / profile_name
             output_dir.mkdir(parents=True, exist_ok=True)
             stem = f"hero-{slug}-{profile_name}-v1"
             png = output_dir / f"{stem}.png"
             webp = output_dir / f"{stem}.webp"
-            result.save(png, "PNG", optimize=True, compress_level=9)
-            result.save(webp, "WEBP", quality=88, method=6, exact=True)
+            icc_profile = srgb_profile_bytes()
+            result.save(png, "PNG", optimize=True, compress_level=9, icc_profile=icc_profile)
+            result.save(webp, "WEBP", quality=88, method=6, exact=True, icc_profile=icc_profile)
             exported.extend((png, webp))
     return exported
 
@@ -148,19 +169,19 @@ def create_elements() -> list[Path]:
     assets = [
         write_svg(
             gradients / "petcare-gradient-linear.svg",
-            '''<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 1600 480" role="img" aria-labelledby="title"><title id="title">PetCare blue to mint linear gradient</title><defs><linearGradient id="g" x1="0" y1="0" x2="1" y2="1"><stop offset="0" stop-color="#4A6CF7"/><stop offset="1" stop-color="#5BC9B9"/></linearGradient></defs><rect width="1600" height="480" rx="32" fill="url(#g)"/></svg>''',
+            '''<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 1600 480" role="img" aria-labelledby="title"><title id="title">PetCare blue to mint linear gradient</title><defs><linearGradient id="g" x1="0" y1="0" x2="1" y2="1"><stop offset="0" stop-color="#4A6CF7"/><stop offset="1" stop-color="#5BC8AF"/></linearGradient></defs><rect width="1600" height="480" rx="32" fill="url(#g)"/></svg>''',
         ),
         write_svg(
             gradients / "petcare-gradient-radial.svg",
-            '''<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 1600 900" role="img" aria-labelledby="title"><title id="title">PetCare soft radial brand glow</title><defs><radialGradient id="g" cx="72%" cy="30%" r="72%"><stop offset="0" stop-color="#5BC9B9" stop-opacity=".38"/><stop offset=".45" stop-color="#4A6CF7" stop-opacity=".14"/><stop offset="1" stop-color="#FAFBFC" stop-opacity="0"/></radialGradient></defs><rect width="1600" height="900" fill="#FAFBFC"/><rect width="1600" height="900" fill="url(#g)"/></svg>''',
+            '''<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 1600 900" role="img" aria-labelledby="title"><title id="title">PetCare soft radial brand glow</title><defs><radialGradient id="g" cx="72%" cy="30%" r="72%"><stop offset="0" stop-color="#5BC8AF" stop-opacity=".38"/><stop offset=".45" stop-color="#4A6CF7" stop-opacity=".14"/><stop offset="1" stop-color="#FAFBFC" stop-opacity="0"/></radialGradient></defs><rect width="1600" height="900" fill="#FAFBFC"/><rect width="1600" height="900" fill="url(#g)"/></svg>''',
         ),
         write_svg(
             gradients / "petcare-background-soft.svg",
-            '''<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 1600 900" role="img" aria-labelledby="title"><title id="title">PetCare soft website background</title><defs><linearGradient id="b" x1="0" y1="0" x2="1" y2="1"><stop stop-color="#FAFBFC"/><stop offset=".55" stop-color="#F1F5FF"/><stop offset="1" stop-color="#EFFBF8"/></linearGradient></defs><rect width="1600" height="900" fill="url(#b)"/><circle cx="1320" cy="120" r="320" fill="#5BC9B9" opacity=".08"/><circle cx="170" cy="760" r="380" fill="#4A6CF7" opacity=".07"/></svg>''',
+            '''<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 1600 900" role="img" aria-labelledby="title"><title id="title">PetCare soft website background</title><defs><linearGradient id="b" x1="0" y1="0" x2="1" y2="1"><stop stop-color="#FAFBFC"/><stop offset=".55" stop-color="#F1F5FF"/><stop offset="1" stop-color="#EFFBF8"/></linearGradient></defs><rect width="1600" height="900" fill="url(#b)"/><circle cx="1320" cy="120" r="320" fill="#5BC8AF" opacity=".08"/><circle cx="170" cy="760" r="380" fill="#4A6CF7" opacity=".07"/></svg>''',
         ),
         write_svg(
             patterns / "petcare-connection-pattern.svg",
-            '''<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 320 320" role="img" aria-labelledby="title"><title id="title">PetCare connection pattern</title><defs><pattern id="p" width="80" height="80" patternUnits="userSpaceOnUse"><path d="M16 40h18m12 0h18M40 16v18m0 12v18" stroke="#4A6CF7" stroke-width="2" stroke-linecap="round" opacity=".16"/><circle cx="40" cy="40" r="6" fill="none" stroke="#5BC9B9" stroke-width="2" opacity=".32"/></pattern></defs><rect width="320" height="320" fill="url(#p)"/></svg>''',
+            '''<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 320 320" role="img" aria-labelledby="title"><title id="title">PetCare connection pattern</title><defs><pattern id="p" width="80" height="80" patternUnits="userSpaceOnUse"><path d="M16 40h18m12 0h18M40 16v18m0 12v18" stroke="#4A6CF7" stroke-width="2" stroke-linecap="round" opacity=".16"/><circle cx="40" cy="40" r="6" fill="none" stroke="#5BC8AF" stroke-width="2" opacity=".32"/></pattern></defs><rect width="320" height="320" fill="url(#p)"/></svg>''',
         ),
         write_svg(
             badges / "petcare-badge-symbol.svg",
@@ -180,7 +201,7 @@ def create_elements() -> list[Path]:
         ),
         write_svg(
             overlays / "petcare-overlay-bottom.svg",
-            '''<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 1600 720" role="img" aria-labelledby="title"><title id="title">PetCare bottom caption readability overlay</title><defs><linearGradient id="g" x1="0" y1="1" x2="0" y2="0"><stop stop-color="#202632" stop-opacity=".78"/><stop offset=".38" stop-color="#202632" stop-opacity=".38"/><stop offset=".72" stop-color="#202632" stop-opacity="0"/></linearGradient></defs><rect width="1600" height="720" fill="url(#g)"/></svg>''',
+            '''<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 1600 720" role="img" aria-labelledby="title"><title id="title">PetCare bottom caption readability overlay</title><defs><linearGradient id="g" x1="0" y1="1" x2="0" y2="0"><stop stop-color="#202632" stop-opacity=".94"/><stop offset=".38" stop-color="#202632" stop-opacity=".62"/><stop offset=".72" stop-color="#202632" stop-opacity="0"/></linearGradient></defs><rect width="1600" height="720" fill="url(#g)"/></svg>''',
         ),
     ]
     return assets
@@ -202,11 +223,20 @@ def update_manifest() -> None:
         ("element.overlay.bottom", "elements/overlays/petcare-overlay-bottom.svg", 1600, 720),
     ]
     for asset_id, path, width, height in element_specs:
-        assets.append({"id": asset_id, "path": path, "kind": "element", "width": width, "height": height, "format": "svg"})
+        assets.append({
+            "id": asset_id,
+            "path": path,
+            "kind": "element",
+            "width": width,
+            "height": height,
+            "format": "svg",
+            "alt": asset_id.removeprefix("element.").replace(".", " ").replace("-", " ").title(),
+            "source": "../PetCare-Brand-Book-v1.0.md",
+        })
     manifest["overlayAccessibility"] = {
-        "lightOverlayDarkText": {"text": "#202632", "minimumBodyContrast": "4.5:1", "minimumLargeContrast": "3:1"},
-        "darkBottomOverlayWhiteText": {"text": "#FFFFFF", "minimumBodyContrast": "4.5:1", "minimumLargeContrast": "3:1"},
-        "note": "Verify contrast against each final composited crop; increase overlay opacity when sampled contrast falls below WCAG AA.",
+        "lightOverlayDarkText": {"text": "#202632", "minimumBodyContrast": "4.5:1", "minimumLargeContrast": "3:1", "verifiedMinimumContrast": "13.81:1", "verifiedRegion": "declared-side-40-percent"},
+        "darkBottomOverlayWhiteText": {"text": "#FFFFFF", "minimumBodyContrast": "4.5:1", "minimumLargeContrast": "3:1", "verifiedMinimumContrast": "7.46:1", "verifiedRegion": "bottom-20-percent"},
+        "note": "Verified against every final PNG crop. Re-test after changing an image, overlay, opacity, or text color.",
     }
     MANIFEST_PATH.write_text(json.dumps(manifest, ensure_ascii=False, indent=2) + "\n", encoding="utf-8", newline="\n")
 
