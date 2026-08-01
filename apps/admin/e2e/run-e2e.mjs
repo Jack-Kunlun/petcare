@@ -78,6 +78,60 @@ export function assertDisposableAdminSchema(schemaName) {
   }
 }
 
+const SIGNAL_EXIT_CODES = { SIGINT: 130, SIGTERM: 143 };
+
+export class AdminE2eInterruptedError extends Error {
+  constructor(signal) {
+    super(`Admin E2E interrupted by ${signal}`);
+    this.name = "AdminE2eInterruptedError";
+    this.signal = signal;
+  }
+}
+
+export async function runWithProcessSignalHandling(operation, runtime = process) {
+  const controller = new globalThis.AbortController();
+  let receivedSignal = null;
+  const handlers = Object.fromEntries(
+    Object.keys(SIGNAL_EXIT_CODES).map((signal) => [
+      signal,
+      () => {
+        if (receivedSignal) {
+          return;
+        }
+
+        receivedSignal = signal;
+        controller.abort(new AdminE2eInterruptedError(signal));
+      },
+    ]),
+  );
+
+  for (const [signal, handler] of Object.entries(handlers)) {
+    runtime.on(signal, handler);
+  }
+
+  try {
+    const result = await operation(controller.signal);
+
+    return receivedSignal ? SIGNAL_EXIT_CODES[receivedSignal] : result;
+  } catch (error) {
+    if (receivedSignal && error === controller.signal.reason) {
+      return SIGNAL_EXIT_CODES[receivedSignal];
+    }
+
+    throw error;
+  } finally {
+    for (const [signal, handler] of Object.entries(handlers)) {
+      runtime.off(signal, handler);
+    }
+  }
+}
+
+function throwIfAborted(signal) {
+  if (signal?.aborted) {
+    throw signal.reason;
+  }
+}
+
 export async function runWithIsolatedAdminSchema({
   schemaName,
   baseEnv,
@@ -86,6 +140,7 @@ export async function runWithIsolatedAdminSchema({
   startServers,
   runPlaywright,
   dropSchema,
+  signal,
 }) {
   assertDisposableAdminSchema(schemaName);
   const isolatedEnv = { ...baseEnv, DB_SCHEMA: schemaName };
@@ -94,10 +149,14 @@ export async function runWithIsolatedAdminSchema({
   let closeServers;
 
   try {
-    await pushSchema(isolatedEnv);
-    await seedSchema(isolatedEnv);
-    closeServers = await startServers(isolatedEnv);
-    result = await runPlaywright(isolatedEnv);
+    throwIfAborted(signal);
+    await pushSchema(isolatedEnv, signal);
+    throwIfAborted(signal);
+    await seedSchema(isolatedEnv, signal);
+    throwIfAborted(signal);
+    closeServers = await startServers(isolatedEnv, signal);
+    throwIfAborted(signal);
+    result = await runPlaywright(isolatedEnv, signal);
   } catch (error) {
     primaryError = error;
   }
@@ -209,7 +268,7 @@ async function stopProcess(child) {
   }
 }
 
-async function waitForHttpServer(label, url, child) {
+async function waitForHttpServer(label, url, child, signal) {
   const deadline = Date.now() + 45_000;
   let startupError;
 
@@ -218,6 +277,8 @@ async function waitForHttpServer(label, url, child) {
   });
 
   while (Date.now() < deadline) {
+    throwIfAborted(signal);
+
     if (startupError || hasExited(child)) {
       throw new Error(`${label} stopped before becoming ready`);
     }
@@ -240,14 +301,18 @@ async function waitForHttpServer(label, url, child) {
   throw new Error(`${label} did not become ready within 45 seconds`);
 }
 
-async function startApplicationServers(env) {
+export async function startApplicationServers(
+  env,
+  signal,
+  { spawnProcess = spawn, waitForServer = waitForHttpServer, stopChild = stopProcess } = {},
+) {
   const serverPort = requireEnvironmentValue(env, "ADMIN_E2E_SERVER_PORT");
   const adminPort = requireEnvironmentValue(env, "ADMIN_E2E_ADMIN_PORT");
   const viteCli = path.join(adminDirectory, "node_modules", "vite", "bin", "vite.js");
   const children = [];
 
   try {
-    const server = spawn(process.execPath, [path.join(serverDirectory, "dist", "main.js")], {
+    const server = spawnProcess(process.execPath, [path.join(serverDirectory, "dist", "main.js")], {
       cwd: serverDirectory,
       env,
       shell: false,
@@ -255,23 +320,35 @@ async function startApplicationServers(env) {
     });
 
     children.push(server);
-    await waitForHttpServer("Server", `http://127.0.0.1:${serverPort}/health`, server);
+    await waitForServer("Server", `http://127.0.0.1:${serverPort}/health`, server, signal);
 
-    const admin = spawn(
+    const admin = spawnProcess(
       process.execPath,
       [viteCli, "--host", "127.0.0.1", "--port", adminPort, "--strictPort"],
       { cwd: adminDirectory, env, shell: false, stdio: "inherit" },
     );
 
     children.push(admin);
-    await waitForHttpServer("Admin", `http://127.0.0.1:${adminPort}`, admin);
+    await waitForServer("Admin", `http://127.0.0.1:${adminPort}`, admin, signal);
   } catch (error) {
-    await Promise.allSettled(children.toReversed().map(stopProcess));
+    const cleanupResults = await Promise.allSettled(children.toReversed().map(stopChild));
+    const cleanupErrors = cleanupResults
+      .filter((result) => result.status === "rejected")
+      .map((result) => result.reason);
+
+    if (cleanupErrors.length > 0) {
+      throw new AggregateError(
+        [error, ...cleanupErrors],
+        "Admin E2E application server startup and cleanup both failed",
+        { cause: error },
+      );
+    }
+
     throw error;
   }
 
   return async () => {
-    const results = await Promise.allSettled(children.toReversed().map(stopProcess));
+    const results = await Promise.allSettled(children.toReversed().map(stopChild));
     const errors = results
       .filter((result) => result.status === "rejected")
       .map((result) => result.reason);
@@ -286,22 +363,51 @@ async function startApplicationServers(env) {
   };
 }
 
-function runCommand(label, executable, args, options) {
+function runCommand(label, executable, args, options, abortSignal) {
   return new Promise((resolve, reject) => {
+    throwIfAborted(abortSignal);
     const child = spawn(executable, args, {
       ...options,
       shell: false,
       stdio: options.stdio ?? "inherit",
     });
-
-    child.once("error", () => reject(new Error(`${label} could not start`)));
-    child.once("exit", (code, signal) => {
-      if (signal) {
-        reject(new Error(`${label} stopped by signal ${signal}`));
+    let settled = false;
+    const finish = (callback, value) => {
+      if (settled) {
         return;
       }
 
-      resolve(code ?? 1);
+      settled = true;
+      abortSignal?.removeEventListener("abort", onAbort);
+      callback(value);
+    };
+    const onAbort = () => {
+      void stopProcess(child).catch((stopError) => {
+        finish(
+          reject,
+          new AggregateError(
+            [abortSignal.reason, stopError],
+            `${label} interruption could not stop its child process`,
+            { cause: abortSignal.reason },
+          ),
+        );
+      });
+    };
+
+    abortSignal?.addEventListener("abort", onAbort, { once: true });
+    child.once("error", () => finish(reject, new Error(`${label} could not start`)));
+    child.once("exit", (code, exitSignal) => {
+      if (abortSignal?.aborted) {
+        finish(reject, abortSignal.reason);
+        return;
+      }
+
+      if (exitSignal) {
+        finish(reject, new Error(`${label} stopped by signal ${exitSignal}`));
+        return;
+      }
+
+      finish(resolve, code ?? 1);
     });
   });
 }
@@ -329,7 +435,7 @@ function createDatabaseUrl(env) {
   return url.toString();
 }
 
-async function buildServerForE2e(env) {
+async function buildServerForE2e(env, signal) {
   const typescriptCli = path.join(repositoryDirectory, "node_modules", "typescript", "bin", "tsc");
   const nestCli = path.join(serverDirectory, "node_modules", "@nestjs", "cli", "bin", "nest.js");
   const silentOptions = { env, stdio: "ignore" };
@@ -343,6 +449,7 @@ async function buildServerForE2e(env) {
       path.join(repositoryDirectory, "packages", "shared-types", "tsconfig.json"),
     ],
     { ...silentOptions, cwd: repositoryDirectory },
+    signal,
   );
   await requireSuccessfulCommand(
     "shared-utils build",
@@ -353,11 +460,18 @@ async function buildServerForE2e(env) {
       path.join(repositoryDirectory, "packages", "shared-utils", "tsconfig.json"),
     ],
     { ...silentOptions, cwd: repositoryDirectory },
+    signal,
   );
-  await requireSuccessfulCommand("server build", process.execPath, [nestCli, "build"], {
-    ...silentOptions,
-    cwd: serverDirectory,
-  });
+  await requireSuccessfulCommand(
+    "server build",
+    process.execPath,
+    [nestCli, "build"],
+    {
+      ...silentOptions,
+      cwd: serverDirectory,
+    },
+    signal,
+  );
 }
 
 async function seedCompiledServer(env) {
@@ -397,8 +511,8 @@ async function seedCompiledServer(env) {
   }
 }
 
-async function requireSuccessfulCommand(label, executable, args, options) {
-  const exitCode = await runCommand(label, executable, args, options);
+async function requireSuccessfulCommand(label, executable, args, options, signal) {
+  const exitCode = await runCommand(label, executable, args, options, signal);
 
   if (exitCode !== 0) {
     throw new Error(`${label} failed with exit code ${exitCode}`);
@@ -425,7 +539,7 @@ async function dropPostgresSchema(schemaName, env) {
   }
 }
 
-export async function main(playwrightArgs = process.argv.slice(2)) {
+async function runMain(playwrightArgs, signal) {
   if (shouldLoadLocalEnvironment(process.env)) {
     loadLocalEnvironment();
   }
@@ -450,7 +564,8 @@ export async function main(playwrightArgs = process.argv.slice(2)) {
   return runWithIsolatedAdminSchema({
     schemaName,
     baseEnv,
-    pushSchema: async (env) => {
+    signal,
+    pushSchema: async (env, operationSignal) => {
       await requireSuccessfulCommand(
         "Prisma db push",
         process.execPath,
@@ -460,18 +575,29 @@ export async function main(playwrightArgs = process.argv.slice(2)) {
           env,
           stdio: "ignore",
         },
+        operationSignal,
       );
-      await buildServerForE2e(env);
+      await buildServerForE2e(env, operationSignal);
     },
     seedSchema: seedCompiledServer,
     startServers: startApplicationServers,
-    runPlaywright: (env) =>
-      runCommand("Playwright", process.execPath, [playwrightCli, "test", ...playwrightArgs], {
-        cwd: adminDirectory,
-        env,
-      }),
+    runPlaywright: (env, operationSignal) =>
+      runCommand(
+        "Playwright",
+        process.execPath,
+        [playwrightCli, "test", ...playwrightArgs],
+        {
+          cwd: adminDirectory,
+          env,
+        },
+        operationSignal,
+      ),
     dropSchema: dropPostgresSchema,
   });
+}
+
+export async function main(playwrightArgs = process.argv.slice(2)) {
+  return runWithProcessSignalHandling((signal) => runMain(playwrightArgs, signal), process);
 }
 
 const invokedPath = process.argv[1] ? pathToFileURL(path.resolve(process.argv[1])).href : "";
