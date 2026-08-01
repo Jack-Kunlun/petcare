@@ -50,9 +50,10 @@ describe("PermissionGuard", () => {
   });
 
   it("拒绝缺少访问令牌主体的请求", async () => {
-    await expect(guard.canActivate(contextFor(undefined))).rejects.toBeInstanceOf(
-      UnauthorizedException,
-    );
+    const activation = guard.canActivate(contextFor(undefined));
+
+    await expect(activation).rejects.toBeInstanceOf(UnauthorizedException);
+    await expect(activation).rejects.toThrow("登录状态已失效");
     expect(authService.getCurrentUserAuthorization).not.toHaveBeenCalled();
   });
 

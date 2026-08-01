@@ -114,15 +114,78 @@ export interface SystemConfigDraft<TConfig> {
   updatedAt: string;
 }
 
+/** 发布系统配置成功后的版本响应。 */
+export type PublishSystemConfigResponse<TConfig> = SystemConfigVersion<TConfig>;
+
+/** 恢复历史配置成功后的草稿响应。 */
+export type RestoreSystemConfigResponse<TConfig> = SystemConfigDraft<TConfig>;
+
+/** 系统配置摘要允许使用的 JSON 基础值。 */
+export type SystemConfigSummaryPrimitive = string | number | boolean | null;
+
+/** 系统配置摘要中的递归 JSON 对象。 */
+export interface SystemConfigSummaryObject {
+  /** 对象字段及其递归摘要值。 */
+  [key: string]: SystemConfigSummaryValue;
+}
+
+/** 系统配置摘要中的递归 JSON 数组。 */
+export type SystemConfigSummaryArray = SystemConfigSummaryValue[];
+
+/** 系统配置领域适配器输出的递归 JSON 摘要值。 */
+export type SystemConfigSummaryValue =
+  | SystemConfigSummaryPrimitive
+  | SystemConfigSummaryObject
+  | SystemConfigSummaryArray;
+
+/** 数组字段使用的显式稳定业务键策略。 */
+export interface SystemConfigArrayKeyStrategy {
+  /** 数组字段在摘要中的点分路径。 */
+  arrayPath: string;
+  /** 组成稳定业务键的一个或多个数组项内部点分路径。 */
+  keyPaths: string[];
+}
+
+/** 配置差异项支持的变化类型。 */
+export const SYSTEM_CONFIG_DIFF_CHANGE_TYPE = {
+  /** 新增字段或数组项。 */
+  ADDED: "added",
+  /** 已有字段内容发生修改。 */
+  MODIFIED: "modified",
+  /** 删除字段或数组项。 */
+  REMOVED: "removed",
+} as const;
+
+/** 配置差异项支持的变化类型。 */
+export type SystemConfigDiffChangeType =
+  (typeof SYSTEM_CONFIG_DIFF_CHANGE_TYPE)[keyof typeof SYSTEM_CONFIG_DIFF_CHANGE_TYPE];
+
 /** 两个配置版本之间的单字段差异。 */
 export interface SystemConfigDiff {
-  /** 发生变化的配置字段路径。 */
-  field: string;
-  /** 变更前的字段值。 */
-  previousValue: unknown;
-  /** 变更后的字段值。 */
-  nextValue: unknown;
+  /** 发生变化的配置字段稳定路径。 */
+  path: string;
+  /** 供管理端展示的字段标签。 */
+  label: string;
+  /** 变更前的摘要值；新增时不存在。 */
+  before: SystemConfigSummaryValue | undefined;
+  /** 变更后的摘要值；删除时不存在。 */
+  after: SystemConfigSummaryValue | undefined;
+  /** 字段的变化类型。 */
+  changeType: SystemConfigDiffChangeType;
 }
+
+/** 执行领域无关配置差异比较的请求。 */
+export interface SystemConfigDiffRequest {
+  /** 变更前的递归配置摘要。 */
+  before: SystemConfigSummaryValue;
+  /** 变更后的递归配置摘要。 */
+  after: SystemConfigSummaryValue;
+  /** 所有数组字段的显式稳定业务键策略。 */
+  arrayKeyStrategies: SystemConfigArrayKeyStrategy[];
+}
+
+/** 配置差异比较的固定数组响应。 */
+export type SystemConfigDiffResponse = SystemConfigDiff[];
 
 /** 保存系统配置草稿的请求参数。 */
 export interface SaveSystemConfigDraftRequest<TConfig> {
@@ -142,6 +205,12 @@ export interface PublishSystemConfigRequest {
   idempotencyKey: string;
 }
 
+/** 发布系统配置草稿的内部执行命令。 */
+export interface PublishSystemConfigCommand extends PublishSystemConfigRequest {
+  /** 执行发布的管理员唯一标识。 */
+  actorId: string;
+}
+
 /** 将已发布历史版本恢复为新草稿的请求参数。 */
 export interface RestoreSystemConfigRequest {
   /** 要恢复的已发布历史版本号。 */
@@ -150,6 +219,12 @@ export interface RestoreSystemConfigRequest {
   revision: number;
   /** 本次恢复操作的业务摘要。 */
   changeSummary: string;
+}
+
+/** 将历史版本恢复为草稿的内部执行命令。 */
+export interface RestoreSystemConfigCommand extends RestoreSystemConfigRequest {
+  /** 执行恢复的管理员唯一标识。 */
+  actorId: string;
 }
 
 /** 系统配置历史列表的固定分页响应。 */
