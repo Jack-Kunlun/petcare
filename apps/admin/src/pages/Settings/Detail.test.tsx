@@ -12,10 +12,18 @@ vi.mock("../../api/system-settings/fee");
 const auth: AuthContextValue = {
   status: "authenticated",
   user: {
-    id: "admin-1", username: "operator", phone: "13800138000", nickname: "运营主管",
-    roles: ["operator"], permissions: ["system.view", "system.fee_config", "system.publish"],
+    id: "admin-1",
+    username: "operator",
+    phone: "13800138000",
+    nickname: "运营主管",
+    roles: ["operator"],
+    permissions: ["system.view", "system.fee_config", "system.publish"],
   },
-  loginWithPassword: vi.fn(), loginWithSms: vi.fn(), getCaptcha: vi.fn(), sendSmsCode: vi.fn(), logout: vi.fn(),
+  loginWithPassword: vi.fn(),
+  loginWithSms: vi.fn(),
+  getCaptcha: vi.fn(),
+  sendSmsCode: vi.fn(),
+  logout: vi.fn(),
 };
 
 function renderDetail() {
@@ -38,19 +46,35 @@ function renderDetail() {
 describe("Settings history detail", () => {
   beforeEach(() => {
     vi.clearAllMocks();
-    vi.mocked(feeApi.fetchFeeHistory).mockResolvedValue({
-      list: [{
-        id: "fee-v1", domain: "fee", version: 1, status: "superseded",
-        config: { platformCommissionBps: 1000, rewardServiceFeeCents: 200, withdrawalFeeBps: 100, minimumWithdrawalFeeCents: 100 },
-        changeSummary: "初始费率", publishedBy: "admin-1", publishedAt: "2026-08-01T00:00:00.000Z",
-      }],
-      total: 1, page: 1, pageSize: 100,
+    vi.mocked(feeApi.fetchFeeVersion).mockResolvedValue({
+      id: "fee-v1",
+      domain: "fee",
+      version: 1,
+      status: "superseded",
+      config: {
+        platformCommissionBps: 1000,
+        rewardServiceFeeCents: 200,
+        withdrawalFeeBps: 100,
+        minimumWithdrawalFeeCents: 100,
+      },
+      changeSummary: "初始费率",
+      publishedBy: "admin-1",
+      publishedAt: "2026-08-01T00:00:00.000Z",
     });
     vi.mocked(feeApi.fetchFeeDraft).mockRejectedValue({ response: { status: 404 } });
     vi.mocked(feeApi.restoreFeeDraft).mockResolvedValue({
-      id: "fee-draft", domain: "fee", revision: 1,
-      config: { platformCommissionBps: 1000, rewardServiceFeeCents: 200, withdrawalFeeBps: 100, minimumWithdrawalFeeCents: 100 },
-      changeSummary: "从历史版本 v1 复制", updatedBy: "admin-1", updatedAt: "2026-08-02T00:00:00.000Z",
+      id: "fee-draft",
+      domain: "fee",
+      revision: 1,
+      config: {
+        platformCommissionBps: 1000,
+        rewardServiceFeeCents: 200,
+        withdrawalFeeBps: 100,
+        minimumWithdrawalFeeCents: 100,
+      },
+      changeSummary: "从历史版本 v1 复制",
+      updatedBy: "admin-1",
+      updatedAt: "2026-08-02T00:00:00.000Z",
     });
   });
 
@@ -60,14 +84,39 @@ describe("Settings history detail", () => {
     renderDetail();
 
     expect(await screen.findByRole("heading", { name: "费率设置 v1" })).toBeInTheDocument();
+    expect(feeApi.fetchFeeVersion).toHaveBeenCalledWith("fee-v1");
+    expect(feeApi.fetchFeeHistory).not.toHaveBeenCalled();
     expect(screen.getByText("平台佣金")).toBeInTheDocument();
     await user.click(screen.getByRole("button", { name: "复制为新草稿" }));
     expect(screen.getByRole("dialog", { name: "复制历史版本" })).toBeInTheDocument();
     await user.click(screen.getByRole("button", { name: "确认复制" }));
 
-    await waitFor(() => expect(feeApi.restoreFeeDraft).toHaveBeenCalledWith({
-      version: 1, revision: 0, changeSummary: "从历史版本 v1 复制",
-    }));
+    await waitFor(() =>
+      expect(feeApi.restoreFeeDraft).toHaveBeenCalledWith({
+        version: 1,
+        revision: 0,
+        changeSummary: "从历史版本 v1 复制",
+      }),
+    );
     expect(await screen.findByRole("heading", { name: "配置编辑器" })).toBeInTheDocument();
+  });
+
+  it("草稿状态查询失败时禁止复制，并可重试后恢复操作", async () => {
+    const user = userEvent.setup();
+
+    vi.mocked(feeApi.fetchFeeDraft)
+      .mockRejectedValueOnce(new Error("network down"))
+      .mockResolvedValueOnce(null as never);
+
+    renderDetail();
+
+    expect(await screen.findByRole("heading", { name: "费率设置 v1" })).toBeInTheDocument();
+    expect(screen.getByRole("alert", { name: "草稿状态加载失败" })).toBeInTheDocument();
+    expect(screen.getByRole("button", { name: "复制为新草稿" })).toBeDisabled();
+
+    await user.click(screen.getByRole("button", { name: "重新检查草稿状态" }));
+
+    await waitFor(() => expect(screen.getByRole("button", { name: "复制为新草稿" })).toBeEnabled());
+    expect(feeApi.fetchFeeDraft).toHaveBeenCalledTimes(2);
   });
 });

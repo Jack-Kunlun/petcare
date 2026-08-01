@@ -1,4 +1,9 @@
-import { SYSTEM_CONFIG_ERROR_CODE, type FeeConfig, type RatingThresholdConfig, type SopConfig } from "@petcare/shared-types";
+import {
+  SYSTEM_CONFIG_ERROR_CODE,
+  type FeeConfig,
+  type RatingThresholdConfig,
+  type SopConfig,
+} from "@petcare/shared-types";
 import { QueryClient, QueryClientProvider } from "@tanstack/react-query";
 import { render, screen, waitFor, within } from "@testing-library/react";
 import userEvent from "@testing-library/user-event";
@@ -20,12 +25,22 @@ const sop: SopConfig = {
   steps: Array.from({ length: 5 }, (_, index) => ({
     stepNumber: index + 1,
     stepName: `步骤 ${index + 1}`,
-    instruction: `完成第 ${index + 1} 步`,
+    instruction: `完成第 ${index + 1} 步并上传完整服务记录`,
     expectedDurationMinutes: 5,
     minimumPhotoCount: 1,
     videoRequired: false,
   })),
-  violationRules: [],
+  violationRules: [
+    {
+      severity: "minor",
+      description: "未按要求上传完整服务记录时由管理员复核处理",
+      serviceFeeDeductionBps: 0,
+      ratingDeductionScore: 0,
+      suspensionDays: 0,
+      retrainingRequired: false,
+      sortOrder: 1,
+    },
+  ],
 };
 
 const rating: RatingThresholdConfig = {
@@ -86,14 +101,58 @@ function renderEdit(route: string) {
 
 function setupRatingDraft(config: RatingThresholdConfig = rating) {
   vi.mocked(ratingApi.fetchRatingThresholdCurrent).mockResolvedValue({
-    id: "rating-v1", domain: "rating_threshold", version: 1, status: "published", config: rating,
-    changeSummary: "初始化", publishedBy: "admin-1", publishedAt: "2026-08-01T00:00:00.000Z",
+    id: "rating-v1",
+    domain: "rating_threshold",
+    version: 1,
+    status: "published",
+    config: rating,
+    changeSummary: "初始化",
+    publishedBy: "admin-1",
+    publishedAt: "2026-08-01T00:00:00.000Z",
   });
   vi.mocked(ratingApi.fetchRatingThresholdDraft).mockResolvedValue({
-    id: "rating-draft", domain: "rating_threshold", revision: 2, config,
-    changeSummary: "调整评分规则", updatedBy: "admin-1", updatedAt: "2026-08-02T00:00:00.000Z",
+    id: "rating-draft",
+    domain: "rating_threshold",
+    revision: 2,
+    config,
+    changeSummary: "调整评分规则",
+    updatedBy: "admin-1",
+    updatedAt: "2026-08-02T00:00:00.000Z",
   });
-  vi.mocked(ratingApi.fetchRatingThresholdHistory).mockResolvedValue({ list: [], total: 0, page: 1, pageSize: 20 });
+  vi.mocked(ratingApi.fetchRatingThresholdHistory).mockResolvedValue({
+    list: [],
+    total: 0,
+    page: 1,
+    pageSize: 20,
+  });
+}
+
+function setupSopDraft() {
+  vi.mocked(sopApi.fetchSopCurrent).mockResolvedValue({
+    id: "sop-feeding-v1",
+    domain: "sop:feeding",
+    version: 1,
+    status: "published",
+    config: sop,
+    changeSummary: "初始化",
+    publishedBy: "admin-1",
+    publishedAt: "2026-08-01T00:00:00.000Z",
+  });
+  vi.mocked(sopApi.fetchSopDraft).mockResolvedValue({
+    id: "sop-feeding-draft",
+    domain: "sop:feeding",
+    revision: 2,
+    config: sop,
+    changeSummary: "调整服务流程",
+    updatedBy: "admin-1",
+    updatedAt: "2026-08-02T00:00:00.000Z",
+  });
+  vi.mocked(sopApi.fetchSopHistory).mockResolvedValue({
+    list: [],
+    total: 0,
+    page: 1,
+    pageSize: 20,
+  });
 }
 
 describe("Settings domain editors", () => {
@@ -105,8 +164,53 @@ describe("Settings domain editors", () => {
     render(<SopEditor initialValue={sop} onChange={vi.fn()} />);
 
     expect(screen.getAllByRole("group", { name: /第 \d 步/ })).toHaveLength(5);
-    expect(within(screen.getByRole("group", { name: "第 1 步" })).getByLabelText(/步骤名称/)).toHaveValue("步骤 1");
-    expect(within(screen.getByRole("group", { name: "第 5 步" })).getByLabelText(/步骤名称/)).toHaveValue("步骤 5");
+    expect(
+      within(screen.getByRole("group", { name: "第 1 步" })).getByLabelText(/步骤名称/),
+    ).toHaveValue("步骤 1");
+    expect(
+      within(screen.getByRole("group", { name: "第 5 步" })).getByLabelText(/步骤名称/),
+    ).toHaveValue("步骤 5");
+  });
+
+  it("SOP 名称、说明和数值错误在字段旁显示，摘要可用键盘聚焦首个错误控件", async () => {
+    const user = userEvent.setup();
+
+    setupSopDraft();
+    renderEdit("/settings/sop/edit?serviceType=feeding");
+
+    const firstStep = await screen.findByRole("group", { name: "第 1 步" });
+    const stepName = within(firstStep).getByLabelText(/步骤名称/);
+    const instruction = within(firstStep).getByLabelText(/执行说明/);
+    const duration = within(firstStep).getByRole("spinbutton", { name: /预计时长/ });
+
+    await user.clear(stepName);
+    await user.clear(instruction);
+    await user.clear(duration);
+
+    const nameError = within(firstStep).getByText("第 1 步“步骤名称”至少 2 个字符");
+    const instructionError = within(firstStep).getByText("第 1 步“执行说明”至少 10 个字符");
+    const durationError = within(firstStep).getByText("第 1 步“预计时长”请输入 1 至 240 的整数");
+
+    expect(stepName).toHaveAttribute("id", "settings-field-steps-0-stepName");
+    expect(stepName).toHaveAttribute("aria-invalid", "true");
+    expect(stepName).toHaveAttribute("aria-describedby", nameError.id);
+    expect(instruction).toHaveAttribute("aria-describedby", instructionError.id);
+    expect(duration).toHaveAttribute("aria-describedby", durationError.id);
+    expect(duration.nextElementSibling).toBe(durationError);
+
+    await user.click(screen.getByRole("button", { name: "保存草稿" }));
+
+    const summary = screen.getByRole("heading", { name: "请先修正表单问题" }).parentElement!;
+    const firstErrorButton = within(summary).getByRole("button", {
+      name: "第 1 步“步骤名称”至少 2 个字符",
+    });
+
+    await waitFor(() => expect(summary).toHaveFocus());
+    await user.tab();
+    expect(firstErrorButton).toHaveFocus();
+    await user.keyboard("{Enter}");
+    expect(stepName).toHaveFocus();
+    expect(sopApi.saveSopDraft).not.toHaveBeenCalled();
   });
 
   it("评分编辑器展示星级并只输出整数契约", async () => {
@@ -164,7 +268,12 @@ describe("Settings domain editors", () => {
       publishedAt: "2026-08-01T00:00:00.000Z",
     }));
     vi.mocked(sopApi.fetchSopDraft).mockRejectedValue({ response: { status: 404 } });
-    vi.mocked(sopApi.fetchSopHistory).mockResolvedValue({ list: [], total: 0, page: 1, pageSize: 20 });
+    vi.mocked(sopApi.fetchSopHistory).mockResolvedValue({
+      list: [],
+      total: 0,
+      page: 1,
+      pageSize: 20,
+    });
 
     renderEdit("/settings/sop/edit?serviceType=feeding");
 
@@ -180,8 +289,13 @@ describe("Settings domain editors", () => {
 
     setupRatingDraft();
     vi.mocked(ratingApi.saveRatingThresholdDraft).mockResolvedValue({
-      id: "rating-draft", domain: "rating_threshold", revision: 3, config: rating,
-      changeSummary: "调整评分规则", updatedBy: "admin-1", updatedAt: "2026-08-02T01:00:00.000Z",
+      id: "rating-draft",
+      domain: "rating_threshold",
+      revision: 3,
+      config: rating,
+      changeSummary: "调整评分规则",
+      updatedBy: "admin-1",
+      updatedAt: "2026-08-02T01:00:00.000Z",
     });
 
     renderEdit("/settings/rating_threshold/edit");
@@ -189,11 +303,13 @@ describe("Settings domain editors", () => {
     await screen.findByRole("spinbutton", { name: "预警评分" });
     await user.click(screen.getByRole("button", { name: "保存草稿" }));
 
-    await waitFor(() => expect(ratingApi.saveRatingThresholdDraft).toHaveBeenCalledWith({
-      revision: 2,
-      config: rating,
-      changeSummary: "调整评分规则",
-    }));
+    await waitFor(() =>
+      expect(ratingApi.saveRatingThresholdDraft).toHaveBeenCalledWith({
+        revision: 2,
+        config: rating,
+        changeSummary: "调整评分规则",
+      }),
+    );
     expect(await screen.findByText("草稿已保存，当前修订版为 3。")).toBeInTheDocument();
   });
 
@@ -201,10 +317,18 @@ describe("Settings domain editors", () => {
     const user = userEvent.setup();
 
     setupRatingDraft();
-    vi.mocked(ratingApi.fetchRatingThresholdDiff).mockResolvedValue([{ path: "warningScore", label: "预警评分", before: 350, after: 375, changeType: "modified" }]);
-    let resolvePublish!: (value: Awaited<ReturnType<typeof ratingApi.publishRatingThresholdDraft>>) => void;
+    vi.mocked(ratingApi.fetchRatingThresholdDiff).mockResolvedValue([
+      { path: "warningScore", label: "预警评分", before: 350, after: 375, changeType: "modified" },
+    ]);
+    let resolvePublish!: (
+      value: Awaited<ReturnType<typeof ratingApi.publishRatingThresholdDraft>>,
+    ) => void;
 
-    vi.mocked(ratingApi.publishRatingThresholdDraft).mockReturnValue(new Promise((resolve) => { resolvePublish = resolve; }));
+    vi.mocked(ratingApi.publishRatingThresholdDraft).mockReturnValue(
+      new Promise((resolve) => {
+        resolvePublish = resolve;
+      }),
+    );
     const queryClient = renderEdit("/settings/rating_threshold/edit");
     const invalidate = vi.spyOn(queryClient, "invalidateQueries");
 
@@ -224,17 +348,62 @@ describe("Settings domain editors", () => {
     expect(ratingApi.publishRatingThresholdDraft).toHaveBeenCalledOnce();
 
     resolvePublish({
-      id: "rating-v2", domain: "rating_threshold", version: 2, status: "published", config: rating,
-      changeSummary: "调整评分规则", publishedBy: "admin-1", publishedAt: "2026-08-02T02:00:00.000Z",
+      id: "rating-v2",
+      domain: "rating_threshold",
+      version: 2,
+      status: "published",
+      config: rating,
+      changeSummary: "调整评分规则",
+      publishedBy: "admin-1",
+      publishedAt: "2026-08-02T02:00:00.000Z",
     });
     expect(await screen.findByText("版本 v2 已发布。")).toBeInTheDocument();
     await waitFor(() => {
       expect(invalidate).toHaveBeenCalledWith({ queryKey: ["system-settings", "overview"] });
-      expect(invalidate).toHaveBeenCalledWith({ queryKey: ["system-settings", "rating_threshold", "feeding", "current"] });
-      expect(invalidate).toHaveBeenCalledWith({ queryKey: ["system-settings", "rating_threshold", "feeding", "draft"] });
-      expect(invalidate).toHaveBeenCalledWith({ queryKey: ["system-settings", "rating_threshold", "feeding", "history"] });
-      expect(invalidate).toHaveBeenCalledWith({ queryKey: ["system-settings", "rating_threshold", "feeding", "diff"] });
+      expect(invalidate).toHaveBeenCalledWith({
+        queryKey: ["system-settings", "rating_threshold", "feeding", "current"],
+      });
+      expect(invalidate).toHaveBeenCalledWith({
+        queryKey: ["system-settings", "rating_threshold", "feeding", "draft"],
+      });
+      expect(invalidate).toHaveBeenCalledWith({
+        queryKey: ["system-settings", "rating_threshold", "feeding", "history"],
+      });
+      expect(invalidate).toHaveBeenCalledWith({
+        queryKey: ["system-settings", "rating_threshold", "feeding", "diff"],
+      });
     });
+  });
+
+  it("字段差异加载失败时显示错误并可重试，成功前不能继续发布", async () => {
+    const user = userEvent.setup();
+
+    setupRatingDraft();
+    vi.mocked(ratingApi.fetchRatingThresholdDiff)
+      .mockRejectedValueOnce(new Error("network down"))
+      .mockResolvedValueOnce([
+        {
+          path: "warningScore",
+          label: "预警评分",
+          before: 350,
+          after: 375,
+          changeType: "modified",
+        },
+      ]);
+
+    renderEdit("/settings/rating_threshold/edit");
+    await screen.findByRole("spinbutton", { name: "预警评分" });
+    await user.click(screen.getByRole("button", { name: "检查并发布" }));
+
+    expect(await screen.findByRole("alert", { name: "字段差异加载失败" })).toBeInTheDocument();
+    expect(screen.queryByText("没有字段差异。")).not.toBeInTheDocument();
+    expect(screen.getByRole("button", { name: "继续发布" })).toBeDisabled();
+
+    await user.click(screen.getByRole("button", { name: "重新加载字段差异" }));
+
+    expect(await within(screen.getByRole("dialog")).findByText("预警评分")).toBeInTheDocument();
+    expect(screen.getByRole("button", { name: "继续发布" })).toBeEnabled();
+    expect(ratingApi.fetchRatingThresholdDiff).toHaveBeenCalledTimes(2);
   });
 
   it("409 会关闭陈旧确认、保留本地输入并刷新服务端 revision", async () => {
@@ -242,22 +411,50 @@ describe("Settings domain editors", () => {
 
     setupRatingDraft();
     const serverDraft = {
-      id: "rating-draft", domain: "rating_threshold" as const, revision: 4,
-      config: { ...rating, warningScore: 360 }, changeSummary: "其他管理员更新",
-      updatedBy: "admin-2", updatedAt: "2026-08-02T03:00:00.000Z",
+      id: "rating-draft",
+      domain: "rating_threshold" as const,
+      revision: 4,
+      config: { ...rating, warningScore: 360 },
+      changeSummary: "其他管理员更新",
+      updatedBy: "admin-2",
+      updatedAt: "2026-08-02T03:00:00.000Z",
     };
 
-    vi.mocked(ratingApi.fetchRatingThresholdDraft).mockResolvedValueOnce({
-      id: "rating-draft", domain: "rating_threshold", revision: 2, config: rating,
-      changeSummary: "调整评分规则", updatedBy: "admin-1", updatedAt: "2026-08-02T00:00:00.000Z",
-    }).mockResolvedValue(serverDraft);
-    vi.mocked(ratingApi.saveRatingThresholdDraft).mockResolvedValue({
-      ...serverDraft, revision: 3, config: { ...rating, warningScore: 375 }, changeSummary: "调整评分规则",
-    });
-    vi.mocked(ratingApi.fetchRatingThresholdDiff).mockResolvedValue([{ path: "warningScore", label: "预警评分", before: 350, after: 375, changeType: "modified" }]);
+    vi.mocked(ratingApi.fetchRatingThresholdDraft)
+      .mockResolvedValueOnce({
+        id: "rating-draft",
+        domain: "rating_threshold",
+        revision: 2,
+        config: rating,
+        changeSummary: "调整评分规则",
+        updatedBy: "admin-1",
+        updatedAt: "2026-08-02T00:00:00.000Z",
+      })
+      .mockResolvedValue(serverDraft);
+    vi.mocked(ratingApi.saveRatingThresholdDraft)
+      .mockResolvedValueOnce({
+        ...serverDraft,
+        revision: 3,
+        config: { ...rating, warningScore: 375 },
+        changeSummary: "调整评分规则",
+      })
+      .mockResolvedValueOnce({
+        ...serverDraft,
+        revision: 5,
+        config: { ...rating, warningScore: 375 },
+        changeSummary: "协调并重新保存评分规则",
+      });
+    vi.mocked(ratingApi.fetchRatingThresholdDiff).mockResolvedValue([
+      { path: "warningScore", label: "预警评分", before: 350, after: 375, changeType: "modified" },
+    ]);
     const conflict = new axios.AxiosError("conflict", "ERR_BAD_REQUEST", undefined, undefined, {
       status: 409,
-      data: { code: SYSTEM_CONFIG_ERROR_CODE.VERSION_CONFLICT, message: "版本冲突", data: null, meta: {} },
+      data: {
+        code: SYSTEM_CONFIG_ERROR_CODE.VERSION_CONFLICT,
+        message: "版本冲突",
+        data: null,
+        meta: {},
+      },
     } as never);
 
     vi.mocked(ratingApi.publishRatingThresholdDraft).mockRejectedValue(conflict);
@@ -277,6 +474,22 @@ describe("Settings domain editors", () => {
     expect(screen.queryByRole("dialog", { name: "最终发布确认" })).not.toBeInTheDocument();
     expect(screen.getByRole("spinbutton", { name: "预警评分" })).toHaveValue(3.75);
     expect(screen.getByText("服务端当前修订版：4")).toBeInTheDocument();
+    expect(screen.getByText(/有未保存变更/)).toBeInTheDocument();
+    expect(screen.getByRole("button", { name: "检查并发布" })).toBeDisabled();
+
+    await user.clear(screen.getByLabelText(/变更摘要/));
+    await user.type(screen.getByLabelText(/变更摘要/), "协调并重新保存评分规则");
+    await user.click(screen.getByRole("button", { name: "保存草稿" }));
+
+    await waitFor(() =>
+      expect(ratingApi.saveRatingThresholdDraft).toHaveBeenLastCalledWith({
+        revision: 4,
+        config: { ...rating, warningScore: 375 },
+        changeSummary: "协调并重新保存评分规则",
+      }),
+    );
+    expect(await screen.findByText("草稿已保存，当前修订版为 5。")).toBeInTheDocument();
+    expect(screen.getByRole("button", { name: "检查并发布" })).toBeEnabled();
   });
 
   it("提交字段错误时聚焦错误摘要且不发送保存请求", async () => {

@@ -40,9 +40,21 @@ export async function fetchFeeDiff(): Promise<SystemConfigDiffResponse> {
 export async function fetchFeeHistory(
   params: SystemConfigHistoryQuery,
 ): Promise<SystemConfigVersionListResponse<FeeConfig>> {
-  const response = await apiClient.get<SystemConfigVersionListResponse<FeeConfig>>(`${FEE_PATH}/history`, {
-    params,
-  });
+  const response = await apiClient.get<SystemConfigVersionListResponse<FeeConfig>>(
+    `${FEE_PATH}/history`,
+    {
+      params,
+    },
+  );
+
+  return response.data;
+}
+
+/** 按 ID 获取单个平台费用历史版本。 */
+export async function fetchFeeVersion(versionId: string): Promise<SystemConfigVersion<FeeConfig>> {
+  const response = await apiClient.get<SystemConfigVersion<FeeConfig>>(
+    `${FEE_PATH}/history/${versionId}`,
+  );
 
   return response.data;
 }

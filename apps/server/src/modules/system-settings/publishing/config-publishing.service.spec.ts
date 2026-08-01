@@ -145,11 +145,7 @@ describe("ConfigPublishingService", () => {
     prisma.systemConfigVersion.updateMany.mockResolvedValue({ count: 0 });
 
     await expect(
-      service.saveDraft(
-        "fee",
-        { revision: 2, config, changeSummary: "调整配置" },
-        "admin-1",
-      ),
+      service.saveDraft("fee", { revision: 2, config, changeSummary: "调整配置" }, "admin-1"),
     ).rejects.toMatchObject({
       code: SYSTEM_CONFIG_ERROR_CODE.VERSION_CONFLICT,
       status: 409,
@@ -184,11 +180,7 @@ describe("ConfigPublishingService", () => {
     });
 
     await expect(
-      service.saveDraft(
-        "fee",
-        { revision: 3, config, changeSummary: "调整配置" },
-        "admin-1",
-      ),
+      service.saveDraft("fee", { revision: 3, config, changeSummary: "调整配置" }, "admin-1"),
     ).resolves.toMatchObject({ id: "draft-fee", revision: 4, config });
     expect(prisma.systemConfigVersion.updateMany).toHaveBeenCalledWith(
       expect.objectContaining({
@@ -217,11 +209,7 @@ describe("ConfigPublishingService", () => {
 
     prisma.systemConfigVersion.create.mockResolvedValue(created);
 
-    await service.saveDraft(
-      "fee",
-      { revision: 0, config, changeSummary: "建立草稿" },
-      "admin-1",
-    );
+    await service.saveDraft("fee", { revision: 0, config, changeSummary: "建立草稿" }, "admin-1");
 
     expect(prisma.systemConfigVersion.create).toHaveBeenCalledWith(
       expect.objectContaining({
@@ -379,6 +367,43 @@ describe("ConfigPublishingService", () => {
     );
   });
 
+  it("按版本 ID 读取属于指定领域的已发布历史版本", async () => {
+    const { prisma, adapter, service } = createSubject();
+
+    prisma.systemConfigVersion.findFirst.mockResolvedValue(publishedVersion);
+
+    await expect(service.getVersion("fee", "published-fee-2")).resolves.toEqual({
+      id: "published-fee-2",
+      domain: "fee",
+      version: 2,
+      status: "published",
+      config,
+      changeSummary: "调整配置",
+      publishedBy: "admin-1",
+      publishedAt: "2026-08-01T02:00:00.000Z",
+    });
+    expect(prisma.systemConfigVersion.findFirst).toHaveBeenCalledWith({
+      where: {
+        id: "published-fee-2",
+        configKey: "fee",
+        status: { in: ["published", "superseded"] },
+      },
+    });
+    expect(adapter.load).toHaveBeenCalledWith("published-fee-2", prisma);
+  });
+
+  it("版本不属于指定领域或不存在时返回稳定的不存在错误", async () => {
+    const { prisma, adapter, service } = createSubject();
+
+    prisma.systemConfigVersion.findFirst.mockResolvedValue(null);
+
+    await expect(service.getVersion("fee", "sop-feeding-v1")).rejects.toMatchObject({
+      code: SYSTEM_CONFIG_ERROR_CODE.NOT_FOUND,
+      status: 404,
+    });
+    expect(adapter.load).not.toHaveBeenCalled();
+  });
+
   it("旧发布版本被归档后仍可用首次幂等键重放", async () => {
     const { prisma, service } = createSubject();
     const firstResultNowSuperseded = { ...publishedVersion, status: "superseded" };
@@ -407,11 +432,7 @@ describe("ConfigPublishingService", () => {
     });
 
     await expect(
-      service.saveDraft(
-        "fee",
-        { revision: 0, config, changeSummary: "并发建立草稿" },
-        "admin-1",
-      ),
+      service.saveDraft("fee", { revision: 0, config, changeSummary: "并发建立草稿" }, "admin-1"),
     ).rejects.toMatchObject({
       code: SYSTEM_CONFIG_ERROR_CODE.VERSION_CONFLICT,
       status: 409,
@@ -433,11 +454,7 @@ describe("ConfigPublishingService", () => {
     adapter.persist.mockRejectedValue(persistError);
 
     await expect(
-      service.saveDraft(
-        "fee",
-        { revision: 3, config, changeSummary: "保存配置" },
-        "admin-1",
-      ),
+      service.saveDraft("fee", { revision: 3, config, changeSummary: "保存配置" }, "admin-1"),
     ).rejects.toBe(persistError);
   });
 
@@ -531,13 +548,11 @@ describe("ConfigPublishingService", () => {
   it("并发重查得到非法状态时记录脱敏失败审计", async () => {
     const { prisma, service } = createSubject();
 
-    prisma.systemConfigVersion.findUnique
-      .mockResolvedValueOnce(null)
-      .mockResolvedValueOnce({
-        ...publishedVersion,
-        status: "draft",
-        changeSummary: "敏感非法状态正文",
-      });
+    prisma.systemConfigVersion.findUnique.mockResolvedValueOnce(null).mockResolvedValueOnce({
+      ...publishedVersion,
+      status: "draft",
+      changeSummary: "敏感非法状态正文",
+    });
     prisma.$transaction.mockRejectedValue({ code: "P2002" });
 
     await expect(
