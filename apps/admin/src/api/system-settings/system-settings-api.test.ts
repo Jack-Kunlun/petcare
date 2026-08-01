@@ -7,6 +7,7 @@ import type {
   SystemConfigVersionListResponse,
   SystemSettingsOverviewResponse,
 } from "@petcare/shared-types";
+import { SYSTEM_CONFIG_ERROR_CODE } from "@petcare/shared-types";
 import axios from "axios";
 import { beforeEach, describe, expect, it, vi } from "vitest";
 import { apiClient } from "../auth";
@@ -45,6 +46,12 @@ vi.mock("../auth", () => ({
     get: vi.fn(),
     put: vi.fn(),
     post: vi.fn(),
+  },
+}));
+
+vi.mock("@petcare/shared-types", () => ({
+  SYSTEM_CONFIG_ERROR_CODE: {
+    VERSION_CONFLICT: "SHARED_SYSTEM_CONFIG_VERSION_CONFLICT",
   },
 }));
 
@@ -201,7 +208,12 @@ describe("system settings API", () => {
   it("identifies only the stable version-conflict error code", () => {
     const conflict = new axios.AxiosError("conflict", "ERR_BAD_REQUEST", undefined, undefined, {
       status: 409,
-      data: { code: "SYSTEM_CONFIG_VERSION_CONFLICT", message: "版本冲突", data: null, meta: {} },
+      data: {
+        code: SYSTEM_CONFIG_ERROR_CODE.VERSION_CONFLICT,
+        message: "版本冲突",
+        data: null,
+        meta: {},
+      },
     } as never);
     const sameMessageButDifferentCode = new axios.AxiosError("conflict", "ERR_BAD_REQUEST", undefined, undefined, {
       status: 409,
