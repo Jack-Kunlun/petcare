@@ -1,5 +1,10 @@
 {
   "schemaVersion": 1,
+  "approvedLogoArtwork": {
+    "path": "../assets/petcare-brand-positioning-logo-v1.png",
+    "role": "production-visual-master",
+    "svgRole": "faithful-reconstructed-vector-companion"
+  },
   "assetIdPrefixes": [
     "logo.",
     "hero.trusted-care.",
@@ -15,7 +20,7 @@
       "width": 128,
       "height": 128,
       "format": "svg",
-      "alt": "PetCare protective house with companion dog, cat, and heart symbol in brand colors."
+      "alt": "PetCare rounded ribbon house and shield with a four-pane window, inward-facing dog on the left, and cat on the right in blue and mint."
     },
     {
       "id": "logo.symbol.dark.svg",
@@ -24,7 +29,7 @@
       "width": 128,
       "height": 128,
       "format": "svg",
-      "alt": "PetCare protective house with companion dog, cat, and heart symbol in dark blue."
+      "alt": "PetCare rounded ribbon house and shield with a four-pane window, left dog, and right cat in dark navy."
     },
     {
       "id": "logo.symbol.monochrome.svg",
@@ -33,7 +38,7 @@
       "width": 128,
       "height": 128,
       "format": "svg",
-      "alt": "PetCare protective house with companion dog, cat, and heart symbol in black."
+      "alt": "PetCare rounded ribbon house and shield with a four-pane window, left dog, and right cat in monochrome gray."
     },
     {
       "id": "logo.symbol.reverse.svg",
@@ -42,16 +47,16 @@
       "width": 128,
       "height": 128,
       "format": "svg",
-      "alt": "PetCare protective house with companion dog, cat, and heart symbol in white."
+      "alt": "PetCare rounded ribbon house and shield with a four-pane window, left dog, and right cat in reverse white."
     },
     {
       "id": "logo.horizontal.color.svg",
       "path": "logo/svg/petcare-logo-horizontal-color.svg",
       "kind": "logo",
-      "width": 556,
+      "width": 440,
       "height": 128,
       "format": "svg",
-      "alt": "PetCare 宠伴 horizontal logo in brand colors."
+      "alt": "PetCare horizontal logo in the approved blue, mint, and dark-navy artwork."
     },
     {
       "id": "logo.horizontal.compact.svg",
@@ -66,34 +71,34 @@
       "id": "logo.horizontal.dark.svg",
       "path": "logo/svg/petcare-logo-horizontal-dark.svg",
       "kind": "logo",
-      "width": 556,
+      "width": 440,
       "height": 128,
       "format": "svg",
-      "alt": "PetCare 宠伴 horizontal logo in dark blue."
+      "alt": "PetCare horizontal logo in dark navy."
     },
     {
       "id": "logo.horizontal.monochrome.svg",
       "path": "logo/svg/petcare-logo-horizontal-monochrome.svg",
       "kind": "logo",
-      "width": 556,
+      "width": 440,
       "height": 128,
       "format": "svg",
-      "alt": "PetCare 宠伴 horizontal logo in black."
+      "alt": "PetCare horizontal logo in monochrome gray."
     },
     {
       "id": "logo.horizontal.reverse.svg",
       "path": "logo/svg/petcare-logo-horizontal-reverse.svg",
       "kind": "logo",
-      "width": 556,
+      "width": 440,
       "height": 128,
       "format": "svg",
-      "alt": "PetCare 宠伴 horizontal logo in white."
+      "alt": "PetCare horizontal logo in reverse white."
     },
     {
       "id": "logo.horizontal.color.32h.png",
       "path": "logo/png/petcare-logo-horizontal-color-32h.png",
       "kind": "logo",
-      "width": 139,
+      "width": 110,
       "height": 32,
       "format": "png",
       "source": "logo/svg/petcare-logo-horizontal-color.svg"
@@ -102,7 +107,7 @@
       "id": "logo.horizontal.color.64h.png",
       "path": "logo/png/petcare-logo-horizontal-color-64h.png",
       "kind": "logo",
-      "width": 278,
+      "width": 220,
       "height": 64,
       "format": "png",
       "source": "logo/svg/petcare-logo-horizontal-color.svg"
@@ -111,7 +116,7 @@
       "id": "logo.horizontal.color.96h.png",
       "path": "logo/png/petcare-logo-horizontal-color-96h.png",
       "kind": "logo",
-      "width": 417,
+      "width": 330,
       "height": 96,
       "format": "png",
       "source": "logo/svg/petcare-logo-horizontal-color.svg"

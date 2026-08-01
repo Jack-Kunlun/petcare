@@ -2,20 +2,21 @@
 
 > **For agentic workers:** REQUIRED SUB-SKILL: Use superpowers:subagent-driven-development (recommended) or superpowers:executing-plans to implement this plan task-by-task. Steps use checkbox (`- [ ]`) syntax for tracking.
 
-**Goal:** Build and verify the first production-ready PetCare logo suite, three responsive website hero families, reusable brand elements, and their delivery documentation.
+**Goal:** Faithfully separate and normalize the approved actual PetCare Logo artwork into a production-ready logo suite, then build three responsive website hero families, reusable brand elements, and their delivery documentation.
 
-**Architecture:** Treat identity assets and photographic assets as separate pipelines. Logo and supporting graphics are deterministic SVG sources exported to raster sizes by reproducible scripts; hero photography is generated without text, visually reviewed, then cropped and encoded through a deterministic image pipeline. A manifest and validator make the final package auditable.
+**Architecture:** Treat identity assets and photographic assets as separate pipelines. `docs/10-brand-system/assets/petcare-brand-positioning-logo-v1.png` is the approved actual Logo artwork and production visual master; deterministic SVG paths faithfully separate and normalize it without redesign before reproducible raster export. Hero photography is generated without text, visually reviewed, then cropped and encoded through a deterministic image pipeline. A manifest and validator make the final package auditable.
 
 **Tech Stack:** SVG 1.1, CSS custom properties, built-in image generation, Python 3 with Pillow and CairoSVG from the bundled workspace runtime, PowerShell, Markdown.
 
 ## Global Constraints
 
 - Use `#4A6CF7` as primary, `#5BC8AF` as secondary, `#F6B343` as accent, `#1F2937` as primary text, and `#F8FAFC` as light background.
-- Preserve the approved house/protection, heart/relationship, and cat-dog/companionship logo concept.
+- Preserve one-to-one the approved actual Logo artwork: rounded ribbon house/shield, four-pane window, left dog, right cat, overlaps and negative spaces, `#4A6CF7` to `#5BC9B9` color relationship, and original `PetCare` wordmark proportions.
+- Logo work is asset separation, faithful vector reconstruction, and format normalization only. Do not redesign, reinterpret, simplify, or stylistically optimize the artwork.
 - Logo clear space is at least `0.25H`; header symbol height is 32px, brand display is 48px, and maximum display is 64px.
 - Hero images contain no text, buttons, generated logos, watermarks, medical scenes, cages, or cartoon styling.
 - Generate desktop `1920×720`, miniapp `750×340`, and social `1200×630` variants for all three hero families.
-- Do not overwrite `docs/10-brand-system/assets/petcare-brand-positioning-logo-v1.png`.
+- Treat `docs/10-brand-system/assets/petcare-brand-positioning-logo-v1.png` as the approved actual Logo artwork and production visual master; do not overwrite it.
 - Use lowercase kebab-case file names.
 
 ---
@@ -120,24 +121,24 @@ git commit -m "docs(brand): 建立品牌资产交付清单"
 
 **Interfaces:**
 
-- Consumes: logo concept and palette from Global Constraints.
+- Consumes: the approved actual Logo artwork and production visual master from Global Constraints.
 - Produces: self-contained SVGs with `viewBox`, accessible `<title>`, and no external image/font dependency.
 
-- [ ] **Step 1: Reconstruct the approved mark as geometric paths**
+- [ ] **Step 1: Faithfully separate and vectorize the approved actual mark**
 
-Use a `128×128` viewBox for the symbol. Maintain a rounded protective outer frame, central heart-shaped negative space, and balanced cat/dog profiles. Use the gradient only in the color master:
+Use a `128×128` viewBox for the symbol. Trace the production visual master one-to-one: preserve the rounded ribbon house/shield, four-pane window, left dog and right cat silhouettes, their scale/direction/overlap/negative spaces, and the blue-to-mint ribbon relationship. Do not replace the animal relationship with a heart or simplify any contour. Use the approved Logo colors in the color master:
 
 ```xml
-<linearGradient id="petcare-gradient" x1="24" y1="16" x2="104" y2="112" gradientUnits="userSpaceOnUse">
+<linearGradient id="petcare-mint-gradient" x1="64" y1="52" x2="64" y2="124" gradientUnits="userSpaceOnUse">
   <stop offset="0" stop-color="#4A6CF7" />
-  <stop offset="0.55" stop-color="#4A6CF7" />
-  <stop offset="1" stop-color="#5BC8AF" />
+  <stop offset="0.42" stop-color="#5BC9B9" />
+  <stop offset="1" stop-color="#5BC9B9" />
 </linearGradient>
 ```
 
 - [ ] **Step 2: Build responsive wordmark variants**
 
-The standard horizontal version includes Symbol + `PetCare` + `宠伴`; compact includes Symbol + `PetCare`. Convert final lettering to paths or include a path-only fallback so the SVG does not depend on installed fonts.
+The standard and compact horizontal versions both include exactly Symbol + `PetCare`; do not add `宠伴`. If an optional tagline lockup is produced, it may contain exactly `Trusted Pet Companion Platform` beneath the wordmark. Reconstruct the original wordmark proportion and spacing as paths so the SVG does not depend on installed fonts.
 
 - [ ] **Step 3: Check SVG structure**
 
@@ -153,7 +154,7 @@ Expected: all files parse as XML.
 
 - [ ] **Step 4: Visually inspect the 16px, 24px, 32px, 48px, and 64px symbol renders**
 
-Reject paths that close the internal negative space or make either animal silhouette illegible at 16px.
+Reject paths that alter the house/shield silhouette, close the approved negative spaces, move the four-pane window, reverse or rescale either animal, or make either animal silhouette illegible at 16px. Render a target crop and side-by-side comparison against the approved actual artwork before acceptance.
 
 - [ ] **Step 5: Commit SVG masters**
 
@@ -189,7 +190,7 @@ def write_ico(source_png: Path, output_path: Path, sizes: tuple[int, ...]) -> No
 def export_logo_suite(repo_root: Path) -> list[Path]: ...
 ```
 
-Export horizontal Logo at 32/64/96px high, Symbol at 16/20/24/28/32/48/64/128/256/512/1024px, and favicon at 16/32/48px.
+Export horizontal Logo at 32/64/96px high using the SVG master viewBox aspect ratio, Symbol at 16/20/24/28/32/48/64/128/256/512/1024px, and favicon at 16/32/48px.
 
 - [ ] **Step 2: Run the exporter**
 
@@ -363,7 +364,7 @@ Expected: `Validated PetCare brand assets: 0 errors` and exit code 0.
 
 - [ ] **Step 3: Complete manual visual QA**
 
-Open every SVG, small Logo raster, source Hero, and final crop. Compare the package against `PetCare-Brand-Book-v1.0.md` pages 45–76 and the approved design spec.
+Open every SVG, small Logo raster, source Hero, and final crop. Compare the Logo package directly against the approved actual artwork `docs/10-brand-system/assets/petcare-brand-positioning-logo-v1.png`, including its large lower-left Logo and lower-right version row, then compare the remaining package against `PetCare-Brand-Book-v1.0.md` pages 45–76 and the approved design spec.
 
 - [ ] **Step 4: Finalize delivery documentation**
 
@@ -398,6 +399,7 @@ git commit -m "docs(brand): 完成品牌资产交付说明"
 
 - Every asset declared in `manifest.json` exists and validates.
 - SVG masters remain editable and contain no embedded raster or remote dependency.
+- Logo masters are faithful separations of the approved actual artwork, with no redesign, `宠伴`, or visible comparison drift.
 - Logo is legible at all required minimum sizes.
 - Three Hero families are visually consistent, text-free, and safe to crop.
 - Desktop, miniapp, and social variants preserve their copy safe zones.
