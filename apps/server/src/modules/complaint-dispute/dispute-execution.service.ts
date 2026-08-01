@@ -233,9 +233,9 @@ export class DisputeExecutionService {
 
     if (!failedTask) {
       throw new ApiException(
-        "RESOURCE_NOT_FOUND",
+        "EXECUTION_TASK_NOT_RETRYABLE",
         "当前投诉下不存在可重试的失败任务",
-        HttpStatus.NOT_FOUND,
+        HttpStatus.CONFLICT,
       );
     }
 

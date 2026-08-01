@@ -282,6 +282,22 @@ describe("DisputeDecisionService", () => {
     ["negative settlement", { settlementAmount: -1 }],
     ["fractional settlement", { settlementAmount: 1.5 }],
     ["amounts exceeding the order total", { refundAmount: 3001, settlementAmount: 2000 }],
+  ])("rejects %s with the stable amount error code", async (_label, overrides) => {
+    await expect(
+      service.decideInitial(
+        "complaint-1",
+        { id: "admin-1", roles: ["complaint_admin"] },
+        { ...validRequest, ...overrides },
+      ),
+    ).rejects.toMatchObject({
+      code: "DECISION_AMOUNT_INVALID",
+      status: HttpStatus.BAD_REQUEST,
+    });
+    expect(transaction.disputeDecision.create).not.toHaveBeenCalled();
+    expect(transaction.complaint.updateMany).not.toHaveBeenCalled();
+  });
+
+  it.each([
     ["credit delta below minimum", { complainantCreditDelta: -101 }],
     ["credit delta above maximum", { respondentCreditDelta: 101 }],
     ["fractional credit delta", { respondentCreditDelta: 1.5 }],
