@@ -180,13 +180,17 @@ export class ConfigService {
   }
 
   // 数据库配置
+  get databaseSchema(): string {
+    return process.env.DB_SCHEMA || "public";
+  }
+
   get databaseUrl(): string {
     const host = process.env.DB_HOST || "localhost";
     const port = process.env.DB_PORT || "5432";
     const username = process.env.DB_USERNAME || "user";
     const password = process.env.DB_PASSWORD || "password";
     const name = process.env.DB_NAME || "petcare";
-    const schema = process.env.DB_SCHEMA || "public";
+    const schema = this.databaseSchema;
 
     return `postgresql://${username}:${password}@${host}:${port}/${name}?schema=${schema}`;
   }

@@ -115,7 +115,10 @@ export function RatingThresholdEditor({ initialValue, onChange }: RatingThreshol
       <p className="mb-5 text-slate-600">评分以整数百分值保存，界面以星级展示。</p>
       <div className="grid gap-5 sm:grid-cols-2">
         <label className="font-medium text-slate-800">
-          评分窗口 <span aria-hidden="true" className="text-red-700">*</span>
+          评分窗口{" "}
+          <span aria-hidden="true" className="text-red-700">
+            *
+          </span>
           <input
             type="number"
             inputMode="numeric"
@@ -125,16 +128,28 @@ export function RatingThresholdEditor({ initialValue, onChange }: RatingThreshol
             onChange={(event) => update("evaluationWindow", event.target.value)}
             onBlur={() => markTouched("evaluationWindow")}
             aria-invalid={Boolean(fieldError("evaluationWindow"))}
-            aria-describedby="evaluationWindow-help evaluationWindow-error"
+            aria-describedby={
+              fieldError("evaluationWindow")
+                ? "evaluationWindow-help evaluationWindow-error"
+                : "evaluationWindow-help"
+            }
             className={inputClass}
           />
-          <span id="evaluationWindow-help" className="mt-1 block text-xs font-normal text-slate-500">
+          <span
+            id="evaluationWindow-help"
+            className="mt-1 block text-xs font-normal text-slate-500"
+          >
             最近 5 至 100 条评价。
           </span>
-          {fieldError("evaluationWindow") ? <FieldError id="evaluationWindow-error" message={fieldError("evaluationWindow")!} /> : null}
+          {fieldError("evaluationWindow") ? (
+            <FieldError id="evaluationWindow-error" message={fieldError("evaluationWindow")!} />
+          ) : null}
         </label>
         <label className="font-medium text-slate-800">
-          最小评价样本数 <span aria-hidden="true" className="text-red-700">*</span>
+          最小评价样本数{" "}
+          <span aria-hidden="true" className="text-red-700">
+            *
+          </span>
           <input
             type="number"
             inputMode="numeric"
@@ -144,12 +159,20 @@ export function RatingThresholdEditor({ initialValue, onChange }: RatingThreshol
             onChange={(event) => update("minimumSampleSize", event.target.value)}
             onBlur={() => markTouched("minimumSampleSize")}
             aria-invalid={Boolean(fieldError("minimumSampleSize"))}
+            aria-describedby={
+              fieldError("minimumSampleSize") ? "minimumSampleSize-error" : undefined
+            }
             className={inputClass}
           />
-          {fieldError("minimumSampleSize") ? <FieldError message={fieldError("minimumSampleSize")!} /> : null}
+          {fieldError("minimumSampleSize") ? (
+            <FieldError id="minimumSampleSize-error" message={fieldError("minimumSampleSize")!} />
+          ) : null}
         </label>
         <label className="font-medium text-slate-800">
-          预警评分 <span aria-hidden="true" className="text-red-700">*</span>
+          预警评分{" "}
+          <span aria-hidden="true" className="text-red-700">
+            *
+          </span>
           <span className="relative mt-1.5 block">
             <input
               type="number"
@@ -161,14 +184,25 @@ export function RatingThresholdEditor({ initialValue, onChange }: RatingThreshol
               onChange={(event) => update("warningScore", event.target.value)}
               onBlur={() => markTouched("warningScore")}
               aria-invalid={Boolean(fieldError("warningScore"))}
+              aria-describedby={fieldError("warningScore") ? "warningScore-error" : undefined}
               className={`${inputClass} mt-0 pr-12`}
             />
-            <span aria-hidden="true" className="pointer-events-none absolute inset-y-0 right-3 flex items-center text-slate-500">星</span>
+            <span
+              aria-hidden="true"
+              className="pointer-events-none absolute inset-y-0 right-3 flex items-center text-slate-500"
+            >
+              星
+            </span>
           </span>
-          {fieldError("warningScore") ? <FieldError message={fieldError("warningScore")!} /> : null}
+          {fieldError("warningScore") ? (
+            <FieldError id="warningScore-error" message={fieldError("warningScore")!} />
+          ) : null}
         </label>
         <label className="font-medium text-slate-800">
-          暂停评分 <span aria-hidden="true" className="text-red-700">*</span>
+          暂停评分{" "}
+          <span aria-hidden="true" className="text-red-700">
+            *
+          </span>
           <span className="relative mt-1.5 block">
             <input
               type="number"
@@ -180,23 +214,42 @@ export function RatingThresholdEditor({ initialValue, onChange }: RatingThreshol
               onChange={(event) => update("suspensionScore", event.target.value)}
               onBlur={() => markTouched("suspensionScore")}
               aria-invalid={Boolean(fieldError("suspensionScore"))}
+              aria-describedby={fieldError("suspensionScore") ? "suspensionScore-error" : undefined}
               className={`${inputClass} mt-0 pr-12`}
             />
-            <span aria-hidden="true" className="pointer-events-none absolute inset-y-0 right-3 flex items-center text-slate-500">星</span>
+            <span
+              aria-hidden="true"
+              className="pointer-events-none absolute inset-y-0 right-3 flex items-center text-slate-500"
+            >
+              星
+            </span>
           </span>
-          {fieldError("suspensionScore") ? <FieldError message={fieldError("suspensionScore")!} /> : null}
+          {fieldError("suspensionScore") ? (
+            <FieldError id="suspensionScore-error" message={fieldError("suspensionScore")!} />
+          ) : null}
         </label>
         <label className="font-medium text-slate-800 sm:col-span-2">
-          再培训要求 <span aria-hidden="true" className="text-red-700">*</span>
+          再培训要求{" "}
+          <span aria-hidden="true" className="text-red-700">
+            *
+          </span>
           <textarea
             rows={4}
             value={form.retrainingRequirement}
             onChange={(event) => update("retrainingRequirement", event.target.value)}
             onBlur={() => markTouched("retrainingRequirement")}
             aria-invalid={Boolean(fieldError("retrainingRequirement"))}
+            aria-describedby={
+              fieldError("retrainingRequirement") ? "retrainingRequirement-error" : undefined
+            }
             className={`${inputClass} resize-y`}
           />
-          {fieldError("retrainingRequirement") ? <FieldError message={fieldError("retrainingRequirement")!} /> : null}
+          {fieldError("retrainingRequirement") ? (
+            <FieldError
+              id="retrainingRequirement-error"
+              message={fieldError("retrainingRequirement")!}
+            />
+          ) : null}
         </label>
       </div>
     </fieldset>
@@ -204,5 +257,9 @@ export function RatingThresholdEditor({ initialValue, onChange }: RatingThreshol
 }
 
 function FieldError({ id, message }: { id?: string; message: string }) {
-  return <span id={id} role="alert" className="mt-1 block text-sm font-normal text-red-700">{message}</span>;
+  return (
+    <span id={id} role="alert" className="mt-1 block text-sm font-normal text-red-700">
+      {message}
+    </span>
+  );
 }

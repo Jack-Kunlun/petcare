@@ -214,7 +214,9 @@ export class AuthService {
       permissions: [
         ...new Set(
           user.roles.flatMap((assignment) =>
-            assignment.role.permissions.map((rolePermission) => rolePermission.permission.permissionCode),
+            assignment.role.permissions.map(
+              (rolePermission) => rolePermission.permission.permissionCode,
+            ),
           ),
         ),
       ],

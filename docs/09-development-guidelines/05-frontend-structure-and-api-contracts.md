@@ -51,3 +51,32 @@ src/pages/
 - 联合类型或常量对象中的每个业务值必须分别说明适用状态。
 - 导出的 API 函数、公共服务方法和含业务转换的辅助函数必须说明用途。
 - 不为显而易见的赋值、JSX 结构或语法重复添加无信息量注释。
+
+## 5. 系统设置模块示例
+
+系统设置使用共享契约、领域 API 目录和页面模块三层结构：
+
+```text
+packages/shared-types/src/api/system-settings.ts
+apps/admin/src/api/system-settings/
+├── client.ts
+├── overview.ts
+├── sop.ts
+├── rating-threshold.ts
+└── fee.ts
+apps/admin/src/pages/Settings/
+├── index.tsx
+├── Edit.tsx
+├── Detail.tsx
+├── SopEditor.tsx
+├── RatingThresholdEditor.tsx
+└── FeeEditor.tsx
+```
+
+- 页面只通过 `apps/admin/src/api/system-settings/` 访问 `/admin/system-settings`，所有请求和响应类型从 `@petcare/shared-types` 导入。
+- 页面级当前配置、草稿和最近发布历史分别维护加载、失败和重试状态；某个查询失败不得遮蔽其他已成功区域。
+- 保存冲突、领域校验失败等分支按 `SYSTEM_CONFIG_*` 稳定错误码处理，不以中文消息文本作为程序判断条件。
+- 评分输入在界面显示小数分、费率显示百分比、金额显示元，但提交前分别转换为整数百分值、万分比和分；禁止在 HTTP 契约中传浮点业务值。
+- 输入校验错误必须通过稳定 `id` 与 `aria-describedby` 关联到对应控件；异步错误使用可聚焦或可感知的 `role="alert"`，并提供明确的重试入口。
+- 系统设置路由使用 `React.lazy` 分包加载，并由 `Suspense` 提供可感知的加载状态，避免将低频管理页面打入 Admin 首屏主包。
+- 发布前必须展示结构化差异并要求二次确认；恢复历史版本只生成草稿，不得在界面文案中暗示已立即生效。
