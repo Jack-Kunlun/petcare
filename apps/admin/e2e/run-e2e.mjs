@@ -250,21 +250,98 @@ function waitForProcessExit(child, timeoutMilliseconds) {
   });
 }
 
-async function stopProcess(child) {
+function requireProcessId(child) {
+  if (!Number.isInteger(child.pid) || child.pid <= 0) {
+    throw new Error("Admin E2E cannot stop a child process without a valid PID");
+  }
+
+  return child.pid;
+}
+
+function waitForProcessGroupExit(processId, timeoutMilliseconds) {
+  const deadline = Date.now() + timeoutMilliseconds;
+
+  return new Promise((resolve) => {
+    const check = () => {
+      try {
+        process.kill(-processId, 0);
+      } catch (error) {
+        if (error?.code === "ESRCH") {
+          resolve(true);
+          return;
+        }
+
+        resolve(false);
+        return;
+      }
+
+      if (Date.now() >= deadline) {
+        resolve(false);
+        return;
+      }
+
+      setTimeout(check, 50);
+    };
+
+    check();
+  });
+}
+
+function signalProcessGroup(processId, signal) {
+  try {
+    process.kill(-processId, signal);
+  } catch (error) {
+    if (error?.code !== "ESRCH") {
+      throw error;
+    }
+  }
+}
+
+function taskkillProcessTree(processId) {
+  return new Promise((resolve, reject) => {
+    const killer = spawn("taskkill.exe", ["/PID", String(processId), "/T", "/F"], {
+      shell: false,
+      stdio: "ignore",
+      windowsHide: true,
+    });
+
+    killer.once("error", () => reject(new Error("Admin E2E could not start taskkill.exe")));
+    killer.once("exit", (code) => resolve(code ?? 1));
+  });
+}
+
+export async function stopProcess(child) {
   if (hasExited(child)) {
     return;
   }
 
-  child.kill("SIGTERM");
+  const processId = requireProcessId(child);
 
-  if (await waitForProcessExit(child, 3_000)) {
+  if (process.platform === "win32") {
+    const exitCode = await taskkillProcessTree(processId);
+    const stopped = await waitForProcessExit(child, 5_000);
+
+    if (exitCode !== 0 && !stopped) {
+      throw new Error(`Admin E2E taskkill.exe failed with exit code ${exitCode}`);
+    }
+
+    if (!stopped) {
+      throw new Error("Admin E2E taskkill.exe did not stop its process tree");
+    }
+
     return;
   }
 
-  child.kill("SIGKILL");
+  signalProcessGroup(processId, "SIGTERM");
 
-  if (!(await waitForProcessExit(child, 5_000))) {
-    throw new Error("Admin E2E could not stop an isolated application server");
+  if (await waitForProcessGroupExit(processId, 3_000)) {
+    return;
+  }
+
+  signalProcessGroup(processId, "SIGKILL");
+
+  if (!(await waitForProcessGroupExit(processId, 5_000))) {
+    throw new Error("Admin E2E could not stop an isolated process tree");
   }
 }
 
@@ -314,6 +391,7 @@ export async function startApplicationServers(
   try {
     const server = spawnProcess(process.execPath, [path.join(serverDirectory, "dist", "main.js")], {
       cwd: serverDirectory,
+      detached: process.platform !== "win32",
       env,
       shell: false,
       stdio: "inherit",
@@ -325,7 +403,13 @@ export async function startApplicationServers(
     const admin = spawnProcess(
       process.execPath,
       [viteCli, "--host", "127.0.0.1", "--port", adminPort, "--strictPort"],
-      { cwd: adminDirectory, env, shell: false, stdio: "inherit" },
+      {
+        cwd: adminDirectory,
+        detached: process.platform !== "win32",
+        env,
+        shell: false,
+        stdio: "inherit",
+      },
     );
 
     children.push(admin);
@@ -368,6 +452,7 @@ function runCommand(label, executable, args, options, abortSignal) {
     throwIfAborted(abortSignal);
     const child = spawn(executable, args, {
       ...options,
+      detached: process.platform !== "win32",
       shell: false,
       stdio: options.stdio ?? "inherit",
     });
