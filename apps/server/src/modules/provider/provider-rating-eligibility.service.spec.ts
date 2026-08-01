@@ -1,5 +1,6 @@
 import { createHash } from "node:crypto";
 import {
+  Prisma,
   ProviderRatingEligibilityStatus,
   ProviderRetrainingStatus,
 } from "../../generated/prisma/client";
@@ -197,6 +198,30 @@ describe("ProviderRatingEligibilityService", () => {
     });
   });
 
+  it("使用未舍入平均分比较严格警告阈值", async () => {
+    settings.getCurrent.mockResolvedValue({
+      id: "rating-v-fractional",
+      config: {
+        evaluationWindow: 5,
+        minimumSampleSize: 3,
+        warningScore: 367,
+        suspensionScore: 300,
+        retrainingRequirement: "完成平台重新培训并通过管理员审核",
+      },
+    });
+    prisma.review.findMany.mockResolvedValue([
+      { id: "review-3", overallRating: 4 },
+      { id: "review-2", overallRating: 4 },
+      { id: "review-1", overallRating: 3 },
+    ]);
+
+    await expect(service.evaluate("provider-1")).resolves.toMatchObject({
+      averageScore: 367,
+      status: "warning",
+      isRestricted: false,
+    });
+  });
+
   it("相同配置和评价重复评估时不重复待办通知或暂停动作", async () => {
     prisma.review.findMany.mockResolvedValue([
       { id: "review-5", overallRating: 3 },
@@ -369,7 +394,7 @@ describe("ProviderRatingEligibilityService", () => {
       { id: "review-2", overallRating: 3 },
       { id: "review-1", overallRating: 2 },
     ]);
-    prisma.$transaction.mockRejectedValue({ code: "P2002" });
+    prisma.$transaction.mockRejectedValueOnce({ code: "P2002" });
     prisma.providerRatingEligibility.findUnique.mockResolvedValue({
       id: "eligibility-1",
       providerId: "provider-1",
@@ -391,6 +416,7 @@ describe("ProviderRatingEligibilityService", () => {
       averageScore: 280,
       isRestricted: true,
     });
+    expect(prisma.$transaction).toHaveBeenCalledTimes(2);
   });
 
   it("服务者恢复后再次跌入警告区间时创建新一轮待办和通知", async () => {
@@ -501,5 +527,180 @@ describe("ProviderRatingEligibilityService", () => {
     ]);
     expect(Object.values(ProviderRatingEligibilityStatus)).not.toContain("invalid");
     expect(Object.values(ProviderRetrainingStatus)).not.toContain("invalid");
+  });
+
+  it.each([
+    ["服务者", () => prisma.provider.findUnique.mockRejectedValue(new Error("P2024 provider SQL"))],
+    ["发布配置", () => settings.getCurrent.mockRejectedValue(new Error("P2024 config SQL"))],
+    ["评价窗口", () => prisma.review.findMany.mockRejectedValue(new Error("P2024 review SQL"))],
+    [
+      "当前资格",
+      () =>
+        prisma.providerRatingEligibility.findUnique.mockRejectedValue(
+          new Error("P2024 eligibility SQL"),
+        ),
+    ],
+  ])("%s查询失败时返回稳定评估错误", async (_label, arrange) => {
+    prisma.review.findMany.mockResolvedValue([]);
+    arrange();
+
+    try {
+      await service.evaluate("provider-1");
+      throw new Error("Expected evaluate to reject");
+    } catch (error) {
+      expect(error).toMatchObject({
+        code: "PROVIDER_RATING_EVALUATION_FAILED",
+        clientMessage: "服务者评分资格评估失败",
+      });
+      expect((error as Error).message).not.toMatch(/P2024|SQL/u);
+    }
+  });
+
+  it.each([null, "insufficient_sample", "eligible", "warning"])(
+    "资格状态为 %s 时允许进入接单流程",
+    async (status) => {
+      prisma.providerRatingEligibility.findUnique.mockResolvedValue(status ? { status } : null);
+
+      await expect(service.assertCanAcceptOrders("provider-1")).resolves.toBeUndefined();
+    },
+  );
+
+  it("接单资格查询失败时返回稳定门禁错误", async () => {
+    prisma.providerRatingEligibility.findUnique.mockRejectedValue(
+      new Error("P2024 eligibility gate SQL"),
+    );
+
+    try {
+      await service.assertCanAcceptOrders("provider-1");
+      throw new Error("Expected assertCanAcceptOrders to reject");
+    } catch (error) {
+      expect(error).toMatchObject({
+        code: "PROVIDER_ELIGIBILITY_CHECK_FAILED",
+        clientMessage: "服务者接单资格检查失败",
+      });
+      expect((error as Error).message).not.toMatch(/P2024|SQL/u);
+    }
+  });
+
+  it("可串行化并发评估重试后旧摘要不会覆盖新的暂停状态", async () => {
+    const warningReviews = [4, 4, 4, 4, 3].map((overallRating, index) => ({
+      id: `warning-${index}`,
+      overallRating,
+    }));
+    const suspendedReviews = [3, 3, 3, 3, 2].map((overallRating, index) => ({
+      id: `suspended-${index}`,
+      overallRating,
+    }));
+    let storedEligibility: Record<string, unknown> | null = null;
+    const committedTodoTypes: string[] = [];
+    const committedNotificationTitles: string[] = [];
+    const transactionOptions: unknown[] = [];
+    let transactionNumber = 0;
+    let markFirstAttemptReady: () => void;
+    let markSecondCommitted: () => void;
+    const firstAttemptReady = new Promise<void>((resolve) => {
+      markFirstAttemptReady = resolve;
+    });
+    const secondCommitted = new Promise<void>((resolve) => {
+      markSecondCommitted = resolve;
+    });
+
+    prisma.review.findMany
+      .mockResolvedValueOnce(warningReviews)
+      .mockResolvedValueOnce(suspendedReviews)
+      .mockResolvedValue(suspendedReviews);
+    prisma.$transaction.mockImplementation(async (work, options) => {
+      transactionNumber += 1;
+      const currentTransaction = transactionNumber;
+      const reviews = currentTransaction === 1 ? warningReviews : suspendedReviews;
+      let localEligibility = storedEligibility;
+      const todoTypes: string[] = [];
+      const notificationTitles: string[] = [];
+      const tx = {
+        provider: {
+          findUnique: jest.fn().mockResolvedValue({
+            id: "provider-1",
+            userId: "provider-user-1",
+          }),
+        },
+        review: {
+          findMany: jest.fn().mockResolvedValue(reviews),
+        },
+        providerRatingEligibility: {
+          findUnique: jest.fn().mockImplementation(async () => localEligibility),
+          create: jest.fn().mockImplementation(async ({ data }) => {
+            localEligibility = { id: "eligibility-1", ...data };
+
+            return localEligibility;
+          }),
+          update: jest.fn().mockImplementation(async ({ data }) => {
+            localEligibility = { ...localEligibility, ...data };
+
+            return localEligibility;
+          }),
+        },
+        adminTodo: {
+          upsert: jest.fn().mockImplementation(async ({ create }) => {
+            todoTypes.push(create.type);
+
+            return create;
+          }),
+        },
+        notification: {
+          upsert: jest.fn().mockImplementation(async ({ create }) => {
+            notificationTitles.push(create.title);
+
+            return create;
+          }),
+        },
+      };
+
+      transactionOptions.push(options);
+      const result = await work(tx);
+
+      if (currentTransaction === 1) {
+        markFirstAttemptReady();
+        await secondCommitted;
+        throw { code: "P2034" };
+      }
+
+      storedEligibility = localEligibility;
+      committedTodoTypes.push(...todoTypes);
+      committedNotificationTitles.push(...notificationTitles);
+
+      if (currentTransaction === 2) {
+        markSecondCommitted();
+      }
+
+      return result;
+    });
+
+    const oldEvaluation = service.evaluate("provider-1");
+
+    await firstAttemptReady;
+
+    const newEvaluation = service.evaluate("provider-1");
+    const [oldResult, newResult] = await Promise.all([oldEvaluation, newEvaluation]);
+
+    expect(oldResult.status).toBe("suspended");
+    expect(newResult.status).toBe("suspended");
+    expect(storedEligibility).toMatchObject({ status: "suspended", averageScore: 280 });
+    expect(committedTodoTypes).toEqual(["provider_rating_suspension"]);
+    expect(committedNotificationTitles).toEqual(["接单资格已暂停"]);
+    expect(transactionOptions).toEqual([
+      { isolationLevel: Prisma.TransactionIsolationLevel.Serializable },
+      { isolationLevel: Prisma.TransactionIsolationLevel.Serializable },
+      { isolationLevel: Prisma.TransactionIsolationLevel.Serializable },
+    ]);
+  });
+
+  it("可串行化冲突最多重试三次后返回稳定错误", async () => {
+    prisma.$transaction.mockRejectedValue({ code: "P2034" });
+
+    await expect(service.evaluate("provider-1")).rejects.toMatchObject({
+      code: "PROVIDER_RATING_EVALUATION_FAILED",
+      clientMessage: "服务者评分资格评估失败",
+    });
+    expect(prisma.$transaction).toHaveBeenCalledTimes(3);
   });
 });
