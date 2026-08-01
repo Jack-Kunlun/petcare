@@ -8,6 +8,9 @@ import {
   type ComplaintAction,
   type ComplaintDetail,
   type ComplaintEventView,
+  type ComplaintListItem,
+  type ComplaintListResponse,
+  type ComplaintListUserSummary,
   type ComplaintStatementView,
   type ComplaintStatus,
   type SubmitDisputeDecisionRequest,
@@ -16,8 +19,65 @@ import {
 const complaintStatuses = Object.values(COMPLAINT_STATUS);
 const complaintActions = Object.values(COMPLAINT_ACTION);
 
+/** 用户投诉列表中的对方安全展示摘要。 */
+export class ComplaintListUserSummaryDto implements ComplaintListUserSummary {
+  @ApiProperty({ format: "uuid" })
+  id: string;
+
+  @ApiProperty()
+  nickname: string;
+
+  @ApiProperty({ nullable: true })
+  avatar: string | null;
+}
+
+/** 用户可见投诉列表项的 Swagger 模型。 */
+export class ComplaintListItemDto implements ComplaintListItem {
+  @ApiProperty({ format: "uuid" })
+  id: string;
+
+  @ApiProperty()
+  caseNumber: string;
+
+  @ApiProperty({ format: "uuid" })
+  orderId: string;
+
+  @ApiProperty()
+  complaintType: string;
+
+  @ApiProperty({ enum: complaintStatuses })
+  status: ComplaintStatus;
+
+  @ApiProperty({ type: ComplaintListUserSummaryDto })
+  counterpart: ComplaintListUserSummaryDto;
+
+  @ApiProperty({ format: "date-time", nullable: true })
+  appealDeadlineAt: string | null;
+
+  @ApiProperty({ format: "date-time" })
+  createdAt: string;
+
+  @ApiProperty({ format: "date-time" })
+  updatedAt: string;
+}
+
+/** 用户投诉列表分页响应的 Swagger 模型。 */
+export class ComplaintListResponseDto implements ComplaintListResponse {
+  @ApiProperty({ type: [ComplaintListItemDto] })
+  list: ComplaintListItemDto[];
+
+  @ApiProperty()
+  total: number;
+
+  @ApiProperty()
+  page: number;
+
+  @ApiProperty()
+  pageSize: number;
+}
+
 /** 后台投诉列表中的用户展示摘要。 */
-export class ComplaintListUserSummaryDto implements AdminComplaintUserSummary {
+export class AdminComplaintListUserSummaryDto implements AdminComplaintUserSummary {
   @ApiProperty({ format: "uuid" })
   id: string;
 
@@ -29,7 +89,7 @@ export class ComplaintListUserSummaryDto implements AdminComplaintUserSummary {
 }
 
 /** 投诉列表项的 Swagger 模型。 */
-export class ComplaintListItemDto implements AdminComplaintListItem {
+export class AdminComplaintListItemDto implements AdminComplaintListItem {
   @ApiProperty({ format: "uuid" })
   id: string;
 
@@ -45,14 +105,14 @@ export class ComplaintListItemDto implements AdminComplaintListItem {
   @ApiProperty({ format: "uuid" })
   complainantId: string;
 
-  @ApiProperty({ type: ComplaintListUserSummaryDto })
-  complainant: ComplaintListUserSummaryDto;
+  @ApiProperty({ type: AdminComplaintListUserSummaryDto })
+  complainant: AdminComplaintListUserSummaryDto;
 
   @ApiProperty({ format: "uuid" })
   respondentId: string;
 
-  @ApiProperty({ type: ComplaintListUserSummaryDto })
-  respondent: ComplaintListUserSummaryDto;
+  @ApiProperty({ type: AdminComplaintListUserSummaryDto })
+  respondent: AdminComplaintListUserSummaryDto;
 
   @ApiProperty({ enum: complaintStatuses })
   status: ComplaintStatus;
@@ -60,8 +120,8 @@ export class ComplaintListItemDto implements AdminComplaintListItem {
   @ApiProperty({ format: "uuid", nullable: true })
   handlerId: string | null;
 
-  @ApiProperty({ type: ComplaintListUserSummaryDto, nullable: true })
-  handler: ComplaintListUserSummaryDto | null;
+  @ApiProperty({ type: AdminComplaintListUserSummaryDto, nullable: true })
+  handler: AdminComplaintListUserSummaryDto | null;
 
   @ApiProperty({ format: "date-time", nullable: true })
   appealDeadlineAt: string | null;
@@ -77,9 +137,9 @@ export class ComplaintListItemDto implements AdminComplaintListItem {
 }
 
 /** 用户投诉分页响应的 Swagger 模型。 */
-export class ComplaintListResponseDto implements AdminComplaintListResponse {
-  @ApiProperty({ type: [ComplaintListItemDto] })
-  list: ComplaintListItemDto[];
+export class AdminComplaintListResponseDto implements AdminComplaintListResponse {
+  @ApiProperty({ type: [AdminComplaintListItemDto] })
+  list: AdminComplaintListItemDto[];
 
   @ApiProperty()
   total: number;

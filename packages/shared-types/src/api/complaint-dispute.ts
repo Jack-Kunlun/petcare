@@ -202,6 +202,41 @@ export interface AdminComplaintListQuery {
   handlerId?: string;
 }
 
+/** 用户投诉列表使用的对方安全展示摘要。 */
+export interface ComplaintListUserSummary {
+  /** 对方用户唯一标识。 */
+  id: string;
+  /** 对方用户昵称。 */
+  nickname: string;
+  /** 对方用户头像地址；未设置时为空。 */
+  avatar: string | null;
+}
+
+/** 用户可见的单条投诉列表摘要。 */
+export interface ComplaintListItem {
+  /** 投诉唯一标识。 */
+  id: string;
+  /** 供用户识别的稳定案件编号。 */
+  caseNumber: string;
+  /** 被投诉订单唯一标识。 */
+  orderId: string;
+  /** 投诉业务类型。 */
+  complaintType: string;
+  /** 当前投诉处理状态。 */
+  status: ComplaintStatus;
+  /** 与当前用户相对的另一方安全展示摘要。 */
+  counterpart: ComplaintListUserSummary;
+  /** ISO 8601 格式的二次申诉截止时间；不在申诉期时为空。 */
+  appealDeadlineAt: string | null;
+  /** ISO 8601 格式的投诉创建时间。 */
+  createdAt: string;
+  /** ISO 8601 格式的最后更新时间。 */
+  updatedAt: string;
+}
+
+/** 用户投诉列表的分页响应。 */
+export type ComplaintListResponse = PaginatedResponse<ComplaintListItem>;
+
 /** 后台投诉列表使用的用户展示摘要。 */
 export interface AdminComplaintUserSummary {
   /** 用户唯一标识。 */

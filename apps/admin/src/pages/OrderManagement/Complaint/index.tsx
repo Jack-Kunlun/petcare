@@ -4,7 +4,7 @@ import {
   type AdminComplaintQueue,
   type ComplaintStatus,
 } from "@petcare/shared-types";
-import { keepPreviousData, useQuery } from "@tanstack/react-query";
+import { useQuery } from "@tanstack/react-query";
 import {
   AlertCircle,
   AlertTriangle,
@@ -16,13 +16,27 @@ import {
   RotateCcw,
   Search,
 } from "lucide-react";
-import { useMemo, useState, type FormEvent } from "react";
+import { useEffect, useMemo, useState, type FormEvent } from "react";
 import { Link, useSearchParams } from "react-router-dom";
 import { fetchAdminComplaints } from "../../../api/complaints";
 import { OrderManagementNavigation } from "../Navigation";
 
 const PAGE_SIZE = 20;
-const STAGE_OVERDUE_MILLISECONDS = 24 * 60 * 60 * 1000;
+/** 被投诉方首次回应阶段的运营 SLA：24 小时。 */
+const PENDING_RESPONSE_SLA_MILLISECONDS = 24 * 60 * 60 * 1000;
+/** 案件等待管理员认领阶段的运营 SLA：4 小时。 */
+const UNASSIGNED_SLA_MILLISECONDS = 4 * 60 * 60 * 1000;
+/** 管理员初审处理阶段的运营 SLA：48 小时。 */
+const PROCESSING_INITIAL_SLA_MILLISECONDS = 48 * 60 * 60 * 1000;
+/** 管理员终审处理阶段的运营 SLA：48 小时。 */
+const PROCESSING_FINAL_SLA_MILLISECONDS = 48 * 60 * 60 * 1000;
+
+const stageSlaMilliseconds: Partial<Record<ComplaintStatus, number>> = {
+  pending_response: PENDING_RESPONSE_SLA_MILLISECONDS,
+  unassigned: UNASSIGNED_SLA_MILLISECONDS,
+  processing_initial: PROCESSING_INITIAL_SLA_MILLISECONDS,
+  processing_final: PROCESSING_FINAL_SLA_MILLISECONDS,
+};
 
 const queueTabs: ReadonlyArray<{ value: AdminComplaintQueue; label: string }> = [
   { value: "mine", label: "待我处理" },
@@ -119,11 +133,13 @@ function formatAppealCountdown(deadline: string | null, now = Date.now()): strin
 }
 
 function isStageOverdue(item: AdminComplaintListItem, now = Date.now()): boolean {
-  return (
-    item.status !== "closed" &&
-    item.status !== "withdrawn" &&
-    now - new Date(item.updatedAt).getTime() >= STAGE_OVERDUE_MILLISECONDS
-  );
+  if (item.status === "initial_decided") {
+    return item.appealDeadlineAt !== null && now >= new Date(item.appealDeadlineAt).getTime();
+  }
+
+  const sla = stageSlaMilliseconds[item.status];
+
+  return sla !== undefined && now - new Date(item.updatedAt).getTime() >= sla;
 }
 
 function StatusBadge({ status }: { status: ComplaintStatus }) {
@@ -181,6 +197,14 @@ export default function ComplaintWorkQueue() {
   const [keywordInput, setKeywordInput] = useState(keyword ?? "");
   const [handlerInput, setHandlerInput] = useState(handlerId ?? "");
 
+  useEffect(() => {
+    setKeywordInput(keyword ?? "");
+  }, [keyword]);
+
+  useEffect(() => {
+    setHandlerInput(handlerId ?? "");
+  }, [handlerId]);
+
   const normalizedQuery = useMemo<AdminComplaintListQuery>(
     () => ({ queue, page, pageSize: PAGE_SIZE, keyword, status, handlerId }),
     [handlerId, keyword, page, queue, status],
@@ -189,7 +213,6 @@ export default function ComplaintWorkQueue() {
   const query = useQuery({
     queryKey: ["admin-complaints", normalizedQuery],
     queryFn: () => fetchAdminComplaints(normalizedQuery),
-    placeholderData: keepPreviousData,
   });
 
   const total = query.data?.total ?? 0;

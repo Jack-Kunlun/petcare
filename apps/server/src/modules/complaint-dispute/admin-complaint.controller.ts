@@ -27,7 +27,7 @@ import { ComplaintQueryService } from "./complaint-query.service";
 import { DisputeDecisionService } from "./dispute-decision.service";
 import { DisputeExecutionService } from "./dispute-execution.service";
 import { AdminComplaintListQueryDto } from "./dto/admin-complaint-list-query.dto";
-import { ComplaintListResponseDto, ComplaintResponseDto } from "./dto/complaint-response.dto";
+import { AdminComplaintListResponseDto, ComplaintResponseDto } from "./dto/complaint-response.dto";
 import {
   DisputeExecutionTaskListResponseDto,
   RetryDisputeExecutionTaskResponseDto,
@@ -52,7 +52,7 @@ export class AdminComplaintController {
   /** 返回后台投诉案件分页列表。 */
   @Get()
   @ApiOperation({ summary: "获取后台投诉案件列表" })
-  @ApiSuccessResponse(ComplaintListResponseDto)
+  @ApiSuccessResponse(AdminComplaintListResponseDto)
   @ApiStandardErrors(400, 401, 403, 500)
   findAll(@Query() query: AdminComplaintListQueryDto, @Req() request: AuthRequest) {
     return this.queryService.findAdminPage(query, this.actor(request).id);
