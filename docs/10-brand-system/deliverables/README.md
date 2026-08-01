@@ -17,7 +17,7 @@ The approved visual relationship is:
 5. stacked `PetCare` wordmark below the Symbol;
 6. optional approved English tagline and Chinese slogan only in the full lockup.
 
-The exact transparent PNG extractions are the production visual masters. SVGs are editable Bézier companions that preserve the approved composition; they are not alternative designs.
+The exact transparent PNG extractions are the production visual masters. SVGs are deterministic, editable pixel-path companions generated from those masters; they are not alternative designs and must never be used to reinterpret the approved appearance.
 
 ## 2. Directory map
 
@@ -147,15 +147,18 @@ Do not regenerate a selected source unless a new brand review explicitly approve
 | --- | --- | --- |
 | Linear gradient | `elements/gradients/petcare-gradient-linear.svg` | restrained brand surface or section accent |
 | Radial gradient | `elements/gradients/petcare-gradient-radial.svg` | low-contrast Hero/section glow |
+| Transparent glow | `elements/gradients/petcare-glow-transparent.svg` | transparent ambient glow over light or dark surfaces |
 | Soft background | `elements/gradients/petcare-background-soft.svg` | light website section background |
+| Light placeholder | `elements/placeholders/petcare-placeholder-light.svg` | neutral light media placeholder |
+| Dark placeholder | `elements/placeholders/petcare-placeholder-dark.svg` | neutral dark media placeholder |
 | Connection pattern | `elements/patterns/petcare-connection-pattern.svg` | subtle community/connection texture |
 | Symbol badge | `elements/badges/petcare-badge-symbol.svg` | trust mark or compact brand badge |
-| Trusted Companion badge | `elements/badges/petcare-badge-trusted-companion.svg` | verified service/brand statement |
+| Trusted Companion badge | `elements/badges/petcare-badge-trusted-companion.svg` | verified-service icon badge; render localized copy as HTML beside it |
 | Left copy overlay | `elements/overlays/petcare-overlay-copy-left.svg` | dark copy over a left Hero safe zone |
 | Right copy overlay | `elements/overlays/petcare-overlay-copy-right.svg` | dark copy over a right Hero safe zone |
 | Bottom overlay | `elements/overlays/petcare-overlay-bottom.svg` | white bottom caption or carousel metadata |
 
-Badge SVGs contain the exact approved Symbol Bézier markup and have no external dependency. All SVGs remain editable and self-contained.
+Badge SVGs contain approved Symbol-derived geometry and have no external font, image, or network dependency. All SVGs remain editable and self-contained. Keep user-facing badge text in HTML/CSS so it is accessible, localizable, and deterministic.
 
 ## 7. Accessibility and carousel behavior
 
@@ -197,17 +200,8 @@ Run from the repository root:
 # Re-extract the approved actual transparent raster masters on Windows PowerShell
 powershell.exe -ExecutionPolicy Bypass -File scripts/brand-assets/extract_approved_logo_assets.ps1
 
-# PowerShell 7 alternative on Windows, Linux, or macOS
-pwsh -File scripts/brand-assets/extract_approved_logo_assets.ps1
-
-# Rebuild Logo derivatives
-python scripts/brand-assets/export_logo_assets.py
-
-# Rebuild responsive Hero derivatives and website elements
-python scripts/brand-assets/process_hero_assets.py
-
-# Validate every manifest asset and source relationship
-python scripts/brand-assets/validate_brand_assets.py
+# Rebuild vectors, raster derivatives, Hero assets, elements, and validate
+.\scripts\brand-assets\run_brand_tools.ps1 -Task all
 
 # Repository whitespace check
 git diff --check
@@ -219,7 +213,15 @@ Expected validator output:
 Validated PetCare brand assets: 0 errors
 ```
 
-The Hero build embeds a fixed sRGB ICC header and is byte-for-byte deterministic. PNG uses optimized lossless output; WebP uses quality 88.
+The extraction script uses Windows `System.Drawing` and is Windows-only. It is needed only when the approved composite artwork changes; committed transparent masters are authoritative on every platform.
+
+The wrapper resolves Python from `PETCARE_PYTHON`, the bundled Codex runtime, or the `python` command. Install the pinned dependency when preparing a separate environment:
+
+```powershell
+python -m pip install -r scripts/brand-assets/requirements-brand-assets.txt
+```
+
+Logo raster derivatives use the approved actual PNG and pinned Pillow only; no browser or alternate SVG renderer is used. The 260px color lockup must remain pixel-identical to the production master. SVG companions carry the approved master SHA-256 and deterministic vectorization contract. The Hero build embeds a fixed sRGB ICC header and is byte-for-byte deterministic. PNG uses optimized lossless output; WebP uses quality 88.
 
 ## 9. Manifest contract
 
