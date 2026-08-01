@@ -206,9 +206,8 @@ export default function SettingsEdit() {
     );
   }
 
-  const loading = currentQuery.isPending || draftQuery.isPending;
-  const loadError = currentQuery.isError || draftQuery.isError;
-  const revision = draftQuery.data?.revision ?? 0;
+  const loading = !localConfig && (currentQuery.isPending || draftQuery.isPending);
+  const revision = draftQuery.data?.revision ?? (draftQuery.isSuccess ? 0 : "不可用");
   const summaryError = attempted && !changeSummary.trim() ? "请填写本次变更摘要" : null;
   const hasErrors = Object.keys(fieldErrors).length > 0 || Boolean(summaryError) || !localConfig;
 
@@ -358,27 +357,48 @@ export default function SettingsEdit() {
           正在加载配置…
         </p>
       ) : null}
-      {loadError ? (
+      {currentQuery.isError ? (
         <div
           role="alert"
+          aria-label="当前生效版本加载失败"
           className="mt-8 rounded-xl border border-red-200 bg-red-50 p-5 text-red-950"
         >
-          <p className="font-semibold">配置加载失败</p>
-          <p className="mt-1">请重试，页面不会提交任何变更。</p>
+          <p className="font-semibold">当前生效版本加载失败</p>
+          <p className="mt-1">草稿与编辑区不受影响，可单独重试当前版本查询。</p>
           <button
             type="button"
+            disabled={currentQuery.isFetching}
             onClick={() => {
               void currentQuery.refetch();
+            }}
+            className="mt-4 min-h-11 cursor-pointer rounded-lg border border-red-700 px-4 py-2 font-semibold outline-none focus-visible:ring-2 focus-visible:ring-red-700 disabled:cursor-not-allowed disabled:opacity-40"
+          >
+            重新加载当前版本
+          </button>
+        </div>
+      ) : null}
+      {draftQuery.isError ? (
+        <div
+          role="alert"
+          aria-label="草稿状态加载失败"
+          className="mt-4 rounded-xl border border-red-200 bg-red-50 p-5 text-red-950"
+        >
+          <p className="font-semibold">草稿状态加载失败</p>
+          <p className="mt-1">当前版本与编辑区不受影响；确认草稿 revision 前不会保存。</p>
+          <button
+            type="button"
+            disabled={draftQuery.isFetching}
+            onClick={() => {
               void draftQuery.refetch();
             }}
-            className="mt-4 min-h-11 cursor-pointer rounded-lg border border-red-700 px-4 py-2 font-semibold outline-none focus-visible:ring-2 focus-visible:ring-red-700"
+            className="mt-4 min-h-11 cursor-pointer rounded-lg border border-red-700 px-4 py-2 font-semibold outline-none focus-visible:ring-2 focus-visible:ring-red-700 disabled:cursor-not-allowed disabled:opacity-40"
           >
-            重新加载
+            重新加载草稿状态
           </button>
         </div>
       ) : null}
 
-      {!loading && !loadError && localConfig ? (
+      {!loading && localConfig ? (
         <div className="mt-6">
           {domain === "sop" ? (
             <SopEditor
@@ -440,7 +460,12 @@ export default function SettingsEdit() {
               <button
                 type="button"
                 onClick={submitDraft}
-                disabled={saveMutation.isPending || publishMutation.isPending}
+                disabled={
+                  draftQuery.isPending ||
+                  draftQuery.isError ||
+                  saveMutation.isPending ||
+                  publishMutation.isPending
+                }
                 className="inline-flex min-h-11 cursor-pointer items-center justify-center gap-2 rounded-lg border border-blue-700 px-4 py-2 font-semibold text-blue-800 outline-none transition-colors duration-200 hover:bg-blue-50 focus-visible:ring-2 focus-visible:ring-blue-800 disabled:cursor-not-allowed disabled:opacity-40 motion-reduce:transition-none"
               >
                 {saveMutation.isPending ? (

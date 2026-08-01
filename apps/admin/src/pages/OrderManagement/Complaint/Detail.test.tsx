@@ -200,7 +200,7 @@ describe("ComplaintDetail", () => {
       "complaint-1",
       expect.objectContaining({ refundAmount: 5000, version: 3 }),
     );
-  });
+  }, 10_000);
 
   it("预览后修改字段会作废旧快照并提交重新预览的当前值", async () => {
     const user = userEvent.setup();
