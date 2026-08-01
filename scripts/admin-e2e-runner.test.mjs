@@ -1,7 +1,8 @@
 import assert from "node:assert/strict";
-import { fork } from "node:child_process";
+import { fork, spawn } from "node:child_process";
 import { once } from "node:events";
 import { readFile } from "node:fs/promises";
+import { connect } from "node:net";
 import test from "node:test";
 import { fileURLToPath } from "node:url";
 import path from "node:path";
@@ -11,11 +12,78 @@ import {
   runWithIsolatedAdminSchema,
   shouldLoadLocalEnvironment,
   startApplicationServers,
+  stopProcess,
 } from "../apps/admin/e2e/run-e2e.mjs";
 
 const repositoryDirectory = path.resolve(path.dirname(fileURLToPath(import.meta.url)), "..");
 const adminDirectory = path.join(repositoryDirectory, "apps", "admin");
 const signalFixture = path.join(repositoryDirectory, "scripts", "fixtures", "admin-e2e-signal.mjs");
+const treeFixture = path.join(
+  repositoryDirectory,
+  "scripts",
+  "fixtures",
+  "admin-e2e-tree-root.mjs",
+);
+
+function canConnect(port) {
+  return new Promise((resolve) => {
+    const socket = connect({ host: "127.0.0.1", port });
+    const finish = (result) => {
+      socket.destroy();
+      resolve(result);
+    };
+
+    socket.setTimeout(500, () => finish(false));
+    socket.once("connect", () => finish(true));
+    socket.once("error", () => finish(false));
+  });
+}
+
+function processExists(processId) {
+  try {
+    process.kill(processId, 0);
+    return true;
+  } catch {
+    return false;
+  }
+}
+
+async function waitUntil(predicate, timeoutMilliseconds = 5_000) {
+  const deadline = Date.now() + timeoutMilliseconds;
+
+  while (Date.now() < deadline) {
+    if (await predicate()) {
+      return true;
+    }
+
+    await new Promise((resolve) => setTimeout(resolve, 50));
+  }
+
+  return false;
+}
+
+async function forceKillTestProcess(processId) {
+  if (!Number.isInteger(processId) || processId <= 0) {
+    return;
+  }
+
+  if (process.platform === "win32") {
+    const killer = spawn("taskkill.exe", ["/PID", String(processId), "/T", "/F"], {
+      shell: false,
+      stdio: "ignore",
+      windowsHide: true,
+    });
+
+    await once(killer, "exit");
+    return;
+  }
+
+  try {
+    process.kill(-processId, "SIGKILL");
+  } catch {
+    process.kill(processId, "SIGKILL");
+  }
+}
 
 test("标准 Admin E2E 命令固定进入版本控制内的隔离 runner", async () => {
   const packageJson = JSON.parse(await readFile(path.join(adminDirectory, "package.json"), "utf8"));
@@ -125,23 +193,82 @@ for (const [processSignal, expectedCode] of [
   ["SIGINT", 130],
   ["SIGTERM", 143],
 ]) {
-  test(`${processSignal} 会等待 close 与 drop 完成后按信号语义退出`, async () => {
-    const child = fork(signalFixture, { silent: true });
-    const messages = [];
+  // Windows child.kill(SIGINT/SIGTERM) force-terminates the process instead of invoking
+  // its console signal handler. The production process.on path is exercised with real
+  // parent-sent OS signals on POSIX; Windows tree cleanup is verified separately below.
+  test(
+    `${processSignal} 会等待 close 与 drop 完成、清除进程树后按信号语义退出`,
+    {
+      skip:
+        process.platform === "win32"
+          ? "Windows child.kill(signal) 使用强制终止，不能验证 Ctrl+C process handler"
+          : false,
+    },
+    async () => {
+      const child = fork(signalFixture, { silent: true });
+      const messages = [];
+      let tree;
 
-    child.on("message", (message) => messages.push(message));
-    const [ready] = await once(child, "message");
+      child.on("message", (message) => messages.push(message));
+      const [ready] = await once(child, "message");
 
-    assert.equal(ready, "ready");
-    child.send(processSignal);
+      try {
+        assert.equal(ready.type, "ready");
+        tree = ready;
+        assert.equal(await canConnect(ready.port), true);
+        child.kill(processSignal);
 
-    const [exitCode, signal] = await once(child, "exit");
+        const [exitCode, signal] = await once(child, "exit");
 
-    assert.equal(signal, null);
-    assert.equal(exitCode, expectedCode);
-    assert.deepEqual(messages, ["ready", "close", "drop"]);
-  });
+        assert.equal(signal, null);
+        assert.equal(exitCode, expectedCode);
+        assert.deepEqual(
+          messages.map((message) => (typeof message === "string" ? message : message.type)),
+          ["ready", "close", "drop"],
+        );
+        assert.equal(await waitUntil(async () => !(await canConnect(ready.port))), true);
+        assert.equal(await waitUntil(() => !processExists(ready.descendantPid)), true);
+      } finally {
+        if (!child.killed && child.exitCode === null) {
+          child.kill("SIGKILL");
+        }
+        await forceKillTestProcess(tree?.rootPid);
+        await forceKillTestProcess(tree?.descendantPid);
+      }
+    },
+  );
 }
+
+test("受控关闭会清除真实子孙进程及其监听端口", async () => {
+  const treeRoot = fork(treeFixture, {
+    detached: process.platform !== "win32",
+    silent: true,
+  });
+  let tree;
+
+  try {
+    [tree] = await once(treeRoot, "message");
+    assert.equal(tree.type, "tree-ready");
+    assert.equal(await canConnect(tree.port), true);
+
+    await stopProcess(treeRoot);
+
+    assert.equal(await waitUntil(async () => !(await canConnect(tree.port))), true);
+    assert.equal(await waitUntil(() => !processExists(tree.descendantPid)), true);
+  } finally {
+    await forceKillTestProcess(treeRoot.pid);
+    await forceKillTestProcess(tree?.descendantPid);
+  }
+});
+
+test("受管进程已正常退出时 stopProcess 是幂等 no-op", async () => {
+  await assert.doesNotReject(
+    stopProcess({
+      exitCode: 0,
+      signalCode: null,
+    }),
+  );
+});
 
 test("应用部分启动失败时继续关闭全部进程并聚合启动与清理错误", async () => {
   const startupError = new Error("Admin failed to become ready");
