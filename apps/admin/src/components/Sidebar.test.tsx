@@ -17,4 +17,14 @@ describe("Sidebar", () => {
     expect(screen.getByRole("link", { name: "订单管理" })).toHaveAttribute("aria-current", "page");
     expect(screen.getByRole("link", { name: "系统设置" })).toHaveAttribute("href", "/settings");
   });
+
+  it("缺少 system.view 时不展示系统设置入口", () => {
+    render(
+      <MemoryRouter>
+        <Sidebar permissions={[]} />
+      </MemoryRouter>,
+    );
+
+    expect(screen.queryByRole("link", { name: "系统设置" })).not.toBeInTheDocument();
+  });
 });
