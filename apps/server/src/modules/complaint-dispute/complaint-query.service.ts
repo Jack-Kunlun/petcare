@@ -5,6 +5,7 @@ import {
   DECISION_LEVEL,
   DISPUTE_EXECUTION_TASK_STATUS,
   type AdminComplaintQueue,
+  type AdminComplaintDetail,
   type AdminComplaintListQuery,
   type AdminComplaintListItem,
   type AdminComplaintListResponse,
@@ -117,6 +118,24 @@ const complaintDetailSelect = {
     where: { status: "failed" },
     select: { id: true },
   },
+} as const;
+
+const adminComplaintDetailSelect = {
+  ...complaintDetailSelect,
+  caseNumber: true,
+  order: {
+    select: {
+      id: true,
+      orderType: true,
+      serviceType: true,
+      amount: true,
+      status: true,
+      serviceTime: true,
+    },
+  },
+  complainant: { select: { id: true, nickname: true, phone: true } },
+  respondent: { select: { id: true, nickname: true, phone: true } },
+  assignedAdmin: { select: { id: true, nickname: true, phone: true } },
 } as const;
 
 type ComplaintDetailRecord = Prisma.ComplaintGetPayload<{
@@ -280,28 +299,42 @@ export class ComplaintQueryService {
     id: string,
     admin: { id: string; roles: string[] },
     now = new Date(),
-  ): Promise<ComplaintDetail> {
+  ): Promise<AdminComplaintDetail> {
     const complaint = await this.prisma.complaint.findUnique({
       where: { id },
-      select: complaintDetailSelect,
+      select: adminComplaintDetailSelect,
     });
 
     if (!complaint) {
       throw new ApiException("RESOURCE_NOT_FOUND", "投诉不存在", HttpStatus.NOT_FOUND);
     }
 
-    return this.toDetail(complaint, {
-      status: complaint.status as ComplaintStatus,
-      viewerId: admin.id,
-      viewerRole: "admin",
-      assignedAdminId: complaint.assignedAdminId,
-      isSuperAdmin: admin.roles.includes("super_admin"),
-      isOrderParty: admin.id === complaint.complainantId || admin.id === complaint.respondentId,
-      appealDeadlineAt: complaint.appealDeadlineAt,
-      hasSecondAppealed: false,
-      hasFailedExecution: complaint.executionTasks.length > 0,
-      now,
-    });
+    return {
+      ...this.toDetail(complaint, {
+        status: complaint.status as ComplaintStatus,
+        viewerId: admin.id,
+        viewerRole: "admin",
+        assignedAdminId: complaint.assignedAdminId,
+        isSuperAdmin: admin.roles.includes("super_admin"),
+        isOrderParty: admin.id === complaint.complainantId || admin.id === complaint.respondentId,
+        appealDeadlineAt: complaint.appealDeadlineAt,
+        hasSecondAppealed: false,
+        hasFailedExecution: complaint.executionTasks.length > 0,
+        now,
+      }),
+      caseNumber: complaint.caseNumber,
+      order: {
+        id: complaint.order.id,
+        orderType: complaint.order.orderType,
+        serviceType: complaint.order.serviceType,
+        allocatableAmount: complaint.order.amount,
+        status: complaint.order.status,
+        serviceTime: complaint.order.serviceTime.toISOString(),
+      },
+      complainant: complaint.complainant,
+      respondent: complaint.respondent,
+      handler: complaint.assignedAdmin,
+    };
   }
 
   /** 复用投诉详情序列化并注入服务端计算的允许动作。 */
