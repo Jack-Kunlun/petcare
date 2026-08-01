@@ -16,7 +16,9 @@ import { apiClient } from "../auth";
 const RATING_THRESHOLD_PATH = "/admin/system-settings/rating-threshold";
 
 /** 获取当前生效的服务者评分阈值配置。 */
-export async function fetchRatingThresholdCurrent(): Promise<SystemConfigVersion<RatingThresholdConfig>> {
+export async function fetchRatingThresholdCurrent(): Promise<
+  SystemConfigVersion<RatingThresholdConfig>
+> {
   const response = await apiClient.get<SystemConfigVersion<RatingThresholdConfig>>(
     `${RATING_THRESHOLD_PATH}/current`,
   );
@@ -25,7 +27,9 @@ export async function fetchRatingThresholdCurrent(): Promise<SystemConfigVersion
 }
 
 /** 获取当前可编辑的服务者评分阈值草稿。 */
-export async function fetchRatingThresholdDraft(): Promise<SystemConfigDraft<RatingThresholdConfig>> {
+export async function fetchRatingThresholdDraft(): Promise<
+  SystemConfigDraft<RatingThresholdConfig>
+> {
   const response = await apiClient.get<SystemConfigDraft<RatingThresholdConfig>>(
     `${RATING_THRESHOLD_PATH}/draft`,
   );
@@ -47,6 +51,17 @@ export async function fetchRatingThresholdHistory(
   const response = await apiClient.get<SystemConfigVersionListResponse<RatingThresholdConfig>>(
     `${RATING_THRESHOLD_PATH}/history`,
     { params },
+  );
+
+  return response.data;
+}
+
+/** 按 ID 获取单个评分阈值历史版本。 */
+export async function fetchRatingThresholdVersion(
+  versionId: string,
+): Promise<SystemConfigVersion<RatingThresholdConfig>> {
+  const response = await apiClient.get<SystemConfigVersion<RatingThresholdConfig>>(
+    `${RATING_THRESHOLD_PATH}/history/${versionId}`,
   );
 
   return response.data;

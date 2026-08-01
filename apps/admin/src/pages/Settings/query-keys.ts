@@ -9,4 +9,6 @@ export const settingsQueryKeys = {
     [...settingsQueryKeys.all, domain, serviceType ?? "all", "diff"] as const,
   history: (domain: string, serviceType?: string) =>
     [...settingsQueryKeys.all, domain, serviceType ?? "all", "history"] as const,
+  version: (domain: string, serviceType: string | undefined, versionId: string) =>
+    [...settingsQueryKeys.all, domain, serviceType ?? "all", "history", versionId] as const,
 };

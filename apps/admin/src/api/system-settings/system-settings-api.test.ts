@@ -17,6 +17,7 @@ import {
   fetchFeeDiff,
   fetchFeeDraft,
   fetchFeeHistory,
+  fetchFeeVersion,
   publishFeeDraft,
   restoreFeeDraft,
   saveFeeDraft,
@@ -27,6 +28,7 @@ import {
   fetchRatingThresholdDiff,
   fetchRatingThresholdDraft,
   fetchRatingThresholdHistory,
+  fetchRatingThresholdVersion,
   publishRatingThresholdDraft,
   restoreRatingThresholdDraft,
   saveRatingThresholdDraft,
@@ -36,6 +38,7 @@ import {
   fetchSopDiff,
   fetchSopDraft,
   fetchSopHistory,
+  fetchSopVersion,
   publishSopDraft,
   restoreSopDraft,
   saveSopDraft,
@@ -109,7 +112,10 @@ describe("system settings API", () => {
 
   it("uses the explicit service type for every SOP endpoint", async () => {
     const history: SystemConfigVersionListResponse<SopConfig> = {
-      list: [], total: 0, page: 2, pageSize: 20,
+      list: [],
+      total: 0,
+      page: 2,
+      pageSize: 20,
     };
 
     vi.mocked(apiClient.get).mockResolvedValue({ data: history });
@@ -120,6 +126,7 @@ describe("system settings API", () => {
     await fetchSopDraft("feeding");
     await fetchSopDiff("feeding");
     await fetchSopHistory("feeding", { page: 2, pageSize: 20 });
+    await fetchSopVersion("feeding", "sop-feeding-v1");
     await saveSopDraft("feeding", { revision: 2, config: sop, changeSummary: "更新步骤" });
     await publishSopDraft("feeding", { revision: 2, idempotencyKey: "sop-publish-01" });
     await restoreSopDraft("feeding", { version: 1, revision: 0, changeSummary: "恢复历史版本" });
@@ -130,15 +137,32 @@ describe("system settings API", () => {
     expect(apiClient.get).toHaveBeenNthCalledWith(4, "/admin/system-settings/sop/feeding/history", {
       params: { page: 2, pageSize: 20 },
     });
+    expect(apiClient.get).toHaveBeenNthCalledWith(
+      5,
+      "/admin/system-settings/sop/feeding/history/sop-feeding-v1",
+    );
     expect(apiClient.put).toHaveBeenCalledWith("/admin/system-settings/sop/feeding/draft", {
-      revision: 2, config: sop, changeSummary: "更新步骤",
+      revision: 2,
+      config: sop,
+      changeSummary: "更新步骤",
     });
-    expect(apiClient.post).toHaveBeenNthCalledWith(1, "/admin/system-settings/sop/feeding/publish", {
-      revision: 2, idempotencyKey: "sop-publish-01",
-    });
-    expect(apiClient.post).toHaveBeenNthCalledWith(2, "/admin/system-settings/sop/feeding/restore", {
-      version: 1, revision: 0, changeSummary: "恢复历史版本",
-    });
+    expect(apiClient.post).toHaveBeenNthCalledWith(
+      1,
+      "/admin/system-settings/sop/feeding/publish",
+      {
+        revision: 2,
+        idempotencyKey: "sop-publish-01",
+      },
+    );
+    expect(apiClient.post).toHaveBeenNthCalledWith(
+      2,
+      "/admin/system-settings/sop/feeding/restore",
+      {
+        version: 1,
+        revision: 0,
+        changeSummary: "恢复历史版本",
+      },
+    );
   });
 
   it("uses the rating threshold routes and typed payloads", async () => {
@@ -150,30 +174,68 @@ describe("system settings API", () => {
     await fetchRatingThresholdDraft();
     await fetchRatingThresholdDiff();
     await fetchRatingThresholdHistory({ page: 1, pageSize: 10 });
-    await saveRatingThresholdDraft({ revision: 1, config: ratingThreshold, changeSummary: "调整阈值" });
+    await fetchRatingThresholdVersion("rating-v1");
+    await saveRatingThresholdDraft({
+      revision: 1,
+      config: ratingThreshold,
+      changeSummary: "调整阈值",
+    });
     await publishRatingThresholdDraft({ revision: 1, idempotencyKey: "rating-publish-01" });
     await restoreRatingThresholdDraft({ version: 1, revision: 0, changeSummary: "恢复阈值" });
 
-    expect(apiClient.get).toHaveBeenNthCalledWith(1, "/admin/system-settings/rating-threshold/current");
-    expect(apiClient.get).toHaveBeenNthCalledWith(2, "/admin/system-settings/rating-threshold/draft");
-    expect(apiClient.get).toHaveBeenNthCalledWith(3, "/admin/system-settings/rating-threshold/diff");
-    expect(apiClient.get).toHaveBeenNthCalledWith(4, "/admin/system-settings/rating-threshold/history", {
-      params: { page: 1, pageSize: 10 },
-    });
+    expect(apiClient.get).toHaveBeenNthCalledWith(
+      1,
+      "/admin/system-settings/rating-threshold/current",
+    );
+    expect(apiClient.get).toHaveBeenNthCalledWith(
+      2,
+      "/admin/system-settings/rating-threshold/draft",
+    );
+    expect(apiClient.get).toHaveBeenNthCalledWith(
+      3,
+      "/admin/system-settings/rating-threshold/diff",
+    );
+    expect(apiClient.get).toHaveBeenNthCalledWith(
+      4,
+      "/admin/system-settings/rating-threshold/history",
+      {
+        params: { page: 1, pageSize: 10 },
+      },
+    );
+    expect(apiClient.get).toHaveBeenNthCalledWith(
+      5,
+      "/admin/system-settings/rating-threshold/history/rating-v1",
+    );
     expect(apiClient.put).toHaveBeenCalledWith("/admin/system-settings/rating-threshold/draft", {
-      revision: 1, config: ratingThreshold, changeSummary: "调整阈值",
+      revision: 1,
+      config: ratingThreshold,
+      changeSummary: "调整阈值",
     });
-    expect(apiClient.post).toHaveBeenNthCalledWith(1, "/admin/system-settings/rating-threshold/publish", {
-      revision: 1, idempotencyKey: "rating-publish-01",
-    });
-    expect(apiClient.post).toHaveBeenNthCalledWith(2, "/admin/system-settings/rating-threshold/restore", {
-      version: 1, revision: 0, changeSummary: "恢复阈值",
-    });
+    expect(apiClient.post).toHaveBeenNthCalledWith(
+      1,
+      "/admin/system-settings/rating-threshold/publish",
+      {
+        revision: 1,
+        idempotencyKey: "rating-publish-01",
+      },
+    );
+    expect(apiClient.post).toHaveBeenNthCalledWith(
+      2,
+      "/admin/system-settings/rating-threshold/restore",
+      {
+        version: 1,
+        revision: 0,
+        changeSummary: "恢复阈值",
+      },
+    );
   });
 
   it("uses the fee routes and typed payloads", async () => {
     const history: SystemConfigVersionListResponse<FeeConfig> = {
-      list: [], total: 0, page: 1, pageSize: 20,
+      list: [],
+      total: 0,
+      page: 1,
+      pageSize: 20,
     };
 
     vi.mocked(apiClient.get).mockResolvedValue({ data: history });
@@ -184,6 +246,7 @@ describe("system settings API", () => {
     await fetchFeeDraft();
     await fetchFeeDiff();
     await fetchFeeHistory({ page: 1, pageSize: 20 });
+    await fetchFeeVersion("fee-v1");
     await saveFeeDraft({ revision: 2, config: fee, changeSummary: "调整平台抽成" });
     await publishFeeDraft({ revision: 2, idempotencyKey: "fee-publish-01" });
     await restoreFeeDraft({ version: 1, revision: 0, changeSummary: "恢复历史费率" });
@@ -194,14 +257,20 @@ describe("system settings API", () => {
     expect(apiClient.get).toHaveBeenNthCalledWith(4, "/admin/system-settings/fee/history", {
       params: { page: 1, pageSize: 20 },
     });
+    expect(apiClient.get).toHaveBeenNthCalledWith(5, "/admin/system-settings/fee/history/fee-v1");
     expect(apiClient.put).toHaveBeenCalledWith("/admin/system-settings/fee/draft", {
-      revision: 2, config: fee, changeSummary: "调整平台抽成",
+      revision: 2,
+      config: fee,
+      changeSummary: "调整平台抽成",
     });
     expect(apiClient.post).toHaveBeenNthCalledWith(1, "/admin/system-settings/fee/publish", {
-      revision: 2, idempotencyKey: "fee-publish-01",
+      revision: 2,
+      idempotencyKey: "fee-publish-01",
     });
     expect(apiClient.post).toHaveBeenNthCalledWith(2, "/admin/system-settings/fee/restore", {
-      version: 1, revision: 0, changeSummary: "恢复历史费率",
+      version: 1,
+      revision: 0,
+      changeSummary: "恢复历史费率",
     });
   });
 
@@ -215,10 +284,16 @@ describe("system settings API", () => {
         meta: {},
       },
     } as never);
-    const sameMessageButDifferentCode = new axios.AxiosError("conflict", "ERR_BAD_REQUEST", undefined, undefined, {
-      status: 409,
-      data: { code: "OTHER_CONFLICT", message: "版本冲突", data: null, meta: {} },
-    } as never);
+    const sameMessageButDifferentCode = new axios.AxiosError(
+      "conflict",
+      "ERR_BAD_REQUEST",
+      undefined,
+      undefined,
+      {
+        status: 409,
+        data: { code: "OTHER_CONFLICT", message: "版本冲突", data: null, meta: {} },
+      } as never,
+    );
 
     expect(isSystemConfigVersionConflict(conflict)).toBe(true);
     expect(isSystemConfigVersionConflict(sameMessageButDifferentCode)).toBe(false);
