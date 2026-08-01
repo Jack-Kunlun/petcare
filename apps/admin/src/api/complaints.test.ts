@@ -39,11 +39,16 @@ describe("admin complaint API", () => {
     vi.mocked(apiClient.get).mockResolvedValue({ data: page });
 
     await expect(
-      fetchAdminComplaints({ page: 1, pageSize: 20, status: "unassigned" }),
+      fetchAdminComplaints({
+        page: 1,
+        pageSize: 20,
+        queue: "unassigned",
+        status: "unassigned",
+      }),
     ).resolves.toEqual(page);
 
     expect(apiClient.get).toHaveBeenCalledWith("/admin/complaints", {
-      params: { page: 1, pageSize: 20, status: "unassigned" },
+      params: { page: 1, pageSize: 20, queue: "unassigned", status: "unassigned" },
     });
   });
 

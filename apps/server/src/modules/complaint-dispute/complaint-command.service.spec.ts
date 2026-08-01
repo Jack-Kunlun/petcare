@@ -66,6 +66,10 @@ describe("ComplaintCommandService", () => {
     });
     expect(transaction.complaint.create).toHaveBeenCalledWith({
       data: expect.objectContaining({
+        id: expect.stringMatching(
+          /^[0-9a-f]{8}-[0-9a-f]{4}-4[0-9a-f]{3}-[89ab][0-9a-f]{3}-[0-9a-f]{12}$/,
+        ),
+        caseNumber: expect.stringMatching(/^CP[0-9A-F]{32}$/),
         orderId: "order-1",
         complainantId: "owner-1",
         respondentId: "provider-1",
@@ -73,6 +77,9 @@ describe("ComplaintCommandService", () => {
       }),
       select: { id: true },
     });
+    const createData = transaction.complaint.create.mock.calls[0]?.[0].data;
+
+    expect(createData.caseNumber).toBe(`CP${createData.id.replaceAll("-", "").toUpperCase()}`);
     expect(transaction.complaintEvent.create).toHaveBeenCalledWith({
       data: expect.objectContaining({
         complaintId: "complaint-1",

@@ -1,6 +1,10 @@
 import { HttpStatus, Injectable } from "@nestjs/common";
 import {
+  COMPLAINT_QUEUE,
+  COMPLAINT_STATUS,
   DECISION_LEVEL,
+  DISPUTE_EXECUTION_TASK_STATUS,
+  type AdminComplaintQueue,
   type AdminComplaintListQuery,
   type AdminComplaintListItem,
   type AdminComplaintListResponse,
@@ -14,6 +18,31 @@ import { ApiException } from "../../common/http/api-exception";
 import type { Prisma } from "../../generated/prisma/client";
 import { PrismaService } from "../../prisma/prisma.service";
 import { getAllowedComplaintActions, type ComplaintActionContext } from "./complaint-state-machine";
+
+const complaintListSelect = {
+  id: true,
+  caseNumber: true,
+  orderId: true,
+  complaintType: true,
+  complainantId: true,
+  complainant: { select: { id: true, nickname: true, phone: true } },
+  respondentId: true,
+  respondent: { select: { id: true, nickname: true, phone: true } },
+  status: true,
+  assignedAdminId: true,
+  assignedAdmin: { select: { id: true, nickname: true, phone: true } },
+  appealDeadlineAt: true,
+  executionTasks: {
+    where: { status: DISPUTE_EXECUTION_TASK_STATUS.FAILED },
+    select: { id: true },
+  },
+  createdAt: true,
+  updatedAt: true,
+} as const;
+
+type ComplaintListRecord = Prisma.ComplaintGetPayload<{
+  select: typeof complaintListSelect;
+}>;
 
 const complaintDetailSelect = {
   id: true,
@@ -102,16 +131,7 @@ export class ComplaintQueryService {
         skip: (page - 1) * pageSize,
         take: pageSize,
         orderBy: { createdAt: "desc" },
-        select: {
-          id: true,
-          orderId: true,
-          complainantId: true,
-          respondentId: true,
-          status: true,
-          assignedAdminId: true,
-          createdAt: true,
-          updatedAt: true,
-        },
+        select: complaintListSelect,
       }),
       this.prisma.complaint.count({ where }),
     ]);
@@ -125,7 +145,10 @@ export class ComplaintQueryService {
   }
 
   /** 按后台筛选条件分页返回投诉案件。 */
-  async findAdminPage(query: AdminComplaintListQuery): Promise<AdminComplaintListResponse> {
+  async findAdminPage(
+    query: AdminComplaintListQuery,
+    adminId: string,
+  ): Promise<AdminComplaintListResponse> {
     if (
       !Number.isInteger(query.page) ||
       !Number.isInteger(query.pageSize) ||
@@ -140,7 +163,9 @@ export class ComplaintQueryService {
       );
     }
 
-    const where: Prisma.ComplaintWhereInput = {};
+    const where: Prisma.ComplaintWhereInput = {
+      AND: [this.queueWhere(query.queue, adminId)],
+    };
     const keyword = query.keyword?.trim();
 
     if (query.status) {
@@ -162,6 +187,7 @@ export class ComplaintQueryService {
       };
 
       where.OR = [
+        { caseNumber: { contains: keyword, mode: "insensitive" } },
         { orderId: { contains: keyword, mode: "insensitive" } },
         { complainant: { is: userKeywordFilter } },
         { respondent: { is: userKeywordFilter } },
@@ -174,16 +200,7 @@ export class ComplaintQueryService {
         skip: (query.page - 1) * query.pageSize,
         take: query.pageSize,
         orderBy: { createdAt: "desc" },
-        select: {
-          id: true,
-          orderId: true,
-          complainantId: true,
-          respondentId: true,
-          status: true,
-          assignedAdminId: true,
-          createdAt: true,
-          updatedAt: true,
-        },
+        select: complaintListSelect,
       }),
       this.prisma.complaint.count({ where }),
     ]);
@@ -311,26 +328,51 @@ export class ComplaintQueryService {
   }
 
   /** 将数据库记录转换为分页列表项。 */
-  private toListItem(record: {
-    id: string;
-    orderId: string;
-    complainantId: string;
-    respondentId: string;
-    status: string;
-    assignedAdminId: string | null;
-    createdAt: Date;
-    updatedAt: Date;
-  }): AdminComplaintListItem {
+  private toListItem(record: ComplaintListRecord): AdminComplaintListItem {
     return {
       id: record.id,
+      caseNumber: record.caseNumber,
       orderId: record.orderId,
+      complaintType: record.complaintType,
       complainantId: record.complainantId,
+      complainant: record.complainant,
       respondentId: record.respondentId,
+      respondent: record.respondent,
       status: record.status as ComplaintStatus,
       handlerId: record.assignedAdminId,
+      handler: record.assignedAdmin,
+      appealDeadlineAt: record.appealDeadlineAt?.toISOString() ?? null,
+      hasFailedExecution: record.executionTasks.length > 0,
       createdAt: record.createdAt.toISOString(),
       updatedAt: record.updatedAt.toISOString(),
     };
+  }
+
+  /** 将后台工作队列映射为服务端可信的数据库筛选条件。 */
+  private queueWhere(queue: AdminComplaintQueue, adminId: string): Prisma.ComplaintWhereInput {
+    switch (queue) {
+      case COMPLAINT_QUEUE.MINE:
+        return {
+          assignedAdminId: adminId,
+          status: { notIn: [COMPLAINT_STATUS.CLOSED, COMPLAINT_STATUS.WITHDRAWN] },
+        };
+      case COMPLAINT_QUEUE.UNASSIGNED:
+        return { status: COMPLAINT_STATUS.UNASSIGNED };
+      case COMPLAINT_QUEUE.PENDING_RESPONSE:
+        return { status: COMPLAINT_STATUS.PENDING_RESPONSE };
+      case COMPLAINT_QUEUE.PROCESSING_INITIAL:
+        return { status: COMPLAINT_STATUS.PROCESSING_INITIAL };
+      case COMPLAINT_QUEUE.INITIAL_DECIDED:
+        return { status: COMPLAINT_STATUS.INITIAL_DECIDED };
+      case COMPLAINT_QUEUE.PROCESSING_FINAL:
+        return { status: COMPLAINT_STATUS.PROCESSING_FINAL };
+      case COMPLAINT_QUEUE.EXECUTION_FAILED:
+        return {
+          executionTasks: { some: { status: DISPUTE_EXECUTION_TASK_STATUS.FAILED } },
+        };
+      case COMPLAINT_QUEUE.CLOSED:
+        return { status: { in: [COMPLAINT_STATUS.CLOSED, COMPLAINT_STATUS.WITHDRAWN] } };
+    }
   }
 
   /** 将数据库陈述转换为 ISO 8601 客户端视图。 */

@@ -279,6 +279,8 @@ model Review {
 model Complaint {
   /// 投诉唯一标识。
   id               String    @id @default(uuid())
+  /// 供运营人员识别与检索的稳定唯一案件编号。
+  caseNumber       String    @unique @map("case_number")
   /// 被投诉订单唯一标识。
   orderId          String    @map("order_id")
   /// 投诉方用户唯一标识。

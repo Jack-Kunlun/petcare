@@ -1,3 +1,4 @@
+import { randomUUID } from "node:crypto";
 import { HttpStatus, Injectable } from "@nestjs/common";
 import {
   COMPLAINT_STATUS,
@@ -108,8 +109,13 @@ export class ComplaintCommandService {
           throw this.openComplaintExists();
         }
 
+        const id = randomUUID();
+        const caseNumber = `CP${id.replaceAll("-", "").toUpperCase()}`;
+
         const complaint = await transaction.complaint.create({
           data: {
+            id,
+            caseNumber,
             orderId: request.orderId,
             complainantId: actorId,
             respondentId,
@@ -332,10 +338,7 @@ export class ComplaintCommandService {
 
       assertComplaintAction(this.toAdminActionContext(complaint, admin), "transfer");
 
-      if (
-        targetAdminId === complaint.complainantId ||
-        targetAdminId === complaint.respondentId
-      ) {
+      if (targetAdminId === complaint.complainantId || targetAdminId === complaint.respondentId) {
         throw new ApiException(
           "COMPLAINT_PARTY_CANNOT_BE_ASSIGNEE",
           "订单当事方不能处理自己的投诉案件",

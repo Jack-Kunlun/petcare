@@ -54,8 +54,8 @@ export class AdminComplaintController {
   @ApiOperation({ summary: "获取后台投诉案件列表" })
   @ApiSuccessResponse(ComplaintListResponseDto)
   @ApiStandardErrors(400, 401, 403, 500)
-  findAll(@Query() query: AdminComplaintListQueryDto) {
-    return this.queryService.findAdminPage(query);
+  findAll(@Query() query: AdminComplaintListQueryDto, @Req() request: AuthRequest) {
+    return this.queryService.findAdminPage(query, this.actor(request).id);
   }
 
   /** 返回管理员视角的投诉案件详情。 */
