@@ -3,6 +3,7 @@
 from __future__ import annotations
 
 import json
+import struct
 from dataclasses import dataclass
 from pathlib import Path
 
@@ -90,7 +91,11 @@ def to_srgb(image: Image.Image) -> Image.Image:
 
 def srgb_profile_bytes() -> bytes:
     """Return the ICC bytes embedded in every raster derivative."""
-    return ImageCms.ImageCmsProfile(ImageCms.createProfile("sRGB")).tobytes()
+    profile = bytearray(ImageCms.ImageCmsProfile(ImageCms.createProfile("sRGB")).tobytes())
+    # LittleCMS writes the current time into the ICC header. Pin the standard
+    # six UINT16 date fields so repeated builds remain byte-for-byte stable.
+    profile[24:36] = struct.pack(">6H", 2020, 1, 1, 0, 0, 0)
+    return bytes(profile)
 
 
 def safe_zone_fit(image: Image.Image, profile: CropProfile, safe_zone: str) -> Image.Image:
