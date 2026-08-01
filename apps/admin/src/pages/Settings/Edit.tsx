@@ -35,6 +35,9 @@ const SERVICE_TYPES: Array<{ value: AdminServiceType; label: string }> = [
   { value: "playing", label: "陪玩" },
 ];
 
+type LoadedEditorSource =
+  { scope: string; kind: "current" } | { scope: string; kind: "draft"; revision: number };
+
 function errorMessage(error: unknown): string {
   if (axios.isAxiosError<{ message?: string }>(error)) {
     return error.response?.data?.message ?? "请求失败，请稍后重试。";
@@ -68,7 +71,8 @@ export default function SettingsEdit() {
   const [dialogOpen, setDialogOpen] = useState(false);
   const [notice, setNotice] = useState<{ kind: "success" | "error"; message: string } | null>(null);
   const [conflict, setConflict] = useState<string | null>(null);
-  const loadedScope = useRef<string | null>(null);
+  const loadedEditorSource = useRef<LoadedEditorSource | null>(null);
+  const [editorSource, setEditorSource] = useState<LoadedEditorSource | null>(null);
 
   const currentQuery = useQuery({
     queryKey: settingsQueryKeys.current(domain ?? "invalid", serviceType),
@@ -92,8 +96,9 @@ export default function SettingsEdit() {
   });
 
   useEffect(() => {
-    if (loadedScope.current !== scope) {
-      loadedScope.current = null;
+    if (loadedEditorSource.current?.scope !== scope) {
+      loadedEditorSource.current = null;
+      setEditorSource(null);
       setLocalConfig(null);
       setFieldErrors({});
       setChangeSummary("");
@@ -103,14 +108,52 @@ export default function SettingsEdit() {
       setNotice(null);
     }
 
-    const source = draftQuery.data?.config ?? currentQuery.data?.config;
+    if (draftQuery.data) {
+      const nextSource: LoadedEditorSource = {
+        scope,
+        kind: "draft",
+        revision: draftQuery.data.revision,
+      };
 
-    if (source && loadedScope.current !== scope) {
-      setLocalConfig(source);
-      setChangeSummary(draftQuery.data?.changeSummary ?? "");
-      loadedScope.current = scope;
+      if (loadedEditorSource.current?.kind !== "draft") {
+        loadedEditorSource.current = nextSource;
+        setEditorSource(nextSource);
+        setLocalConfig(draftQuery.data.config);
+        setChangeSummary(draftQuery.data.changeSummary);
+        setDirty(false);
+
+        return;
+      }
+
+      if (loadedEditorSource.current.revision !== draftQuery.data.revision) {
+        loadedEditorSource.current = nextSource;
+        setEditorSource(nextSource);
+      }
+
+      return;
     }
-  }, [scope, currentQuery.data, draftQuery.data]);
+
+    const currentMayBeUsed =
+      draftQuery.isError || (draftQuery.isSuccess && draftQuery.data === null);
+
+    if (currentQuery.data && currentMayBeUsed && !loadedEditorSource.current) {
+      const nextSource: LoadedEditorSource = { scope, kind: "current" };
+
+      loadedEditorSource.current = nextSource;
+      setEditorSource(nextSource);
+      setLocalConfig(currentQuery.data.config);
+      setChangeSummary("");
+      setDirty(false);
+    }
+  }, [scope, currentQuery.data, draftQuery.data, draftQuery.isError, draftQuery.isSuccess]);
+
+  let boundRevision: number | null = null;
+
+  if (editorSource?.kind === "draft") {
+    boundRevision = editorSource.revision;
+  } else if (editorSource?.kind === "current" && draftQuery.isSuccess && draftQuery.data === null) {
+    boundRevision = 0;
+  }
 
   const saveMutation = useMutation({
     mutationFn: async () => {
@@ -118,13 +161,21 @@ export default function SettingsEdit() {
         throw new Error("配置表单无效");
       }
 
+      if (boundRevision === null) {
+        throw new Error("草稿修订版尚未确认");
+      }
+
       return saveDomainDraft(domain, serviceType, {
-        revision: draftQuery.data?.revision ?? 0,
+        revision: boundRevision,
         config: localConfig,
         changeSummary: changeSummary.trim(),
       });
     },
     onSuccess: (draft) => {
+      const nextSource: LoadedEditorSource = { scope, kind: "draft", revision: draft.revision };
+
+      loadedEditorSource.current = nextSource;
+      setEditorSource(nextSource);
       queryClient.setQueryData(settingsQueryKeys.draft(domain!, serviceType), draft);
       setLocalConfig(draft.config);
       setDirty(false);
@@ -207,7 +258,7 @@ export default function SettingsEdit() {
   }
 
   const loading = !localConfig && (currentQuery.isPending || draftQuery.isPending);
-  const revision = draftQuery.data?.revision ?? (draftQuery.isSuccess ? 0 : "不可用");
+  const revision = boundRevision ?? "不可用";
   const summaryError = attempted && !changeSummary.trim() ? "请填写本次变更摘要" : null;
   const hasErrors = Object.keys(fieldErrors).length > 0 || Boolean(summaryError) || !localConfig;
 
@@ -402,21 +453,21 @@ export default function SettingsEdit() {
         <div className="mt-6">
           {domain === "sop" ? (
             <SopEditor
-              key={scope}
+              key={`${scope}:${editorSource?.kind}:${boundRevision ?? "unavailable"}`}
               initialValue={localConfig as SopConfig}
               onChange={handleEditorChange}
             />
           ) : null}
           {domain === "rating_threshold" ? (
             <RatingThresholdEditor
-              key={scope}
+              key={`${scope}:${editorSource?.kind}:${boundRevision ?? "unavailable"}`}
               initialValue={localConfig as RatingThresholdConfig}
               onChange={handleEditorChange}
             />
           ) : null}
           {domain === "fee" ? (
             <FeeEditor
-              key={scope}
+              key={`${scope}:${editorSource?.kind}:${boundRevision ?? "unavailable"}`}
               initialValue={localConfig as FeeConfig}
               onChange={handleEditorChange}
             />
@@ -461,10 +512,7 @@ export default function SettingsEdit() {
                 type="button"
                 onClick={submitDraft}
                 disabled={
-                  draftQuery.isPending ||
-                  draftQuery.isError ||
-                  saveMutation.isPending ||
-                  publishMutation.isPending
+                  boundRevision === null || saveMutation.isPending || publishMutation.isPending
                 }
                 className="inline-flex min-h-11 cursor-pointer items-center justify-center gap-2 rounded-lg border border-blue-700 px-4 py-2 font-semibold text-blue-800 outline-none transition-colors duration-200 hover:bg-blue-50 focus-visible:ring-2 focus-visible:ring-blue-800 disabled:cursor-not-allowed disabled:opacity-40 motion-reduce:transition-none"
               >
@@ -499,54 +547,54 @@ export default function SettingsEdit() {
               )}
             </div>
           </div>
-
-          <section
-            className="mt-6 rounded-xl border border-slate-200 bg-white p-4 sm:p-6"
-            aria-labelledby="recent-history-heading"
-          >
-            <h2 id="recent-history-heading" className="text-xl font-semibold text-slate-950">
-              最近发布历史
-            </h2>
-            {historyQuery.isPending ? <p className="mt-3 text-slate-600">正在加载历史…</p> : null}
-            {historyQuery.isError ? (
-              <div
-                role="alert"
-                aria-label="最近发布历史加载失败"
-                className="mt-3 rounded-lg border border-red-200 bg-red-50 p-4 text-red-950"
-              >
-                <p className="font-semibold">最近发布历史加载失败</p>
-                <p className="mt-1 text-sm">配置编辑不受影响，可稍后单独重试历史查询。</p>
-                <button
-                  type="button"
-                  disabled={historyQuery.isFetching}
-                  onClick={() => {
-                    void historyQuery.refetch();
-                  }}
-                  className="mt-3 min-h-11 cursor-pointer rounded-lg border border-red-700 px-4 py-2 font-semibold outline-none hover:bg-red-100 focus-visible:ring-2 focus-visible:ring-red-800 disabled:cursor-not-allowed disabled:opacity-40"
-                >
-                  重新加载发布历史
-                </button>
-              </div>
-            ) : null}
-            {historyQuery.isSuccess && historyQuery.data.list.length === 0 ? (
-              <p className="mt-3 rounded-lg bg-slate-50 p-4 text-slate-600">暂无已发布版本。</p>
-            ) : null}
-            <ul className="mt-3 grid gap-3 sm:grid-cols-2 lg:grid-cols-3">
-              {historyQuery.data?.list.map((item) => (
-                <li key={item.id}>
-                  <Link
-                    to={`/settings/${domain}/history/${item.id}${domain === "sop" ? `?serviceType=${serviceType}` : ""}`}
-                    className="block min-h-11 cursor-pointer rounded-lg border border-slate-200 p-3 outline-none transition-colors duration-200 hover:border-blue-300 hover:bg-blue-50 focus-visible:ring-2 focus-visible:ring-blue-800 motion-reduce:transition-none"
-                  >
-                    <span className="font-semibold text-slate-950">版本 v{item.version}</span>
-                    <span className="mt-1 block text-sm text-slate-600">{item.changeSummary}</span>
-                  </Link>
-                </li>
-              ))}
-            </ul>
-          </section>
         </div>
       ) : null}
+
+      <section
+        className="mt-6 rounded-xl border border-slate-200 bg-white p-4 sm:p-6"
+        aria-labelledby="recent-history-heading"
+      >
+        <h2 id="recent-history-heading" className="text-xl font-semibold text-slate-950">
+          最近发布历史
+        </h2>
+        {historyQuery.isPending ? <p className="mt-3 text-slate-600">正在加载历史…</p> : null}
+        {historyQuery.isError ? (
+          <div
+            role="alert"
+            aria-label="最近发布历史加载失败"
+            className="mt-3 rounded-lg border border-red-200 bg-red-50 p-4 text-red-950"
+          >
+            <p className="font-semibold">最近发布历史加载失败</p>
+            <p className="mt-1 text-sm">配置编辑不受影响，可稍后单独重试历史查询。</p>
+            <button
+              type="button"
+              disabled={historyQuery.isFetching}
+              onClick={() => {
+                void historyQuery.refetch();
+              }}
+              className="mt-3 min-h-11 cursor-pointer rounded-lg border border-red-700 px-4 py-2 font-semibold outline-none hover:bg-red-100 focus-visible:ring-2 focus-visible:ring-red-800 disabled:cursor-not-allowed disabled:opacity-40"
+            >
+              重新加载发布历史
+            </button>
+          </div>
+        ) : null}
+        {historyQuery.isSuccess && historyQuery.data.list.length === 0 ? (
+          <p className="mt-3 rounded-lg bg-slate-50 p-4 text-slate-600">暂无已发布版本。</p>
+        ) : null}
+        <ul className="mt-3 grid gap-3 sm:grid-cols-2 lg:grid-cols-3">
+          {historyQuery.data?.list.map((item) => (
+            <li key={item.id}>
+              <Link
+                to={`/settings/${domain}/history/${item.id}${domain === "sop" ? `?serviceType=${serviceType}` : ""}`}
+                className="block min-h-11 cursor-pointer rounded-lg border border-slate-200 p-3 outline-none transition-colors duration-200 hover:border-blue-300 hover:bg-blue-50 focus-visible:ring-2 focus-visible:ring-blue-800 motion-reduce:transition-none"
+              >
+                <span className="font-semibold text-slate-950">版本 v{item.version}</span>
+                <span className="mt-1 block text-sm text-slate-600">{item.changeSummary}</span>
+              </Link>
+            </li>
+          ))}
+        </ul>
+      </section>
 
       <PublishDialog
         open={dialogOpen}
