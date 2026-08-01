@@ -203,6 +203,75 @@ describe("ComplaintDetail", () => {
     );
   });
 
+  it("预览后修改字段会作废旧快照并提交重新预览的当前值", async () => {
+    const user = userEvent.setup();
+
+    vi.mocked(submitFinalDecision).mockResolvedValue(detail);
+    renderPage({ ...detail, allowedActions: ["final_decide"] });
+    await user.click(await screen.findByRole("button", { name: "作出最终裁决" }));
+    await user.type(screen.getByLabelText("裁决理由"), "新增证据足以支持最终责任认定。");
+    await user.type(screen.getByLabelText("退款金额（分）"), "5000");
+    await user.type(screen.getByLabelText("结算金额（分）"), "5000");
+    await user.click(screen.getByRole("button", { name: "预览裁决影响" }));
+    expect(screen.getByRole("button", { name: "提交最终裁决" })).toBeInTheDocument();
+
+    await user.clear(screen.getByLabelText("退款金额（分）"));
+    await user.type(screen.getByLabelText("退款金额（分）"), "4000");
+    expect(screen.queryByRole("button", { name: "提交最终裁决" })).not.toBeInTheDocument();
+    expect(screen.queryByLabelText("裁决影响预览")).not.toBeInTheDocument();
+
+    await user.click(screen.getByRole("button", { name: "预览裁决影响" }));
+    await user.click(screen.getByRole("button", { name: "提交最终裁决" }));
+    await user.click(screen.getByRole("button", { name: "确认提交" }));
+    expect(submitFinalDecision).toHaveBeenCalledWith(
+      "complaint-1",
+      expect.objectContaining({ refundAmount: 4000, settlementAmount: 5000 }),
+    );
+  });
+
+  it("裁决弹窗圈定焦点、分层响应 Escape 并在关闭后恢复触发按钮焦点", async () => {
+    const user = userEvent.setup();
+
+    renderPage({ ...detail, allowedActions: ["final_decide"] });
+    const trigger = await screen.findByRole("button", { name: "作出最终裁决" });
+
+    await user.click(trigger);
+    expect(screen.getByLabelText("责任划分")).toHaveFocus();
+    await user.tab({ shift: true });
+    expect(screen.getByRole("button", { name: "预览裁决影响" })).toHaveFocus();
+    await user.tab();
+    expect(screen.getByLabelText("责任划分")).toHaveFocus();
+
+    await user.type(screen.getByLabelText("裁决理由"), "新增证据足以支持最终责任认定。");
+    await user.click(screen.getByRole("button", { name: "预览裁决影响" }));
+    await user.click(screen.getByRole("button", { name: "提交最终裁决" }));
+    expect(screen.getAllByRole("dialog")).toHaveLength(1);
+    expect(screen.getByRole("button", { name: "返回检查" })).toHaveFocus();
+    await user.keyboard("{Escape}");
+    expect(screen.getByRole("heading", { name: "作出最终裁决" })).toBeInTheDocument();
+    expect(screen.getByLabelText("责任划分")).toHaveFocus();
+    await user.keyboard("{Escape}");
+    expect(screen.queryByRole("dialog")).not.toBeInTheDocument();
+    expect(trigger).toHaveFocus();
+  });
+
+  it("转派弹窗自动聚焦、圈定焦点并在 Escape 后恢复触发按钮焦点", async () => {
+    const user = userEvent.setup();
+
+    renderPage({ ...detail, allowedActions: ["transfer"] });
+    const trigger = await screen.findByRole("button", { name: "转派案件" });
+
+    await user.click(trigger);
+    expect(screen.getByLabelText("目标管理员 ID")).toHaveFocus();
+    await user.tab({ shift: true });
+    expect(screen.getByRole("button", { name: "确认转派" })).toHaveFocus();
+    await user.tab();
+    expect(screen.getByLabelText("目标管理员 ID")).toHaveFocus();
+    await user.keyboard("{Escape}");
+    expect(screen.queryByRole("dialog")).not.toBeInTheDocument();
+    expect(trigger).toHaveFocus();
+  });
+
   it("发生 409 时提示案件状态变化并刷新详情", async () => {
     const user = userEvent.setup();
 
