@@ -90,6 +90,190 @@
       "alt": "PetCare 宠伴 horizontal logo in white."
     },
     {
+      "id": "logo.horizontal.color.32h.png",
+      "path": "logo/png/petcare-logo-horizontal-color-32h.png",
+      "kind": "logo",
+      "width": 139,
+      "height": 32,
+      "format": "png",
+      "source": "logo/svg/petcare-logo-horizontal-color.svg"
+    },
+    {
+      "id": "logo.horizontal.color.64h.png",
+      "path": "logo/png/petcare-logo-horizontal-color-64h.png",
+      "kind": "logo",
+      "width": 278,
+      "height": 64,
+      "format": "png",
+      "source": "logo/svg/petcare-logo-horizontal-color.svg"
+    },
+    {
+      "id": "logo.horizontal.color.96h.png",
+      "path": "logo/png/petcare-logo-horizontal-color-96h.png",
+      "kind": "logo",
+      "width": 417,
+      "height": 96,
+      "format": "png",
+      "source": "logo/svg/petcare-logo-horizontal-color.svg"
+    },
+    {
+      "id": "logo.symbol.color.16.png",
+      "path": "logo/png/petcare-symbol-color-16.png",
+      "kind": "logo", "width": 16, "height": 16, "format": "png",
+      "source": "logo/svg/petcare-symbol-color.svg"
+    },
+    {
+      "id": "logo.symbol.color.20.png",
+      "path": "logo/png/petcare-symbol-color-20.png",
+      "kind": "logo", "width": 20, "height": 20, "format": "png",
+      "source": "logo/svg/petcare-symbol-color.svg"
+    },
+    {
+      "id": "logo.symbol.color.24.png",
+      "path": "logo/png/petcare-symbol-color-24.png",
+      "kind": "logo", "width": 24, "height": 24, "format": "png",
+      "source": "logo/svg/petcare-symbol-color.svg"
+    },
+    {
+      "id": "logo.symbol.color.28.png",
+      "path": "logo/png/petcare-symbol-color-28.png",
+      "kind": "logo", "width": 28, "height": 28, "format": "png",
+      "source": "logo/svg/petcare-symbol-color.svg"
+    },
+    {
+      "id": "logo.symbol.color.32.png",
+      "path": "logo/png/petcare-symbol-color-32.png",
+      "kind": "logo", "width": 32, "height": 32, "format": "png",
+      "source": "logo/svg/petcare-symbol-color.svg"
+    },
+    {
+      "id": "logo.symbol.color.48.png",
+      "path": "logo/png/petcare-symbol-color-48.png",
+      "kind": "logo", "width": 48, "height": 48, "format": "png",
+      "source": "logo/svg/petcare-symbol-color.svg"
+    },
+    {
+      "id": "logo.symbol.color.64.png",
+      "path": "logo/png/petcare-symbol-color-64.png",
+      "kind": "logo", "width": 64, "height": 64, "format": "png",
+      "source": "logo/svg/petcare-symbol-color.svg"
+    },
+    {
+      "id": "logo.symbol.color.128.png",
+      "path": "logo/png/petcare-symbol-color-128.png",
+      "kind": "logo", "width": 128, "height": 128, "format": "png",
+      "source": "logo/svg/petcare-symbol-color.svg"
+    },
+    {
+      "id": "logo.symbol.color.256.png",
+      "path": "logo/png/petcare-symbol-color-256.png",
+      "kind": "logo", "width": 256, "height": 256, "format": "png",
+      "source": "logo/svg/petcare-symbol-color.svg"
+    },
+    {
+      "id": "logo.symbol.color.512.png",
+      "path": "logo/png/petcare-symbol-color-512.png",
+      "kind": "logo", "width": 512, "height": 512, "format": "png",
+      "source": "logo/svg/petcare-symbol-color.svg"
+    },
+    {
+      "id": "logo.symbol.color.1024.png",
+      "path": "logo/png/petcare-symbol-color-1024.png",
+      "kind": "logo", "width": 1024, "height": 1024, "format": "png",
+      "source": "logo/svg/petcare-symbol-color.svg"
+    },
+    {
+      "id": "logo.favicon.svg",
+      "path": "logo/favicon/petcare-favicon.svg",
+      "kind": "logo", "width": 128, "height": 128, "format": "svg",
+      "source": "logo/svg/petcare-symbol-color.svg"
+    },
+    {
+      "id": "logo.favicon.16.png",
+      "path": "logo/favicon/petcare-favicon-16.png",
+      "kind": "logo", "width": 16, "height": 16, "format": "png",
+      "source": "logo/svg/petcare-symbol-color.svg"
+    },
+    {
+      "id": "logo.favicon.32.png",
+      "path": "logo/favicon/petcare-favicon-32.png",
+      "kind": "logo", "width": 32, "height": 32, "format": "png",
+      "source": "logo/svg/petcare-symbol-color.svg"
+    },
+    {
+      "id": "logo.favicon.48.png",
+      "path": "logo/favicon/petcare-favicon-48.png",
+      "kind": "logo", "width": 48, "height": 48, "format": "png",
+      "source": "logo/svg/petcare-symbol-color.svg"
+    },
+    {
+      "id": "logo.favicon.ico",
+      "path": "logo/favicon/petcare-favicon.ico",
+      "kind": "logo", "width": 48, "height": 48, "format": "ico",
+      "sizes": [16, 32, 48],
+      "source": "logo/svg/petcare-symbol-color.svg"
+    },
+    {
+      "id": "logo.app-icon.32.png",
+      "path": "logo/app-icons/petcare-app-icon-32.png",
+      "kind": "logo", "width": 32, "height": 32, "format": "png",
+      "source": "logo/svg/petcare-symbol-color.svg"
+    },
+    {
+      "id": "logo.app-icon.48.png",
+      "path": "logo/app-icons/petcare-app-icon-48.png",
+      "kind": "logo", "width": 48, "height": 48, "format": "png",
+      "source": "logo/svg/petcare-symbol-color.svg"
+    },
+    {
+      "id": "logo.app-icon.64.png",
+      "path": "logo/app-icons/petcare-app-icon-64.png",
+      "kind": "logo", "width": 64, "height": 64, "format": "png",
+      "source": "logo/svg/petcare-symbol-color.svg"
+    },
+    {
+      "id": "logo.app-icon.96.png",
+      "path": "logo/app-icons/petcare-app-icon-96.png",
+      "kind": "logo", "width": 96, "height": 96, "format": "png",
+      "source": "logo/svg/petcare-symbol-color.svg"
+    },
+    {
+      "id": "logo.app-icon.128.png",
+      "path": "logo/app-icons/petcare-app-icon-128.png",
+      "kind": "logo", "width": 128, "height": 128, "format": "png",
+      "source": "logo/svg/petcare-symbol-color.svg"
+    },
+    {
+      "id": "logo.app-icon.144.png",
+      "path": "logo/app-icons/petcare-app-icon-144.png",
+      "kind": "logo", "width": 144, "height": 144, "format": "png",
+      "source": "logo/svg/petcare-symbol-color.svg"
+    },
+    {
+      "id": "logo.app-icon.180.png",
+      "path": "logo/app-icons/petcare-app-icon-180.png",
+      "kind": "logo", "width": 180, "height": 180, "format": "png",
+      "source": "logo/svg/petcare-symbol-color.svg"
+    },
+    {
+      "id": "logo.app-icon.192.png",
+      "path": "logo/app-icons/petcare-app-icon-192.png",
+      "kind": "logo", "width": 192, "height": 192, "format": "png",
+      "source": "logo/svg/petcare-symbol-color.svg"
+    },
+    {
+      "id": "logo.app-icon.512.png",
+      "path": "logo/app-icons/petcare-app-icon-512.png",
+      "kind": "logo", "width": 512, "height": 512, "format": "png",
+      "source": "logo/svg/petcare-symbol-color.svg"
+    },
+    {
+      "id": "logo.app-icon.1024.png",
+      "path": "logo/app-icons/petcare-app-icon-1024.png",
+      "kind": "logo", "width": 1024, "height": 1024, "format": "png",
+      "source": "logo/svg/petcare-symbol-color.svg"
+    },
+    {
       "id": "hero.trusted-care.desktop.png",
       "path": "hero/desktop/hero-trusted-care-desktop-v1.png",
       "kind": "hero",
