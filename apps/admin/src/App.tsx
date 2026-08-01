@@ -6,6 +6,7 @@ import Dashboard from "./pages/Dashboard";
 import Login from "./pages/Login";
 import OrderManagement from "./pages/OrderManagement";
 import ComplaintWorkQueue from "./pages/OrderManagement/Complaint";
+import ComplaintDetail from "./pages/OrderManagement/Complaint/Detail";
 import Settings from "./pages/Settings";
 import UserManagement from "./pages/UserManagement";
 import ProviderCertificationList from "./pages/UserManagement/Certification";
@@ -25,6 +26,7 @@ function App() {
               <Route path="users/certifications/:id" element={<ProviderCertificationDetail />} />
               <Route path="orders" element={<OrderManagement />} />
               <Route path="orders/complaints" element={<ComplaintWorkQueue />} />
+              <Route path="orders/complaints/:id" element={<ComplaintDetail />} />
               <Route path="settings" element={<Settings />} />
             </Route>
           </Route>

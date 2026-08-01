@@ -22,6 +22,10 @@ vi.mock("./pages/OrderManagement/Complaint", () => ({
   default: () => "投诉工作队列路由",
 }));
 
+vi.mock("./pages/OrderManagement/Complaint/Detail", () => ({
+  default: () => "投诉卷宗详情路由",
+}));
+
 describe("App complaint routes", () => {
   beforeEach(() => {
     window.history.replaceState({}, "", "/orders/complaints");
@@ -31,5 +35,11 @@ describe("App complaint routes", () => {
     render(<App />);
 
     expect(await screen.findByText("投诉工作队列路由")).toBeInTheDocument();
+  });
+
+  it("注册投诉卷宗详情路由", async () => {
+    window.history.replaceState({}, "", "/orders/complaints/complaint-1");
+    render(<App />);
+    expect(await screen.findByText("投诉卷宗详情路由")).toBeInTheDocument();
   });
 });

@@ -1,8 +1,8 @@
 import type {
   AdminComplaintListQuery,
   AdminComplaintListResponse,
+  AdminComplaintDetail,
   ClaimComplaintRequest,
-  ComplaintDetail,
   DisputeExecutionTaskListResponse,
   RetryDisputeExecutionTaskResponse,
   SubmitDisputeDecisionRequest,
@@ -20,8 +20,8 @@ export async function fetchAdminComplaints(
 }
 
 /** 查询指定投诉纠纷的后台详情。 */
-export async function fetchAdminComplaint(id: string): Promise<ComplaintDetail> {
-  const response = await apiClient.get<ComplaintDetail>(`/admin/complaints/${id}`);
+export async function fetchAdminComplaint(id: string): Promise<AdminComplaintDetail> {
+  const response = await apiClient.get<AdminComplaintDetail>(`/admin/complaints/${id}`);
 
   return response.data;
 }
@@ -30,8 +30,11 @@ export async function fetchAdminComplaint(id: string): Promise<ComplaintDetail> 
 export async function claimAdminComplaint(
   id: string,
   request: ClaimComplaintRequest,
-): Promise<ComplaintDetail> {
-  const response = await apiClient.post<ComplaintDetail>(`/admin/complaints/${id}/claim`, request);
+): Promise<AdminComplaintDetail> {
+  const response = await apiClient.post<AdminComplaintDetail>(
+    `/admin/complaints/${id}/claim`,
+    request,
+  );
 
   return response.data;
 }
@@ -40,8 +43,8 @@ export async function claimAdminComplaint(
 export async function transferAdminComplaint(
   id: string,
   request: TransferComplaintRequest,
-): Promise<ComplaintDetail> {
-  const response = await apiClient.post<ComplaintDetail>(
+): Promise<AdminComplaintDetail> {
+  const response = await apiClient.post<AdminComplaintDetail>(
     `/admin/complaints/${id}/transfer`,
     request,
   );
@@ -53,8 +56,8 @@ export async function transferAdminComplaint(
 export async function submitInitialDecision(
   id: string,
   request: SubmitDisputeDecisionRequest,
-): Promise<ComplaintDetail> {
-  const response = await apiClient.post<ComplaintDetail>(
+): Promise<AdminComplaintDetail> {
+  const response = await apiClient.post<AdminComplaintDetail>(
     `/admin/complaints/${id}/decisions/initial`,
     request,
   );
@@ -66,8 +69,8 @@ export async function submitInitialDecision(
 export async function submitFinalDecision(
   id: string,
   request: SubmitDisputeDecisionRequest,
-): Promise<ComplaintDetail> {
-  const response = await apiClient.post<ComplaintDetail>(
+): Promise<AdminComplaintDetail> {
+  const response = await apiClient.post<AdminComplaintDetail>(
     `/admin/complaints/${id}/decisions/final`,
     request,
   );

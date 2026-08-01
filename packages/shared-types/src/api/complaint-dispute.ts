@@ -330,6 +330,36 @@ export interface ComplaintDetail {
   updatedAt: string;
 }
 
+/** 后台投诉详情使用的订单摘要。 */
+export interface AdminComplaintOrderSummary {
+  /** 订单唯一标识。 */
+  id: string;
+  /** 订单业务模式。 */
+  orderType: string;
+  /** 订单服务类型。 */
+  serviceType: string;
+  /** 订单可用于退款与结算分配的总金额，单位为分。 */
+  allocatableAmount: number;
+  /** 订单当前状态。 */
+  status: string;
+  /** ISO 8601 格式的预约服务时间。 */
+  serviceTime: string;
+}
+
+/** 仅供后台管理员使用的投诉卷宗详情。 */
+export interface AdminComplaintDetail extends ComplaintDetail {
+  /** 供运营人员识别与检索的稳定案件编号。 */
+  caseNumber: string;
+  /** 关联订单的裁决所需摘要。 */
+  order: AdminComplaintOrderSummary;
+  /** 投诉方后台展示摘要。 */
+  complainant: AdminComplaintUserSummary;
+  /** 被投诉方后台展示摘要。 */
+  respondent: AdminComplaintUserSummary;
+  /** 当前负责人后台展示摘要；未认领时为空。 */
+  handler: AdminComplaintUserSummary | null;
+}
+
 /** 提交投诉纠纷裁决的请求参数。 */
 export interface SubmitDisputeDecisionRequest {
   /** 责任划分。 */

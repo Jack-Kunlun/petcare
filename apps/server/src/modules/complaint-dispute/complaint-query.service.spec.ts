@@ -275,6 +275,18 @@ describe("ComplaintQueryService", () => {
       complaintRecord({
         status: COMPLAINT_STATUS.PROCESSING_INITIAL,
         assignedAdminId: "admin-1",
+        caseNumber: "CP1234567890ABCDEF1234567890ABCDEF",
+        order: {
+          id: "order-1",
+          orderType: "reward",
+          serviceType: "feeding",
+          amount: 8800,
+          status: "completed",
+          serviceTime: createdAt,
+        },
+        complainant: { id: "owner-1", nickname: "豆包家长", phone: "17600000001" },
+        respondent: { id: "provider-1", nickname: "安心宠护", phone: "17600000002" },
+        assignedAdmin: { id: "admin-1", nickname: "值班管理员", phone: "17600000003" },
       }),
     );
 
@@ -299,6 +311,11 @@ describe("ComplaintQueryService", () => {
     ]);
     expect(assignedView).toMatchObject({
       id: "complaint-1",
+      caseNumber: "CP1234567890ABCDEF1234567890ABCDEF",
+      order: { id: "order-1", allocatableAmount: 8800 },
+      complainant: { id: "owner-1", phone: "17600000001" },
+      respondent: { id: "provider-1", phone: "17600000002" },
+      handler: { id: "admin-1" },
       handlerId: "admin-1",
       createdAt: createdAt.toISOString(),
       updatedAt: updatedAt.toISOString(),

@@ -4,6 +4,8 @@ import {
   COMPLAINT_STATUS,
   type AdminComplaintListItem,
   type AdminComplaintListResponse,
+  type AdminComplaintDetail,
+  type AdminComplaintOrderSummary,
   type AdminComplaintUserSummary,
   type ComplaintAction,
   type ComplaintDetail,
@@ -286,4 +288,46 @@ export class ComplaintResponseDto implements ComplaintDetail {
 
   @ApiProperty({ format: "date-time" })
   updatedAt: string;
+}
+
+/** 后台投诉详情中的订单裁决摘要。 */
+export class AdminComplaintOrderSummaryDto implements AdminComplaintOrderSummary {
+  @ApiProperty({ format: "uuid" })
+  id: string;
+
+  @ApiProperty()
+  orderType: string;
+
+  @ApiProperty()
+  serviceType: string;
+
+  @ApiProperty({ minimum: 0, description: "裁决可分配的订单总金额，单位为分" })
+  allocatableAmount: number;
+
+  @ApiProperty()
+  status: string;
+
+  @ApiProperty({ format: "date-time" })
+  serviceTime: string;
+}
+
+/** 管理员可见的投诉卷宗详情 Swagger 模型。 */
+export class AdminComplaintResponseDto
+  extends ComplaintResponseDto
+  implements AdminComplaintDetail
+{
+  @ApiProperty()
+  caseNumber: string;
+
+  @ApiProperty({ type: AdminComplaintOrderSummaryDto })
+  order: AdminComplaintOrderSummaryDto;
+
+  @ApiProperty({ type: AdminComplaintListUserSummaryDto })
+  complainant: AdminComplaintListUserSummaryDto;
+
+  @ApiProperty({ type: AdminComplaintListUserSummaryDto })
+  respondent: AdminComplaintListUserSummaryDto;
+
+  @ApiProperty({ type: AdminComplaintListUserSummaryDto, nullable: true })
+  handler: AdminComplaintListUserSummaryDto | null;
 }

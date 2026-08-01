@@ -27,7 +27,10 @@ import { ComplaintQueryService } from "./complaint-query.service";
 import { DisputeDecisionService } from "./dispute-decision.service";
 import { DisputeExecutionService } from "./dispute-execution.service";
 import { AdminComplaintListQueryDto } from "./dto/admin-complaint-list-query.dto";
-import { AdminComplaintListResponseDto, ComplaintResponseDto } from "./dto/complaint-response.dto";
+import {
+  AdminComplaintListResponseDto,
+  AdminComplaintResponseDto,
+} from "./dto/complaint-response.dto";
 import {
   DisputeExecutionTaskListResponseDto,
   RetryDisputeExecutionTaskResponseDto,
@@ -61,7 +64,7 @@ export class AdminComplaintController {
   /** 返回管理员视角的投诉案件详情。 */
   @Get(":id")
   @ApiOperation({ summary: "获取后台投诉案件详情" })
-  @ApiSuccessResponse(ComplaintResponseDto)
+  @ApiSuccessResponse(AdminComplaintResponseDto)
   @ApiStandardErrors(400, 401, 403, 404, 500)
   findOne(@Param("id", new ParseUUIDPipe()) id: string, @Req() request: AuthRequest) {
     return this.queryService.findForAdmin(id, this.actor(request));
@@ -84,7 +87,7 @@ export class AdminComplaintController {
   @Post(":id/claim")
   @HttpCode(HttpStatus.OK)
   @ApiOperation({ summary: "认领投诉案件" })
-  @ApiSuccessResponse(ComplaintResponseDto)
+  @ApiSuccessResponse(AdminComplaintResponseDto)
   @ApiStandardErrors(400, 401, 403, 404, 409, 500)
   async claim(
     @Param("id", new ParseUUIDPipe()) id: string,
@@ -102,7 +105,7 @@ export class AdminComplaintController {
   @Post(":id/transfer")
   @HttpCode(HttpStatus.OK)
   @ApiOperation({ summary: "转交投诉案件" })
-  @ApiSuccessResponse(ComplaintResponseDto)
+  @ApiSuccessResponse(AdminComplaintResponseDto)
   @ApiStandardErrors(400, 401, 403, 404, 409, 500)
   async transfer(
     @Param("id", new ParseUUIDPipe()) id: string,
@@ -120,7 +123,7 @@ export class AdminComplaintController {
   @Post(":id/decisions/initial")
   @HttpCode(HttpStatus.OK)
   @ApiOperation({ summary: "提交投诉案件初裁" })
-  @ApiSuccessResponse(ComplaintResponseDto)
+  @ApiSuccessResponse(AdminComplaintResponseDto)
   @ApiStandardErrors(400, 401, 403, 404, 409, 500)
   async decideInitial(
     @Param("id", new ParseUUIDPipe()) id: string,
@@ -138,7 +141,7 @@ export class AdminComplaintController {
   @Post(":id/decisions/final")
   @HttpCode(HttpStatus.OK)
   @ApiOperation({ summary: "提交投诉案件终裁" })
-  @ApiSuccessResponse(ComplaintResponseDto)
+  @ApiSuccessResponse(AdminComplaintResponseDto)
   @ApiStandardErrors(400, 401, 403, 404, 409, 500)
   async decideFinal(
     @Param("id", new ParseUUIDPipe()) id: string,
