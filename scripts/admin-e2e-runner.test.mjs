@@ -1,4 +1,6 @@
 import assert from "node:assert/strict";
+import { fork } from "node:child_process";
+import { once } from "node:events";
 import { readFile } from "node:fs/promises";
 import test from "node:test";
 import { fileURLToPath } from "node:url";
@@ -8,10 +10,12 @@ import {
   createAdminE2eSchemaName,
   runWithIsolatedAdminSchema,
   shouldLoadLocalEnvironment,
+  startApplicationServers,
 } from "../apps/admin/e2e/run-e2e.mjs";
 
 const repositoryDirectory = path.resolve(path.dirname(fileURLToPath(import.meta.url)), "..");
 const adminDirectory = path.join(repositoryDirectory, "apps", "admin");
+const signalFixture = path.join(repositoryDirectory, "scripts", "fixtures", "admin-e2e-signal.mjs");
 
 test("标准 Admin E2E 命令固定进入版本控制内的隔离 runner", async () => {
   const packageJson = JSON.parse(await readFile(path.join(adminDirectory, "package.json"), "utf8"));
@@ -115,4 +119,69 @@ test("服务关闭失败仍执行 DROP IF EXISTS", async () => {
 
   assert.deepEqual(calls.at(-2), "close");
   assert.deepEqual(calls.at(-1), "drop-if-exists");
+});
+
+for (const [processSignal, expectedCode] of [
+  ["SIGINT", 130],
+  ["SIGTERM", 143],
+]) {
+  test(`${processSignal} 会等待 close 与 drop 完成后按信号语义退出`, async () => {
+    const child = fork(signalFixture, { silent: true });
+    const messages = [];
+
+    child.on("message", (message) => messages.push(message));
+    const [ready] = await once(child, "message");
+
+    assert.equal(ready, "ready");
+    child.send(processSignal);
+
+    const [exitCode, signal] = await once(child, "exit");
+
+    assert.equal(signal, null);
+    assert.equal(exitCode, expectedCode);
+    assert.deepEqual(messages, ["ready", "close", "drop"]);
+  });
+}
+
+test("应用部分启动失败时继续关闭全部进程并聚合启动与清理错误", async () => {
+  const startupError = new Error("Admin failed to become ready");
+  const stopError = new Error("Admin failed to stop");
+  const server = { name: "server" };
+  const admin = { name: "admin" };
+  const children = [server, admin];
+  const stopped = [];
+  let readinessChecks = 0;
+
+  await assert.rejects(
+    startApplicationServers(
+      {
+        ADMIN_E2E_SERVER_PORT: "3001",
+        ADMIN_E2E_ADMIN_PORT: "8987",
+      },
+      undefined,
+      {
+        spawnProcess: () => children.shift(),
+        waitForServer: async () => {
+          readinessChecks += 1;
+          if (readinessChecks === 2) {
+            throw startupError;
+          }
+        },
+        stopChild: async (child) => {
+          stopped.push(child.name);
+          if (child === admin) {
+            throw stopError;
+          }
+        },
+      },
+    ),
+    (error) => {
+      assert(error instanceof AggregateError);
+      assert.deepEqual(error.errors, [startupError, stopError]);
+      assert.equal(error.cause, startupError);
+      return true;
+    },
+  );
+
+  assert.deepEqual(stopped, ["admin", "server"]);
 });
