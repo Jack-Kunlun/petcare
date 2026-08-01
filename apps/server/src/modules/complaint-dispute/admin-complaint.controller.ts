@@ -28,6 +28,10 @@ import { DisputeDecisionService } from "./dispute-decision.service";
 import { DisputeExecutionService } from "./dispute-execution.service";
 import { AdminComplaintListQueryDto } from "./dto/admin-complaint-list-query.dto";
 import { ComplaintListResponseDto, ComplaintResponseDto } from "./dto/complaint-response.dto";
+import {
+  DisputeExecutionTaskListResponseDto,
+  RetryDisputeExecutionTaskResponseDto,
+} from "./dto/dispute-execution-response.dto";
 import { SubmitDisputeDecisionDto } from "./dto/submit-dispute-decision.dto";
 import { ClaimComplaintDto, TransferComplaintDto } from "./dto/transfer-complaint.dto";
 
@@ -65,6 +69,7 @@ export class AdminComplaintController {
 
   /** 分页返回指定投诉的裁决执行任务。 */
   @Get(":id/execution-tasks")
+  @ApiSuccessResponse(DisputeExecutionTaskListResponseDto)
   @ApiOperation({ summary: "获取投诉裁决执行任务" })
   @ApiStandardErrors(400, 401, 403, 500)
   findExecutionTasks(
@@ -149,6 +154,7 @@ export class AdminComplaintController {
 
   /** 仅重试当前投诉下仍为失败状态的裁决执行任务。 */
   @Post(":id/execution-tasks/:taskId/retry")
+  @ApiSuccessResponse(RetryDisputeExecutionTaskResponseDto)
   @HttpCode(HttpStatus.OK)
   @ApiOperation({ summary: "重试失败的投诉裁决执行任务" })
   @ApiStandardErrors(400, 401, 403, 404, 409, 500)

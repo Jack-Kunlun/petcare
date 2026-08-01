@@ -1,6 +1,7 @@
 import { Injectable, type OnModuleDestroy, type OnModuleInit } from "@nestjs/common";
 import { COMPLAINT_STATUS, DECISION_LEVEL } from "@petcare/shared-types";
 import type { Prisma } from "../../generated/prisma/client";
+import { AppLogger } from "../../logging/app-logger.service";
 import { PrismaService } from "../../prisma/prisma.service";
 import { DisputeExecutionService } from "./dispute-execution.service";
 
@@ -40,6 +41,7 @@ export class ComplaintDeadlineService implements OnModuleInit, OnModuleDestroy {
   constructor(
     private readonly prisma: PrismaService,
     private readonly executionService: DisputeExecutionService,
+    private readonly logger: AppLogger,
   ) {}
 
   /** 启动每分钟一次且不阻止进程退出的有界维护任务。 */
@@ -88,9 +90,18 @@ export class ComplaintDeadlineService implements OnModuleInit, OnModuleDestroy {
 
     try {
       await this.closeExpiredAppealWindows(new Date());
+    } catch (error) {
+      this.logger.write("error", "complaint.deadline_maintenance_failed", {
+        error: this.errorMessage(error),
+      });
+    }
+
+    try {
       await this.executionService.processDueTasks(MAX_EXPIRED_BATCH_SIZE);
-    } catch {
-      // 单次维护失败由任务状态保留，下一分钟继续尝试。
+    } catch (error) {
+      this.logger.write("error", "complaint.execution_maintenance_failed", {
+        error: this.errorMessage(error),
+      });
     } finally {
       this.maintenanceRunning = false;
     }
@@ -154,39 +165,17 @@ export class ComplaintDeadlineService implements OnModuleInit, OnModuleDestroy {
       return false;
     }
 
-    const finalDecision = await transaction.disputeDecision.upsert({
-      where: {
-        complaintId_level: {
-          complaintId: complaint.id,
-          level: DECISION_LEVEL.FINAL,
-        },
-      },
-      create: {
-        complaintId: complaint.id,
-        decisionAdminId: initialDecision.decisionAdminId,
-        level: DECISION_LEVEL.FINAL,
-        liability: initialDecision.liability,
-        reason: initialDecision.reason,
-        refundAmount: initialDecision.refundAmount,
-        settlementAmount: initialDecision.settlementAmount,
-        complainantCreditDelta: initialDecision.complainantCreditDelta,
-        respondentCreditDelta: initialDecision.respondentCreditDelta,
-        createdAt: now,
-      },
-      update: {},
-      select: { id: true },
-    });
     const tasks = this.finalTasks(complaint, initialDecision);
 
     if (tasks.length > 0) {
       await transaction.disputeExecutionTask.createMany({
         data: tasks.map((task) => ({
           complaintId: complaint.id,
-          decisionId: finalDecision.id,
-          decisionLevel: DECISION_LEVEL.FINAL,
+          decisionId: initialDecision.id,
+          decisionLevel: DECISION_LEVEL.INITIAL,
           taskType: task.taskType,
           payload: task.payload,
-          idempotencyKey: `${complaint.id}:${DECISION_LEVEL.FINAL}:${task.taskType}`,
+          idempotencyKey: `${complaint.id}:${DECISION_LEVEL.INITIAL}:${task.taskType}`,
         })),
         skipDuplicates: true,
       });
@@ -201,7 +190,6 @@ export class ComplaintDeadlineService implements OnModuleInit, OnModuleDestroy {
         toStatus: COMPLAINT_STATUS.CLOSED,
         payload: JSON.stringify({
           initialDecisionId: initialDecision.id,
-          finalDecisionId: finalDecision.id,
         }),
         createdAt: now,
       },
@@ -253,5 +241,10 @@ export class ComplaintDeadlineService implements OnModuleInit, OnModuleDestroy {
     return tasks
       .filter((task) => task.value !== 0)
       .map(({ taskType, payload }) => ({ taskType, payload }));
+  }
+
+  /** 将未知维护异常压缩为可安全记录的结构化字段。 */
+  private errorMessage(error: unknown): string {
+    return error instanceof Error ? error.message : "Unknown maintenance error";
   }
 }

@@ -1,5 +1,6 @@
 import { Module } from "@nestjs/common";
 import { AuthModule } from "../../auth/auth.module";
+import { LoggingModule } from "../../logging/logging.module";
 import { PrismaModule } from "../../prisma/prisma.module";
 import { AdminComplaintController } from "./admin-complaint.controller";
 import { ComplaintCommandService } from "./complaint-command.service";
@@ -10,7 +11,7 @@ import { DisputeDecisionService } from "./dispute-decision.service";
 import { DisputeExecutionService } from "./dispute-execution.service";
 
 @Module({
-  imports: [AuthModule, PrismaModule],
+  imports: [AuthModule, PrismaModule, LoggingModule],
   controllers: [ComplaintController, AdminComplaintController],
   providers: [
     ComplaintCommandService,

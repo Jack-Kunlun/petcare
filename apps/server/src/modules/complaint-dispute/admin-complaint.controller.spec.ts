@@ -13,8 +13,13 @@ import supertest from "supertest";
 import { AppModule } from "../../app.module";
 import { AccessTokenGuard } from "../../auth/access-token.guard";
 import { DisputeResolverGuard } from "../../auth/dispute-resolver.guard";
+import { ConfigService } from "../../config/config.service";
+import { RedisService } from "../../config/redis.service";
+import { AppLogger } from "../../logging/app-logger.service";
+import { PrismaService } from "../../prisma/prisma.service";
 import { AdminComplaintController } from "./admin-complaint.controller";
 import { ComplaintCommandService } from "./complaint-command.service";
+import { ComplaintDeadlineService } from "./complaint-deadline.service";
 import { ComplaintDisputeModule } from "./complaint-dispute.module";
 import { ComplaintQueryService } from "./complaint-query.service";
 import { DisputeDecisionService } from "./dispute-decision.service";
@@ -184,6 +189,12 @@ describe("AdminComplaintController", () => {
     );
     expect(Reflect.getMetadata(METHOD_METADATA, retryHandler)).toBe(RequestMethod.POST);
     expect(Reflect.getMetadata(HTTP_CODE_METADATA, retryHandler)).toBe(HttpStatus.OK);
+    expect(JSON.stringify(Reflect.getMetadata("swagger/apiResponse", listHandler))).toContain(
+      "DisputeExecutionTaskListResponseDto",
+    );
+    expect(JSON.stringify(Reflect.getMetadata("swagger/apiResponse", retryHandler))).toContain(
+      "RetryDisputeExecutionTaskResponseDto",
+    );
   });
 
   it.each(["claim", "transfer", "decideInitial", "decideFinal"] as const)(
@@ -290,5 +301,28 @@ describe("AdminComplaintController", () => {
     } finally {
       await app?.close();
     }
+  });
+
+  it("compiles the real complaint module with only external boundaries replaced", async () => {
+    const moduleReference = await Test.createTestingModule({
+      imports: [ComplaintDisputeModule],
+    })
+      .overrideProvider(PrismaService)
+      .useValue({})
+      .overrideProvider(RedisService)
+      .useValue({})
+      .overrideProvider(ConfigService)
+      .useValue({
+        nodeEnv: "test",
+        jwtSecret: "test-secret-that-is-at-least-32-characters",
+      })
+      .overrideProvider(AppLogger)
+      .useValue({ write: jest.fn() })
+      .compile();
+
+    expect(moduleReference.get(ComplaintCommandService)).toBeInstanceOf(ComplaintCommandService);
+    expect(moduleReference.get(ComplaintDeadlineService)).toBeInstanceOf(ComplaintDeadlineService);
+
+    await moduleReference.close();
   });
 });

@@ -65,6 +65,8 @@ export const DISPUTE_EXECUTION_TASK_STATUS = {
   SUCCEEDED: "succeeded",
   /** 最近一次执行失败，可由维护任务或管理员重试。 */
   FAILED: "failed",
+  /** 来源裁决已被最终裁决取代，不再允许产生业务副作用。 */
+  SUPERSEDED: "superseded",
 } as const;
 
 /** 裁决执行任务的处理状态。 */

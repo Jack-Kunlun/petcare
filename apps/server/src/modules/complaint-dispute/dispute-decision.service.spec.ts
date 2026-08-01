@@ -14,7 +14,7 @@ describe("DisputeDecisionService", () => {
       create: jest.fn(),
     },
     complaintEvent: { create: jest.fn() },
-    disputeExecutionTask: { create: jest.fn() },
+    disputeExecutionTask: { create: jest.fn(), updateMany: jest.fn() },
   };
   const prisma = {
     $transaction: jest.fn((callback: (tx: typeof transaction) => unknown) => callback(transaction)),
@@ -157,6 +157,20 @@ describe("DisputeDecisionService", () => {
       { id: "admin-1", roles: ["complaint_admin"] },
       { ...validRequest, version: 5 },
     );
+
+    expect(transaction.disputeExecutionTask.updateMany).toHaveBeenCalledWith({
+      where: {
+        complaintId: "complaint-1",
+        decisionLevel: DECISION_LEVEL.INITIAL,
+        status: { in: ["pending", "failed"] },
+      },
+      data: {
+        status: "superseded",
+        failureReason: null,
+        completedAt: new Date("2026-08-05T12:00:00.000Z"),
+        updatedAt: new Date("2026-08-05T12:00:00.000Z"),
+      },
+    });
 
     expect(transaction.disputeDecision.create).toHaveBeenCalledWith({
       data: expect.objectContaining({

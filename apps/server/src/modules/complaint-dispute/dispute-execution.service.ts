@@ -43,31 +43,14 @@ export class DisputeExecutionService {
   ): Promise<DisputeExecutionTaskView> {
     const task = await this.findTask(taskId);
 
-    if (task.status === DISPUTE_EXECUTION_TASK_STATUS.SUCCEEDED) {
+    if (
+      task.status === DISPUTE_EXECUTION_TASK_STATUS.SUCCEEDED ||
+      task.status === DISPUTE_EXECUTION_TASK_STATUS.SUPERSEDED
+    ) {
       return this.toView(task);
     }
 
     const now = new Date();
-    const claimed = await this.prisma.disputeExecutionTask.updateMany({
-      where: {
-        id: taskId,
-        status: {
-          in: [DISPUTE_EXECUTION_TASK_STATUS.PENDING, DISPUTE_EXECUTION_TASK_STATUS.FAILED],
-        },
-      },
-      data: {
-        status: DISPUTE_EXECUTION_TASK_STATUS.PROCESSING,
-        retryCount: { increment: 1 },
-        failureReason: null,
-        completedAt: null,
-        updatedAt: now,
-      },
-    });
-
-    if (claimed.count === 0) {
-      return this.toView(await this.findTask(taskId));
-    }
-
     const processingTask: ExecutionTaskRecord = {
       ...task,
       status: DISPUTE_EXECUTION_TASK_STATUS.PROCESSING,
@@ -78,7 +61,65 @@ export class DisputeExecutionService {
     };
 
     try {
-      await this.prisma.$transaction(async (transaction) => {
+      const outcome = await this.prisma.$transaction(async (transaction) => {
+        const complaint = await transaction.complaint.findUnique({
+          where: { id: task.complaintId },
+          select: {
+            status: true,
+            decisions: {
+              orderBy: { createdAt: "desc" },
+              select: { id: true, level: true },
+            },
+          },
+        });
+
+        if (!complaint || complaint.status !== "closed") {
+          return "not_ready" as const;
+        }
+
+        const finalDecision = complaint.decisions.find((decision) => decision.level === "final");
+        const effectiveDecision =
+          finalDecision ?? complaint.decisions.find((decision) => decision.level === "initial");
+
+        if (!effectiveDecision || effectiveDecision.id !== task.decisionId) {
+          const superseded = await transaction.disputeExecutionTask.updateMany({
+            where: {
+              id: taskId,
+              status: {
+                in: [DISPUTE_EXECUTION_TASK_STATUS.PENDING, DISPUTE_EXECUTION_TASK_STATUS.FAILED],
+              },
+            },
+            data: {
+              status: DISPUTE_EXECUTION_TASK_STATUS.SUPERSEDED,
+              failureReason: null,
+              completedAt: now,
+              updatedAt: now,
+            },
+          });
+
+          return superseded.count > 0 ? ("superseded" as const) : ("claim_lost" as const);
+        }
+
+        const claimed = await transaction.disputeExecutionTask.updateMany({
+          where: {
+            id: taskId,
+            status: {
+              in: [DISPUTE_EXECUTION_TASK_STATUS.PENDING, DISPUTE_EXECUTION_TASK_STATUS.FAILED],
+            },
+          },
+          data: {
+            status: DISPUTE_EXECUTION_TASK_STATUS.PROCESSING,
+            retryCount: { increment: 1 },
+            failureReason: null,
+            completedAt: null,
+            updatedAt: now,
+          },
+        });
+
+        if (claimed.count === 0) {
+          return "claim_lost" as const;
+        }
+
         await this.applyEffect(transaction, processingTask, now);
         const completed = await transaction.disputeExecutionTask.updateMany({
           where: {
@@ -105,17 +146,36 @@ export class DisputeExecutionService {
             payload: JSON.stringify({ taskId: task.id, taskType: task.taskType }),
           },
         });
+
+        return "succeeded" as const;
       });
+
+      if (outcome === "not_ready" || outcome === "claim_lost") {
+        return this.toView(await this.findTask(taskId));
+      }
+
+      if (outcome === "superseded") {
+        return this.toView({
+          ...task,
+          status: DISPUTE_EXECUTION_TASK_STATUS.SUPERSEDED,
+          failureReason: null,
+          completedAt: now,
+          updatedAt: now,
+        });
+      }
     } catch (error) {
       const failureReason = this.failureReason(error);
       const recorded = await this.prisma.$transaction(async (transaction) => {
         const failed = await transaction.disputeExecutionTask.updateMany({
           where: {
             id: taskId,
-            status: DISPUTE_EXECUTION_TASK_STATUS.PROCESSING,
+            status: {
+              in: [DISPUTE_EXECUTION_TASK_STATUS.PENDING, DISPUTE_EXECUTION_TASK_STATUS.FAILED],
+            },
           },
           data: {
             status: DISPUTE_EXECUTION_TASK_STATUS.FAILED,
+            retryCount: { increment: 1 },
             failureReason,
             updatedAt: now,
           },
@@ -321,9 +381,14 @@ export class DisputeExecutionService {
       return;
     }
 
-    await transaction.creditScore.update({
+    await transaction.creditScore.upsert({
       where: { userId: payload.userId },
-      data: {
+      create: {
+        userId: payload.userId,
+        creditScore: 100 + (payload.delta as number),
+        lastUpdated: now,
+      },
+      update: {
         creditScore: { increment: payload.delta as number },
         lastUpdated: now,
       },
