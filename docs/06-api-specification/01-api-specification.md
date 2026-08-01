@@ -837,28 +837,28 @@ Token 获取，客户端不得传入。接口只返回脱敏姓名、脱敏身�
 
 详情中的嵌套对象字段如下：
 
-| 对象字段                          | 类型                    | 含义                                       |
-| --------------------------------- | ----------------------- | ------------------------------------------ |
-| `Decision.liability`              | string                  | 责任划分结果                               |
-| `Decision.reason`                 | string                  | 裁决理由                                   |
-| `Decision.refundAmount`           | integer                 | 退还投诉方的整数分金额                     |
-| `Decision.settlementAmount`       | integer                 | 结算给服务方的整数分金额                   |
-| `Decision.complainantCreditDelta` | integer                 | 投诉方信用分调整                           |
-| `Decision.respondentCreditDelta`  | integer                 | 被投诉方信用分调整                         |
-| `Decision.version`                | integer                 | 提交裁决时使用的并发版本                   |
-| `Statement.id`                    | UUID                    | 陈述记录唯一标识                           |
-| `Statement.stage`                 | string                  | 陈述阶段，如首次材料、首次回应或二次申诉   |
-| `Statement.authorId`              | UUID                    | 陈述提交人唯一标识                         |
-| `Statement.statement`             | string                  | 陈述正文                                   |
-| `Statement.evidenceUrls`          | string[]                | 本次陈述附带的证据地址                     |
-| `Statement.createdAt`             | ISO 8601                | 陈述提交时间                               |
-| `Event.id`                        | UUID                    | 审计事件唯一标识                           |
-| `Event.actorId`                   | UUID \| null            | 操作人标识；系统事件为 `null`              |
-| `Event.action`                    | string                  | 触发事件的业务动作                         |
-| `Event.fromStatus`                | ComplaintStatus \| null | 动作前状态；创建事件可为 `null`            |
-| `Event.toStatus`                  | ComplaintStatus \| null | 动作后状态；无状态变更时可为 `null`        |
-| `Event.payload`                   | string \| null          | JSON 字符串扩展数据；无扩展数据时为 `null` |
-| `Event.createdAt`                 | ISO 8601                | 事件发生时间                               |
+| 对象字段                          | 类型                    | 含义                                                |
+| --------------------------------- | ----------------------- | --------------------------------------------------- |
+| `Decision.liability`              | string                  | 责任划分结果                                        |
+| `Decision.reason`                 | string                  | 裁决理由                                            |
+| `Decision.refundAmount`           | integer                 | 退还投诉方的整数分金额                              |
+| `Decision.settlementAmount`       | integer                 | 结算给服务方的整数分金额                            |
+| `Decision.complainantCreditDelta` | integer                 | 投诉方信用分调整                                    |
+| `Decision.respondentCreditDelta`  | integer                 | 被投诉方信用分调整                                  |
+| `Decision.version`                | integer                 | 返回详情时的当前乐观并发版本，与详情 `version` 一致 |
+| `Statement.id`                    | UUID                    | 陈述记录唯一标识                                    |
+| `Statement.stage`                 | string                  | 陈述阶段，如首次材料、首次回应或二次申诉            |
+| `Statement.authorId`              | UUID                    | 陈述提交人唯一标识                                  |
+| `Statement.statement`             | string                  | 陈述正文                                            |
+| `Statement.evidenceUrls`          | string[]                | 本次陈述附带的证据地址                              |
+| `Statement.createdAt`             | ISO 8601                | 陈述提交时间                                        |
+| `Event.id`                        | UUID                    | 审计事件唯一标识                                    |
+| `Event.actorId`                   | UUID \| null            | 操作人标识；系统事件为 `null`                       |
+| `Event.action`                    | string                  | 触发事件的业务动作                                  |
+| `Event.fromStatus`                | ComplaintStatus \| null | 动作前状态；创建事件可为 `null`                     |
+| `Event.toStatus`                  | ComplaintStatus \| null | 动作后状态；无状态变更时可为 `null`                 |
+| `Event.payload`                   | string \| null          | JSON 字符串扩展数据；无扩展数据时为 `null`          |
+| `Event.createdAt`                 | ISO 8601                | 事件发生时间                                        |
 
 #### 后台投诉详情 `AdminComplaintDetail`
 
