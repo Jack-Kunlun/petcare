@@ -285,6 +285,7 @@ describe("DisputeExecutionService", () => {
     });
     expect(prisma.disputeExecutionTask.findMany).toHaveBeenCalledWith({
       where: {
+        complaint: { status: "closed" },
         OR: [
           { status: "pending" },
           {
@@ -301,6 +302,29 @@ describe("DisputeExecutionService", () => {
       take: 2,
       select: { id: true, status: true },
     });
+  });
+
+  it("queries closed complaints before applying the batch limit so open tasks cannot starve them", async () => {
+    const closedTask = taskRecord({ id: "task-closed", status: "succeeded" });
+
+    prisma.disputeExecutionTask.findMany.mockImplementation(
+      async (query: { where?: { complaint?: { status?: string } } }) =>
+        query.where?.complaint?.status === "closed"
+          ? [{ id: "task-closed", status: "pending" }]
+          : [
+              { id: "task-open-1", status: "pending" },
+              { id: "task-open-2", status: "pending" },
+            ],
+    );
+    prisma.disputeExecutionTask.findUnique.mockResolvedValue(closedTask);
+
+    await expect(service.processDueTasks(2)).resolves.toEqual([
+      expect.objectContaining({ id: "task-closed", status: "succeeded" }),
+    ]);
+
+    expect(prisma.disputeExecutionTask.findUnique).toHaveBeenCalledWith(
+      expect.objectContaining({ where: { id: "task-closed" } }),
+    );
   });
 
   it("rejects retry unless the task is failed and belongs to the requested complaint", async () => {

@@ -1,5 +1,6 @@
 import { HttpStatus, Injectable } from "@nestjs/common";
 import {
+  COMPLAINT_STATUS,
   DISPUTE_EXECUTION_TASK_STATUS,
   type DecisionLevel,
   type DisputeExecutionTaskListResponse,
@@ -256,6 +257,7 @@ export class DisputeExecutionService {
 
     const tasks = await this.prisma.disputeExecutionTask.findMany({
       where: {
+        complaint: { status: COMPLAINT_STATUS.CLOSED },
         OR: [
           { status: DISPUTE_EXECUTION_TASK_STATUS.PENDING },
           {
