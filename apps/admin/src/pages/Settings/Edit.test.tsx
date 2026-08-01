@@ -317,6 +317,65 @@ describe("Settings domain editors", () => {
     expect(ratingApi.fetchRatingThresholdHistory).toHaveBeenCalledTimes(2);
   });
 
+  it("当前版本加载失败时独立提示并重试，不遮蔽已加载草稿", async () => {
+    const user = userEvent.setup();
+
+    setupRatingDraft();
+    vi.mocked(ratingApi.fetchRatingThresholdCurrent)
+      .mockRejectedValueOnce(new Error("current unavailable"))
+      .mockResolvedValueOnce({
+        id: "rating-v1",
+        domain: "rating_threshold",
+        version: 1,
+        status: "published",
+        config: rating,
+        changeSummary: "初始化",
+        publishedBy: "admin-1",
+        publishedAt: "2026-08-01T00:00:00.000Z",
+      });
+
+    renderEdit("/settings/rating_threshold/edit");
+
+    expect(await screen.findByRole("spinbutton", { name: "预警评分" })).toBeEnabled();
+    expect(await screen.findByRole("alert", { name: "当前生效版本加载失败" })).toBeInTheDocument();
+    expect(screen.queryByRole("alert", { name: "草稿状态加载失败" })).not.toBeInTheDocument();
+    await user.click(screen.getByRole("button", { name: "重新加载当前版本" }));
+
+    await waitFor(() => expect(ratingApi.fetchRatingThresholdCurrent).toHaveBeenCalledTimes(2));
+    await waitFor(() =>
+      expect(screen.queryByRole("alert", { name: "当前生效版本加载失败" })).not.toBeInTheDocument(),
+    );
+  });
+
+  it("草稿状态加载失败时独立提示并重试，成功前禁止保存错误 revision", async () => {
+    const user = userEvent.setup();
+
+    setupRatingDraft();
+    vi.mocked(ratingApi.fetchRatingThresholdDraft)
+      .mockRejectedValueOnce(new Error("draft unavailable"))
+      .mockResolvedValueOnce({
+        id: "rating-draft",
+        domain: "rating_threshold",
+        revision: 2,
+        config: rating,
+        changeSummary: "调整评分规则",
+        updatedBy: "admin-1",
+        updatedAt: "2026-08-02T00:00:00.000Z",
+      });
+
+    renderEdit("/settings/rating_threshold/edit");
+
+    expect(await screen.findByRole("spinbutton", { name: "预警评分" })).toBeEnabled();
+    expect(await screen.findByRole("alert", { name: "草稿状态加载失败" })).toBeInTheDocument();
+    expect(screen.getByRole("button", { name: "保存草稿" })).toBeDisabled();
+    expect(screen.queryByRole("alert", { name: "当前生效版本加载失败" })).not.toBeInTheDocument();
+    await user.click(screen.getByRole("button", { name: "重新加载草稿状态" }));
+
+    await waitFor(() => expect(ratingApi.fetchRatingThresholdDraft).toHaveBeenCalledTimes(2));
+    await waitFor(() => expect(screen.getByRole("button", { name: "保存草稿" })).toBeEnabled());
+    expect(ratingApi.fetchRatingThresholdCurrent).toHaveBeenCalledTimes(1);
+  });
+
   it("保存草稿时提交当前 revision 并展示服务端新 revision", async () => {
     const user = userEvent.setup();
 
