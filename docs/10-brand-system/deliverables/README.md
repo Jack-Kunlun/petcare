@@ -47,7 +47,9 @@ Keep clear space of at least `0.25H`, where `H` is the symbol height. Use a
 display the symbol higher than 64px in compact UI. Re-extract the two raster
 masters with `scripts/brand-assets/extract_approved_logo_assets.ps1`, then
 regenerate stacked PNG, favicon, ICO, and app-icon derivatives with
-`python scripts/brand-assets/export_logo_assets.py`.
+`python scripts/brand-assets/export_logo_assets.py`. The color, dark,
+monochrome, and reverse stacked companions each export at 260px, 520px, and
+780px high.
 
 ## Hero rules
 

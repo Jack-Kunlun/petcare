@@ -145,6 +145,87 @@
       "source": "logo/svg/petcare-logo-stacked-color.svg"
     },
     {
+      "id": "logo.stacked.dark.260h.png",
+      "path": "logo/png/petcare-logo-stacked-dark-260h.png",
+      "kind": "logo",
+      "width": 330,
+      "height": 260,
+      "format": "png",
+      "source": "logo/svg/petcare-logo-stacked-dark.svg"
+    },
+    {
+      "id": "logo.stacked.dark.520h.png",
+      "path": "logo/png/petcare-logo-stacked-dark-520h.png",
+      "kind": "logo",
+      "width": 660,
+      "height": 520,
+      "format": "png",
+      "source": "logo/svg/petcare-logo-stacked-dark.svg"
+    },
+    {
+      "id": "logo.stacked.dark.780h.png",
+      "path": "logo/png/petcare-logo-stacked-dark-780h.png",
+      "kind": "logo",
+      "width": 990,
+      "height": 780,
+      "format": "png",
+      "source": "logo/svg/petcare-logo-stacked-dark.svg"
+    },
+    {
+      "id": "logo.stacked.monochrome.260h.png",
+      "path": "logo/png/petcare-logo-stacked-monochrome-260h.png",
+      "kind": "logo",
+      "width": 330,
+      "height": 260,
+      "format": "png",
+      "source": "logo/svg/petcare-logo-stacked-monochrome.svg"
+    },
+    {
+      "id": "logo.stacked.monochrome.520h.png",
+      "path": "logo/png/petcare-logo-stacked-monochrome-520h.png",
+      "kind": "logo",
+      "width": 660,
+      "height": 520,
+      "format": "png",
+      "source": "logo/svg/petcare-logo-stacked-monochrome.svg"
+    },
+    {
+      "id": "logo.stacked.monochrome.780h.png",
+      "path": "logo/png/petcare-logo-stacked-monochrome-780h.png",
+      "kind": "logo",
+      "width": 990,
+      "height": 780,
+      "format": "png",
+      "source": "logo/svg/petcare-logo-stacked-monochrome.svg"
+    },
+    {
+      "id": "logo.stacked.reverse.260h.png",
+      "path": "logo/png/petcare-logo-stacked-reverse-260h.png",
+      "kind": "logo",
+      "width": 330,
+      "height": 260,
+      "format": "png",
+      "source": "logo/svg/petcare-logo-stacked-reverse.svg"
+    },
+    {
+      "id": "logo.stacked.reverse.520h.png",
+      "path": "logo/png/petcare-logo-stacked-reverse-520h.png",
+      "kind": "logo",
+      "width": 660,
+      "height": 520,
+      "format": "png",
+      "source": "logo/svg/petcare-logo-stacked-reverse.svg"
+    },
+    {
+      "id": "logo.stacked.reverse.780h.png",
+      "path": "logo/png/petcare-logo-stacked-reverse-780h.png",
+      "kind": "logo",
+      "width": 990,
+      "height": 780,
+      "format": "png",
+      "source": "logo/svg/petcare-logo-stacked-reverse.svg"
+    },
+    {
       "id": "logo.symbol.color.16.png",
       "path": "logo/png/petcare-symbol-color-16.png",
       "kind": "logo",
