@@ -702,7 +702,7 @@ Token 获取，客户端不得传入。接口只返回脱敏姓名、脱敏身�
 
 ## 投诉纠纷模块 (`/complaints`、`/admin/complaints`)
 
-投诉属于订单管理子域。完整处理链路为：创建投诉 → 被投诉方首次回应 → 管理员初审 → 双方二次申诉 → 管理员终审。所有接口均使用 Bearer Access Token；用户端接口仅允许订单当事方访问，后台接口还需 `complaint_admin` 或 `super_admin` 角色。
+投诉属于订单管理子域。完整处理链路为：创建投诉 → 被投诉方首次回应 → 管理员初审 → 双方二次申诉 → 管理员终审。所有接口均使用 Bearer Access Token；用户端接口仅允许订单当事方访问，后台接口要求任意有效角色拥有 `dispute.resolve` 权限，或访问者具有 `super_admin` 角色。默认管理员角色具备 `dispute.resolve` 权限，但接口不依赖固定角色名称。
 
 ### 用户端接口
 
@@ -731,18 +731,18 @@ Token 获取，客户端不得传入。接口只返回脱敏姓名、脱敏身�
 
 ### Admin 接口
 
-| 方法 | 路径                                                         | 说明                                               | 权限                              |
-| ---- | ------------------------------------------------------------ | -------------------------------------------------- | --------------------------------- |
-| GET  | `/admin/complaints`                                          | 按工作队列分页查询投诉                             | `complaint_admin` / `super_admin` |
-| GET  | `/admin/complaints/{id}`                                     | 查询案件卷宗详情                                   | `complaint_admin` / `super_admin` |
-| POST | `/admin/complaints/{id}/claim`                               | 原子认领未分配案件                                 | `complaint_admin` / `super_admin` |
-| POST | `/admin/complaints/{id}/transfer`                            | 转交案件给其他有效管理员                           | 当前处理人 / `super_admin`        |
-| POST | `/admin/complaints/{id}/decisions/initial`                   | 提交初审并开启二次申诉窗口                         | 当前处理人 / `super_admin`        |
-| POST | `/admin/complaints/{id}/decisions/final`                     | 申诉窗口到期后提交终审、关闭案件并替换初审执行任务 | 当前处理人 / `super_admin`        |
-| GET  | `/admin/complaints/{id}/execution-tasks?page=1&pageSize=100` | 查询该案件的内部裁决执行任务                       | `complaint_admin` / `super_admin` |
-| POST | `/admin/complaints/{id}/execution-tasks/{taskId}/retry`      | 重试该案件下失败的执行任务                         | `complaint_admin` / `super_admin` |
+| 方法 | 路径                                                         | 说明                                               | 权限                                             |
+| ---- | ------------------------------------------------------------ | -------------------------------------------------- | ------------------------------------------------ |
+| GET  | `/admin/complaints`                                          | 按工作队列分页查询投诉                             | `dispute.resolve` / `super_admin`                |
+| GET  | `/admin/complaints/{id}`                                     | 查询案件卷宗详情                                   | `dispute.resolve` / `super_admin`                |
+| POST | `/admin/complaints/{id}/claim`                               | 原子认领未分配案件                                 | `dispute.resolve` / `super_admin`                |
+| POST | `/admin/complaints/{id}/transfer`                            | 转交案件给其他有效管理员                           | 当前处理人且有 `dispute.resolve` / `super_admin` |
+| POST | `/admin/complaints/{id}/decisions/initial`                   | 提交初审并开启二次申诉窗口                         | 当前处理人且有 `dispute.resolve` / `super_admin` |
+| POST | `/admin/complaints/{id}/decisions/final`                     | 申诉窗口到期后提交终审、关闭案件并替换初审执行任务 | 当前处理人且有 `dispute.resolve` / `super_admin` |
+| GET  | `/admin/complaints/{id}/execution-tasks?page=1&pageSize=100` | 查询该案件的内部裁决执行任务                       | `dispute.resolve` / `super_admin`                |
+| POST | `/admin/complaints/{id}/execution-tasks/{taskId}/retry`      | 重试该案件下失败的执行任务                         | `dispute.resolve` / `super_admin`                |
 
-管理员不得认领、转交或裁决自己作为订单当事方的案件。普通投诉管理员只有在成为当前处理人后才可裁决；`super_admin` 可处理任意非本人利益冲突案件。
+管理员不得认领、转交或裁决自己作为订单当事方的案件。拥有 `dispute.resolve` 权限的普通管理员只有在成为当前处理人后才可裁决；`super_admin` 可处理任意非本人利益冲突案件。
 
 后台列表参数：
 
@@ -771,6 +771,123 @@ Token 获取，客户端不得传入。接口只返回脱敏姓名、脱敏身�
 
 退款额与结算额之和不得超过订单可分配金额 `order.allocatableAmount`。投诉、纠纷和受影响订单中的全部金额均为整数分，不使用浮点金额。
 
+### 共享响应字段
+
+以下均为统一成功响应 `data` 内的领域对象。公共用户响应只公开订单当事方完成投诉流程所需的信息；后台响应才包含双方手机号、处理人和订单运营摘要。金额字段均为整数分。
+
+#### 用户投诉列表项 `ComplaintListItem`
+
+| 字段               | 类型             | 含义                                                                        |
+| ------------------ | ---------------- | --------------------------------------------------------------------------- |
+| `id`               | UUID             | 投诉唯一标识                                                                |
+| `caseNumber`       | string           | 可稳定展示和检索的案件编号                                                  |
+| `orderId`          | UUID             | 关联订单唯一标识                                                            |
+| `complaintType`    | string           | 投诉业务类型                                                                |
+| `status`           | ComplaintStatus  | 当前七状态之一                                                              |
+| `counterpart`      | object           | 相对当前访问者的另一方安全摘要，仅含 `id`、`nickname`、`avatar`，不含手机号 |
+| `appealDeadlineAt` | ISO 8601 \| null | 二次申诉截止时刻；不在申诉阶段时为 `null`                                   |
+| `createdAt`        | ISO 8601         | 投诉创建时间                                                                |
+| `updatedAt`        | ISO 8601         | 投诉最后更新时间                                                            |
+
+#### 后台投诉列表项 `AdminComplaintListItem`
+
+| 字段                 | 类型             | 含义                                                            |
+| -------------------- | ---------------- | --------------------------------------------------------------- |
+| `id`                 | UUID             | 投诉唯一标识                                                    |
+| `caseNumber`         | string           | 后台展示和检索使用的案件编号                                    |
+| `orderId`            | UUID             | 关联订单唯一标识                                                |
+| `complaintType`      | string           | 投诉业务类型                                                    |
+| `complainantId`      | UUID             | 投诉方唯一标识                                                  |
+| `complainant`        | object           | 投诉方后台摘要，含 `id`、`nickname`、`phone`                    |
+| `respondentId`       | UUID             | 被投诉方唯一标识                                                |
+| `respondent`         | object           | 被投诉方后台摘要，含 `id`、`nickname`、`phone`                  |
+| `status`             | ComplaintStatus  | 当前七状态之一                                                  |
+| `handlerId`          | UUID \| null     | 当前处理管理员标识；未认领时为 `null`                           |
+| `handler`            | object \| null   | 当前处理人摘要，含 `id`、`nickname`、`phone`；未认领时为 `null` |
+| `appealDeadlineAt`   | ISO 8601 \| null | 二次申诉截止时刻                                                |
+| `hasFailedExecution` | boolean          | 是否存在需人工关注的失败裁决执行任务                            |
+| `createdAt`          | ISO 8601         | 投诉创建时间                                                    |
+| `updatedAt`          | ISO 8601         | 投诉最后更新时间                                                |
+
+#### 用户投诉详情 `ComplaintDetail`
+
+| 字段                     | 类型              | 含义                                                           |
+| ------------------------ | ----------------- | -------------------------------------------------------------- |
+| `id`                     | UUID              | 投诉唯一标识                                                   |
+| `orderId`                | UUID              | 关联订单唯一标识                                               |
+| `complainantId`          | UUID              | 投诉方唯一标识                                                 |
+| `respondentId`           | UUID              | 被投诉方唯一标识                                               |
+| `complaintType`          | string            | 投诉业务类型                                                   |
+| `expectedSolution`       | string \| null    | 投诉方期望处理方案                                             |
+| `status`                 | ComplaintStatus   | 当前七状态之一                                                 |
+| `reason`                 | string            | 原始投诉理由                                                   |
+| `evidenceUrls`           | string[]          | 原始投诉证据地址                                               |
+| `respondentStatement`    | string \| null    | 被投诉方首次回应；未回应时为 `null`                            |
+| `respondentEvidenceUrls` | string[]          | 被投诉方首次回应证据地址                                       |
+| `handlerId`              | UUID \| null      | 当前处理管理员标识；用户端不返回管理员手机号                   |
+| `initialDecision`        | Decision \| null  | 初审内容；未初审时为 `null`                                    |
+| `finalDecision`          | Decision \| null  | 终审内容；未终审时为 `null`                                    |
+| `statements`             | Statement[]       | 各阶段陈述，按提交时间排列                                     |
+| `events`                 | Event[]           | 状态和操作审计时间线，按发生时间排列                           |
+| `secondAppealDeadline`   | ISO 8601 \| null  | 当前二次申诉截止时刻                                           |
+| `allowedActions`         | ComplaintAction[] | 服务端按访问者、状态和期限计算的可执行动作；客户端不得自行推导 |
+| `version`                | integer           | 写操作使用的乐观并发版本                                       |
+| `createdAt`              | ISO 8601          | 投诉创建时间                                                   |
+| `updatedAt`              | ISO 8601          | 投诉最后更新时间                                               |
+
+详情中的嵌套对象字段如下：
+
+| 对象字段                          | 类型                    | 含义                                       |
+| --------------------------------- | ----------------------- | ------------------------------------------ |
+| `Decision.liability`              | string                  | 责任划分结果                               |
+| `Decision.reason`                 | string                  | 裁决理由                                   |
+| `Decision.refundAmount`           | integer                 | 退还投诉方的整数分金额                     |
+| `Decision.settlementAmount`       | integer                 | 结算给服务方的整数分金额                   |
+| `Decision.complainantCreditDelta` | integer                 | 投诉方信用分调整                           |
+| `Decision.respondentCreditDelta`  | integer                 | 被投诉方信用分调整                         |
+| `Decision.version`                | integer                 | 提交裁决时使用的并发版本                   |
+| `Statement.id`                    | UUID                    | 陈述记录唯一标识                           |
+| `Statement.stage`                 | string                  | 陈述阶段，如首次材料、首次回应或二次申诉   |
+| `Statement.authorId`              | UUID                    | 陈述提交人唯一标识                         |
+| `Statement.statement`             | string                  | 陈述正文                                   |
+| `Statement.evidenceUrls`          | string[]                | 本次陈述附带的证据地址                     |
+| `Statement.createdAt`             | ISO 8601                | 陈述提交时间                               |
+| `Event.id`                        | UUID                    | 审计事件唯一标识                           |
+| `Event.actorId`                   | UUID \| null            | 操作人标识；系统事件为 `null`              |
+| `Event.action`                    | string                  | 触发事件的业务动作                         |
+| `Event.fromStatus`                | ComplaintStatus \| null | 动作前状态；创建事件可为 `null`            |
+| `Event.toStatus`                  | ComplaintStatus \| null | 动作后状态；无状态变更时可为 `null`        |
+| `Event.payload`                   | string \| null          | JSON 字符串扩展数据；无扩展数据时为 `null` |
+| `Event.createdAt`                 | ISO 8601                | 事件发生时间                               |
+
+#### 后台投诉详情 `AdminComplaintDetail`
+
+后台详情包含 `ComplaintDetail` 的全部字段，并增加：
+
+| 字段          | 类型           | 含义                                                                                                   |
+| ------------- | -------------- | ------------------------------------------------------------------------------------------------------ |
+| `caseNumber`  | string         | 后台展示和检索使用的案件编号                                                                           |
+| `order`       | object         | 订单运营摘要，含 `id`、`orderType`、`serviceType`、整数分 `allocatableAmount`、`status`、`serviceTime` |
+| `complainant` | object         | 投诉方后台摘要，含 `id`、`nickname`、`phone`                                                           |
+| `respondent`  | object         | 被投诉方后台摘要，含 `id`、`nickname`、`phone`                                                         |
+| `handler`     | object \| null | 当前处理人后台摘要，含 `id`、`nickname`、`phone`；未认领时为 `null`                                    |
+
+#### 裁决执行任务 `DisputeExecutionTaskView`
+
+| 字段            | 类型             | 含义                                                                |
+| --------------- | ---------------- | ------------------------------------------------------------------- |
+| `id`            | UUID             | 执行任务唯一标识                                                    |
+| `complaintId`   | UUID             | 所属投诉唯一标识                                                    |
+| `decisionLevel` | string           | 来源裁决层级：`initial` 或 `final`                                  |
+| `taskType`      | string           | `refund`、`settlement`、`complainant_credit` 或 `respondent_credit` |
+| `status`        | string           | `pending`、`processing`、`succeeded`、`failed` 或 `superseded`      |
+| `failureReason` | string \| null   | 最近一次失败的安全摘要；未失败时为 `null`                           |
+| `retryCount`    | integer          | 已执行的重试次数                                                    |
+| `nextRetryAt`   | ISO 8601 \| null | 失败任务的下次自动重试时间；无需重试时为 `null`                     |
+| `completedAt`   | ISO 8601 \| null | 成功完成或被取代的时间；尚未完成时为 `null`                         |
+| `createdAt`     | ISO 8601         | 任务创建时间                                                        |
+| `updatedAt`     | ISO 8601         | 任务最后更新时间                                                    |
+
 ### 分页响应
 
 用户投诉列表、后台投诉列表和执行任务列表的 `data` 都严格使用以下四个字段，不得使用 `items` 或领域化别名：
@@ -788,15 +905,15 @@ Token 获取，客户端不得传入。接口只返回脱敏姓名、脱敏身�
 
 ### 投诉状态与 72 小时边界
 
-| 状态                 | 含义                                       |
-| -------------------- | ------------------------------------------ |
-| `pending_response`   | 等待被投诉方首次回应                       |
-| `unassigned`         | 已回应或回应期限已到，等待管理员认领       |
-| `processing_initial` | 已认领，等待初审                           |
-| `initial_decided`    | 初审完成，处于二次申诉窗口                 |
-| `processing_final`   | 至少一方已二次申诉或申诉窗口结束，等待终审 |
-| `closed`             | 终审结案，或无人申诉时按初审结果自动结案   |
-| `withdrawn`          | 投诉方在初审前撤回                         |
+| 状态                 | 含义                                           |
+| -------------------- | ---------------------------------------------- |
+| `pending_response`   | 等待被投诉方首次回应                           |
+| `unassigned`         | 已回应或回应期限已到，等待管理员认领           |
+| `processing_initial` | 已认领，等待初审                               |
+| `initial_decided`    | 初审完成，处于二次申诉窗口                     |
+| `processing_final`   | 至少一方已提交二次申诉，等待申诉窗口结束后终审 |
+| `closed`             | 终审结案，或无人申诉时按初审结果自动结案       |
+| `withdrawn`          | 投诉方在初审前撤回                             |
 
 初审成功时服务端写入 `secondAppealDeadline = 初审时间 + 72 小时`。投诉双方各有一次二次申诉机会；在截止时间之前提交有效，达到或超过截止时刻后拒绝并返回 `APPEAL_DEADLINE_EXPIRED`。任一方申诉后案件进入 `processing_final`，另一方在原 72 小时截止时间前仍可提交其唯一一次申诉；管理员在窗口到期前不能终审。窗口到期时，无人申诉的案件由服务端把不可变初审结果作为生效结果并自动关闭；存在申诉的案件允许当前处理人或无利益冲突的超级管理员终审。终审后关闭案件，不再允许申诉。
 
