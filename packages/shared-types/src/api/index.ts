@@ -8,3 +8,4 @@ export * from "./admin";
 export * from "./provider-certification";
 export * from "./complaint-dispute";
 export * from "./system-settings";
+export * from "./rbac";
