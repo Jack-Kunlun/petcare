@@ -29,6 +29,18 @@ export interface RbacRoleListItem {
   updatedAt: string;
 }
 
+/** Query parameters for the paginated administrative role list. */
+export interface RbacRoleListQuery {
+  /** Page number, starting at 1. */
+  page: number;
+  /** Number of roles per page, from 1 through 100. */
+  pageSize: number;
+  /** Optional role-name keyword filter. */
+  roleName?: string;
+  /** Optional active-status filter. */
+  isActive?: boolean;
+}
+
 /** Paginated administrative role list response. */
 export type RbacRoleListResponse = PaginatedResponse<RbacRoleListItem>;
 
