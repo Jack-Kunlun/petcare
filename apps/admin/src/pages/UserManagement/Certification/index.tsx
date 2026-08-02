@@ -14,7 +14,6 @@ import {
 import { useState, type FormEvent } from "react";
 import { Link } from "react-router-dom";
 import { fetchAdminProviderCertifications } from "../../../api/provider-certifications";
-import { UserManagementNavigation } from "../Navigation";
 
 const PAGE_SIZE = 20;
 
@@ -97,8 +96,6 @@ export default function ProviderCertificationList() {
 
   return (
     <div className="mx-auto flex w-full max-w-[1600px] flex-col gap-6">
-      <UserManagementNavigation />
-
       <section className="flex flex-col justify-between gap-4 sm:flex-row sm:items-end">
         <div>
           <p className="mb-1 text-sm font-medium text-blue-700">准入审核</p>

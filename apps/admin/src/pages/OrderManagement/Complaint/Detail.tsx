@@ -29,7 +29,6 @@ import {
   transferAdminComplaint,
 } from "../../../api/complaints";
 import { PermissionGate } from "../../../auth/PermissionGate";
-import { OrderManagementNavigation } from "../Navigation";
 import { DecisionDialog } from "./DecisionDialog";
 import { TransferDialog } from "./TransferDialog";
 
@@ -159,7 +158,6 @@ export default function ComplaintDetailPage() {
 
   return (
     <div className="mx-auto flex w-full max-w-full flex-col gap-6">
-      <OrderManagementNavigation />
       <Link
         to="/orders/complaints"
         className="inline-flex min-h-11 w-fit items-center gap-2 text-sm font-medium text-slate-600 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-blue-600"

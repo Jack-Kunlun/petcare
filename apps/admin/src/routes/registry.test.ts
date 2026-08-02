@@ -1,6 +1,11 @@
 import { RBAC_PERMISSION_CATALOG, RBAC_PERMISSION_TYPES } from "@petcare/shared-types";
 import { describe, expect, it } from "vitest";
-import { ADMIN_ROUTE_REGISTRY, getVisibleMenuRoutes } from "./registry";
+import {
+  ADMIN_ROUTE_REGISTRY,
+  getVisibleChildMenuRoutes,
+  getVisibleMenuRoutes,
+  getVisibleRootMenuRoutes,
+} from "./registry";
 
 describe("ADMIN_ROUTE_REGISTRY", () => {
   const menuPermissions = RBAC_PERMISSION_CATALOG.filter(
@@ -52,6 +57,27 @@ describe("ADMIN_ROUTE_REGISTRY", () => {
     ).toEqual(["/", "/orders/complaints", "/settings"]);
   });
 
+  it("returns root and child menu routes in catalog order", () => {
+    expect(
+      getVisibleRootMenuRoutes(["system.view", "rbac.view", "rbac.catalog.view"]).map(
+        (route) => route.path,
+      ),
+    ).toEqual(["/settings"]);
+    expect(
+      getVisibleChildMenuRoutes("/settings", ["system.view", "rbac.view", "rbac.catalog.view"]).map(
+        (route) => route.path,
+      ),
+    ).toEqual(["/rbac", "/rbac/catalog"]);
+  });
+
+  it("registers the menu catalog page behind its shared menu permission", () => {
+    expect(ADMIN_ROUTE_REGISTRY.find((route) => route.path === "/rbac/catalog")).toMatchObject({
+      menuPermission: "rbac.catalog.view",
+      requiredPermissions: ["rbac.catalog.view"],
+      parentPath: "/settings",
+    });
+  });
+
   it("registers the RBAC list, create, edit, and detail views behind the single menu entry", () => {
     expect(
       ADMIN_ROUTE_REGISTRY.filter((route) => route.path.startsWith("/rbac")).map((route) => ({
@@ -64,6 +90,11 @@ describe("ADMIN_ROUTE_REGISTRY", () => {
         path: "/rbac",
         menuPermission: "rbac.view",
         requiredPermissions: ["rbac.view"],
+      },
+      {
+        path: "/rbac/catalog",
+        menuPermission: "rbac.catalog.view",
+        requiredPermissions: ["rbac.catalog.view"],
       },
       {
         path: "/rbac/new",
