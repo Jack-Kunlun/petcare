@@ -23,7 +23,7 @@ async function login(page: Page, username: string, password: string): Promise<vo
   await page.getByRole("button", { name: "登录" }).click();
 }
 
-test("超级管理员可以创建并编辑角色，菜单和按钮可选而接口权限保持只读", async ({ page }) => {
+test("超级管理员可以创建并编辑角色，菜单和按钮可选而接口权限不渲染", async ({ page }) => {
   const roleName = `rbac-playwright-${Date.now()}`;
 
   await login(page, requiredEnv("DEFAULT_ADMIN_USERNAME"), requiredEnv("DEFAULT_ADMIN_PASSWORD"));
