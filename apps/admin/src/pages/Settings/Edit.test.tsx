@@ -5,7 +5,7 @@ import {
   type SopConfig,
 } from "@petcare/shared-types";
 import { QueryClient, QueryClientProvider } from "@tanstack/react-query";
-import { act, render, screen, waitFor, within } from "@testing-library/react";
+import { act, fireEvent, render, screen, waitFor, within } from "@testing-library/react";
 import userEvent from "@testing-library/user-event";
 import axios from "axios";
 import { MemoryRouter, Route, Routes } from "react-router-dom";
@@ -681,6 +681,108 @@ describe("Settings domain editors", () => {
         queryKey: ["system-settings", "rating_threshold", "feeding", "diff"],
       });
     });
+  });
+
+  it("发布成功后的查询失效窗口锁定整个编辑器，远端快照就绪后再恢复", async () => {
+    const user = userEvent.setup();
+    const draftConfig = { ...rating, warningScore: 375 };
+    const publishedConfig = { ...rating, warningScore: 390 };
+    const current = {
+      id: "rating-v1",
+      domain: "rating_threshold" as const,
+      version: 1,
+      status: "published" as const,
+      config: rating,
+      changeSummary: "旧发布版本",
+      publishedBy: "admin-1",
+      publishedAt: "2026-08-01T00:00:00.000Z",
+    };
+    const published = {
+      ...current,
+      id: "rating-v2",
+      version: 2,
+      config: publishedConfig,
+      changeSummary: "刚发布的新版本",
+      publishedAt: "2026-08-02T02:00:00.000Z",
+    };
+    const draft = {
+      id: "rating-draft",
+      domain: "rating_threshold" as const,
+      revision: 2,
+      config: draftConfig,
+      changeSummary: "待发布草稿",
+      updatedBy: "admin-1",
+      updatedAt: "2026-08-02T00:00:00.000Z",
+    };
+    const noDraft = new axios.AxiosError("not found", "ERR_BAD_REQUEST", undefined, undefined, {
+      status: 404,
+      data: {
+        code: "SYSTEM_CONFIG_DRAFT_NOT_FOUND",
+        message: "草稿不存在",
+      },
+      statusText: "Not Found",
+      headers: {},
+      config: { headers: new axios.AxiosHeaders() },
+    });
+    let resolveCurrent!: (value: typeof published) => void;
+    let rejectDraft!: (reason?: unknown) => void;
+    const currentRefetch = new Promise<typeof published>((resolve) => {
+      resolveCurrent = resolve;
+    });
+    const draftRefetch = new Promise<never>((_resolve, reject) => {
+      rejectDraft = reject;
+    });
+
+    vi.mocked(ratingApi.fetchRatingThresholdCurrent)
+      .mockResolvedValueOnce(current)
+      .mockImplementationOnce(() => currentRefetch);
+    vi.mocked(ratingApi.fetchRatingThresholdDraft)
+      .mockResolvedValueOnce(draft)
+      .mockImplementationOnce(() => draftRefetch);
+    vi.mocked(ratingApi.fetchRatingThresholdHistory).mockResolvedValue({
+      list: [],
+      total: 0,
+      page: 1,
+      pageSize: 20,
+    });
+    vi.mocked(ratingApi.fetchRatingThresholdDiff).mockResolvedValue([
+      { path: "warningScore", label: "预警评分", before: 350, after: 375, changeType: "modified" },
+    ]);
+    vi.mocked(ratingApi.publishRatingThresholdDraft).mockResolvedValue(published);
+
+    renderEdit("/settings/rating_threshold/edit");
+    const warning = await screen.findByRole("spinbutton", { name: "预警评分" });
+    const summary = screen.getByLabelText(/变更摘要/);
+
+    await user.click(screen.getByRole("button", { name: "检查并发布" }));
+    await user.click(await screen.findByRole("button", { name: "继续发布" }));
+    await user.click(screen.getByRole("button", { name: "确认发布" }));
+    await screen.findByText("版本 v2 已发布。");
+    await waitFor(() => {
+      expect(ratingApi.fetchRatingThresholdCurrent).toHaveBeenCalledTimes(2);
+      expect(ratingApi.fetchRatingThresholdDraft).toHaveBeenCalledTimes(2);
+    });
+
+    expect(warning).toBeDisabled();
+    expect(summary).toBeDisabled();
+    fireEvent.change(warning, { target: { value: "4.1" } });
+    fireEvent.change(summary, { target: { value: "锁内污染" } });
+    expect(screen.queryByText(/有未保存变更/)).not.toBeInTheDocument();
+    expect(summary).toHaveValue("待发布草稿");
+
+    await act(async () => {
+      resolveCurrent(published);
+      rejectDraft(noDraft);
+      await Promise.resolve();
+    });
+
+    await waitFor(() =>
+      expect(screen.getByRole("spinbutton", { name: "预警评分" })).toHaveValue(3.9),
+    );
+    expect(screen.getByLabelText(/变更摘要/)).toHaveValue("");
+    expect(screen.getByText(/当前草稿修订版：/)).toHaveTextContent("0");
+    expect(screen.getByRole("spinbutton", { name: "预警评分" })).toBeEnabled();
+    expect(screen.getByLabelText(/变更摘要/)).toBeEnabled();
   });
 
   it("发布后草稿变为 null 时切换到新 current，并以 revision 0 创建后续草稿", async () => {
