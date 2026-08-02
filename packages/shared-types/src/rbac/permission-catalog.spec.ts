@@ -22,6 +22,9 @@ describe("RBAC permission catalog", () => {
       "/users/certifications",
       "/orders",
       "/orders/complaints",
+      "/content",
+      "/content/posts",
+      "/content/articles",
       "/settings",
       "/rbac",
       "/rbac/catalog",
@@ -34,6 +37,25 @@ describe("RBAC permission catalog", () => {
       path: "/rbac/catalog",
       parentCode: "rbac.view",
       impliedApiCodes: ["rbac.permission.read"],
+    });
+
+    expect(byCode.get("content.view")).toMatchObject({
+      type: RBAC_PERMISSION_TYPES.MENU,
+      path: "/content",
+      parentCode: null,
+      impliedApiCodes: ["content.reward.read"],
+    });
+    expect(byCode.get("content.post.view")).toMatchObject({
+      type: RBAC_PERMISSION_TYPES.MENU,
+      path: "/content/posts",
+      parentCode: "content.view",
+      impliedApiCodes: ["content.post.read"],
+    });
+    expect(byCode.get("content.article.view")).toMatchObject({
+      type: RBAC_PERMISSION_TYPES.MENU,
+      path: "/content/articles",
+      parentCode: "content.view",
+      impliedApiCodes: ["content.article.read"],
     });
 
     for (const permission of RBAC_PERMISSION_CATALOG) {

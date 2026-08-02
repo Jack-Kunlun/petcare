@@ -9,3 +9,4 @@ export * from "./provider-certification";
 export * from "./complaint-dispute";
 export * from "./system-settings";
 export * from "./rbac";
+export * from "./content";
