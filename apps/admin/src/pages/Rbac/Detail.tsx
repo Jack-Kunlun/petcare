@@ -10,6 +10,7 @@ import {
   replaceRbacRoleUsers,
 } from "../../api/rbac";
 import { PermissionGate } from "../../auth/PermissionGate";
+import { replaceRbacRoleUsersForRole } from "./role-users-utils";
 
 function isConflict(error: unknown): boolean {
   return (
@@ -77,7 +78,13 @@ export default function RbacDetail() {
     [catalogQuery.data, roleQuery.data],
   );
   const replaceUsersMutation = useMutation({
-    mutationFn: (userIds: string[]) => replaceRbacRoleUsers(id!, { userIds }),
+    mutationFn: (userIds: string[]) => {
+      if (!roleQuery.data) {
+        return Promise.resolve(undefined);
+      }
+
+      return replaceRbacRoleUsersForRole(roleQuery.data, id!, userIds, replaceRbacRoleUsers);
+    },
     onSuccess: async () => {
       await queryClient.invalidateQueries({ queryKey: ["rbac-role", id] });
       await queryClient.invalidateQueries({ queryKey: ["rbac-role-users", id] });
