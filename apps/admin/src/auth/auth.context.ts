@@ -11,8 +11,10 @@ export interface AuthContextValue {
   logout(): Promise<void>;
 }
 
+/** Holds the current authenticated administrator and local authentication actions. */
 export const AuthContext = createContext<AuthContextValue | null>(null);
 
+/** Returns the current authentication context, requiring an AuthProvider ancestor. */
 export function useAuth(): AuthContextValue {
   const context = useContext(AuthContext);
 
