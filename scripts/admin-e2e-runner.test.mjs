@@ -80,8 +80,18 @@ async function forceKillTestProcess(processId) {
 
   try {
     process.kill(-processId, "SIGKILL");
-  } catch {
-    process.kill(processId, "SIGKILL");
+  } catch (groupError) {
+    if (groupError?.code !== "ESRCH") {
+      throw groupError;
+    }
+
+    try {
+      process.kill(processId, "SIGKILL");
+    } catch (processError) {
+      if (processError?.code !== "ESRCH") {
+        throw processError;
+      }
+    }
   }
 }
 
@@ -268,6 +278,55 @@ test("受管进程已正常退出时 stopProcess 是幂等 no-op", async () => {
       signalCode: null,
     }),
   );
+});
+
+test("POSIX fixture 强制清理对已消失的进程组和 PID 可重复执行", async () => {
+  const platformDescriptor = Object.getOwnPropertyDescriptor(process, "platform");
+  const originalKill = process.kill;
+  const attempts = [];
+
+  try {
+    Object.defineProperty(process, "platform", { ...platformDescriptor, value: "linux" });
+    process.kill = (processId, signal) => {
+      attempts.push([processId, signal]);
+      const error = new Error("no such process");
+      error.code = "ESRCH";
+      throw error;
+    };
+
+    await assert.doesNotReject(async () => {
+      await forceKillTestProcess(424_242);
+      await forceKillTestProcess(424_242);
+    });
+    assert.deepEqual(attempts, [
+      [-424_242, "SIGKILL"],
+      [424_242, "SIGKILL"],
+      [-424_242, "SIGKILL"],
+      [424_242, "SIGKILL"],
+    ]);
+  } finally {
+    process.kill = originalKill;
+    Object.defineProperty(process, "platform", platformDescriptor);
+  }
+});
+
+test("POSIX fixture 强制清理保留非 ESRCH 错误", async () => {
+  const platformDescriptor = Object.getOwnPropertyDescriptor(process, "platform");
+  const originalKill = process.kill;
+
+  try {
+    Object.defineProperty(process, "platform", { ...platformDescriptor, value: "linux" });
+    process.kill = () => {
+      const error = new Error("operation not permitted");
+      error.code = "EPERM";
+      throw error;
+    };
+
+    await assert.rejects(forceKillTestProcess(424_242), { code: "EPERM" });
+  } finally {
+    process.kill = originalKill;
+    Object.defineProperty(process, "platform", platformDescriptor);
+  }
 });
 
 test("应用部分启动失败时继续关闭全部进程并聚合启动与清理错误", async () => {

@@ -74,6 +74,7 @@ export default function SettingsEdit() {
   const [dirty, setDirty] = useState(false);
   const [attempted, setAttempted] = useState(false);
   const [dialogOpen, setDialogOpen] = useState(false);
+  const [publishTransitionLocked, setPublishTransitionLocked] = useState(false);
   const [notice, setNotice] = useState<{ kind: "success" | "error"; message: string } | null>(null);
   const [conflict, setConflict] = useState<string | null>(null);
 
@@ -200,6 +201,9 @@ export default function SettingsEdit() {
   });
 
   const publishMutation = useMutation({
+    onMutate: () => {
+      setPublishTransitionLocked(true);
+    },
     mutationFn: async () => {
       if (!domain || !draftQuery.data) {
         throw new Error("没有可发布草稿");
@@ -225,6 +229,14 @@ export default function SettingsEdit() {
         }),
         queryClient.invalidateQueries({ queryKey: settingsQueryKeys.diff(domain!, serviceType) }),
       ]);
+      setEditorSnapshot({
+        scope,
+        kind: "current",
+        revision: 0,
+        config: published.config,
+        changeSummary: "",
+        sourceToken: `current:${published.version}:${JSON.stringify(published.config)}`,
+      });
     },
     onError: async (error) => {
       setDialogOpen(false);
@@ -241,7 +253,12 @@ export default function SettingsEdit() {
 
       setNotice({ kind: "error", message: errorMessage(error) });
     },
+    onSettled: () => {
+      setPublishTransitionLocked(false);
+    },
   });
+
+  const editorLocked = publishTransitionLocked || publishMutation.isPending;
 
   if (!domain || !meta) {
     return <PageMessage title="配置领域不存在" message="请返回系统设置并选择有效的配置领域。" />;
@@ -277,6 +294,10 @@ export default function SettingsEdit() {
   }
 
   function handleEditorChange(value: SettingsConfig | null, errors: SettingsFieldErrors) {
+    if (editorLocked) {
+      return;
+    }
+
     if (value) {
       setEditorSnapshot((snapshot) => (snapshot ? { ...snapshot, config: value } : snapshot));
     }
@@ -455,7 +476,7 @@ export default function SettingsEdit() {
       ) : null}
 
       {!loading && localConfig ? (
-        <div className="mt-6">
+        <fieldset disabled={editorLocked} role="presentation" className="mt-6 min-w-0 border-0 p-0">
           {domain === "sop" ? (
             <SopEditor
               key={editorSnapshot?.sourceToken}
@@ -489,6 +510,10 @@ export default function SettingsEdit() {
                 rows={3}
                 value={changeSummary}
                 onChange={(event) => {
+                  if (editorLocked) {
+                    return;
+                  }
+
                   setEditorSnapshot((snapshot) =>
                     snapshot ? { ...snapshot, changeSummary: event.target.value } : snapshot,
                   );
@@ -554,7 +579,7 @@ export default function SettingsEdit() {
               )}
             </div>
           </div>
-        </div>
+        </fieldset>
       ) : null}
 
       <section
