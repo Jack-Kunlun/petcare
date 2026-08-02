@@ -1,6 +1,9 @@
+import { RBAC_PERMISSION_CATALOG, RBAC_PERMISSION_TYPES } from "@petcare/shared-types";
 import {
+  BadgeCheck,
   ChevronRight,
   House,
+  MessageSquareWarning,
   Settings,
   ShieldCheck,
   ShoppingBag,
@@ -9,13 +12,23 @@ import {
   type LucideIcon,
 } from "lucide-react";
 import { NavLink } from "react-router-dom";
+import { getVisibleMenuRoutes } from "../routes/registry";
 
-const menuItems: Array<{ icon: LucideIcon; label: string; path: string; permission?: string }> = [
-  { icon: House, label: "运营概览", path: "/" },
-  { icon: Users, label: "用户管理", path: "/users" },
-  { icon: ShoppingBag, label: "订单管理", path: "/orders" },
-  { icon: Settings, label: "系统设置", path: "/settings", permission: "system.view" },
-];
+const menuPermissionByCode = new Map(
+  RBAC_PERMISSION_CATALOG.filter(
+    (permission) => permission.type === RBAC_PERMISSION_TYPES.MENU,
+  ).map((permission) => [permission.code, permission]),
+);
+const allMenuPermissionCodes = [...menuPermissionByCode.keys()];
+const icons: Record<string, LucideIcon> = {
+  House,
+  Users,
+  ShoppingBag,
+  Settings,
+  BadgeCheck,
+  MessageSquareWarning,
+  ShieldCheck,
+};
 
 interface SidebarProps {
   open?: boolean;
@@ -24,9 +37,18 @@ interface SidebarProps {
 }
 
 export function Sidebar({ open = false, onClose, permissions }: SidebarProps) {
-  const visibleMenuItems = menuItems.filter(
-    (item) =>
-      !item.permission || permissions === undefined || permissions.includes(item.permission),
+  const visibleMenuItems = getVisibleMenuRoutes(permissions ?? allMenuPermissionCodes).map(
+    (route) => {
+      const permission = route.menuPermission
+        ? menuPermissionByCode.get(route.menuPermission)
+        : null;
+
+      return {
+        icon: route.icon ? (icons[route.icon] ?? ShieldCheck) : ShieldCheck,
+        label: permission?.label ?? route.id,
+        path: route.path,
+      };
+    },
   );
 
   return (
