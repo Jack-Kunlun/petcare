@@ -1,10 +1,12 @@
 import { useState } from "react";
 import { Outlet } from "react-router-dom";
+import { useAuth } from "../auth/auth.context";
 import { Header } from "../components/Header";
 import { Sidebar } from "../components/Sidebar";
 
 export default function Layout() {
   const [sidebarOpen, setSidebarOpen] = useState(false);
+  const auth = useAuth();
 
   return (
     <div className="flex min-h-screen bg-slate-50">
@@ -14,7 +16,11 @@ export default function Layout() {
       >
         跳到主要内容
       </a>
-      <Sidebar open={sidebarOpen} onClose={() => setSidebarOpen(false)} />
+      <Sidebar
+        open={sidebarOpen}
+        onClose={() => setSidebarOpen(false)}
+        permissions={auth.user?.permissions ?? []}
+      />
       <div className="flex min-h-screen min-w-0 flex-1 flex-col">
         <Header onMenuOpen={() => setSidebarOpen(true)} />
         <main id="main-content" className="flex-1 overflow-auto p-4 sm:p-6 lg:p-8" tabIndex={-1}>

@@ -936,6 +936,57 @@ Token 获取，客户端不得传入。接口只返回脱敏姓名、脱敏身�
 
 本版本的退款与结算任务仅记录和执行项目内部账务副作用，**不会调用微信支付**。微信支付退款或转账接入属于后续版本，接入前不得把内部任务成功解释为第三方资金已到账。
 
+## 后台系统设置模块 (`/admin/system-settings`)
+
+系统设置按固定领域键管理版本：SOP 使用 `sop:feeding`、`sop:walking`、`sop:playing`，评分阈值使用 `rating_threshold`，费用使用 `fee`。所有接口均要求管理员访问令牌。
+
+### 接口与权限
+
+| 方法 | 路径                                             | 用途                                       | 权限                                         |
+| ---- | ------------------------------------------------ | ------------------------------------------ | -------------------------------------------- |
+| GET  | `/overview`                                      | 查询所有领域的当前版本和草稿摘要           | `system.view`                                |
+| GET  | `/sop/:serviceType/{current,draft,diff,history}` | 查询 SOP 当前版本、草稿、差异或分页历史    | `system.view`                                |
+| GET  | `/sop/:serviceType/history/:versionId`           | 查询单个 SOP 历史版本                      | `system.view`                                |
+| PUT  | `/sop/:serviceType/draft`                        | 保存 SOP 草稿                              | `system.sop_config`                          |
+| POST | `/sop/:serviceType/{publish,restore}`            | 发布 SOP 或恢复历史版本为草稿              | `system.sop_config` + `system.publish`       |
+| GET  | `/rating-threshold/{current,draft,diff,history}` | 查询评分阈值当前版本、草稿、差异或分页历史 | `system.view`                                |
+| GET  | `/rating-threshold/history/:versionId`           | 查询单个评分阈值历史版本                   | `system.view`                                |
+| PUT  | `/rating-threshold/draft`                        | 保存评分阈值草稿                           | `system.threshold_config`                    |
+| POST | `/rating-threshold/{publish,restore}`            | 发布评分阈值或恢复历史版本为草稿           | `system.threshold_config` + `system.publish` |
+| GET  | `/fee/{current,draft,diff,history}`              | 查询费用当前版本、草稿、差异或分页历史     | `system.view`                                |
+| GET  | `/fee/history/:versionId`                        | 查询单个费用历史版本                       | `system.view`                                |
+| PUT  | `/fee/draft`                                     | 保存费用草稿                               | `system.fee_config`                          |
+| POST | `/fee/{publish,restore}`                         | 发布费用或恢复历史版本为草稿               | `system.fee_config` + `system.publish`       |
+
+`serviceType` 仅允许 `feeding`、`walking`、`playing`。历史查询使用 `page` 和 `pageSize`；历史记录发布后不可修改。
+
+### 写入契约与整数单位
+
+- 保存草稿请求固定为 `{ revision, config, changeSummary }`，服务端以 `revision` 实施乐观锁并在成功后递增。
+- 发布请求固定为 `{ revision, idempotencyKey }`；同一领域重复提交同一键返回第一次成功结果，不会生成第二个历史版本。
+- 恢复请求固定为 `{ version, revision, changeSummary }`。恢复只建立新草稿，仍需再次发布才能生效。
+- 评分使用整数百分值，例如 `350` 表示 `3.50` 分；比例使用整数万分比，例如 `1000` 表示 `10%`；金额使用整数分。
+- SOP 违规规则是人工处置建议，不直接产生扣款、信用扣分或暂停账号等副作用。
+
+### 稳定错误码
+
+| HTTP 状态 | 错误码                             | 含义                                   |
+| --------- | ---------------------------------- | -------------------------------------- |
+| 400       | `SYSTEM_CONFIG_VALIDATION_FAILED`  | 配置未通过领域完整性校验               |
+| 404       | `SYSTEM_CONFIG_NOT_FOUND`          | 当前配置、草稿或指定历史版本不存在     |
+| 409       | `SYSTEM_CONFIG_VERSION_CONFLICT`   | 提交的草稿修订号已过期，或并发写入冲突 |
+| 500       | `SYSTEM_CONFIG_PERSISTENCE_FAILED` | 领域配置持久化失败                     |
+
+未登录和权限不足分别使用通用 `401`、`403` 响应。客户端必须按稳定错误码处理冲突与校验失败，不依赖中文错误文案。
+
+### 订单快照约束
+
+订单创建时读取当前已发布配置，并冻结 `sopConfigVersionId`、`feeConfigVersionId`、`order_sops` 和 `order_fee_snapshots`。发布或恢复新版本只影响之后创建的订单，既有订单始终沿用创建时的版本和快照。
+
+评分阈值当前仅提供版本化配置能力。后续实现服务者接单命令时，命令处理器必须显式调用评分资格门禁并读取当前已发布阈值，不能假设配置发布会自动拦截接单。
+
+---
+
 ## DTO 示例
 
 ### 用户DTO

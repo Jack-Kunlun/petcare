@@ -12,14 +12,25 @@ const activeAdmin = {
   nickname: "系统管理员",
   status: "active",
   passwordHash: "$argon2id$v=19$test",
-  roles: [{ role: { roleName: "super_admin", isActive: true } }],
+  roles: [
+    {
+      role: {
+        roleName: "super_admin",
+        isActive: true,
+        permissions: [
+          { permission: { permissionCode: "system.view" } },
+          { permission: { permissionCode: "system.publish" } },
+        ],
+      },
+    },
+  ],
 };
 const activeDisputeResolver = {
   ...activeAdmin,
   id: "resolver-1",
   username: "resolver",
   phone: "17679141879",
-  roles: [{ role: { roleName: "complaint_resolver", isActive: true } }],
+  roles: [{ role: { roleName: "complaint_resolver", isActive: true, permissions: [] } }],
 };
 
 describe("AuthService", () => {
@@ -83,6 +94,7 @@ describe("AuthService", () => {
         phone: "13800138000",
         nickname: "系统管理员",
         roles: ["super_admin"],
+        permissions: ["system.view", "system.publish"],
       },
     });
   });
@@ -172,5 +184,48 @@ describe("AuthService", () => {
       expect.objectContaining({ where: { id: "user-1" } }),
     );
     expect(result.refreshToken).toBe("refresh");
+  });
+
+  it("returns only active administrator roles and their permission codes for authorization", async () => {
+    prisma.user.findFirst.mockResolvedValue({
+      roles: [
+        {
+          role: {
+            roleName: "config_admin",
+            permissions: [
+              { permission: { permissionCode: "system.view" } },
+              { permission: { permissionCode: "system.publish" } },
+            ],
+          },
+        },
+      ],
+    });
+
+    await expect(service.getCurrentUserAuthorization("user-1")).resolves.toEqual({
+      roles: ["config_admin"],
+      permissions: ["system.view", "system.publish"],
+    });
+    expect(prisma.user.findFirst).toHaveBeenCalledWith({
+      where: {
+        id: "user-1",
+        status: "active",
+        roles: { some: { role: { isActive: true } } },
+      },
+      select: {
+        roles: {
+          where: { role: { isActive: true } },
+          select: {
+            role: {
+              select: {
+                roleName: true,
+                permissions: {
+                  select: { permission: { select: { permissionCode: true } } },
+                },
+              },
+            },
+          },
+        },
+      },
+    });
   });
 });
