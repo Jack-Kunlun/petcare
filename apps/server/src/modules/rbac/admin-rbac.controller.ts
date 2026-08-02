@@ -14,7 +14,13 @@ import {
   Req,
   UseGuards,
 } from "@nestjs/common";
-import { ApiBearerAuth, ApiOperation, ApiParam, ApiTags } from "@nestjs/swagger";
+import {
+  ApiBearerAuth,
+  ApiNoContentResponse,
+  ApiOperation,
+  ApiParam,
+  ApiTags,
+} from "@nestjs/swagger";
 import type {
   AdminUserListItem,
   RbacCatalogResponse,
@@ -59,7 +65,7 @@ export class AdminRbacController {
 
   /** Returns the immutable, code-defined permission catalog. */
   @Get("catalog")
-  @RequirePermissions("rbac.permission.read")
+  @RequirePermissions("rbac.view")
   @ApiOperation({ summary: "获取 RBAC 权限目录" })
   @ApiSuccessResponse(RbacCatalogResponseDto)
   @ApiStandardErrors(401, 403, 500)
@@ -118,11 +124,11 @@ export class AdminRbacController {
 
   /** Deletes an unassigned normal role. */
   @Delete("roles/:id")
-  @HttpCode(HttpStatus.OK)
+  @HttpCode(HttpStatus.NO_CONTENT)
   @RequirePermissions("rbac.role.delete")
   @ApiParam({ name: "id", format: "uuid" })
   @ApiOperation({ summary: "删除角色" })
-  @ApiSuccessResponse(RbacRoleDetailDto)
+  @ApiNoContentResponse({ description: "角色删除成功" })
   @ApiStandardErrors(400, 401, 403, 404, 409, 500)
   async deleteRole(
     @Param("id", ParseUUIDPipe) id: string,
