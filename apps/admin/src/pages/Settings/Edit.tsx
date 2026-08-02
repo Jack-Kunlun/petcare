@@ -11,6 +11,7 @@ import { useEffect, useMemo, useRef, useState } from "react";
 import { Link, useParams, useSearchParams } from "react-router-dom";
 import { isSystemConfigVersionConflict } from "../../api/system-settings/client";
 import { useAuth } from "../../auth/auth.context";
+import { PermissionGate } from "../../auth/PermissionGate";
 import {
   fetchDomainCurrent,
   fetchDomainDiff,
@@ -540,25 +541,34 @@ export default function SettingsEdit() {
           <div className="mt-5 flex flex-col gap-3 rounded-xl border border-slate-200 bg-white p-4 sm:flex-row sm:items-center sm:justify-between sm:p-5">
             <p className="text-slate-600">先保存草稿，再检查字段差异并发布。</p>
             <div className="flex flex-col-reverse gap-3 sm:flex-row">
-              <button
-                type="button"
-                onClick={submitDraft}
-                disabled={
-                  boundRevision === null || saveMutation.isPending || publishMutation.isPending
+              <PermissionGate all={[meta.editPermission]}>
+                <button
+                  type="button"
+                  onClick={submitDraft}
+                  disabled={
+                    boundRevision === null || saveMutation.isPending || publishMutation.isPending
+                  }
+                  className="inline-flex min-h-11 cursor-pointer items-center justify-center gap-2 rounded-lg border border-blue-700 px-4 py-2 font-semibold text-blue-800 outline-none transition-colors duration-200 hover:bg-blue-50 focus-visible:ring-2 focus-visible:ring-blue-800 disabled:cursor-not-allowed disabled:opacity-40 motion-reduce:transition-none"
+                >
+                  {saveMutation.isPending ? (
+                    <LoaderCircle
+                      aria-hidden="true"
+                      className="h-4 w-4 animate-spin motion-reduce:animate-none"
+                    />
+                  ) : (
+                    <Save aria-hidden="true" className="h-4 w-4" />
+                  )}
+                  {saveMutation.isPending ? "正在保存…" : "保存草稿"}
+                </button>
+              </PermissionGate>
+              <PermissionGate
+                all={["system.publish"]}
+                fallback={
+                  <p className="self-center text-sm text-slate-600">
+                    需要 system.publish 权限才能发布。
+                  </p>
                 }
-                className="inline-flex min-h-11 cursor-pointer items-center justify-center gap-2 rounded-lg border border-blue-700 px-4 py-2 font-semibold text-blue-800 outline-none transition-colors duration-200 hover:bg-blue-50 focus-visible:ring-2 focus-visible:ring-blue-800 disabled:cursor-not-allowed disabled:opacity-40 motion-reduce:transition-none"
               >
-                {saveMutation.isPending ? (
-                  <LoaderCircle
-                    aria-hidden="true"
-                    className="h-4 w-4 animate-spin motion-reduce:animate-none"
-                  />
-                ) : (
-                  <Save aria-hidden="true" className="h-4 w-4" />
-                )}
-                {saveMutation.isPending ? "正在保存…" : "保存草稿"}
-              </button>
-              {canPublish ? (
                 <button
                   type="button"
                   onClick={() => {
@@ -572,11 +582,7 @@ export default function SettingsEdit() {
                 >
                   检查并发布
                 </button>
-              ) : (
-                <p className="self-center text-sm text-slate-600">
-                  需要 system.publish 权限才能发布。
-                </p>
-              )}
+              </PermissionGate>
             </div>
           </div>
         </fieldset>
