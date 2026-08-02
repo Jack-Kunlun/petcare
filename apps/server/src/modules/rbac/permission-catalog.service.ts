@@ -1,5 +1,5 @@
 import { createHash } from "node:crypto";
-import { Injectable } from "@nestjs/common";
+import { Injectable, Optional } from "@nestjs/common";
 import {
   RBAC_PERMISSION_CATALOG,
   RBAC_PERMISSION_TYPES,
@@ -20,7 +20,7 @@ export class PermissionCatalogService {
   private readonly catalogByCode: ReadonlyMap<string, RbacPermissionDefinition>;
   private readonly version: string;
 
-  constructor(catalog: readonly RbacPermissionDefinition[] = RBAC_PERMISSION_CATALOG) {
+  constructor(@Optional() catalog: readonly RbacPermissionDefinition[] = RBAC_PERMISSION_CATALOG) {
     const catalogByCode = new Map(catalog.map((permission) => [permission.code, permission]));
 
     if (catalogByCode.size !== catalog.length) {
