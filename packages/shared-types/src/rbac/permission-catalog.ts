@@ -35,6 +35,7 @@ export interface RbacPermissionDefinition {
 
 /** The complete, code-defined RBAC permission catalog. */
 export const RBAC_PERMISSION_CATALOG: readonly RbacPermissionDefinition[] = [
+  /** Opens the operations dashboard in the administration console. */
   {
     code: "stats.view",
     type: "menu",
@@ -46,6 +47,7 @@ export const RBAC_PERMISSION_CATALOG: readonly RbacPermissionDefinition[] = [
     icon: "House",
     impliedApiCodes: ["stats.dashboard"],
   },
+  /** Allows reading aggregated operations dashboard metrics. */
   {
     code: "stats.dashboard",
     type: "api",
@@ -57,6 +59,7 @@ export const RBAC_PERMISSION_CATALOG: readonly RbacPermissionDefinition[] = [
     icon: null,
     impliedApiCodes: [],
   },
+  /** Opens the user management section in the administration console. */
   {
     code: "user.view",
     type: "menu",
@@ -68,6 +71,7 @@ export const RBAC_PERMISSION_CATALOG: readonly RbacPermissionDefinition[] = [
     icon: "Users",
     impliedApiCodes: ["user.read"],
   },
+  /** Allows reading user lists and user details. */
   {
     code: "user.read",
     type: "api",
@@ -79,6 +83,7 @@ export const RBAC_PERMISSION_CATALOG: readonly RbacPermissionDefinition[] = [
     icon: null,
     impliedApiCodes: [],
   },
+  /** Allows creating a user through the administration API. */
   {
     code: "user.create",
     type: "api",
@@ -90,6 +95,7 @@ export const RBAC_PERMISSION_CATALOG: readonly RbacPermissionDefinition[] = [
     icon: null,
     impliedApiCodes: [],
   },
+  /** Allows updating user profile and account data. */
   {
     code: "user.update",
     type: "api",
@@ -101,6 +107,7 @@ export const RBAC_PERMISSION_CATALOG: readonly RbacPermissionDefinition[] = [
     icon: null,
     impliedApiCodes: [],
   },
+  /** Allows deleting a user account. */
   {
     code: "user.delete",
     type: "api",
@@ -112,6 +119,7 @@ export const RBAC_PERMISSION_CATALOG: readonly RbacPermissionDefinition[] = [
     icon: null,
     impliedApiCodes: [],
   },
+  /** Shows the action for approving a service provider application. */
   {
     code: "user.approve_provider",
     type: "button",
@@ -123,6 +131,7 @@ export const RBAC_PERMISSION_CATALOG: readonly RbacPermissionDefinition[] = [
     icon: null,
     impliedApiCodes: ["provider_certification.approve"],
   },
+  /** Shows the action for rejecting a service provider application. */
   {
     code: "user.reject_provider",
     type: "button",
@@ -134,6 +143,7 @@ export const RBAC_PERMISSION_CATALOG: readonly RbacPermissionDefinition[] = [
     icon: null,
     impliedApiCodes: ["provider_certification.reject"],
   },
+  /** Opens the provider certification review page under user management. */
   {
     code: "provider_certification.view",
     type: "menu",
@@ -145,6 +155,7 @@ export const RBAC_PERMISSION_CATALOG: readonly RbacPermissionDefinition[] = [
     icon: "BadgeCheck",
     impliedApiCodes: ["provider_certification.read"],
   },
+  /** Allows reading provider certification applications. */
   {
     code: "provider_certification.read",
     type: "api",
@@ -156,6 +167,7 @@ export const RBAC_PERMISSION_CATALOG: readonly RbacPermissionDefinition[] = [
     icon: null,
     impliedApiCodes: [],
   },
+  /** Allows approving a provider certification application. */
   {
     code: "provider_certification.approve",
     type: "api",
@@ -167,6 +179,7 @@ export const RBAC_PERMISSION_CATALOG: readonly RbacPermissionDefinition[] = [
     icon: null,
     impliedApiCodes: [],
   },
+  /** Allows rejecting a provider certification application. */
   {
     code: "provider_certification.reject",
     type: "api",
@@ -178,6 +191,7 @@ export const RBAC_PERMISSION_CATALOG: readonly RbacPermissionDefinition[] = [
     icon: null,
     impliedApiCodes: [],
   },
+  /** Opens the order management section in the administration console. */
   {
     code: "order.view",
     type: "menu",
@@ -189,6 +203,7 @@ export const RBAC_PERMISSION_CATALOG: readonly RbacPermissionDefinition[] = [
     icon: "ShoppingBag",
     impliedApiCodes: ["order.read"],
   },
+  /** Allows reading order lists and order details. */
   {
     code: "order.read",
     type: "api",
@@ -200,6 +215,7 @@ export const RBAC_PERMISSION_CATALOG: readonly RbacPermissionDefinition[] = [
     icon: null,
     impliedApiCodes: [],
   },
+  /** Allows creating an order through the administration API. */
   {
     code: "order.create",
     type: "api",
@@ -211,6 +227,7 @@ export const RBAC_PERMISSION_CATALOG: readonly RbacPermissionDefinition[] = [
     icon: null,
     impliedApiCodes: [],
   },
+  /** Allows updating order state and order data. */
   {
     code: "order.update",
     type: "api",
@@ -222,6 +239,7 @@ export const RBAC_PERMISSION_CATALOG: readonly RbacPermissionDefinition[] = [
     icon: null,
     impliedApiCodes: [],
   },
+  /** Shows the action for cancelling an order. */
   {
     code: "order.cancel",
     type: "button",
@@ -233,6 +251,7 @@ export const RBAC_PERMISSION_CATALOG: readonly RbacPermissionDefinition[] = [
     icon: null,
     impliedApiCodes: ["order.update"],
   },
+  /** Shows the action for exporting order data. */
   {
     code: "order.export",
     type: "button",
@@ -244,6 +263,7 @@ export const RBAC_PERMISSION_CATALOG: readonly RbacPermissionDefinition[] = [
     icon: null,
     impliedApiCodes: ["order.export_data"],
   },
+  /** Allows the server to generate and return an order export. */
   {
     code: "order.export_data",
     type: "api",
@@ -255,6 +275,7 @@ export const RBAC_PERMISSION_CATALOG: readonly RbacPermissionDefinition[] = [
     icon: null,
     impliedApiCodes: [],
   },
+  /** Opens complaint and dispute handling under order management. */
   {
     code: "dispute.view",
     type: "menu",
@@ -266,6 +287,7 @@ export const RBAC_PERMISSION_CATALOG: readonly RbacPermissionDefinition[] = [
     icon: "MessageSquareWarning",
     impliedApiCodes: ["dispute.read"],
   },
+  /** Allows reading complaint and dispute records. */
   {
     code: "dispute.read",
     type: "api",
@@ -277,6 +299,7 @@ export const RBAC_PERMISSION_CATALOG: readonly RbacPermissionDefinition[] = [
     icon: null,
     impliedApiCodes: [],
   },
+  /** Shows the action for resolving a complaint or dispute. */
   {
     code: "dispute.resolve",
     type: "button",
@@ -288,6 +311,7 @@ export const RBAC_PERMISSION_CATALOG: readonly RbacPermissionDefinition[] = [
     icon: null,
     impliedApiCodes: ["dispute.resolve_action"],
   },
+  /** Allows submitting a complaint or dispute resolution. */
   {
     code: "dispute.resolve_action",
     type: "api",
@@ -299,6 +323,7 @@ export const RBAC_PERMISSION_CATALOG: readonly RbacPermissionDefinition[] = [
     icon: null,
     impliedApiCodes: [],
   },
+  /** Opens the system settings section in the administration console. */
   {
     code: "system.view",
     type: "menu",
@@ -310,6 +335,7 @@ export const RBAC_PERMISSION_CATALOG: readonly RbacPermissionDefinition[] = [
     icon: "Settings",
     impliedApiCodes: ["system.read"],
   },
+  /** Allows reading effective system settings and configuration drafts. */
   {
     code: "system.read",
     type: "api",
@@ -321,6 +347,7 @@ export const RBAC_PERMISSION_CATALOG: readonly RbacPermissionDefinition[] = [
     icon: null,
     impliedApiCodes: [],
   },
+  /** Shows the general system configuration action. */
   {
     code: "system.config",
     type: "button",
@@ -332,6 +359,7 @@ export const RBAC_PERMISSION_CATALOG: readonly RbacPermissionDefinition[] = [
     icon: null,
     impliedApiCodes: ["system.config_action"],
   },
+  /** Allows saving general system configuration changes. */
   {
     code: "system.config_action",
     type: "api",
@@ -343,6 +371,7 @@ export const RBAC_PERMISSION_CATALOG: readonly RbacPermissionDefinition[] = [
     icon: null,
     impliedApiCodes: [],
   },
+  /** Shows the service SOP configuration action. */
   {
     code: "system.sop_config",
     type: "button",
@@ -354,6 +383,7 @@ export const RBAC_PERMISSION_CATALOG: readonly RbacPermissionDefinition[] = [
     icon: null,
     impliedApiCodes: ["system.sop_config_action"],
   },
+  /** Allows saving service SOP configuration changes. */
   {
     code: "system.sop_config_action",
     type: "api",
@@ -365,6 +395,7 @@ export const RBAC_PERMISSION_CATALOG: readonly RbacPermissionDefinition[] = [
     icon: null,
     impliedApiCodes: [],
   },
+  /** Shows the rating threshold configuration action. */
   {
     code: "system.threshold_config",
     type: "button",
@@ -376,6 +407,7 @@ export const RBAC_PERMISSION_CATALOG: readonly RbacPermissionDefinition[] = [
     icon: null,
     impliedApiCodes: ["system.threshold_config_action"],
   },
+  /** Allows saving rating threshold configuration changes. */
   {
     code: "system.threshold_config_action",
     type: "api",
@@ -387,6 +419,7 @@ export const RBAC_PERMISSION_CATALOG: readonly RbacPermissionDefinition[] = [
     icon: null,
     impliedApiCodes: [],
   },
+  /** Shows the service fee configuration action. */
   {
     code: "system.fee_config",
     type: "button",
@@ -398,6 +431,7 @@ export const RBAC_PERMISSION_CATALOG: readonly RbacPermissionDefinition[] = [
     icon: null,
     impliedApiCodes: ["system.fee_config_action"],
   },
+  /** Allows saving service fee configuration changes. */
   {
     code: "system.fee_config_action",
     type: "api",
@@ -409,6 +443,7 @@ export const RBAC_PERMISSION_CATALOG: readonly RbacPermissionDefinition[] = [
     icon: null,
     impliedApiCodes: [],
   },
+  /** Shows the action for publishing system configuration drafts. */
   {
     code: "system.publish",
     type: "button",
@@ -420,6 +455,7 @@ export const RBAC_PERMISSION_CATALOG: readonly RbacPermissionDefinition[] = [
     icon: null,
     impliedApiCodes: ["system.publish_action"],
   },
+  /** Allows publishing a system configuration version. */
   {
     code: "system.publish_action",
     type: "api",
@@ -431,6 +467,7 @@ export const RBAC_PERMISSION_CATALOG: readonly RbacPermissionDefinition[] = [
     icon: null,
     impliedApiCodes: [],
   },
+  /** Opens role and permission management under system settings. */
   {
     code: "rbac.view",
     type: "menu",
@@ -442,6 +479,7 @@ export const RBAC_PERMISSION_CATALOG: readonly RbacPermissionDefinition[] = [
     icon: "ShieldCheck",
     impliedApiCodes: ["rbac.permission.read", "rbac.role.read"],
   },
+  /** Allows reading role lists and role details. */
   {
     code: "rbac.role.read",
     type: "api",
@@ -453,6 +491,7 @@ export const RBAC_PERMISSION_CATALOG: readonly RbacPermissionDefinition[] = [
     icon: null,
     impliedApiCodes: [],
   },
+  /** Shows the action for creating a role. */
   {
     code: "rbac.role.create",
     type: "button",
@@ -464,6 +503,7 @@ export const RBAC_PERMISSION_CATALOG: readonly RbacPermissionDefinition[] = [
     icon: null,
     impliedApiCodes: ["rbac.role.create_action"],
   },
+  /** Allows creating a role through the RBAC API. */
   {
     code: "rbac.role.create_action",
     type: "api",
@@ -475,6 +515,7 @@ export const RBAC_PERMISSION_CATALOG: readonly RbacPermissionDefinition[] = [
     icon: null,
     impliedApiCodes: [],
   },
+  /** Shows the action for editing a role. */
   {
     code: "rbac.role.update",
     type: "button",
@@ -486,6 +527,7 @@ export const RBAC_PERMISSION_CATALOG: readonly RbacPermissionDefinition[] = [
     icon: null,
     impliedApiCodes: ["rbac.role.update_action"],
   },
+  /** Allows updating role metadata and assigned permissions. */
   {
     code: "rbac.role.update_action",
     type: "api",
@@ -497,6 +539,7 @@ export const RBAC_PERMISSION_CATALOG: readonly RbacPermissionDefinition[] = [
     icon: null,
     impliedApiCodes: [],
   },
+  /** Shows the action for deleting a non-system role. */
   {
     code: "rbac.role.delete",
     type: "button",
@@ -508,6 +551,7 @@ export const RBAC_PERMISSION_CATALOG: readonly RbacPermissionDefinition[] = [
     icon: null,
     impliedApiCodes: ["rbac.role.delete_action"],
   },
+  /** Allows deleting a non-system role through the RBAC API. */
   {
     code: "rbac.role.delete_action",
     type: "api",
@@ -519,6 +563,7 @@ export const RBAC_PERMISSION_CATALOG: readonly RbacPermissionDefinition[] = [
     icon: null,
     impliedApiCodes: [],
   },
+  /** Allows reading the code-defined permission catalog. */
   {
     code: "rbac.permission.read",
     type: "api",
@@ -530,6 +575,7 @@ export const RBAC_PERMISSION_CATALOG: readonly RbacPermissionDefinition[] = [
     icon: null,
     impliedApiCodes: [],
   },
+  /** Shows the action for assigning users to a role. */
   {
     code: "rbac.assign_role",
     type: "button",
@@ -541,6 +587,7 @@ export const RBAC_PERMISSION_CATALOG: readonly RbacPermissionDefinition[] = [
     icon: null,
     impliedApiCodes: ["rbac.assign_role_action"],
   },
+  /** Allows replacing the users assigned to a role. */
   {
     code: "rbac.assign_role_action",
     type: "api",
