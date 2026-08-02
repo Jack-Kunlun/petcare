@@ -80,3 +80,11 @@ apps/admin/src/pages/Settings/
 - 输入校验错误必须通过稳定 `id` 与 `aria-describedby` 关联到对应控件；异步错误使用可聚焦或可感知的 `role="alert"`，并提供明确的重试入口。
 - 系统设置路由使用 `React.lazy` 分包加载，并由 `Suspense` 提供可感知的加载状态，避免将低频管理页面打入 Admin 首屏主包。
 - 发布前必须展示结构化差异并要求二次确认；恢复历史版本只生成草稿，不得在界面文案中暗示已立即生效。
+
+## 6. RBAC 前端契约与授权边界
+
+- 权限目录的唯一来源是 `@petcare/shared-types` 的 `RBAC_PERMISSION_CATALOG`。Admin 不维护第二份菜单、按钮或 API 权限常量；`GET /admin/rbac/catalog` 仅提供目录版本和服务端目录的只读展示数据。
+- Admin 路由必须集中登记在 `apps/admin/src/routes/registry.ts`。每个可见菜单路由都要引用目录中的 `menuPermission`；详情、编辑等非菜单路由同样必须声明 `requiredPermissions`，启动时校验这些权限码存在于共享目录。
+- `/rbac`、`/rbac/new`、`/rbac/:id/edit` 与 `/rbac/:id` 只通过 `apps/admin/src/api/rbac/` 访问 `/admin/rbac/*`。请求与响应类型从 `@petcare/shared-types` 导入，不在页面内重复声明。
+- 角色编辑器只渲染并提交 `menu`、`button` 类型权限。`api` 类型权限必须只读且不可选；服务端根据共享目录的 `impliedApiCodes` 自动补齐有效 API 权限。
+- 页面级入口、编辑、删除、分配管理员和发布等操作必须使用 `PermissionGate`，并与路由的 `PermissionRoute` 配合，避免向无权限会话展示不可执行的操作。`PermissionGate` 可改善界面和可访问性，但绝不替代 Server 的 `PermissionGuard`：所有 `/admin/rbac/*` 及其他受保护 API 仍必须在服务端逐请求重新授权。

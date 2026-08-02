@@ -8,8 +8,8 @@ interface IsolatedPostgresSchemaLifecycleOptions {
 }
 
 function assertDisposableSchema(schemaName: string): void {
-  if (!/^system_settings_e2e_\d+_\d+$/u.test(schemaName) || schemaName === "public") {
-    throw new Error("System settings E2E requires an isolated disposable schema");
+  if (!/^(?:system_settings|rbac)_e2e_\d+_\d+$/u.test(schemaName) || schemaName === "public") {
+    throw new Error("E2E requires an isolated disposable schema");
   }
 }
 
