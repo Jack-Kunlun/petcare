@@ -45,7 +45,7 @@ type AuthRequest = Request & { user?: AccessTokenPayload };
 
 @ApiTags("admin-complaints")
 @ApiBearerAuth()
-@UseGuards(AccessTokenGuard, PermissionGuard, DisputeResolverGuard)
+@UseGuards(AccessTokenGuard, PermissionGuard)
 @Controller("admin/complaints")
 export class AdminComplaintController {
   constructor(
@@ -91,6 +91,7 @@ export class AdminComplaintController {
 
   /** 由当前管理员原子认领未分配案件。 */
   @Post(":id/claim")
+  @UseGuards(DisputeResolverGuard)
   @RequirePermissions("dispute.resolve")
   @HttpCode(HttpStatus.OK)
   @ApiOperation({ summary: "认领投诉案件" })
@@ -110,6 +111,7 @@ export class AdminComplaintController {
 
   /** 将案件转交给另一个有效管理员。 */
   @Post(":id/transfer")
+  @UseGuards(DisputeResolverGuard)
   @RequirePermissions("dispute.resolve")
   @HttpCode(HttpStatus.OK)
   @ApiOperation({ summary: "转交投诉案件" })
@@ -129,6 +131,7 @@ export class AdminComplaintController {
 
   /** 提交案件初裁并开启二次申诉窗口。 */
   @Post(":id/decisions/initial")
+  @UseGuards(DisputeResolverGuard)
   @RequirePermissions("dispute.resolve")
   @HttpCode(HttpStatus.OK)
   @ApiOperation({ summary: "提交投诉案件初裁" })
@@ -148,6 +151,7 @@ export class AdminComplaintController {
 
   /** 提交案件终裁并关闭投诉。 */
   @Post(":id/decisions/final")
+  @UseGuards(DisputeResolverGuard)
   @RequirePermissions("dispute.resolve")
   @HttpCode(HttpStatus.OK)
   @ApiOperation({ summary: "提交投诉案件终裁" })
@@ -167,6 +171,7 @@ export class AdminComplaintController {
 
   /** 仅重试当前投诉下仍为失败状态的裁决执行任务。 */
   @Post(":id/execution-tasks/:taskId/retry")
+  @UseGuards(DisputeResolverGuard)
   @RequirePermissions("dispute.resolve")
   @ApiSuccessResponse(RetryDisputeExecutionTaskResponseDto)
   @HttpCode(HttpStatus.OK)

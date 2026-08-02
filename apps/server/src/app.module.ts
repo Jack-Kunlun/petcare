@@ -12,7 +12,6 @@ import { ComplaintDisputeModule } from "./modules/complaint-dispute/complaint-di
 import { OrderModule } from "./modules/order/order.module";
 import { ProviderModule } from "./modules/provider/provider.module";
 import { ProviderCertificationModule } from "./modules/provider-certification/provider-certification.module";
-import { RbacModule } from "./modules/rbac/rbac.module";
 import { SystemSettingsModule } from "./modules/system-settings/system-settings.module";
 import { UserModule } from "./modules/user/user.module";
 import { PrismaModule } from "./prisma/prisma.module";
@@ -30,7 +29,6 @@ import { PrismaModule } from "./prisma/prisma.module";
     ProviderCertificationModule,
     ProviderModule,
     SystemSettingsModule,
-    RbacModule,
   ],
   providers: [
     { provide: APP_INTERCEPTOR, useClass: ApiResponseInterceptor },

@@ -10,20 +10,10 @@ import {
   replaceRbacRoleUsers,
 } from "../../api/rbac";
 import { PermissionGate } from "../../auth/PermissionGate";
+import { isConflict } from "./rbac-utils";
 import { replaceRbacRoleUsersForRole } from "./role-users-utils";
 
-function isConflict(error: unknown): boolean {
-  return (
-    typeof error === "object" &&
-    error !== null &&
-    "response" in error &&
-    typeof error.response === "object" &&
-    error.response !== null &&
-    "status" in error.response &&
-    error.response.status === 409
-  );
-}
-
+/** Expands selected UI permission codes into the effective API permission set. */
 function getEffectivePermissionCodes(
   permissionCodes: readonly string[],
   definitions: readonly RbacPermissionDefinition[],
@@ -136,6 +126,7 @@ export default function RbacDetail() {
     .sort((left, right) => left.order - right.order || left.code.localeCompare(right.code));
   const directPermissionCodes = new Set(role.permissionCodes);
 
+  /** Normalizes administrator IDs and replaces the role's user associations. */
   function saveUsers() {
     if (role.isSystem) {
       return;

@@ -1,10 +1,12 @@
 import { createHash } from "node:crypto";
-import { Injectable, Optional } from "@nestjs/common";
+import { Injectable, OnModuleInit, Optional } from "@nestjs/common";
 import {
   RBAC_PERMISSION_CATALOG,
   RBAC_PERMISSION_TYPES,
   type RbacPermissionDefinition,
 } from "@petcare/shared-types";
+import { AppLogger } from "../../logging/app-logger.service";
+import { PrismaService } from "../../prisma/prisma.service";
 import {
   rbacApiPermissionNotAssignable,
   rbacDuplicatePermissionCode,
@@ -15,12 +17,16 @@ import {
 
 /** Validates and queries the code-defined RBAC permission catalog. */
 @Injectable()
-export class PermissionCatalogService {
+export class PermissionCatalogService implements OnModuleInit {
   private readonly catalog: readonly RbacPermissionDefinition[];
   private readonly catalogByCode: ReadonlyMap<string, RbacPermissionDefinition>;
   private readonly version: string;
 
-  constructor(@Optional() catalog: readonly RbacPermissionDefinition[] = RBAC_PERMISSION_CATALOG) {
+  constructor(
+    @Optional() catalog: readonly RbacPermissionDefinition[] = RBAC_PERMISSION_CATALOG,
+    @Optional() private readonly prisma?: PrismaService,
+    @Optional() private readonly logger?: AppLogger,
+  ) {
     const catalogByCode = new Map(catalog.map((permission) => [permission.code, permission]));
 
     if (catalogByCode.size !== catalog.length) {
@@ -61,6 +67,27 @@ export class PermissionCatalogService {
         JSON.stringify([...catalog].sort((left, right) => left.code.localeCompare(right.code))),
       )
       .digest("hex");
+  }
+
+  /** Compares persisted permission codes with the current catalog at module startup. */
+  async onModuleInit(): Promise<void> {
+    if (!this.prisma) {
+      return;
+    }
+
+    const persisted = await this.prisma.permission.findMany({
+      select: { permissionCode: true },
+    });
+    const orphanedCodes = this.getOrphanedCodes(
+      persisted.map(({ permissionCode }) => permissionCode),
+    );
+
+    if (orphanedCodes.length > 0) {
+      this.logger?.write("warn", "rbac.permission_catalog_orphans", {
+        catalogVersion: this.version,
+        permissionCodes: orphanedCodes,
+      });
+    }
   }
 
   /** Returns a stable content hash for the active catalog. */
