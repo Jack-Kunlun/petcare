@@ -1,7 +1,10 @@
+import { type INestApplication, HttpStatus } from "@nestjs/common";
 import { GUARDS_METADATA } from "@nestjs/common/constants";
 import { SwaggerModule } from "@nestjs/swagger";
 import { Test } from "@nestjs/testing";
+import supertest from "supertest";
 import { AccessTokenGuard } from "../../auth/access-token.guard";
+import { AuthService } from "../../auth/auth.service";
 import { PermissionGuard } from "../../auth/permission.guard";
 import { PERMISSIONS_METADATA_KEY } from "../../auth/permissions.decorator";
 import { AdminRbacController } from "./admin-rbac.controller";
@@ -9,6 +12,47 @@ import { RbacService } from "./rbac.service";
 import { RoleService } from "./role.service";
 
 describe("AdminRbacController", () => {
+  it("rejects replacing permissions when the administrator lacks rbac.role.update", async () => {
+    const authorization = {
+      getCurrentUserAuthorization: jest.fn().mockResolvedValue({
+        roles: ["rbac_reader"],
+        permissions: ["rbac.view"],
+      }),
+    };
+
+    let app: INestApplication | undefined;
+    const moduleRef = await Test.createTestingModule({
+      controllers: [AdminRbacController],
+      providers: [
+        { provide: RbacService, useValue: {} },
+        { provide: RoleService, useValue: {} },
+        { provide: AuthService, useValue: authorization },
+        PermissionGuard,
+      ],
+    })
+      .overrideGuard(AccessTokenGuard)
+      .useValue({
+        canActivate(context: { switchToHttp(): { getRequest(): { user?: { sub: string } } } }) {
+          context.switchToHttp().getRequest().user = { sub: "rbac-reader" };
+
+          return true;
+        },
+      })
+      .compile();
+
+    try {
+      app = moduleRef.createNestApplication();
+      await app.init();
+
+      await supertest(app.getHttpServer())
+        .put("/admin/rbac/roles/11111111-1111-4111-8111-111111111111/permissions")
+        .send({ permissionCodes: ["system.view"] })
+        .expect(HttpStatus.FORBIDDEN);
+    } finally {
+      await app?.close();
+    }
+  });
+
   it("uses the access-token and permission guards with the required route permissions", () => {
     const guards = Reflect.getMetadata(GUARDS_METADATA, AdminRbacController) as unknown[];
     const permissions = (method: keyof AdminRbacController) =>

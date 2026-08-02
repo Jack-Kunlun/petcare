@@ -13,6 +13,8 @@ import supertest from "supertest";
 import { AppModule } from "../../app.module";
 import { AccessTokenGuard } from "../../auth/access-token.guard";
 import { DisputeResolverGuard } from "../../auth/dispute-resolver.guard";
+import { PermissionGuard } from "../../auth/permission.guard";
+import { PERMISSIONS_METADATA_KEY } from "../../auth/permissions.decorator";
 import { ConfigService } from "../../config/config.service";
 import { RedisService } from "../../config/redis.service";
 import { AppLogger } from "../../logging/app-logger.service";
@@ -84,7 +86,15 @@ describe("AdminComplaintController", () => {
     expect(Reflect.getMetadata(PATH_METADATA, AdminComplaintController)).toBe("admin/complaints");
     const guards = Reflect.getMetadata(GUARDS_METADATA, AdminComplaintController) as unknown[];
 
-    expect(guards).toEqual(expect.arrayContaining([AccessTokenGuard, DisputeResolverGuard]));
+    expect(guards).toEqual(
+      expect.arrayContaining([AccessTokenGuard, PermissionGuard, DisputeResolverGuard]),
+    );
+    expect(
+      Reflect.getMetadata(PERMISSIONS_METADATA_KEY, AdminComplaintController.prototype.findAll),
+    ).toEqual(["dispute.read"]);
+    expect(
+      Reflect.getMetadata(PERMISSIONS_METADATA_KEY, AdminComplaintController.prototype.decideFinal),
+    ).toEqual(["dispute.resolve"]);
   });
 
   it("passes administrator filters and identity to list and detail reads", async () => {
@@ -292,6 +302,8 @@ describe("AdminComplaintController", () => {
         },
       })
       .overrideGuard(DisputeResolverGuard)
+      .useValue({ canActivate: () => true })
+      .overrideGuard(PermissionGuard)
       .useValue({ canActivate: () => true })
       .compile();
 
