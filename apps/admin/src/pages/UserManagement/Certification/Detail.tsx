@@ -10,7 +10,6 @@ import {
   rejectAdminProviderCertification,
 } from "../../../api/provider-certifications";
 import { PermissionGate } from "../../../auth/PermissionGate";
-import { UserManagementNavigation } from "../Navigation";
 
 type DialogMode = "approve" | "reject" | null;
 
@@ -120,7 +119,6 @@ export default function ProviderCertificationDetail() {
 
   return (
     <div className="mx-auto flex w-full max-w-[1200px] flex-col gap-6">
-      <UserManagementNavigation />
       <Link
         to="/users/certifications"
         className="inline-flex min-h-11 w-fit items-center gap-2 text-sm font-medium text-slate-600 hover:text-blue-700 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-blue-600"

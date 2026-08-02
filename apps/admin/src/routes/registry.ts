@@ -16,6 +16,7 @@ import ProviderCertificationDetail from "../pages/UserManagement/Certification/D
 const Settings = lazy(() => import("../pages/Settings"));
 const SettingsDetail = lazy(() => import("../pages/Settings/Detail"));
 const SettingsEdit = lazy(() => import("../pages/Settings/Edit"));
+const RbacCatalog = lazy(() => import("../pages/Rbac/Catalog"));
 
 /** A protected administration route, including its menu metadata when it has a menu entry. */
 export interface AdminRouteDefinition {
@@ -35,6 +36,8 @@ export interface AdminRouteDefinition {
   order: number;
   /** Catalog icon identifier for a menu route, or null for detail routes. */
   icon: string | null;
+  /** Display label used by the contextual secondary menu, or null for detail routes. */
+  menuLabel: string | null;
 }
 
 const catalogByCode = new Map(
@@ -46,6 +49,7 @@ function catalogMenuRoute(
   id: string,
   permissionCode: string,
   element: ReactNode,
+  menuLabel?: string,
 ): AdminRouteDefinition {
   const permission = catalogByCode.get(permissionCode);
   const parentPermission = permission?.parentCode
@@ -65,6 +69,7 @@ function catalogMenuRoute(
     parentPath: parentPermission?.path ?? null,
     order: permission.order,
     icon: permission.icon,
+    menuLabel: menuLabel ?? permission.label,
   };
 }
 
@@ -96,7 +101,7 @@ function settingsRoute(element: ReactNode) {
  */
 export const ADMIN_ROUTE_REGISTRY: readonly AdminRouteDefinition[] = [
   catalogMenuRoute("dashboard", "stats.view", createElement(Dashboard)),
-  catalogMenuRoute("users", "user.view", createElement(UserManagement)),
+  catalogMenuRoute("users", "user.view", createElement(UserManagement), "用户列表"),
   catalogMenuRoute(
     "provider-certifications",
     "provider_certification.view",
@@ -111,8 +116,9 @@ export const ADMIN_ROUTE_REGISTRY: readonly AdminRouteDefinition[] = [
     parentPath: "/users/certifications",
     order: 0,
     icon: null,
+    menuLabel: null,
   },
-  catalogMenuRoute("orders", "order.view", createElement(OrderManagement)),
+  catalogMenuRoute("orders", "order.view", createElement(OrderManagement), "订单列表"),
   catalogMenuRoute("complaints", "dispute.view", createElement(ComplaintWorkQueue)),
   {
     id: "complaint-detail",
@@ -123,8 +129,9 @@ export const ADMIN_ROUTE_REGISTRY: readonly AdminRouteDefinition[] = [
     parentPath: "/orders/complaints",
     order: 0,
     icon: null,
+    menuLabel: null,
   },
-  catalogMenuRoute("settings", "system.view", settingsRoute(createElement(Settings))),
+  catalogMenuRoute("settings", "system.view", settingsRoute(createElement(Settings)), "系统设置"),
   {
     id: "settings-edit",
     path: "/settings/:domain/edit",
@@ -134,6 +141,7 @@ export const ADMIN_ROUTE_REGISTRY: readonly AdminRouteDefinition[] = [
     parentPath: "/settings",
     order: 0,
     icon: null,
+    menuLabel: null,
   },
   {
     id: "settings-history",
@@ -144,8 +152,10 @@ export const ADMIN_ROUTE_REGISTRY: readonly AdminRouteDefinition[] = [
     parentPath: "/settings",
     order: 0,
     icon: null,
+    menuLabel: null,
   },
-  catalogMenuRoute("rbac", "rbac.view", createElement(Rbac)),
+  catalogMenuRoute("rbac", "rbac.view", createElement(Rbac), "角色管理"),
+  catalogMenuRoute("rbac-catalog", "rbac.catalog.view", createElement(RbacCatalog), "菜单目录"),
   {
     id: "rbac-new",
     path: "/rbac/new",
@@ -155,6 +165,7 @@ export const ADMIN_ROUTE_REGISTRY: readonly AdminRouteDefinition[] = [
     parentPath: "/rbac",
     order: 0,
     icon: null,
+    menuLabel: null,
   },
   {
     id: "rbac-edit",
@@ -165,6 +176,7 @@ export const ADMIN_ROUTE_REGISTRY: readonly AdminRouteDefinition[] = [
     parentPath: "/rbac",
     order: 0,
     icon: null,
+    menuLabel: null,
   },
   {
     id: "rbac-detail",
@@ -175,6 +187,7 @@ export const ADMIN_ROUTE_REGISTRY: readonly AdminRouteDefinition[] = [
     parentPath: "/rbac",
     order: 0,
     icon: null,
+    menuLabel: null,
   },
 ];
 
@@ -185,6 +198,21 @@ export function getVisibleMenuRoutes(permissionCodes: readonly string[]): AdminR
   return ADMIN_ROUTE_REGISTRY.filter(
     (route) => route.menuPermission !== null && permissions.has(route.menuPermission),
   ).sort((left, right) => left.order - right.order || left.path.localeCompare(right.path));
+}
+
+/** Returns visible root menu routes that have no parent menu path. */
+export function getVisibleRootMenuRoutes(
+  permissionCodes: readonly string[],
+): AdminRouteDefinition[] {
+  return getVisibleMenuRoutes(permissionCodes).filter((route) => route.parentPath === null);
+}
+
+/** Returns visible child menu routes directly belonging to the supplied parent path. */
+export function getVisibleChildMenuRoutes(
+  parentPath: string,
+  permissionCodes: readonly string[],
+): AdminRouteDefinition[] {
+  return getVisibleMenuRoutes(permissionCodes).filter((route) => route.parentPath === parentPath);
 }
 
 const catalogCodes = new Set(RBAC_PERMISSION_CATALOG.map((permission) => permission.code));

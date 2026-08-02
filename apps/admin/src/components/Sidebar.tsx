@@ -12,7 +12,7 @@ import {
   type LucideIcon,
 } from "lucide-react";
 import { NavLink } from "react-router-dom";
-import { getVisibleMenuRoutes } from "../routes/registry";
+import { getVisibleRootMenuRoutes } from "../routes/registry";
 
 const menuPermissionByCode = new Map(
   RBAC_PERMISSION_CATALOG.filter(
@@ -33,11 +33,12 @@ const icons: Record<string, LucideIcon> = {
 interface SidebarProps {
   open?: boolean;
   onClose?: () => void;
-  permissions?: string[];
+  permissions?: readonly string[];
 }
 
+/** Renders the PC primary navigation and the existing mobile navigation drawer. */
 export function Sidebar({ open = false, onClose, permissions }: SidebarProps) {
-  const visibleMenuItems = getVisibleMenuRoutes(permissions ?? allMenuPermissionCodes).map(
+  const visibleMenuItems = getVisibleRootMenuRoutes(permissions ?? allMenuPermissionCodes).map(
     (route) => {
       const permission = route.menuPermission
         ? menuPermissionByCode.get(route.menuPermission)
@@ -63,11 +64,11 @@ export function Sidebar({ open = false, onClose, permissions }: SidebarProps) {
       ) : null}
 
       <aside
-        className={`fixed inset-y-0 left-0 z-40 flex w-64 flex-col border-r border-slate-200 bg-slate-950 text-slate-300 shadow-xl transition-transform duration-200 lg:static lg:z-auto lg:translate-x-0 lg:shadow-none ${
+        className={`fixed inset-y-0 left-0 z-40 flex h-screen min-h-0 w-64 flex-col border-r border-slate-200 bg-slate-950 text-slate-300 shadow-xl transition-transform duration-200 lg:static lg:z-auto lg:translate-x-0 lg:shadow-none ${
           open ? "translate-x-0" : "-translate-x-full"
         }`}
       >
-        <div className="flex h-16 items-center justify-between border-b border-white/10 px-5">
+        <div className="flex h-16 shrink-0 items-center justify-between border-b border-white/10 px-5">
           <div className="flex min-w-0 items-center gap-3">
             <span className="flex h-9 w-9 shrink-0 items-center justify-center rounded-xl bg-blue-600 text-white shadow-lg shadow-blue-950/40">
               <ShieldCheck aria-hidden="true" className="h-5 w-5" />
@@ -87,7 +88,7 @@ export function Sidebar({ open = false, onClose, permissions }: SidebarProps) {
           </button>
         </div>
 
-        <nav aria-label="后台主导航" className="flex-1 space-y-1 overflow-y-auto px-3 py-5">
+        <nav aria-label="后台主导航" className="min-h-0 flex-1 space-y-1 overflow-y-auto px-3 py-5">
           <p className="px-3 pb-2 text-xs font-semibold uppercase tracking-widest text-slate-500">
             工作台
           </p>
@@ -125,7 +126,7 @@ export function Sidebar({ open = false, onClose, permissions }: SidebarProps) {
           })}
         </nav>
 
-        <div className="border-t border-white/10 p-4">
+        <div className="shrink-0 border-t border-white/10 p-4">
           <div className="rounded-lg bg-white/5 px-3 py-3">
             <p className="text-xs font-medium text-slate-300">系统状态</p>
             <p className="mt-1.5 flex items-center gap-2 text-xs text-slate-400">
