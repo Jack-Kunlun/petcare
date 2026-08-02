@@ -112,6 +112,29 @@ describe("AuthService", () => {
     });
   });
 
+  it("excludes orphan database permissions from the password login response", async () => {
+    prisma.user.findFirst.mockResolvedValue({
+      ...activeAdmin,
+      roles: [
+        {
+          role: {
+            ...activeAdmin.roles[0].role,
+            permissions: [
+              { permission: { permissionCode: "system.view" } },
+              { permission: { permissionCode: "retired.permission" } },
+            ],
+          },
+        },
+      ],
+    });
+
+    await expect(
+      service.loginWithPassword("admin", "Correct-Horse-Battery-Staple!42"),
+    ).resolves.toMatchObject({
+      user: { permissions: ["system.view"] },
+    });
+  });
+
   it.each([
     ["missing account", null, true],
     ["wrong password", activeAdmin, false],
