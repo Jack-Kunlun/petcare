@@ -65,6 +65,9 @@ describe("IsolatedPostgresSchemaLifecycle", () => {
     expect(buildDropSchemaIfExistsStatement("system_settings_e2e_42_1000")).toBe(
       'DROP SCHEMA IF EXISTS "system_settings_e2e_42_1000" CASCADE',
     );
+    expect(buildDropSchemaIfExistsStatement("rbac_e2e_42_1000")).toBe(
+      'DROP SCHEMA IF EXISTS "rbac_e2e_42_1000" CASCADE',
+    );
     expect(() => buildDropSchemaIfExistsStatement("public")).toThrow(
       "requires an isolated disposable schema",
     );

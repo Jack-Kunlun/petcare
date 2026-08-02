@@ -13,6 +13,11 @@ const adminDirectory = path.resolve(path.dirname(fileURLToPath(import.meta.url))
 const serverDirectory = path.resolve(adminDirectory, "../server");
 const repositoryDirectory = path.resolve(adminDirectory, "../..");
 const serverRequire = createRequire(path.join(serverDirectory, "package.json"));
+const rbacRestrictedAdmin = {
+  username: "rbac-e2e-restricted-admin",
+  password: "Rbac-E2e-Restricted-Admin-2026!",
+  phone: "13900000091",
+};
 
 function findLocalEnvironmentFile() {
   const worktreeEnvironment = path.join(repositoryDirectory, ".env");
@@ -570,6 +575,9 @@ async function seedCompiledServer(env) {
   const { seedSystemSettings } = serverRequire(
     path.join(serverDirectory, "dist", "seed", "seed-system-settings.js"),
   );
+  const { PasswordService } = serverRequire(
+    path.join(serverDirectory, "dist", "auth", "password.service.js"),
+  );
   const phone = requireEnvironmentValue(env, "DEFAULT_ADMIN_PHONE");
   const prisma = new PrismaClient({
     adapter: new PrismaPg(
@@ -591,6 +599,57 @@ async function seedCompiledServer(env) {
     });
 
     await seedSystemSettings(prisma, administrator.id);
+    const [systemViewPermission, systemFeeConfigPermission, restrictedRole] = await Promise.all([
+      prisma.permission.findUniqueOrThrow({ where: { permissionCode: "system.view" } }),
+      prisma.permission.findUniqueOrThrow({ where: { permissionCode: "system.fee_config" } }),
+      prisma.role.upsert({
+        where: { roleName: "rbac_e2e_system_viewer" },
+        update: { description: "Admin RBAC E2E restricted session" },
+        create: {
+          roleName: "rbac_e2e_system_viewer",
+          description: "Admin RBAC E2E restricted session",
+          isActive: true,
+        },
+      }),
+    ]);
+    await Promise.all(
+      [systemViewPermission, systemFeeConfigPermission].map((permission) =>
+        prisma.rolePermission.upsert({
+          where: {
+            roleId_permissionId: {
+              roleId: restrictedRole.id,
+              permissionId: permission.id,
+            },
+          },
+          update: {},
+          create: { roleId: restrictedRole.id, permissionId: permission.id },
+        }),
+      ),
+    );
+    const restrictedPasswordHash = await new PasswordService().hash(rbacRestrictedAdmin.password);
+    const restrictedUser = await prisma.user.upsert({
+      where: { phone: rbacRestrictedAdmin.phone },
+      update: {
+        username: rbacRestrictedAdmin.username,
+        nickname: "RBAC E2E restricted administrator",
+        passwordHash: restrictedPasswordHash,
+        status: "active",
+      },
+      create: {
+        phone: rbacRestrictedAdmin.phone,
+        username: rbacRestrictedAdmin.username,
+        nickname: "RBAC E2E restricted administrator",
+        passwordHash: restrictedPasswordHash,
+        status: "active",
+      },
+    });
+    await prisma.userRole.upsert({
+      where: {
+        userId_roleId: { userId: restrictedUser.id, roleId: restrictedRole.id },
+      },
+      update: {},
+      create: { userId: restrictedUser.id, roleId: restrictedRole.id },
+    });
   } finally {
     await prisma.$disconnect();
   }
@@ -642,6 +701,8 @@ async function runMain(playwrightArgs, signal) {
     ADMIN_E2E_SERVER_PORT: String(serverPort),
     ADMIN_E2E_ADMIN_PORT: String(adminPort),
     ALLOWED_ORIGINS: `http://127.0.0.1:${adminPort}`,
+    RBAC_E2E_RESTRICTED_USERNAME: rbacRestrictedAdmin.username,
+    RBAC_E2E_RESTRICTED_PASSWORD: rbacRestrictedAdmin.password,
   };
   const prismaCli = path.join(serverDirectory, "node_modules", "prisma", "build", "index.js");
   const playwrightCli = path.join(adminDirectory, "node_modules", "@playwright", "test", "cli.js");
