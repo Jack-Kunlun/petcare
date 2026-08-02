@@ -62,19 +62,19 @@ describe("ADMIN_ROUTE_REGISTRY", () => {
       getVisibleRootMenuRoutes(["system.view", "rbac.view", "rbac.catalog.view"]).map(
         (route) => route.path,
       ),
-    ).toEqual(["/settings"]);
+    ).toEqual(["/rbac", "/settings"]);
     expect(
-      getVisibleChildMenuRoutes("/settings", ["system.view", "rbac.view", "rbac.catalog.view"]).map(
+      getVisibleChildMenuRoutes("/rbac", ["system.view", "rbac.view", "rbac.catalog.view"]).map(
         (route) => route.path,
       ),
-    ).toEqual(["/rbac", "/rbac/catalog"]);
+    ).toEqual(["/rbac/catalog"]);
   });
 
   it("registers the menu catalog page behind its shared menu permission", () => {
     expect(ADMIN_ROUTE_REGISTRY.find((route) => route.path === "/rbac/catalog")).toMatchObject({
       menuPermission: "rbac.catalog.view",
       requiredPermissions: ["rbac.catalog.view"],
-      parentPath: "/settings",
+      parentPath: "/rbac",
     });
   });
 

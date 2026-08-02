@@ -1,4 +1,6 @@
-# Admin PC 二级侧栏导航 Implementation Plan
+# [已废弃] Admin PC 二级侧栏导航 Implementation Plan
+
+> 本计划记录的“双侧栏”方案已被单侧栏树形导航替代，当前实现以 `Sidebar` 树形菜单为准。
 
 > **For agentic workers:** REQUIRED SUB-SKILL: Use superpowers:executing-plans to implement this plan task-by-task with verification checkpoints.
 

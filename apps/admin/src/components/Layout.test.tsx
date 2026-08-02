@@ -39,6 +39,7 @@ describe("Layout", () => {
     const contentColumn = main?.parentElement;
     const layout = contentColumn?.parentElement;
 
+    expect(baseElement.querySelectorAll("nav")).toHaveLength(1);
     expect(layout).toHaveClass("h-screen", "min-h-0", "overflow-hidden");
     expect(contentColumn).toHaveClass("min-h-0");
     expect(main).toHaveClass("min-h-0", "overflow-y-auto");
