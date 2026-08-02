@@ -86,5 +86,5 @@ apps/admin/src/pages/Settings/
 - 权限目录的唯一来源是 `@petcare/shared-types` 的 `RBAC_PERMISSION_CATALOG`。Admin 不维护第二份菜单、按钮或 API 权限常量；`GET /admin/rbac/catalog` 仅提供目录版本和服务端目录的只读展示数据。
 - Admin 路由必须集中登记在 `apps/admin/src/routes/registry.ts`。每个可见菜单路由都要引用目录中的 `menuPermission`；详情、编辑等非菜单路由同样必须声明 `requiredPermissions`，启动时校验这些权限码存在于共享目录。
 - `/rbac`、`/rbac/new`、`/rbac/:id/edit` 与 `/rbac/:id` 只通过 `apps/admin/src/api/rbac/` 访问 `/admin/rbac/*`。请求与响应类型从 `@petcare/shared-types` 导入，不在页面内重复声明。
-- 角色编辑器只渲染并提交 `menu`、`button` 类型权限。`api` 类型权限不在编辑器中渲染、不可选；服务端根据共享目录的 `impliedApiCodes` 自动补齐有效 API 权限。
+- 角色编辑器展示 `menu`、`button` 和 `api` 类型权限；`api` 节点仅作为只读信息显示并禁用勾选，不纳入提交 payload。服务端根据共享目录的 `impliedApiCodes` 自动补齐有效 API 权限。
 - 页面级入口、编辑、删除、分配管理员和发布等操作必须使用 `PermissionGate`，并与路由的 `PermissionRoute` 配合，避免向无权限会话展示不可执行的操作。`PermissionGate` 可改善界面和可访问性，但绝不替代 Server 的 `PermissionGuard`：所有 `/admin/rbac/*` 及其他受保护 API 仍必须在服务端逐请求重新授权。

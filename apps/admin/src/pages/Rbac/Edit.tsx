@@ -1,3 +1,4 @@
+import { RBAC_PERMISSION_TYPES } from "@petcare/shared-types";
 import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
 import { ArrowLeft, RefreshCw, Save, ShieldCheck } from "lucide-react";
 import { type FormEvent, useEffect, useState } from "react";
@@ -12,18 +13,11 @@ import {
 import { PermissionGate } from "../../auth/PermissionGate";
 import {
   buildPermissionTree,
+  collectCheckedCodes,
   isConflict,
   togglePermissionTree,
   type PermissionTreeNode,
 } from "./rbac-utils";
-
-/** Collects directly selected menu and button codes from the nested permission tree. */
-function collectCheckedCodes(nodes: readonly PermissionTreeNode[]): string[] {
-  return nodes.flatMap((node) => [
-    ...(node.checked ? [node.code] : []),
-    ...collectCheckedCodes(node.children),
-  ]);
-}
 
 interface PermissionNodeProps {
   node: PermissionTreeNode;
@@ -40,7 +34,7 @@ function PermissionNode({ node, disabled, onToggle }: PermissionNodeProps) {
           type="checkbox"
           aria-label={node.label}
           checked={node.checked}
-          disabled={disabled}
+          disabled={disabled || node.type === RBAC_PERMISSION_TYPES.API}
           ref={(input) => {
             if (input) {
               input.indeterminate = node.indeterminate;

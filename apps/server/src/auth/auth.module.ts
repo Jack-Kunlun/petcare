@@ -1,9 +1,8 @@
-import { forwardRef, Module } from "@nestjs/common";
+import { Module } from "@nestjs/common";
 import { JwtModule } from "@nestjs/jwt";
 import { PassportModule } from "@nestjs/passport";
 import { ConfigService } from "../config/config.service";
 import { RedisService } from "../config/redis.service";
-import { RbacModule } from "../modules/rbac/rbac.module";
 import { AccessTokenGuard } from "./access-token.guard";
 import { AdminGuard } from "./admin.guard";
 import { AuthController } from "./auth.controller";
@@ -22,7 +21,7 @@ import { WechatAuthController } from "./wechat-auth.controller";
 import { WechatAuthService } from "./wechat-auth.service";
 
 @Module({
-  imports: [PassportModule, JwtModule.register({}), forwardRef(() => RbacModule)],
+  imports: [PassportModule, JwtModule.register({})],
   controllers: [AuthController, WechatAuthController],
   providers: [
     RedisService,

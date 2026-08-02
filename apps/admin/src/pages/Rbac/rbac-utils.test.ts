@@ -1,6 +1,6 @@
 import type { RbacPermissionDefinition } from "@petcare/shared-types";
 import { describe, expect, it } from "vitest";
-import { buildPermissionTree, togglePermissionTree } from "./rbac-utils";
+import { buildPermissionTree, collectCheckedCodes, togglePermissionTree } from "./rbac-utils";
 
 const catalog: readonly RbacPermissionDefinition[] = [
   {
@@ -72,12 +72,21 @@ const catalog: readonly RbacPermissionDefinition[] = [
 ];
 
 describe("buildPermissionTree", () => {
-  it("groups menu and button permissions deterministically and excludes API permissions", () => {
+  it("groups menu, button, and read-only API permissions deterministically", () => {
     expect(buildPermissionTree(catalog, [])).toEqual([
       {
         code: "orphan.button",
         type: "button",
         label: "Orphan action",
+        path: null,
+        children: [],
+        checked: false,
+        indeterminate: false,
+      },
+      {
+        code: "system.api",
+        type: "api",
+        label: "Read settings API",
         path: null,
         children: [],
         checked: false,
@@ -124,12 +133,22 @@ describe("buildPermissionTree", () => {
     ]);
   });
 
+  it("keeps effective API selections visible but excludes them from editable save payloads", () => {
+    const tree = buildPermissionTree(catalog, ["system.view", "system.api", "rbac.role.create"]);
+
+    expect(tree.find((node) => node.code === "system.api")).toMatchObject({
+      type: "api",
+      checked: true,
+    });
+    expect(collectCheckedCodes(tree)).toEqual(["system.view", "rbac.role.create"]);
+  });
+
   it("marks selected permissions and their ancestors as half-selected when descendants differ", () => {
     const tree = buildPermissionTree(catalog, ["system.view", "rbac.role.create"]);
 
-    expect(tree[1]).toMatchObject({ checked: true, indeterminate: true });
-    expect(tree[1].children[0]).toMatchObject({ checked: false, indeterminate: true });
-    expect(tree[1].children[0].children[0]).toMatchObject({ checked: true, indeterminate: false });
+    expect(tree[2]).toMatchObject({ checked: true, indeterminate: true });
+    expect(tree[2].children[0]).toMatchObject({ checked: false, indeterminate: true });
+    expect(tree[2].children[0].children[0]).toMatchObject({ checked: true, indeterminate: false });
   });
 });
 
@@ -139,10 +158,10 @@ describe("togglePermissionTree", () => {
     const nextTree = togglePermissionTree(tree, "system.view");
 
     expect(nextTree).not.toBe(tree);
-    expect(nextTree[1]).toMatchObject({ checked: true, indeterminate: false });
-    expect(nextTree[1].children[0]).toMatchObject({ checked: true, indeterminate: false });
-    expect(nextTree[1].children[0].children.map((node) => node.checked)).toEqual([true, true]);
-    expect(tree[1].children[0].checked).toBe(false);
+    expect(nextTree[2]).toMatchObject({ checked: true, indeterminate: false });
+    expect(nextTree[2].children[0]).toMatchObject({ checked: true, indeterminate: false });
+    expect(nextTree[2].children[0].children.map((node) => node.checked)).toEqual([true, true]);
+    expect(tree[2].children[0].checked).toBe(false);
   });
 
   it("toggles a child independently and updates each ancestor to half-selected", () => {
@@ -154,8 +173,8 @@ describe("togglePermissionTree", () => {
     ]);
     const nextTree = togglePermissionTree(tree, "rbac.role.update");
 
-    expect(nextTree[1]).toMatchObject({ checked: true, indeterminate: true });
-    expect(nextTree[1].children[0]).toMatchObject({ checked: true, indeterminate: true });
-    expect(nextTree[1].children[0].children.map((node) => node.checked)).toEqual([true, false]);
+    expect(nextTree[2]).toMatchObject({ checked: true, indeterminate: true });
+    expect(nextTree[2].children[0]).toMatchObject({ checked: true, indeterminate: true });
+    expect(nextTree[2].children[0].children.map((node) => node.checked)).toEqual([true, false]);
   });
 });
