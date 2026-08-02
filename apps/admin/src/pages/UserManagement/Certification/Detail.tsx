@@ -9,6 +9,7 @@ import {
   fetchAdminProviderCertification,
   rejectAdminProviderCertification,
 } from "../../../api/provider-certifications";
+import { PermissionGate } from "../../../auth/PermissionGate";
 import { UserManagementNavigation } from "../Navigation";
 
 type DialogMode = "approve" | "reject" | null;
@@ -263,23 +264,27 @@ export default function ProviderCertificationDetail() {
 
           {application.status === "pending" ? (
             <div className="sticky bottom-4 flex flex-col gap-3 rounded-xl border border-slate-200 bg-white/95 p-4 shadow-lg backdrop-blur sm:flex-row sm:justify-end">
-              <button
-                type="button"
-                className="min-h-11 cursor-pointer rounded-lg border border-red-300 px-5 text-sm font-semibold text-red-700 hover:bg-red-50 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-red-600"
-                onClick={() => {
-                  setFormError("");
-                  setDialogMode("reject");
-                }}
-              >
-                驳回申请
-              </button>
-              <button
-                type="button"
-                className="min-h-11 cursor-pointer rounded-lg bg-emerald-700 px-5 text-sm font-semibold text-white hover:bg-emerald-800 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-emerald-600"
-                onClick={() => setDialogMode("approve")}
-              >
-                审核通过
-              </button>
+              <PermissionGate all={["user.reject_provider"]}>
+                <button
+                  type="button"
+                  className="min-h-11 cursor-pointer rounded-lg border border-red-300 px-5 text-sm font-semibold text-red-700 hover:bg-red-50 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-red-600"
+                  onClick={() => {
+                    setFormError("");
+                    setDialogMode("reject");
+                  }}
+                >
+                  驳回申请
+                </button>
+              </PermissionGate>
+              <PermissionGate all={["user.approve_provider"]}>
+                <button
+                  type="button"
+                  className="min-h-11 cursor-pointer rounded-lg bg-emerald-700 px-5 text-sm font-semibold text-white hover:bg-emerald-800 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-emerald-600"
+                  onClick={() => setDialogMode("approve")}
+                >
+                  审核通过
+                </button>
+              </PermissionGate>
             </div>
           ) : null}
         </>
@@ -307,14 +312,16 @@ export default function ProviderCertificationDetail() {
               >
                 取消
               </button>
-              <button
-                type="button"
-                disabled={isMutating}
-                className="min-h-11 cursor-pointer rounded-lg bg-emerald-700 px-4 text-sm font-semibold text-white disabled:cursor-not-allowed disabled:opacity-50"
-                onClick={() => approveMutation.mutate()}
-              >
-                确认通过
-              </button>
+              <PermissionGate all={["user.approve_provider"]}>
+                <button
+                  type="button"
+                  disabled={isMutating}
+                  className="min-h-11 cursor-pointer rounded-lg bg-emerald-700 px-4 text-sm font-semibold text-white disabled:cursor-not-allowed disabled:opacity-50"
+                  onClick={() => approveMutation.mutate()}
+                >
+                  确认通过
+                </button>
+              </PermissionGate>
             </div>
           </section>
         </div>
@@ -360,13 +367,15 @@ export default function ProviderCertificationDetail() {
                 >
                   取消
                 </button>
-                <button
-                  type="submit"
-                  disabled={isMutating}
-                  className="min-h-11 cursor-pointer rounded-lg bg-red-700 px-4 text-sm font-semibold text-white disabled:cursor-not-allowed disabled:opacity-50"
-                >
-                  确认驳回
-                </button>
+                <PermissionGate all={["user.reject_provider"]}>
+                  <button
+                    type="submit"
+                    disabled={isMutating}
+                    className="min-h-11 cursor-pointer rounded-lg bg-red-700 px-4 text-sm font-semibold text-white disabled:cursor-not-allowed disabled:opacity-50"
+                  >
+                    确认驳回
+                  </button>
+                </PermissionGate>
               </div>
             </form>
           </section>

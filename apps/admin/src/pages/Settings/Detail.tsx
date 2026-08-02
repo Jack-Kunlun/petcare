@@ -10,7 +10,7 @@ import { AlertCircle, ArrowLeft, Clock3, Copy, LoaderCircle, UserRound, X } from
 import { useState } from "react";
 import { Link, useNavigate, useParams, useSearchParams } from "react-router-dom";
 import { isSystemConfigVersionConflict } from "../../api/system-settings/client";
-import { useAuth } from "../../auth/auth.context";
+import { PermissionGate } from "../../auth/PermissionGate";
 import {
   fetchDomainDraft,
   fetchDomainVersion,
@@ -25,7 +25,6 @@ import { settingsQueryKeys } from "./query-keys";
 export default function SettingsDetail() {
   const { domain: domainParam, versionId } = useParams();
   const [searchParams] = useSearchParams();
-  const auth = useAuth();
   const navigate = useNavigate();
   const queryClient = useQueryClient();
   const domain = isSettingsPageDomain(domainParam) ? domainParam : null;
@@ -35,10 +34,6 @@ export default function SettingsDetail() {
       ? requestedServiceType
       : "feeding";
   const meta = domain ? settingsDomainMeta[domain] : null;
-  const permissionSet = new Set(auth.user?.permissions ?? []);
-  const canRestore = Boolean(
-    meta && permissionSet.has(meta.editPermission) && permissionSet.has("system.publish"),
-  );
   const [dialogOpen, setDialogOpen] = useState(false);
   const [restoreSummary, setRestoreSummary] = useState("");
   const [error, setError] = useState<string | null>(null);
@@ -204,7 +199,12 @@ export default function SettingsDetail() {
                 </div>
               ) : null}
             </div>
-            {canRestore ? (
+            <PermissionGate
+              all={[meta.editPermission, "system.publish"]}
+              fallback={
+                <p className="text-sm text-slate-600">需要领域编辑和 system.publish 权限。</p>
+              }
+            >
               <button
                 type="button"
                 disabled={!draftQuery.isSuccess || Boolean(draftQuery.data)}
@@ -217,9 +217,7 @@ export default function SettingsDetail() {
                 <Copy aria-hidden="true" className="h-4 w-4" />
                 复制为新草稿
               </button>
-            ) : (
-              <p className="text-sm text-slate-600">需要领域编辑和 system.publish 权限。</p>
-            )}
+            </PermissionGate>
           </section>
 
           <Dialog.Root
@@ -271,20 +269,22 @@ export default function SettingsDetail() {
                       取消
                     </button>
                   </Dialog.Close>
-                  <button
-                    type="button"
-                    disabled={restoreMutation.isPending || !restoreSummary.trim()}
-                    onClick={() => restoreMutation.mutate()}
-                    className="inline-flex min-h-11 cursor-pointer items-center justify-center gap-2 rounded-lg bg-amber-700 px-5 py-2 font-semibold text-white outline-none hover:bg-amber-800 focus-visible:ring-2 focus-visible:ring-amber-700 disabled:cursor-not-allowed disabled:opacity-40"
-                  >
-                    {restoreMutation.isPending ? (
-                      <LoaderCircle
-                        aria-hidden="true"
-                        className="h-4 w-4 animate-spin motion-reduce:animate-none"
-                      />
-                    ) : null}
-                    {restoreMutation.isPending ? "正在复制…" : "确认复制"}
-                  </button>
+                  <PermissionGate all={[meta.editPermission, "system.publish"]}>
+                    <button
+                      type="button"
+                      disabled={restoreMutation.isPending || !restoreSummary.trim()}
+                      onClick={() => restoreMutation.mutate()}
+                      className="inline-flex min-h-11 cursor-pointer items-center justify-center gap-2 rounded-lg bg-amber-700 px-5 py-2 font-semibold text-white outline-none hover:bg-amber-800 focus-visible:ring-2 focus-visible:ring-amber-700 disabled:cursor-not-allowed disabled:opacity-40"
+                    >
+                      {restoreMutation.isPending ? (
+                        <LoaderCircle
+                          aria-hidden="true"
+                          className="h-4 w-4 animate-spin motion-reduce:animate-none"
+                        />
+                      ) : null}
+                      {restoreMutation.isPending ? "正在复制…" : "确认复制"}
+                    </button>
+                  </PermissionGate>
                 </div>
               </Dialog.Content>
             </Dialog.Portal>

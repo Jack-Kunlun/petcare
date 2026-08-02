@@ -28,6 +28,7 @@ import {
   submitInitialDecision,
   transferAdminComplaint,
 } from "../../../api/complaints";
+import { PermissionGate } from "../../../auth/PermissionGate";
 import { OrderManagementNavigation } from "../Navigation";
 import { DecisionDialog } from "./DecisionDialog";
 import { TransferDialog } from "./TransferDialog";
@@ -214,15 +215,17 @@ export default function ComplaintDetailPage() {
                     <p className="mt-1 text-xs text-red-700">{task.failureReason ?? "执行失败"}</p>
                   </div>
                   {task.status === "failed" ? (
-                    <button
-                      type="button"
-                      disabled={retry.isPending}
-                      onClick={() => retry.mutate(task.id)}
-                      className="inline-flex min-h-11 items-center gap-2 rounded-lg border border-red-300 px-3 font-medium text-red-700 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-red-600"
-                    >
-                      <RefreshCcw className="h-4 w-4" />
-                      重试{taskLabels[task.taskType]}任务
-                    </button>
+                    <PermissionGate all={["dispute.resolve"]}>
+                      <button
+                        type="button"
+                        disabled={retry.isPending}
+                        onClick={() => retry.mutate(task.id)}
+                        className="inline-flex min-h-11 items-center gap-2 rounded-lg border border-red-300 px-3 font-medium text-red-700 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-red-600"
+                      >
+                        <RefreshCcw className="h-4 w-4" />
+                        重试{taskLabels[task.taskType]}任务
+                      </button>
+                    </PermissionGate>
                   ) : null}
                 </div>
               ))}
@@ -444,16 +447,17 @@ function Workbench({
         {buttons
           .filter((button) => actions.includes(button.action))
           .map((button) => (
-            <button
-              key={button.action}
-              type="button"
-              disabled={pending}
-              onClick={button.run}
-              className="inline-flex min-h-11 items-center justify-center gap-2 rounded-lg bg-blue-700 px-4 font-semibold text-white disabled:opacity-50 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-blue-600 focus-visible:ring-offset-2"
-            >
-              {button.icon}
-              {button.label}
-            </button>
+            <PermissionGate key={button.action} all={["dispute.resolve"]}>
+              <button
+                type="button"
+                disabled={pending}
+                onClick={button.run}
+                className="inline-flex min-h-11 items-center justify-center gap-2 rounded-lg bg-blue-700 px-4 font-semibold text-white disabled:opacity-50 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-blue-600 focus-visible:ring-offset-2"
+              >
+                {button.icon}
+                {button.label}
+              </button>
+            </PermissionGate>
           ))}
         {buttons.every((button) => !actions.includes(button.action)) ? (
           <p className="text-sm text-slate-500">当前无需人工操作。</p>

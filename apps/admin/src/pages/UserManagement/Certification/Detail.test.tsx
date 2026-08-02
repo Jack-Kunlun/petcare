@@ -8,6 +8,7 @@ import {
   fetchAdminProviderCertification,
   rejectAdminProviderCertification,
 } from "../../../api/provider-certifications";
+import { AuthContext, type AuthContextValue } from "../../../auth/auth.context";
 import ProviderCertificationDetail from "./Detail";
 
 vi.mock("../../../api/provider-certifications", () => ({
@@ -16,19 +17,37 @@ vi.mock("../../../api/provider-certifications", () => ({
   rejectAdminProviderCertification: vi.fn(),
 }));
 
-function renderPage() {
+function renderPage(permissions = ["user.approve_provider", "user.reject_provider"]) {
   const queryClient = new QueryClient({
     defaultOptions: { queries: { retry: false } },
   });
+  const auth: AuthContextValue = {
+    status: "authenticated",
+    user: {
+      id: "admin-1",
+      username: "operator",
+      phone: "13800138000",
+      nickname: "运营主管",
+      roles: ["operator"],
+      permissions,
+    },
+    loginWithPassword: vi.fn(),
+    loginWithSms: vi.fn(),
+    getCaptcha: vi.fn(),
+    sendSmsCode: vi.fn(),
+    logout: vi.fn(),
+  };
 
   return render(
-    <MemoryRouter initialEntries={["/users/certifications/application-1"]}>
-      <QueryClientProvider client={queryClient}>
-        <Routes>
-          <Route path="/users/certifications/:id" element={<ProviderCertificationDetail />} />
-        </Routes>
-      </QueryClientProvider>
-    </MemoryRouter>,
+    <AuthContext.Provider value={auth}>
+      <MemoryRouter initialEntries={["/users/certifications/application-1"]}>
+        <QueryClientProvider client={queryClient}>
+          <Routes>
+            <Route path="/users/certifications/:id" element={<ProviderCertificationDetail />} />
+          </Routes>
+        </QueryClientProvider>
+      </MemoryRouter>
+    </AuthContext.Provider>,
   );
 }
 
@@ -87,5 +106,14 @@ describe("ProviderCertificationDetail", () => {
     await user.click(screen.getByRole("button", { name: "确认通过" }));
 
     expect(approveAdminProviderCertification).toHaveBeenCalledWith("application-1");
+  });
+
+  it("does not render approval or rejection controls without their exact permissions", async () => {
+    renderPage([]);
+
+    await screen.findByText("安心宠托");
+
+    expect(screen.queryByRole("button", { name: "审核通过" })).not.toBeInTheDocument();
+    expect(screen.queryByRole("button", { name: "驳回申请" })).not.toBeInTheDocument();
   });
 });

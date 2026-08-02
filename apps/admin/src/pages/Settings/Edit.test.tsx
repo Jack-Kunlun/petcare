@@ -81,11 +81,15 @@ const auth: AuthContextValue = {
   logout: vi.fn(),
 };
 
-function renderEdit(route: string) {
+function renderEdit(route: string, permissions = auth.user?.permissions ?? []) {
   const queryClient = new QueryClient({ defaultOptions: { queries: { retry: false } } });
+  const context: AuthContextValue = {
+    ...auth,
+    user: auth.user ? { ...auth.user, permissions } : null,
+  };
 
   render(
-    <AuthContext.Provider value={auth}>
+    <AuthContext.Provider value={context}>
       <QueryClientProvider client={queryClient}>
         <MemoryRouter initialEntries={[route]}>
           <Routes>
@@ -1032,5 +1036,17 @@ describe("Settings domain editors", () => {
 
     await waitFor(() => expect(summary).toHaveFocus());
     expect(ratingApi.saveRatingThresholdDraft).not.toHaveBeenCalled();
+  });
+
+  it("does not render save or publish controls without their exact permissions", async () => {
+    setupRatingDraft();
+
+    renderEdit("/settings/rating_threshold/edit", ["system.view", "system.threshold_config"]);
+
+    await screen.findByRole("spinbutton", { name: "预警评分" });
+
+    expect(screen.getByRole("button", { name: "保存草稿" })).toBeInTheDocument();
+    expect(screen.queryByRole("button", { name: "检查并发布" })).not.toBeInTheDocument();
+    expect(screen.getByText("需要 system.publish 权限才能发布。")).toBeInTheDocument();
   });
 });

@@ -26,11 +26,15 @@ const auth: AuthContextValue = {
   logout: vi.fn(),
 };
 
-function renderDetail() {
+function renderDetail(permissions = auth.user?.permissions ?? []) {
   const queryClient = new QueryClient({ defaultOptions: { queries: { retry: false } } });
+  const context: AuthContextValue = {
+    ...auth,
+    user: auth.user ? { ...auth.user, permissions } : null,
+  };
 
   render(
-    <AuthContext.Provider value={auth}>
+    <AuthContext.Provider value={context}>
       <QueryClientProvider client={queryClient}>
         <MemoryRouter initialEntries={["/settings/fee/history/fee-v1"]}>
           <Routes>
@@ -118,5 +122,14 @@ describe("Settings history detail", () => {
 
     await waitFor(() => expect(screen.getByRole("button", { name: "复制为新草稿" })).toBeEnabled());
     expect(feeApi.fetchFeeDraft).toHaveBeenCalledTimes(2);
+  });
+
+  it("does not render the restore mutation control without both exact permissions", async () => {
+    renderDetail(["system.view", "system.fee_config"]);
+
+    await screen.findByRole("heading", { name: "费率设置 v1" });
+
+    expect(screen.queryByRole("button", { name: "复制为新草稿" })).not.toBeInTheDocument();
+    expect(screen.getByText("需要领域编辑和 system.publish 权限。")).toBeInTheDocument();
   });
 });
