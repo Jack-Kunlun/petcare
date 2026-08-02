@@ -28,10 +28,11 @@ describe("RBAC permission catalog", () => {
     ]);
 
     expect(byCode.get("rbac.view")?.impliedApiCodes).toContain("rbac.permission.read");
+    expect(byCode.get("rbac.view")?.parentCode).toBeNull();
     expect(byCode.get("rbac.catalog.view")).toMatchObject({
       type: RBAC_PERMISSION_TYPES.MENU,
       path: "/rbac/catalog",
-      parentCode: "system.view",
+      parentCode: "rbac.view",
       impliedApiCodes: ["rbac.permission.read"],
     });
 

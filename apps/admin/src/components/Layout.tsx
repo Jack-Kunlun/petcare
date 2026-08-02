@@ -2,7 +2,6 @@ import { useState } from "react";
 import { Outlet } from "react-router-dom";
 import { useAuth } from "../auth/auth.context";
 import { Header } from "../components/Header";
-import { SecondarySidebar } from "../components/SecondarySidebar";
 import { Sidebar } from "../components/Sidebar";
 
 export default function Layout() {
@@ -22,7 +21,6 @@ export default function Layout() {
         onClose={() => setSidebarOpen(false)}
         permissions={auth.user?.permissions ?? []}
       />
-      <SecondarySidebar permissions={auth.user?.permissions ?? []} />
       <div className="flex min-h-0 min-w-0 flex-1 flex-col">
         <Header onMenuOpen={() => setSidebarOpen(true)} />
         <main
