@@ -65,7 +65,7 @@ export class AdminRbacController {
 
   /** Returns the immutable, code-defined permission catalog. */
   @Get("catalog")
-  @RequirePermissions("rbac.view")
+  @RequirePermissions("rbac.permission.read")
   @ApiOperation({ summary: "获取 RBAC 权限目录" })
   @ApiSuccessResponse(RbacCatalogResponseDto)
   @ApiStandardErrors(401, 403, 500)

@@ -83,4 +83,14 @@ describe("PermissionCatalogService", () => {
       service.expandToEffectiveCodes(["system.publish", "system.view", "system.publish"]),
     ).toEqual(["system.publish", "system.publish_action", "system.read", "system.view"]);
   });
+
+  it("expands the RBAC menu permission to the catalog API needed to read its directory", () => {
+    const service = new PermissionCatalogService();
+
+    expect(service.expandToEffectiveCodes(["rbac.view"])).toEqual([
+      "rbac.permission.read",
+      "rbac.role.read",
+      "rbac.view",
+    ]);
+  });
 });
