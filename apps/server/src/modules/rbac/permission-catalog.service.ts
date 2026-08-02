@@ -32,6 +32,13 @@ export class PermissionCatalogService {
     }
 
     for (const permission of catalog) {
+      if (
+        (permission.type === RBAC_PERMISSION_TYPES.BUTTON && permission.parentCode === null) ||
+        (permission.type === RBAC_PERMISSION_TYPES.API && permission.parentCode !== null)
+      ) {
+        throw rbacInvalidPermissionParent(permission.code);
+      }
+
       if (permission.parentCode !== null) {
         const parent = catalogByCode.get(permission.parentCode);
 
