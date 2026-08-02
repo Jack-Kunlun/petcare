@@ -17,7 +17,7 @@
     "lint": "eslint .",
     "lint:staged": "eslint . --fix",
     "pretest": "pnpm prisma:generate",
-    "test": "jest",
+    "test": "jest --runInBand",
     "test:watch": "jest --watch",
     "pretest:cov": "pnpm prisma:generate",
     "test:cov": "jest --coverage --runInBand",
