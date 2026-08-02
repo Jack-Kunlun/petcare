@@ -44,16 +44,16 @@ deliverables/
 
 ## 3. Brand palette
 
-| Token | Value | Intended use |
-| --- | --- | --- |
-| Primary | `#4A6CF7` | Actions, links, primary brand surfaces |
-| Secondary | `#5BC8AF` | Product UI and supporting elements |
-| Approved Logo mint | `#5BC9B9` | Approved Logo artwork only |
-| Accent | `#F6B343` | Restrained highlights |
-| Text primary | `#1F2937` / `#202632` | Product and Hero text |
-| Text secondary | `#667085` | Supporting text |
-| Background | `#F8FAFC` / `#FAFBFC` | Light page surfaces |
-| Border | `#E6EAF0` | Dividers and subtle outlines |
+| Token              | Value                 | Intended use                           |
+| ------------------ | --------------------- | -------------------------------------- |
+| Primary            | `#4A6CF7`             | Actions, links, primary brand surfaces |
+| Secondary          | `#5BC8AF`             | Product UI and supporting elements     |
+| Approved Logo mint | `#5BC9B9`             | Approved Logo artwork only             |
+| Accent             | `#F6B343`             | Restrained highlights                  |
+| Text primary       | `#1F2937` / `#202632` | Product and Hero text                  |
+| Text secondary     | `#667085`             | Supporting text                        |
+| Background         | `#F8FAFC` / `#FAFBFC` | Light page surfaces                    |
+| Border             | `#E6EAF0`             | Dividers and subtle outlines           |
 
 Do not substitute system Secondary for the approved Logo mint inside the Logo, and do not use the Logo-only mint for general UI elements.
 
@@ -61,17 +61,17 @@ Do not substitute system Secondary for the approved Logo mint inside the Logo, a
 
 ### Production masters
 
-| Version | File | Intended placement |
-| --- | --- | --- |
-| Approved actual primary | `logo/png/petcare-logo-approved-actual-primary.png` | Default raster master: Symbol + PetCare |
+| Version                     | File                                                    | Intended placement                              |
+| --------------------------- | ------------------------------------------------------- | ----------------------------------------------- |
+| Approved actual primary     | `logo/png/petcare-logo-approved-actual-primary.png`     | Default raster master: Symbol + PetCare         |
 | Approved actual full lockup | `logo/png/petcare-logo-approved-actual-full-lockup.png` | Brand communications needing tagline and slogan |
 
 ### Editable SVG companions
 
-| Family | Color | Dark | Monochrome | Reverse |
-| --- | --- | --- | --- | --- |
+| Family       | Color                            | Dark                            | Monochrome                            | Reverse                            |
+| ------------ | -------------------------------- | ------------------------------- | ------------------------------------- | ---------------------------------- |
 | Stacked Logo | `petcare-logo-stacked-color.svg` | `petcare-logo-stacked-dark.svg` | `petcare-logo-stacked-monochrome.svg` | `petcare-logo-stacked-reverse.svg` |
-| Symbol | `petcare-symbol-color.svg` | `petcare-symbol-dark.svg` | `petcare-symbol-monochrome.svg` | `petcare-symbol-reverse.svg` |
+| Symbol       | `petcare-symbol-color.svg`       | `petcare-symbol-dark.svg`       | `petcare-symbol-monochrome.svg`       | `petcare-symbol-reverse.svg`       |
 
 All files above are in `logo/svg/`.
 
@@ -104,11 +104,11 @@ Version usage:
 
 Hero files contain photography only. Render Logo, heading, copy, CTA, and controls as HTML so they remain accessible, localizable, and responsive.
 
-| Theme | Message | Subject side | Copy safe zone | Suggested alt text |
-| --- | --- | --- | --- | --- |
-| Trusted Care | calm trust and safe companionship | right | `left-40` | A cat and dog resting peacefully in a modern living room with natural light. |
-| Professional Care | organized, transparent daily care | left | `right-40` | A tidy home pet-care station with fresh water, measured food, and a cat nearby. |
-| Community Companion | warm connection and shared life | right | `left-40` | A cat and dog sharing a relaxed moment in a sunlit living room. |
+| Theme               | Message                           | Subject side | Copy safe zone | Suggested alt text                                                              |
+| ------------------- | --------------------------------- | ------------ | -------------- | ------------------------------------------------------------------------------- |
+| Trusted Care        | calm trust and safe companionship | right        | `left-40`      | A cat and dog resting peacefully in a modern living room with natural light.    |
+| Professional Care   | organized, transparent daily care | left         | `right-40`     | A tidy home pet-care station with fresh water, measured food, and a cat nearby. |
+| Community Companion | warm connection and shared life   | right        | `left-40`      | A cat and dog sharing a relaxed moment in a sunlit living room.                 |
 
 Each theme includes:
 
@@ -119,10 +119,10 @@ Each theme includes:
 
 The complete generation/edit prompts, provenance, dates, and source relationships are stored in `manifest.json` under `sourceProvenance`. Use these exact entries:
 
-| Theme | Provenance ID | Source path | Prompt field |
-| --- | --- | --- | --- |
-| Trusted Care | `hero.trusted-care.source` | `hero/source/hero-trusted-care-source-v1.png` | `sourceProvenance[id=hero.trusted-care.source].prompt` |
-| Professional Care | `hero.professional-care.source` | `hero/source/hero-professional-care-source-v1.png` | `sourceProvenance[id=hero.professional-care.source].prompt` |
+| Theme               | Provenance ID                     | Source path                                          | Prompt field                                                  |
+| ------------------- | --------------------------------- | ---------------------------------------------------- | ------------------------------------------------------------- |
+| Trusted Care        | `hero.trusted-care.source`        | `hero/source/hero-trusted-care-source-v1.png`        | `sourceProvenance[id=hero.trusted-care.source].prompt`        |
+| Professional Care   | `hero.professional-care.source`   | `hero/source/hero-professional-care-source-v1.png`   | `sourceProvenance[id=hero.professional-care.source].prompt`   |
 | Community Companion | `hero.community-companion.source` | `hero/source/hero-community-companion-source-v1.png` | `sourceProvenance[id=hero.community-companion.source].prompt` |
 
 Do not regenerate a selected source unless a new brand review explicitly approves the replacement.
@@ -143,20 +143,20 @@ Do not regenerate a selected source unless a new brand review explicitly approve
 
 ## 6. Reusable website elements
 
-| Element | File | Use |
-| --- | --- | --- |
-| Linear gradient | `elements/gradients/petcare-gradient-linear.svg` | restrained brand surface or section accent |
-| Radial gradient | `elements/gradients/petcare-gradient-radial.svg` | low-contrast Hero/section glow |
-| Transparent glow | `elements/gradients/petcare-glow-transparent.svg` | transparent ambient glow over light or dark surfaces |
-| Soft background | `elements/gradients/petcare-background-soft.svg` | light website section background |
-| Light placeholder | `elements/placeholders/petcare-placeholder-light.svg` | neutral light media placeholder |
-| Dark placeholder | `elements/placeholders/petcare-placeholder-dark.svg` | neutral dark media placeholder |
-| Connection pattern | `elements/patterns/petcare-connection-pattern.svg` | subtle community/connection texture |
-| Symbol badge | `elements/badges/petcare-badge-symbol.svg` | trust mark or compact brand badge |
+| Element                 | File                                                  | Use                                                                  |
+| ----------------------- | ----------------------------------------------------- | -------------------------------------------------------------------- |
+| Linear gradient         | `elements/gradients/petcare-gradient-linear.svg`      | restrained brand surface or section accent                           |
+| Radial gradient         | `elements/gradients/petcare-gradient-radial.svg`      | low-contrast Hero/section glow                                       |
+| Transparent glow        | `elements/gradients/petcare-glow-transparent.svg`     | transparent ambient glow over light or dark surfaces                 |
+| Soft background         | `elements/gradients/petcare-background-soft.svg`      | light website section background                                     |
+| Light placeholder       | `elements/placeholders/petcare-placeholder-light.svg` | neutral light media placeholder                                      |
+| Dark placeholder        | `elements/placeholders/petcare-placeholder-dark.svg`  | neutral dark media placeholder                                       |
+| Connection pattern      | `elements/patterns/petcare-connection-pattern.svg`    | subtle community/connection texture                                  |
+| Symbol badge            | `elements/badges/petcare-badge-symbol.svg`            | trust mark or compact brand badge                                    |
 | Trusted Companion badge | `elements/badges/petcare-badge-trusted-companion.svg` | verified-service icon badge; render localized copy as HTML beside it |
-| Left copy overlay | `elements/overlays/petcare-overlay-copy-left.svg` | dark copy over a left Hero safe zone |
-| Right copy overlay | `elements/overlays/petcare-overlay-copy-right.svg` | dark copy over a right Hero safe zone |
-| Bottom overlay | `elements/overlays/petcare-overlay-bottom.svg` | white bottom caption or carousel metadata |
+| Left copy overlay       | `elements/overlays/petcare-overlay-copy-left.svg`     | dark copy over a left Hero safe zone                                 |
+| Right copy overlay      | `elements/overlays/petcare-overlay-copy-right.svg`    | dark copy over a right Hero safe zone                                |
+| Bottom overlay          | `elements/overlays/petcare-overlay-bottom.svg`        | white bottom caption or carousel metadata                            |
 
 Badge SVGs contain approved Symbol-derived geometry and have no external font, image, or network dependency. All SVGs remain editable and self-contained. Keep user-facing badge text in HTML/CSS so it is accessible, localizable, and deterministic.
 
@@ -164,10 +164,10 @@ Badge SVGs contain approved Symbol-derived geometry and have no external font, i
 
 Measured across all nine final PNG crops:
 
-| Combination | Verified region | Minimum measured contrast | Requirement |
-| --- | --- | --- | --- |
-| Light side overlay + `#202632` | declared side 40% | `13.81:1` | passes AA body and large text |
-| Dark bottom overlay + `#FFFFFF` | bottom 20% | `7.46:1` | passes AA body and large text |
+| Combination                     | Verified region   | Minimum measured contrast | Requirement                   |
+| ------------------------------- | ----------------- | ------------------------- | ----------------------------- |
+| Light side overlay + `#202632`  | declared side 40% | `13.81:1`                 | passes AA body and large text |
+| Dark bottom overlay + `#FFFFFF` | bottom 20%        | `7.46:1`                  | passes AA body and large text |
 
 Re-test contrast after changing any photograph, overlay, opacity, or text color. Do not communicate state through color alone.
 
