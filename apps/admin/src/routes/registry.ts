@@ -61,8 +61,7 @@ function settingsRoute(element: ReactNode) {
 /**
  * The adapter from serializable shared permission catalog records to React route elements.
  *
- * The RBAC page is intentionally not implemented until Task 7; its catalog route is retained here
- * so the registry stays one-to-one with the catalog without introducing that page early.
+ * The adapter keeps shared catalog data serializable while routing each protected Admin view.
  */
 export const ADMIN_ROUTE_REGISTRY: readonly AdminRouteDefinition[] = [
   {
