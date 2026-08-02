@@ -342,7 +342,7 @@ export function togglePermissionTree(
 ): PermissionTreeNode[];
 ```
 
-- [ ] **Step 1: Write `rbac-utils` tests.** Cover tree grouping, child ordering, selected state, parent indeterminate state, parent toggle, child toggle, and API nodes excluded from editable tree.
+- [ ] **Step 1: Write `rbac-utils` tests.** Cover tree grouping, child ordering, selected state, parent indeterminate state, parent toggle, child toggle, and API nodes rendered read-only and excluded from editable save payloads.
 - [ ] **Step 2: Run utility tests to verify failure.** Run `pnpm --filter @petcare/admin test -- src/pages/Rbac/rbac-utils.test.ts`. Expected: FAIL because the module does not exist.
 - [ ] **Step 3: Implement pure tree utilities.** Build deterministic menu/button tree from catalog and return immutable updates for toggles.
 - [ ] **Step 4: Write page tests.** Assert role pagination, menu directory read-only behavior, create/edit/delete button visibility, system role read-only state, permission save payload, user association replacement, and 409 conflict handling.

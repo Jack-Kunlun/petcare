@@ -1,7 +1,10 @@
 /** RBAC permission categories supported by the shared catalog. */
 export const RBAC_PERMISSION_TYPES = {
+  /** Menu entry used to expose an administration route. */
   MENU: "menu",
+  /** Page action that can be granted at button level. */
   BUTTON: "button",
+  /** Server endpoint permission derived from UI permissions. */
   API: "api",
 } as const;
 
