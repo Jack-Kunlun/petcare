@@ -130,6 +130,10 @@ export default function RbacDetail() {
   const directPermissionCodes = new Set(role.permissionCodes);
 
   function saveUsers() {
+    if (role.isSystem) {
+      return;
+    }
+
     const userIds = [
       ...new Set(
         userIdsText
@@ -240,39 +244,41 @@ export default function RbacDetail() {
             <li className="px-4 py-5 text-sm text-slate-600">当前没有关联管理员。</li>
           )}
         </ul>
-        <PermissionGate all={["rbac.assign_role"]}>
-          <div className="mt-5 border-t border-slate-200 pt-5">
-            <label className="block">
-              <span className="text-sm font-medium text-slate-800">关联管理员 ID</span>
-              <span className="mt-1 block text-xs text-slate-500">
-                每行一个管理员 ID，保存将替换该角色的全部关联管理员。
-              </span>
-              <textarea
-                aria-label="关联管理员 ID"
-                value={userIdsText}
-                onChange={(event) => setUserIdsText(event.target.value)}
-                rows={4}
-                className="mt-2 w-full rounded-lg border border-slate-300 px-3 py-2 font-mono text-sm outline-none focus:border-blue-700 focus:ring-2 focus:ring-blue-700/20"
-              />
-            </label>
-            {replaceUsersMutation.isError ? (
-              <p role="alert" className="mt-3 text-sm text-red-700">
-                {isConflict(replaceUsersMutation.error)
-                  ? "关联管理员已变更，请刷新后再试。"
-                  : "保存关联管理员失败，请稍后重试。"}
-              </p>
-            ) : null}
-            <button
-              type="button"
-              disabled={replaceUsersMutation.isPending}
-              onClick={saveUsers}
-              className="mt-4 inline-flex min-h-11 items-center gap-2 rounded-lg bg-blue-700 px-4 font-semibold text-white hover:bg-blue-800 disabled:cursor-not-allowed disabled:opacity-50"
-            >
-              <Save aria-hidden="true" className="h-4 w-4" />
-              保存关联管理员
-            </button>
-          </div>
-        </PermissionGate>
+        {!role.isSystem ? (
+          <PermissionGate all={["rbac.assign_role"]}>
+            <div className="mt-5 border-t border-slate-200 pt-5">
+              <label className="block">
+                <span className="text-sm font-medium text-slate-800">关联管理员 ID</span>
+                <span className="mt-1 block text-xs text-slate-500">
+                  每行一个管理员 ID，保存将替换该角色的全部关联管理员。
+                </span>
+                <textarea
+                  aria-label="关联管理员 ID"
+                  value={userIdsText}
+                  onChange={(event) => setUserIdsText(event.target.value)}
+                  rows={4}
+                  className="mt-2 w-full rounded-lg border border-slate-300 px-3 py-2 font-mono text-sm outline-none focus:border-blue-700 focus:ring-2 focus:ring-blue-700/20"
+                />
+              </label>
+              {replaceUsersMutation.isError ? (
+                <p role="alert" className="mt-3 text-sm text-red-700">
+                  {isConflict(replaceUsersMutation.error)
+                    ? "关联管理员已变更，请刷新后再试。"
+                    : "保存关联管理员失败，请稍后重试。"}
+                </p>
+              ) : null}
+              <button
+                type="button"
+                disabled={replaceUsersMutation.isPending}
+                onClick={saveUsers}
+                className="mt-4 inline-flex min-h-11 items-center gap-2 rounded-lg bg-blue-700 px-4 font-semibold text-white hover:bg-blue-800 disabled:cursor-not-allowed disabled:opacity-50"
+              >
+                <Save aria-hidden="true" className="h-4 w-4" />
+                保存关联管理员
+              </button>
+            </div>
+          </PermissionGate>
+        ) : null}
       </section>
     </div>
   );

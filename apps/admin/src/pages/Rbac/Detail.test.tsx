@@ -149,4 +149,15 @@ describe("RbacDetail", () => {
     await user.click(screen.getByRole("button", { name: "保存关联管理员" }));
     expect(await screen.findByRole("alert")).toHaveTextContent("关联管理员已变更，请刷新后再试。");
   });
+
+  it("keeps system-role association editing read-only even with rbac.assign_role", async () => {
+    vi.mocked(rbacApi.fetchRbacRole).mockResolvedValue({ ...role, isSystem: true });
+
+    renderDetail(["rbac.view", "rbac.assign_role"]);
+
+    expect(await screen.findByRole("heading", { name: "运营专员" })).toBeInTheDocument();
+    expect(screen.queryByLabelText("关联管理员 ID")).not.toBeInTheDocument();
+    expect(screen.queryByRole("button", { name: "保存关联管理员" })).not.toBeInTheDocument();
+    expect(rbacApi.replaceRbacRoleUsers).not.toHaveBeenCalled();
+  });
 });
