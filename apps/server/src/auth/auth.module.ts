@@ -3,6 +3,8 @@ import { JwtModule } from "@nestjs/jwt";
 import { PassportModule } from "@nestjs/passport";
 import { ConfigService } from "../config/config.service";
 import { RedisService } from "../config/redis.service";
+import { AdminRbacController } from "../modules/rbac/admin-rbac.controller";
+import { RbacModule } from "../modules/rbac/rbac.module";
 import { AccessTokenGuard } from "./access-token.guard";
 import { AdminGuard } from "./admin.guard";
 import { AuthController } from "./auth.controller";
@@ -21,8 +23,8 @@ import { WechatAuthController } from "./wechat-auth.controller";
 import { WechatAuthService } from "./wechat-auth.service";
 
 @Module({
-  imports: [PassportModule, JwtModule.register({})],
-  controllers: [AuthController, WechatAuthController],
+  imports: [PassportModule, JwtModule.register({}), RbacModule],
+  controllers: [AuthController, WechatAuthController, AdminRbacController],
   providers: [
     RedisService,
     CaptchaService,
@@ -49,6 +51,13 @@ import { WechatAuthService } from "./wechat-auth.service";
       },
     },
   ],
-  exports: [AuthService, AccessTokenGuard, AdminGuard, PermissionGuard, DisputeResolverGuard],
+  exports: [
+    AuthService,
+    AccessTokenGuard,
+    AdminGuard,
+    PermissionGuard,
+    DisputeResolverGuard,
+    RbacModule,
+  ],
 })
 export class AuthModule {}
