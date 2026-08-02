@@ -261,6 +261,31 @@ describe("Settings domain editors", () => {
     });
   });
 
+  it("提现手续费接受 10% 并在输入与校验层拒绝 10.01%", async () => {
+    const user = userEvent.setup();
+    const onChange = vi.fn();
+
+    render(<FeeEditor initialValue={fee} onChange={onChange} />);
+
+    const withdrawalFee = screen.getByRole("spinbutton", { name: "提现手续费" });
+
+    expect(withdrawalFee).toHaveAttribute("max", "10");
+    await user.clear(withdrawalFee);
+    await user.type(withdrawalFee, "10");
+    expect(onChange).toHaveBeenLastCalledWith({ ...fee, withdrawalFeeBps: 1000 }, {});
+
+    await user.clear(withdrawalFee);
+    await user.type(withdrawalFee, "10.01");
+    await user.tab();
+
+    const withdrawalError = screen.getByText("提现手续费不能超过 10%");
+
+    expect(withdrawalFee).toHaveAttribute("aria-describedby", withdrawalError.id);
+    expect(onChange).toHaveBeenLastCalledWith(null, {
+      withdrawalFeeBps: "提现手续费不能超过 10%",
+    });
+  });
+
   it("SOP 服务类型切换会加载对应配置并保持五步结构", async () => {
     const user = userEvent.setup();
 

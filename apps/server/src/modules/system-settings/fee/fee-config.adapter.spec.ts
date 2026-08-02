@@ -17,9 +17,15 @@ describe("FeeConfigAdapter", () => {
     );
   });
 
+  it("提现手续费接受一千万分比并拒绝一千零一万分比", () => {
+    expect(() => adapter.validate({ ...validFee, withdrawalFeeBps: 1000 })).not.toThrow();
+    expect(() => adapter.validate({ ...validFee, withdrawalFeeBps: 1001 })).toThrow(
+      "提现手续费必须在 0 至 1000 万分比之间",
+    );
+  });
+
   it.each([
     [{ ...validFee, platformCommissionBps: 10.5 }, "平台抽成必须在 0 至 5000 万分比之间"],
-    [{ ...validFee, withdrawalFeeBps: 5001 }, "提现手续费必须在 0 至 5000 万分比之间"],
     [{ ...validFee, rewardServiceFeeCents: -1 }, "悬赏服务费必须为非负整数分"],
     [{ ...validFee, minimumWithdrawalFeeCents: 1.5 }, "最低提现手续费必须为非负整数分"],
   ] as const)("拒绝非法比例或金额 %#", (config, message) => {

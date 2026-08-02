@@ -202,11 +202,11 @@ export class FeeConfigDto implements FeeConfig {
   @Min(0)
   rewardServiceFeeCents: number;
 
-  /** 提现手续费整数万分比。 */
-  @ApiProperty({ minimum: 0, maximum: 5000, example: 100 })
+  /** 提现手续费整数万分比，范围为 0 至 1000。 */
+  @ApiProperty({ minimum: 0, maximum: 1000, example: 100 })
   @IsInt()
   @Min(0)
-  @Max(5000)
+  @Max(1000)
   withdrawalFeeBps: number;
 
   /** 最低提现手续费，单位为分。 */

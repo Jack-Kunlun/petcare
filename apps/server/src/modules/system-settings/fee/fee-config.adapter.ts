@@ -72,8 +72,8 @@ export class FeeConfigAdapter implements ConfigDomainAdapter<FeeConfig> {
     requireIntegerInRange(
       config.withdrawalFeeBps,
       0,
-      5000,
-      "提现手续费必须在 0 至 5000 万分比之间",
+      1000,
+      "提现手续费必须在 0 至 1000 万分比之间",
     );
     requireIntegerInRange(
       config.rewardServiceFeeCents,
