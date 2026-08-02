@@ -82,13 +82,30 @@ describe("AdminComplaintController", () => {
     queryService.findForAdmin.mockResolvedValue(detail);
   });
 
-  it("uses the fixed admin API route and both authentication guards", () => {
+  it("uses read guards at class scope and resolver guard only on mutating handlers", () => {
     expect(Reflect.getMetadata(PATH_METADATA, AdminComplaintController)).toBe("admin/complaints");
     const guards = Reflect.getMetadata(GUARDS_METADATA, AdminComplaintController) as unknown[];
 
-    expect(guards).toEqual(
-      expect.arrayContaining([AccessTokenGuard, PermissionGuard, DisputeResolverGuard]),
-    );
+    expect(guards).toEqual([AccessTokenGuard, PermissionGuard]);
+
+    for (const method of ["findAll", "findOne", "findExecutionTasks"] as const) {
+      expect(
+        Reflect.getMetadata(GUARDS_METADATA, AdminComplaintController.prototype[method]),
+      ).toBeUndefined();
+    }
+
+    for (const method of [
+      "claim",
+      "transfer",
+      "decideInitial",
+      "decideFinal",
+      "retryExecutionTask",
+    ] as const) {
+      expect(
+        Reflect.getMetadata(GUARDS_METADATA, AdminComplaintController.prototype[method]),
+      ).toEqual([DisputeResolverGuard]);
+    }
+
     expect(
       Reflect.getMetadata(PERMISSIONS_METADATA_KEY, AdminComplaintController.prototype.findAll),
     ).toEqual(["dispute.read"]);

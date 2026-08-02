@@ -93,4 +93,30 @@ describe("PermissionCatalogService", () => {
       "rbac.view",
     ]);
   });
+
+  it("warns with the catalog version when persisted permission codes are orphaned", async () => {
+    const findMany = jest
+      .fn()
+      .mockResolvedValue([
+        { permissionCode: "system.view" },
+        { permissionCode: "retired.permission" },
+        { permissionCode: "retired.permission" },
+      ]);
+    const write = jest.fn();
+    const service = new PermissionCatalogService(
+      RBAC_PERMISSION_CATALOG,
+      {
+        permission: { findMany },
+      } as never,
+      { write } as never,
+    );
+
+    await service.onModuleInit();
+
+    expect(findMany).toHaveBeenCalledWith({ select: { permissionCode: true } });
+    expect(write).toHaveBeenCalledWith("warn", "rbac.permission_catalog_orphans", {
+      catalogVersion: service.getVersion(),
+      permissionCodes: ["retired.permission"],
+    });
+  });
 });

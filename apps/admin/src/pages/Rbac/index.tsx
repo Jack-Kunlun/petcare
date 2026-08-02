@@ -9,23 +9,13 @@ import { useState } from "react";
 import { Link } from "react-router-dom";
 import { deleteRbacRole, fetchRbacCatalog, fetchRbacRoles } from "../../api/rbac";
 import { PermissionGate } from "../../auth/PermissionGate";
+import { isConflict } from "./rbac-utils";
 
 const PAGE_SIZE = 10;
 
 type ActiveTab = "roles" | "catalog";
 
-function isConflict(error: unknown): boolean {
-  return (
-    typeof error === "object" &&
-    error !== null &&
-    "response" in error &&
-    typeof error.response === "object" &&
-    error.response !== null &&
-    "status" in error.response &&
-    error.response.status === 409
-  );
-}
-
+/** Translates a role's system and activation flags into its status badge. */
 function RoleStatus({ role }: { role: RbacRoleListItem }) {
   if (role.isSystem) {
     return (
@@ -46,6 +36,7 @@ function RoleStatus({ role }: { role: RbacRoleListItem }) {
   );
 }
 
+/** Renders the server-owned menu and button permission catalog for administrators. */
 function PermissionCatalog({ permissions }: { permissions: readonly RbacPermissionDefinition[] }) {
   const uiPermissions = permissions
     .filter((permission) => permission.type !== RBAC_PERMISSION_TYPES.API)

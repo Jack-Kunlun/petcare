@@ -8,13 +8,22 @@ describe("ADMIN_ROUTE_REGISTRY", () => {
   );
 
   it("registers every catalog menu path exactly once with its catalog permission", () => {
+    const catalogByCode = new Map(
+      RBAC_PERMISSION_CATALOG.map((permission) => [permission.code, permission]),
+    );
+
     for (const permission of menuPermissions) {
       const routes = ADMIN_ROUTE_REGISTRY.filter((route) => route.path === permission.path);
+      const parentPath = permission.parentCode
+        ? (catalogByCode.get(permission.parentCode)?.path ?? null)
+        : null;
 
       expect(routes).toHaveLength(1);
       expect(routes[0]).toMatchObject({
+        path: permission.path,
         menuPermission: permission.code,
         requiredPermissions: [permission.code],
+        parentPath,
         order: permission.order,
         icon: permission.icon,
       });
