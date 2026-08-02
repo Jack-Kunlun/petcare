@@ -4,6 +4,8 @@
   "private": true,
   "type": "module",
   "scripts": {
+    "predev": "pnpm --filter @petcare/shared-types build",
+    "prebuild": "pnpm --filter @petcare/shared-types build",
     "dev": "vite",
     "build": "tsc --noEmit && vite build && node ../../scripts/style-output-policy.mjs admin dist",
     "typecheck": "tsc --noEmit",
