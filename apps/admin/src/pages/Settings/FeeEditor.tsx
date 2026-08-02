@@ -48,8 +48,8 @@ function parseForm(form: FeeFormState): { config: FeeConfig | null; errors: Sett
 
   if (withdrawalFeeBps === null) {
     errors.withdrawalFeeBps = "最多保留两位小数";
-  } else if (withdrawalFeeBps > 5000) {
-    errors.withdrawalFeeBps = "提现手续费不能超过 50%";
+  } else if (withdrawalFeeBps > 1000) {
+    errors.withdrawalFeeBps = "提现手续费不能超过 10%";
   }
 
   if (minimumWithdrawalFeeCents === null) {
@@ -126,6 +126,7 @@ export function FeeEditor({ initialValue, onChange }: FeeEditorProps) {
           field="withdrawalFeeBps"
           label="提现手续费"
           suffix="%"
+          max={10}
           value={form.withdrawalFeeBps}
           error={error("withdrawalFeeBps")}
           onChange={(value) => update("withdrawalFeeBps", value)}
@@ -149,6 +150,7 @@ function FeeField({
   field,
   label,
   suffix,
+  max,
   value,
   error,
   onChange,
@@ -157,6 +159,7 @@ function FeeField({
   field: keyof FeeFormState;
   label: string;
   suffix: string;
+  max?: number;
   value: string;
   error?: string;
   onChange(value: string): void;
@@ -175,6 +178,7 @@ function FeeField({
           type="number"
           inputMode="decimal"
           min={0}
+          max={max}
           step="0.01"
           value={value}
           onChange={(event) => onChange(event.target.value)}

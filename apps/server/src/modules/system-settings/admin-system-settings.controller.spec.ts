@@ -33,6 +33,19 @@ const validSopConfig = {
   ],
 };
 
+function feeDto(withdrawalFeeBps: number) {
+  return plainToInstance(SaveFeeConfigDraftDto, {
+    revision: 0,
+    changeSummary: "调整提现手续费边界",
+    config: {
+      platformCommissionBps: 1000,
+      rewardServiceFeeCents: 200,
+      withdrawalFeeBps,
+      minimumWithdrawalFeeCents: 100,
+    },
+  });
+}
+
 describe("AdminSystemSettingsController", () => {
   it("拒绝 DTO 中的小数、越界值、空摘要和嵌套非法步骤", async () => {
     const fee = plainToInstance(SaveFeeConfigDraftDto, {
@@ -70,6 +83,11 @@ describe("AdminSystemSettingsController", () => {
     expect(await validate(fee)).not.toHaveLength(0);
     expect(await validate(sop)).not.toHaveLength(0);
     expect(await validate(incompleteRule)).not.toHaveLength(0);
+  });
+
+  it("费用 DTO 接受一千万分比提现手续费并拒绝一千零一", async () => {
+    expect(await validate(feeDto(1000))).toHaveLength(0);
+    expect(await validate(feeDto(1001))).not.toHaveLength(0);
   });
 
   it("使用访问令牌和权限点守卫，并为发布与恢复叠加发布权限", () => {
@@ -326,6 +344,12 @@ describe("AdminSystemSettingsController", () => {
         },
       });
     }
+
+    expect(document.components?.schemas?.FeeConfigDto).toMatchObject({
+      properties: {
+        withdrawalFeeBps: { minimum: 0, maximum: 1000 },
+      },
+    });
 
     await app.close();
   });

@@ -126,7 +126,7 @@ export interface FeeConfig {
   platformCommissionBps: number;
   /** 悬赏订单收取的服务费，单位为分。 */
   rewardServiceFeeCents: number;
-  /** 提现手续费比例，使用整数万分比。 */
+  /** 提现手续费比例，使用 0 至 1000 的整数万分比。 */
   withdrawalFeeBps: number;
   /** 提现时收取的最低手续费，单位为分。 */
   minimumWithdrawalFeeCents: number;
