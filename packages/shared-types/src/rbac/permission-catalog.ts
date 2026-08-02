@@ -437,7 +437,7 @@ export const RBAC_PERMISSION_CATALOG: readonly RbacPermissionDefinition[] = [
     parentCode: "system.view",
     order: 60,
     icon: "ShieldCheck",
-    impliedApiCodes: ["rbac.role.read"],
+    impliedApiCodes: ["rbac.permission.read", "rbac.role.read"],
   },
   {
     code: "rbac.role.read",

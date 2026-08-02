@@ -16,7 +16,7 @@ describe("AdminRbacController", () => {
 
     expect(Reflect.getMetadata("path", AdminRbacController)).toBe("admin/rbac");
     expect(guards).toEqual([AccessTokenGuard, PermissionGuard]);
-    expect(permissions("getCatalog")).toEqual(["rbac.view"]);
+    expect(permissions("getCatalog")).toEqual(["rbac.permission.read"]);
     expect(permissions("listRoles")).toEqual(["rbac.view"]);
     expect(permissions("getRole")).toEqual(["rbac.view"]);
     expect(permissions("createRole")).toEqual(["rbac.role.create"]);
