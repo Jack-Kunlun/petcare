@@ -15,6 +15,8 @@ export default defineConfig({
   },
   optimizeDeps: {
     include: ["@petcare/shared-types"],
+    /** Rebuild the workspace package prebundle after shared-types changes. */
+    force: true,
   },
   server: {
     port: adminPort,
