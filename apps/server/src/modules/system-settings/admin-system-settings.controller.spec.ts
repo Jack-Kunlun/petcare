@@ -1,9 +1,12 @@
+import { type INestApplication, HttpStatus } from "@nestjs/common";
 import { GUARDS_METADATA, HTTP_CODE_METADATA } from "@nestjs/common/constants";
 import { SwaggerModule } from "@nestjs/swagger";
 import { Test } from "@nestjs/testing";
 import { plainToInstance } from "class-transformer";
 import { validate } from "class-validator";
+import supertest from "supertest";
 import { AccessTokenGuard } from "../../auth/access-token.guard";
+import { AuthService } from "../../auth/auth.service";
 import { PermissionGuard } from "../../auth/permission.guard";
 import { PERMISSIONS_METADATA_KEY } from "../../auth/permissions.decorator";
 import { AdminSystemSettingsController } from "./admin-system-settings.controller";
@@ -47,6 +50,51 @@ function feeDto(withdrawalFeeBps: number) {
 }
 
 describe("AdminSystemSettingsController", () => {
+  it("allows system.view reads but rejects publishing without system.publish", async () => {
+    const authorization = {
+      getCurrentUserAuthorization: jest.fn().mockResolvedValue({
+        roles: ["settings_reader"],
+        permissions: ["system.view"],
+      }),
+    };
+    const overview = { getOverview: jest.fn().mockResolvedValue({}) };
+
+    let app: INestApplication | undefined;
+    const moduleRef = await Test.createTestingModule({
+      controllers: [AdminSystemSettingsController],
+      providers: [
+        { provide: ConfigPublishingService, useValue: {} },
+        { provide: SystemSettingsOverviewService, useValue: overview },
+        { provide: AuthService, useValue: authorization },
+        PermissionGuard,
+      ],
+    })
+      .overrideGuard(AccessTokenGuard)
+      .useValue({
+        canActivate(context: { switchToHttp(): { getRequest(): { user?: { sub: string } } } }) {
+          context.switchToHttp().getRequest().user = { sub: "settings-reader" };
+
+          return true;
+        },
+      })
+      .compile();
+
+    try {
+      app = moduleRef.createNestApplication();
+      await app.init();
+
+      await supertest(app.getHttpServer())
+        .get("/admin/system-settings/overview")
+        .expect(HttpStatus.OK);
+      await supertest(app.getHttpServer())
+        .post("/admin/system-settings/fee/publish")
+        .send({})
+        .expect(HttpStatus.FORBIDDEN);
+    } finally {
+      await app?.close();
+    }
+  });
+
   it("拒绝 DTO 中的小数、越界值、空摘要和嵌套非法步骤", async () => {
     const fee = plainToInstance(SaveFeeConfigDraftDto, {
       revision: 0,

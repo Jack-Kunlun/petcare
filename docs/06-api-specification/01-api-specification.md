@@ -270,6 +270,30 @@ Authorization: Bearer eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9...
 
 ---
 
+## 后台 RBAC 管理模块 (`/admin/rbac`)
+
+所有 RBAC 路由都要求有效的管理员 Bearer Token；实际授权由 Server 的 `PermissionGuard` 和权限目录中的 API 权限执行，前端隐藏入口不构成授权。
+
+| 方法     | 路径                                | 所需权限               | 用途                                                            |
+| -------- | ----------------------------------- | ---------------------- | --------------------------------------------------------------- |
+| `GET`    | `/admin/rbac/catalog`               | `rbac.permission.read` | 读取服务端定义的只读权限目录和目录版本。                        |
+| `GET`    | `/admin/rbac/roles`                 | `rbac.view`            | 分页查询角色；支持 `page`、`pageSize`、`roleName`、`isActive`。 |
+| `GET`    | `/admin/rbac/roles/:id`             | `rbac.view`            | 读取角色详情、有效权限码和关联管理员 ID。                       |
+| `POST`   | `/admin/rbac/roles`                 | `rbac.role.create`     | 创建非系统角色。                                                |
+| `PATCH`  | `/admin/rbac/roles/:id`             | `rbac.role.update`     | 更新非系统角色的名称、说明或启用状态。                          |
+| `DELETE` | `/admin/rbac/roles/:id`             | `rbac.role.delete`     | 删除未关联管理员的非系统角色。                                  |
+| `PUT`    | `/admin/rbac/roles/:id/permissions` | `rbac.role.update`     | 原子替换角色的可分配菜单、按钮权限。                            |
+| `GET`    | `/admin/rbac/roles/:id/users`       | `rbac.assign_role`     | 读取关联管理员。                                                |
+| `PUT`    | `/admin/rbac/roles/:id/users`       | `rbac.assign_role`     | 原子替换关联管理员。                                            |
+
+`POST /roles` 请求体为 `{ "roleName": string, "description"?: string }`；更新请求允许 `roleName`、`description`、`isActive` 的部分字段。权限替换请求为 `{ "permissionCodes": string[] }`，只能提交目录中 `menu` 或 `button` 类型的码；Server 会补齐其 `impliedApiCodes`，API 类型权限不可由客户端直接赋值。用户替换请求为 `{ "userIds": string[] }`。
+
+角色列表统一返回 `{ list, total, page, pageSize }`，角色详情返回 `id`、`roleName`、`description`、`isSystem`、`isActive`、`permissionCount`、`userCount`、`updatedAt`、`permissionCodes` 与 `userIds`。系统角色不可修改或删除；冲突、受保护角色、已关联用户、未知用户和未同步权限分别通过稳定错误码及标准错误 envelope 返回。
+
+权限目录的唯一来源是 `@petcare/shared-types` 中的 `RBAC_PERMISSION_CATALOG`。目录响应 `{ version, permissions }` 用于前端展示和缓存失效，但不允许将其当作可写的菜单配置；数据库权限记录由 seed 与目录同步，服务端始终依据当前目录和实时角色授权判定。
+
+---
+
 ## 请求规范
 
 ### 请求头

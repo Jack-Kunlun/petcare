@@ -27,4 +27,18 @@ describe("Sidebar", () => {
 
     expect(screen.queryByRole("link", { name: "系统设置" })).not.toBeInTheDocument();
   });
+  it("only renders registry menu links for the administrator's granted permissions", () => {
+    render(
+      <MemoryRouter>
+        <Sidebar permissions={["dispute.view"]} />
+      </MemoryRouter>,
+    );
+
+    expect(screen.getByRole("link", { name: "投诉与纠纷" })).toHaveAttribute(
+      "href",
+      "/orders/complaints",
+    );
+    expect(screen.queryByRole("link", { name: "运营概览" })).not.toBeInTheDocument();
+    expect(screen.queryByRole("link", { name: "订单管理" })).not.toBeInTheDocument();
+  });
 });

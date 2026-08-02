@@ -12,8 +12,9 @@ import {
 import { ApiBearerAuth, ApiOperation, ApiTags } from "@nestjs/swagger";
 import type { Request } from "express";
 import { AccessTokenGuard } from "../../auth/access-token.guard";
-import { AdminGuard } from "../../auth/admin.guard";
 import { type AccessTokenPayload } from "../../auth/auth.types";
+import { PermissionGuard } from "../../auth/permission.guard";
+import { RequirePermissions } from "../../auth/permissions.decorator";
 import {
   ApiStandardErrors,
   ApiSuccessResponse,
@@ -30,13 +31,14 @@ type AuthRequest = Request & { user?: AccessTokenPayload };
 
 @ApiTags("admin-provider-certifications")
 @ApiBearerAuth()
-@UseGuards(AccessTokenGuard, AdminGuard)
+@UseGuards(AccessTokenGuard, PermissionGuard)
 @Controller("admin/provider-certifications")
 export class AdminProviderCertificationController {
   constructor(private readonly service: ProviderCertificationService) {}
 
   /** 返回认证申请分页列表。 */
   @Get()
+  @RequirePermissions("provider_certification.read")
   @ApiOperation({ summary: "获取宠托师认证申请列表" })
   @ApiSuccessResponse(AdminProviderCertificationListResponseDto)
   @ApiStandardErrors(400, 401, 403, 500)
@@ -46,6 +48,7 @@ export class AdminProviderCertificationController {
 
   /** 返回单个认证申请详情。 */
   @Get(":id")
+  @RequirePermissions("provider_certification.read")
   @ApiOperation({ summary: "获取宠托师认证申请详情" })
   @ApiSuccessResponse(AdminProviderCertificationDetailDto)
   @ApiStandardErrors(400, 401, 403, 404, 500)
@@ -55,6 +58,7 @@ export class AdminProviderCertificationController {
 
   /** 审核通过待审核认证申请。 */
   @Post(":id/approve")
+  @RequirePermissions("user.approve_provider")
   @ApiOperation({ summary: "通过宠托师认证申请" })
   @ApiSuccessResponse(AdminProviderCertificationDetailDto)
   @ApiStandardErrors(400, 401, 403, 404, 409, 500)
@@ -64,6 +68,7 @@ export class AdminProviderCertificationController {
 
   /** 填写原因并驳回待审核认证申请。 */
   @Post(":id/reject")
+  @RequirePermissions("user.reject_provider")
   @ApiOperation({ summary: "驳回宠托师认证申请" })
   @ApiSuccessResponse(AdminProviderCertificationDetailDto)
   @ApiStandardErrors(400, 401, 403, 404, 409, 500)
