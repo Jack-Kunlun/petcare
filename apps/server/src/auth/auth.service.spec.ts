@@ -228,4 +228,31 @@ describe("AuthService", () => {
       },
     });
   });
+
+  it("keeps role names but excludes duplicate and orphan database permissions from authorization", async () => {
+    prisma.user.findFirst.mockResolvedValue({
+      roles: [
+        {
+          role: {
+            roleName: "config_admin",
+            permissions: [
+              { permission: { permissionCode: "system.view" } },
+              { permission: { permissionCode: "retired.permission" } },
+            ],
+          },
+        },
+        {
+          role: {
+            roleName: "config_admin",
+            permissions: [{ permission: { permissionCode: "system.view" } }],
+          },
+        },
+      ],
+    });
+
+    await expect(service.getCurrentUserAuthorization("user-1")).resolves.toEqual({
+      roles: ["config_admin", "config_admin"],
+      permissions: ["system.view"],
+    });
+  });
 });
