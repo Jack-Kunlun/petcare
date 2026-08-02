@@ -6,6 +6,9 @@ import Dashboard from "../pages/Dashboard";
 import OrderManagement from "../pages/OrderManagement";
 import ComplaintWorkQueue from "../pages/OrderManagement/Complaint";
 import ComplaintDetail from "../pages/OrderManagement/Complaint/Detail";
+import Rbac from "../pages/Rbac";
+import RbacDetail from "../pages/Rbac/Detail";
+import RbacEdit from "../pages/Rbac/Edit";
 import UserManagement from "../pages/UserManagement";
 import ProviderCertificationList from "../pages/UserManagement/Certification";
 import ProviderCertificationDetail from "../pages/UserManagement/Certification/Detail";
@@ -165,19 +168,42 @@ export const ADMIN_ROUTE_REGISTRY: readonly AdminRouteDefinition[] = [
   {
     id: "rbac",
     path: "/rbac",
-    element: createElement(
-      "section",
-      {
-        role: "status",
-        className: "rounded-xl border border-slate-200 bg-white p-8 text-center text-slate-600",
-      },
-      "权限管理页面将在后续任务中提供。",
-    ),
+    element: createElement(Rbac),
     menuPermission: "rbac.view",
     requiredPermissions: ["rbac.view"],
     parentPath: "/settings",
     order: 60,
     icon: "ShieldCheck",
+  },
+  {
+    id: "rbac-new",
+    path: "/rbac/new",
+    element: createElement(RbacEdit),
+    menuPermission: null,
+    requiredPermissions: ["rbac.view"],
+    parentPath: "/rbac",
+    order: 0,
+    icon: null,
+  },
+  {
+    id: "rbac-edit",
+    path: "/rbac/:id/edit",
+    element: createElement(RbacEdit),
+    menuPermission: null,
+    requiredPermissions: ["rbac.view"],
+    parentPath: "/rbac",
+    order: 0,
+    icon: null,
+  },
+  {
+    id: "rbac-detail",
+    path: "/rbac/:id",
+    element: createElement(RbacDetail),
+    menuPermission: null,
+    requiredPermissions: ["rbac.view"],
+    parentPath: "/rbac",
+    order: 0,
+    icon: null,
   },
 ];
 
