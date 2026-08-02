@@ -479,6 +479,18 @@ export const RBAC_PERMISSION_CATALOG: readonly RbacPermissionDefinition[] = [
     icon: "ShieldCheck",
     impliedApiCodes: ["rbac.permission.read", "rbac.role.read"],
   },
+  /** Opens the read-only permission catalog under system settings. */
+  {
+    code: "rbac.catalog.view",
+    type: "menu",
+    label: "菜单目录",
+    module: "rbac",
+    path: "/rbac/catalog",
+    parentCode: "system.view",
+    order: 70,
+    icon: "ShieldCheck",
+    impliedApiCodes: ["rbac.permission.read"],
+  },
   /** Allows reading role lists and role details. */
   {
     code: "rbac.role.read",

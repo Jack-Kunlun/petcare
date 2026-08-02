@@ -24,9 +24,16 @@ describe("RBAC permission catalog", () => {
       "/orders/complaints",
       "/settings",
       "/rbac",
+      "/rbac/catalog",
     ]);
 
     expect(byCode.get("rbac.view")?.impliedApiCodes).toContain("rbac.permission.read");
+    expect(byCode.get("rbac.catalog.view")).toMatchObject({
+      type: RBAC_PERMISSION_TYPES.MENU,
+      path: "/rbac/catalog",
+      parentCode: "system.view",
+      impliedApiCodes: ["rbac.permission.read"],
+    });
 
     for (const permission of RBAC_PERMISSION_CATALOG) {
       if (permission.type === RBAC_PERMISSION_TYPES.MENU) {
