@@ -42,4 +42,35 @@ describe("ADMIN_ROUTE_REGISTRY", () => {
       ),
     ).toEqual(["/", "/orders/complaints", "/settings"]);
   });
+
+  it("registers the RBAC list, create, edit, and detail views behind the single menu entry", () => {
+    expect(
+      ADMIN_ROUTE_REGISTRY.filter((route) => route.path.startsWith("/rbac")).map((route) => ({
+        path: route.path,
+        menuPermission: route.menuPermission,
+        requiredPermissions: route.requiredPermissions,
+      })),
+    ).toEqual([
+      {
+        path: "/rbac",
+        menuPermission: "rbac.view",
+        requiredPermissions: ["rbac.view"],
+      },
+      {
+        path: "/rbac/new",
+        menuPermission: null,
+        requiredPermissions: ["rbac.view"],
+      },
+      {
+        path: "/rbac/:id/edit",
+        menuPermission: null,
+        requiredPermissions: ["rbac.view"],
+      },
+      {
+        path: "/rbac/:id",
+        menuPermission: null,
+        requiredPermissions: ["rbac.view"],
+      },
+    ]);
+  });
 });
