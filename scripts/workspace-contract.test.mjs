@@ -94,9 +94,10 @@ test("Server 依赖 Prisma Client 的命令在编译前显式生成客户端", a
   }
 });
 
-test("Server 覆盖率串行运行以避免 Turbo 嵌套 worker 退出告警", async () => {
+test("Server 测试串行运行以避免 Turbo 嵌套 worker 退出告警", async () => {
   const manifest = await readJson("apps/server/package.json");
 
+  assert.match(manifest.scripts.test, /--runInBand/);
   assert.match(manifest.scripts["test:coverage"], /--runInBand/);
 });
 
