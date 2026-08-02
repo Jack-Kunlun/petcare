@@ -120,6 +120,8 @@ describe("RbacEdit", () => {
     await user.type(screen.getByLabelText("角色名称"), "客服专员");
     await user.type(screen.getByLabelText("角色说明"), "处理客户咨询");
     await user.click(screen.getByRole("checkbox", { name: "系统设置" }));
+    expect(screen.getByText("读取系统接口")).toBeInTheDocument();
+    expect(screen.getByRole("checkbox", { name: "读取系统接口" })).toBeDisabled();
     await user.click(screen.getByRole("button", { name: "保存角色" }));
 
     await waitFor(() =>
@@ -131,7 +133,6 @@ describe("RbacEdit", () => {
     expect(rbacApi.replaceRbacRolePermissions).toHaveBeenCalledWith("role-new", {
       permissionCodes: ["system.view", "system.config"],
     });
-    expect(screen.queryByText("读取系统接口")).not.toBeInTheDocument();
   });
 
   it("renders system roles read-only", async () => {

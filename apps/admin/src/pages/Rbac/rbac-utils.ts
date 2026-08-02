@@ -1,11 +1,11 @@
 import { RBAC_PERMISSION_TYPES, type RbacPermissionDefinition } from "@petcare/shared-types";
 
-/** A menu or button permission presented in the editable role permission tree. */
+/** A catalog permission presented in the role permission tree. */
 export interface PermissionTreeNode {
   /** Stable permission code submitted to the RBAC role API. */
   code: string;
-  /** UI permission kind; API permissions are deliberately absent from this tree. */
-  type: "menu" | "button";
+  /** Permission kind; API nodes are rendered as read-only information. */
+  type: "menu" | "button" | "api";
   /** Administrator-facing permission label. */
   label: string;
   /** Menu route, or null for an action button. */
@@ -17,10 +17,6 @@ export interface PermissionTreeNode {
   /** Whether a descendant is selected but the descendant branch is incomplete. */
   indeterminate: boolean;
 }
-
-type EditablePermissionDefinition = RbacPermissionDefinition & {
-  type: PermissionTreeNode["type"];
-};
 
 /** Returns whether an API mutation failed because the resource changed concurrently. */
 export function isConflict(error: unknown): boolean {
@@ -56,24 +52,19 @@ function deriveIndeterminate(node: PermissionTreeNode): PermissionTreeNode {
 /**
  * Builds the editable UI permission hierarchy from the server-owned catalog.
  *
- * API permissions are derived server-side from selected UI permissions and are never exposed as
- * editable nodes. A malformed catalog entry with no editable parent is retained as a root item so
- * an administrator can still identify and correct it.
+ * API permissions are derived server-side from selected UI permissions and are exposed as
+ * read-only nodes. A malformed catalog entry with no known parent is retained as a root item so
+ * an administrator can still identify it.
  */
 export function buildPermissionTree(
   catalog: readonly RbacPermissionDefinition[],
   selectedCodes: readonly string[],
 ): PermissionTreeNode[] {
   const selected = new Set(selectedCodes);
-  const editable = catalog.filter(
-    (permission): permission is EditablePermissionDefinition =>
-      permission.type === RBAC_PERMISSION_TYPES.MENU ||
-      permission.type === RBAC_PERMISSION_TYPES.BUTTON,
-  );
-  const definitionsByCode = new Map(editable.map((permission) => [permission.code, permission]));
-  const childrenByParent = new Map<string, EditablePermissionDefinition[]>();
+  const definitionsByCode = new Map(catalog.map((permission) => [permission.code, permission]));
+  const childrenByParent = new Map<string, RbacPermissionDefinition[]>();
 
-  for (const permission of editable) {
+  for (const permission of catalog) {
     if (!permission.parentCode || !definitionsByCode.has(permission.parentCode)) {
       continue;
     }
@@ -84,7 +75,7 @@ export function buildPermissionTree(
     childrenByParent.set(permission.parentCode, children);
   }
 
-  function createNode(permission: EditablePermissionDefinition): PermissionTreeNode {
+  function createNode(permission: RbacPermissionDefinition): PermissionTreeNode {
     const children = (childrenByParent.get(permission.code) ?? [])
       .sort(sortPermissions)
       .map(createNode);
@@ -100,10 +91,18 @@ export function buildPermissionTree(
     });
   }
 
-  return editable
+  return catalog
     .filter((permission) => !permission.parentCode || !definitionsByCode.has(permission.parentCode))
     .sort(sortPermissions)
     .map(createNode);
+}
+
+/** Collects checked menu and button codes while excluding read-only API nodes. */
+export function collectCheckedCodes(nodes: readonly PermissionTreeNode[]): string[] {
+  return nodes.flatMap((node) => [
+    ...(node.type === RBAC_PERMISSION_TYPES.API || !node.checked ? [] : [node.code]),
+    ...collectCheckedCodes(node.children),
+  ]);
 }
 
 function containsCode(nodes: readonly PermissionTreeNode[], code: string): boolean {
@@ -122,6 +121,10 @@ function setBranchChecked(node: PermissionTreeNode, checked: boolean): Permissio
 }
 
 function toggleNode(node: PermissionTreeNode, code: string): PermissionTreeNode {
+  if (node.type === RBAC_PERMISSION_TYPES.API) {
+    return node;
+  }
+
   if (node.code === code) {
     const shouldCheck = !node.checked || node.indeterminate;
     const nextNode = setBranchChecked(node, shouldCheck);

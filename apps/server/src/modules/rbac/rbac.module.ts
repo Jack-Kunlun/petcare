@@ -1,4 +1,4 @@
-import { forwardRef, Module } from "@nestjs/common";
+import { Module } from "@nestjs/common";
 import { AuthModule } from "../../auth/auth.module";
 import { LoggingModule } from "../../logging/logging.module";
 import { PrismaModule } from "../../prisma/prisma.module";
@@ -9,7 +9,7 @@ import { RoleService } from "./role.service";
 
 /** Groups RBAC catalog access, authorization resolution, and administrative role management. */
 @Module({
-  imports: [PrismaModule, LoggingModule, forwardRef(() => AuthModule)],
+  imports: [PrismaModule, LoggingModule, AuthModule],
   controllers: [AdminRbacController],
   providers: [PermissionCatalogService, RbacService, RoleService],
   exports: [PermissionCatalogService, RbacService, RoleService],
