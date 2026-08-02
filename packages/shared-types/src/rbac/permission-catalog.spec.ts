@@ -26,6 +26,8 @@ describe("RBAC permission catalog", () => {
       "/rbac",
     ]);
 
+    expect(byCode.get("rbac.view")?.impliedApiCodes).toContain("rbac.permission.read");
+
     for (const permission of RBAC_PERMISSION_CATALOG) {
       if (permission.type === RBAC_PERMISSION_TYPES.MENU) {
         expect(permission.path).not.toBeNull();
