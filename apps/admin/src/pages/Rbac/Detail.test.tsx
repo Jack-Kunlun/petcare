@@ -7,6 +7,7 @@ import { beforeEach, describe, expect, it, vi } from "vitest";
 import * as rbacApi from "../../api/rbac";
 import { AuthContext, type AuthContextValue } from "../../auth/auth.context";
 import RbacDetail from "./Detail";
+import { replaceRbacRoleUsersForRole } from "./role-users-utils";
 
 vi.mock("../../api/rbac");
 
@@ -159,5 +160,13 @@ describe("RbacDetail", () => {
     expect(screen.queryByLabelText("关联管理员 ID")).not.toBeInTheDocument();
     expect(screen.queryByRole("button", { name: "保存关联管理员" })).not.toBeInTheDocument();
     expect(rbacApi.replaceRbacRoleUsers).not.toHaveBeenCalled();
+  });
+
+  it("guards the extracted association save seam for system roles", async () => {
+    const replace = vi.fn().mockResolvedValue([assignedUser]);
+
+    await replaceRbacRoleUsersForRole({ ...role, isSystem: true }, role.id, ["admin-2"], replace);
+
+    expect(replace).not.toHaveBeenCalled();
   });
 });
