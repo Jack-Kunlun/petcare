@@ -3,10 +3,11 @@
   "version": "1.0.0",
   "description": "PetCare后端API服务",
   "scripts": {
+    "predev": "pnpm --filter @petcare/shared-types build",
     "prebuild": "pnpm prisma:generate",
     "dev": "pnpm start:dev",
     "build": "nest build",
-    "pretypecheck": "pnpm prisma:generate",
+    "pretypecheck": "pnpm --filter @petcare/shared-types build && pnpm prisma:generate",
     "typecheck": "tsc --noEmit -p tsconfig.build.json",
     "format": "prettier --write \"src/**/*.ts\"",
     "format:staged": "prettier --write \"src/**/*.ts\"",
