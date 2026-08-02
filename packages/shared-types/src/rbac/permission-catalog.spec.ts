@@ -16,8 +16,25 @@ describe("RBAC permission catalog", () => {
 
     expect(byCode.size).toBe(RBAC_PERMISSION_CATALOG.length);
     expect(new Set(menuPaths).size).toBe(menuPaths.length);
+    expect(menuPaths).toEqual([
+      "/",
+      "/users",
+      "/users/certifications",
+      "/orders",
+      "/orders/complaints",
+      "/settings",
+      "/rbac",
+    ]);
 
     for (const permission of RBAC_PERMISSION_CATALOG) {
+      if (permission.type === RBAC_PERMISSION_TYPES.MENU) {
+        expect(permission.path).not.toBeNull();
+        expect(permission.icon).not.toBeNull();
+      } else {
+        expect(permission.path).toBeNull();
+        expect(permission.icon).toBeNull();
+      }
+
       if (permission.parentCode !== null) {
         expect(byCode.get(permission.parentCode)?.type).toBe(RBAC_PERMISSION_TYPES.MENU);
       }
