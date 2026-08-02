@@ -40,6 +40,42 @@ describe("PermissionCatalogService", () => {
     );
   });
 
+  it("rejects a catalog button without a parent menu", () => {
+    const parentlessButton: RbacPermissionDefinition = {
+      code: "invalid.parentless_button",
+      type: RBAC_PERMISSION_TYPES.BUTTON,
+      label: "Parentless button",
+      module: "invalid",
+      path: null,
+      parentCode: null,
+      order: 1,
+      icon: null,
+      impliedApiCodes: [],
+    };
+
+    expect(
+      () => new PermissionCatalogService([...RBAC_PERMISSION_CATALOG, parentlessButton]),
+    ).toThrow("权限目录中的父级关系无效：invalid.parentless_button");
+  });
+
+  it("rejects an API permission with a parent menu", () => {
+    const nestedApi: RbacPermissionDefinition = {
+      code: "invalid.nested_api",
+      type: RBAC_PERMISSION_TYPES.API,
+      label: "Nested API",
+      module: "invalid",
+      path: null,
+      parentCode: "system.view",
+      order: 1,
+      icon: null,
+      impliedApiCodes: [],
+    };
+
+    expect(() => new PermissionCatalogService([...RBAC_PERMISSION_CATALOG, nestedApi])).toThrow(
+      "权限目录中的父级关系无效：invalid.nested_api",
+    );
+  });
+
   it("expands selected UI permissions to a sorted, de-duplicated API closure", () => {
     const service = new PermissionCatalogService();
 

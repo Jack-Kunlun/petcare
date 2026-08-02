@@ -214,15 +214,7 @@ export class AuthService {
 
     return {
       roles: user.roles.map((assignment) => assignment.role.roleName),
-      permissions: [
-        ...new Set(
-          user.roles.flatMap((assignment) =>
-            assignment.role.permissions.map(
-              (rolePermission) => rolePermission.permission.permissionCode,
-            ),
-          ),
-        ),
-      ].filter((code) => activePermissionCodes.has(code)),
+      permissions: this.getEffectivePermissionCodes(user.roles),
     };
   }
 
@@ -251,18 +243,25 @@ export class AuthService {
       roles: user.roles
         .filter((assignment) => assignment.role.isActive)
         .map((assignment) => assignment.role.roleName),
-      permissions: [
-        ...new Set(
-          user.roles
-            .filter((assignment) => assignment.role.isActive)
-            .flatMap((assignment) =>
-              assignment.role.permissions.map(
-                (rolePermission) => rolePermission.permission.permissionCode,
-              ),
-            ),
-        ),
-      ],
+      permissions: this.getEffectivePermissionCodes(
+        user.roles.filter((assignment) => assignment.role.isActive),
+      ),
     };
+  }
+
+  /** Returns unique role permissions that are still declared by the shared catalog. */
+  private getEffectivePermissionCodes(
+    roles: Array<{ role: { permissions: Array<{ permission: { permissionCode: string } }> } }>,
+  ): string[] {
+    return [
+      ...new Set(
+        roles.flatMap((assignment) =>
+          assignment.role.permissions.map(
+            (rolePermission) => rolePermission.permission.permissionCode,
+          ),
+        ),
+      ),
+    ].filter((code) => activePermissionCodes.has(code));
   }
 
   private invalidCredentials(): ApiException {
