@@ -1,3 +1,4 @@
+import type { AdminOrderListItem, AdminOrderStatus } from "@petcare/shared-types";
 import { QueryClient, QueryClientProvider } from "@tanstack/react-query";
 import { render, screen } from "@testing-library/react";
 import userEvent from "@testing-library/user-event";
@@ -24,50 +25,50 @@ function renderPage() {
   );
 }
 
+const order: AdminOrderListItem = {
+  id: "order-12345678",
+  orderType: "reward",
+  serviceType: "feeding",
+  ownerId: "owner-1",
+  providerId: null,
+  petId: "pet-1",
+  serviceTime: "2026-07-30T08:00:00.000Z",
+  address: "南昌市红谷滩区",
+  amount: 88,
+  status: "pending_confirm",
+  remark: null,
+  completedAt: null,
+  createdAt: "2026-07-29T00:00:00.000Z",
+  updatedAt: "2026-07-29T00:00:00.000Z",
+  owner: {
+    id: "owner-1",
+    phone: "13800138000",
+    username: "owner",
+    nickname: "豆包家长",
+    avatar: null,
+    userType: "pet_owner",
+    status: "active",
+  },
+  provider: null,
+  pet: {
+    id: "pet-1",
+    name: "豆包",
+    breed: "英短",
+  },
+};
+
 describe("OrderManagement", () => {
   beforeEach(() => {
     vi.clearAllMocks();
     vi.mocked(fetchAdminOrders).mockResolvedValue({
-      list: [
-        {
-          id: "order-12345678",
-          orderType: "reward",
-          serviceType: "feeding",
-          ownerId: "owner-1",
-          providerId: null,
-          petId: "pet-1",
-          serviceTime: "2026-07-30T08:00:00.000Z",
-          address: "南昌市红谷滩区",
-          amount: 88,
-          status: "pending_confirm",
-          remark: null,
-          completedAt: null,
-          createdAt: "2026-07-29T00:00:00.000Z",
-          updatedAt: "2026-07-29T00:00:00.000Z",
-          owner: {
-            id: "owner-1",
-            phone: "13800138000",
-            username: "owner",
-            nickname: "豆包家长",
-            avatar: null,
-            userType: "pet_owner",
-            status: "active",
-          },
-          provider: null,
-          pet: {
-            id: "pet-1",
-            name: "豆包",
-            breed: "英短",
-          },
-        },
-      ],
+      list: [order],
       total: 1,
       page: 1,
       pageSize: 20,
     });
   });
 
-  it("从真实订单接口展示分页列表", async () => {
+  it("从真实订单接口展示分页列表且不渲染页面级顶部导航", async () => {
     renderPage();
 
     expect(screen.getByRole("heading", { name: "订单管理" })).toBeInTheDocument();
@@ -75,6 +76,7 @@ describe("OrderManagement", () => {
     expect(screen.getAllByText("豆包 · 英短")[0]).toBeInTheDocument();
     expect(screen.getAllByText("¥88.00")[0]).toBeInTheDocument();
     expect(screen.getByText("共 1 笔订单")).toBeInTheDocument();
+    expect(screen.queryByRole("navigation", { name: "订单管理二级导航" })).not.toBeInTheDocument();
     expect(fetchAdminOrders).toHaveBeenCalledWith({
       page: 1,
       pageSize: 20,
@@ -83,17 +85,6 @@ describe("OrderManagement", () => {
       serviceType: undefined,
       status: undefined,
     });
-  });
-
-  it("展示订单列表与投诉与纠纷的二级导航", () => {
-    renderPage();
-
-    expect(screen.getByRole("navigation", { name: "订单管理二级导航" })).toBeInTheDocument();
-    expect(screen.getByRole("link", { name: "订单列表" })).toHaveAttribute("href", "/orders");
-    expect(screen.getByRole("link", { name: "投诉与纠纷" })).toHaveAttribute(
-      "href",
-      "/orders/complaints",
-    );
   });
 
   it("选择订单状态后重新查询第一页", async () => {
@@ -109,7 +100,7 @@ describe("OrderManagement", () => {
       keyword: undefined,
       orderType: undefined,
       serviceType: undefined,
-      status: "completed",
+      status: "completed" as AdminOrderStatus,
     });
   });
 });
