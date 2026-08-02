@@ -37,9 +37,7 @@ test("超级管理员可以创建并编辑角色，菜单和按钮可选而接�
   await page.getByLabel("订单管理").check();
   await page.getByLabel("导出订单数据").check();
   await expect(page.getByText("导出订单数据接口")).toBeVisible();
-  await expect(
-    page.getByRole("checkbox", { name: "导出订单数据接口" }),
-  ).toBeDisabled();
+  await expect(page.getByRole("checkbox", { name: "导出订单数据接口" })).toBeDisabled();
   await page.getByRole("button", { name: "保存角色" }).click();
   await expect(page.getByRole("heading", { name: roleName })).toBeVisible();
 
