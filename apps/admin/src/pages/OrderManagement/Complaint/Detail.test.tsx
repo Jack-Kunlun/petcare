@@ -13,6 +13,7 @@ import {
   submitFinalDecision,
   transferAdminComplaint,
 } from "../../../api/complaints";
+import { AuthContext, type AuthContextValue } from "../../../auth/auth.context";
 import ComplaintDetailPage from "./Detail";
 
 vi.mock("../../../api/complaints", () => ({
@@ -110,21 +111,39 @@ const failedTask: DisputeExecutionTaskView = {
   updatedAt: detail.updatedAt,
 };
 
-function renderPage(value = detail) {
+function renderPage(value = detail, permissions = ["dispute.resolve"]) {
   const queryClient = new QueryClient({
     defaultOptions: { queries: { retry: false }, mutations: { retry: false } },
   });
   const invalidate = vi.spyOn(queryClient, "invalidateQueries");
+  const auth: AuthContextValue = {
+    status: "authenticated",
+    user: {
+      id: "admin-1",
+      username: "operator",
+      phone: "13800138000",
+      nickname: "运营主管",
+      roles: ["operator"],
+      permissions,
+    },
+    loginWithPassword: vi.fn(),
+    loginWithSms: vi.fn(),
+    getCaptcha: vi.fn(),
+    sendSmsCode: vi.fn(),
+    logout: vi.fn(),
+  };
 
   vi.mocked(fetchAdminComplaint).mockResolvedValue(value);
   render(
-    <MemoryRouter initialEntries={["/orders/complaints/complaint-1"]}>
-      <QueryClientProvider client={queryClient}>
-        <Routes>
-          <Route path="/orders/complaints/:id" element={<ComplaintDetailPage />} />
-        </Routes>
-      </QueryClientProvider>
-    </MemoryRouter>,
+    <AuthContext.Provider value={auth}>
+      <MemoryRouter initialEntries={["/orders/complaints/complaint-1"]}>
+        <QueryClientProvider client={queryClient}>
+          <Routes>
+            <Route path="/orders/complaints/:id" element={<ComplaintDetailPage />} />
+          </Routes>
+        </QueryClientProvider>
+      </MemoryRouter>
+    </AuthContext.Provider>,
   );
 
   return { invalidate };
@@ -333,5 +352,15 @@ describe("ComplaintDetail", () => {
     expect(retryExecutionTask).toHaveBeenCalledWith("complaint-1", "task-1", { version: 3 });
     expect(invalidate).toHaveBeenCalledWith({ queryKey: ["admin-complaints"] });
     expect(invalidate).toHaveBeenCalledWith({ queryKey: ["admin-complaint", "complaint-1"] });
+  });
+
+  it("does not render complaint mutation controls without dispute.resolve", async () => {
+    renderPage(detail, []);
+
+    await screen.findByText("CP20260729001");
+
+    expect(screen.queryByRole("button", { name: "转派案件" })).not.toBeInTheDocument();
+    expect(screen.queryByRole("button", { name: "作出最终裁决" })).not.toBeInTheDocument();
+    expect(screen.queryByRole("button", { name: "重试退款任务" })).not.toBeInTheDocument();
   });
 });
