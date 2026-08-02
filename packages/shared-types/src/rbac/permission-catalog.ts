@@ -323,6 +323,78 @@ export const RBAC_PERMISSION_CATALOG: readonly RbacPermissionDefinition[] = [
     icon: null,
     impliedApiCodes: [],
   },
+  /** 打开内容管理并查看悬赏内容。 */
+  {
+    code: "content.view",
+    type: "menu",
+    label: "内容管理",
+    module: "content",
+    path: "/content",
+    parentCode: null,
+    order: 40,
+    icon: "FileText",
+    impliedApiCodes: ["content.reward.read"],
+  },
+  /** 允许读取后台悬赏内容列表。 */
+  {
+    code: "content.reward.read",
+    type: "api",
+    label: "查看悬赏内容",
+    module: "content",
+    path: null,
+    parentCode: null,
+    order: 10,
+    icon: null,
+    impliedApiCodes: [],
+  },
+  /** 打开社区帖子管理页面。 */
+  {
+    code: "content.post.view",
+    type: "menu",
+    label: "帖子管理",
+    module: "content",
+    path: "/content/posts",
+    parentCode: "content.view",
+    order: 20,
+    icon: "FileText",
+    impliedApiCodes: ["content.post.read"],
+  },
+  /** 允许读取后台帖子列表。 */
+  {
+    code: "content.post.read",
+    type: "api",
+    label: "查看帖子列表",
+    module: "content",
+    path: null,
+    parentCode: null,
+    order: 20,
+    icon: null,
+    impliedApiCodes: [],
+  },
+  /** 打开课堂文章管理页面。 */
+  {
+    code: "content.article.view",
+    type: "menu",
+    label: "课堂文章管理",
+    module: "content",
+    path: "/content/articles",
+    parentCode: "content.view",
+    order: 30,
+    icon: "FileText",
+    impliedApiCodes: ["content.article.read"],
+  },
+  /** 允许读取后台课堂文章列表。 */
+  {
+    code: "content.article.read",
+    type: "api",
+    label: "查看课堂文章列表",
+    module: "content",
+    path: null,
+    parentCode: null,
+    order: 30,
+    icon: null,
+    impliedApiCodes: [],
+  },
   /** Opens the system settings section in the administration console. */
   {
     code: "system.view",
