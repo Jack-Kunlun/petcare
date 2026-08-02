@@ -81,6 +81,19 @@ test("Miniapp Jest 串行运行以避免 Taro 环境 worker 退出告警", async
   assert.match(manifest.scripts["test:coverage"], /--runInBand/);
 });
 
+test("Server 依赖 Prisma Client 的命令在编译前显式生成客户端", async () => {
+  const manifest = await readJson("apps/server/package.json");
+  const generatedClientLifecycles = ["typecheck", "test", "test:cov", "test:coverage", "test:e2e"];
+
+  for (const lifecycle of generatedClientLifecycles) {
+    assert.equal(
+      manifest.scripts[`pre${lifecycle}`],
+      "pnpm prisma:generate",
+      `${lifecycle} 在编译或 Jest 前必须生成最新 Prisma Client`,
+    );
+  }
+});
+
 test("Server 覆盖率串行运行以避免 Turbo 嵌套 worker 退出告警", async () => {
   const manifest = await readJson("apps/server/package.json");
 
