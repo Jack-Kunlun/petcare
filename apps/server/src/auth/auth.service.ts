@@ -1,4 +1,5 @@
 import { HttpStatus, Injectable } from "@nestjs/common";
+import { RBAC_PERMISSION_CATALOG } from "@petcare/shared-types";
 import { ApiException } from "../common/http/api-exception";
 import { PrismaService } from "../prisma/prisma.service";
 import { AuthTokens } from "./auth.types";
@@ -65,6 +66,8 @@ const adminUserSelect = {
     },
   },
 } as const;
+
+const activePermissionCodes = new Set(RBAC_PERMISSION_CATALOG.map((permission) => permission.code));
 
 @Injectable()
 export class AuthService {
@@ -219,7 +222,7 @@ export class AuthService {
             ),
           ),
         ),
-      ],
+      ].filter((code) => activePermissionCodes.has(code)),
     };
   }
 
