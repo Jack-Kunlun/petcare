@@ -45,3 +45,49 @@ export function rbacInvalidImpliedApiCode(code: string): ApiException {
     HttpStatus.INTERNAL_SERVER_ERROR,
   );
 }
+
+/** Creates an error when a requested role does not exist. */
+export function rbacRoleNotFound(roleId: string): ApiException {
+  return new ApiException("RBAC_ROLE_NOT_FOUND", `角色不存在：${roleId}`, HttpStatus.NOT_FOUND);
+}
+
+/** Creates an error when a role name is already assigned. */
+export function rbacRoleNameConflict(roleName: string): ApiException {
+  return new ApiException(
+    "RBAC_ROLE_NAME_CONFLICT",
+    `角色名称已存在：${roleName}`,
+    HttpStatus.CONFLICT,
+  );
+}
+
+/** Creates an error when a protected system role would be modified. */
+export function rbacSystemRoleProtected(roleId: string): ApiException {
+  return new ApiException(
+    "RBAC_SYSTEM_ROLE_PROTECTED",
+    `系统角色不可修改或删除：${roleId}`,
+    HttpStatus.CONFLICT,
+  );
+}
+
+/** Creates an error when deleting a role that is still assigned to users. */
+export function rbacRoleHasAssignedUsers(roleId: string): ApiException {
+  return new ApiException(
+    "RBAC_ROLE_HAS_ASSIGNED_USERS",
+    `角色仍有关联用户，无法删除：${roleId}`,
+    HttpStatus.CONFLICT,
+  );
+}
+
+/** Creates an error when a requested user does not exist. */
+export function rbacUserNotFound(userId: string): ApiException {
+  return new ApiException("RBAC_USER_NOT_FOUND", `用户不存在：${userId}`, HttpStatus.NOT_FOUND);
+}
+
+/** Creates an error when catalog permissions have not yet been synchronized to the database. */
+export function rbacPermissionNotSynchronized(code: string): ApiException {
+  return new ApiException(
+    "RBAC_PERMISSION_NOT_SYNCHRONIZED",
+    `权限目录尚未同步到数据库：${code}`,
+    HttpStatus.INTERNAL_SERVER_ERROR,
+  );
+}
