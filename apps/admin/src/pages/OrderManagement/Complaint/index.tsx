@@ -21,7 +21,6 @@ import {
 import { useEffect, useMemo, useState, type FormEvent } from "react";
 import { Link, useSearchParams } from "react-router-dom";
 import { fetchAdminComplaints } from "../../../api/complaints";
-import { OrderManagementNavigation } from "../Navigation";
 
 const PAGE_SIZE = 20;
 /** 被投诉方首次回应阶段的运营 SLA：24 小时。 */
@@ -253,8 +252,6 @@ export default function ComplaintWorkQueue() {
 
   return (
     <div className="mx-auto flex w-full max-w-full flex-col gap-6">
-      <OrderManagementNavigation />
-
       <section className="flex flex-col justify-between gap-4 sm:flex-row sm:items-end">
         <div>
           <p className="mb-1 text-sm font-medium text-blue-700">投诉与纠纷</p>
