@@ -10,21 +10,14 @@ import {
   updateRbacRole,
 } from "../../api/rbac";
 import { PermissionGate } from "../../auth/PermissionGate";
-import { type PermissionTreeNode } from "./rbac-utils";
-import { buildPermissionTree, togglePermissionTree } from "./rbac-utils";
+import {
+  buildPermissionTree,
+  isConflict,
+  togglePermissionTree,
+  type PermissionTreeNode,
+} from "./rbac-utils";
 
-function isConflict(error: unknown): boolean {
-  return (
-    typeof error === "object" &&
-    error !== null &&
-    "response" in error &&
-    typeof error.response === "object" &&
-    error.response !== null &&
-    "status" in error.response &&
-    error.response.status === 409
-  );
-}
-
+/** Collects directly selected menu and button codes from the nested permission tree. */
 function collectCheckedCodes(nodes: readonly PermissionTreeNode[]): string[] {
   return nodes.flatMap((node) => [
     ...(node.checked ? [node.code] : []),
@@ -38,6 +31,7 @@ interface PermissionNodeProps {
   onToggle(code: string): void;
 }
 
+/** Renders one permission tree branch and propagates descendant selection changes. */
 function PermissionNode({ node, disabled, onToggle }: PermissionNodeProps) {
   return (
     <li className="mt-2">
@@ -135,6 +129,7 @@ export default function RbacEdit() {
     },
   });
 
+  /** Validates the editable role fields before submitting the role mutation. */
   function submit(event: FormEvent<HTMLFormElement>) {
     event.preventDefault();
 

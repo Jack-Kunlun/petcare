@@ -1,4 +1,4 @@
-import { RBAC_PERMISSION_CATALOG } from "@petcare/shared-types";
+import { RBAC_PERMISSION_CATALOG, RBAC_PERMISSION_TYPES } from "@petcare/shared-types";
 import type { ReactNode } from "react";
 import { createElement, lazy, Suspense } from "react";
 import { LazyRouteBoundary } from "../components/LazyRouteBoundary";
@@ -37,6 +37,37 @@ export interface AdminRouteDefinition {
   icon: string | null;
 }
 
+const catalogByCode = new Map(
+  RBAC_PERMISSION_CATALOG.map((permission) => [permission.code, permission]),
+);
+
+/** Builds menu route metadata from the shared catalog so paths and ordering cannot drift. */
+function catalogMenuRoute(
+  id: string,
+  permissionCode: string,
+  element: ReactNode,
+): AdminRouteDefinition {
+  const permission = catalogByCode.get(permissionCode);
+  const parentPermission = permission?.parentCode
+    ? catalogByCode.get(permission.parentCode)
+    : undefined;
+
+  if (!permission || permission.type !== RBAC_PERMISSION_TYPES.MENU || permission.path === null) {
+    throw new Error(`Admin menu route ${id} references an invalid catalog permission.`);
+  }
+
+  return {
+    id,
+    path: permission.path,
+    element,
+    menuPermission: permission.code,
+    requiredPermissions: [permission.code],
+    parentPath: parentPermission?.path ?? null,
+    order: permission.order,
+    icon: permission.icon,
+  };
+}
+
 function settingsRoute(element: ReactNode) {
   return createElement(
     LazyRouteBoundary,
@@ -64,36 +95,13 @@ function settingsRoute(element: ReactNode) {
  * The adapter keeps shared catalog data serializable while routing each protected Admin view.
  */
 export const ADMIN_ROUTE_REGISTRY: readonly AdminRouteDefinition[] = [
-  {
-    id: "dashboard",
-    path: "/",
-    element: createElement(Dashboard),
-    menuPermission: "stats.view",
-    requiredPermissions: ["stats.view"],
-    parentPath: null,
-    order: 10,
-    icon: "House",
-  },
-  {
-    id: "users",
-    path: "/users",
-    element: createElement(UserManagement),
-    menuPermission: "user.view",
-    requiredPermissions: ["user.view"],
-    parentPath: null,
-    order: 20,
-    icon: "Users",
-  },
-  {
-    id: "provider-certifications",
-    path: "/users/certifications",
-    element: createElement(ProviderCertificationList),
-    menuPermission: "provider_certification.view",
-    requiredPermissions: ["provider_certification.view"],
-    parentPath: "/users",
-    order: 30,
-    icon: "BadgeCheck",
-  },
+  catalogMenuRoute("dashboard", "stats.view", createElement(Dashboard)),
+  catalogMenuRoute("users", "user.view", createElement(UserManagement)),
+  catalogMenuRoute(
+    "provider-certifications",
+    "provider_certification.view",
+    createElement(ProviderCertificationList),
+  ),
   {
     id: "provider-certification-detail",
     path: "/users/certifications/:id",
@@ -104,26 +112,8 @@ export const ADMIN_ROUTE_REGISTRY: readonly AdminRouteDefinition[] = [
     order: 0,
     icon: null,
   },
-  {
-    id: "orders",
-    path: "/orders",
-    element: createElement(OrderManagement),
-    menuPermission: "order.view",
-    requiredPermissions: ["order.view"],
-    parentPath: null,
-    order: 30,
-    icon: "ShoppingBag",
-  },
-  {
-    id: "complaints",
-    path: "/orders/complaints",
-    element: createElement(ComplaintWorkQueue),
-    menuPermission: "dispute.view",
-    requiredPermissions: ["dispute.view"],
-    parentPath: "/orders",
-    order: 30,
-    icon: "MessageSquareWarning",
-  },
+  catalogMenuRoute("orders", "order.view", createElement(OrderManagement)),
+  catalogMenuRoute("complaints", "dispute.view", createElement(ComplaintWorkQueue)),
   {
     id: "complaint-detail",
     path: "/orders/complaints/:id",
@@ -134,16 +124,7 @@ export const ADMIN_ROUTE_REGISTRY: readonly AdminRouteDefinition[] = [
     order: 0,
     icon: null,
   },
-  {
-    id: "settings",
-    path: "/settings",
-    element: settingsRoute(createElement(Settings)),
-    menuPermission: "system.view",
-    requiredPermissions: ["system.view"],
-    parentPath: null,
-    order: 60,
-    icon: "Settings",
-  },
+  catalogMenuRoute("settings", "system.view", settingsRoute(createElement(Settings))),
   {
     id: "settings-edit",
     path: "/settings/:domain/edit",
@@ -164,16 +145,7 @@ export const ADMIN_ROUTE_REGISTRY: readonly AdminRouteDefinition[] = [
     order: 0,
     icon: null,
   },
-  {
-    id: "rbac",
-    path: "/rbac",
-    element: createElement(Rbac),
-    menuPermission: "rbac.view",
-    requiredPermissions: ["rbac.view"],
-    parentPath: "/settings",
-    order: 60,
-    icon: "ShieldCheck",
-  },
+  catalogMenuRoute("rbac", "rbac.view", createElement(Rbac)),
   {
     id: "rbac-new",
     path: "/rbac/new",

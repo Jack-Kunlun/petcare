@@ -22,6 +22,19 @@ type EditablePermissionDefinition = RbacPermissionDefinition & {
   type: PermissionTreeNode["type"];
 };
 
+/** Returns whether an API mutation failed because the resource changed concurrently. */
+export function isConflict(error: unknown): boolean {
+  return (
+    typeof error === "object" &&
+    error !== null &&
+    "response" in error &&
+    typeof error.response === "object" &&
+    error.response !== null &&
+    "status" in error.response &&
+    error.response.status === 409
+  );
+}
+
 function sortPermissions(left: RbacPermissionDefinition, right: RbacPermissionDefinition): number {
   return left.order - right.order || left.code.localeCompare(right.code);
 }
