@@ -23,7 +23,7 @@ const auth: AuthContextValue = {
 
 describe("Layout", () => {
   it("keeps page scrolling inside main while sidebars stay viewport-bound", () => {
-    const { container } = render(
+    const { baseElement } = render(
       <AuthContext.Provider value={auth}>
         <MemoryRouter initialEntries={["/users"]}>
           <Routes>
@@ -35,9 +35,9 @@ describe("Layout", () => {
       </AuthContext.Provider>,
     );
 
-    const layout = container.firstElementChild;
-    const contentColumn = layout?.lastElementChild;
-    const main = container.querySelector("#main-content");
+    const main = baseElement.querySelector("#main-content");
+    const contentColumn = main?.parentElement;
+    const layout = contentColumn?.parentElement;
 
     expect(layout).toHaveClass("h-screen", "min-h-0", "overflow-hidden");
     expect(contentColumn).toHaveClass("min-h-0");

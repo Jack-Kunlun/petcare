@@ -81,7 +81,7 @@ export function AccessibleModal({
         aria-modal="true"
         aria-labelledby={labelledBy}
         onKeyDown={trapFocus}
-        className="my-6 w-full max-w-md rounded-xl bg-white p-6 shadow-2xl"
+        className="my-6 w-full max-w-[448px] rounded-xl bg-white p-6 shadow-2xl"
       >
         {children}
       </section>

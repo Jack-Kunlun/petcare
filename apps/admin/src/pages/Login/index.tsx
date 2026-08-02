@@ -138,7 +138,7 @@ export default function Login() {
 
   return (
     <main className="min-h-screen bg-slate-100 grid place-items-center px-4">
-      <section className="w-full max-w-md rounded-2xl bg-white p-8 shadow-xl">
+      <section className="w-full max-w-[448px] rounded-2xl bg-white p-8 shadow-xl">
         <div className="mb-8 text-center">
           <p className="text-sm font-medium text-blue-600">PetCare 管理后台</p>
           <h1 className="mt-2 text-2xl font-bold text-slate-900">登录 PetCare</h1>

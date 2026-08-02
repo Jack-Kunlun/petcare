@@ -232,7 +232,7 @@ export default function Rbac() {
           aria-label="删除角色确认"
           className="fixed inset-0 z-50 flex items-center justify-center bg-slate-950/40 p-4"
         >
-          <div className="w-full max-w-md rounded-xl bg-white p-6 shadow-xl">
+          <div className="w-full max-w-[448px] rounded-xl bg-white p-6 shadow-xl">
             <h2 className="text-xl font-bold text-slate-950">删除角色</h2>
             <p className="mt-2 text-slate-600">
               确认删除“{pendingDelete.roleName}”吗？此操作无法撤销。
