@@ -397,11 +397,7 @@
       "width": 48,
       "height": 48,
       "format": "ico",
-      "sizes": [
-        16,
-        32,
-        48
-      ],
+      "sizes": [16, 32, 48],
       "source": "logo/svg/petcare-symbol-color.svg"
     },
     {
