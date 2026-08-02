@@ -1,10 +1,16 @@
-import { render, screen } from "@testing-library/react";
+import { fireEvent, render, screen, within } from "@testing-library/react";
 import { MemoryRouter } from "react-router-dom";
 import { describe, expect, it } from "vitest";
 import { Sidebar } from "./Sidebar";
 
+function getNavigationHrefs(root: HTMLElement) {
+  return within(root)
+    .getAllByRole("link")
+    .map((link) => link.getAttribute("href"));
+}
+
 describe("Sidebar", () => {
-  it("only renders root menu links and highlights the current module", () => {
+  it("renders module and page routes as one expandable navigation tree", () => {
     render(
       <MemoryRouter initialEntries={["/orders/complaints"]}>
         <Sidebar />
@@ -12,14 +18,93 @@ describe("Sidebar", () => {
     );
 
     expect(screen.getByRole("navigation", { name: "后台主导航" })).toBeInTheDocument();
-    expect(screen.getByRole("link", { name: "运营概览" })).toHaveAttribute("href", "/");
-    expect(screen.getByRole("link", { name: "用户管理" })).toHaveAttribute("href", "/users");
-    expect(screen.getByRole("link", { name: "订单管理" })).toHaveAttribute("aria-current", "page");
-    expect(screen.getByRole("link", { name: "系统设置" })).toHaveAttribute("href", "/settings");
-    expect(screen.queryByRole("link", { name: "投诉与纠纷" })).not.toBeInTheDocument();
+    const desktopTree = screen.getByTestId("desktop-menu-tree");
+    const tree = within(desktopTree);
+
+    expect(getNavigationHrefs(desktopTree)).toEqual(
+      expect.arrayContaining(["/", "/orders", "/orders/complaints"]),
+    );
+    expect(tree.getByRole("button", { name: "订单管理菜单" })).toHaveClass("bg-blue-600/40");
+    expect(tree.getByRole("link", { name: "投诉与纠纷" })).toHaveClass("bg-blue-600");
+    expect(tree.getByRole("link", { name: "投诉与纠纷" })).toHaveAttribute("aria-current", "page");
   });
 
-  it("does not expose root links when the user has no matching root permissions", () => {
+  it("supports collapsing and expanding a branch without changing the current route", () => {
+    render(
+      <MemoryRouter initialEntries={["/orders"]}>
+        <Sidebar />
+      </MemoryRouter>,
+    );
+
+    const tree = within(screen.getByTestId("desktop-menu-tree"));
+    const toggle = tree.getByRole("button", { name: "订单管理菜单" });
+
+    expect(toggle).toHaveAttribute("aria-expanded", "true");
+    expect(tree.getByRole("link", { name: "订单管理" })).toHaveClass("bg-blue-600");
+    expect(tree.getByRole("link", { name: "投诉与纠纷" })).toBeInTheDocument();
+
+    fireEvent.click(toggle);
+
+    expect(toggle).toHaveAttribute("aria-expanded", "false");
+    expect(tree.queryByRole("link", { name: "投诉与纠纷" })).not.toBeInTheDocument();
+
+    fireEvent.click(toggle);
+
+    expect(tree.getByRole("link", { name: "投诉与纠纷" })).toBeInTheDocument();
+  });
+
+  it("renders the user module page and certification page as sibling child menus", () => {
+    render(
+      <MemoryRouter initialEntries={["/users"]}>
+        <Sidebar permissions={["user.view", "provider_certification.view"]} />
+      </MemoryRouter>,
+    );
+
+    const tree = within(screen.getByTestId("desktop-menu-tree"));
+
+    expect(tree.getByRole("button", { name: "用户管理菜单" })).toHaveAttribute(
+      "aria-expanded",
+      "true",
+    );
+    expect(tree.getByRole("link", { name: "用户列表" })).toHaveAttribute("href", "/users");
+    expect(tree.getByRole("link", { name: "认证审核" })).toHaveAttribute(
+      "href",
+      "/users/certifications",
+    );
+  });
+
+  it("keeps system settings and permission management as separate root menus", () => {
+    render(
+      <MemoryRouter initialEntries={["/rbac/catalog"]}>
+        <Sidebar permissions={["system.view", "rbac.view", "rbac.catalog.view"]} />
+      </MemoryRouter>,
+    );
+
+    const tree = within(screen.getByTestId("desktop-menu-tree"));
+
+    expect(tree.getByRole("link", { name: "系统设置" })).toHaveAttribute("href", "/settings");
+    expect(tree.getByRole("button", { name: "权限管理菜单" })).toHaveAttribute(
+      "aria-expanded",
+      "true",
+    );
+    expect(tree.getByRole("link", { name: "角色管理" })).toHaveAttribute("href", "/rbac");
+    expect(tree.getByRole("link", { name: "菜单目录" })).toHaveAttribute("aria-current", "page");
+  });
+
+  it("keeps mobile navigation flat while the desktop menu uses the tree", () => {
+    render(
+      <MemoryRouter initialEntries={["/orders"]}>
+        <Sidebar />
+      </MemoryRouter>,
+    );
+
+    const mobileMenu = within(screen.getByTestId("mobile-menu"));
+
+    expect(mobileMenu.getByRole("link", { name: "订单管理" })).toHaveAttribute("href", "/orders");
+    expect(mobileMenu.queryByRole("link", { name: "投诉与纠纷" })).not.toBeInTheDocument();
+  });
+
+  it("does not expose menu links when the user has no matching permissions", () => {
     render(
       <MemoryRouter>
         <Sidebar permissions={[]} />
@@ -30,7 +115,7 @@ describe("Sidebar", () => {
     expect(screen.queryByRole("link", { name: "订单管理" })).not.toBeInTheDocument();
   });
 
-  it("does not flatten child permissions into the primary navigation", () => {
+  it("does not expose a child route without its parent menu permission", () => {
     render(
       <MemoryRouter>
         <Sidebar permissions={["dispute.view"]} />

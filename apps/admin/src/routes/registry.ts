@@ -118,7 +118,7 @@ export const ADMIN_ROUTE_REGISTRY: readonly AdminRouteDefinition[] = [
     icon: null,
     menuLabel: null,
   },
-  catalogMenuRoute("orders", "order.view", createElement(OrderManagement), "订单列表"),
+  catalogMenuRoute("orders", "order.view", createElement(OrderManagement), "订单管理"),
   catalogMenuRoute("complaints", "dispute.view", createElement(ComplaintWorkQueue)),
   {
     id: "complaint-detail",
