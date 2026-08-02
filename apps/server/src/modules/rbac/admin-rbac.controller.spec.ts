@@ -16,7 +16,7 @@ describe("AdminRbacController", () => {
 
     expect(Reflect.getMetadata("path", AdminRbacController)).toBe("admin/rbac");
     expect(guards).toEqual([AccessTokenGuard, PermissionGuard]);
-    expect(permissions("getCatalog")).toEqual(["rbac.permission.read"]);
+    expect(permissions("getCatalog")).toEqual(["rbac.view"]);
     expect(permissions("listRoles")).toEqual(["rbac.view"]);
     expect(permissions("getRole")).toEqual(["rbac.view"]);
     expect(permissions("createRole")).toEqual(["rbac.role.create"]);
@@ -68,19 +68,27 @@ describe("AdminRbacController", () => {
     for (const operation of operations) {
       expect(
         Object.prototype.hasOwnProperty.call(operation.responses, "200") ||
-          Object.prototype.hasOwnProperty.call(operation.responses, "201"),
+          Object.prototype.hasOwnProperty.call(operation.responses, "201") ||
+          Object.prototype.hasOwnProperty.call(operation.responses, "204"),
       ).toBe(true);
       expect(operation.responses).toHaveProperty("401");
       expect(operation.responses).toHaveProperty("403");
       expect(operation.responses).toHaveProperty("500");
-      expect(operation.responses["200"] ?? operation.responses["201"]).toHaveProperty(
-        "content.application/json.schema",
-      );
+
+      if (operation.responses["204"]) {
+        expect(operation.responses["204"]).not.toHaveProperty("content");
+      } else {
+        expect(operation.responses["200"] ?? operation.responses["201"]).toHaveProperty(
+          "content.application/json.schema",
+        );
+      }
     }
 
     expect(document.paths["/admin/rbac/roles"]?.post?.responses).toEqual(
       expect.objectContaining({ 400: expect.anything(), 409: expect.anything() }),
     );
+    expect(document.paths["/admin/rbac/roles/{id}"]?.delete?.responses).toHaveProperty("204");
+    expect(document.paths["/admin/rbac/roles/{id}"]?.delete?.responses).not.toHaveProperty("200");
 
     for (const path of [
       "/admin/rbac/roles/{id}",

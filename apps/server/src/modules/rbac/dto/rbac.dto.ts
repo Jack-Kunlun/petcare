@@ -11,7 +11,7 @@ import type {
   ReplaceRbacRoleUsersRequest,
   UpdateRbacRoleRequest,
 } from "@petcare/shared-types";
-import { Type } from "class-transformer";
+import { Transform, Type } from "class-transformer";
 import {
   ArrayMaxSize,
   ArrayUnique,
@@ -99,7 +99,17 @@ export class RbacRoleListQueryDto implements RbacRoleListQuery {
 
   @ApiPropertyOptional()
   @IsOptional()
-  @Type(() => Boolean)
+  @Transform(({ value }) => {
+    if (value === "true" || value === true) {
+      return true;
+    }
+
+    if (value === "false" || value === false) {
+      return false;
+    }
+
+    return value;
+  })
   @IsBoolean()
   isActive?: boolean;
 }
@@ -147,7 +157,6 @@ export class ReplaceRbacRolePermissionsDto implements ReplaceRbacRolePermissions
   @ArrayMaxSize(200)
   @ArrayUnique()
   @IsString({ each: true })
-  @IsUUID("4", { each: true })
   @Length(1, 100, { each: true })
   permissionCodes: string[];
 }
@@ -159,6 +168,7 @@ export class ReplaceRbacRoleUsersDto implements ReplaceRbacRoleUsersRequest {
   @ArrayMaxSize(500)
   @ArrayUnique()
   @IsString({ each: true })
+  @IsUUID("4", { each: true })
   @Length(1, 100, { each: true })
   userIds: string[];
 }
