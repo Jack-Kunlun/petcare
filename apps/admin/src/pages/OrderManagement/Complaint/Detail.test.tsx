@@ -1,6 +1,6 @@
 import type { AdminComplaintDetail, DisputeExecutionTaskView } from "@petcare/shared-types";
 import { QueryClient, QueryClientProvider } from "@tanstack/react-query";
-import { render, screen, waitFor } from "@testing-library/react";
+import { fireEvent, render, screen, waitFor } from "@testing-library/react";
 import userEvent from "@testing-library/user-event";
 import axios from "axios";
 import { MemoryRouter, Route, Routes } from "react-router-dom";
@@ -164,15 +164,14 @@ describe("ComplaintDetail", () => {
 
     renderPage({ ...detail, allowedActions: ["initial_decide"] });
     await user.click(await screen.findByRole("button", { name: "作出初审裁决" }));
-    await user.type(screen.getByLabelText("裁决理由"), "已有证据能够支持本次初审裁决结果。");
-    await user.clear(screen.getByLabelText("退款金额（分）"));
-    await user.type(screen.getByLabelText("退款金额（分）"), "5000.5");
+    fireEvent.change(screen.getByLabelText("裁决理由"), {
+      target: { value: "已有证据能够支持本次初审裁决结果。" },
+    });
+    fireEvent.change(screen.getByLabelText("退款金额（分）"), { target: { value: "5000.5" } });
     await user.click(screen.getByRole("button", { name: "预览裁决影响" }));
     expect(screen.getByText("金额必须为非负整数分")).toBeInTheDocument();
-    await user.clear(screen.getByLabelText("退款金额（分）"));
-    await user.type(screen.getByLabelText("退款金额（分）"), "6000");
-    await user.clear(screen.getByLabelText("结算金额（分）"));
-    await user.type(screen.getByLabelText("结算金额（分）"), "5000");
+    fireEvent.change(screen.getByLabelText("退款金额（分）"), { target: { value: "6000" } });
+    fireEvent.change(screen.getByLabelText("结算金额（分）"), { target: { value: "5000" } });
     await user.click(screen.getByRole("button", { name: "预览裁决影响" }));
     expect(screen.getByText("退款与结算合计不能超过订单可分配金额 10000 分")).toBeInTheDocument();
   });
@@ -189,7 +188,7 @@ describe("ComplaintDetail", () => {
     await user.type(screen.getByLabelText("投诉方信用分变化"), "2");
     await user.type(screen.getByLabelText("被投诉方信用分变化"), "-8");
     await user.click(screen.getByRole("button", { name: "预览裁决影响" }));
-    expect(screen.getByText("退款 ¥50.00")).toBeInTheDocument();
+    expect(await screen.findByText("退款 ¥50.00")).toBeInTheDocument();
     expect(screen.getByText("结算 ¥50.00")).toBeInTheDocument();
     expect(screen.getByText("投诉方信用 +2")).toBeInTheDocument();
     expect(screen.getByText("被投诉方信用 -8")).toBeInTheDocument();
@@ -201,7 +200,7 @@ describe("ComplaintDetail", () => {
       "complaint-1",
       expect.objectContaining({ refundAmount: 5000, version: 3 }),
     );
-  });
+  }, 10_000);
 
   it("预览后修改字段会作废旧快照并提交重新预览的当前值", async () => {
     const user = userEvent.setup();

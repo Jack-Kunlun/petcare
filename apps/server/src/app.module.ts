@@ -10,7 +10,9 @@ import { HttpLoggingMiddleware } from "./logging/http-logging.middleware";
 import { LoggingModule } from "./logging/logging.module";
 import { ComplaintDisputeModule } from "./modules/complaint-dispute/complaint-dispute.module";
 import { OrderModule } from "./modules/order/order.module";
+import { ProviderModule } from "./modules/provider/provider.module";
 import { ProviderCertificationModule } from "./modules/provider-certification/provider-certification.module";
+import { SystemSettingsModule } from "./modules/system-settings/system-settings.module";
 import { UserModule } from "./modules/user/user.module";
 import { PrismaModule } from "./prisma/prisma.module";
 
@@ -25,6 +27,8 @@ import { PrismaModule } from "./prisma/prisma.module";
     OrderModule,
     ComplaintDisputeModule,
     ProviderCertificationModule,
+    ProviderModule,
+    SystemSettingsModule,
   ],
   providers: [
     { provide: APP_INTERCEPTOR, useClass: ApiResponseInterceptor },

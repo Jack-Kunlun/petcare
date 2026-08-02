@@ -10,6 +10,21 @@ datasource db {
   provider = "postgresql"
 }
 
+/// 服务者评分资格状态。
+enum ProviderRatingEligibilityStatus {
+  insufficient_sample
+  eligible
+  warning
+  suspended
+}
+
+/// 服务者再培训状态。
+enum ProviderRetrainingStatus {
+  not_required
+  required
+  completed
+}
+
 // ============================================
 // 用户相关
 // ============================================
@@ -63,6 +78,14 @@ model User {
   disputeMoneyRecords               DisputeMoneyRecord[]
   certificationApplications         ProviderCertificationApplication[] @relation("CertificationApplicant")
   reviewedCertificationApplications ProviderCertificationApplication[] @relation("CertificationReviewer")
+  /// 该用户创建的系统配置版本。
+  systemConfigVersionsCreated       SystemConfigVersion[]              @relation("SystemConfigVersionCreatedBy")
+  /// 该用户最后更新的系统配置版本。
+  systemConfigVersionsUpdated       SystemConfigVersion[]              @relation("SystemConfigVersionUpdatedBy")
+  /// 该用户发布的系统配置版本。
+  systemConfigVersionsPublished     SystemConfigVersion[]              @relation("SystemConfigVersionPublishedBy")
+  /// 该用户执行的系统配置审计事件。
+  systemConfigAuditEvents           SystemConfigAuditEvent[]           @relation("SystemConfigAuditOperator")
 
   @@index([phone])
   @@index([userType])
@@ -95,7 +118,9 @@ model Provider {
   createdAt       DateTime @default(now()) @map("created_at")
   updatedAt       DateTime @updatedAt @map("updated_at")
 
-  user User @relation(fields: [userId], references: [id], onDelete: Cascade)
+  user              User                       @relation(fields: [userId], references: [id], onDelete: Cascade)
+  ratingEligibility ProviderRatingEligibility?
+  adminTodos        AdminTodo[]
 
   @@index([certifiedSitter])
   @@map("providers")
@@ -157,21 +182,25 @@ model Pet {
 // ============================================
 
 model Order {
-  id          String    @id @default(uuid())
-  orderType   String    @map("order_type") // reward / platform
-  serviceType String    @map("service_type") // feeding / walking / playing
-  ownerId     String    @map("owner_id")
-  providerId  String?   @map("provider_id")
-  petId       String    @map("pet_id")
-  serviceTime DateTime  @map("service_time")
-  address     String
+  id                 String    @id @default(uuid())
+  orderType          String    @map("order_type") // reward / platform
+  serviceType        String    @map("service_type") // feeding / walking / playing
+  ownerId            String    @map("owner_id")
+  providerId         String?   @map("provider_id")
+  petId              String    @map("pet_id")
+  serviceTime        DateTime  @map("service_time")
+  address            String
   /// 订单金额，单位为分。
-  amount      Int
-  status      String    @default("pending_confirm") // pending_confirm / confirmed / in_progress / completed / cancelled
-  remark      String?
-  completedAt DateTime? @map("completed_at")
-  createdAt   DateTime  @default(now()) @map("created_at")
-  updatedAt   DateTime  @updatedAt @map("updated_at")
+  amount             Int
+  status             String    @default("pending_confirm") // pending_confirm / confirmed / in_progress / completed / cancelled
+  remark             String?
+  completedAt        DateTime? @map("completed_at")
+  createdAt          DateTime  @default(now()) @map("created_at")
+  updatedAt          DateTime  @updatedAt @map("updated_at")
+  /// 订单创建时冻结的 SOP 配置版本唯一标识。
+  sopConfigVersionId String?   @map("sop_config_version_id")
+  /// 订单创建时冻结的费用配置版本唯一标识。
+  feeConfigVersionId String?   @map("fee_config_version_id")
 
   owner               User                 @relation("OrderOwner", fields: [ownerId], references: [id])
   provider            User?                @relation("OrderProvider", fields: [providerId], references: [id])
@@ -185,12 +214,53 @@ model Order {
   complaints          Complaint[]
   /// 订单因投诉裁决产生的退款或结算内部账务记录。
   disputeMoneyRecords DisputeMoneyRecord[]
+  /// 订单创建时冻结的 SOP 配置版本。
+  sopConfigVersion    SystemConfigVersion? @relation("OrderSopConfigVersion", fields: [sopConfigVersionId], references: [id], onDelete: Restrict)
+  /// 订单创建时冻结的费用配置版本。
+  feeConfigVersion    SystemConfigVersion? @relation("OrderFeeConfigVersion", fields: [feeConfigVersionId], references: [id], onDelete: Restrict)
+  /// 订单创建时冻结的费用计算快照。
+  feeSnapshot         OrderFeeSnapshot?
 
   @@index([ownerId])
   @@index([providerId])
   @@index([status])
   @@index([orderType])
+  @@index([sopConfigVersionId])
+  @@index([feeConfigVersionId])
   @@map("orders")
+}
+
+model OrderFeeSnapshot {
+  /// 费用快照唯一标识。
+  id                        String   @id @default(uuid())
+  /// 快照所属订单唯一标识。
+  orderId                   String   @unique @map("order_id")
+  /// 费用计算使用的发布配置版本唯一标识。
+  feeConfigVersionId        String   @map("fee_config_version_id")
+  /// 费用计算使用的订单输入金额，单位为分。
+  inputAmountCents          Int      @map("input_amount_cents")
+  /// 平台佣金比例，使用整数万分比。
+  platformCommissionBps     Int      @map("platform_commission_bps")
+  /// 按订单金额计算的平台佣金，单位为分。
+  platformCommissionCents   Int      @map("platform_commission_cents")
+  /// 悬赏订单固定服务费，单位为分。
+  rewardServiceFeeCents     Int      @map("reward_service_fee_cents")
+  /// 提现手续费比例，使用整数万分比。
+  withdrawalFeeBps          Int      @map("withdrawal_fee_bps")
+  /// 最低提现手续费，单位为分。
+  minimumWithdrawalFeeCents Int      @map("minimum_withdrawal_fee_cents")
+  /// 扣除平台订单费用后的服务者结算金额，单位为分。
+  providerSettlementCents   Int      @map("provider_settlement_cents")
+  /// 费用快照创建时间。
+  createdAt                 DateTime @default(now()) @map("created_at")
+
+  /// 快照所属订单。
+  order            Order               @relation(fields: [orderId], references: [id], onDelete: Cascade)
+  /// 费用计算使用的发布配置版本。
+  feeConfigVersion SystemConfigVersion @relation("OrderFeeSnapshotConfigVersion", fields: [feeConfigVersionId], references: [id], onDelete: Restrict)
+
+  @@index([feeConfigVersionId])
+  @@map("order_fee_snapshots")
 }
 
 model OrderReward {
@@ -241,19 +311,250 @@ model OrderIntent {
 }
 
 model OrderSop {
-  id          String    @id @default(uuid())
-  orderId     String    @map("order_id")
-  stepNumber  Int       @map("step_number") // 1-5
-  stepName    String    @map("step_name") // 进门消毒 / 拍照打卡 / 执行服务 / 清理现场 / 离开拍照
-  photos      String[]
-  videos      String[]
-  completedAt DateTime? @map("completed_at")
-  createdAt   DateTime  @default(now()) @map("created_at")
+  id                      String    @id @default(uuid())
+  orderId                 String    @map("order_id")
+  stepNumber              Int       @map("step_number") // 1-5
+  stepName                String    @map("step_name") // 进门消毒 / 拍照打卡 / 执行服务 / 清理现场 / 离开拍照
+  /// 下单时冻结的步骤执行说明。
+  instruction             String
+  /// 下单时冻结的步骤预计时长，单位为分钟。
+  expectedDurationMinutes Int       @map("expected_duration_minutes")
+  /// 下单时冻结的步骤最少照片数量。
+  minimumPhotoCount       Int       @map("minimum_photo_count")
+  /// 下单时冻结的步骤视频必传要求。
+  videoRequired           Boolean   @default(false) @map("video_required")
+  /// 下单时冻结并序列化保存的违规处理指引。
+  violationGuidance       String    @map("violation_guidance")
+  photos                  String[]
+  videos                  String[]
+  completedAt             DateTime? @map("completed_at")
+  createdAt               DateTime  @default(now()) @map("created_at")
 
   order Order @relation(fields: [orderId], references: [id], onDelete: Cascade)
 
   @@index([orderId])
   @@map("order_sops")
+}
+
+// ============================================
+// 系统配置版本
+// ============================================
+
+model SystemConfigVersion {
+  /// 配置版本唯一标识。
+  id              String    @id @default(uuid())
+  /// 配置领域稳定键，取 sop、rating_threshold 或 fee。
+  configKey       String    @map("config_key")
+  /// 配置生命周期状态，取 draft、published 或 superseded。
+  status          String
+  /// 同一配置领域内单调递增的发布版本号。
+  businessVersion Int       @map("business_version")
+  /// 草稿乐观并发修订号。
+  revision        Int       @default(1)
+  /// 活跃草稿固定写 active，发布版本保持为空。
+  draftSlot       String?   @map("draft_slot")
+  /// 创建该配置版本的管理员唯一标识。
+  createdById     String    @map("created_by_id")
+  /// 最后更新该配置版本的管理员唯一标识。
+  updatedById     String    @map("updated_by_id")
+  /// 发布该配置版本的管理员唯一标识。
+  publishedById   String?   @map("published_by_id")
+  /// 配置版本发布时间。
+  publishedAt     DateTime? @map("published_at")
+  /// 恢复或复制配置时引用的来源版本唯一标识。
+  sourceVersionId String?   @map("source_version_id")
+  /// 防止重复创建或发布配置版本的业务幂等键。
+  idempotencyKey  String?   @unique @map("idempotency_key")
+  /// 本配置版本的业务变更摘要。
+  changeSummary   String    @map("change_summary")
+  /// 配置版本创建时间。
+  createdAt       DateTime  @default(now()) @map("created_at")
+  /// 配置版本最后更新时间。
+  updatedAt       DateTime  @updatedAt @map("updated_at")
+
+  /// 该版本复制或恢复时引用的来源版本。
+  sourceVersion         SystemConfigVersion?        @relation("SystemConfigVersionSource", fields: [sourceVersionId], references: [id], onDelete: SetNull)
+  /// 从该版本复制或恢复生成的后续版本。
+  derivedVersions       SystemConfigVersion[]       @relation("SystemConfigVersionSource")
+  /// 指向该发布版本的当前版本指针。
+  publishedPointer      SystemConfigPointer?
+  /// 该 SOP 版本冻结的步骤。
+  sopSteps              SopConfigStep[]
+  /// 该 SOP 版本冻结的违规规则。
+  sopViolationRules     SopViolationRule[]
+  /// 该评分版本冻结的阈值配置。
+  ratingThresholdConfig RatingThresholdConfig?
+  /// 该费用版本冻结的费率配置。
+  feeConfig             FeeConfig?
+  /// 该版本关联的审计事件。
+  auditEvents           SystemConfigAuditEvent[]
+  /// 创建该配置版本的管理员。
+  createdBy             User                        @relation("SystemConfigVersionCreatedBy", fields: [createdById], references: [id], onDelete: Restrict)
+  /// 最后更新该配置版本的管理员。
+  updatedBy             User                        @relation("SystemConfigVersionUpdatedBy", fields: [updatedById], references: [id], onDelete: Restrict)
+  /// 发布该配置版本的管理员；草稿阶段为空。
+  publishedBy           User?                       @relation("SystemConfigVersionPublishedBy", fields: [publishedById], references: [id], onDelete: SetNull)
+  /// 引用该 SOP 版本的订单。
+  sopOrders             Order[]                     @relation("OrderSopConfigVersion")
+  /// 引用该费用版本的订单。
+  feeOrders             Order[]                     @relation("OrderFeeConfigVersion")
+  /// 使用该费用版本完成计算的订单费用快照。
+  feeSnapshots          OrderFeeSnapshot[]          @relation("OrderFeeSnapshotConfigVersion")
+  /// 当前按该评分配置完成评估的服务者资格状态。
+  providerEligibilities ProviderRatingEligibility[] @relation("ProviderRatingEligibilityConfigVersion")
+
+  @@unique([configKey, businessVersion])
+  @@unique([configKey, draftSlot])
+  @@index([configKey, status])
+  @@index([sourceVersionId])
+  @@index([createdById])
+  @@index([updatedById])
+  @@index([publishedById])
+  @@map("system_config_versions")
+}
+
+model SystemConfigPointer {
+  /// 配置领域稳定键，同时保证每个领域只有一个当前版本指针。
+  configKey          String   @id @map("config_key")
+  /// 当前已发布配置版本唯一标识。
+  publishedVersionId String   @unique @map("published_version_id")
+  /// 指针创建时间。
+  createdAt          DateTime @default(now()) @map("created_at")
+  /// 指针最后更新时间。
+  updatedAt          DateTime @updatedAt @map("updated_at")
+
+  /// 当前生效的已发布配置版本。
+  publishedVersion SystemConfigVersion @relation(fields: [publishedVersionId], references: [id], onDelete: Restrict)
+
+  @@map("system_config_pointers")
+}
+
+model SopConfigStep {
+  /// SOP 配置步骤唯一标识。
+  id                      String  @id @default(uuid())
+  /// 所属配置版本唯一标识。
+  configVersionId         String  @map("config_version_id")
+  /// 适用服务类型，取 feeding、walking 或 playing。
+  serviceType             String  @map("service_type")
+  /// 服务类型内从一开始的步骤序号。
+  stepNumber              Int     @map("step_number")
+  /// 步骤展示名称。
+  stepName                String  @map("step_name")
+  /// 步骤执行说明。
+  instruction             String
+  /// 步骤预计时长，单位为分钟。
+  expectedDurationMinutes Int     @map("expected_duration_minutes")
+  /// 步骤最少照片数量。
+  minimumPhotoCount       Int     @map("minimum_photo_count")
+  /// 步骤是否必须上传视频。
+  videoRequired           Boolean @default(false) @map("video_required")
+
+  /// 步骤所属的 SOP 配置版本。
+  configVersion SystemConfigVersion @relation(fields: [configVersionId], references: [id], onDelete: Cascade)
+
+  @@unique([configVersionId, serviceType, stepNumber])
+  @@index([configVersionId])
+  @@map("sop_config_steps")
+}
+
+model SopViolationRule {
+  /// SOP 违规规则唯一标识。
+  id                     String  @id @default(uuid())
+  /// 所属配置版本唯一标识。
+  configVersionId        String  @map("config_version_id")
+  /// 违规严重程度，取 minor、moderate 或 severe。
+  severity               String
+  /// 违规条件和处理说明。
+  description            String
+  /// 服务费扣减比例，使用整数万分比；未配置扣减时为空。
+  serviceFeeDeductionBps Int?    @map("service_fee_deduction_bps")
+  /// 评分扣减值，使用整数百分值。
+  ratingDeductionScore   Int     @default(0) @map("rating_deduction_score")
+  /// 暂停接单天数，不暂停时为零。
+  suspensionDays         Int     @default(0) @map("suspension_days")
+  /// 是否要求重新培训。
+  retrainingRequired     Boolean @default(false) @map("retraining_required")
+  /// 规则展示顺序。
+  sortOrder              Int     @map("sort_order")
+
+  /// 规则所属的 SOP 配置版本。
+  configVersion SystemConfigVersion @relation(fields: [configVersionId], references: [id], onDelete: Cascade)
+
+  @@unique([configVersionId, severity])
+  @@index([configVersionId, sortOrder])
+  @@map("sop_violation_rules")
+}
+
+model RatingThresholdConfig {
+  /// 评分阈值配置唯一标识。
+  id                    String @id @default(uuid())
+  /// 所属配置版本唯一标识，同时保证领域数据一对一。
+  configVersionId       String @unique @map("config_version_id")
+  /// 评分统计窗口，表示最近已评价订单数量。
+  evaluationWindow      Int    @map("evaluation_window")
+  /// 阈值生效所需最小评价样本数。
+  minimumSampleSize     Int    @map("minimum_sample_size")
+  /// 触发预警的评分阈值，使用整数百分值。
+  warningScore          Int    @map("warning_score")
+  /// 触发暂停接单的评分阈值，使用整数百分值。
+  suspensionScore       Int    @map("suspension_score")
+  /// 恢复接单前必须满足的再培训要求。
+  retrainingRequirement String @map("retraining_requirement")
+
+  /// 配置所属的评分阈值版本。
+  configVersion SystemConfigVersion @relation(fields: [configVersionId], references: [id], onDelete: Cascade)
+
+  @@map("rating_threshold_configs")
+}
+
+model FeeConfig {
+  /// 费率配置唯一标识。
+  id                        String @id @default(uuid())
+  /// 所属配置版本唯一标识，同时保证领域数据一对一。
+  configVersionId           String @unique @map("config_version_id")
+  /// 平台佣金比例，使用整数万分比。
+  platformCommissionBps     Int    @map("platform_commission_bps")
+  /// 悬赏订单固定服务费，单位为分。
+  rewardServiceFeeCents     Int    @map("reward_service_fee_cents")
+  /// 提现手续费比例，使用整数万分比。
+  withdrawalFeeBps          Int    @map("withdrawal_fee_bps")
+  /// 最低提现手续费，单位为分。
+  minimumWithdrawalFeeCents Int    @map("minimum_withdrawal_fee_cents")
+
+  /// 配置所属的费用版本。
+  configVersion SystemConfigVersion @relation(fields: [configVersionId], references: [id], onDelete: Cascade)
+
+  @@map("fee_configs")
+}
+
+model SystemConfigAuditEvent {
+  /// 配置审计事件唯一标识。
+  id              String   @id @default(uuid())
+  /// 事件所属配置领域稳定键。
+  configKey       String   @map("config_key")
+  /// 事件关联的配置版本唯一标识。
+  configVersionId String?  @map("config_version_id")
+  /// 执行配置操作的管理员唯一标识。
+  operatorId      String   @map("operator_id")
+  /// 配置操作类型。
+  action          String
+  /// 防止审计事件重复写入的业务幂等键。
+  idempotencyKey  String   @map("idempotency_key")
+  /// 本次配置操作的业务变更摘要。
+  changeSummary   String   @map("change_summary")
+  /// 审计事件创建时间。
+  createdAt       DateTime @default(now()) @map("created_at")
+
+  /// 事件关联的配置版本。
+  configVersion SystemConfigVersion? @relation(fields: [configVersionId], references: [id], onDelete: SetNull)
+  /// 执行该配置操作的管理员。
+  operator      User                 @relation("SystemConfigAuditOperator", fields: [operatorId], references: [id], onDelete: Restrict)
+
+  @@unique([configKey, idempotencyKey])
+  @@index([configKey, createdAt])
+  @@index([configVersionId])
+  @@index([operatorId])
+  @@map("system_config_audit_events")
 }
 
 // ============================================
@@ -278,6 +579,72 @@ model Review {
 
   @@index([reviewerId])
   @@map("reviews")
+}
+
+/// 服务者当前评分资格及恢复接单所需状态。
+model ProviderRatingEligibility {
+  /// 资格状态唯一标识。
+  id                     String                          @id @default(uuid())
+  /// 服务者档案唯一标识，同时保证每位服务者只有一份当前资格状态。
+  providerId             String                          @unique @map("provider_id")
+  /// 最近一次评估使用的发布评分配置版本。
+  ratingConfigVersionId  String                          @map("rating_config_version_id")
+  /// 最近一次评估输入的唯一摘要，用于避免重复执行副作用。
+  evaluationKey          String                          @unique @map("evaluation_key")
+  /// 当前资格状态，取 insufficient_sample、eligible、warning 或 suspended。
+  status                 ProviderRatingEligibilityStatus @default(insufficient_sample)
+  /// 最近评价的整数百分制平均分；没有评价时为空。
+  averageScore           Int?                            @map("average_score")
+  /// 最近一次评估实际使用的评价样本数。
+  sampleSize             Int                             @default(0) @map("sample_size")
+  /// 暂停后恢复接单前必须满足的再培训要求。
+  retrainingRequirement  String?                         @map("retraining_requirement")
+  /// 再培训状态，取 not_required、required 或 completed。
+  retrainingStatus       ProviderRetrainingStatus        @default(not_required) @map("retraining_status")
+  /// 当前告警或暂停周期使用的副作用去重键；恢复后清空。
+  actionDeduplicationKey String?                         @map("action_deduplication_key")
+  /// 最近一次进入暂停接单状态的时间。
+  suspendedAt            DateTime?                       @map("suspended_at")
+  /// 最近一次完成评分资格评估的时间。
+  evaluatedAt            DateTime                        @default(now()) @map("evaluated_at")
+
+  /// 资格状态所属服务者档案。
+  provider      Provider            @relation(fields: [providerId], references: [id], onDelete: Cascade)
+  /// 最近一次评估使用的发布评分配置版本。
+  configVersion SystemConfigVersion @relation("ProviderRatingEligibilityConfigVersion", fields: [ratingConfigVersionId], references: [id], onDelete: Restrict)
+
+  @@index([status])
+  @@index([ratingConfigVersionId])
+  @@map("provider_rating_eligibilities")
+}
+
+/// 需要管理员处理的评分资格待办。
+model AdminTodo {
+  /// 待办唯一标识。
+  id               String   @id @default(uuid())
+  /// 待办关联的服务者档案唯一标识。
+  providerId       String   @map("provider_id")
+  /// 待办业务类型。
+  type             String
+  /// 管理员待办标题。
+  title            String
+  /// 管理员待办完整说明。
+  content          String
+  /// 待办状态，取 pending 或 completed。
+  status           String   @default("pending")
+  /// 业务唯一去重键，防止重复评估创建相同待办。
+  deduplicationKey String   @unique @map("deduplication_key")
+  /// 待办创建时间。
+  createdAt        DateTime @default(now()) @map("created_at")
+  /// 待办最后更新时间。
+  updatedAt        DateTime @updatedAt @map("updated_at")
+
+  /// 待办关联的服务者档案。
+  provider Provider @relation(fields: [providerId], references: [id], onDelete: Cascade)
+
+  @@index([status, createdAt])
+  @@index([providerId])
+  @@map("admin_todos")
 }
 
 model Complaint {
@@ -603,14 +970,16 @@ model Favorite {
 // ============================================
 
 model Notification {
-  id          String   @id @default(uuid())
-  userId      String   @map("user_id")
-  type        String // message / order / system
-  title       String
-  content     String
-  referenceId String?  @map("reference_id") // 关联的业务ID（订单ID、帖子ID等）
-  isRead      Boolean  @default(false) @map("is_read")
-  createdAt   DateTime @default(now()) @map("created_at")
+  id               String   @id @default(uuid())
+  userId           String   @map("user_id")
+  type             String // message / order / system
+  title            String
+  content          String
+  referenceId      String?  @map("reference_id") // 关联的业务ID（订单ID、帖子ID等）
+  /// 可空业务唯一去重键，防止重复评估创建相同通知。
+  deduplicationKey String?  @unique @map("deduplication_key")
+  isRead           Boolean  @default(false) @map("is_read")
+  createdAt        DateTime @default(now()) @map("created_at")
 
   user User @relation(fields: [userId], references: [id], onDelete: Cascade)
 

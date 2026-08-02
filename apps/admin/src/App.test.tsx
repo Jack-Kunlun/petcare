@@ -12,6 +12,12 @@ vi.mock("./auth/ProtectedRoute", async () => {
   return { ProtectedRoute: Outlet };
 });
 
+vi.mock("./auth/PermissionRoute", async () => {
+  const { Outlet } = await vi.importActual<typeof import("react-router-dom")>("react-router-dom");
+
+  return { PermissionRoute: Outlet };
+});
+
 vi.mock("./components/Layout", async () => {
   const { Outlet } = await vi.importActual<typeof import("react-router-dom")>("react-router-dom");
 
@@ -25,6 +31,10 @@ vi.mock("./pages/OrderManagement/Complaint", () => ({
 vi.mock("./pages/OrderManagement/Complaint/Detail", () => ({
   default: () => "投诉卷宗详情路由",
 }));
+
+vi.mock("./pages/Settings", () => ({ default: () => "系统设置概览路由" }));
+vi.mock("./pages/Settings/Edit", () => ({ default: () => "系统设置编辑路由" }));
+vi.mock("./pages/Settings/Detail", () => ({ default: () => "系统设置历史详情路由" }));
 
 describe("App complaint routes", () => {
   beforeEach(() => {
@@ -41,5 +51,18 @@ describe("App complaint routes", () => {
     window.history.replaceState({}, "", "/orders/complaints/complaint-1");
     render(<App />);
     expect(await screen.findByText("投诉卷宗详情路由")).toBeInTheDocument();
+  });
+});
+
+describe("App system settings routes", () => {
+  it.each([
+    ["/settings", "系统设置概览路由"],
+    ["/settings/fee/edit", "系统设置编辑路由"],
+    ["/settings/fee/history/fee-v1", "系统设置历史详情路由"],
+  ])("注册 %s", async (path, expected) => {
+    window.history.replaceState({}, "", path);
+    render(<App />);
+
+    expect(await screen.findByText(expected)).toBeInTheDocument();
   });
 });
