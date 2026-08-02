@@ -1,7 +1,8 @@
 import { Controller, Get, Query, UseGuards } from "@nestjs/common";
 import { ApiBearerAuth, ApiOperation, ApiTags } from "@nestjs/swagger";
 import { AccessTokenGuard } from "../../auth/access-token.guard";
-import { AdminGuard } from "../../auth/admin.guard";
+import { PermissionGuard } from "../../auth/permission.guard";
+import { RequirePermissions } from "../../auth/permissions.decorator";
 import {
   ApiStandardErrors,
   ApiSuccessResponse,
@@ -12,13 +13,14 @@ import { OrderService } from "./order.service";
 
 @ApiTags("admin-orders")
 @ApiBearerAuth()
-@UseGuards(AccessTokenGuard, AdminGuard)
+@UseGuards(AccessTokenGuard, PermissionGuard)
 @Controller("admin/orders")
 export class AdminOrderController {
   constructor(private readonly orderService: OrderService) {}
 
   /** 返回后台订单分页列表，查询参数已经由 DTO 完成转换与校验。 */
   @Get()
+  @RequirePermissions("order.read")
   @ApiOperation({ summary: "获取后台订单列表" })
   @ApiSuccessResponse(AdminOrderListResponseDto)
   @ApiStandardErrors(400, 401, 403, 500)
