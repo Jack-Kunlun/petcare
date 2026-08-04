@@ -69,4 +69,28 @@ describe("Header", () => {
     await user.click(screen.getByRole("button", { name: "打开导航" }));
     expect(onMenuOpen).toHaveBeenCalledTimes(1);
   });
+
+  it("keeps every interactive header control touch-friendly and keyboard-visible", () => {
+    render(
+      <MemoryRouter>
+        <Header onMenuOpen={vi.fn()} />
+      </MemoryRouter>,
+    );
+
+    for (const name of ["打开导航", /^通知，\d+ 条未读$/, "退出登录"]) {
+      const control = screen.getByRole("button", { name });
+
+      expect(control).toHaveClass("h-11", "w-11", "cursor-pointer");
+      expect(control.className).toContain("hover:");
+      expect(control.className).toContain("active:");
+      expect(control.className).toContain("focus-visible:");
+    }
+
+    const userInfo = screen.getByTestId("header-user-info");
+
+    expect(userInfo).toHaveClass("cursor-pointer");
+    expect(userInfo.className).toContain("hover:");
+    expect(userInfo.className).toContain("active:");
+    expect(userInfo.className).toContain("focus-visible:");
+  });
 });

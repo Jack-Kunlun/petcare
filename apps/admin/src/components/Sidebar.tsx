@@ -20,6 +20,7 @@ import {
   getVisibleRootMenuRoutes,
   type AdminRouteDefinition,
 } from "../routes/registry";
+import { BrandLogo } from "./BrandLogo";
 
 const menuPermissionByCode = new Map(
   RBAC_PERMISSION_CATALOG.filter(
@@ -86,7 +87,7 @@ function RootMenuLink({
       end={end}
       onClick={onClose}
       className={({ isActive }) =>
-        `group flex min-h-11 min-w-0 flex-1 items-center gap-3 rounded-lg px-3 py-2.5 text-sm font-medium outline-none transition-colors duration-150 focus-visible:ring-2 focus-visible:ring-blue-400 ${
+        `group flex min-h-11 min-w-0 flex-1 cursor-pointer items-center gap-3 rounded-lg px-3 py-2.5 text-sm font-medium outline-none transition-colors duration-150 focus-visible:ring-2 focus-visible:ring-blue-400 ${
           isActive
             ? "bg-blue-600 text-white shadow-sm"
             : "text-slate-300 hover:bg-white/8 hover:text-white"
@@ -181,15 +182,11 @@ export function Sidebar({ open = false, onClose, permissions }: SidebarProps) {
         }`}
       >
         <div className="flex h-16 shrink-0 items-center justify-between border-b border-white/10 px-5">
-          <div className="flex min-w-0 items-center gap-3">
-            <span className="flex h-9 w-9 shrink-0 items-center justify-center rounded-xl bg-blue-600 text-white shadow-lg shadow-blue-950/40">
-              <ShieldCheck aria-hidden="true" className="h-5 w-5" />
-            </span>
-            <div className="min-w-0">
-              <p className="truncate text-base font-semibold tracking-wide text-white">PetCare</p>
-              <p className="truncate text-xs text-slate-400">运营管理中心</p>
-            </div>
-          </div>
+          <BrandLogo
+            variant="reverse"
+            label="PetCare 运营管理中心"
+            className="h-9 w-9 shrink-0"
+          />
           <button
             type="button"
             aria-label="关闭导航"
@@ -238,7 +235,7 @@ export function Sidebar({ open = false, onClose, permissions }: SidebarProps) {
                         aria-label={`${label}菜单`}
                         aria-expanded={isExpanded}
                         aria-controls={`submenu-${route.id}`}
-                        className={`group flex min-h-11 w-full items-center gap-3 rounded-lg px-3 py-2.5 text-left text-sm font-medium outline-none transition-colors duration-150 focus-visible:ring-2 focus-visible:ring-blue-400 ${
+                        className={`group flex min-h-11 w-full cursor-pointer items-center gap-3 rounded-lg px-3 py-2.5 text-left text-sm font-medium outline-none transition-colors duration-200 focus-visible:ring-2 focus-visible:ring-blue-400 ${
                           isParentActive
                             ? "bg-blue-600/40 text-blue-100"
                             : "text-slate-300 hover:bg-white/8 hover:text-white"
@@ -267,7 +264,7 @@ export function Sidebar({ open = false, onClose, permissions }: SidebarProps) {
                     {hasChildren && isExpanded ? (
                       <ul
                         id={`submenu-${route.id}`}
-                        className="ml-6 mt-1 space-y-1 border-l border-white/10 pl-3"
+                        className="ml-6 mt-1 origin-top space-y-1 border-l border-white/10 pl-3 transition-[transform,opacity] duration-200 motion-safe:animate-[pc-page-enter_200ms_ease-out_both]"
                       >
                         {childRoutes.map((child) => {
                           return (

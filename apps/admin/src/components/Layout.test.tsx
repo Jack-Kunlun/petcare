@@ -1,4 +1,4 @@
-import { render } from "@testing-library/react";
+import { render, screen } from "@testing-library/react";
 import { MemoryRouter, Route, Routes } from "react-router-dom";
 import { describe, expect, it, vi } from "vitest";
 import { AuthContext, type AuthContextValue } from "../auth/auth.context";
@@ -42,6 +42,8 @@ describe("Layout", () => {
     expect(baseElement.querySelectorAll("nav")).toHaveLength(1);
     expect(layout).toHaveClass("h-screen", "min-h-0", "overflow-hidden");
     expect(contentColumn).toHaveClass("min-h-0");
-    expect(main).toHaveClass("min-h-0", "overflow-y-auto");
+    expect(main).toHaveClass("min-h-0", "flex-1", "overflow-y-auto");
+    expect(main?.firstElementChild).toContainElement(screen.getByText("内容"));
+    expect(main?.firstElementChild).toHaveClass("animate-[pc-page-enter_220ms_ease-out_both]");
   });
 });
