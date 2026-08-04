@@ -138,28 +138,65 @@ export default function Login() {
   }
 
   const inputClassName =
-    "mt-2 w-full rounded-lg border border-slate-300 bg-white px-3 py-2.5 text-slate-900 outline-none transition duration-150 ease-out placeholder:text-slate-400 hover:border-slate-400 focus-visible:border-brand-primary focus-visible:ring-2 focus-visible:ring-brand-primary/20 disabled:cursor-not-allowed disabled:bg-slate-100 disabled:text-slate-500";
+    "mt-2 h-12 w-full rounded-lg border border-border bg-white px-3 text-text-primary outline-none transition duration-150 ease-out placeholder:text-text-secondary hover:border-brand-primary/60 focus-visible:border-brand-primary focus-visible:ring-2 focus-visible:ring-brand-primary/20 disabled:cursor-not-allowed disabled:bg-slate-100 disabled:text-text-secondary";
 
   return (
-    <main className="grid min-h-screen place-items-center bg-page-background p-4 sm:p-6">
-      <section className="grid w-full max-w-[896px] overflow-hidden rounded-2xl bg-white shadow-xl md:grid-cols-[minmax(280px,0.9fr)_minmax(320px,1.1fr)]">
-        <aside className="flex min-h-52 flex-col justify-between bg-slate-950 p-6 text-white sm:p-8">
-          <BrandLogo variant="stacked-reverse" className="h-16 w-auto self-start" label="PetCare 管理后台" />
-          <div className="mt-10 animate-[pc-page-enter_220ms_ease-out_both]">
-            <p className="text-sm font-medium text-care-secondary">PetCare 管理后台</p>
-            <h1 className="mt-2 text-2xl font-bold">让每一次照护都有回应</h1>
-            <p className="mt-3 text-sm leading-6 text-slate-300">安全登录后，继续管理宠物服务与用户体验。</p>
+    <main className="relative isolate grid min-h-screen place-items-center overflow-hidden bg-page-background p-4 sm:p-6">
+      <div aria-hidden="true" className="pointer-events-none absolute inset-0">
+        <span className="absolute left-12 top-10 h-40 w-40 rounded-full bg-brand-primary/10 blur-3xl" />
+        <span className="absolute bottom-8 right-10 h-52 w-52 rounded-full bg-care-secondary/10 blur-3xl" />
+      </div>
+
+      <section className="relative z-10 grid w-full max-w-[896px] overflow-hidden rounded-2xl border border-border bg-white shadow-xl md:grid-cols-[minmax(280px,0.9fr)_minmax(320px,1.1fr)]">
+        <aside className="relative flex min-h-72 flex-col justify-between overflow-hidden bg-linear-to-br from-brand-primary via-brand-primary-hover to-slate-950 p-6 text-white sm:p-8 md:min-h-[520px]">
+          <div aria-hidden="true" className="pointer-events-none absolute inset-0 opacity-40">
+            <span className="absolute -right-16 -top-20 h-64 w-64 rounded-full border border-white/20" />
+            <span className="absolute -right-8 -top-12 h-48 w-48 rounded-full border border-white/15" />
+            <span className="absolute -bottom-28 -left-20 h-72 w-72 rounded-full border border-care-secondary/30" />
+          </div>
+          <div className="relative z-10">
+            <BrandLogo
+              variant="stacked-reverse"
+              className="h-20 w-auto self-start sm:h-24"
+              label="PetCare 管理后台"
+            />
+            <span className="mt-3 block h-1 w-12 rounded-full bg-care-secondary" />
+          </div>
+          <div className="relative z-10 mt-10 animate-[pc-page-enter_220ms_ease-out_both] motion-reduce:animate-none">
+            <p className="text-sm font-semibold tracking-wide text-care-secondary">
+              PetCare 管理后台
+            </p>
+            <h1 className="mt-3 max-w-xs text-3xl font-bold leading-tight tracking-tight">
+              让每一次照护都有回应
+            </h1>
+            <p className="mt-4 max-w-sm text-sm leading-6 text-white/80">
+              安全登录后，继续管理宠物服务与用户体验。
+            </p>
+            <div className="mt-7 flex flex-wrap gap-2 text-xs font-medium text-white/90">
+              <span className="rounded-full border border-white/20 bg-white/10 px-3 py-1.5">
+                用户管理
+              </span>
+              <span className="rounded-full border border-white/20 bg-white/10 px-3 py-1.5">
+                订单协同
+              </span>
+              <span className="rounded-full border border-white/20 bg-white/10 px-3 py-1.5">
+                权限控制
+              </span>
+            </div>
           </div>
         </aside>
 
-        <div className="p-6 sm:p-8">
+        <div className="bg-white p-6 sm:p-8 md:p-10">
           <div className="mb-6">
             <p className="text-sm font-medium text-brand-primary">欢迎回来</p>
             <h2 className="mt-2 text-2xl font-bold text-text-primary">登录 PetCare</h2>
             <p className="mt-2 text-sm text-text-secondary">使用管理员身份继续</p>
           </div>
 
-          <div className="relative mb-6 grid grid-cols-2 rounded-lg bg-slate-100 p-1" role="tablist">
+          <div
+            className="relative mb-6 grid grid-cols-2 rounded-lg bg-slate-100 p-1"
+            role="tablist"
+          >
             <span
               aria-hidden="true"
               data-testid="login-mode-indicator"
@@ -194,44 +231,112 @@ export default function Login() {
           </div>
 
           <form className="space-y-5" onSubmit={handleSubmit}>
-            <div className="min-h-[232px]">
+            <div data-testid="login-form-panels" className="min-h-[240px]">
               {mode === "password" ? (
-                <div id="password-login-panel" role="tabpanel" className="space-y-5 animate-[pc-page-enter_220ms_ease-out_both]">
-                  <label className="block text-sm font-medium text-slate-700">
+                <div
+                  id="password-login-panel"
+                  role="tabpanel"
+                  className="space-y-5 animate-[pc-page-enter_220ms_ease-out_both] motion-reduce:animate-none"
+                >
+                  <label className="block text-sm font-medium text-text-secondary">
                     手机号或账号
-                    <input className={inputClassName} autoComplete="username" value={identifier} onChange={(event) => setIdentifier(event.target.value)} />
+                    <input
+                      className={inputClassName}
+                      autoComplete="username"
+                      value={identifier}
+                      onChange={(event) => setIdentifier(event.target.value)}
+                    />
                   </label>
-                  <label className="block text-sm font-medium text-slate-700">
+                  <label className="block text-sm font-medium text-text-secondary">
                     密码
-                    <input type="password" className={inputClassName} autoComplete="current-password" value={password} onChange={(event) => setPassword(event.target.value)} />
+                    <input
+                      type="password"
+                      className={inputClassName}
+                      autoComplete="current-password"
+                      value={password}
+                      onChange={(event) => setPassword(event.target.value)}
+                    />
                   </label>
                 </div>
               ) : (
-                <div id="sms-login-panel" role="tabpanel" className="space-y-5 animate-[pc-page-enter_220ms_ease-out_both]">
-                  <label className="block text-sm font-medium text-slate-700">
+                <div
+                  id="sms-login-panel"
+                  data-testid="sms-login-panel"
+                  role="tabpanel"
+                  className="space-y-5 animate-[pc-page-enter_220ms_ease-out_both] motion-reduce:animate-none"
+                >
+                  <label className="block text-sm font-medium text-text-secondary">
                     手机号
-                    <input inputMode="numeric" className={inputClassName} autoComplete="tel" value={phone} onChange={(event) => setPhone(event.target.value)} />
+                    <input
+                      inputMode="numeric"
+                      className={inputClassName}
+                      autoComplete="tel"
+                      value={phone}
+                      onChange={(event) => setPhone(event.target.value)}
+                    />
                   </label>
-                  <label className="block text-sm font-medium text-slate-700">
+                  <label className="block text-sm font-medium text-text-secondary">
                     图形验证码
                     <span className="mt-2 flex gap-2">
-                      <input inputMode="numeric" maxLength={4} className={inputClassName.replace("w-full", "min-w-0 flex-1")} autoComplete="off" value={captchaCode} onChange={(event) => setCaptchaCode(event.target.value)} />
+                      <input
+                        data-testid="captcha-code-input"
+                        inputMode="numeric"
+                        maxLength={4}
+                        className={inputClassName.replace("w-full", "min-w-0 flex-1")}
+                        autoComplete="off"
+                        value={captchaCode}
+                        onChange={(event) => setCaptchaCode(event.target.value)}
+                      />
                       {captcha ? (
-                        <button type="button" aria-label="图形验证码，点击换一张" className="h-12 w-36 cursor-pointer overflow-hidden rounded-lg border border-slate-300 bg-blue-50 transition duration-150 hover:border-brand-primary active:scale-[0.98] focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-brand-primary" onClick={() => void loadCaptcha()}>
-                          <img src={captcha.image} alt="图形验证码" className="h-full w-full object-cover" />
+                        <button
+                          type="button"
+                          aria-label="图形验证码，点击换一张"
+                          className="h-12 w-36 shrink-0 cursor-pointer overflow-hidden rounded-lg border border-border bg-page-background px-1 transition duration-150 hover:border-brand-primary active:scale-[0.98] focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-brand-primary"
+                          onClick={() => void loadCaptcha()}
+                        >
+                          <img
+                            src={captcha.image}
+                            alt="图形验证码"
+                            className="h-full w-full object-contain"
+                            decoding="sync"
+                          />
                         </button>
                       ) : (
-                        <button type="button" aria-label={captchaLoadError ? "重新加载图形验证码" : "正在加载图形验证码"} className="h-12 w-36 cursor-pointer rounded-lg border border-slate-300 bg-slate-50 text-xs text-slate-500 transition duration-150 hover:border-brand-primary hover:text-brand-primary active:scale-[0.98] focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-brand-primary disabled:cursor-not-allowed disabled:opacity-70" disabled={captchaLoading} onClick={() => void loadCaptcha()}>
-                          {captchaLoadError ? "加载失败，点击重试" : <span className="block h-4 w-20 animate-[pc-skeleton-shimmer_220ms_linear_infinite] rounded bg-linear-to-r from-slate-200 via-slate-100 to-slate-200 bg-[length:200%_100%]" />}
+                        <button
+                          type="button"
+                          aria-label={
+                            captchaLoadError ? "重新加载图形验证码" : "正在加载图形验证码"
+                          }
+                          className="h-12 w-36 cursor-pointer rounded-lg border border-slate-300 bg-slate-50 text-xs text-slate-500 transition duration-150 hover:border-brand-primary hover:text-brand-primary active:scale-[0.98] focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-brand-primary disabled:cursor-not-allowed disabled:opacity-70"
+                          disabled={captchaLoading}
+                          onClick={() => void loadCaptcha()}
+                        >
+                          {captchaLoadError ? (
+                            "加载失败，点击重试"
+                          ) : (
+                            <span className="block h-4 w-20 animate-[pc-skeleton-shimmer_220ms_linear_infinite] rounded bg-linear-to-r from-slate-200 via-slate-100 to-slate-200 bg-[length:200%_100%]" />
+                          )}
                         </button>
                       )}
                     </span>
                   </label>
-                  <label className="block text-sm font-medium text-slate-700">
+                  <label className="block text-sm font-medium text-text-secondary">
                     验证码
                     <span className="mt-2 flex gap-2">
-                      <input inputMode="numeric" className={inputClassName.replace("w-full", "min-w-0 flex-1")} autoComplete="one-time-code" value={code} onChange={(event) => setCode(event.target.value)} />
-                      <button type="button" className="min-w-28 cursor-pointer whitespace-nowrap rounded-lg border border-brand-primary px-3 py-2 text-sm font-medium text-brand-primary transition duration-150 hover:bg-brand-primary hover:text-white active:scale-[0.98] focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-brand-primary disabled:cursor-not-allowed disabled:border-slate-300 disabled:text-slate-400 disabled:hover:bg-transparent" disabled={sendingCode || cooldown > 0} onClick={handleSendCode}>
+                      <input
+                        inputMode="numeric"
+                        className={inputClassName.replace("w-full", "min-w-0 flex-1")}
+                        autoComplete="one-time-code"
+                        value={code}
+                        onChange={(event) => setCode(event.target.value)}
+                      />
+                      <button
+                        data-testid="send-code-button"
+                        type="button"
+                        className="h-12 w-32 shrink-0 cursor-pointer whitespace-nowrap rounded-lg border border-brand-primary px-3 text-sm font-medium text-brand-primary transition duration-150 hover:bg-brand-primary hover:text-white active:scale-[0.98] focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-brand-primary disabled:cursor-not-allowed disabled:border-slate-300 disabled:text-slate-400 disabled:hover:bg-transparent"
+                        disabled={sendingCode || cooldown > 0}
+                        onClick={handleSendCode}
+                      >
                         {getSendCodeLabel(cooldown, sendingCode)}
                       </button>
                     </span>
@@ -240,9 +345,17 @@ export default function Login() {
               )}
             </div>
 
-            {error ? <p role="alert" aria-live="polite" className="text-sm text-red-600">{error}</p> : null}
+            {error ? (
+              <p role="alert" aria-live="polite" className="text-sm text-red-600">
+                {error}
+              </p>
+            ) : null}
 
-            <button type="submit" disabled={pending} className="min-h-12 w-full cursor-pointer rounded-lg bg-brand-primary px-4 py-3 font-medium text-white transition duration-150 hover:bg-brand-primary-hover active:scale-[0.99] focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-brand-primary disabled:cursor-not-allowed disabled:bg-slate-400">
+            <button
+              type="submit"
+              disabled={pending}
+              className="min-h-12 w-full cursor-pointer rounded-lg bg-brand-primary px-4 py-3 font-medium text-white transition duration-150 hover:bg-brand-primary-hover active:scale-[0.99] focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-brand-primary disabled:cursor-not-allowed disabled:bg-slate-400"
+            >
               {pending ? "登录中…" : "登录"}
             </button>
           </form>
