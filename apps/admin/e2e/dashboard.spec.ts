@@ -29,11 +29,15 @@ test.describe("PetCare Admin Dashboard", () => {
   });
 
   for (const destination of [
-    { link: "用户管理", path: /\/users$/, heading: "用户管理" },
-    { link: "订单管理", path: /\/orders$/, heading: "订单管理" },
+    { menu: "用户管理菜单", link: "用户列表", path: /\/users$/, heading: "用户管理" },
+    { menu: "订单管理菜单", link: "订单管理", path: /\/orders$/, heading: "订单管理" },
     { link: "系统设置", path: /\/settings$/, heading: "系统设置" },
   ]) {
     test(`导航到${destination.heading}`, async ({ page }) => {
+      if (destination.menu) {
+        await page.getByRole("button", { name: destination.menu }).click();
+      }
+
       await page.getByRole("link", { name: destination.link }).click();
       await expect(page).toHaveURL(destination.path);
       await expect(page.getByRole("heading", { name: destination.heading })).toBeVisible();

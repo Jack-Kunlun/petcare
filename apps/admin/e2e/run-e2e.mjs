@@ -1,9 +1,10 @@
 import { spawn } from "node:child_process";
 import console from "node:console";
 import { randomBytes } from "node:crypto";
-import { existsSync, readFileSync } from "node:fs";
+import { existsSync, readFileSync, rmSync } from "node:fs";
 import { createRequire } from "node:module";
 import { createServer } from "node:net";
+import { tmpdir } from "node:os";
 import path from "node:path";
 import process from "node:process";
 import { clearTimeout, setTimeout } from "node:timers";
@@ -407,7 +408,16 @@ export async function startApplicationServers(
 
     const admin = spawnProcess(
       process.execPath,
-      [viteCli, "--host", "127.0.0.1", "--port", adminPort, "--strictPort"],
+      [
+        viteCli,
+        "--host",
+        "127.0.0.1",
+        "--port",
+        adminPort,
+        "--strictPort",
+        "--configLoader",
+        "runner",
+      ],
       {
         cwd: adminDirectory,
         detached: process.platform !== "win32",
@@ -688,6 +698,7 @@ async function runMain(playwrightArgs, signal) {
     loadLocalEnvironment();
   }
   const schemaName = createAdminE2eSchemaName();
+  const temporaryDirectory = path.join(tmpdir(), schemaName);
   const serverPort = await findAvailablePort();
   let adminPort = await findAvailablePort();
 
@@ -700,6 +711,8 @@ async function runMain(playwrightArgs, signal) {
     PORT: String(serverPort),
     ADMIN_E2E_SERVER_PORT: String(serverPort),
     ADMIN_E2E_ADMIN_PORT: String(adminPort),
+    ADMIN_E2E_VITE_CACHE_DIR: path.join(temporaryDirectory, "vite-cache"),
+    LOG_DIR: path.join(temporaryDirectory, "server-logs"),
     ALLOWED_ORIGINS: `http://127.0.0.1:${adminPort}`,
     RBAC_E2E_RESTRICTED_USERNAME: rbacRestrictedAdmin.username,
     RBAC_E2E_RESTRICTED_PASSWORD: rbacRestrictedAdmin.password,
@@ -707,39 +720,43 @@ async function runMain(playwrightArgs, signal) {
   const prismaCli = path.join(serverDirectory, "node_modules", "prisma", "build", "index.js");
   const playwrightCli = path.join(adminDirectory, "node_modules", "@playwright", "test", "cli.js");
 
-  return runWithIsolatedAdminSchema({
-    schemaName,
-    baseEnv,
-    signal,
-    pushSchema: async (env, operationSignal) => {
-      await requireSuccessfulCommand(
-        "Prisma db push",
-        process.execPath,
-        [prismaCli, "db", "push"],
-        {
-          cwd: serverDirectory,
-          env,
-          stdio: "ignore",
-        },
-        operationSignal,
-      );
-      await buildServerForE2e(env, operationSignal);
-    },
-    seedSchema: seedCompiledServer,
-    startServers: startApplicationServers,
-    runPlaywright: (env, operationSignal) =>
-      runCommand(
-        "Playwright",
-        process.execPath,
-        [playwrightCli, "test", ...playwrightArgs],
-        {
-          cwd: adminDirectory,
-          env,
-        },
-        operationSignal,
-      ),
-    dropSchema: dropPostgresSchema,
-  });
+  try {
+    return await runWithIsolatedAdminSchema({
+      schemaName,
+      baseEnv,
+      signal,
+      pushSchema: async (env, operationSignal) => {
+        await requireSuccessfulCommand(
+          "Prisma db push",
+          process.execPath,
+          [prismaCli, "db", "push"],
+          {
+            cwd: serverDirectory,
+            env,
+            stdio: "ignore",
+          },
+          operationSignal,
+        );
+        await buildServerForE2e(env, operationSignal);
+      },
+      seedSchema: seedCompiledServer,
+      startServers: startApplicationServers,
+      runPlaywright: (env, operationSignal) =>
+        runCommand(
+          "Playwright",
+          process.execPath,
+          [playwrightCli, "test", ...playwrightArgs],
+          {
+            cwd: adminDirectory,
+            env,
+          },
+          operationSignal,
+        ),
+      dropSchema: dropPostgresSchema,
+    });
+  } finally {
+    rmSync(temporaryDirectory, { recursive: true, force: true });
+  }
 }
 
 export async function main(playwrightArgs = process.argv.slice(2)) {
