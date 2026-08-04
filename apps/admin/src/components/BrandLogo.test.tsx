@@ -39,7 +39,11 @@ describe("BrandLogo", () => {
   it("preserves object containment and forwards className", () => {
     render(<BrandLogo variant="color" className="h-8 w-8" />);
 
-    expect(screen.getByRole("img", { name: "PetCare" })).toHaveClass("object-contain", "h-8", "w-8");
+    expect(screen.getByRole("img", { name: "PetCare" })).toHaveClass(
+      "object-contain",
+      "h-8",
+      "w-8",
+    );
   });
 
   it("uses synchronous decoding for crisp first paint", () => {
