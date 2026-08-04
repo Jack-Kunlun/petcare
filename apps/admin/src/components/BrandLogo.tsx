@@ -21,6 +21,7 @@ export function BrandLogo({ variant, className, label = "PetCare" }: BrandLogoPr
     <img
       src={sources[variant]}
       alt={label}
+      decoding="sync"
       className={`object-contain${className ? ` ${className}` : ""}`}
     />
   );
