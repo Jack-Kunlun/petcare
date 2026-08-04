@@ -142,7 +142,7 @@ export default function Login() {
 
   return (
     <main className="grid min-h-screen place-items-center bg-page-background p-4 sm:p-6">
-      <section className="grid w-full max-w-4xl overflow-hidden rounded-2xl bg-white shadow-xl md:grid-cols-[minmax(280px,0.9fr)_minmax(320px,1.1fr)]">
+      <section className="grid w-full max-w-[896px] overflow-hidden rounded-2xl bg-white shadow-xl md:grid-cols-[minmax(280px,0.9fr)_minmax(320px,1.1fr)]">
         <aside className="flex min-h-52 flex-col justify-between bg-slate-950 p-6 text-white sm:p-8">
           <BrandLogo variant="stacked-reverse" className="h-16 w-auto self-start" label="PetCare 管理后台" />
           <div className="mt-10 animate-[pc-page-enter_220ms_ease-out_both]">
