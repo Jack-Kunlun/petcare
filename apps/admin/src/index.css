@@ -26,6 +26,14 @@
   --radius-2xl: 16px;
   --radius-full: 9999px;
 
+  --color-brand-primary: #4a6cf7;
+  --color-brand-primary-hover: #3f5fe0;
+  --color-brand-primary-active: #3552c8;
+  --color-care-secondary: #5bc8af;
+  --color-page-background: #f8fafc;
+  --color-text-primary: #1f2937;
+  --color-text-secondary: #667085;
+
   --color-background: hsl(0 0% 100%);
   --color-foreground: hsl(222.2 84% 4.9%);
   --color-card: hsl(0 0% 100%);
@@ -38,14 +46,51 @@
   --color-secondary-foreground: hsl(222.2 47.4% 11.2%);
   --color-muted: hsl(210 40% 96.1%);
   --color-muted-foreground: hsl(215.4 16.3% 46.9%);
-  --color-accent: hsl(210 40% 96.1%);
+  --color-accent: #f6b343;
   --color-accent-foreground: hsl(222.2 47.4% 11.2%);
   --color-destructive: hsl(0 84.2% 60.2%);
   --color-destructive-foreground: hsl(210 40% 98%);
-  --color-border: hsl(214.3 31.8% 91.4%);
+  --color-border: #e6eaf0;
   --color-input: hsl(214.3 31.8% 91.4%);
   --color-ring: hsl(222.2 84% 4.9%);
   --radius: 8px;
+}
+
+@keyframes pc-page-enter {
+  from {
+    opacity: 0;
+    transform: translateY(8px);
+  }
+  to {
+    opacity: 1;
+    transform: translateY(0);
+  }
+}
+
+@keyframes pc-skeleton-shimmer {
+  from {
+    background-position: 200% 0;
+  }
+  to {
+    background-position: -200% 0;
+  }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  @keyframes pc-page-enter {
+    from,
+    to {
+      opacity: 1;
+      transform: none;
+    }
+  }
+
+  @keyframes pc-skeleton-shimmer {
+    from,
+    to {
+      background-position: 0 0;
+    }
+  }
 }
 
 @layer base {
