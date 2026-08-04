@@ -1,7 +1,9 @@
-import { render, screen, waitFor } from "@testing-library/react";
+// @vitest-environment jsdom
+import "@testing-library/jest-dom/vitest";
+import { cleanup, render, screen, waitFor } from "@testing-library/react";
 import userEvent from "@testing-library/user-event";
 import { MemoryRouter, Route, Routes } from "react-router-dom";
-import { beforeEach, describe, expect, it, vi } from "vitest";
+import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
 import Login from ".";
 
 const auth = vi.hoisted(() => ({
@@ -44,6 +46,10 @@ function renderLogin() {
 }
 
 describe("Login", () => {
+  afterEach(() => {
+    cleanup();
+  });
+
   beforeEach(() => {
     vi.clearAllMocks();
     auth.loginWithPassword.mockResolvedValue(undefined);
@@ -84,6 +90,19 @@ describe("Login", () => {
     await user.click(screen.getByRole("button", { name: "登录" }));
 
     expect(auth.loginWithSms).toHaveBeenCalledWith("13800138000", "246810");
+  });
+
+  it("updates the selected tab and its mode indicator", async () => {
+    const user = userEvent.setup();
+
+    renderLogin();
+
+    expect(screen.getByRole("tab", { name: "密码登录" })).toHaveAttribute("aria-selected", "true");
+
+    await user.click(screen.getByRole("tab", { name: "验证码登录" }));
+
+    expect(screen.getByRole("tab", { name: "验证码登录" })).toHaveAttribute("aria-selected", "true");
+    expect(screen.getByTestId("login-mode-indicator")).toHaveClass("translate-x-full");
   });
 
   it("validates a Chinese mobile number before sending a code", async () => {
@@ -174,6 +193,56 @@ describe("Login", () => {
       await screen.findByRole("button", { name: "图形验证码，点击换一张" }),
     ).toBeInTheDocument();
     expect(auth.getCaptcha).toHaveBeenCalledTimes(2);
+  });
+
+  it("disables the send button while an SMS code is being sent", async () => {
+    let resolveSendCode: (() => void) | undefined;
+
+    auth.sendSmsCode.mockImplementation(
+      () =>
+        new Promise<void>((resolve) => {
+          resolveSendCode = resolve;
+        }),
+    );
+    const user = userEvent.setup();
+
+    renderLogin();
+
+    await user.click(screen.getByRole("tab", { name: "验证码登录" }));
+    await screen.findByRole("button", { name: "图形验证码，点击换一张" });
+    await user.type(screen.getByLabelText("手机号"), "13800138000");
+    await user.type(screen.getByLabelText("图形验证码"), "2345");
+    await user.click(screen.getByRole("button", { name: "发送验证码" }));
+
+    expect(screen.getByRole("button", { name: "发送中…" })).toBeDisabled();
+
+    resolveSendCode?.();
+
+    expect(await screen.findByRole("button", { name: "60秒后重发" })).toBeDisabled();
+  });
+
+  it("disables the submit button while login is pending", async () => {
+    let resolveLogin: (() => void) | undefined;
+
+    auth.loginWithPassword.mockImplementation(
+      () =>
+        new Promise<void>((resolve) => {
+          resolveLogin = resolve;
+        }),
+    );
+    const user = userEvent.setup();
+
+    renderLogin();
+
+    await user.type(screen.getByLabelText("手机号或账号"), "admin");
+    await user.type(screen.getByLabelText("密码"), "Correct-Horse-Battery-Staple!42");
+    await user.click(screen.getByRole("button", { name: "登录" }));
+
+    expect(screen.getByRole("button", { name: "登录中…" })).toBeDisabled();
+
+    resolveLogin?.();
+
+    expect(await screen.findByRole("heading", { name: "仪表盘" })).toBeInTheDocument();
   });
 
   it("shows a safe error when login fails", async () => {

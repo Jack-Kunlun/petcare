@@ -69,4 +69,52 @@ describe("Header", () => {
     await user.click(screen.getByRole("button", { name: "打开导航" }));
     expect(onMenuOpen).toHaveBeenCalledTimes(1);
   });
+
+  it("keeps every interactive header control touch-friendly and keyboard-visible", () => {
+    render(
+      <MemoryRouter>
+        <Header onMenuOpen={vi.fn()} />
+      </MemoryRouter>,
+    );
+
+    for (const name of ["打开导航", /^通知，\d+ 条未读$/, "退出登录"]) {
+      const control = screen.getByRole("button", { name });
+
+      expect(control).toHaveClass("h-11", "w-11", "cursor-pointer");
+      expect(control.className).toContain("hover:");
+      expect(control.className).toContain("active:");
+      expect(control.className).toContain("focus-visible:");
+    }
+
+    const userInfo = screen.getByRole("button", { name: "账户信息" });
+
+    expect(userInfo).toHaveClass("min-h-11", "cursor-pointer");
+    expect(userInfo.className).toContain("hover:");
+    expect(userInfo.className).toContain("active:");
+    expect(userInfo.className).toContain("focus-visible:");
+  });
+
+  it("opens and closes the account information popover from its semantic button", async () => {
+    const user = userEvent.setup();
+
+    render(
+      <MemoryRouter>
+        <Header onMenuOpen={vi.fn()} />
+      </MemoryRouter>,
+    );
+
+    const accountButton = screen.getByRole("button", { name: "账户信息" });
+
+    expect(accountButton).toHaveAttribute("aria-expanded", "false");
+    expect(screen.queryByRole("dialog", { name: "账户信息" })).not.toBeInTheDocument();
+
+    await user.click(accountButton);
+
+    expect(accountButton).toHaveAttribute("aria-expanded", "true");
+    expect(screen.getByRole("dialog", { name: "账户信息" })).toHaveTextContent("admin");
+
+    await user.keyboard("{Enter}");
+
+    expect(accountButton).toHaveAttribute("aria-expanded", "false");
+  });
 });

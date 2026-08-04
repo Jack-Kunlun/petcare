@@ -144,7 +144,7 @@ export default function OrderManagement() {
   }
 
   return (
-    <div className="mx-auto flex w-full max-w-[1600px] flex-col gap-6">
+    <div className="mx-auto flex w-full max-w-[1600px] flex-col gap-6 text-text-primary">
       <section className="flex flex-col justify-between gap-4 sm:flex-row sm:items-end">
         <div>
           <p className="mb-1 text-sm font-medium text-blue-700">交易履约</p>
@@ -161,7 +161,7 @@ export default function OrderManagement() {
 
       <section
         aria-label="订单筛选"
-        className="rounded-xl border border-slate-200 bg-white p-4 shadow-sm"
+        className="rounded-xl border border-border bg-white p-4 shadow-sm transition-[box-shadow,border-color,background-color] duration-200 hover:border-brand-primary/30 hover:shadow-md"
       >
         <form
           className="grid gap-3 md:grid-cols-2 xl:grid-cols-[minmax(240px,1fr)_150px_150px_150px_auto]"
@@ -179,7 +179,7 @@ export default function OrderManagement() {
               value={keywordInput}
               onChange={(event) => setKeywordInput(event.target.value)}
               placeholder="搜索订单号、手机号、用户或宠物"
-              className="h-11 w-full rounded-lg border border-slate-300 bg-white pl-9 pr-3 text-sm text-slate-900 outline-none transition-colors placeholder:text-slate-400 focus:border-blue-600 focus:ring-2 focus:ring-blue-600/20"
+              className="h-11 w-full rounded-lg border border-border bg-white pl-9 pr-3 text-sm text-text-primary outline-none transition-colors placeholder:text-text-secondary hover:border-brand-primary/60 focus-visible:border-brand-primary focus-visible:ring-2 focus-visible:ring-brand-primary/20"
             />
           </label>
 
@@ -192,7 +192,7 @@ export default function OrderManagement() {
                 setOrderType((event.target.value || undefined) as AdminOrderType | undefined);
                 setPage(1);
               }}
-              className="h-11 w-full cursor-pointer rounded-lg border border-slate-300 bg-white px-3 text-sm text-slate-700 outline-none focus:border-blue-600 focus:ring-2 focus:ring-blue-600/20"
+              className="h-11 w-full cursor-pointer rounded-lg border border-border bg-white px-3 text-sm text-text-secondary outline-none transition-colors hover:border-brand-primary/60 active:bg-page-background focus-visible:border-brand-primary focus-visible:ring-2 focus-visible:ring-brand-primary/20"
             >
               <option value="">全部订单类型</option>
               <option value="reward">悬赏订单</option>
@@ -209,7 +209,7 @@ export default function OrderManagement() {
                 setServiceType((event.target.value || undefined) as AdminServiceType | undefined);
                 setPage(1);
               }}
-              className="h-11 w-full cursor-pointer rounded-lg border border-slate-300 bg-white px-3 text-sm text-slate-700 outline-none focus:border-blue-600 focus:ring-2 focus:ring-blue-600/20"
+              className="h-11 w-full cursor-pointer rounded-lg border border-border bg-white px-3 text-sm text-text-secondary outline-none transition-colors hover:border-brand-primary/60 active:bg-page-background focus-visible:border-brand-primary focus-visible:ring-2 focus-visible:ring-brand-primary/20"
             >
               <option value="">全部服务类型</option>
               <option value="feeding">上门喂养</option>
@@ -227,7 +227,7 @@ export default function OrderManagement() {
                 setStatus((event.target.value || undefined) as AdminOrderStatus | undefined);
                 setPage(1);
               }}
-              className="h-11 w-full cursor-pointer rounded-lg border border-slate-300 bg-white px-3 text-sm text-slate-700 outline-none focus:border-blue-600 focus:ring-2 focus:ring-blue-600/20"
+              className="h-11 w-full cursor-pointer rounded-lg border border-border bg-white px-3 text-sm text-text-secondary outline-none transition-colors hover:border-brand-primary/60 active:bg-page-background focus-visible:border-brand-primary focus-visible:ring-2 focus-visible:ring-brand-primary/20"
             >
               <option value="">全部订单状态</option>
               <option value="pending_confirm">待确认</option>
@@ -241,14 +241,14 @@ export default function OrderManagement() {
           <div className="flex gap-2 md:col-span-2 xl:col-span-1">
             <button
               type="submit"
-              className="inline-flex h-11 flex-1 cursor-pointer items-center justify-center rounded-lg bg-blue-700 px-4 text-sm font-semibold text-white transition-colors hover:bg-blue-800 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-blue-600 focus-visible:ring-offset-2 xl:flex-none"
+              className="inline-flex h-11 flex-1 cursor-pointer items-center justify-center rounded-lg bg-brand-primary px-4 text-sm font-semibold text-white transition-colors hover:bg-brand-primary-hover active:bg-brand-primary-hover focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-brand-primary focus-visible:ring-offset-2 disabled:cursor-not-allowed disabled:bg-slate-400 xl:flex-none"
             >
               查询
             </button>
             <button
               type="button"
               aria-label="重置筛选"
-              className="flex h-11 w-11 cursor-pointer items-center justify-center rounded-lg border border-slate-300 text-slate-600 transition-colors hover:bg-slate-50 hover:text-slate-900 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-blue-600"
+              className="flex h-11 w-11 cursor-pointer items-center justify-center rounded-lg border border-border text-text-secondary transition-colors hover:border-brand-primary/60 hover:bg-page-background hover:text-text-primary active:bg-slate-100 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-brand-primary disabled:cursor-not-allowed disabled:bg-slate-100 disabled:text-slate-400"
               onClick={resetFilters}
             >
               <RotateCcw aria-hidden="true" className="h-4 w-4" />
@@ -259,12 +259,12 @@ export default function OrderManagement() {
 
       <section
         aria-label="订单列表"
-        className="overflow-hidden rounded-xl border border-slate-200 bg-white shadow-sm"
+        className="overflow-hidden rounded-xl border border-border bg-white shadow-sm transition-[box-shadow,border-color,background-color] duration-200 hover:border-brand-primary/30 hover:shadow-md"
       >
         {query.isPending && (
           <div aria-label="正在加载订单" className="space-y-3 p-5">
             {Array.from({ length: 5 }, (_, index) => (
-              <div key={index} className="h-16 animate-pulse rounded-lg bg-slate-100" />
+              <div key={index} className="h-16 rounded-lg bg-slate-100 animate-[pc-skeleton-shimmer_220ms_linear_infinite] motion-reduce:animate-none" />
             ))}
           </div>
         )}
@@ -327,7 +327,7 @@ export default function OrderManagement() {
                 </thead>
                 <tbody className="divide-y divide-slate-100">
                   {query.data.list.map((order) => (
-                    <tr key={order.id} className="transition-colors hover:bg-slate-50/70">
+                    <tr key={order.id} className="border-border transition-[background-color,border-color] duration-200 hover:bg-page-background hover:border-border">
                       <td className="whitespace-nowrap px-5 py-4">
                         <p
                           title={order.id}
@@ -426,7 +426,7 @@ export default function OrderManagement() {
                 type="button"
                 aria-label="上一页"
                 disabled={page <= 1 || query.isFetching}
-                className="flex h-11 w-11 cursor-pointer items-center justify-center rounded-lg border border-slate-300 text-slate-600 transition-colors hover:bg-slate-50 disabled:cursor-not-allowed disabled:opacity-40 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-blue-600"
+                className="flex h-11 w-11 cursor-pointer items-center justify-center rounded-lg border border-border text-text-secondary transition-colors hover:border-brand-primary/60 hover:bg-page-background active:bg-slate-100 disabled:cursor-not-allowed disabled:bg-slate-100 disabled:text-slate-400 disabled:opacity-60 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-brand-primary"
                 onClick={() => setPage((current) => Math.max(1, current - 1))}
               >
                 <ChevronLeft aria-hidden="true" className="h-4 w-4" />
@@ -435,7 +435,7 @@ export default function OrderManagement() {
                 type="button"
                 aria-label="下一页"
                 disabled={page >= totalPages || query.isFetching}
-                className="flex h-11 w-11 cursor-pointer items-center justify-center rounded-lg border border-slate-300 text-slate-600 transition-colors hover:bg-slate-50 disabled:cursor-not-allowed disabled:opacity-40 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-blue-600"
+                className="flex h-11 w-11 cursor-pointer items-center justify-center rounded-lg border border-border text-text-secondary transition-colors hover:border-brand-primary/60 hover:bg-page-background active:bg-slate-100 disabled:cursor-not-allowed disabled:bg-slate-100 disabled:text-slate-400 disabled:opacity-60 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-brand-primary"
                 onClick={() => setPage((current) => Math.min(totalPages, current + 1))}
               >
                 <ChevronRight aria-hidden="true" className="h-4 w-4" />

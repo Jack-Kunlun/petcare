@@ -10,6 +10,21 @@ function getNavigationHrefs(root: HTMLElement) {
 }
 
 describe("Sidebar", () => {
+  it("uses the reverse PetCare brand symbol with an accessible label", () => {
+    render(
+      <MemoryRouter>
+        <Sidebar />
+      </MemoryRouter>,
+    );
+
+    expect(screen.getByRole("img", { name: "PetCare 运营管理中心" })).toHaveAttribute(
+      "src",
+      "/brand/petcare-symbol-reverse.svg",
+    );
+    expect(screen.getByText("PetCare")).toBeInTheDocument();
+    expect(screen.getByText("运营管理中心")).toBeInTheDocument();
+  });
+
   it("renders module and page routes as one expandable navigation tree", () => {
     render(
       <MemoryRouter initialEntries={["/orders/complaints"]}>
@@ -36,10 +51,13 @@ describe("Sidebar", () => {
       </MemoryRouter>,
     );
 
-    const tree = within(screen.getByTestId("desktop-menu-tree"));
+    const desktopTree = screen.getByTestId("desktop-menu-tree");
+    const tree = within(desktopTree);
     const toggle = tree.getByRole("button", { name: "订单管理菜单" });
 
     expect(toggle).toHaveAttribute("aria-expanded", "true");
+    expect(toggle).toHaveClass("cursor-pointer");
+    expect(toggle.className).toContain("focus-visible:");
     expect(tree.getByRole("link", { name: "订单管理" })).toHaveClass("bg-blue-600");
     expect(tree.getByRole("link", { name: "投诉与纠纷" })).toBeInTheDocument();
 
@@ -47,10 +65,24 @@ describe("Sidebar", () => {
 
     expect(toggle).toHaveAttribute("aria-expanded", "false");
     expect(tree.queryByRole("link", { name: "投诉与纠纷" })).not.toBeInTheDocument();
+    const collapsedSubmenu = desktopTree.querySelector("#submenu-orders");
+
+    if (collapsedSubmenu === null) {
+      throw new Error("订单管理子菜单应保持挂载以支持收起动画");
+    }
+
+    expect(collapsedSubmenu).toBeInTheDocument();
+    expect(collapsedSubmenu).toHaveAttribute("aria-hidden", "true");
+    expect(collapsedSubmenu.parentElement).toHaveClass(
+      "grid",
+      "grid-rows-[0fr]",
+      "duration-200",
+    );
 
     fireEvent.click(toggle);
 
     expect(tree.getByRole("link", { name: "投诉与纠纷" })).toBeInTheDocument();
+    expect(desktopTree.querySelector("#submenu-orders")).toHaveAttribute("aria-hidden", "false");
   });
 
   it("renders the user module page and certification page as sibling child menus", () => {
