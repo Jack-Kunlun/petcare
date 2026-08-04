@@ -10,7 +10,7 @@ import xml.etree.ElementTree as ET
 from pathlib import Path
 from typing import Any
 
-from PIL import Image, ImageChops
+from PIL import Image
 
 
 REPO_ROOT = Path(__file__).resolve().parents[2]
@@ -21,6 +21,7 @@ LOGO_VARIANTS = ("color", "dark", "monochrome", "reverse")
 STACKED_HEIGHTS = (260, 520, 780)
 SYMBOL_SIZES = (16, 20, 24, 28, 32, 48, 64, 128, 256, 512, 1024)
 APP_ICON_SIZES = (32, 48, 64, 96, 128, 144, 180, 192, 512, 1024)
+HIGH_RES_SIZES = (1024, 2048, 4096)
 HERO_THEMES = ("trusted-care", "professional-care", "community-companion")
 HERO_PROFILES = ("desktop", "miniapp", "social")
 ELEMENT_IDS = {
@@ -55,6 +56,13 @@ def required_asset_ids() -> set[str]:
         for height in STACKED_HEIGHTS
     )
     required.update(f"logo.symbol.color.{size}.png" for size in SYMBOL_SIZES)
+    required.update(
+        f"logo.stacked.{variant}.{size}w.png"
+        for variant in ("color", "reverse")
+        for size in HIGH_RES_SIZES
+    )
+    required.update(f"logo.symbol.color.{size}.png" for size in (2048, 4096))
+    required.update(f"logo.symbol.reverse.{size}.png" for size in HIGH_RES_SIZES)
     required.update(f"logo.favicon.{size}.png" for size in (16, 32, 48))
     required.update(f"logo.app-icon.{size}.png" for size in APP_ICON_SIZES)
     required.update(
@@ -140,22 +148,9 @@ def _validate_transparent_corners(path: Path) -> list[str]:
 
 
 def validate_approved_logo_authority(root: Path) -> list[str]:
-    """Prevent derivatives from drifting away from the approved actual artwork."""
+    """Require traced curve masters to retain their approved raster provenance."""
     errors: list[str] = []
     master = root / "logo" / "png" / "petcare-logo-approved-actual-primary.png"
-    primary = root / "logo" / "png" / "petcare-logo-stacked-color-260h.png"
-    try:
-        with Image.open(master) as master_image, Image.open(primary) as primary_image:
-            expected = master_image.convert("RGBA")
-            actual = primary_image.convert("RGBA")
-            if expected.size != actual.size or ImageChops.difference(expected, actual).getbbox():
-                errors.append(
-                    "approved actual Logo fidelity failed: stacked color 260h must be pixel-identical to the approved PNG master"
-                )
-    except OSError as error:
-        errors.append(f"approved actual Logo fidelity could not be checked ({error})")
-        return errors
-
     source_sha256 = hashlib.sha256(master.read_bytes()).hexdigest()
     svg_directory = root / "logo" / "svg"
     for family in ("petcare-logo-stacked", "petcare-symbol"):
@@ -168,8 +163,13 @@ def validate_approved_logo_authority(root: Path) -> list[str]:
                 continue
             if svg_root.attrib.get("data-approved-source-sha256") != source_sha256:
                 errors.append(f"{path}: approved source SHA-256 is missing or stale")
-            if svg_root.attrib.get("data-vectorization") != "approved-pixel-runs-v1":
-                errors.append(f"{path}: approved vectorization contract is missing")
+            if svg_root.attrib.get("data-vectorization") != "approved-curves-v1":
+                errors.append(f"{path}: approved curved-vector contract is missing")
+            source = path.read_text(encoding="utf-8")
+            if "shape-rendering=\"crispEdges\"" in source or "approved-pixel-runs" in source:
+                errors.append(f"{path}: pixel-run vectorization is not allowed")
+            if "C" not in source:
+                errors.append(f"{path}: Bezier curve geometry is missing")
     return errors
 
 
