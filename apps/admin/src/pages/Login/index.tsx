@@ -2,6 +2,7 @@ import type { CaptchaChallenge } from "@petcare/shared-types";
 import { FormEvent, useCallback, useEffect, useState } from "react";
 import { Navigate, useNavigate } from "react-router-dom";
 import { useAuth } from "../../auth/auth.context";
+import { BrandLogo } from "../../components/BrandLogo";
 
 type LoginMode = "password" | "sms";
 
@@ -136,151 +137,116 @@ export default function Login() {
     }
   }
 
+  const inputClassName =
+    "mt-2 w-full rounded-lg border border-slate-300 bg-white px-3 py-2.5 text-slate-900 outline-none transition duration-150 ease-out placeholder:text-slate-400 hover:border-slate-400 focus-visible:border-brand-primary focus-visible:ring-2 focus-visible:ring-brand-primary/20 disabled:cursor-not-allowed disabled:bg-slate-100 disabled:text-slate-500";
+
   return (
-    <main className="min-h-screen bg-slate-100 grid place-items-center px-4">
-      <section className="w-full max-w-[448px] rounded-2xl bg-white p-8 shadow-xl">
-        <div className="mb-8 text-center">
-          <p className="text-sm font-medium text-blue-600">PetCare 管理后台</p>
-          <h1 className="mt-2 text-2xl font-bold text-slate-900">登录 PetCare</h1>
-          <p className="mt-2 text-sm text-slate-500">使用管理员身份继续</p>
+    <main className="grid min-h-screen place-items-center bg-page-background p-4 sm:p-6">
+      <section className="grid w-full max-w-4xl overflow-hidden rounded-2xl bg-white shadow-xl md:grid-cols-[minmax(280px,0.9fr)_minmax(320px,1.1fr)]">
+        <aside className="flex min-h-52 flex-col justify-between bg-slate-950 p-6 text-white sm:p-8">
+          <BrandLogo variant="stacked-reverse" className="h-16 w-auto self-start" label="PetCare 管理后台" />
+          <div className="mt-10 animate-[pc-page-enter_220ms_ease-out_both]">
+            <p className="text-sm font-medium text-care-secondary">PetCare 管理后台</p>
+            <h1 className="mt-2 text-2xl font-bold">让每一次照护都有回应</h1>
+            <p className="mt-3 text-sm leading-6 text-slate-300">安全登录后，继续管理宠物服务与用户体验。</p>
+          </div>
+        </aside>
+
+        <div className="p-6 sm:p-8">
+          <div className="mb-6">
+            <p className="text-sm font-medium text-brand-primary">欢迎回来</p>
+            <h2 className="mt-2 text-2xl font-bold text-text-primary">登录 PetCare</h2>
+            <p className="mt-2 text-sm text-text-secondary">使用管理员身份继续</p>
+          </div>
+
+          <div className="relative mb-6 grid grid-cols-2 rounded-lg bg-slate-100 p-1" role="tablist">
+            <span
+              aria-hidden="true"
+              data-testid="login-mode-indicator"
+              className={`pointer-events-none absolute inset-y-1 left-1 w-[calc(50%-4px)] rounded-md bg-white shadow-sm transition-transform duration-[220ms] ease-out ${mode === "sms" ? "translate-x-full" : "translate-x-0"}`}
+            />
+            <button
+              type="button"
+              role="tab"
+              aria-controls="password-login-panel"
+              aria-selected={mode === "password"}
+              className={`relative z-10 min-h-11 cursor-pointer rounded-md px-3 py-2 text-sm font-medium transition-colors duration-150 ease-out hover:text-slate-900 active:scale-[0.98] focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-brand-primary ${mode === "password" ? "text-slate-900" : "text-slate-500"}`}
+              onClick={() => {
+                setMode("password");
+                setError(null);
+              }}
+            >
+              密码登录
+            </button>
+            <button
+              type="button"
+              role="tab"
+              aria-controls="sms-login-panel"
+              aria-selected={mode === "sms"}
+              className={`relative z-10 min-h-11 cursor-pointer rounded-md px-3 py-2 text-sm font-medium transition-colors duration-150 ease-out hover:text-slate-900 active:scale-[0.98] focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-brand-primary ${mode === "sms" ? "text-slate-900" : "text-slate-500"}`}
+              onClick={() => {
+                setMode("sms");
+                setError(null);
+              }}
+            >
+              验证码登录
+            </button>
+          </div>
+
+          <form className="space-y-5" onSubmit={handleSubmit}>
+            <div className="min-h-[232px]">
+              {mode === "password" ? (
+                <div id="password-login-panel" role="tabpanel" className="space-y-5 animate-[pc-page-enter_220ms_ease-out_both]">
+                  <label className="block text-sm font-medium text-slate-700">
+                    手机号或账号
+                    <input className={inputClassName} autoComplete="username" value={identifier} onChange={(event) => setIdentifier(event.target.value)} />
+                  </label>
+                  <label className="block text-sm font-medium text-slate-700">
+                    密码
+                    <input type="password" className={inputClassName} autoComplete="current-password" value={password} onChange={(event) => setPassword(event.target.value)} />
+                  </label>
+                </div>
+              ) : (
+                <div id="sms-login-panel" role="tabpanel" className="space-y-5 animate-[pc-page-enter_220ms_ease-out_both]">
+                  <label className="block text-sm font-medium text-slate-700">
+                    手机号
+                    <input inputMode="numeric" className={inputClassName} autoComplete="tel" value={phone} onChange={(event) => setPhone(event.target.value)} />
+                  </label>
+                  <label className="block text-sm font-medium text-slate-700">
+                    图形验证码
+                    <span className="mt-2 flex gap-2">
+                      <input inputMode="numeric" maxLength={4} className={inputClassName.replace("w-full", "min-w-0 flex-1")} autoComplete="off" value={captchaCode} onChange={(event) => setCaptchaCode(event.target.value)} />
+                      {captcha ? (
+                        <button type="button" aria-label="图形验证码，点击换一张" className="h-12 w-36 cursor-pointer overflow-hidden rounded-lg border border-slate-300 bg-blue-50 transition duration-150 hover:border-brand-primary active:scale-[0.98] focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-brand-primary" onClick={() => void loadCaptcha()}>
+                          <img src={captcha.image} alt="图形验证码" className="h-full w-full object-cover" />
+                        </button>
+                      ) : (
+                        <button type="button" aria-label={captchaLoadError ? "重新加载图形验证码" : "正在加载图形验证码"} className="h-12 w-36 cursor-pointer rounded-lg border border-slate-300 bg-slate-50 text-xs text-slate-500 transition duration-150 hover:border-brand-primary hover:text-brand-primary active:scale-[0.98] focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-brand-primary disabled:cursor-not-allowed disabled:opacity-70" disabled={captchaLoading} onClick={() => void loadCaptcha()}>
+                          {captchaLoadError ? "加载失败，点击重试" : <span className="block h-4 w-20 animate-[pc-skeleton-shimmer_220ms_linear_infinite] rounded bg-linear-to-r from-slate-200 via-slate-100 to-slate-200 bg-[length:200%_100%]" />}
+                        </button>
+                      )}
+                    </span>
+                  </label>
+                  <label className="block text-sm font-medium text-slate-700">
+                    验证码
+                    <span className="mt-2 flex gap-2">
+                      <input inputMode="numeric" className={inputClassName.replace("w-full", "min-w-0 flex-1")} autoComplete="one-time-code" value={code} onChange={(event) => setCode(event.target.value)} />
+                      <button type="button" className="min-w-28 cursor-pointer whitespace-nowrap rounded-lg border border-brand-primary px-3 py-2 text-sm font-medium text-brand-primary transition duration-150 hover:bg-brand-primary hover:text-white active:scale-[0.98] focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-brand-primary disabled:cursor-not-allowed disabled:border-slate-300 disabled:text-slate-400 disabled:hover:bg-transparent" disabled={sendingCode || cooldown > 0} onClick={handleSendCode}>
+                        {getSendCodeLabel(cooldown, sendingCode)}
+                      </button>
+                    </span>
+                  </label>
+                </div>
+              )}
+            </div>
+
+            {error ? <p role="alert" aria-live="polite" className="text-sm text-red-600">{error}</p> : null}
+
+            <button type="submit" disabled={pending} className="min-h-12 w-full cursor-pointer rounded-lg bg-brand-primary px-4 py-3 font-medium text-white transition duration-150 hover:bg-brand-primary-hover active:scale-[0.99] focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-brand-primary disabled:cursor-not-allowed disabled:bg-slate-400">
+              {pending ? "登录中…" : "登录"}
+            </button>
+          </form>
         </div>
-
-        <div className="mb-6 grid grid-cols-2 rounded-lg bg-slate-100 p-1" role="tablist">
-          <button
-            type="button"
-            role="tab"
-            aria-selected={mode === "password"}
-            className={`rounded-md px-3 py-2 text-sm font-medium ${mode === "password" ? "bg-white text-slate-900 shadow" : "text-slate-500"}`}
-            onClick={() => {
-              setMode("password");
-              setError(null);
-            }}
-          >
-            密码登录
-          </button>
-          <button
-            type="button"
-            role="tab"
-            aria-selected={mode === "sms"}
-            className={`rounded-md px-3 py-2 text-sm font-medium ${mode === "sms" ? "bg-white text-slate-900 shadow" : "text-slate-500"}`}
-            onClick={() => {
-              setMode("sms");
-              setError(null);
-            }}
-          >
-            验证码登录
-          </button>
-        </div>
-
-        <form className="space-y-5" onSubmit={handleSubmit}>
-          {mode === "password" ? (
-            <>
-              <label className="block text-sm font-medium text-slate-700">
-                手机号或账号
-                <input
-                  className="mt-2 w-full rounded-lg border border-slate-300 px-3 py-2.5 outline-none focus:border-blue-500 focus:ring-2 focus:ring-blue-100"
-                  autoComplete="username"
-                  value={identifier}
-                  onChange={(event) => setIdentifier(event.target.value)}
-                />
-              </label>
-              <label className="block text-sm font-medium text-slate-700">
-                密码
-                <input
-                  type="password"
-                  className="mt-2 w-full rounded-lg border border-slate-300 px-3 py-2.5 outline-none focus:border-blue-500 focus:ring-2 focus:ring-blue-100"
-                  autoComplete="current-password"
-                  value={password}
-                  onChange={(event) => setPassword(event.target.value)}
-                />
-              </label>
-            </>
-          ) : (
-            <>
-              <label className="block text-sm font-medium text-slate-700">
-                手机号
-                <input
-                  inputMode="numeric"
-                  className="mt-2 w-full rounded-lg border border-slate-300 px-3 py-2.5 outline-none focus:border-blue-500 focus:ring-2 focus:ring-blue-100"
-                  autoComplete="tel"
-                  value={phone}
-                  onChange={(event) => setPhone(event.target.value)}
-                />
-              </label>
-              <label className="block text-sm font-medium text-slate-700">
-                图形验证码
-                <span className="mt-2 flex gap-2">
-                  <input
-                    inputMode="numeric"
-                    maxLength={4}
-                    className="min-w-0 flex-1 rounded-lg border border-slate-300 px-3 py-2.5 outline-none focus:border-blue-500 focus:ring-2 focus:ring-blue-100"
-                    autoComplete="off"
-                    value={captchaCode}
-                    onChange={(event) => setCaptchaCode(event.target.value)}
-                  />
-                  {captcha ? (
-                    <button
-                      type="button"
-                      aria-label="图形验证码，点击换一张"
-                      className="h-12 w-36 overflow-hidden rounded-lg border border-slate-300 bg-blue-50"
-                      onClick={() => void loadCaptcha()}
-                    >
-                      <img
-                        src={captcha.image}
-                        alt="图形验证码"
-                        className="h-full w-full object-cover"
-                      />
-                    </button>
-                  ) : (
-                    <button
-                      type="button"
-                      aria-label={captchaLoadError ? "重新加载图形验证码" : "正在加载图形验证码"}
-                      className="h-12 w-36 rounded-lg border border-slate-300 bg-slate-50 text-xs text-slate-500"
-                      disabled={captchaLoading}
-                      onClick={() => void loadCaptcha()}
-                    >
-                      {captchaLoadError ? "加载失败，点击重试" : "加载中…"}
-                    </button>
-                  )}
-                </span>
-              </label>
-              <label className="block text-sm font-medium text-slate-700">
-                验证码
-                <span className="mt-2 flex gap-2">
-                  <input
-                    inputMode="numeric"
-                    className="min-w-0 flex-1 rounded-lg border border-slate-300 px-3 py-2.5 outline-none focus:border-blue-500 focus:ring-2 focus:ring-blue-100"
-                    autoComplete="one-time-code"
-                    value={code}
-                    onChange={(event) => setCode(event.target.value)}
-                  />
-                  <button
-                    type="button"
-                    className="whitespace-nowrap rounded-lg border border-blue-600 px-3 py-2 text-sm font-medium text-blue-600 disabled:border-slate-300 disabled:text-slate-400"
-                    disabled={sendingCode || cooldown > 0}
-                    onClick={handleSendCode}
-                  >
-                    {getSendCodeLabel(cooldown, sendingCode)}
-                  </button>
-                </span>
-              </label>
-            </>
-          )}
-
-          {error ? (
-            <p role="alert" aria-live="polite" className="text-sm text-red-600">
-              {error}
-            </p>
-          ) : null}
-
-          <button
-            type="submit"
-            disabled={pending}
-            className="w-full rounded-lg bg-blue-600 px-4 py-3 font-medium text-white hover:bg-blue-700 disabled:cursor-not-allowed disabled:bg-blue-300"
-          >
-            {pending ? "登录中…" : "登录"}
-          </button>
-        </form>
       </section>
     </main>
   );
