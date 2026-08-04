@@ -67,6 +67,10 @@ describe("Sidebar", () => {
     expect(tree.queryByRole("link", { name: "投诉与纠纷" })).not.toBeInTheDocument();
     const collapsedSubmenu = desktopTree.querySelector("#submenu-orders");
 
+    if (collapsedSubmenu === null) {
+      throw new Error("订单管理子菜单应保持挂载以支持收起动画");
+    }
+
     expect(collapsedSubmenu).toBeInTheDocument();
     expect(collapsedSubmenu).toHaveAttribute("aria-hidden", "true");
     expect(collapsedSubmenu.parentElement).toHaveClass(
