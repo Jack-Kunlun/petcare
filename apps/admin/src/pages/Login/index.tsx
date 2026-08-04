@@ -138,10 +138,10 @@ export default function Login() {
   }
 
   const inputClassName =
-    "mt-2 h-12 w-full rounded-lg border border-border bg-white px-3 text-text-primary outline-none transition duration-150 ease-out placeholder:text-text-secondary hover:border-brand-primary/60 focus-visible:border-brand-primary focus-visible:ring-2 focus-visible:ring-brand-primary/20 disabled:cursor-not-allowed disabled:bg-slate-100 disabled:text-text-secondary";
+    "h-12 w-full rounded-lg border border-border bg-white px-3 text-text-primary outline-none transition duration-150 ease-out placeholder:text-text-secondary hover:border-brand-primary/60 focus-visible:border-brand-primary focus-visible:ring-2 focus-visible:ring-brand-primary/20 disabled:cursor-not-allowed disabled:bg-slate-100 disabled:text-text-secondary";
 
   return (
-    <main className="relative isolate grid min-h-screen place-items-center overflow-hidden bg-linear-to-br from-page-background via-white to-blue-50 p-4 sm:p-6">
+    <main className="relative isolate grid min-h-screen place-items-center overflow-x-hidden bg-linear-to-br from-page-background via-white to-blue-50 p-4 sm:p-6">
       <div aria-hidden="true" className="pointer-events-none absolute inset-0">
         <span className="absolute left-12 top-10 h-40 w-40 rounded-full bg-brand-primary/10 blur-3xl" />
         <span className="absolute bottom-8 right-10 h-52 w-52 rounded-full bg-care-secondary/10 blur-3xl" />
@@ -149,7 +149,7 @@ export default function Login() {
 
       <section
         data-testid="login-card"
-        className="relative z-10 grid min-h-[520px] w-full max-w-[896px] overflow-hidden rounded-2xl border border-border bg-white shadow-xl md:grid-cols-[minmax(280px,0.9fr)_minmax(320px,1.1fr)]"
+        className="relative z-10 grid min-h-[520px] w-full max-w-[896px] overflow-hidden rounded-2xl border border-border bg-white shadow-xl md:h-[662px] md:grid-cols-[minmax(280px,0.9fr)_minmax(320px,1.1fr)]"
       >
         <aside className="relative flex min-h-72 flex-col justify-between overflow-hidden bg-linear-to-br from-brand-primary via-brand-primary-hover to-slate-950 p-6 text-white sm:p-8 md:min-h-[520px]">
           <div aria-hidden="true" className="pointer-events-none absolute inset-0 opacity-40">
@@ -166,10 +166,7 @@ export default function Login() {
             <span className="mt-3 block h-1 w-12 rounded-full bg-care-secondary" />
           </div>
           <div className="relative z-10 mt-10 animate-[pc-page-enter_220ms_ease-out_both] motion-reduce:animate-none">
-            <p className="text-sm font-semibold tracking-wide text-care-secondary">
-              PetCare 管理后台
-            </p>
-            <h1 className="mt-3 max-w-[320px] text-3xl font-bold leading-tight tracking-tight">
+            <h1 className="max-w-[320px] text-3xl font-bold leading-tight tracking-tight">
               让每一次照护都有回应
             </h1>
             <p className="mt-4 max-w-[384px] text-sm leading-6 text-white/80">
@@ -189,7 +186,7 @@ export default function Login() {
           </div>
         </aside>
 
-        <div className="flex min-h-[520px] flex-col bg-white p-6 sm:p-8 md:p-10">
+        <div className="flex h-[662px] flex-col bg-white p-6 sm:p-8 md:p-10">
           <div className="mb-6">
             <p
               data-testid="login-welcome-label"
@@ -239,7 +236,7 @@ export default function Login() {
           </div>
 
           <form data-testid="login-form" className="flex flex-1 flex-col" onSubmit={handleSubmit}>
-            <div data-testid="login-form-panels" className="min-h-[240px] flex-1">
+            <div data-testid="login-form-panels" className="min-h-[284px] flex-1">
               {mode === "password" ? (
                 <div
                   id="password-login-panel"
@@ -249,7 +246,7 @@ export default function Login() {
                   <label className="block text-sm font-medium text-text-secondary">
                     手机号或账号
                     <input
-                      className={inputClassName}
+                      className={`mt-2 ${inputClassName}`}
                       autoComplete="username"
                       value={identifier}
                       onChange={(event) => setIdentifier(event.target.value)}
@@ -259,7 +256,7 @@ export default function Login() {
                     密码
                     <input
                       type="password"
-                      className={inputClassName}
+                      className={`mt-2 ${inputClassName}`}
                       autoComplete="current-password"
                       value={password}
                       onChange={(event) => setPassword(event.target.value)}
@@ -277,7 +274,7 @@ export default function Login() {
                     手机号
                     <input
                       inputMode="numeric"
-                      className={inputClassName}
+                      className={`mt-2 ${inputClassName}`}
                       autoComplete="tel"
                       value={phone}
                       onChange={(event) => setPhone(event.target.value)}
@@ -285,7 +282,7 @@ export default function Login() {
                   </label>
                   <label className="block text-sm font-medium text-text-secondary">
                     图形验证码
-                    <span data-testid="captcha-row" className="mt-2 flex items-center gap-2">
+                    <span data-testid="captcha-row" className="mt-2 flex h-12 items-center gap-2">
                       <input
                         data-testid="captcha-code-input"
                         inputMode="numeric"
@@ -330,7 +327,7 @@ export default function Login() {
                   </label>
                   <label className="block text-sm font-medium text-text-secondary">
                     验证码
-                    <span data-testid="sms-code-row" className="mt-2 flex items-center gap-2">
+                    <span data-testid="sms-code-row" className="mt-2 flex h-12 items-center gap-2">
                       <input
                         inputMode="numeric"
                         className={inputClassName.replace("w-full", "min-w-0 flex-1")}

@@ -114,10 +114,12 @@ describe("Login", () => {
     renderLogin();
 
     expect(screen.getByRole("main")).toHaveClass("bg-linear-to-br");
-    expect(screen.getByTestId("login-card")).toHaveClass("min-h-[520px]");
+    expect(screen.getByRole("main")).toHaveClass("overflow-x-hidden");
+    expect(screen.getByTestId("login-card")).toHaveClass("min-h-[520px]", "md:h-[662px]");
     expect(screen.getByTestId("login-form")).toHaveClass("flex-1");
     expect(screen.getByTestId("login-welcome-label")).toHaveClass("text-text-secondary");
-    expect(screen.getByTestId("login-form-panels")).toHaveClass("min-h-[240px]");
+    expect(screen.getByTestId("login-form-panels")).toHaveClass("min-h-[284px]");
+    expect(screen.queryByText("PetCare 管理后台")).not.toBeInTheDocument();
 
     await user.click(screen.getAllByRole("tab")[1]);
 
@@ -126,8 +128,10 @@ describe("Login", () => {
     );
     expect(screen.getByTestId("captcha-code-input")).toHaveClass("h-12");
     expect(screen.getByTestId("send-code-button")).toHaveClass("h-12");
-    expect(screen.getByTestId("captcha-row")).toHaveClass("items-center");
-    expect(screen.getByTestId("sms-code-row")).toHaveClass("items-center");
+    expect(screen.getByTestId("captcha-row")).toHaveClass("h-12", "items-center");
+    expect(screen.getByTestId("sms-code-row")).toHaveClass("h-12", "items-center");
+    expect(screen.getByTestId("captcha-code-input")).not.toHaveClass("mt-2");
+    expect(screen.getByTestId("sms-code-row").querySelector("input")).not.toHaveClass("mt-2");
   });
 
   it("validates a Chinese mobile number before sending a code", async () => {
