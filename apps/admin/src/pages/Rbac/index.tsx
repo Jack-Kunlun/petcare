@@ -51,7 +51,7 @@ export default function Rbac() {
   const totalPages = Math.max(1, Math.ceil(total / PAGE_SIZE));
 
   return (
-    <div className="mx-auto flex w-full max-w-[1440px] flex-col gap-6">
+    <div className="mx-auto flex w-full max-w-[1440px] flex-col gap-6 text-text-primary">
       <header className="flex flex-col gap-4 sm:flex-row sm:items-end sm:justify-between">
         <div>
           <p className="text-sm font-medium text-blue-700">访问控制</p>
@@ -65,7 +65,7 @@ export default function Rbac() {
         <PermissionGate all={["rbac.role.create"]}>
           <Link
             to="/rbac/new"
-            className="inline-flex min-h-11 items-center justify-center gap-2 rounded-lg bg-blue-700 px-4 py-2 font-semibold text-white transition-colors hover:bg-blue-800 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-blue-700 focus-visible:ring-offset-2"
+            className="inline-flex min-h-11 cursor-pointer items-center justify-center gap-2 rounded-lg bg-brand-primary px-4 py-2 font-semibold text-white transition-colors hover:bg-brand-primary-hover active:bg-brand-primary-hover focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-brand-primary focus-visible:ring-offset-2"
           >
             <Plus aria-hidden="true" className="h-4 w-4" />
             新建角色
@@ -75,14 +75,14 @@ export default function Rbac() {
 
       <section
         aria-label="角色列表"
-        className="overflow-hidden rounded-xl border border-slate-200 bg-white shadow-sm"
+        className="overflow-hidden rounded-xl border border-border bg-white shadow-sm transition-[box-shadow,border-color,background-color] duration-200 hover:border-brand-primary/30 hover:shadow-md"
       >
         {rolesQuery.isPending ? (
           <div aria-label="正在加载角色" className="space-y-3 p-5">
             {Array.from({ length: 5 }, (_, index) => (
               <div
                 key={index}
-                className="h-14 animate-pulse rounded-lg bg-slate-100 motion-reduce:animate-none"
+                className="h-14 rounded-lg bg-slate-100 animate-[pc-skeleton-shimmer_220ms_linear_infinite] motion-reduce:animate-none"
               />
             ))}
           </div>
@@ -98,7 +98,7 @@ export default function Rbac() {
             <button
               type="button"
               onClick={() => void rolesQuery.refetch()}
-              className="mt-4 inline-flex min-h-11 items-center gap-2 rounded-lg border border-slate-300 px-4 font-semibold hover:bg-slate-50"
+              className="mt-4 inline-flex min-h-11 cursor-pointer items-center gap-2 rounded-lg border border-border px-4 font-semibold text-text-primary transition-colors hover:border-brand-primary/60 hover:bg-page-background active:bg-slate-100 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-brand-primary disabled:cursor-not-allowed disabled:bg-slate-100 disabled:text-slate-400"
             >
               <RefreshCw aria-hidden="true" className="h-4 w-4" />
               重新加载
@@ -135,11 +135,11 @@ export default function Rbac() {
               </thead>
               <tbody className="divide-y divide-slate-100">
                 {rolesQuery.data.list.map((role) => (
-                  <tr key={role.id} className="hover:bg-slate-50/70">
+                  <tr key={role.id} className="border-border transition-[background-color,border-color] duration-200 hover:bg-page-background hover:border-border">
                     <td className="px-5 py-4">
                       <Link
                         to={`/rbac/${role.id}`}
-                        className="font-semibold text-slate-950 hover:text-blue-800"
+                        className="cursor-pointer rounded-sm font-semibold text-text-primary transition-colors hover:text-brand-primary active:text-brand-primary-hover focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-brand-primary"
                       >
                         {role.roleName}
                       </Link>
@@ -156,7 +156,7 @@ export default function Rbac() {
                       <div className="flex justify-end gap-2">
                         <Link
                           to={`/rbac/${role.id}`}
-                          className="inline-flex min-h-10 items-center rounded-lg px-3 font-medium text-slate-700 hover:bg-slate-100"
+                          className="inline-flex min-h-10 cursor-pointer items-center rounded-lg px-3 font-medium text-text-secondary transition-colors hover:bg-page-background active:bg-slate-100 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-brand-primary"
                         >
                           查看
                         </Link>
@@ -169,7 +169,7 @@ export default function Rbac() {
                             <Link
                               aria-label={`编辑 ${role.roleName}`}
                               to={`/rbac/${role.id}/edit`}
-                              className="inline-flex min-h-10 items-center rounded-lg px-3 font-medium text-blue-800 hover:bg-blue-50"
+                              className="inline-flex min-h-10 cursor-pointer items-center rounded-lg px-3 font-medium text-brand-primary transition-colors hover:bg-page-background active:bg-slate-100 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-brand-primary"
                             >
                               编辑
                             </Link>
@@ -181,7 +181,7 @@ export default function Rbac() {
                               type="button"
                               aria-label={`删除 ${role.roleName}`}
                               onClick={() => setPendingDelete(role)}
-                              className="inline-flex min-h-10 items-center gap-1 rounded-lg px-3 font-medium text-red-700 hover:bg-red-50"
+                              className="inline-flex min-h-10 cursor-pointer items-center gap-1 rounded-lg px-3 font-medium text-red-700 transition-colors hover:bg-red-50 active:bg-red-100 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-red-700 disabled:cursor-not-allowed disabled:bg-slate-100 disabled:text-slate-400"
                             >
                               <Trash2 aria-hidden="true" className="h-4 w-4" />
                               删除
@@ -208,7 +208,7 @@ export default function Rbac() {
                 aria-label="上一页"
                 disabled={page <= 1 || rolesQuery.isFetching}
                 onClick={() => setPage((current) => Math.max(1, current - 1))}
-                className="flex h-10 w-10 items-center justify-center rounded-lg border border-slate-300 disabled:cursor-not-allowed disabled:opacity-40"
+                className="flex h-10 w-10 cursor-pointer items-center justify-center rounded-lg border border-border text-text-secondary transition-colors hover:border-brand-primary/60 hover:bg-page-background active:bg-slate-100 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-brand-primary disabled:cursor-not-allowed disabled:bg-slate-100 disabled:text-slate-400 disabled:opacity-60"
               >
                 <ChevronLeft aria-hidden="true" className="h-4 w-4" />
               </button>
@@ -217,7 +217,7 @@ export default function Rbac() {
                 aria-label="下一页"
                 disabled={page >= totalPages || rolesQuery.isFetching}
                 onClick={() => setPage((current) => Math.min(totalPages, current + 1))}
-                className="flex h-10 w-10 items-center justify-center rounded-lg border border-slate-300 disabled:cursor-not-allowed disabled:opacity-40"
+                className="flex h-10 w-10 cursor-pointer items-center justify-center rounded-lg border border-border text-text-secondary transition-colors hover:border-brand-primary/60 hover:bg-page-background active:bg-slate-100 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-brand-primary disabled:cursor-not-allowed disabled:bg-slate-100 disabled:text-slate-400 disabled:opacity-60"
               >
                 <ChevronRight aria-hidden="true" className="h-4 w-4" />
               </button>
@@ -245,10 +245,13 @@ export default function Rbac() {
               </p>
             ) : null}
             <div className="mt-5 flex justify-end gap-3">
+              <span aria-live="polite" className="sr-only">
+                {deleteMutation.isPending ? "正在删除角色" : null}
+              </span>
               <button
                 type="button"
                 onClick={() => setPendingDelete(null)}
-                className="min-h-11 rounded-lg px-4 font-semibold text-slate-700 hover:bg-slate-100"
+                className="min-h-11 cursor-pointer rounded-lg px-4 font-semibold text-text-secondary transition-colors hover:bg-page-background active:bg-slate-100 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-brand-primary disabled:cursor-not-allowed disabled:text-slate-400"
               >
                 取消
               </button>
@@ -256,7 +259,7 @@ export default function Rbac() {
                 type="button"
                 disabled={deleteMutation.isPending}
                 onClick={() => deleteMutation.mutate(pendingDelete.id)}
-                className="min-h-11 rounded-lg bg-red-700 px-4 font-semibold text-white hover:bg-red-800 disabled:opacity-50"
+                className="min-h-11 cursor-pointer rounded-lg bg-red-700 px-4 font-semibold text-white transition-colors hover:bg-red-800 active:bg-red-800 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-red-700 disabled:cursor-not-allowed disabled:bg-slate-400 disabled:text-slate-200 disabled:opacity-60"
               >
                 确认删除
               </button>

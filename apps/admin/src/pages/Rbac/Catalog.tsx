@@ -15,7 +15,7 @@ function PermissionCatalog({ permissions }: { permissions: readonly RbacPermissi
   return (
     <section
       aria-label="菜单目录"
-      className="overflow-hidden rounded-xl border border-slate-200 bg-white shadow-sm"
+      className="overflow-hidden rounded-xl border border-border bg-white shadow-sm transition-[box-shadow,border-color,background-color] duration-200 hover:border-brand-primary/30 hover:shadow-md"
     >
       <div className="border-b border-slate-200 px-5 py-4">
         <h2 className="font-semibold text-slate-950">菜单与操作目录</h2>
@@ -27,7 +27,7 @@ function PermissionCatalog({ permissions }: { permissions: readonly RbacPermissi
         {uiPermissions.map((permission) => (
           <li
             key={permission.code}
-            className="flex flex-col gap-1 px-5 py-4 sm:flex-row sm:items-center sm:justify-between"
+            className="flex flex-col gap-1 border-border px-5 py-4 transition-[background-color,border-color] duration-200 hover:bg-page-background hover:border-border sm:flex-row sm:items-center sm:justify-between"
           >
             <div>
               <p className="font-medium text-slate-900">{permission.label}</p>
@@ -55,7 +55,7 @@ export default function RbacCatalog() {
   const catalogQuery = useQuery({ queryKey: ["rbac-catalog"], queryFn: fetchRbacCatalog });
 
   return (
-    <div className="mx-auto flex w-full max-w-[1440px] flex-col gap-6">
+    <div className="mx-auto flex w-full max-w-[1440px] flex-col gap-6 text-text-primary">
       <header>
         <p className="text-sm font-medium text-blue-700">访问控制</p>
         <h1 className="mt-1 text-2xl font-bold tracking-tight text-slate-950 sm:text-3xl">
@@ -67,7 +67,7 @@ export default function RbacCatalog() {
       </header>
 
       {catalogQuery.isPending ? (
-        <div aria-label="正在加载菜单目录" className="h-48 animate-pulse rounded-xl bg-slate-200" />
+        <div aria-label="正在加载菜单目录" className="h-48 rounded-xl bg-slate-200 animate-[pc-skeleton-shimmer_220ms_linear_infinite] motion-reduce:animate-none" />
       ) : null}
 
       {catalogQuery.isError ? (
@@ -76,7 +76,7 @@ export default function RbacCatalog() {
           <button
             type="button"
             onClick={() => void catalogQuery.refetch()}
-            className="mt-3 inline-flex min-h-11 items-center gap-2 rounded-lg border border-red-700 px-4 font-semibold hover:bg-red-100"
+            className="mt-3 inline-flex min-h-11 cursor-pointer items-center gap-2 rounded-lg border border-red-700 px-4 font-semibold transition-colors hover:bg-red-100 active:bg-red-100 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-red-700 disabled:cursor-not-allowed disabled:bg-slate-100 disabled:text-slate-400"
           >
             <RefreshCw aria-hidden="true" className="h-4 w-4" />
             重新加载
