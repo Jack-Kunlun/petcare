@@ -17,7 +17,7 @@ The approved visual relationship is:
 5. stacked `PetCare` wordmark below the Symbol;
 6. optional approved English tagline and Chinese slogan only in the full lockup.
 
-The exact transparent PNG extractions are the production visual masters. SVGs are deterministic, editable pixel-path companions generated from those masters; they are not alternative designs and must never be used to reinterpret the approved appearance.
+The approved transparent PNG extraction remains the visual provenance. Production SVGs are high-fidelity, editable Bezier-path tracings of that artwork; they preserve the approved geometry, wordmark, palette, gradients, proportions, and transparent background without creative reinterpretation.
 
 ## 2. Directory map
 
@@ -102,9 +102,13 @@ Version usage:
 ### Raster derivatives
 
 - Stacked Logo: color, dark, monochrome, and reverse at `260h`, `520h`, and `780h`.
-- Color Symbol: `16`, `20`, `24`, `28`, `32`, `48`, `64`, `128`, `256`, `512`, and `1024` px.
+- High-resolution Stacked Logo: color and reverse at `1024w`, `2048w`, and `4096w`.
+- Color Symbol: `16`, `20`, `24`, `28`, `32`, `48`, `64`, `128`, `256`, `512`, `1024`, `2048`, and `4096` px.
+- High-resolution reverse Symbol: `1024`, `2048`, and `4096` px.
 - Favicons: SVG, PNG at `16`, `32`, and `48` px, plus multi-size ICO.
 - App/miniapp icons: `32`, `48`, `64`, `96`, `128`, `144`, `180`, `192`, `512`, and `1024` px.
+
+The files in `apps/admin/public/brand` are runtime copies of these canonical document assets. Regeneration always renders into this delivery package first and then refreshes the Admin copies and `@2x` compatibility filenames.
 
 ### Placement rules
 
@@ -236,7 +240,7 @@ The wrapper resolves Python from `PETCARE_PYTHON`, the bundled Codex runtime, or
 python -m pip install -r scripts/brand-assets/requirements-brand-assets.txt
 ```
 
-Logo raster derivatives use the approved actual PNG and pinned Pillow only; no browser or alternate SVG renderer is used. The 260px color lockup must remain pixel-identical to the production master. SVG companions carry the approved master SHA-256 and deterministic vectorization contract. The Hero build embeds a fixed sRGB ICC header and is byte-for-byte deterministic. PNG uses optimized lossless output; WebP uses quality 88.
+Logo raster derivatives are rendered from the committed curved SVG masters with a local SVG renderer or installed Chromium. SVG masters carry the approved raster SHA-256 and the `approved-curves-v1` contract; pixel-run SVGs are rejected by validation. The Hero build embeds a fixed sRGB ICC header and is byte-for-byte deterministic. PNG uses lossless output; WebP uses quality 88.
 
 ## 9. Manifest contract
 
