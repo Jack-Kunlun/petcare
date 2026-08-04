@@ -9,15 +9,18 @@
   --color-transparent: transparent;
   --color-current: currentColor;
   --color-white: #ffffff;
-  --color-surface: #f5f5f5;
-  --color-surface-muted: #f6f8f7;
-  --color-ink: #333333;
-  --color-ink-strong: #163c2b;
-  --color-muted: #666666;
-  --color-muted-brand: #668074;
-  --color-brand: #20a66a;
-  --color-brand-strong: #178854;
-  --color-danger: #c83e3e;
+  --color-surface: #f8fafc;
+  --color-surface-muted: #eef2ff;
+  --color-ink: #1f2937;
+  --color-ink-strong: #202632;
+  --color-muted: #667085;
+  --color-muted-brand: #667085;
+  --color-brand: #4a6cf7;
+  --color-brand-strong: #3552c8;
+  --color-care: #5bc8af;
+  --color-accent: #f6b343;
+  --color-border: #e6eaf0;
+  --color-danger: #c23b43;
 
   --spacing-none: 0px;
   --spacing-note: 12px;
@@ -27,6 +30,13 @@
   --spacing-page-y: 48px;
   --spacing-mm: 20px;
   --spacing-action: 240px;
+  --spacing-logo-sm: 24px;
+  --spacing-logo-md: 48px;
+  --spacing-logo-lockup: 180px;
+  --spacing-hero-height: 170px;
+  --spacing-tab-height: 52px;
+  --spacing-safe-bottom: 72px;
+  --spacing-overlay: 0px;
 
   --text-base: 14px;
   --text-base--line-height: 20px;
@@ -41,16 +51,16 @@
   --text-hero: 36px;
   --text-hero--line-height: 44px;
 
-  --radius-button: 12px;
-  --radius-card: 20px;
-  --shadow-card: 0 12px 40px rgb(26 77 54 / 8%);
+  --radius-button: 8px;
+  --radius-card: 12px;
+  --shadow-card: 0 2px 8px rgb(31 41 55 / 8%);
 }
 
-@source inline("h-mm");
+@source inline("h-mm w-action h-logo-sm w-logo-sm h-logo-md w-logo-md h-logo-lockup w-logo-lockup h-hero-height min-h-tab pb-safe-bottom top-overlay right-overlay bottom-overlay left-overlay");
 
 /* page 无法挂载 Tailwind 类名，保留为唯一全局平台样式。 */
 page {
-  background-color: #f5f5f5;
+  background-color: #f8fafc;
   font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif;
   font-size: 14px;
 }
