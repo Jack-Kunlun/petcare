@@ -21,6 +21,8 @@ describe("Sidebar", () => {
       "src",
       "/brand/petcare-symbol-reverse.svg",
     );
+    expect(screen.getByText("PetCare")).toBeInTheDocument();
+    expect(screen.getByText("运营管理中心")).toBeInTheDocument();
   });
 
   it("renders module and page routes as one expandable navigation tree", () => {
@@ -49,7 +51,8 @@ describe("Sidebar", () => {
       </MemoryRouter>,
     );
 
-    const tree = within(screen.getByTestId("desktop-menu-tree"));
+    const desktopTree = screen.getByTestId("desktop-menu-tree");
+    const tree = within(desktopTree);
     const toggle = tree.getByRole("button", { name: "订单管理菜单" });
 
     expect(toggle).toHaveAttribute("aria-expanded", "true");
@@ -62,10 +65,20 @@ describe("Sidebar", () => {
 
     expect(toggle).toHaveAttribute("aria-expanded", "false");
     expect(tree.queryByRole("link", { name: "投诉与纠纷" })).not.toBeInTheDocument();
+    const collapsedSubmenu = desktopTree.querySelector("#submenu-orders");
+
+    expect(collapsedSubmenu).toBeInTheDocument();
+    expect(collapsedSubmenu).toHaveAttribute("aria-hidden", "true");
+    expect(collapsedSubmenu.parentElement).toHaveClass(
+      "grid",
+      "grid-rows-[0fr]",
+      "duration-200",
+    );
 
     fireEvent.click(toggle);
 
     expect(tree.getByRole("link", { name: "投诉与纠纷" })).toBeInTheDocument();
+    expect(desktopTree.querySelector("#submenu-orders")).toHaveAttribute("aria-hidden", "false");
   });
 
   it("renders the user module page and certification page as sibling child menus", () => {

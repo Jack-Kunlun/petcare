@@ -182,11 +182,17 @@ export function Sidebar({ open = false, onClose, permissions }: SidebarProps) {
         }`}
       >
         <div className="flex h-16 shrink-0 items-center justify-between border-b border-white/10 px-5">
-          <BrandLogo
-            variant="reverse"
-            label="PetCare 运营管理中心"
-            className="h-9 w-9 shrink-0"
-          />
+          <div className="flex min-w-0 items-center gap-3">
+            <BrandLogo
+              variant="reverse"
+              label="PetCare 运营管理中心"
+              className="h-9 w-9 shrink-0"
+            />
+            <div className="min-w-0">
+              <p className="truncate text-base font-semibold tracking-wide text-white">PetCare</p>
+              <p className="truncate text-xs text-slate-400">运营管理中心</p>
+            </div>
+          </div>
           <button
             type="button"
             aria-label="关闭导航"
@@ -261,34 +267,42 @@ export function Sidebar({ open = false, onClose, permissions }: SidebarProps) {
                       />
                     )}
 
-                    {hasChildren && isExpanded ? (
-                      <ul
-                        id={`submenu-${route.id}`}
-                        className="ml-6 mt-1 origin-top space-y-1 border-l border-white/10 pl-3 transition-[transform,opacity] duration-200 motion-safe:animate-[pc-page-enter_200ms_ease-out_both]"
+                    {hasChildren ? (
+                      <div
+                        className={`grid transition-[grid-template-rows,opacity] duration-200 ease-out ${
+                          isExpanded ? "grid-rows-[1fr] opacity-100" : "grid-rows-[0fr] opacity-0"
+                        }`}
                       >
-                        {childRoutes.map((child) => {
-                          return (
-                            <li key={child.path}>
-                              <NavLink
-                                to={child.path}
-                                end
-                                onClick={onClose}
-                                className={({ isActive }) =>
-                                  `group flex min-h-10 items-center rounded-md px-3 py-2 text-sm outline-none transition-colors focus-visible:ring-2 focus-visible:ring-blue-400 ${
-                                    isActive
-                                      ? "bg-blue-600 font-medium text-white shadow-sm"
-                                      : "text-slate-400 hover:bg-white/8 hover:text-white"
-                                  }`
-                                }
-                              >
-                                {child === route
-                                  ? (route.menuLabel ?? label)
-                                  : (child.menuLabel ?? child.id)}
-                              </NavLink>
-                            </li>
-                          );
-                        })}
-                      </ul>
+                        <ul
+                          id={`submenu-${route.id}`}
+                          aria-hidden={!isExpanded}
+                          inert={!isExpanded}
+                          className="ml-6 mt-1 min-h-0 origin-top space-y-1 overflow-hidden border-l border-white/10 pl-3"
+                        >
+                          {childRoutes.map((child) => {
+                            return (
+                              <li key={child.path}>
+                                <NavLink
+                                  to={child.path}
+                                  end
+                                  onClick={onClose}
+                                  className={({ isActive }) =>
+                                    `group flex min-h-10 items-center rounded-md px-3 py-2 text-sm outline-none transition-colors focus-visible:ring-2 focus-visible:ring-blue-400 ${
+                                      isActive
+                                        ? "bg-blue-600 font-medium text-white shadow-sm"
+                                        : "text-slate-400 hover:bg-white/8 hover:text-white"
+                                    }`
+                                  }
+                                >
+                                  {child === route
+                                    ? (route.menuLabel ?? label)
+                                    : (child.menuLabel ?? child.id)}
+                                </NavLink>
+                              </li>
+                            );
+                          })}
+                        </ul>
+                      </div>
                     ) : null}
                   </li>
                 );
