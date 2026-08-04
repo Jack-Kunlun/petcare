@@ -186,7 +186,7 @@ export function Sidebar({ open = false, onClose, permissions }: SidebarProps) {
             <BrandLogo
               variant="reverse"
               label="PetCare 运营管理中心"
-              className="h-9 w-9 shrink-0"
+              className="h-10 w-10 shrink-0"
             />
             <div className="min-w-0">
               <p className="truncate text-base font-semibold tracking-wide text-white">PetCare</p>
