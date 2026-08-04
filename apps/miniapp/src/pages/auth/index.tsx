@@ -14,7 +14,6 @@ interface PhoneNumberEvent {
 
 export default function AuthPage() {
   const { login, bindPhone } = useAuth();
-  const [bindToken, setBindToken] = useState<string | null>(null);
   const [pending, setPending] = useState(false);
   const [error, setError] = useState("");
   const pendingRef = useRef(false);
@@ -36,27 +35,7 @@ export default function AuthPage() {
     setPending(false);
   };
 
-  const handleLogin = async (): Promise<void> => {
-    if (!beginRequest()) {
-      return;
-    }
-
-    try {
-      const result = await login();
-
-      if (result.status === "phone_required") {
-        setBindToken(result.bindToken);
-      } else {
-        await completeLogin();
-      }
-    } catch {
-      setError("微信登录失败，请稍后重试");
-    } finally {
-      endRequest();
-    }
-  };
-
-  const handleGetPhoneNumber = async (event: PhoneNumberEvent): Promise<void> => {
+  const handleWechatLogin = async (event: PhoneNumberEvent): Promise<void> => {
     const phoneCode = event.detail.code;
 
     if (!phoneCode) {
@@ -65,22 +44,28 @@ export default function AuthPage() {
       return;
     }
 
-    if (!bindToken || !beginRequest()) {
+    if (!beginRequest()) {
       return;
     }
 
     try {
-      await bindPhone(bindToken, phoneCode);
+      const result = await login();
+
+      if (result.status === "phone_required") {
+        await bindPhone(result.bindToken, phoneCode);
+      }
+
       await completeLogin();
     } catch (requestError) {
       if (
         requestError instanceof MiniappApiError &&
         requestError.code === "AUTH_BIND_TOKEN_EXPIRED"
       ) {
-        setBindToken(null);
         setError("登录状态已过期，请重新微信登录");
+      } else if (requestError instanceof MiniappApiError) {
+        setError(requestError.message);
       } else {
-        setError("手机号授权失败，请稍后重试");
+        setError("微信登录失败，请稍后重试");
       }
     } finally {
       endRequest();
@@ -102,26 +87,15 @@ export default function AuthPage() {
           登录后可发布需求、接单并管理你的宠物服务。
         </Text>
 
-        {bindToken ? (
-          <Button
-            className="mt-section rounded-button border-none bg-brand text-white"
-            openType="getPhoneNumber"
-            loading={pending}
-            disabled={pending}
-            onGetPhoneNumber={handleGetPhoneNumber}
-          >
-            授权手机号并登录
-          </Button>
-        ) : (
-          <Button
-            className="mt-section rounded-button border-none bg-brand text-white"
-            loading={pending}
-            disabled={pending}
-            onClick={() => void handleLogin()}
-          >
-            微信登录
-          </Button>
-        )}
+        <Button
+          className="mt-section rounded-button border-none bg-brand text-white"
+          openType="getPhoneNumber"
+          loading={pending}
+          disabled={pending}
+          onGetPhoneNumber={handleWechatLogin}
+        >
+          微信登录
+        </Button>
 
         <Text className="mt-compact block text-center text-base text-muted-brand">
           我们会保护你的账号与宠物信息
