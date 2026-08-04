@@ -18,7 +18,12 @@ src/api/
 ├── api-response.ts
 ├── auth.ts
 ├── orders.ts
-└── users.ts
+├── users.ts
+└── content/
+    ├── index.ts
+    ├── rewards.ts
+    ├── posts.ts
+    └── articles.ts
 ```
 
 - 按业务域拆分文件，不建立包含所有接口的超大单文件。
@@ -44,6 +49,8 @@ src/pages/
 - 编辑页固定为 `Edit.tsx`，详情页固定为 `Detail.tsx`。
 - 页面测试与页面同目录；默认页面测试命名为 `index.test.tsx`。
 - API 文件不得放入页面目录。
+
+内容管理页面使用 `ContentManagement/index.tsx` 作为悬赏默认页，`ContentManagement/Posts/index.tsx` 和 `ContentManagement/Articles/index.tsx` 分别承载帖子与课堂文章列表；对应请求统一放在 `apps/admin/src/api/content/`，不得在页面内直接创建 Axios 请求。
 
 ## 4. 注释要求
 

@@ -294,6 +294,20 @@ Authorization: Bearer eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9...
 
 ---
 
+## 后台内容管理模块 (`/admin/content`)
+
+内容管理是 Admin 的独立一级菜单，包含悬赏管理、帖子管理和课堂文章管理三个二级页面。所有接口要求有效的管理员 Bearer Token，并由 Server 的 `PermissionGuard` 校验内容域 API 权限。
+
+| 方法  | 路径                      | 所需权限               | 说明                                                                                                           |
+| ----- | ------------------------- | ---------------------- | -------------------------------------------------------------------------------------------------------------- |
+| `GET` | `/admin/content/rewards`  | `content.reward.read`  | 分页查询悬赏订单；服务端固定 `orderType=reward`，支持 `page`、`pageSize`、`keyword`、`serviceType`、`status`。 |
+| `GET` | `/admin/content/posts`    | `content.post.read`    | 分页查询社区帖子；支持 `page`、`pageSize`、`keyword`、`status`。正文只返回列表摘要。                           |
+| `GET` | `/admin/content/articles` | `content.article.read` | 分页查询课堂文章；支持 `page`、`pageSize`、`keyword`、`status`。                                               |
+
+三个接口均返回统一分页结构：`{ list, total, page, pageSize }`。悬赏金额以元返回，时间字段使用 ISO 8601 字符串。内容菜单权限由 `@petcare/shared-types` 的 `RBAC_PERMISSION_CATALOG` 唯一声明：`content.view` 对应 `/content` 默认悬赏页，`content.post.view` 对应 `/content/posts`，`content.article.view` 对应 `/content/articles`。
+
+---
+
 ## 请求规范
 
 ### 请求头

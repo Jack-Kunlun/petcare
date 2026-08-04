@@ -78,6 +78,44 @@ describe("ADMIN_ROUTE_REGISTRY", () => {
     });
   });
 
+  it("registers content management with three child pages", () => {
+    expect(
+      ADMIN_ROUTE_REGISTRY.filter((route) => route.path.startsWith("/content")).map((route) => ({
+        path: route.path,
+        menuPermission: route.menuPermission,
+        parentPath: route.parentPath,
+        menuLabel: route.menuLabel,
+      })),
+    ).toEqual([
+      {
+        path: "/content",
+        menuPermission: "content.view",
+        parentPath: null,
+        menuLabel: "悬赏管理",
+      },
+      {
+        path: "/content/posts",
+        menuPermission: "content.post.view",
+        parentPath: "/content",
+        menuLabel: "帖子管理",
+      },
+      {
+        path: "/content/articles",
+        menuPermission: "content.article.view",
+        parentPath: "/content",
+        menuLabel: "课堂文章管理",
+      },
+    ]);
+
+    const permissions = ["content.view", "content.post.view", "content.article.view"];
+
+    expect(getVisibleRootMenuRoutes(permissions).map((route) => route.path)).toContain("/content");
+    expect(getVisibleChildMenuRoutes("/content", permissions).map((route) => route.path)).toEqual([
+      "/content/posts",
+      "/content/articles",
+    ]);
+  });
+
   it("registers the RBAC list, create, edit, and detail views behind the single menu entry", () => {
     expect(
       ADMIN_ROUTE_REGISTRY.filter((route) => route.path.startsWith("/rbac")).map((route) => ({
