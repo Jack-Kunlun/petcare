@@ -124,7 +124,7 @@ export default function UserManagement() {
   }
 
   return (
-    <div className="mx-auto flex w-full max-w-[1600px] flex-col gap-6">
+    <div className="mx-auto flex w-full max-w-[1600px] flex-col gap-6 text-text-primary">
       <section className="flex flex-col justify-between gap-4 sm:flex-row sm:items-end">
         <div>
           <p className="mb-1 text-sm font-medium text-blue-700">平台用户</p>
@@ -139,7 +139,7 @@ export default function UserManagement() {
 
       <section
         aria-label="用户筛选"
-        className="rounded-xl border border-slate-200 bg-white p-4 shadow-sm"
+        className="rounded-xl border border-border bg-white p-4 shadow-sm transition-[box-shadow,border-color,background-color] duration-200 hover:border-brand-primary/30 hover:shadow-md"
       >
         <form
           className="grid gap-3 lg:grid-cols-[minmax(260px,1fr)_180px_160px_auto]"
@@ -157,7 +157,7 @@ export default function UserManagement() {
               value={keywordInput}
               onChange={(event) => setKeywordInput(event.target.value)}
               placeholder="搜索手机号、账号或昵称"
-              className="h-11 w-full rounded-lg border border-slate-300 bg-white pl-9 pr-3 text-sm text-slate-900 outline-none transition-colors placeholder:text-slate-400 focus:border-blue-600 focus:ring-2 focus:ring-blue-600/20"
+              className="h-11 w-full rounded-lg border border-border bg-white pl-9 pr-3 text-sm text-text-primary outline-none transition-colors placeholder:text-text-secondary hover:border-brand-primary/60 focus-visible:border-brand-primary focus-visible:ring-2 focus-visible:ring-brand-primary/20"
             />
           </label>
 
@@ -170,7 +170,7 @@ export default function UserManagement() {
                 setUserType((event.target.value || undefined) as AdminUserType | undefined);
                 setPage(1);
               }}
-              className="h-11 w-full cursor-pointer rounded-lg border border-slate-300 bg-white px-3 text-sm text-slate-700 outline-none focus:border-blue-600 focus:ring-2 focus:ring-blue-600/20"
+              className="h-11 w-full cursor-pointer rounded-lg border border-border bg-white px-3 text-sm text-text-secondary outline-none transition-colors hover:border-brand-primary/60 active:bg-page-background focus-visible:border-brand-primary focus-visible:ring-2 focus-visible:ring-brand-primary/20"
             >
               <option value="">全部用户类型</option>
               <option value="pet_owner">宠物家长</option>
@@ -187,7 +187,7 @@ export default function UserManagement() {
                 setStatus((event.target.value || undefined) as AdminUserStatus | undefined);
                 setPage(1);
               }}
-              className="h-11 w-full cursor-pointer rounded-lg border border-slate-300 bg-white px-3 text-sm text-slate-700 outline-none focus:border-blue-600 focus:ring-2 focus:ring-blue-600/20"
+              className="h-11 w-full cursor-pointer rounded-lg border border-border bg-white px-3 text-sm text-text-secondary outline-none transition-colors hover:border-brand-primary/60 active:bg-page-background focus-visible:border-brand-primary focus-visible:ring-2 focus-visible:ring-brand-primary/20"
             >
               <option value="">全部账号状态</option>
               <option value="active">正常</option>
@@ -199,14 +199,14 @@ export default function UserManagement() {
           <div className="flex gap-2">
             <button
               type="submit"
-              className="inline-flex h-11 flex-1 cursor-pointer items-center justify-center rounded-lg bg-blue-700 px-4 text-sm font-semibold text-white transition-colors hover:bg-blue-800 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-blue-600 focus-visible:ring-offset-2 lg:flex-none"
+              className="inline-flex h-11 flex-1 cursor-pointer items-center justify-center rounded-lg bg-brand-primary px-4 text-sm font-semibold text-white transition-colors hover:bg-brand-primary-hover active:bg-brand-primary-hover focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-brand-primary focus-visible:ring-offset-2 disabled:cursor-not-allowed disabled:bg-slate-400 lg:flex-none"
             >
               查询
             </button>
             <button
               type="button"
               aria-label="重置筛选"
-              className="flex h-11 w-11 cursor-pointer items-center justify-center rounded-lg border border-slate-300 text-slate-600 transition-colors hover:bg-slate-50 hover:text-slate-900 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-blue-600"
+              className="flex h-11 w-11 cursor-pointer items-center justify-center rounded-lg border border-border text-text-secondary transition-colors hover:border-brand-primary/60 hover:bg-page-background hover:text-text-primary active:bg-slate-100 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-brand-primary disabled:cursor-not-allowed disabled:bg-slate-100 disabled:text-slate-400"
               onClick={resetFilters}
             >
               <RotateCcw aria-hidden="true" className="h-4 w-4" />
@@ -217,12 +217,12 @@ export default function UserManagement() {
 
       <section
         aria-label="用户列表"
-        className="overflow-hidden rounded-xl border border-slate-200 bg-white shadow-sm"
+        className="overflow-hidden rounded-xl border border-border bg-white shadow-sm transition-[box-shadow,border-color,background-color] duration-200 hover:border-brand-primary/30 hover:shadow-md"
       >
         {query.isPending && (
           <div aria-label="正在加载用户" className="space-y-3 p-5">
             {Array.from({ length: 5 }, (_, index) => (
-              <div key={index} className="h-14 animate-pulse rounded-lg bg-slate-100" />
+              <div key={index} className="h-14 rounded-lg bg-slate-100 animate-[pc-skeleton-shimmer_220ms_linear_infinite] motion-reduce:animate-none" />
             ))}
           </div>
         )}
@@ -273,7 +273,7 @@ export default function UserManagement() {
                 </thead>
                 <tbody className="divide-y divide-slate-100">
                   {query.data.list.map((user) => (
-                    <tr key={user.id} className="transition-colors hover:bg-slate-50/70">
+                    <tr key={user.id} className="border-border transition-[background-color,border-color] duration-200 hover:bg-page-background hover:border-border">
                       <td className="px-5 py-4">
                         <UserIdentity user={user} />
                       </td>

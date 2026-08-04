@@ -251,7 +251,7 @@ export default function ComplaintWorkQueue() {
   }
 
   return (
-    <div className="mx-auto flex w-full max-w-full flex-col gap-6">
+    <div className="mx-auto flex w-full max-w-full flex-col gap-6 text-text-primary">
       <section className="flex flex-col justify-between gap-4 sm:flex-row sm:items-end">
         <div>
           <p className="mb-1 text-sm font-medium text-blue-700">投诉与纠纷</p>
@@ -267,7 +267,7 @@ export default function ComplaintWorkQueue() {
 
       <section
         aria-label="投诉工作队列"
-        className="rounded-xl border border-slate-200 bg-white p-2 shadow-sm"
+        className="rounded-xl border border-border bg-white p-2 shadow-sm transition-[box-shadow,border-color,background-color] duration-200 hover:border-brand-primary/30 hover:shadow-md"
       >
         <div className="grid grid-cols-2 gap-2 sm:grid-cols-4 xl:grid-cols-8">
           {queueTabs.map((tab) => (
@@ -290,7 +290,7 @@ export default function ComplaintWorkQueue() {
 
       <section
         aria-label="投诉筛选"
-        className="rounded-xl border border-slate-200 bg-white p-4 shadow-sm"
+        className="rounded-xl border border-border bg-white p-4 shadow-sm transition-[box-shadow,border-color,background-color] duration-200 hover:border-brand-primary/30 hover:shadow-md"
       >
         <form className="grid gap-3 md:grid-cols-2 xl:grid-cols-4" onSubmit={submitFilters}>
           <label className="relative block xl:col-span-2">
@@ -305,7 +305,7 @@ export default function ComplaintWorkQueue() {
               value={keywordInput}
               onChange={(event) => setKeywordInput(event.target.value)}
               placeholder="搜索案件编号、订单号或当事人"
-              className="h-11 w-full rounded-lg border border-slate-300 bg-white pl-9 pr-3 text-sm text-slate-900 outline-none placeholder:text-slate-400 focus:border-blue-600 focus:ring-2 focus:ring-blue-600/20"
+              className="h-11 w-full rounded-lg border border-border bg-white pl-9 pr-3 text-sm text-text-primary outline-none transition-colors placeholder:text-text-secondary hover:border-brand-primary/60 focus-visible:border-brand-primary focus-visible:ring-2 focus-visible:ring-brand-primary/20"
             />
           </label>
 
@@ -317,7 +317,7 @@ export default function ComplaintWorkQueue() {
               onChange={(event) =>
                 updateSearch({ status: event.target.value || undefined, page: "1" })
               }
-              className="h-11 w-full cursor-pointer rounded-lg border border-slate-300 bg-white px-3 text-sm text-slate-700 outline-none focus:border-blue-600 focus:ring-2 focus:ring-blue-600/20"
+              className="h-11 w-full cursor-pointer rounded-lg border border-border bg-white px-3 text-sm text-text-secondary outline-none transition-colors hover:border-brand-primary/60 active:bg-page-background focus-visible:border-brand-primary focus-visible:ring-2 focus-visible:ring-brand-primary/20"
             >
               <option value="">全部状态</option>
               {Object.entries(statusLabels).map(([value, label]) => (
@@ -361,7 +361,7 @@ export default function ComplaintWorkQueue() {
 
       <section
         aria-label="投诉工作队列结果"
-        className="overflow-hidden rounded-xl border border-slate-200 bg-white shadow-sm"
+        className="overflow-hidden rounded-xl border border-border bg-white shadow-sm transition-[box-shadow,border-color,background-color] duration-200 hover:border-brand-primary/30 hover:shadow-md"
       >
         {query.isPending && (
           <div aria-label="正在加载投诉工作队列" className="space-y-3 p-5">
@@ -430,7 +430,7 @@ export default function ComplaintWorkQueue() {
                 </thead>
                 <tbody className="divide-y divide-slate-100">
                   {query.data.list.map((item) => (
-                    <tr key={item.id} className="align-top transition-colors hover:bg-slate-50">
+                    <tr key={item.id} className="align-top border-border transition-[background-color,border-color] duration-200 hover:bg-page-background hover:border-border">
                       <td className="px-4 py-4">
                         <p
                           className="truncate font-mono text-xs font-semibold text-slate-800"
