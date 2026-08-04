@@ -166,10 +166,10 @@ export default function Login() {
             <p className="text-sm font-semibold tracking-wide text-care-secondary">
               PetCare 管理后台
             </p>
-            <h1 className="mt-3 max-w-xs text-3xl font-bold leading-tight tracking-tight">
+            <h1 className="mt-3 max-w-[320px] text-3xl font-bold leading-tight tracking-tight">
               让每一次照护都有回应
             </h1>
-            <p className="mt-4 max-w-sm text-sm leading-6 text-white/80">
+            <p className="mt-4 max-w-[384px] text-sm leading-6 text-white/80">
               安全登录后，继续管理宠物服务与用户体验。
             </p>
             <div className="mt-7 flex flex-wrap gap-2 text-xs font-medium text-white/90">
