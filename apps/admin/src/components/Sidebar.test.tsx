@@ -21,6 +21,7 @@ describe("Sidebar", () => {
       "src",
       "/brand/petcare-symbol-reverse.svg",
     );
+    expect(screen.getByRole("img", { name: "PetCare 运营管理中心" })).toHaveClass("h-10", "w-10");
     expect(screen.getByText("PetCare")).toBeInTheDocument();
     expect(screen.getByText("运营管理中心")).toBeInTheDocument();
   });
@@ -73,11 +74,7 @@ describe("Sidebar", () => {
 
     expect(collapsedSubmenu).toBeInTheDocument();
     expect(collapsedSubmenu).toHaveAttribute("aria-hidden", "true");
-    expect(collapsedSubmenu.parentElement).toHaveClass(
-      "grid",
-      "grid-rows-[0fr]",
-      "duration-200",
-    );
+    expect(collapsedSubmenu.parentElement).toHaveClass("grid", "grid-rows-[0fr]", "duration-200");
 
     fireEvent.click(toggle);
 
