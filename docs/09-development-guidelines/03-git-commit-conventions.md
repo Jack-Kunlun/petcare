@@ -8,9 +8,12 @@
 
 在每次提交前自动执行以下检查：
 
-1. **Prettier** - 代码格式化
-2. **ESLint** - 代码规范检查
-3. **单元测试** - 运行受影响文件的测试
+1. **Prettier** - 暂存文件格式化
+2. **ESLint** - 代码规范和样式错误检查
+3. **TypeScript** - 各工作区类型检查
+4. **E2E** - Server 与 Admin 端到端测试
+
+提交钩子不执行完整构建。完整的格式、Lint、类型、单元测试和构建门禁仍通过 `pnpm check` 使用。
 
 配置文件：`.husky/pre-commit`
 
@@ -81,8 +84,8 @@ git commit -m "feat: add feature."        # subject 不能以 . 结尾
 # 测试 commit message 格式
 echo "feat: test message" | npx commitlint
 
-# 手动运行 lint-staged
-npx lint-staged
+# 手动运行提交前门禁
+corepack pnpm run commit:check
 ```
 
 ### 常见问题

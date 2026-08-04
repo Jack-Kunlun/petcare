@@ -3,7 +3,9 @@ import { fork, spawn } from "node:child_process";
 import { once } from "node:events";
 import { readFile } from "node:fs/promises";
 import { connect } from "node:net";
+import process from "node:process";
 import test from "node:test";
+import { setTimeout } from "node:timers";
 import { fileURLToPath } from "node:url";
 import path from "node:path";
 import {
