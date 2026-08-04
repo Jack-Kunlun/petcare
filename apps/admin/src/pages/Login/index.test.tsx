@@ -101,8 +101,27 @@ describe("Login", () => {
 
     await user.click(screen.getByRole("tab", { name: "验证码登录" }));
 
-    expect(screen.getByRole("tab", { name: "验证码登录" })).toHaveAttribute("aria-selected", "true");
+    expect(screen.getByRole("tab", { name: "验证码登录" })).toHaveAttribute(
+      "aria-selected",
+      "true",
+    );
     expect(screen.getByTestId("login-mode-indicator")).toHaveClass("translate-x-full");
+  });
+
+  it("keeps the login panels stable and aligns sms controls", async () => {
+    const user = userEvent.setup();
+
+    renderLogin();
+
+    expect(screen.getByTestId("login-form-panels")).toHaveClass("min-h-[240px]");
+
+    await user.click(screen.getAllByRole("tab")[1]);
+
+    expect(screen.getByTestId("sms-login-panel")).toHaveClass(
+      "animate-[pc-page-enter_220ms_ease-out_both]",
+    );
+    expect(screen.getByTestId("captcha-code-input")).toHaveClass("h-12");
+    expect(screen.getByTestId("send-code-button")).toHaveClass("h-12");
   });
 
   it("validates a Chinese mobile number before sending a code", async () => {
