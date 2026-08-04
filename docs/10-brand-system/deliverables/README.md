@@ -57,6 +57,21 @@ deliverables/
 
 Do not substitute system Secondary for the approved Logo mint inside the Logo, and do not use the Logo-only mint for general UI elements.
 
+### Miniapp application baseline (v45)
+
+The miniapp prototype uses the same semantic brand tokens as the Brand Book; the prototype's original orange palette is not a separate product palette.
+
+| Miniapp use                          | Token                                   |
+| ------------------------------------ | --------------------------------------- |
+| Primary actions, selected Tab, links | `Primary #4A6CF7`                       |
+| Care, completed state, progress      | `Secondary #5BC8AF`                     |
+| Reward prices and limited highlights | `Accent #F6B343`                        |
+| Page and card surfaces               | `Background #F8FAFC`, `Surface #FFFFFF` |
+| Main and supporting text             | `#1F2937`, `#667085`                    |
+| Dividers and control borders         | `#E6EAF0`                               |
+
+The five miniapp primary Tabs are `/`, `/bounty`, `/community`, `/messages`, and `/profile`. Use the approved Symbol asset for compact navigation and the stacked Logo for sign-in or launch surfaces. Successful authentication switches to the canonical home page; it must not return to a guest page with `navigateBack`.
+
 ## 4. Logo package
 
 ### Production masters
