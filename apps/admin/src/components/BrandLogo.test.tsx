@@ -41,4 +41,10 @@ describe("BrandLogo", () => {
 
     expect(screen.getByRole("img", { name: "PetCare" })).toHaveClass("object-contain", "h-8", "w-8");
   });
+
+  it("uses synchronous decoding for crisp first paint", () => {
+    render(<BrandLogo variant="color" />);
+
+    expect(screen.getByRole("img", { name: "PetCare" })).toHaveAttribute("decoding", "sync");
+  });
 });
