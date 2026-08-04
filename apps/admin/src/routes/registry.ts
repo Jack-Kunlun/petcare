@@ -2,6 +2,9 @@ import { RBAC_PERMISSION_CATALOG, RBAC_PERMISSION_TYPES } from "@petcare/shared-
 import type { ReactNode } from "react";
 import { createElement, lazy, Suspense } from "react";
 import { LazyRouteBoundary } from "../components/LazyRouteBoundary";
+import ContentManagement from "../pages/ContentManagement";
+import ContentArticles from "../pages/ContentManagement/Articles";
+import ContentPosts from "../pages/ContentManagement/Posts";
 import Dashboard from "../pages/Dashboard";
 import OrderManagement from "../pages/OrderManagement";
 import ComplaintWorkQueue from "../pages/OrderManagement/Complaint";
@@ -131,6 +134,9 @@ export const ADMIN_ROUTE_REGISTRY: readonly AdminRouteDefinition[] = [
     icon: null,
     menuLabel: null,
   },
+  catalogMenuRoute("content", "content.view", createElement(ContentManagement), "悬赏管理"),
+  catalogMenuRoute("content-posts", "content.post.view", createElement(ContentPosts)),
+  catalogMenuRoute("content-articles", "content.article.view", createElement(ContentArticles)),
   catalogMenuRoute("settings", "system.view", settingsRoute(createElement(Settings)), "系统设置"),
   {
     id: "settings-edit",

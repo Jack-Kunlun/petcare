@@ -1,3 +1,4 @@
+import { RBAC_PERMISSION_CATALOG } from "@petcare/shared-types";
 import { PrismaService } from "../prisma/prisma.service";
 import { AuthService } from "./auth.service";
 import { CaptchaService } from "./captcha.service";
@@ -94,7 +95,7 @@ describe("AuthService", () => {
         phone: "13800138000",
         nickname: "系统管理员",
         roles: ["super_admin"],
-        permissions: ["system.view", "system.publish"],
+        permissions: RBAC_PERMISSION_CATALOG.map((permission) => permission.code),
       },
     });
   });
@@ -119,6 +120,7 @@ describe("AuthService", () => {
         {
           role: {
             ...activeAdmin.roles[0].role,
+            roleName: "config_admin",
             permissions: [
               { permission: { permissionCode: "system.view" } },
               { permission: { permissionCode: "retired.permission" } },
@@ -133,6 +135,26 @@ describe("AuthService", () => {
     ).resolves.toMatchObject({
       user: { permissions: ["system.view"] },
     });
+  });
+
+  it("grants every catalog permission to super_admin even when persisted assignments are stale", async () => {
+    prisma.user.findUnique.mockResolvedValue({
+      ...activeAdmin,
+      roles: [
+        {
+          role: {
+            ...activeAdmin.roles[0].role,
+            permissions: [{ permission: { permissionCode: "system.view" } }],
+          },
+        },
+      ],
+    });
+
+    const result = await service.getCurrentUser("user-1");
+
+    expect(result.permissions).toEqual(
+      RBAC_PERMISSION_CATALOG.map((permission) => permission.code),
+    );
   });
 
   it.each([

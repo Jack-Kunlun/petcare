@@ -249,10 +249,19 @@ export class AuthService {
     };
   }
 
-  /** Returns unique role permissions that are still declared by the shared catalog. */
+  /** Returns catalog permissions for super_admin and otherwise filters persisted role permissions. */
   private getEffectivePermissionCodes(
-    roles: Array<{ role: { permissions: Array<{ permission: { permissionCode: string } }> } }>,
+    roles: Array<{
+      role: {
+        roleName: string;
+        permissions: Array<{ permission: { permissionCode: string } }>;
+      };
+    }>,
   ): string[] {
+    if (roles.some(({ role }) => role.roleName === "super_admin")) {
+      return RBAC_PERMISSION_CATALOG.map((permission) => permission.code);
+    }
+
     return [
       ...new Set(
         roles.flatMap((assignment) =>
