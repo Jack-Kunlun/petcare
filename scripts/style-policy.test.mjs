@@ -117,8 +117,8 @@ test("Miniapp 主题提取语义 token 并拒绝非 px 关键值", () => {
       --spacing-action: 240px;
       --text-base: 14px;
       --text-base--line-height: 20px;
-      --radius-button: 12px;
-      --color-brand: #20a66a;
+      --radius-button: 8px;
+      --color-brand: #4a6cf7;
     }
   `;
 
@@ -131,7 +131,7 @@ test("Miniapp 主题提取语义 token 并拒绝非 px 关键值", () => {
   ]);
   assert.deepEqual(validateMiniappTheme(theme), []);
   assert.notDeepEqual(validateMiniappTheme(theme.replace("20px", "1rem")), []);
-  assert.notDeepEqual(validateMiniappTheme(theme.replace("--color-brand: #20a66a;", "")), []);
+  assert.notDeepEqual(validateMiniappTheme(theme.replace("--color-brand: #4a6cf7;", "")), []);
 });
 
 test("Miniapp 真实入口满足 Tailwind v4 CSS-first 主题契约", async () => {
@@ -140,7 +140,7 @@ test("Miniapp 真实入口满足 Tailwind v4 CSS-first 主题契约", async () =
   assert.deepEqual(validateMiniappTheme(source), []);
   assert.match(source, /@import "tailwindcss\/theme\.css" layer\(theme\);/);
   assert.match(source, /@import "tailwindcss\/utilities\.css" layer\(utilities\) source\("\."\);/);
-  assert.match(source, /@source inline\("h-mm"\);/);
+  assert.match(source, /@source inline\("[^\"]*h-mm[^\"]*"\);/);
   assert.doesNotMatch(source, /preflight\.css|\d(?:\.\d+)?(?:rem|rpx)\b/i);
   assert.deepEqual(await checkStylePolicy(repoRoot, "miniapp"), []);
 });

@@ -15,6 +15,7 @@ jest.mock("@tarojs/taro", () => ({
     getCurrentPages: jest.fn(),
     navigateBack: jest.fn(),
     redirectTo: jest.fn(),
+    switchTab: jest.fn(),
   },
 }));
 
@@ -51,6 +52,8 @@ jest.mock("@tarojs/components", () => {
         children,
       );
     },
+    Image: ({ children, ariaLabel, ...props }: React.PropsWithChildren<Record<string, unknown>>) =>
+      React.createElement("img", { ...props, "aria-label": ariaLabel }, children),
   };
 });
 
@@ -100,7 +103,7 @@ describe("AuthPage", () => {
     expect(screen.getByText("微信登录")).toHaveClass("rounded-button", "bg-brand");
   });
 
-  it("returns to the previous page for an already-bound user", async () => {
+  it("switches to the home tab for an already-bound user", async () => {
     login.mockResolvedValue({
       status: "authenticated",
       accessToken: "access",
@@ -113,12 +116,11 @@ describe("AuthPage", () => {
         userType: "pet_owner",
       },
     });
-    jest.mocked(Taro.getCurrentPages).mockReturnValue([{}, {}] as never);
-
     render(<AuthPage />);
     fireEvent.click(screen.getByText("微信登录"));
 
-    await waitFor(() => expect(Taro.navigateBack).toHaveBeenCalled());
+    await waitFor(() => expect(Taro.switchTab).toHaveBeenCalledWith({ url: "/pages/index/index" }));
+    expect(Taro.navigateBack).not.toHaveBeenCalled();
   });
 
   it("binds the authorized phone code", async () => {
@@ -133,9 +135,8 @@ describe("AuthPage", () => {
     fireEvent.click(await screen.findByText("授权手机号并登录"));
 
     await waitFor(() => expect(bindPhone).toHaveBeenCalledWith("bind-token", "phone-code"));
-    expect(Taro.redirectTo).toHaveBeenCalledWith({
-      url: "/pages/index/index",
-    });
+    expect(Taro.switchTab).toHaveBeenCalledWith({ url: "/pages/index/index" });
+    expect(Taro.navigateBack).not.toHaveBeenCalled();
   });
 
   it("shows a retry message when phone authorization is declined", async () => {
