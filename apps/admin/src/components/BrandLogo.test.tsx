@@ -51,4 +51,17 @@ describe("BrandLogo", () => {
 
     expect(screen.getByRole("img", { name: "PetCare" })).toHaveAttribute("decoding", "sync");
   });
+
+  it("provides a 2K raster source while keeping the SVG fallback", () => {
+    render(<BrandLogo variant="stacked-reverse" />);
+
+    expect(screen.getByRole("img", { name: "PetCare" })).toHaveAttribute(
+      "src",
+      "/brand/petcare-logo-stacked-reverse.svg",
+    );
+    expect(screen.getByRole("img", { name: "PetCare" }).previousElementSibling).toHaveAttribute(
+      "srcset",
+      "/brand/petcare-logo-stacked-reverse@2x.png",
+    );
+  });
 });

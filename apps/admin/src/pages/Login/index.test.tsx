@@ -113,6 +113,10 @@ describe("Login", () => {
 
     renderLogin();
 
+    expect(screen.getByRole("main")).toHaveClass("bg-linear-to-br");
+    expect(screen.getByTestId("login-card")).toHaveClass("min-h-[520px]");
+    expect(screen.getByTestId("login-form")).toHaveClass("flex-1");
+    expect(screen.getByTestId("login-welcome-label")).toHaveClass("text-text-secondary");
     expect(screen.getByTestId("login-form-panels")).toHaveClass("min-h-[240px]");
 
     await user.click(screen.getAllByRole("tab")[1]);
@@ -122,6 +126,8 @@ describe("Login", () => {
     );
     expect(screen.getByTestId("captcha-code-input")).toHaveClass("h-12");
     expect(screen.getByTestId("send-code-button")).toHaveClass("h-12");
+    expect(screen.getByTestId("captcha-row")).toHaveClass("items-center");
+    expect(screen.getByTestId("sms-code-row")).toHaveClass("items-center");
   });
 
   it("validates a Chinese mobile number before sending a code", async () => {
