@@ -95,7 +95,7 @@ export default function ProviderCertificationList() {
   }
 
   return (
-    <div className="mx-auto flex w-full max-w-[1600px] flex-col gap-6">
+    <div className="mx-auto flex w-full max-w-[1600px] flex-col gap-6 text-text-primary">
       <section className="flex flex-col justify-between gap-4 sm:flex-row sm:items-end">
         <div>
           <p className="mb-1 text-sm font-medium text-blue-700">准入审核</p>
@@ -111,7 +111,7 @@ export default function ProviderCertificationList() {
 
       <section
         aria-label="认证申请筛选"
-        className="rounded-xl border border-slate-200 bg-white p-4 shadow-sm"
+        className="rounded-xl border border-border bg-white p-4 shadow-sm transition-[box-shadow,border-color,background-color] duration-200 hover:border-brand-primary/30 hover:shadow-md"
       >
         <form
           className="grid gap-3 md:grid-cols-[minmax(260px,1fr)_180px_auto]"
@@ -129,7 +129,7 @@ export default function ProviderCertificationList() {
               value={keywordInput}
               onChange={(event) => setKeywordInput(event.target.value)}
               placeholder="搜索手机号、账号或昵称"
-              className="h-11 w-full rounded-lg border border-slate-300 pl-9 pr-3 text-sm outline-none focus:border-blue-600 focus:ring-2 focus:ring-blue-600/20"
+              className="h-11 w-full rounded-lg border border-border bg-white pl-9 pr-3 text-sm text-text-primary outline-none transition-colors hover:border-brand-primary/60 focus-visible:border-brand-primary focus-visible:ring-2 focus-visible:ring-brand-primary/20"
             />
           </label>
           <label>
@@ -143,7 +143,7 @@ export default function ProviderCertificationList() {
                 );
                 setPage(1);
               }}
-              className="h-11 w-full cursor-pointer rounded-lg border border-slate-300 bg-white px-3 text-sm outline-none focus:border-blue-600 focus:ring-2 focus:ring-blue-600/20"
+              className="h-11 w-full cursor-pointer rounded-lg border border-border bg-white px-3 text-sm text-text-secondary outline-none transition-colors hover:border-brand-primary/60 active:bg-page-background focus-visible:border-brand-primary focus-visible:ring-2 focus-visible:ring-brand-primary/20"
             >
               <option value="">全部状态</option>
               <option value="pending">待审核</option>
@@ -153,7 +153,7 @@ export default function ProviderCertificationList() {
           </label>
           <button
             type="submit"
-            className="h-11 cursor-pointer rounded-lg bg-blue-700 px-5 text-sm font-semibold text-white hover:bg-blue-800 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-blue-600 focus-visible:ring-offset-2"
+            className="h-11 cursor-pointer rounded-lg bg-brand-primary px-5 text-sm font-semibold text-white transition-colors hover:bg-brand-primary-hover active:bg-brand-primary-hover focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-brand-primary focus-visible:ring-offset-2 disabled:cursor-not-allowed disabled:bg-slate-400"
           >
             查询
           </button>
@@ -162,12 +162,12 @@ export default function ProviderCertificationList() {
 
       <section
         aria-label="认证申请列表"
-        className="overflow-hidden rounded-xl border border-slate-200 bg-white shadow-sm"
+        className="overflow-hidden rounded-xl border border-border bg-white shadow-sm transition-[box-shadow,border-color,background-color] duration-200 hover:border-brand-primary/30 hover:shadow-md"
       >
         {query.isPending ? (
           <div aria-label="正在加载认证申请" className="space-y-3 p-5">
             {Array.from({ length: 5 }, (_, index) => (
-              <div key={index} className="h-16 animate-pulse rounded-lg bg-slate-100" />
+              <div key={index} className="h-16 rounded-lg bg-slate-100 animate-[pc-skeleton-shimmer_220ms_linear_infinite] motion-reduce:animate-none" />
             ))}
           </div>
         ) : null}
@@ -199,7 +199,7 @@ export default function ProviderCertificationList() {
             {query.data.list.map((application) => (
               <li
                 key={application.id}
-                className="flex flex-col gap-4 p-5 transition-colors hover:bg-slate-50/70 md:flex-row md:items-center"
+                className="flex flex-col gap-4 border-border p-5 transition-[background-color,border-color] duration-200 hover:bg-page-background hover:border-border md:flex-row md:items-center"
               >
                 <div className="min-w-0 flex-1">
                   <div className="flex flex-wrap items-center gap-2">

@@ -22,4 +22,18 @@ describe("Dashboard", () => {
     );
     expect(screen.getByRole("link", { name: "查看待处理纠纷" })).toHaveAttribute("href", "/orders");
   });
+
+  it("applies keyboard and pointer states to dashboard actions", () => {
+    render(
+      <MemoryRouter>
+        <Dashboard />
+      </MemoryRouter>,
+    );
+    const action = screen.getAllByRole("link")[0];
+
+    expect(action).toHaveClass("cursor-pointer");
+    expect(action.className).toContain("hover:");
+    expect(action.className).toContain("active:");
+    expect(action.className).toContain("focus-visible:");
+  });
 });

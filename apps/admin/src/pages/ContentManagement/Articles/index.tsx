@@ -49,7 +49,7 @@ function StatusBadge({ status }: { status: AdminClassroomArticleStatus }) {
 
 function ArticleRow({ article }: { article: AdminClassroomArticleListItem }) {
   return (
-    <tr className="border-t border-slate-100 align-top">
+    <tr className="border-t border-border align-top transition-[background-color,border-color] duration-200 hover:bg-page-background hover:border-border">
       <td className="px-5 py-4">
         <div className="flex min-w-[320px] items-start gap-3">
           <div className="flex h-12 w-16 shrink-0 items-center justify-center overflow-hidden rounded-lg bg-slate-100 text-slate-300">
@@ -109,7 +109,7 @@ export default function ContentArticles() {
   }
 
   return (
-    <div className="mx-auto flex w-full max-w-[1600px] flex-col gap-6">
+    <div className="mx-auto flex w-full max-w-[1600px] flex-col gap-6 text-text-primary">
       <section className="flex flex-col justify-between gap-4 sm:flex-row sm:items-end">
         <div>
           <p className="mb-1 text-sm font-medium text-blue-700">内容管理</p>
@@ -124,7 +124,7 @@ export default function ContentArticles() {
 
       <section
         aria-label="课堂文章筛选"
-        className="rounded-xl border border-slate-200 bg-white p-4 shadow-sm"
+        className="rounded-xl border border-border bg-white p-4 shadow-sm transition-[box-shadow,border-color,background-color] duration-200 hover:border-brand-primary/30 hover:shadow-md"
       >
         <form
           className="grid gap-3 md:grid-cols-[minmax(260px,1fr)_170px_auto]"
@@ -142,7 +142,7 @@ export default function ContentArticles() {
               value={keywordInput}
               onChange={(event) => setKeywordInput(event.target.value)}
               placeholder="搜索标题、摘要或正文"
-              className="h-11 w-full rounded-lg border border-slate-300 bg-white pl-9 pr-3 text-sm text-slate-900 outline-none placeholder:text-slate-400 focus:border-blue-600 focus:ring-2 focus:ring-blue-600/20"
+              className="h-11 w-full rounded-lg border border-border bg-white pl-9 pr-3 text-sm text-text-primary outline-none transition-colors placeholder:text-text-secondary hover:border-brand-primary/60 focus-visible:border-brand-primary focus-visible:ring-2 focus-visible:ring-brand-primary/20"
             />
           </label>
           <label>
@@ -156,7 +156,7 @@ export default function ContentArticles() {
                 );
                 setPage(1);
               }}
-              className="h-11 w-full cursor-pointer rounded-lg border border-slate-300 bg-white px-3 text-sm text-slate-700 outline-none focus:border-blue-600 focus:ring-2 focus:ring-blue-600/20"
+              className="h-11 w-full cursor-pointer rounded-lg border border-border bg-white px-3 text-sm text-text-secondary outline-none transition-colors hover:border-brand-primary/60 active:bg-page-background focus-visible:border-brand-primary focus-visible:ring-2 focus-visible:ring-brand-primary/20"
             >
               <option value="">全部文章状态</option>
               <option value="draft">草稿</option>
@@ -167,7 +167,7 @@ export default function ContentArticles() {
           <div className="flex gap-2">
             <button
               type="submit"
-              className="inline-flex h-11 flex-1 items-center justify-center rounded-lg bg-blue-700 px-4 text-sm font-semibold text-white hover:bg-blue-800 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-blue-600 focus-visible:ring-offset-2"
+              className="inline-flex h-11 flex-1 cursor-pointer items-center justify-center rounded-lg bg-brand-primary px-4 text-sm font-semibold text-white transition-colors hover:bg-brand-primary-hover active:bg-brand-primary-hover focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-brand-primary focus-visible:ring-offset-2 disabled:cursor-not-allowed disabled:bg-slate-400"
             >
               查询
             </button>
@@ -175,7 +175,7 @@ export default function ContentArticles() {
               type="button"
               aria-label="重置筛选"
               onClick={resetFilters}
-              className="flex h-11 w-11 items-center justify-center rounded-lg border border-slate-300 text-slate-600 hover:bg-slate-50"
+              className="flex h-11 w-11 cursor-pointer items-center justify-center rounded-lg border border-border text-text-secondary transition-colors hover:border-brand-primary/60 hover:bg-page-background active:bg-slate-100 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-brand-primary disabled:cursor-not-allowed disabled:bg-slate-100 disabled:text-slate-400"
             >
               <RotateCcw aria-hidden="true" className="h-4 w-4" />
             </button>
@@ -185,12 +185,12 @@ export default function ContentArticles() {
 
       <section
         aria-label="课堂文章列表"
-        className="overflow-hidden rounded-xl border border-slate-200 bg-white shadow-sm"
+        className="overflow-hidden rounded-xl border border-border bg-white shadow-sm transition-[box-shadow,border-color,background-color] duration-200 hover:border-brand-primary/30 hover:shadow-md"
       >
         {query.isPending && (
           <div aria-label="正在加载课堂文章" className="space-y-3 p-5">
             {Array.from({ length: 5 }, (_, index) => (
-              <div key={index} className="h-16 animate-pulse rounded-lg bg-slate-100" />
+              <div key={index} className="h-16 rounded-lg bg-slate-100 animate-[pc-skeleton-shimmer_220ms_linear_infinite] motion-reduce:animate-none" />
             ))}
           </div>
         )}
@@ -248,7 +248,7 @@ export default function ContentArticles() {
                   aria-label="上一页"
                   disabled={page <= 1}
                   onClick={() => setPage((value) => Math.max(1, value - 1))}
-                  className="flex h-9 w-9 items-center justify-center rounded-lg border border-slate-200 disabled:cursor-not-allowed disabled:opacity-40"
+                  className="flex h-9 w-9 cursor-pointer items-center justify-center rounded-lg border border-border text-text-secondary transition-colors hover:border-brand-primary/60 hover:bg-page-background active:bg-slate-100 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-brand-primary disabled:cursor-not-allowed disabled:bg-slate-100 disabled:text-slate-400 disabled:opacity-60"
                 >
                   <ChevronLeft aria-hidden="true" className="h-4 w-4" />
                 </button>
@@ -257,7 +257,7 @@ export default function ContentArticles() {
                   aria-label="下一页"
                   disabled={page >= totalPages}
                   onClick={() => setPage((value) => Math.min(totalPages, value + 1))}
-                  className="flex h-9 w-9 items-center justify-center rounded-lg border border-slate-200 disabled:cursor-not-allowed disabled:opacity-40"
+                  className="flex h-9 w-9 cursor-pointer items-center justify-center rounded-lg border border-border text-text-secondary transition-colors hover:border-brand-primary/60 hover:bg-page-background active:bg-slate-100 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-brand-primary disabled:cursor-not-allowed disabled:bg-slate-100 disabled:text-slate-400 disabled:opacity-60"
                 >
                   <ChevronRight aria-hidden="true" className="h-4 w-4" />
                 </button>
