@@ -10,6 +10,19 @@ function getNavigationHrefs(root: HTMLElement) {
 }
 
 describe("Sidebar", () => {
+  it("uses the reverse PetCare brand symbol with an accessible label", () => {
+    render(
+      <MemoryRouter>
+        <Sidebar />
+      </MemoryRouter>,
+    );
+
+    expect(screen.getByRole("img", { name: "PetCare 运营管理中心" })).toHaveAttribute(
+      "src",
+      "/brand/petcare-symbol-reverse.svg",
+    );
+  });
+
   it("renders module and page routes as one expandable navigation tree", () => {
     render(
       <MemoryRouter initialEntries={["/orders/complaints"]}>
@@ -40,6 +53,8 @@ describe("Sidebar", () => {
     const toggle = tree.getByRole("button", { name: "订单管理菜单" });
 
     expect(toggle).toHaveAttribute("aria-expanded", "true");
+    expect(toggle).toHaveClass("cursor-pointer");
+    expect(toggle.className).toContain("focus-visible:");
     expect(tree.getByRole("link", { name: "订单管理" })).toHaveClass("bg-blue-600");
     expect(tree.getByRole("link", { name: "投诉与纠纷" })).toBeInTheDocument();
 

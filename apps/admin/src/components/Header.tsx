@@ -21,7 +21,7 @@ export function Header({ onMenuOpen }: HeaderProps) {
         <button
           type="button"
           aria-label="打开导航"
-          className="flex h-11 w-11 cursor-pointer items-center justify-center rounded-lg text-slate-600 transition-colors hover:bg-slate-100 hover:text-slate-950 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-blue-600 lg:hidden"
+          className="flex h-11 w-11 cursor-pointer items-center justify-center rounded-lg text-slate-600 transition-colors hover:bg-slate-100 hover:text-slate-950 active:bg-slate-200 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-blue-600 lg:hidden"
           onClick={onMenuOpen}
         >
           <Menu aria-hidden="true" className="h-5 w-5" />
@@ -36,7 +36,7 @@ export function Header({ onMenuOpen }: HeaderProps) {
         <button
           type="button"
           aria-label="通知，3 条未读"
-          className="relative flex h-11 w-11 cursor-pointer items-center justify-center rounded-lg text-slate-500 transition-colors hover:bg-slate-100 hover:text-slate-900 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-blue-600"
+          className="relative flex h-11 w-11 cursor-pointer items-center justify-center rounded-lg text-slate-500 transition-colors hover:bg-slate-100 hover:text-slate-900 active:bg-slate-200 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-blue-600"
         >
           <Bell aria-hidden="true" className="h-5 w-5" />
           <span className="absolute right-2 top-2 h-2 w-2 rounded-full border-2 border-white bg-red-500" />
@@ -44,7 +44,11 @@ export function Header({ onMenuOpen }: HeaderProps) {
 
         <div className="mx-1 hidden h-7 w-px bg-slate-200 sm:block" />
 
-        <div className="hidden min-w-0 items-center gap-2.5 px-2 sm:flex">
+        <div
+          data-testid="header-user-info"
+          tabIndex={0}
+          className="hidden min-w-0 cursor-pointer items-center gap-2.5 rounded-lg px-2 py-1 transition-colors hover:bg-slate-100 active:bg-slate-200 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-blue-600 sm:flex"
+        >
           <span className="flex h-8 w-8 shrink-0 items-center justify-center rounded-full bg-blue-50 text-blue-700">
             <UserRound aria-hidden="true" className="h-4 w-4" />
           </span>
@@ -59,7 +63,7 @@ export function Header({ onMenuOpen }: HeaderProps) {
         <button
           type="button"
           aria-label="退出登录"
-          className="flex h-11 w-11 cursor-pointer items-center justify-center rounded-lg text-slate-500 transition-colors hover:bg-red-50 hover:text-red-700 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-red-600"
+          className="flex h-11 w-11 cursor-pointer items-center justify-center rounded-lg text-slate-500 transition-colors hover:bg-red-50 hover:text-red-700 active:bg-red-100 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-red-600"
           onClick={handleLogout}
         >
           <LogOut aria-hidden="true" className="h-5 w-5" />
