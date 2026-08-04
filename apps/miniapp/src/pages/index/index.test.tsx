@@ -19,6 +19,16 @@ jest.mock("@tarojs/components", () => {
       React.createElement("span", props, children),
     Button: ({ children, ...props }: React.PropsWithChildren<Record<string, unknown>>) =>
       React.createElement("button", props, children),
+    Image: ({ children, ariaLabel, ...props }: React.PropsWithChildren<Record<string, unknown>>) =>
+      React.createElement("img", { ...props, "aria-label": ariaLabel }, children),
+    Icon: ({ ariaLabel, type }: { ariaLabel?: string; type: string }) =>
+      React.createElement("span", { role: "img", "aria-label": ariaLabel, "data-icon": type }),
+    ScrollView: ({ children }: React.PropsWithChildren<Record<string, unknown>>) =>
+      React.createElement("div", null, children),
+    Swiper: ({ children }: React.PropsWithChildren<Record<string, unknown>>) =>
+      React.createElement("div", null, children),
+    SwiperItem: ({ children }: React.PropsWithChildren<Record<string, unknown>>) =>
+      React.createElement("div", null, children),
   };
 });
 
@@ -76,8 +86,13 @@ describe("Index Page", () => {
 
     const { container } = render(<Index />);
 
-    expect(container.firstElementChild).toHaveClass("box-border", "flex", "min-h-screen", "p-page");
-    expect(screen.getByText("PetCare宠伴")).toHaveClass("text-hero", "text-ink");
+    expect(container.firstElementChild).toHaveClass(
+      "box-border",
+      "min-h-screen",
+      "bg-surface",
+      "p-page",
+    );
+    expect(screen.getByText("PetCare宠伴")).toHaveClass("text-subtitle", "text-ink-strong");
     expect(screen.getByText("微信登录")).toHaveClass("w-action", "rounded-button", "bg-brand");
   });
 
@@ -101,5 +116,32 @@ describe("Index Page", () => {
 
     expect(screen.getByText(/宠友1878/)).toBeInTheDocument();
     expect(logout).toHaveBeenCalled();
+  });
+
+  it("renders the v45 home sections and routes to the bounty tab", () => {
+    jest.mocked(useAuth).mockReturnValue({
+      status: "authenticated",
+      user: {
+        id: "user-1",
+        phone: "13800138000",
+        nickname: "宠友1878",
+        avatar: null,
+        userType: "pet_owner",
+      },
+      login: jest.fn(),
+      bindPhone: jest.fn(),
+      logout,
+    });
+
+    render(<Index />);
+
+    expect(screen.getByText("每一次托付，都值得信赖")).toBeInTheDocument();
+    expect(screen.getByText("热门悬赏")).toBeInTheDocument();
+    expect(screen.getByText("养宠小课堂")).toBeInTheDocument();
+    expect(screen.getByText("社区精选")).toBeInTheDocument();
+
+    fireEvent.click(screen.getByRole("button", { name: "查看全部悬赏" }));
+
+    expect(Taro.navigateTo).toHaveBeenCalledWith({ url: "/pages/bounty/index" });
   });
 });

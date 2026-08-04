@@ -3,6 +3,7 @@ import Taro from "@tarojs/taro";
 import { useRef, useState } from "react";
 import { MiniappApiError } from "../../api/request";
 import { useAuth } from "../../auth/auth.context";
+import BrandLogo from "../../components/brand/BrandLogo";
 
 interface PhoneNumberEvent {
   detail: {
@@ -87,8 +88,15 @@ export default function AuthPage() {
   };
 
   return (
-    <View className="box-border flex min-h-screen items-center justify-center bg-surface-muted px-section py-page-y">
-      <View className="box-border w-full rounded-card bg-white px-section py-page shadow-card">
+    <View className="box-border flex min-h-screen flex-col items-center justify-center bg-surface-muted px-section py-page-y">
+      <View className="flex w-full flex-col items-center">
+        <BrandLogo label="PetCare 宠伴品牌 Logo" />
+        <Text className="mt-compact text-subtitle font-semibold text-brand-strong">
+          Trusted Pet Companion Platform
+        </Text>
+      </View>
+
+      <View className="box-border mt-section w-full rounded-card bg-white px-section py-page shadow-card">
         <Text className="block text-heading font-bold text-ink-strong">登录 PetCare 宠伴</Text>
         <Text className="mt-note block text-description text-muted-brand">
           登录后可发布需求、接单并管理你的宠物服务。
@@ -115,6 +123,9 @@ export default function AuthPage() {
           </Button>
         )}
 
+        <Text className="mt-compact block text-center text-base text-muted-brand">
+          我们会保护你的账号与宠物信息
+        </Text>
         {error ? <Text className="mt-compact block text-base text-danger">{error}</Text> : null}
       </View>
     </View>
@@ -122,9 +133,5 @@ export default function AuthPage() {
 }
 
 async function completeLogin(): Promise<void> {
-  if (Taro.getCurrentPages().length > 1) {
-    await Taro.navigateBack();
-  } else {
-    await Taro.redirectTo({ url: "/pages/index/index" });
-  }
+  await Taro.switchTab({ url: "/pages/index/index" });
 }
