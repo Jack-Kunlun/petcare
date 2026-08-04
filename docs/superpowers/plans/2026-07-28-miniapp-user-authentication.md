@@ -1033,25 +1033,27 @@ try {
 认证页测试覆盖：
 
 ```typescript
-it("shows phone authorization only after a first-time login", async () => {
+it("uses the phone authorization code from the same login action", async () => {
   login.mockResolvedValue({
     status: "phone_required",
     bindToken: "bind-token",
   });
+  bindPhone.mockResolvedValue(undefined);
 
   render(<AuthPage />);
   fireEvent.click(screen.getByText("微信登录"));
 
-  expect(await screen.findByText("授权手机号并登录")).toBeInTheDocument();
+  await waitFor(() => expect(bindPhone).toHaveBeenCalledWith("bind-token", "phone-code"));
+  expect(Taro.switchTab).toHaveBeenCalledWith({ url: "/pages/index/index" });
 });
 ```
 
 继续覆盖：
 
 - 已绑定用户登录成功后调用 `Taro.switchTab({ url: "/pages/index/index" })`；
-- `getPhoneNumber` 返回 code 时调用 `bindPhone("bind-token", code)`；
+- 主按钮的 `openType="getPhoneNumber"` 回调返回 code 时调用 `bindPhone("bind-token", code)`；
 - 用户拒绝授权时不调用 Server，显示可重试提示；
-- `AUTH_BIND_TOKEN_EXPIRED` 时清除页面 bindToken，重新显示微信登录；
+- `AUTH_BIND_TOKEN_EXPIRED` 时提示重新微信登录；
 - 网络或微信错误显示安全提示；
 - 重复点击时按钮 loading/disabled，不能发送并发登录或绑定。
 
@@ -1077,21 +1079,20 @@ Expected: 认证页缺失且首页断言失败。
 认证页只维护瞬时：
 
 ```typescript
-const [bindToken, setBindToken] = useState<string | null>(null);
 const [pending, setPending] = useState(false);
 const [error, setError] = useState("");
 ```
 
-手机号按钮使用：
+微信登录按钮直接使用手机号授权能力：
 
 ```tsx
 <Button
   openType="getPhoneNumber"
   loading={pending}
   disabled={pending}
-  onGetPhoneNumber={handleGetPhoneNumber}
+  onGetPhoneNumber={handleWechatLogin}
 >
-  授权手机号并登录
+  微信登录
 </Button>
 ```
 
