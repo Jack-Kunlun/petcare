@@ -9,6 +9,7 @@ const adminPort = Number(process.env.ADMIN_E2E_ADMIN_PORT || 8986);
 const currentDir = path.dirname(fileURLToPath(import.meta.url));
 
 export default defineConfig({
+  cacheDir: process.env.ADMIN_E2E_VITE_CACHE_DIR || "node_modules/.vite",
   plugins: [react(), tailwindcss()],
   resolve: {
     alias: {
