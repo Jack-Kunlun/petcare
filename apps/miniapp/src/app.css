@@ -34,12 +34,15 @@
   --spacing-logo-md: 48px;
   --spacing-logo-lockup: 180px;
   --spacing-hero-height: 170px;
-  --spacing-tab-height: 52px;
+  --spacing-tab-height: 64px;
+  --spacing-tab-label: 4px;
   --spacing-safe-bottom: 72px;
   --spacing-overlay: 0px;
 
   --text-base: 14px;
   --text-base--line-height: 20px;
+  --text-tab: 15px;
+  --text-tab--line-height: 22px;
   --text-description: 15px;
   --text-description--line-height: 24px;
   --text-subtitle: 16px;

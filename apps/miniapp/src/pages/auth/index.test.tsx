@@ -47,6 +47,7 @@ jest.mock("@tarojs/components", () => {
         "button",
         {
           ...props,
+          "data-open-type": openType,
           onClick: onClick ?? (() => onGetPhoneNumber?.({ detail: mockPhoneDetail })),
         },
         children,
@@ -78,16 +79,22 @@ describe("AuthPage", () => {
     jest.mocked(Taro.getCurrentPages).mockReturnValue([{}] as never);
   });
 
-  it("shows phone authorization only after a first-time login", async () => {
+  it("uses the phone authorization code from the same login action", async () => {
     login.mockResolvedValue({
       status: "phone_required",
       bindToken: "bind-token",
     });
+    bindPhone.mockResolvedValue(undefined);
 
     render(<AuthPage />);
-    fireEvent.click(screen.getByText("微信登录"));
+    const loginButton = screen.getByRole("button", { name: "微信登录" });
 
-    expect(await screen.findByText("授权手机号并登录")).toBeInTheDocument();
+    expect(loginButton).toHaveAttribute("data-open-type", "getPhoneNumber");
+
+    fireEvent.click(loginButton);
+
+    await waitFor(() => expect(bindPhone).toHaveBeenCalledWith("bind-token", "phone-code"));
+    expect(Taro.switchTab).toHaveBeenCalledWith({ url: "/pages/index/index" });
   });
 
   it("uses semantic Tailwind tokens without unsafe syntax", () => {
@@ -132,7 +139,6 @@ describe("AuthPage", () => {
 
     render(<AuthPage />);
     fireEvent.click(screen.getByText("微信登录"));
-    fireEvent.click(await screen.findByText("授权手机号并登录"));
 
     await waitFor(() => expect(bindPhone).toHaveBeenCalledWith("bind-token", "phone-code"));
     expect(Taro.switchTab).toHaveBeenCalledWith({ url: "/pages/index/index" });
@@ -148,7 +154,6 @@ describe("AuthPage", () => {
 
     render(<AuthPage />);
     fireEvent.click(screen.getByText("微信登录"));
-    fireEvent.click(await screen.findByText("授权手机号并登录"));
 
     expect(await screen.findByText("需要授权手机号才能完成登录，请重试")).toBeInTheDocument();
     expect(bindPhone).not.toHaveBeenCalled();
@@ -165,7 +170,6 @@ describe("AuthPage", () => {
 
     render(<AuthPage />);
     fireEvent.click(screen.getByText("微信登录"));
-    fireEvent.click(await screen.findByText("授权手机号并登录"));
 
     expect(await screen.findByText("登录状态已过期，请重新微信登录")).toBeInTheDocument();
     expect(screen.getByText("微信登录")).toBeInTheDocument();
@@ -189,6 +193,6 @@ describe("AuthPage", () => {
     expect(login).toHaveBeenCalledTimes(1);
 
     resolveLogin?.({ status: "phone_required", bindToken: "bind-token" });
-    expect(await screen.findByText("授权手机号并登录")).toBeInTheDocument();
+    await waitFor(() => expect(bindPhone).toHaveBeenCalledWith("bind-token", "phone-code"));
   });
 });
