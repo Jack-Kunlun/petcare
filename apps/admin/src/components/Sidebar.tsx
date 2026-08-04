@@ -3,6 +3,7 @@ import {
   BadgeCheck,
   ChevronDown,
   ChevronRight,
+  FileText,
   House,
   MessageSquareWarning,
   Settings,
@@ -32,6 +33,7 @@ const icons: Record<string, LucideIcon> = {
   ShoppingBag,
   Settings,
   BadgeCheck,
+  FileText,
   MessageSquareWarning,
   ShieldCheck,
 };
