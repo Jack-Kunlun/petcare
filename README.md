@@ -131,7 +131,7 @@ pnpm check
 - **Prettier**: `.prettierrc.json` - 代码格式化（双引号、2空格缩进）
 - **ESLint**: `packages/eslint-config-base` - 共享基础配置，所有子项目继承
 - **Commitlint**: `commitlint.config.js` - Git commit消息规范
-- **Husky**: `.husky/` - Git hooks自动化检查（提交前自动格式化和lint）
+- **Husky**: `.husky/` - Git hooks自动化检查（提交前格式化、lint、类型检查和E2E）
 - **Tailwind CSS v4**: Admin 与 Miniapp 均采用 CSS-first；默认字号 `14px`，尺寸使用自适应布局与 `px` token
 
 ### 常用命令
@@ -151,6 +151,9 @@ pnpm typecheck
 
 # 运行所有测试
 pnpm test
+
+# 运行提交前门禁（不执行完整构建）
+pnpm commit:check
 
 # 完整质量门禁
 pnpm check

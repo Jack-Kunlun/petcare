@@ -1,5 +1,6 @@
 import { rm } from "node:fs/promises";
 import { isAbsolute, relative, resolve } from "node:path";
+import process from "node:process";
 import { fileURLToPath } from "node:url";
 
 export async function cleanPaths(root, relativePaths) {
