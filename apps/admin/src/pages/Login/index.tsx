@@ -141,13 +141,16 @@ export default function Login() {
     "mt-2 h-12 w-full rounded-lg border border-border bg-white px-3 text-text-primary outline-none transition duration-150 ease-out placeholder:text-text-secondary hover:border-brand-primary/60 focus-visible:border-brand-primary focus-visible:ring-2 focus-visible:ring-brand-primary/20 disabled:cursor-not-allowed disabled:bg-slate-100 disabled:text-text-secondary";
 
   return (
-    <main className="relative isolate grid min-h-screen place-items-center overflow-hidden bg-page-background p-4 sm:p-6">
+    <main className="relative isolate grid min-h-screen place-items-center overflow-hidden bg-linear-to-br from-page-background via-white to-blue-50 p-4 sm:p-6">
       <div aria-hidden="true" className="pointer-events-none absolute inset-0">
         <span className="absolute left-12 top-10 h-40 w-40 rounded-full bg-brand-primary/10 blur-3xl" />
         <span className="absolute bottom-8 right-10 h-52 w-52 rounded-full bg-care-secondary/10 blur-3xl" />
       </div>
 
-      <section className="relative z-10 grid w-full max-w-[896px] overflow-hidden rounded-2xl border border-border bg-white shadow-xl md:grid-cols-[minmax(280px,0.9fr)_minmax(320px,1.1fr)]">
+      <section
+        data-testid="login-card"
+        className="relative z-10 grid min-h-[520px] w-full max-w-[896px] overflow-hidden rounded-2xl border border-border bg-white shadow-xl md:grid-cols-[minmax(280px,0.9fr)_minmax(320px,1.1fr)]"
+      >
         <aside className="relative flex min-h-72 flex-col justify-between overflow-hidden bg-linear-to-br from-brand-primary via-brand-primary-hover to-slate-950 p-6 text-white sm:p-8 md:min-h-[520px]">
           <div aria-hidden="true" className="pointer-events-none absolute inset-0 opacity-40">
             <span className="absolute -right-16 -top-20 h-64 w-64 rounded-full border border-white/20" />
@@ -186,9 +189,14 @@ export default function Login() {
           </div>
         </aside>
 
-        <div className="bg-white p-6 sm:p-8 md:p-10">
+        <div className="flex min-h-[520px] flex-col bg-white p-6 sm:p-8 md:p-10">
           <div className="mb-6">
-            <p className="text-sm font-medium text-brand-primary">欢迎回来</p>
+            <p
+              data-testid="login-welcome-label"
+              className="text-sm font-semibold text-text-secondary"
+            >
+              欢迎回来
+            </p>
             <h2 className="mt-2 text-2xl font-bold text-text-primary">登录 PetCare</h2>
             <p className="mt-2 text-sm text-text-secondary">使用管理员身份继续</p>
           </div>
@@ -230,8 +238,8 @@ export default function Login() {
             </button>
           </div>
 
-          <form className="space-y-5" onSubmit={handleSubmit}>
-            <div data-testid="login-form-panels" className="min-h-[240px]">
+          <form data-testid="login-form" className="flex flex-1 flex-col" onSubmit={handleSubmit}>
+            <div data-testid="login-form-panels" className="min-h-[240px] flex-1">
               {mode === "password" ? (
                 <div
                   id="password-login-panel"
@@ -277,7 +285,7 @@ export default function Login() {
                   </label>
                   <label className="block text-sm font-medium text-text-secondary">
                     图形验证码
-                    <span className="mt-2 flex gap-2">
+                    <span data-testid="captcha-row" className="mt-2 flex items-center gap-2">
                       <input
                         data-testid="captcha-code-input"
                         inputMode="numeric"
@@ -322,7 +330,7 @@ export default function Login() {
                   </label>
                   <label className="block text-sm font-medium text-text-secondary">
                     验证码
-                    <span className="mt-2 flex gap-2">
+                    <span data-testid="sms-code-row" className="mt-2 flex items-center gap-2">
                       <input
                         inputMode="numeric"
                         className={inputClassName.replace("w-full", "min-w-0 flex-1")}
@@ -346,15 +354,17 @@ export default function Login() {
             </div>
 
             {error ? (
-              <p role="alert" aria-live="polite" className="text-sm text-red-600">
+              <p role="alert" aria-live="polite" className="mt-5 min-h-5 text-sm text-red-600">
                 {error}
               </p>
-            ) : null}
+            ) : (
+              <p aria-hidden="true" className="mt-5 min-h-5" />
+            )}
 
             <button
               type="submit"
               disabled={pending}
-              className="min-h-12 w-full cursor-pointer rounded-lg bg-brand-primary px-4 py-3 font-medium text-white transition duration-150 hover:bg-brand-primary-hover active:scale-[0.99] focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-brand-primary disabled:cursor-not-allowed disabled:bg-slate-400"
+              className="mt-5 min-h-12 w-full cursor-pointer rounded-lg bg-brand-primary px-4 py-3 font-medium text-white transition duration-150 hover:bg-brand-primary-hover active:scale-[0.99] focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-brand-primary disabled:cursor-not-allowed disabled:bg-slate-400"
             >
               {pending ? "登录中…" : "登录"}
             </button>
