@@ -64,3 +64,21 @@ tmp/
 
 # Added by code-review-graph
 .code-review-graph/
+.code-review-graphignore
+
+# WorkBuddy
+.workbuddy/
+
+# CodeBuddy (project-level skills, agent configs)
+.codebuddy/
+
+# Build audit files (SWC/NestJS CLI)
+apps/server/.*-audit.json
+
+# Work & cache directories
+work/
+.cache/
+
+# Tool-generated artifacts
+design-system/
+generated-images/
