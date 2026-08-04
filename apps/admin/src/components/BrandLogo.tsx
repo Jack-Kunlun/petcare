@@ -16,10 +16,10 @@ const sources = {
 } as const;
 
 const rasterSources = {
-  color: "/brand/petcare-symbol-color@2x.png",
-  reverse: "/brand/petcare-symbol-reverse@2x.png",
-  "stacked-color": "/brand/petcare-logo-stacked-color@2x.png",
-  "stacked-reverse": "/brand/petcare-logo-stacked-reverse@2x.png",
+  color: "/brand/petcare-symbol-color-4096.png",
+  reverse: "/brand/petcare-symbol-reverse-4096.png",
+  "stacked-color": "/brand/petcare-logo-stacked-color-4096.png",
+  "stacked-reverse": "/brand/petcare-logo-stacked-reverse-4096.png",
 } as const;
 
 /** Renders one of the public PetCare logo assets with an accessible label. */
