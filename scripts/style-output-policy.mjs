@@ -22,9 +22,9 @@ const MINIAPP_REQUIRED_DECLARATIONS = [
     ],
   },
   {
-    label: "border-radius:12px",
+    label: "border-radius:8px",
     patterns: [
-      /--radius-button\s*:\s*12px\b/,
+      /--radius-button\s*:\s*8px\b/,
       /\.rounded-button\s*\{[^}]*border-radius\s*:\s*var\(--radius-button\)/s,
     ],
   },

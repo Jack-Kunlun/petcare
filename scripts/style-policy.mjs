@@ -114,8 +114,8 @@ export function validateMiniappTheme(source) {
     ["--spacing-mm", "20px"],
     ["--spacing-action", "240px"],
     ["--text-base", "14px"],
-    ["--radius-button", "12px"],
-    ["--color-brand", "#20a66a"],
+    ["--radius-button", "8px"],
+    ["--color-brand", "#4a6cf7"],
   ];
 
   if (!themeMatch) {
