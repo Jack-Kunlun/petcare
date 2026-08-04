@@ -95,7 +95,7 @@ const todos = [
 
 export default function Dashboard() {
   return (
-    <div className="mx-auto flex w-full max-w-[1600px] flex-col gap-6">
+    <div className="mx-auto flex w-full max-w-[1600px] flex-col gap-6 text-text-primary">
       <section className="flex flex-col justify-between gap-4 sm:flex-row sm:items-end">
         <div>
           <p className="mb-1 text-sm font-medium text-blue-700">控制台</p>
@@ -117,7 +117,7 @@ export default function Dashboard() {
           return (
             <article
               key={metric.label}
-              className="rounded-xl border border-slate-200 bg-white p-5 shadow-sm transition-shadow duration-200 hover:shadow-md"
+              className="rounded-xl border border-border bg-white p-5 shadow-sm transition-[box-shadow,border-color,background-color] duration-200 hover:border-brand-primary/30 hover:shadow-md"
             >
               <div className="flex items-start justify-between gap-4">
                 <div>
@@ -143,7 +143,7 @@ export default function Dashboard() {
       </section>
 
       <div className="grid gap-6 xl:grid-cols-[minmax(0,1.55fr)_minmax(320px,0.8fr)]">
-        <section className="rounded-xl border border-slate-200 bg-white p-5 shadow-sm">
+        <section className="rounded-xl border border-border bg-white p-5 shadow-sm transition-[box-shadow,border-color,background-color] duration-200 hover:border-brand-primary/30 hover:shadow-md">
           <div className="flex items-start justify-between gap-4">
             <div>
               <h2 className="text-base font-semibold text-slate-950">订单趋势</h2>
@@ -190,7 +190,7 @@ export default function Dashboard() {
           </table>
         </section>
 
-        <section className="rounded-xl border border-slate-200 bg-white p-5 shadow-sm">
+        <section className="rounded-xl border border-border bg-white p-5 shadow-sm transition-[box-shadow,border-color,background-color] duration-200 hover:border-brand-primary/30 hover:shadow-md">
           <div className="flex items-center justify-between gap-4">
             <div>
               <h2 className="text-base font-semibold text-slate-950">待处理事项</h2>
@@ -213,7 +213,7 @@ export default function Dashboard() {
                     <p className="mt-1 text-xs leading-5 text-slate-500">{todo.description}</p>
                     <Link
                       to={todo.path}
-                      className="mt-2 inline-flex cursor-pointer items-center rounded-sm text-xs font-semibold text-blue-700 outline-none transition-colors hover:text-blue-900 focus-visible:ring-2 focus-visible:ring-blue-600 focus-visible:ring-offset-2"
+                      className="mt-2 inline-flex cursor-pointer items-center rounded-sm text-xs font-semibold text-brand-primary outline-none transition-colors hover:text-brand-primary-hover active:text-brand-primary-hover focus-visible:ring-2 focus-visible:ring-brand-primary focus-visible:ring-offset-2"
                     >
                       {todo.action}
                       <ArrowRight aria-hidden="true" className="ml-1 h-3.5 w-3.5" />

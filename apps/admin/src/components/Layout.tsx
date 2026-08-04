@@ -2,6 +2,7 @@ import { useState } from "react";
 import { Outlet } from "react-router-dom";
 import { useAuth } from "../auth/auth.context";
 import { Header } from "../components/Header";
+import { PageTransition } from "../components/PageTransition";
 import { Sidebar } from "../components/Sidebar";
 
 export default function Layout() {
@@ -28,7 +29,9 @@ export default function Layout() {
           className="min-h-0 flex-1 overflow-y-auto p-4 sm:p-6 lg:p-8"
           tabIndex={-1}
         >
-          <Outlet />
+          <PageTransition>
+            <Outlet />
+          </PageTransition>
         </main>
       </div>
     </div>
