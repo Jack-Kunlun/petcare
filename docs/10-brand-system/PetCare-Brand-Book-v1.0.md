@@ -1255,3 +1255,14 @@ Output: specify canvas, crop-safe areas, text-free image layer when possible
 - 资产有所有者、版本、变更记录和弃用策略吗？
 
 > **Brand Note:** PetCare 相信：真正优秀的宠物服务，不只是完成一次照护，而是让人与宠物之间的信任始终延续。
+
+### 109 · Miniapp product application baseline（v45）
+
+小程序原型在不改变页面信息架构和内容排版的前提下，统一采用本 Brand Book 的语义色彩与资产规则：
+
+- 主操作、主链接、选中 Tab 使用 `#4A6CF7`；悬赏价格和有限度提示使用 `#F6B343`。
+- 陪伴、完成、成长和进度反馈使用 `#5BC8AF`；批准 Logo 内部的 `#5BC9B9` 只用于 Logo artwork，不替代产品 UI 辅助色。
+- 页面背景、卡片、正文、辅助文字和边框分别使用 `#F8FAFC`、`#FFFFFF`、`#1F2937`、`#667085`、`#E6EAF0`。
+- 5 个主 Tab 固定为 `/`、`/bounty`、`/community`、`/messages`、`/profile`；文档历史别名 `/home` 与 `/rewards` 仅做兼容重定向。
+- 主导航使用统一 SVG 图标；原型表格中的 Emoji 仅用于说明，不得作为生产导航图标。
+- 微信登录或手机号绑定成功后统一切换至 `/`，登录页不通过 `navigateBack` 返回游客页面。

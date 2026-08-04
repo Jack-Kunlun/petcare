@@ -1,5 +1,7 @@
 # 小程序用户认证闭环实施计划
 
+> **当前基准说明（v45，2026-08-04）：** 本计划记录认证闭环的历史实施过程；当前小程序页面与路由以 `docs/01-requirements/04-prototype-specification.md` 为准。认证成功后统一切换到 `pages/index/index`，不再使用 `navigateBack` 返回游客页面；主 Tab 注册为首页、悬赏大厅、社区、消息和我的。
+
 > **For agentic workers:** REQUIRED SUB-SKILL: Use superpowers:subagent-driven-development (recommended) or superpowers:executing-plans to implement this plan task-by-task. Steps use checkbox (`- [ ]`) syntax for tracking.
 
 **Goal:** 建立游客可浏览、微信登录、首次手机号快捷绑定、会话恢复与刷新、退出登录完整闭环。
@@ -1046,7 +1048,7 @@ it("shows phone authorization only after a first-time login", async () => {
 
 继续覆盖：
 
-- 已绑定用户登录成功后调用 `Taro.navigateBack()`；
+- 已绑定用户登录成功后调用 `Taro.switchTab({ url: "/pages/index/index" })`；
 - `getPhoneNumber` 返回 code 时调用 `bindPhone("bind-token", code)`；
 - 用户拒绝授权时不调用 Server，显示可重试提示；
 - `AUTH_BIND_TOKEN_EXPIRED` 时清除页面 bindToken，重新显示微信登录；
@@ -1093,13 +1095,13 @@ const [error, setError] = useState("");
 </Button>
 ```
 
-注册路由：
+历史注册路由（仅保留认证页片段）：
 
 ```typescript
 pages: ["pages/index/index", "pages/auth/index"];
 ```
 
-认证成功时如果页面栈长度大于 1 则 `navigateBack()`，否则 `redirectTo({ url: "/pages/index/index" })`。
+当前认证成功后统一使用 `switchTab({ url: "/pages/index/index" })`；上方 `navigateBack()` / `redirectTo()` 仅代表历史实现，不作为 v45 页面基准。
 
 - [ ] **Step 7: 运行 Miniapp 单测、Lint、类型和微信端构建**
 
