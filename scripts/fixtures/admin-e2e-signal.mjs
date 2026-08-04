@@ -1,6 +1,8 @@
 import { fork } from "node:child_process";
 import { once } from "node:events";
 import path from "node:path";
+import process from "node:process";
+import { setTimeout } from "node:timers";
 import { fileURLToPath } from "node:url";
 import { runWithProcessSignalHandling } from "../../apps/admin/e2e/run-e2e.mjs";
 import { stopProcess } from "../../apps/admin/e2e/run-e2e.mjs";
