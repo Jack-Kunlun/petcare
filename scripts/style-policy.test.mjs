@@ -140,7 +140,7 @@ test("Miniapp 真实入口满足 Tailwind v4 CSS-first 主题契约", async () =
   assert.deepEqual(validateMiniappTheme(source), []);
   assert.match(source, /@import "tailwindcss\/theme\.css" layer\(theme\);/);
   assert.match(source, /@import "tailwindcss\/utilities\.css" layer\(utilities\) source\("\."\);/);
-  assert.match(source, /@source inline\("[^\"]*h-mm[^\"]*"\);/);
+  assert.match(source, /@source inline\("[^"]*h-mm[^"]*"\);/);
   assert.doesNotMatch(source, /preflight\.css|\d(?:\.\d+)?(?:rem|rpx)\b/i);
   assert.deepEqual(await checkStylePolicy(repoRoot, "miniapp"), []);
 });
