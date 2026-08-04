@@ -1,4 +1,5 @@
 import { createServer } from "node:net";
+import process from "node:process";
 
 const server = createServer((socket) => socket.end());
 
