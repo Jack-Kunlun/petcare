@@ -53,6 +53,23 @@
 - 当前 Miniapp 不保留 SCSS。确有 Tailwind 和原生 CSS 都无法合理表达的需求时，应先更新样式策略门禁并经过评审，再新增独立 SCSS。
 - 获准的 SCSS 必须写明保留原因，且不得包含 Tailwind 指令或 `@apply`。
 
+### 2.3 Miniapp 品牌 Token 基线（v45）
+
+Miniapp 页面必须将 `@theme` 中的语义 token 映射到 `docs/10-brand-system/PetCare-Brand-Book-v1.0.md` 和 `docs/01-requirements/04-prototype-specification.md` 的当前基准，不得继续使用旧的绿色主按钮或橙色主导航方案：
+
+| 语义              | 当前基准  | 主要用途                         |
+| ----------------- | --------- | -------------------------------- |
+| `brand-primary`   | `#4A6CF7` | 主按钮、主链接、选中 Tab、焦点态 |
+| `brand-secondary` | `#5BC8AF` | 陪伴、完成、成长、进度           |
+| `brand-accent`    | `#F6B343` | 价格、悬赏、有限度强调           |
+| `surface`         | `#F8FAFC` | 页面背景                         |
+| `surface-card`    | `#FFFFFF` | 卡片和浮层                       |
+| `ink`             | `#1F2937` | 主文字                           |
+| `muted`           | `#667085` | 次要文字                         |
+| `border`          | `#E6EAF0` | 分隔线和控件边框                 |
+
+批准 Logo 内部的 `#5BC9B9` 只用于 Logo artwork；不得将 Logo 专用色直接当作通用 UI token。生产导航图标使用统一 SVG 图标，不使用 Emoji。
+
 ## 3. Admin
 
 - Tailwind v4 入口固定为 `apps/admin/src/index.css`，由 `@tailwindcss/vite` 构建。

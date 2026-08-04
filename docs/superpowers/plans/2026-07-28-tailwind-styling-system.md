@@ -453,7 +453,7 @@ postcss: {
 
 // page 无法挂载 Tailwind 类名，保留为唯一全局平台样式。
 page {
-  background-color: #f5f5f5;
+  background-color: #f8fafc;
   font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif;
   font-size: 14px;
 }
@@ -599,15 +599,15 @@ theme: {
     transparent: "transparent",
     current: "currentColor",
     white: "#ffffff",
-    surface: "#f5f5f5",
-    "surface-muted": "#f6f8f7",
-    ink: "#333333",
-    "ink-strong": "#163c2b",
-    muted: "#666666",
-    "muted-brand": "#668074",
-    brand: "#20a66a",
-    "brand-strong": "#178854",
-    danger: "#c83e3e",
+    surface: "#f8fafc",
+    "surface-muted": "#eef2ff",
+    ink: "#1f2937",
+    "ink-strong": "#202632",
+    muted: "#667085",
+    "muted-brand": "#667085",
+    brand: "#4a6cf7",
+    "brand-strong": "#3552c8",
+    danger: "#c23b43",
   },
   spacing: {
     none: "0px",

@@ -172,15 +172,15 @@ export const weappTailwindcssOptions: WeappTailwindcssOptions = {
   --color-transparent: transparent;
   --color-current: currentColor;
   --color-white: #ffffff;
-  --color-surface: #f5f5f5;
-  --color-surface-muted: #f6f8f7;
-  --color-ink: #333333;
-  --color-ink-strong: #163c2b;
-  --color-muted: #666666;
-  --color-muted-brand: #668074;
-  --color-brand: #20a66a;
-  --color-brand-strong: #178854;
-  --color-danger: #c83e3e;
+  --color-surface: #f8fafc;
+  --color-surface-muted: #eef2ff;
+  --color-ink: #1f2937;
+  --color-ink-strong: #202632;
+  --color-muted: #667085;
+  --color-muted-brand: #667085;
+  --color-brand: #4a6cf7;
+  --color-brand-strong: #3552c8;
+  --color-danger: #c23b43;
 
   --spacing-none: 0px;
   --spacing-note: 12px;
@@ -211,7 +211,7 @@ export const weappTailwindcssOptions: WeappTailwindcssOptions = {
 
 /* page 无法挂载 Tailwind 类名，保留为唯一全局平台样式。 */
 page {
-  background-color: #f5f5f5;
+  background-color: #f8fafc;
   font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif;
   font-size: 14px;
 }
@@ -482,7 +482,7 @@ Expected: FAIL，主题接口与 package 命令尚未实现。
 --spacing-action: 240px
 --text-base: 14px
 --radius-button: 12px
---color-brand: #20a66a
+--color-brand: #4a6cf7
 app.css @theme 中不存在 rem/rpx
 ```
 
