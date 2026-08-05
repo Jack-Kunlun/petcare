@@ -4,6 +4,7 @@ import "@testing-library/jest-dom/vitest";
 import { cleanup, render, screen } from "@testing-library/react";
 import { afterEach, describe, expect, it } from "vitest";
 import stackedReverseLogoUrl from "../assets/brand/petcare-logo-stacked-reverse.svg";
+import colorSymbolUrl from "../assets/brand/petcare-symbol-color.svg";
 import reverseSymbolUrl from "../assets/brand/petcare-symbol-reverse.svg";
 import { BrandLogo } from "./BrandLogo";
 
@@ -17,6 +18,15 @@ describe("BrandLogo", () => {
     render(<BrandLogo variant={variant} />);
 
     expect(screen.getByRole("img", { name: "PetCare" })).toHaveAttribute("src", source);
+  });
+
+  it("renders the color variant from its imported asset", () => {
+    render(<BrandLogo variant="color" label="PetCare color logo" />);
+
+    expect(screen.getByRole("img", { name: "PetCare color logo" })).toHaveAttribute(
+      "src",
+      colorSymbolUrl,
+    );
   });
 
   it("uses the default, decorative, and custom accessible labels", () => {

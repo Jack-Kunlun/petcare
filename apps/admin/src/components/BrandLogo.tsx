@@ -1,8 +1,9 @@
 import type { JSX } from "react";
 import stackedReverseLogoUrl from "../assets/brand/petcare-logo-stacked-reverse.svg";
+import colorSymbolUrl from "../assets/brand/petcare-symbol-color.svg";
 import reverseSymbolUrl from "../assets/brand/petcare-symbol-reverse.svg";
 
-type BrandLogoVariant = "reverse" | "stacked-reverse";
+type BrandLogoVariant = "color" | "reverse" | "stacked-reverse";
 
 interface BrandLogoProps {
   variant: BrandLogoVariant;
@@ -11,6 +12,7 @@ interface BrandLogoProps {
 }
 
 const sources = {
+  color: colorSymbolUrl,
   reverse: reverseSymbolUrl,
   "stacked-reverse": stackedReverseLogoUrl,
 } as const satisfies Record<BrandLogoVariant, string>;
