@@ -53,9 +53,9 @@ describe("BrandLogo", () => {
   });
 
   it("renders SVG directly without a raster source", () => {
-    const { container } = render(<BrandLogo variant="stacked-reverse" />);
+    const view = render(<BrandLogo variant="stacked-reverse" />);
 
-    expect(container.querySelector("picture")).not.toBeInTheDocument();
-    expect(container.querySelector("source")).not.toBeInTheDocument();
+    expect(view.baseElement.querySelector("picture")).not.toBeInTheDocument();
+    expect(view.baseElement.querySelector("source")).not.toBeInTheDocument();
   });
 });
