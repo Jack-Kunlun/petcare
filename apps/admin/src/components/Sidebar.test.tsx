@@ -1,7 +1,7 @@
 import { fireEvent, render, screen, within } from "@testing-library/react";
 import { MemoryRouter } from "react-router-dom";
 import { describe, expect, it } from "vitest";
-import reverseSymbolUrl from "../assets/brand/petcare-symbol-reverse.svg";
+import colorSymbolUrl from "../assets/brand/petcare-symbol-color.svg";
 import { Sidebar } from "./Sidebar";
 
 function getNavigationHrefs(root: HTMLElement) {
@@ -11,7 +11,7 @@ function getNavigationHrefs(root: HTMLElement) {
 }
 
 describe("Sidebar", () => {
-  it("uses the reverse PetCare brand symbol with an accessible label", () => {
+  it("uses the color PetCare symbol with an accessible label", () => {
     render(
       <MemoryRouter>
         <Sidebar />
@@ -20,7 +20,7 @@ describe("Sidebar", () => {
 
     expect(screen.getByRole("img", { name: "PetCare 运营管理中心" })).toHaveAttribute(
       "src",
-      reverseSymbolUrl,
+      colorSymbolUrl,
     );
     expect(screen.getByRole("img", { name: "PetCare 运营管理中心" })).toHaveClass("h-10", "w-10");
     expect(screen.getByText("PetCare")).toBeInTheDocument();
