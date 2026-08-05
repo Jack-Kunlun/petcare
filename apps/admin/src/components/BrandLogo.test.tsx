@@ -3,32 +3,32 @@
 import "@testing-library/jest-dom/vitest";
 import { cleanup, render, screen } from "@testing-library/react";
 import { afterEach, describe, expect, it } from "vitest";
+import stackedReverseLogoUrl from "../assets/brand/petcare-logo-stacked-reverse.svg";
+import reverseSymbolUrl from "../assets/brand/petcare-symbol-reverse.svg";
 import { BrandLogo } from "./BrandLogo";
 
 describe("BrandLogo", () => {
   afterEach(cleanup);
 
   it.each([
-    ["color", "/brand/petcare-symbol-color.svg"],
-    ["reverse", "/brand/petcare-symbol-reverse.svg"],
-    ["stacked-color", "/brand/petcare-logo-stacked-color.svg"],
-    ["stacked-reverse", "/brand/petcare-logo-stacked-reverse.svg"],
-  ] as const)("renders the %s variant from its brand asset", (variant, source) => {
+    ["reverse", reverseSymbolUrl],
+    ["stacked-reverse", stackedReverseLogoUrl],
+  ] as const)("renders the %s variant from its imported asset", (variant, source) => {
     render(<BrandLogo variant={variant} />);
 
     expect(screen.getByRole("img", { name: "PetCare" })).toHaveAttribute("src", source);
   });
 
   it("uses the default, decorative, and custom accessible labels", () => {
-    const { rerender } = render(<BrandLogo variant="color" />);
+    const { rerender } = render(<BrandLogo variant="reverse" />);
 
     expect(screen.getByRole("img", { name: "PetCare" })).toHaveAttribute("alt", "PetCare");
 
-    rerender(<BrandLogo variant="color" label="" />);
+    rerender(<BrandLogo variant="reverse" label="" />);
 
     expect(screen.getByAltText("")).toHaveAttribute("alt", "");
 
-    rerender(<BrandLogo variant="color" label="PetCare Admin" />);
+    rerender(<BrandLogo variant="reverse" label="PetCare Admin" />);
 
     expect(screen.getByRole("img", { name: "PetCare Admin" })).toHaveAttribute(
       "alt",
@@ -37,7 +37,7 @@ describe("BrandLogo", () => {
   });
 
   it("preserves object containment and forwards className", () => {
-    render(<BrandLogo variant="color" className="h-8 w-8" />);
+    render(<BrandLogo variant="reverse" className="h-8 w-8" />);
 
     expect(screen.getByRole("img", { name: "PetCare" })).toHaveClass(
       "object-contain",
@@ -47,21 +47,15 @@ describe("BrandLogo", () => {
   });
 
   it("uses synchronous decoding for crisp first paint", () => {
-    render(<BrandLogo variant="color" />);
+    render(<BrandLogo variant="reverse" />);
 
     expect(screen.getByRole("img", { name: "PetCare" })).toHaveAttribute("decoding", "sync");
   });
 
-  it("provides a 4K raster source while keeping the SVG fallback", () => {
-    render(<BrandLogo variant="stacked-reverse" />);
+  it("renders SVG directly without a raster source", () => {
+    const view = render(<BrandLogo variant="stacked-reverse" />);
 
-    expect(screen.getByRole("img", { name: "PetCare" })).toHaveAttribute(
-      "src",
-      "/brand/petcare-logo-stacked-reverse.svg",
-    );
-    expect(screen.getByRole("img", { name: "PetCare" }).previousElementSibling).toHaveAttribute(
-      "srcset",
-      "/brand/petcare-logo-stacked-reverse-4096.png",
-    );
+    expect(view.baseElement.querySelector("picture")).not.toBeInTheDocument();
+    expect(view.baseElement.querySelector("source")).not.toBeInTheDocument();
   });
 });

@@ -1,6 +1,8 @@
 import type { JSX } from "react";
+import stackedReverseLogoUrl from "../assets/brand/petcare-logo-stacked-reverse.svg";
+import reverseSymbolUrl from "../assets/brand/petcare-symbol-reverse.svg";
 
-type BrandLogoVariant = "color" | "reverse" | "stacked-color" | "stacked-reverse";
+type BrandLogoVariant = "reverse" | "stacked-reverse";
 
 interface BrandLogoProps {
   variant: BrandLogoVariant;
@@ -9,30 +11,18 @@ interface BrandLogoProps {
 }
 
 const sources = {
-  color: "/brand/petcare-symbol-color.svg",
-  reverse: "/brand/petcare-symbol-reverse.svg",
-  "stacked-color": "/brand/petcare-logo-stacked-color.svg",
-  "stacked-reverse": "/brand/petcare-logo-stacked-reverse.svg",
-} as const;
+  reverse: reverseSymbolUrl,
+  "stacked-reverse": stackedReverseLogoUrl,
+} as const satisfies Record<BrandLogoVariant, string>;
 
-const rasterSources = {
-  color: "/brand/petcare-symbol-color-4096.png",
-  reverse: "/brand/petcare-symbol-reverse-4096.png",
-  "stacked-color": "/brand/petcare-logo-stacked-color-4096.png",
-  "stacked-reverse": "/brand/petcare-logo-stacked-reverse-4096.png",
-} as const;
-
-/** Renders one of the public PetCare logo assets with an accessible label. */
+/** 渲染一个进入 Vite 构建流程的 PetCare 品牌标识。 */
 export function BrandLogo({ variant, className, label = "PetCare" }: BrandLogoProps): JSX.Element {
   return (
-    <picture className={className}>
-      <source srcSet={rasterSources[variant]} type="image/png" />
-      <img
-        src={sources[variant]}
-        alt={label}
-        decoding="sync"
-        className={`object-contain${className ? ` ${className}` : ""}`}
-      />
-    </picture>
+    <img
+      src={sources[variant]}
+      alt={label}
+      decoding="sync"
+      className={`object-contain${className ? ` ${className}` : ""}`}
+    />
   );
 }

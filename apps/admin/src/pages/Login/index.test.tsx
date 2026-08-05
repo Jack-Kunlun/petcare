@@ -4,6 +4,7 @@ import { cleanup, render, screen, waitFor } from "@testing-library/react";
 import userEvent from "@testing-library/user-event";
 import { MemoryRouter, Route, Routes } from "react-router-dom";
 import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
+import loginBackgroundUrl from "../../assets/brand/petcare-background-soft.svg";
 import Login from ".";
 
 const auth = vi.hoisted(() => ({
@@ -115,6 +116,11 @@ describe("Login", () => {
 
     expect(screen.getByRole("main")).toHaveClass("bg-linear-to-br");
     expect(screen.getByRole("main")).toHaveClass("overflow-x-hidden");
+    const background = screen.getByTestId("login-background");
+
+    expect(background).toHaveAttribute("src", loginBackgroundUrl);
+    expect(background).toHaveAttribute("aria-hidden", "true");
+    expect(background).toHaveClass("pointer-events-none", "absolute", "inset-0", "object-cover");
     expect(screen.getByTestId("login-card")).toHaveClass("min-h-[520px]", "md:h-[662px]");
     expect(screen.getByTestId("login-form")).toHaveClass("flex-1");
     expect(screen.getByTestId("login-welcome-label")).toHaveClass("text-text-secondary");
