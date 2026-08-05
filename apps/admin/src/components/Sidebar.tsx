@@ -184,7 +184,7 @@ export function Sidebar({ open = false, onClose, permissions }: SidebarProps) {
         <div className="flex h-16 shrink-0 items-center justify-between border-b border-white/10 px-5">
           <div className="flex min-w-0 items-center gap-3">
             <BrandLogo
-              variant="reverse"
+              variant="color"
               label="PetCare 运营管理中心"
               className="h-10 w-10 shrink-0"
             />
