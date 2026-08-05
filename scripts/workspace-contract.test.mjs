@@ -86,12 +86,18 @@ test("Server 依赖 Prisma Client 的命令在编译前显式生成客户端", a
   const generatedClientLifecycles = ["typecheck", "test", "test:cov", "test:coverage", "test:e2e"];
 
   for (const lifecycle of generatedClientLifecycles) {
-    assert.equal(
+    assert.match(
       manifest.scripts[`pre${lifecycle}`],
-      "pnpm prisma:generate",
+      /(?:^|&&\s*)pnpm prisma:generate$/,
       `${lifecycle} 在编译或 Jest 前必须生成最新 Prisma Client`,
     );
   }
+
+  assert.match(
+    manifest.scripts.pretypecheck,
+    /^pnpm --filter @petcare\/shared-types build && /,
+    "typecheck 在生成 Prisma Client 前必须构建 shared-types",
+  );
 });
 
 test("Server 测试串行运行以避免 Turbo 嵌套 worker 退出告警", async () => {

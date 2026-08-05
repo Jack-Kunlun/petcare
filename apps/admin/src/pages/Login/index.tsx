@@ -1,6 +1,7 @@
 import type { CaptchaChallenge } from "@petcare/shared-types";
 import { FormEvent, useCallback, useEffect, useState } from "react";
 import { Navigate, useNavigate } from "react-router-dom";
+import loginBackgroundUrl from "../../assets/brand/petcare-background-soft.svg";
 import { useAuth } from "../../auth/auth.context";
 import { BrandLogo } from "../../components/BrandLogo";
 
@@ -142,6 +143,13 @@ export default function Login() {
 
   return (
     <main className="relative isolate grid min-h-screen place-items-center overflow-x-hidden bg-linear-to-br from-page-background via-white to-blue-50 p-4 sm:p-6">
+      <img
+        src={loginBackgroundUrl}
+        alt=""
+        aria-hidden="true"
+        data-testid="login-background"
+        className="pointer-events-none absolute inset-0 h-full w-full object-cover"
+      />
       <div aria-hidden="true" className="pointer-events-none absolute inset-0">
         <span className="absolute left-12 top-10 h-40 w-40 rounded-full bg-brand-primary/10 blur-3xl" />
         <span className="absolute bottom-8 right-10 h-52 w-52 rounded-full bg-care-secondary/10 blur-3xl" />
