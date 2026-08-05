@@ -24,16 +24,17 @@ Admin 当前将 20 个 Logo SVG、PNG 和兼容副本放在 `apps/admin/public/b
 
 ## 方案选择
 
-采用 `src/assets` 直接导入方案。相比继续使用 `public` 并增加自定义压缩脚本，该方案可以直接获得 Vite 内容哈希、依赖追踪和未引用资源排除能力。相比生成资源清单，仅有四个运行时资源时直接导入更简单，也更容易维护。
+采用 `src/assets` 直接导入方案。相比继续使用 `public` 并增加自定义压缩脚本，该方案可以直接获得 Vite 内容哈希、依赖追踪和未引用资源排除能力。相比生成资源清单，仅有五个运行时资源时直接导入更简单，也更容易维护。
 
 ## 资源清单与来源
 
-| Admin 运行时资源                   | 品牌系统来源                                                  | 用途              |
-| ---------------------------------- | ------------------------------------------------------------- | ----------------- |
-| `petcare-symbol-reverse.svg`       | `deliverables/logo/svg/petcare-symbol-reverse.svg`            | 深色侧栏 Logo     |
-| `petcare-logo-stacked-reverse.svg` | `deliverables/logo/svg/petcare-logo-stacked-reverse.svg`      | 登录卡片品牌 Logo |
-| `petcare-favicon.svg`              | `deliverables/logo/favicon/petcare-favicon.svg`               | Admin 浏览器图标  |
-| `petcare-background-soft.svg`      | `deliverables/elements/gradients/petcare-background-soft.svg` | 登录页整体背景    |
+| Admin 运行时资源                   | 品牌系统来源                                                  | 用途               |
+| ---------------------------------- | ------------------------------------------------------------- | ------------------ |
+| `petcare-symbol-reverse.svg`       | `deliverables/logo/svg/petcare-symbol-reverse.svg`            | 深色侧栏 Logo      |
+| `petcare-logo-stacked-reverse.svg` | `deliverables/logo/svg/petcare-logo-stacked-reverse.svg`      | 登录卡片品牌 Logo  |
+| `petcare-favicon.svg`              | `deliverables/logo/favicon/petcare-favicon.svg`               | 现代浏览器标签图标 |
+| `petcare-favicon.ico`              | `deliverables/logo/favicon/petcare-favicon.ico`               | 浏览器图标兼容回退 |
+| `petcare-background-soft.svg`      | `deliverables/elements/gradients/petcare-background-soft.svg` | 登录页整体背景     |
 
 所有运行时副本放在 `apps/admin/src/assets/brand/`。`docs/10-brand-system/deliverables/` 继续作为权威源，Admin 目录仅保存被代码引用的交付副本。
 
@@ -53,7 +54,7 @@ Admin 当前将 20 个 Logo SVG、PNG 和兼容副本放在 `apps/admin/public/b
 
 ### Favicon
 
-`apps/admin/index.html` 通过 Vite 可处理的 `/src/assets/brand/petcare-favicon.svg` 路径引用 favicon，构建时由 Vite 改写为最终资源路径。
+`apps/admin/index.html` 使用两条 favicon 声明：SVG 作为现代浏览器首选格式，ICO 作为兼容回退。两项都通过 Vite 可处理的 `/src/assets/brand/` 路径引用，构建时由 Vite 改写为最终资源路径。浏览器标签不再引用无效的 `/vite.svg`。
 
 ## 构建与缓存
 
@@ -76,14 +77,15 @@ Admin 当前将 20 个 Logo SVG、PNG 和兼容副本放在 `apps/admin/public/b
 - 更新侧栏测试，验证反白 Symbol 仍正确渲染。
 - 更新登录页测试，验证品牌软背景存在、被标记为装饰内容且不拦截交互。
 - 运行 Admin 单元测试、ESLint、样式策略检查和生产构建。
-- 检查 `dist`：不存在 `/brand/` 旧目录和 4K PNG，只包含实际引用的品牌资源；HTML favicon 和资源路径有效。
+- 检查 `dist`：不存在 `/brand/` 旧目录和 4K PNG，只包含实际引用的品牌资源；HTML 中 SVG 与 ICO favicon 的资源路径均有效。
 - 检查 Nginx 配置语法，并确认 SVG gzip 与哈希资源缓存规则存在。
 - 运行 `git diff --check`，确保无空白错误。
 
 ## 验收标准
 
-1. `apps/admin/public/brand/` 被删除，`apps/admin/src/assets/brand/` 仅包含四个已使用资源。
+1. `apps/admin/public/brand/` 被删除，`apps/admin/src/assets/brand/` 仅包含五个已使用资源。
 2. 登录页在所有视口都有品牌软背景，登录卡片和表单文字保持清晰。
 3. 侧栏与登录页 Logo 使用品牌交付目录中的 SVG，不再请求 4K PNG。
 4. Admin 生产构建通过，构建输出使用哈希资源且没有未引用品牌文件。
-5. 现有认证、导航和权限行为不发生变化。
+5. 浏览器标签使用正式 PetCare favicon，并保留 SVG 首选与 ICO 兼容回退。
+6. 现有认证、导航和权限行为不发生变化。
