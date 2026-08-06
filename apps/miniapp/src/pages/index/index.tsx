@@ -1,40 +1,10 @@
-import {
-  Button,
-  Icon,
-  Image,
-  ScrollView,
-  Swiper,
-  SwiperItem,
-  Text,
-  View,
-} from "@tarojs/components";
+import { Button, ScrollView, Text, View } from "@tarojs/components";
 import Taro from "@tarojs/taro";
-import heroCommunity from "../../assets/brand/hero-community-companion-miniapp-v1.png";
-import heroProfessional from "../../assets/brand/hero-professional-care-miniapp-v1.png";
-import heroTrusted from "../../assets/brand/hero-trusted-care-miniapp-v1.png";
 import { useAuth } from "../../auth/auth.context";
-import BrandLogo from "../../components/brand/BrandLogo";
-
-const heroSlides = [
-  {
-    image: heroTrusted,
-    title: "每一次托付，都值得信赖",
-    subtitle: "透明记录每一次照护，让你安心出发。",
-    action: "发布照护需求",
-  },
-  {
-    image: heroProfessional,
-    title: "专业服务，安心可见",
-    subtitle: "从到达到完成，服务进度清晰可追踪。",
-    action: "了解服务流程",
-  },
-  {
-    image: heroCommunity,
-    title: "和同城宠友一起成长",
-    subtitle: "分享养宠经验，也找到值得信赖的伙伴。",
-    action: "探索宠物社区",
-  },
-] as const;
+import StatusBarSpacer from "../../components/layout/StatusBarSpacer";
+import HeroCarousel from "./components/HeroCarousel";
+import HomeHeader from "./components/HomeHeader";
+import { HOME_BANNERS } from "./home.data";
 
 const bountyItems = [
   { service: "上门喂猫", location: "滨江 · 江南大道", schedule: "明天 18:00", price: "¥80/次" },
@@ -53,84 +23,25 @@ const communityItems = [
   { author: "毛球日记", title: "今天也要好好吃饭、好好散步", meta: "128 次互动" },
 ] as const;
 
-function getGreeting(): string {
-  const hour = new Date().getHours();
-
-  if (hour < 6) {
-    return "夜深了";
-  }
-
-  if (hour < 12) {
-    return "早上好";
-  }
-
-  if (hour < 18) {
-    return "下午好";
-  }
-
-  return "晚上好";
-}
-
 export default function Index() {
   const { status, user, logout } = useAuth();
   const nickname = user?.nickname ?? "宠伴朋友";
 
   return (
     <View className="box-border min-h-screen bg-surface p-page pb-safe-bottom">
-      <View className="flex items-center justify-between">
-        <View className="flex items-center">
-          <BrandLogo variant="symbol" label="PetCare 宠伴" />
-          <View className="ml-note flex flex-col">
-            <Text className="text-base text-muted-brand">{getGreeting()}</Text>
-            <Text className="text-welcome font-bold text-ink-strong">{nickname}</Text>
-          </View>
-        </View>
-        <Button
-          className="flex h-logo-md w-logo-md items-center justify-center rounded-full border border-solid border-border bg-white p-none"
-          aria-label="打开消息"
-          onClick={() => void Taro.navigateTo({ url: "/pages/messages/index" })}
-        >
-          <Icon type="info" size={22} color="#4A6CF7" ariaLabel="消息" />
-        </Button>
+      <StatusBarSpacer />
+      <View data-testid="home-section-header">
+        <HomeHeader
+          nickname={nickname}
+          avatar={user?.avatar ?? null}
+          location="上海市 · 静安区"
+          hasUnread
+          onMessages={() => void Taro.switchTab({ url: "/pages/messages/index" })}
+        />
       </View>
-
-      <Text className="mt-section block text-subtitle font-semibold text-ink-strong">
-        PetCare宠伴
-      </Text>
-      <Text className="mt-note block text-base text-muted-brand">可信赖的宠物生活服务平台</Text>
-
-      <Swiper
-        className="mt-section h-hero-height overflow-hidden rounded-card"
-        autoplay
-        circular
-        interval={5000}
-        indicatorDots
-        indicatorColor="#FFFFFF99"
-        indicatorActiveColor="#FFFFFF"
-      >
-        {heroSlides.map((slide) => (
-          <SwiperItem key={slide.title}>
-            <View className="relative h-full w-full overflow-hidden rounded-card bg-brand">
-              <Image
-                className="h-full w-full object-cover"
-                src={slide.image}
-                mode="aspectFill"
-                ariaLabel={slide.title}
-              />
-              <View className="absolute top-overlay right-overlay bottom-overlay left-overlay flex flex-col justify-end bg-ink px-section py-compact">
-                <Text className="block text-subtitle font-bold text-white">{slide.title}</Text>
-                <Text className="mt-note block text-base text-white">{slide.subtitle}</Text>
-                <Button
-                  className="mt-note self-start rounded-button border-none bg-white px-compact text-base font-semibold text-brand-strong"
-                  onClick={() => void Taro.navigateTo({ url: "/pages/bounty/index" })}
-                >
-                  {slide.action}
-                </Button>
-              </View>
-            </View>
-          </SwiperItem>
-        ))}
-      </Swiper>
+      <View className="mt-compact" data-testid="home-section-hero">
+        <HeroCarousel banners={HOME_BANNERS} onAction={(url) => void Taro.switchTab({ url })} />
+      </View>
 
       {status === "loading" ? (
         <View className="mt-section rounded-card bg-white px-section py-compact shadow-card">
