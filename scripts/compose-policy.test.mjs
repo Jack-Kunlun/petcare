@@ -48,3 +48,13 @@ test("Admin 构建镜像保留样式产物校验脚本", async () => {
     /COPY scripts\/style-output-policy\.mjs \.\/scripts\/style-output-policy\.mjs/,
   );
 });
+
+test("Server 构建镜像在编译应用前构建共享类型", async () => {
+  const dockerfile = await readFile(resolve(root, "Dockerfile.server"), "utf8");
+  const sharedTypesBuild = dockerfile.indexOf("RUN pnpm --filter @petcare/shared-types build");
+  const serverBuild = dockerfile.indexOf("RUN pnpm --filter @petcare/server build");
+
+  assert.notEqual(sharedTypesBuild, -1);
+  assert.notEqual(serverBuild, -1);
+  assert.ok(sharedTypesBuild < serverBuild);
+});
