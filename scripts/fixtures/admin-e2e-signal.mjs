@@ -19,7 +19,7 @@ const exitCode = await runWithProcessSignalHandling(async (signal) => {
     : new Promise((resolve) => signal.addEventListener("abort", resolve, { once: true }));
   const [tree] = await once(treeRoot, "message");
   await new Promise((resolve, reject) => {
-    process.send?.({ type: "ready", ...tree }, (error) => (error ? reject(error) : resolve()));
+    process.send?.({ ...tree, type: "ready" }, (error) => (error ? reject(error) : resolve()));
   });
   await interrupted;
   await new Promise((resolve, reject) => {
