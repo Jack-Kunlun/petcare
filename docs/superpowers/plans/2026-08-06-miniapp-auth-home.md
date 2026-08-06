@@ -333,6 +333,7 @@ git commit -m "feat(miniapp): 优化沉浸式登录页面"
 - Create: `apps/miniapp/src/pages/index/home.data.ts`
 - Create: `apps/miniapp/src/pages/index/components/HomeHeader.tsx`
 - Create: `apps/miniapp/src/pages/index/components/HeroCarousel.tsx`
+- Modify: `apps/miniapp/src/pages/index/index.tsx`
 - Modify: `apps/miniapp/src/pages/index/index.test.tsx`
 
 **Interfaces:**
@@ -649,6 +650,29 @@ export const HOME_POSTS: readonly HomePost[] = [
 
 `indicatorColor` 属于 Taro 组件属性，不写入 `className`；页面组件中的 UI 颜色仍使用品牌 token。
 
+在 `index.tsx` 中移除旧的顶部 Logo、品牌副标题和内联轮播实现，改为按顺序组合已完成的安全区、顶部和轮播组件：
+
+```tsx
+<StatusBarSpacer />
+<View data-testid="home-section-header">
+  <HomeHeader
+    nickname={nickname}
+    avatar={user?.avatar ?? null}
+    location="上海市 · 静安区"
+    hasUnread
+    onMessages={() => void Taro.switchTab({ url: "/pages/messages/index" })}
+  />
+</View>
+<View className="mt-compact" data-testid="home-section-hero">
+  <HeroCarousel
+    banners={HOME_BANNERS}
+    onAction={(url) => void Taro.switchTab({ url })}
+  />
+</View>
+```
+
+本任务保留首页旧的服务状态和三个内容模块，Task 4 再用新组件替换；不得提前实现 Task 4。
+
 - [ ] **Step 5: 运行首页测试和类型检查**
 
 Run:
@@ -663,7 +687,7 @@ Expected: 首页测试 PASS，TypeScript 无错误。
 - [ ] **Step 6: 提交**
 
 ```bash
-git add apps/miniapp/src/pages/index/home.data.ts apps/miniapp/src/pages/index/components/HomeHeader.tsx apps/miniapp/src/pages/index/components/HeroCarousel.tsx apps/miniapp/src/pages/index/index.test.tsx
+git add apps/miniapp/src/pages/index/home.data.ts apps/miniapp/src/pages/index/components/HomeHeader.tsx apps/miniapp/src/pages/index/components/HeroCarousel.tsx apps/miniapp/src/pages/index/index.tsx apps/miniapp/src/pages/index/index.test.tsx
 git commit -m "feat(miniapp): 增加首页顶部与品牌轮播"
 ```
 
