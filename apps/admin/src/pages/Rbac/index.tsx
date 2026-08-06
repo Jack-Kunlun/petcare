@@ -135,7 +135,10 @@ export default function Rbac() {
               </thead>
               <tbody className="divide-y divide-slate-100">
                 {rolesQuery.data.list.map((role) => (
-                  <tr key={role.id} className="border-border transition-[background-color,border-color] duration-200 hover:bg-page-background hover:border-border">
+                  <tr
+                    key={role.id}
+                    className="border-border transition-[background-color,border-color] duration-200 hover:bg-page-background hover:border-border"
+                  >
                     <td className="px-5 py-4">
                       <Link
                         to={`/rbac/${role.id}`}
