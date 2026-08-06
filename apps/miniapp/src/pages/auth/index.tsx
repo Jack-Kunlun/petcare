@@ -4,6 +4,7 @@ import { useRef, useState } from "react";
 import { MiniappApiError } from "../../api/request";
 import { useAuth } from "../../auth/auth.context";
 import BrandLogo from "../../components/brand/BrandLogo";
+import StatusBarSpacer from "../../components/layout/StatusBarSpacer";
 
 interface PhoneNumberEvent {
   detail: {
@@ -73,22 +74,28 @@ export default function AuthPage() {
   };
 
   return (
-    <View className="box-border flex min-h-screen flex-col items-center justify-center bg-surface-muted px-section py-page-y">
-      <View className="flex w-full flex-col items-center">
+    <View className="box-border flex min-h-screen flex-col bg-linear-to-b from-surface-brand to-surface px-page-x pb-page-y">
+      <StatusBarSpacer />
+      <View className="flex h-auth-visual flex-col items-center justify-center animate-page-enter">
         <BrandLogo label="PetCare 宠伴品牌 Logo" />
-        <Text className="mt-compact text-subtitle font-semibold text-brand-strong">
-          Trusted Pet Companion Platform
+        <Text className="mt-compact block text-welcome font-bold text-ink-strong">
+          让每一次托付，都安心可见
+        </Text>
+        <Text className="mt-note block text-center text-base text-muted-brand">
+          可信赖的宠物生活服务平台
         </Text>
       </View>
 
-      <View className="box-border mt-section w-full rounded-card bg-white px-section py-page shadow-card">
-        <Text className="block text-heading font-bold text-ink-strong">登录 PetCare 宠伴</Text>
-        <Text className="mt-note block text-description text-muted-brand">
-          登录后可发布需求、接单并管理你的宠物服务。
-        </Text>
+      <View
+        className="box-border min-h-auth-card w-full rounded-panel bg-white px-section py-page shadow-panel animate-page-enter"
+        data-testid="auth-card"
+      >
+        <Text className="block text-heading font-bold text-ink-strong">欢迎来到 PetCare 宠伴</Text>
+        <Text className="mt-note block text-description text-muted-brand">微信手机号快捷登录</Text>
 
         <Button
-          className="mt-section rounded-button border-none bg-brand text-white"
+          className="mt-section h-control rounded-button border-none bg-brand text-white"
+          hoverClass="opacity-80"
           openType="getPhoneNumber"
           loading={pending}
           disabled={pending}
@@ -97,10 +104,12 @@ export default function AuthPage() {
           微信登录
         </Button>
 
+        <View className="mt-note min-h-feedback">
+          {error ? <Text className="block text-base text-danger">{error}</Text> : null}
+        </View>
         <Text className="mt-compact block text-center text-base text-muted-brand">
-          我们会保护你的账号与宠物信息
+          登录即代表你同意授权必要的微信账户与手机号信息
         </Text>
-        {error ? <Text className="mt-compact block text-base text-danger">{error}</Text> : null}
       </View>
     </View>
   );
