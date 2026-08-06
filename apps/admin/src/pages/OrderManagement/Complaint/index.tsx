@@ -430,7 +430,10 @@ export default function ComplaintWorkQueue() {
                 </thead>
                 <tbody className="divide-y divide-slate-100">
                   {query.data.list.map((item) => (
-                    <tr key={item.id} className="align-top border-border transition-[background-color,border-color] duration-200 hover:bg-page-background hover:border-border">
+                    <tr
+                      key={item.id}
+                      className="align-top border-border transition-[background-color,border-color] duration-200 hover:bg-page-background hover:border-border"
+                    >
                       <td className="px-4 py-4">
                         <p
                           className="truncate font-mono text-xs font-semibold text-slate-800"

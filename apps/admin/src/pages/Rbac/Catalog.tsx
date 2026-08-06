@@ -67,7 +67,10 @@ export default function RbacCatalog() {
       </header>
 
       {catalogQuery.isPending ? (
-        <div aria-label="正在加载菜单目录" className="h-48 rounded-xl bg-slate-200 animate-[pc-skeleton-shimmer_220ms_linear_infinite] motion-reduce:animate-none" />
+        <div
+          aria-label="正在加载菜单目录"
+          className="h-48 rounded-xl bg-slate-200 animate-[pc-skeleton-shimmer_220ms_linear_infinite] motion-reduce:animate-none"
+        />
       ) : null}
 
       {catalogQuery.isError ? (

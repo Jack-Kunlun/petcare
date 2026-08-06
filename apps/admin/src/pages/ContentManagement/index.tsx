@@ -219,7 +219,10 @@ export default function ContentManagement() {
         {query.isPending && (
           <div aria-label="正在加载悬赏" className="space-y-3 p-5">
             {Array.from({ length: 5 }, (_, index) => (
-              <div key={index} className="h-16 rounded-lg bg-slate-100 animate-[pc-skeleton-shimmer_220ms_linear_infinite] motion-reduce:animate-none" />
+              <div
+                key={index}
+                className="h-16 rounded-lg bg-slate-100 animate-[pc-skeleton-shimmer_220ms_linear_infinite] motion-reduce:animate-none"
+              />
             ))}
           </div>
         )}
