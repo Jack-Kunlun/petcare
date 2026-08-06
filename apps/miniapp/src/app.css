@@ -10,6 +10,8 @@
   --color-current: currentColor;
   --color-white: #ffffff;
   --color-surface: #f8fafc;
+  --color-surface-brand: #eef2ff;
+  --color-surface-soft: #f6f8ff;
   --color-surface-muted: #eef2ff;
   --color-ink: #1f2937;
   --color-ink-strong: #202632;
@@ -28,6 +30,11 @@
   --spacing-section: 32px;
   --spacing-page: 40px;
   --spacing-page-y: 48px;
+  --spacing-control: 44px;
+  --spacing-auth-card: 300px;
+  --spacing-auth-visual: 220px;
+  --spacing-feedback: 20px;
+  --spacing-page-x: 16px;
   --spacing-mm: 20px;
   --spacing-action: 240px;
   --spacing-logo-sm: 24px;
@@ -56,10 +63,30 @@
 
   --radius-button: 8px;
   --radius-card: 12px;
+  --radius-panel: 20px;
   --shadow-card: 0 2px 8px rgb(31 41 55 / 8%);
+  --shadow-panel: 0 12px 32px rgb(31 41 55 / 10%);
+  --animate-page-enter: page-enter 240ms ease-out both;
 }
 
-@source inline("h-mm w-action h-logo-sm w-logo-sm h-logo-md w-logo-md h-logo-lockup w-logo-lockup h-hero-height min-h-tab pb-safe-bottom top-overlay right-overlay bottom-overlay left-overlay");
+@source inline("h-mm w-action h-logo-sm w-logo-sm h-logo-md w-logo-md h-logo-lockup w-logo-lockup h-hero-height min-h-tab pb-safe-bottom top-overlay right-overlay bottom-overlay left-overlay opacity-80");
+
+@keyframes page-enter {
+  from {
+    opacity: 0;
+    transform: translateY(12px);
+  }
+  to {
+    opacity: 1;
+    transform: translateY(0);
+  }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .animate-page-enter {
+    animation-duration: 0ms;
+  }
+}
 
 /* page 无法挂载 Tailwind 类名，保留为唯一全局平台样式。 */
 page {
