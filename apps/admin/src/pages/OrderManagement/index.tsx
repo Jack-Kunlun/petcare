@@ -264,7 +264,10 @@ export default function OrderManagement() {
         {query.isPending && (
           <div aria-label="正在加载订单" className="space-y-3 p-5">
             {Array.from({ length: 5 }, (_, index) => (
-              <div key={index} className="h-16 rounded-lg bg-slate-100 animate-[pc-skeleton-shimmer_220ms_linear_infinite] motion-reduce:animate-none" />
+              <div
+                key={index}
+                className="h-16 rounded-lg bg-slate-100 animate-[pc-skeleton-shimmer_220ms_linear_infinite] motion-reduce:animate-none"
+              />
             ))}
           </div>
         )}
@@ -327,7 +330,10 @@ export default function OrderManagement() {
                 </thead>
                 <tbody className="divide-y divide-slate-100">
                   {query.data.list.map((order) => (
-                    <tr key={order.id} className="border-border transition-[background-color,border-color] duration-200 hover:bg-page-background hover:border-border">
+                    <tr
+                      key={order.id}
+                      className="border-border transition-[background-color,border-color] duration-200 hover:bg-page-background hover:border-border"
+                    >
                       <td className="whitespace-nowrap px-5 py-4">
                         <p
                           title={order.id}
