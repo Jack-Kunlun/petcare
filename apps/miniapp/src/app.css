@@ -35,6 +35,7 @@
   --spacing-auth-visual: 220px;
   --spacing-feedback: 20px;
   --spacing-page-x: 16px;
+  --spacing-page-enter-offset: 12px;
   --spacing-mm: 20px;
   --spacing-action: 240px;
   --spacing-logo-sm: 24px;
@@ -74,7 +75,7 @@
 @keyframes page-enter {
   from {
     opacity: 0;
-    transform: translateY(12px);
+    transform: translateY(var(--spacing-page-enter-offset));
   }
   to {
     opacity: 1;

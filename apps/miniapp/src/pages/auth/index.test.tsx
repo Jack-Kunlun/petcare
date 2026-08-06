@@ -204,6 +204,7 @@ describe("AuthPage", () => {
     const button = screen.getByText("微信登录");
 
     fireEvent.click(button);
+    expect(screen.getByRole("button", { name: "正在登录" })).toBeDisabled();
     fireEvent.click(button);
     expect(login).toHaveBeenCalledTimes(1);
 

@@ -101,7 +101,7 @@ export default function AuthPage() {
           disabled={pending}
           onGetPhoneNumber={handleWechatLogin}
         >
-          微信登录
+          {pending ? "正在登录" : "微信登录"}
         </Button>
 
         <View className="mt-note min-h-feedback">
