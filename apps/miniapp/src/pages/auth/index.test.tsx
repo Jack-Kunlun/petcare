@@ -16,6 +16,7 @@ jest.mock("@tarojs/taro", () => ({
     navigateBack: jest.fn(),
     redirectTo: jest.fn(),
     switchTab: jest.fn(),
+    getWindowInfo: jest.fn(() => ({ statusBarHeight: 24 })),
   },
 }));
 
@@ -33,15 +34,18 @@ jest.mock("@tarojs/components", () => {
       onGetPhoneNumber,
       loading,
       openType,
+      hoverClass,
       ...props
     }: React.PropsWithChildren<{
       onClick?: () => void;
       onGetPhoneNumber?: (event: { detail: { code?: string; errMsg?: string } }) => void;
       loading?: boolean;
       openType?: string;
+      hoverClass?: string;
     }>) => {
       void loading;
       void openType;
+      void hoverClass;
 
       return React.createElement(
         "button",
@@ -97,17 +101,28 @@ describe("AuthPage", () => {
     expect(Taro.switchTab).toHaveBeenCalledWith({ url: "/pages/index/index" });
   });
 
-  it("uses semantic Tailwind tokens without unsafe syntax", () => {
+  it("renders the immersive PetCare login composition", () => {
     const { container } = render(<AuthPage />);
 
     expect(container.firstElementChild).toHaveClass(
       "min-h-screen",
-      "bg-surface-muted",
-      "px-section",
-      "py-page-y",
+      "bg-linear-to-b",
+      "from-surface-brand",
+      "to-surface",
     );
-    expect(screen.getByText("登录 PetCare 宠伴")).toHaveClass("text-heading", "text-ink-strong");
-    expect(screen.getByText("微信登录")).toHaveClass("rounded-button", "bg-brand");
+    expect(screen.getByLabelText("PetCare 宠伴品牌 Logo")).toBeInTheDocument();
+    expect(screen.getByText("让每一次托付，都安心可见")).toBeInTheDocument();
+    expect(screen.getByText("微信手机号快捷登录")).toBeInTheDocument();
+    expect(screen.getByRole("button", { name: "微信登录" })).toHaveClass("h-control", "bg-brand");
+  });
+
+  it("keeps a stable card height while showing an error", async () => {
+    mockPhoneDetail = { errMsg: "getPhoneNumber:fail user deny" };
+    render(<AuthPage />);
+    fireEvent.click(screen.getByRole("button", { name: "微信登录" }));
+
+    expect(await screen.findByText("需要授权手机号才能完成登录，请重试")).toBeInTheDocument();
+    expect(screen.getByTestId("auth-card")).toHaveClass("min-h-auth-card");
   });
 
   it("switches to the home tab for an already-bound user", async () => {
