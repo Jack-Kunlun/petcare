@@ -333,6 +333,7 @@ git commit -m "feat(miniapp): 优化沉浸式登录页面"
 - Create: `apps/miniapp/src/pages/index/home.data.ts`
 - Create: `apps/miniapp/src/pages/index/components/HomeHeader.tsx`
 - Create: `apps/miniapp/src/pages/index/components/HeroCarousel.tsx`
+- Modify: `apps/miniapp/src/app.css`
 - Modify: `apps/miniapp/src/pages/index/index.tsx`
 - Modify: `apps/miniapp/src/pages/index/index.test.tsx`
 
@@ -378,6 +379,8 @@ pnpm --filter @petcare/miniapp exec jest src/pages/index/index.test.tsx --runInB
 Expected: 新顶部文案、路由方式和三张轮播断言 FAIL。
 
 - [ ] **Step 3: 定义首页数据类型与本地数据**
+
+先在 `app.css` 的 `@theme` 中定义 `--spacing-home-banner: 158px`，确保 `HeroCarousel` 使用的静态 `h-home-banner` 类在本任务即可生成；Task 4 不再重复添加该 token。
 
 `home.data.ts` 中每个字段添加用途 JSDoc，核心接口如下：
 
@@ -687,7 +690,7 @@ Expected: 首页测试 PASS，TypeScript 无错误。
 - [ ] **Step 6: 提交**
 
 ```bash
-git add apps/miniapp/src/pages/index/home.data.ts apps/miniapp/src/pages/index/components/HomeHeader.tsx apps/miniapp/src/pages/index/components/HeroCarousel.tsx apps/miniapp/src/pages/index/index.tsx apps/miniapp/src/pages/index/index.test.tsx
+git add apps/miniapp/src/app.css apps/miniapp/src/pages/index/home.data.ts apps/miniapp/src/pages/index/components/HomeHeader.tsx apps/miniapp/src/pages/index/components/HeroCarousel.tsx apps/miniapp/src/pages/index/index.tsx apps/miniapp/src/pages/index/index.test.tsx
 git commit -m "feat(miniapp): 增加首页顶部与品牌轮播"
 ```
 
@@ -804,7 +807,6 @@ Expected: 新模块顺序、卡片数量和一级 Tab 路由断言 FAIL。
 ```css
 --spacing-avatar: 48px;
 --spacing-icon-touch: 44px;
---spacing-home-banner: 158px;
 --spacing-service-avatar: 48px;
 --spacing-progress: 8px;
 --spacing-bounty-card: 256px;
