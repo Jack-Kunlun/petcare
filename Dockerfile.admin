@@ -20,6 +20,7 @@ COPY packages/api-client ./packages/api-client
 COPY packages/eslint-config-base ./packages/eslint-config-base
 COPY packages/shared-types ./packages/shared-types
 COPY packages/shared-utils ./packages/shared-utils
+COPY scripts/style-output-policy.mjs ./scripts/style-output-policy.mjs
 RUN pnpm --filter @petcare/admin build
 
 # ===== Nginx运行阶段 =====
