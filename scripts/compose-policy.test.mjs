@@ -39,3 +39,12 @@ test("Server 运行镜像保留 Prisma seed 所需源码", async () => {
     /COPY --from=server-builder \/app\/apps\/server\/src \.\/apps\/server\/src/,
   );
 });
+
+test("Admin 构建镜像保留样式产物校验脚本", async () => {
+  const dockerfile = await readFile(resolve(root, "Dockerfile.admin"), "utf8");
+
+  assert.match(
+    dockerfile,
+    /COPY scripts\/style-output-policy\.mjs \.\/scripts\/style-output-policy\.mjs/,
+  );
+});
