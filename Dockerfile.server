@@ -23,6 +23,7 @@ COPY packages/shared-types ./packages/shared-types
 COPY packages/shared-utils ./packages/shared-utils
 
 # 构建
+RUN pnpm --filter @petcare/shared-types build
 RUN pnpm --filter @petcare/server build
 
 # ===== 运行阶段 =====
