@@ -21,6 +21,7 @@
 ### Task 1: 统一 BrandLogo 的清晰度与布局属性
 
 **Files:**
+
 - Modify: `apps/admin/src/components/BrandLogo.tsx`
 - Test: `apps/admin/src/components/BrandLogo.test.tsx`
 
@@ -35,6 +36,7 @@
 ### Task 2: 修正登录页视觉层次、控件对齐与切换稳定性
 
 **Files:**
+
 - Modify: `apps/admin/src/pages/Login/index.tsx`
 - Test: `apps/admin/src/pages/Login/index.test.tsx`
 
@@ -52,6 +54,7 @@
 ### Task 3: 全量验证与交付检查
 
 **Files:**
+
 - Test: `apps/admin/src/components/BrandLogo.test.tsx`
 - Test: `apps/admin/src/pages/Login/index.test.tsx`
 

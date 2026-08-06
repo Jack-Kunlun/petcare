@@ -222,7 +222,10 @@ export default function UserManagement() {
         {query.isPending && (
           <div aria-label="正在加载用户" className="space-y-3 p-5">
             {Array.from({ length: 5 }, (_, index) => (
-              <div key={index} className="h-14 rounded-lg bg-slate-100 animate-[pc-skeleton-shimmer_220ms_linear_infinite] motion-reduce:animate-none" />
+              <div
+                key={index}
+                className="h-14 rounded-lg bg-slate-100 animate-[pc-skeleton-shimmer_220ms_linear_infinite] motion-reduce:animate-none"
+              />
             ))}
           </div>
         )}
@@ -273,7 +276,10 @@ export default function UserManagement() {
                 </thead>
                 <tbody className="divide-y divide-slate-100">
                   {query.data.list.map((user) => (
-                    <tr key={user.id} className="border-border transition-[background-color,border-color] duration-200 hover:bg-page-background hover:border-border">
+                    <tr
+                      key={user.id}
+                      className="border-border transition-[background-color,border-color] duration-200 hover:bg-page-background hover:border-border"
+                    >
                       <td className="px-5 py-4">
                         <UserIdentity user={user} />
                       </td>
