@@ -41,6 +41,7 @@
   --spacing-logo-sm: 24px;
   --spacing-logo-md: 48px;
   --spacing-logo-lockup: 180px;
+  --spacing-home-banner: 158px;
   --spacing-hero-height: 170px;
   --spacing-tab-height: 64px;
   --spacing-tab-label: 4px;
@@ -70,7 +71,7 @@
   --animate-page-enter: page-enter 240ms ease-out both;
 }
 
-@source inline("h-mm w-action h-logo-sm w-logo-sm h-logo-md w-logo-md h-logo-lockup w-logo-lockup h-hero-height min-h-tab pb-safe-bottom top-overlay right-overlay bottom-overlay left-overlay opacity-80");
+@source inline("h-mm w-action h-logo-sm w-logo-sm h-logo-md w-logo-md h-logo-lockup w-logo-lockup h-home-banner h-hero-height min-h-tab pb-safe-bottom top-overlay right-overlay bottom-overlay left-overlay opacity-80");
 
 @keyframes page-enter {
   from {
