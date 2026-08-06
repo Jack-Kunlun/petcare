@@ -16,7 +16,7 @@
 - Miniapp 最终样式保持 `14px` 默认字号并关闭 px 到 rpx 转换。
 - Miniapp 禁止任意值类、分数尺寸、值编码类、动态类名、变体、`rem/rpx` 和页面级 CSS/SCSS。
 - 新尺寸必须先进入 `apps/miniapp/src/app.css` 的 `@theme`，再通过语义类使用。
-- 运行时图片只从 `apps/miniapp/src/assets` 导入，不引用 H5 原型中的外部图片 URL。
+- 首页原型静态图片只从 `apps/miniapp/src/assets` 导入，不引用 H5 原型中的外部图片 URL；真实用户头像继续使用现有用户契约提供的地址。
 - 不新增 npm 依赖，不修改服务端、数据库或 Admin。
 - 所有触控目标不小于 `44px × 44px`，相邻触控目标至少间隔 `8px`。
 - 请求和响应契约继续使用 `@petcare/shared-types`；页面原型数据类型的每个字段必须有 JSDoc。
@@ -34,6 +34,7 @@
 - `apps/miniapp/src/pages/index/components/HomeHeader.tsx`：问候、头像、定位和消息入口。
 - `apps/miniapp/src/pages/index/components/HeroCarousel.tsx`：品牌轮播和单一主行动。
 - `apps/miniapp/src/pages/index/components/ServiceOverview.tsx`：加载、游客、进行中服务和空状态。
+- `apps/miniapp/src/pages/index/components/ServiceOverview.test.tsx`：验证服务区域的四种状态。
 - `apps/miniapp/src/pages/index/components/BountySection.tsx`：热门悬赏横向列表。
 - `apps/miniapp/src/pages/index/components/ClassroomSection.tsx`：课堂文章列表。
 - `apps/miniapp/src/pages/index/components/CommunitySection.tsx`：社区内容信息流。
@@ -673,6 +674,7 @@ git commit -m "feat(miniapp): 增加首页顶部与品牌轮播"
 **Files:**
 
 - Create: `apps/miniapp/src/pages/index/components/ServiceOverview.tsx`
+- Create: `apps/miniapp/src/pages/index/components/ServiceOverview.test.tsx`
 - Create: `apps/miniapp/src/pages/index/components/BountySection.tsx`
 - Create: `apps/miniapp/src/pages/index/components/ClassroomSection.tsx`
 - Create: `apps/miniapp/src/pages/index/components/CommunitySection.tsx`
@@ -724,12 +726,49 @@ it("uses switchTab for first-level destinations", () => {
 
 保留并适配现有 loading、guest、authenticated 测试；删除“首页退出登录”断言，因为退出入口属于“我的”页面，不出现在首页原型中。
 
+在 `ServiceOverview.test.tsx` 中直接渲染组件，分别断言：
+
+```tsx
+it.each([
+  ["loading", null, "正在恢复登录状态"],
+  ["guest", null, "登录后管理照护计划"],
+  ["authenticated", null, "暂无进行中的服务"],
+] as const)("renders the %s service state", (status, service, expectedText) => {
+  render(
+    <ServiceOverview
+      status={status}
+      service={service}
+      onLogin={jest.fn()}
+      onPublish={jest.fn()}
+      onViewService={jest.fn()}
+      onContact={jest.fn()}
+    />,
+  );
+  expect(screen.getByText(expectedText)).toBeInTheDocument();
+});
+
+it("renders the ongoing service progress and actions", () => {
+  render(
+    <ServiceOverview
+      status="authenticated"
+      service={HOME_ONGOING_SERVICE}
+      onLogin={jest.fn()}
+      onPublish={jest.fn()}
+      onViewService={jest.fn()}
+      onContact={jest.fn()}
+    />,
+  );
+  expect(screen.getByText("上门喂养 · 第 2 次服务")).toBeInTheDocument();
+  expect(screen.getByTestId("service-progress")).toHaveStyle({ width: "65%" });
+});
+```
+
 - [ ] **Step 2: 运行首页测试并确认失败**
 
 Run:
 
 ```bash
-pnpm --filter @petcare/miniapp exec jest src/pages/index/index.test.tsx --runInBand
+pnpm --filter @petcare/miniapp exec jest src/pages/index/index.test.tsx src/pages/index/components/ServiceOverview.test.tsx --runInBand
 ```
 
 Expected: 新模块顺序、卡片数量和一级 Tab 路由断言 FAIL。
@@ -749,6 +788,7 @@ Expected: 新模块顺序、卡片数量和一级 Tab 路由断言 FAIL。
 --spacing-article-image: 84px;
 --spacing-community-media: 200px;
 --spacing-tab-badge: 16px;
+--spacing-page-tab-offset: 96px;
 --radius-pill: 999px;
 --shadow-floating: 0 8px 24px rgb(31 41 55 / 8%);
 ```
@@ -806,7 +846,11 @@ return (
       预计 {service.estimatedTime} 完成
     </Text>
     <View className="mt-compact h-progress w-full overflow-hidden rounded-pill bg-surface-brand">
-      <View className="h-progress rounded-pill bg-care" style={{ width: `${service.progress}%` }} />
+      <View
+        className="h-progress rounded-pill bg-care"
+        style={{ width: `${service.progress}%` }}
+        data-testid="service-progress"
+      />
     </View>
     <View className="mt-compact flex gap-note">
       <Button
@@ -855,7 +899,7 @@ const switchTab = (url: string): void => {
 Run:
 
 ```bash
-pnpm --filter @petcare/miniapp exec jest src/pages/index/index.test.tsx --runInBand
+pnpm --filter @petcare/miniapp exec jest src/pages/index/index.test.tsx src/pages/index/components/ServiceOverview.test.tsx --runInBand
 pnpm --filter @petcare/miniapp lint:styles
 pnpm --filter @petcare/miniapp typecheck
 ```
@@ -913,6 +957,8 @@ it("keeps every tab touch target at the semantic control height", () => {
   }
 });
 ```
+
+在 Taro mock 中加入 `getWindowInfo: jest.fn(() => ({ screenHeight: 844, safeArea: { bottom: 810 } }))`，并断言 TabBar 根节点的 `paddingBottom` 为 `34px`。
 
 - [ ] **Step 2: 运行 TabBar 测试并确认失败**
 
@@ -979,7 +1025,7 @@ active 文件同时把 `stroke-width` 改为 `2.2`。这些 SVG 直接保存为�
 }
 ```
 
-根容器继续固定在底部，`pb-note` 与 `pb-safe-bottom` 由语义 token 保证最后一屏内容不被遮挡。
+根容器继续固定在底部。通过 `Taro.getWindowInfo()` 计算 `screenHeight - safeArea.bottom`，并以内联 `paddingBottom` 应用真实底部安全区；不得把 `pb-note` 与 `pb-safe-bottom` 叠加。首页内容区使用独立的 `pb-page-tab-offset` token 预留 `96px`，避免最后一张卡片被 TabBar 遮挡。
 
 - [ ] **Step 5: 运行 TabBar、样式和构建测试**
 
