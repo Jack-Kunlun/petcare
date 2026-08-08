@@ -957,6 +957,7 @@ git commit -m "feat(miniapp): 完成品牌化首页内容布局"
 - Create: `apps/miniapp/src/assets/navigation/profile-active.svg`
 - Modify: `apps/miniapp/src/custom-tab-bar/index.tsx`
 - Modify: `apps/miniapp/src/custom-tab-bar/index.test.tsx`
+- Modify: `apps/miniapp/src/pages/index/index.tsx`
 
 **Interfaces:**
 
@@ -1068,7 +1069,7 @@ Expected: 测试和构建 PASS；产物策略不报告 SVG、WXSS 或不支持�
 - [ ] **Step 6: 提交**
 
 ```bash
-git add apps/miniapp/src/assets/navigation apps/miniapp/src/custom-tab-bar
+git add apps/miniapp/src/assets/navigation apps/miniapp/src/custom-tab-bar apps/miniapp/src/pages/index/index.tsx
 git commit -m "feat(miniapp): 优化品牌化底部导航"
 ```
 
