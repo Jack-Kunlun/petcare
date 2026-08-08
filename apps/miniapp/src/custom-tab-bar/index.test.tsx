@@ -7,6 +7,7 @@ jest.mock("@tarojs/taro", () => ({
   __esModule: true,
   default: {
     getCurrentInstance: jest.fn(),
+    getWindowInfo: jest.fn(() => ({ screenHeight: 844, safeArea: { bottom: 810 } })),
     switchTab: jest.fn(),
   },
 }));
@@ -17,6 +18,7 @@ jest.mock("@tarojs/components", () => {
   return {
     Button: ({ children, ...props }: React.PropsWithChildren<Record<string, unknown>>) =>
       React.createElement("button", props, children),
+    Image: ({ ...props }: Record<string, unknown>) => React.createElement("img", props),
     Icon: ({ ariaLabel, color, type }: { ariaLabel?: string; color?: string; type: string }) =>
       React.createElement("span", {
         role: "img",
@@ -45,7 +47,7 @@ describe("CustomTabBar", () => {
     expect(screen.getAllByRole("button")).toHaveLength(5);
     expect(screen.getByRole("button", { name: "首页" })).toBeInTheDocument();
     expect(screen.getByRole("button", { name: "悬赏大厅" })).toBeInTheDocument();
-    expect(screen.getByRole("img", { name: "首页" })).toBeInTheDocument();
+    expect(screen.getAllByRole("img")).toHaveLength(5);
   });
 
   it("switches to the selected tab route", () => {
@@ -63,6 +65,28 @@ describe("CustomTabBar", () => {
 
     render(<CustomTabBar />);
 
-    expect(screen.getByRole("img", { name: "我的" })).toHaveAttribute("data-color", "#4A6CF7");
+    expect(screen.getByRole("button", { name: "我的" })).toHaveAttribute("data-selected", "true");
+  });
+
+  it("uses branded local icons and shows the message badge", () => {
+    render(<CustomTabBar />);
+
+    expect(screen.getByLabelText("首页")).toHaveAttribute("data-selected", "true");
+    expect(screen.getByLabelText("消息未读 3 条")).toBeInTheDocument();
+    expect(screen.getAllByRole("img")).toHaveLength(5);
+  });
+
+  it("keeps every tab touch target at the semantic control height", () => {
+    render(<CustomTabBar />);
+
+    for (const button of screen.getAllByRole("button")) {
+      expect(button).toHaveClass("min-h-control");
+    }
+  });
+
+  it("uses the device bottom safe area for the tab bar padding", () => {
+    render(<CustomTabBar />);
+
+    expect(screen.getByTestId("custom-tab-bar")).toHaveStyle({ paddingBottom: "34px" });
   });
 });

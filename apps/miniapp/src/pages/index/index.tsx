@@ -26,7 +26,7 @@ export default function Index() {
 
   return (
     <View
-      className="box-border min-h-screen bg-surface px-page-x pb-safe-bottom"
+      className="box-border min-h-screen bg-surface px-page-x pb-page-tab-offset"
       data-testid="home-page"
     >
       <StatusBarSpacer />
