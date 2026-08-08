@@ -7,7 +7,12 @@ import Index from ".";
 jest.mock("@tarojs/taro", () => ({
   __esModule: true,
   default: {
-    getWindowInfo: jest.fn(() => ({ statusBarHeight: 24 })),
+    getMenuButtonBoundingClientRect: jest.fn(() => ({ top: 32, bottom: 64 })),
+    getWindowInfo: jest.fn(() => ({
+      statusBarHeight: 24,
+      screenHeight: 844,
+      safeArea: { bottom: 810 },
+    })),
     navigateTo: jest.fn(),
     switchTab: jest.fn(),
   },
@@ -127,6 +132,14 @@ describe("Index Page", () => {
     expect(screen.getByText("微信登录")).toHaveClass("h-control", "rounded-button", "bg-brand");
   });
 
+  it("keeps the header below the capsule and content above the safe-area tab bar", () => {
+    renderAuthenticatedHome();
+
+    expect(screen.getByTestId("status-bar-spacer")).toHaveStyle({ height: "72px" });
+    expect(screen.getByTestId("home-page")).toHaveStyle({ paddingBottom: "98px" });
+    expect(screen.getByTestId("home-page")).not.toHaveClass("pb-page-tab-offset");
+  });
+
   it("keeps the approved home section order", () => {
     renderAuthenticatedHome();
     const page = screen.getByTestId("home-page");
@@ -150,6 +163,13 @@ describe("Index Page", () => {
     expect(screen.getAllByTestId("bounty-card")).toHaveLength(3);
     expect(screen.getAllByTestId("classroom-card")).toHaveLength(4);
     expect(screen.getAllByTestId("community-card")).toHaveLength(3);
+  });
+
+  it("keeps the classroom and community view-all actions at the 44px control height", () => {
+    renderAuthenticatedHome();
+
+    expect(screen.getByRole("button", { name: "查看全部课堂" })).toHaveClass("min-h-control");
+    expect(screen.getByRole("button", { name: "查看全部社区" })).toHaveClass("min-h-control");
   });
 
   it("uses switchTab for first-level destinations", () => {

@@ -13,7 +13,7 @@ export default function CommunitySection({ items, onViewAll, onSelect }: Communi
       <View className="flex items-center justify-between">
         <Text className="text-welcome font-bold text-ink-strong">社区精选</Text>
         <Button
-          className="border-none bg-transparent px-none text-base text-brand-strong"
+          className="min-h-control border-none bg-transparent px-none text-base text-brand-strong"
           onClick={onViewAll}
         >
           查看全部社区
