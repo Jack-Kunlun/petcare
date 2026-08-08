@@ -1,6 +1,6 @@
 import Taro from "@tarojs/taro";
 import "@testing-library/jest-dom";
-import { fireEvent, render, screen } from "@testing-library/react";
+import { fireEvent, render, screen, within } from "@testing-library/react";
 import { useAuth } from "../../auth/auth.context";
 import Index from ".";
 
@@ -87,7 +87,7 @@ describe("Index Page", () => {
 
     render(<Index />);
 
-    expect(screen.getByText("正在恢复登录状态…")).toBeInTheDocument();
+    expect(screen.getByText("正在恢复登录状态")).toBeInTheDocument();
   });
 
   it("lets a guest navigate to WeChat login", () => {
@@ -122,30 +122,42 @@ describe("Index Page", () => {
       "box-border",
       "min-h-screen",
       "bg-surface",
-      "p-page",
+      "px-page-x",
     );
-    expect(screen.getByText("微信登录")).toHaveClass("w-action", "rounded-button", "bg-brand");
+    expect(screen.getByText("微信登录")).toHaveClass("h-control", "rounded-button", "bg-brand");
   });
 
-  it("shows the current user and logs out", () => {
+  it("keeps the approved home section order", () => {
     renderAuthenticatedHome();
-    fireEvent.click(screen.getByText("退出登录"));
+    const page = screen.getByTestId("home-page");
+    const sections = within(page)
+      .getAllByTestId(/home-section-/)
+      .map((element) => element.getAttribute("data-testid"));
 
-    expect(screen.getByText(/宠友1878/)).toBeInTheDocument();
-    expect(logout).toHaveBeenCalled();
+    expect(sections).toEqual([
+      "home-section-header",
+      "home-section-hero",
+      "home-section-service",
+      "home-section-bounty",
+      "home-section-classroom",
+      "home-section-community",
+    ]);
   });
 
-  it("renders the v45 home sections and routes to the bounty tab", () => {
+  it("renders the prototype content density", () => {
     renderAuthenticatedHome();
 
-    expect(screen.getByText("每一次托付，都值得信赖")).toBeInTheDocument();
-    expect(screen.getByText("热门悬赏")).toBeInTheDocument();
-    expect(screen.getByText("养宠小课堂")).toBeInTheDocument();
-    expect(screen.getByText("社区精选")).toBeInTheDocument();
+    expect(screen.getAllByTestId("bounty-card")).toHaveLength(3);
+    expect(screen.getAllByTestId("classroom-card")).toHaveLength(4);
+    expect(screen.getAllByTestId("community-card")).toHaveLength(3);
+  });
+
+  it("uses switchTab for first-level destinations", () => {
+    renderAuthenticatedHome();
 
     fireEvent.click(screen.getByRole("button", { name: "查看全部悬赏" }));
 
-    expect(Taro.navigateTo).toHaveBeenCalledWith({ url: "/pages/bounty/index" });
+    expect(Taro.switchTab).toHaveBeenCalledWith({ url: "/pages/bounty/index" });
   });
 
   it("renders the prototype header and switches to the messages tab", () => {
