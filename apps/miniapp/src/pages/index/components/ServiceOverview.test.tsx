@@ -11,6 +11,8 @@ jest.mock("@tarojs/components", () => {
       React.createElement("div", props, children),
     Text: ({ children, ...props }: React.PropsWithChildren<Record<string, unknown>>) =>
       React.createElement("span", props, children),
+    Image: ({ ariaLabel, ...props }: { ariaLabel?: string } & Record<string, unknown>) =>
+      React.createElement("img", { ...props, "aria-label": ariaLabel }),
     Button: ({ children, ...props }: React.PropsWithChildren<Record<string, unknown>>) =>
       React.createElement("button", props, children),
   };
@@ -49,6 +51,12 @@ describe("ServiceOverview", () => {
     );
 
     expect(screen.getByText("上门喂养 · 第 2 次服务")).toBeInTheDocument();
+    expect(screen.getByText("咪咪")).toBeInTheDocument();
+    expect(screen.getByText("英短蓝猫")).toBeInTheDocument();
+    expect(screen.getByLabelText("咪咪的头像")).toHaveAttribute(
+      "src",
+      HOME_ONGOING_SERVICE.petAvatar,
+    );
     expect(screen.getByTestId("service-progress")).toHaveStyle({ width: "65%" });
   });
 });

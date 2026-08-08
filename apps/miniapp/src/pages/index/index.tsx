@@ -1,6 +1,7 @@
 import { View } from "@tarojs/components";
 import Taro from "@tarojs/taro";
 import { useAuth } from "../../auth/auth.context";
+import { CUSTOM_TAB_BAR_HEIGHT_PX, getBottomSafeArea } from "../../components/layout/safe-area";
 import StatusBarSpacer from "../../components/layout/StatusBarSpacer";
 import BountySection from "./components/BountySection";
 import ClassroomSection from "./components/ClassroomSection";
@@ -23,13 +24,15 @@ function switchTab(url: string): void {
 export default function Index() {
   const { status, user } = useAuth();
   const nickname = user?.nickname ?? "宠伴朋友";
+  const bottomContentInset = CUSTOM_TAB_BAR_HEIGHT_PX + getBottomSafeArea(Taro.getWindowInfo());
 
   return (
     <View
-      className="box-border min-h-screen bg-surface px-page-x pb-page-tab-offset"
+      className="box-border min-h-screen bg-surface px-page-x"
       data-testid="home-page"
+      style={{ paddingBottom: `${bottomContentInset}px` }}
     >
-      <StatusBarSpacer />
+      <StatusBarSpacer includeNavigationArea />
       <View data-testid="home-section-header">
         <HomeHeader
           nickname={nickname}
