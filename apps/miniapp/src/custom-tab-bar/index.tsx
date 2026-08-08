@@ -21,9 +21,25 @@ interface TabItem {
 
 const tabItems: TabItem[] = [
   { path: "/pages/index/index", label: "首页", icon: homeIcon, activeIcon: homeActiveIcon },
-  { path: "/pages/bounty/index", label: "悬赏大厅", icon: bountyIcon, activeIcon: bountyActiveIcon },
-  { path: "/pages/community/index", label: "社区", icon: communityIcon, activeIcon: communityActiveIcon },
-  { path: "/pages/messages/index", label: "消息", icon: messagesIcon, activeIcon: messagesActiveIcon, badge: 3 },
+  {
+    path: "/pages/bounty/index",
+    label: "悬赏大厅",
+    icon: bountyIcon,
+    activeIcon: bountyActiveIcon,
+  },
+  {
+    path: "/pages/community/index",
+    label: "社区",
+    icon: communityIcon,
+    activeIcon: communityActiveIcon,
+  },
+  {
+    path: "/pages/messages/index",
+    label: "消息",
+    icon: messagesIcon,
+    activeIcon: messagesActiveIcon,
+    badge: 3,
+  },
   { path: "/pages/profile/index", label: "我的", icon: profileIcon, activeIcon: profileActiveIcon },
 ];
 
@@ -53,7 +69,11 @@ export default function CustomTabBar() {
             onClick={() => void Taro.switchTab({ url: item.path })}
           >
             <View className="relative h-logo-sm w-logo-sm">
-              <Image className="h-logo-sm w-logo-sm" src={selected ? item.activeIcon : item.icon} mode="aspectFit" />
+              <Image
+                className="h-logo-sm w-logo-sm"
+                src={selected ? item.activeIcon : item.icon}
+                mode="aspectFit"
+              />
               {item.badge ? (
                 <Text
                   className="absolute right-overlay top-overlay flex h-tab-badge w-tab-badge items-center justify-center rounded-pill bg-danger text-tab font-semibold text-white"
@@ -66,7 +86,9 @@ export default function CustomTabBar() {
             {selected ? (
               <Text className="mt-tab-label text-tab font-semibold text-brand">{item.label}</Text>
             ) : (
-              <Text className="mt-tab-label text-tab font-normal text-muted-brand">{item.label}</Text>
+              <Text className="mt-tab-label text-tab font-normal text-muted-brand">
+                {item.label}
+              </Text>
             )}
           </Button>
         );
