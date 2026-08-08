@@ -31,7 +31,13 @@ export function getGreeting(now = new Date()): string {
   return "晚上好";
 }
 
-export default function HomeHeader({ nickname, avatar, location, hasUnread, onMessages }: HomeHeaderProps) {
+export default function HomeHeader({
+  nickname,
+  avatar,
+  location,
+  hasUnread,
+  onMessages,
+}: HomeHeaderProps) {
   return (
     <View className="flex items-center justify-between">
       <View className="flex items-center">
@@ -44,7 +50,9 @@ export default function HomeHeader({ nickname, avatar, location, hasUnread, onMe
           />
         ) : (
           <View className="flex h-logo-md w-logo-md items-center justify-center rounded-full bg-surface-brand">
-            <Text className="text-subtitle font-bold text-brand-strong">{nickname.slice(0, 1)}</Text>
+            <Text className="text-subtitle font-bold text-brand-strong">
+              {nickname.slice(0, 1)}
+            </Text>
           </View>
         )}
         <View className="ml-note flex flex-col">
@@ -62,7 +70,9 @@ export default function HomeHeader({ nickname, avatar, location, hasUnread, onMe
         >
           <Icon className="text-brand" type="info" size={22} ariaLabel="消息" />
         </Button>
-        {hasUnread ? <View className="absolute right-overlay top-overlay h-note w-note rounded-full bg-accent" /> : null}
+        {hasUnread ? (
+          <View className="absolute right-overlay top-overlay h-note w-note rounded-full bg-accent" />
+        ) : null}
       </View>
     </View>
   );
