@@ -10,6 +10,7 @@ import messagesActiveIcon from "../assets/navigation/messages-active.svg";
 import messagesIcon from "../assets/navigation/messages-default.svg";
 import profileActiveIcon from "../assets/navigation/profile-active.svg";
 import profileIcon from "../assets/navigation/profile-default.svg";
+import { getBottomSafeArea } from "../components/layout/safe-area";
 
 interface TabItem {
   path: string;
@@ -45,11 +46,7 @@ const tabItems: TabItem[] = [
 
 export default function CustomTabBar() {
   const currentPath = normalizePath(Taro.getCurrentInstance().router?.path);
-  const windowInfo = Taro.getWindowInfo();
-  const bottomSafeArea = Math.max(
-    0,
-    windowInfo.screenHeight - (windowInfo.safeArea?.bottom ?? windowInfo.screenHeight),
-  );
+  const bottomSafeArea = getBottomSafeArea(Taro.getWindowInfo());
 
   return (
     <View

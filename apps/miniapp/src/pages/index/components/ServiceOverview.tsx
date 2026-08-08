@@ -1,4 +1,4 @@
-import { Button, Text, View } from "@tarojs/components";
+import { Button, Image, Text, View } from "@tarojs/components";
 import type { AuthStatus } from "../../../auth/auth.context";
 import type { HomeService } from "../home.data";
 
@@ -64,7 +64,21 @@ export default function ServiceOverview({
 
   return (
     <View className="rounded-card bg-brand p-compact shadow-floating">
-      <Text className="block text-subtitle font-bold text-white">{service.serviceType}</Text>
+      <View className="flex items-center">
+        <Image
+          className="h-service-avatar w-service-avatar shrink-0 rounded-full object-cover"
+          src={service.petAvatar}
+          mode="aspectFill"
+          ariaLabel={`${service.petName}的头像`}
+        />
+        <View className="ml-note flex flex-col">
+          <Text className="text-subtitle font-bold text-white">{service.petName}</Text>
+          <Text className="mt-tab-label text-base text-white">{service.petBreed}</Text>
+        </View>
+      </View>
+      <Text className="mt-compact block text-subtitle font-bold text-white">
+        {service.serviceType}
+      </Text>
       <Text className="mt-tab-label block text-base text-white">
         预计 {service.estimatedTime} 完成
       </Text>

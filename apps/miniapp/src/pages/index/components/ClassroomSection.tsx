@@ -13,7 +13,7 @@ export default function ClassroomSection({ items, onViewAll, onSelect }: Classro
       <View className="flex items-center justify-between">
         <Text className="text-welcome font-bold text-ink-strong">养宠小课堂</Text>
         <Button
-          className="border-none bg-transparent px-none text-base text-brand-strong"
+          className="min-h-control border-none bg-transparent px-none text-base text-brand-strong"
           onClick={onViewAll}
         >
           查看全部课堂
