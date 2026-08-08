@@ -5,7 +5,10 @@ import StatusBarSpacer from "./StatusBarSpacer";
 
 jest.mock("@tarojs/taro", () => ({
   __esModule: true,
-  default: { getWindowInfo: jest.fn() },
+  default: {
+    getMenuButtonBoundingClientRect: jest.fn(),
+    getWindowInfo: jest.fn(),
+  },
 }));
 
 jest.mock("@tarojs/components", () => {
@@ -31,4 +34,16 @@ it("falls back to zero when status bar height is unavailable", () => {
   render(<StatusBarSpacer />);
 
   expect(screen.getByTestId("status-bar-spacer")).toHaveStyle({ height: "0px" });
+});
+
+it("keeps home content below the menu capsule with symmetric navigation spacing", () => {
+  jest.mocked(Taro.getWindowInfo).mockReturnValue({ statusBarHeight: 24 } as never);
+  jest.mocked(Taro.getMenuButtonBoundingClientRect).mockReturnValue({
+    top: 32,
+    bottom: 64,
+  } as never);
+
+  render(<StatusBarSpacer includeNavigationArea />);
+
+  expect(screen.getByTestId("status-bar-spacer")).toHaveStyle({ height: "72px" });
 });
