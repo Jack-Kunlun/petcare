@@ -47,6 +47,16 @@
   --spacing-tab-label: 4px;
   --spacing-safe-bottom: 72px;
   --spacing-overlay: 0px;
+  --spacing-avatar: 48px;
+  --spacing-icon-touch: 44px;
+  --spacing-service-avatar: 48px;
+  --spacing-progress: 8px;
+  --spacing-bounty-card: 256px;
+  --spacing-bounty-image: 64px;
+  --spacing-article-image: 84px;
+  --spacing-community-media: 200px;
+  --spacing-tab-badge: 16px;
+  --spacing-page-tab-offset: 96px;
 
   --text-base: 14px;
   --text-base--line-height: 20px;
@@ -66,8 +76,10 @@
   --radius-button: 8px;
   --radius-card: 12px;
   --radius-panel: 20px;
+  --radius-pill: 999px;
   --shadow-card: 0 2px 8px rgb(31 41 55 / 8%);
   --shadow-panel: 0 12px 32px rgb(31 41 55 / 10%);
+  --shadow-floating: 0 8px 24px rgb(31 41 55 / 8%);
   --animate-page-enter: page-enter 240ms ease-out both;
 }
 
