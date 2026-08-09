@@ -98,6 +98,7 @@
     "@dcloudio/vite-plugin-uni": "3.0.0-4080520251106001",
     "@iconify-json/carbon": "^1.1.37",
     "@mini-types/alipay": "^3.0.14",
+    "@petcare/eslint-config-base": "workspace:*",
     "@types/node": "^20.16.2",
     "@uni-helper/eslint-config": "^0.5.0",
     "@uni-helper/plugin-uni": "^0.1.0",
