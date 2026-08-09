@@ -92,6 +92,7 @@ test("Hooks 使用 pnpm exec，换行策略为 Windows 脚本保留 CRLF", async
       "apps/uniapp/src/auto-imports.d.ts",
       "apps/uniapp/src/components.d.ts",
       "apps/uniapp/src/uni-pages.d.ts",
+      "apps/uniapp/src/api/apiDefinitions.ts",
     ],
   );
   for (const ignoredPath of [
@@ -99,6 +100,7 @@ test("Hooks 使用 pnpm exec，换行策略为 Windows 脚本保留 CRLF", async
     "src/auto-imports.d.ts",
     "src/components.d.ts",
     "src/uni-pages.d.ts",
+    "src/api/apiDefinitions.ts",
   ]) {
     assert.ok(uniappEslint.includes(`"${ignoredPath}"`));
   }

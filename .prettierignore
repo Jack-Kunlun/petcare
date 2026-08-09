@@ -45,3 +45,4 @@ apps/uniapp/src/uni_modules/
 apps/uniapp/src/auto-imports.d.ts
 apps/uniapp/src/components.d.ts
 apps/uniapp/src/uni-pages.d.ts
+apps/uniapp/src/api/apiDefinitions.ts
