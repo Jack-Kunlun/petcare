@@ -66,7 +66,21 @@ test("Hooks 使用 pnpm exec，换行策略为 Windows 脚本保留 CRLF", async
   assert.doesNotMatch(`${commitMsg}\n${preCommit}`, /\bnpx\b/);
   assert.doesNotMatch(lintStaged, /(?<!corepack )pnpm --filter/);
   assert.doesNotMatch(lintStaged, /(?:vitest|jest)\s+run/);
-  assert.doesNotMatch(lintStaged, /eslint\s+\.\s+--fix/);
+  for (const commands of Object.values(manifest["lint-staged"])) {
+    for (const command of commands) {
+      if (command.includes("eslint")) {
+        const eslintArguments = command
+          .split(/\s+/)
+          .slice(command.split(/\s+/).indexOf("eslint") + 1);
+
+        assert.ok(eslintArguments.includes("--fix"));
+        assert.ok(!eslintArguments.includes("."));
+      }
+      if (command.includes("prettier")) {
+        assert.equal(command, "prettier --write");
+      }
+    }
+  }
   assert.deepEqual(manifest["lint-staged"]["scripts/**/*.{js,mjs,cjs}"], [
     "prettier --write",
     "eslint --fix",
