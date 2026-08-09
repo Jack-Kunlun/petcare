@@ -9,12 +9,15 @@ allowBuilds:
   "@swc/core": true
   "@tarojs/binding": true
   "@tarojs/cli": true
+  "@uni-helper/unocss-preset-uni": true
   argon2: true
+  core-js: false
   core-js-pure: false
   esbuild: true
   msgpackr-extract: true
   prisma: true
   unrs-resolver: true
+  vue-demi: true
 
 minimumReleaseAgeExclude:
   - "@weapp-tailwindcss/postcss@3.2.4"

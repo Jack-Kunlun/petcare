@@ -8,6 +8,7 @@ const root = resolve(import.meta.dirname, "..");
 const typecheckProjects = [
   { name: "@petcare/admin", directory: "apps/admin", project: "tsconfig.json" },
   { name: "@petcare/miniapp", directory: "apps/miniapp", project: "tsconfig.json" },
+  { name: "@petcare/uniapp", directory: "apps/uniapp", project: "tsconfig.json" },
   { name: "@petcare/server", directory: "apps/server", project: "tsconfig.build.json" },
   { name: "@petcare/api-client", directory: "packages/api-client", project: "tsconfig.json" },
   { name: "@petcare/shared-types", directory: "packages/shared-types", project: "tsconfig.json" },
