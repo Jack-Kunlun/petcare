@@ -82,13 +82,19 @@ test("UniApp files receive the composed PetCare rules without replacing its pars
   assert.equal(appConfig.languageOptions.parser.meta.name, "vue-eslint-parser");
 });
 
-test("UniApp Vue ESLint accepts Prettier output without fixes", async () => {
+test("UniApp Vue ESLint reaches a Prettier fixed point in fix mode", async () => {
   const eslint = new ESLint({
     cwd: uniappRoot,
+    fix: true,
     overrideConfigFile: "eslint.config.mjs",
   });
 
-  for (const relativePath of ["src/subPages/ci/index.vue", "src/subPages/feedback/index.vue"]) {
+  for (const relativePath of [
+    "src/subPages/ci/index.vue",
+    "src/subPages/feedback/index.vue",
+    "src/subPages/router/demo-params.vue",
+    "src/subPages/router/demo-query.vue",
+  ]) {
     const filePath = resolve(uniappRoot, relativePath);
     const [source, prettierOptions] = await Promise.all([
       readFile(filePath, "utf8"),
@@ -99,6 +105,36 @@ test("UniApp Vue ESLint accepts Prettier output without fixes", async () => {
 
     assert.equal(result.errorCount, 0, relativePath);
     assert.equal(result.output, undefined, relativePath);
+  }
+});
+
+test("UniApp whitespace-sensitive demo snippets stay multiline", async () => {
+  const snippetExpectations = [
+    {
+      relativePath: "src/subPages/feedback/index.vue",
+      prettierIgnoreCount: 6,
+      multilineSnippet: "const { success, error, warning, info } = useGlobalToast()\n",
+    },
+    {
+      relativePath: "src/subPages/router/demo-params.vue",
+      prettierIgnoreCount: 2,
+      multilineSnippet: "router.push({ name: 'demo-params', params: { username: 'eduardo' } })\n",
+    },
+    {
+      relativePath: "src/subPages/router/demo-query.vue",
+      prettierIgnoreCount: 3,
+      multilineSnippet: "router.push({\n            path: '/demo-query',\n",
+    },
+  ];
+
+  for (const { relativePath, prettierIgnoreCount, multilineSnippet } of snippetExpectations) {
+    const source = await readFile(resolve(uniappRoot, relativePath), "utf8");
+    assert.equal(
+      source.match(/<!-- prettier-ignore -->/g)?.length ?? 0,
+      prettierIgnoreCount,
+      relativePath,
+    );
+    assert.ok(source.includes(multilineSnippet), relativePath);
   }
 });
 
