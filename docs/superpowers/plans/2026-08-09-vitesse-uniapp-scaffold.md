@@ -25,6 +25,7 @@
 ### Task 1: Scaffold and integrate the UniApp workspace
 
 **Files:**
+
 - Create: `apps/uniapp/**` from official `wot-starter-v2`, retaining its runtime source, Wot UI v2 integration, UnoCSS configuration, Vite/uni-app platform configuration, and minimal starter page.
 - Create or replace: `apps/uniapp/README.md` with PetCare-specific install/run/build/output/HBuilderX instructions for the four targets.
 - Modify: `apps/uniapp/package.json` to use `@petcare/uniapp`, root-compatible engines, and lifecycle scripts `dev`, `build`, `typecheck`, `lint`, `test`, `test:coverage`, `clean` plus four-target scripts.
@@ -35,6 +36,7 @@
 - Do not modify: `apps/miniapp/**`.
 
 **Interfaces:**
+
 - Consumes: root `apps/*` pnpm workspace inclusion, Turbo lifecycle names, root `scripts/clean.mjs`, and root lint-staged/Husky governance.
 - Produces: workspace package `@petcare/uniapp`; scripts `dev:h5`, `dev:mp-weixin`, `dev:app-android`, `dev:app-ios`, `build:h5`, `build:mp-weixin`, `build:app-android`, `build:app-ios`, `typecheck`, `lint`, `test`, `test:coverage`, `clean`.
 

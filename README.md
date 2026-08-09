@@ -28,7 +28,7 @@ petcare-monorepo/
 
 ### 前置要求
 
-- Node.js 22.x（使用 `.nvmrc` 锁定）
+- Node.js 24.19.x（使用 `.nvmrc` 锁定，最低支持 24.12.0）
 - pnpm 11.x（项目锁定 `pnpm@11.15.1`）
 - PostgreSQL >= 15.0
 - Redis >= 7.0
