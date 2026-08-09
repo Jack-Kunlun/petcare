@@ -52,6 +52,8 @@
     "typecheck": "vue-tsc --noEmit",
     "lint": "eslint .",
     "lint:fix": "eslint . --fix",
+    "format": "prettier --write . --ignore-path ../../.prettierignore",
+    "format:check": "prettier --check . --ignore-path ../../.prettierignore",
     "alova-gen": "alova gen -f",
     "test": "vitest run --passWithNoTests",
     "test:coverage": "vitest run --coverage --passWithNoTests",
