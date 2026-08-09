@@ -12,8 +12,10 @@ test("CI 提供分层质量门禁并使用当前稳定 Actions 主版本", async
     assert.match(workflow, new RegExp(`^  ${job}:`, "m"), `缺少 ${job} Job`);
   }
 
-  assert.match(workflow, /actions\/checkout@v6/);
-  assert.match(workflow, /actions\/setup-node@v6/);
+  assert.match(workflow, /^ {2}NODE_VERSION: "24\.19\.0"$/m);
+  assert.match(workflow, /actions\/checkout@v7/);
+  assert.match(workflow, /actions\/setup-node@v7/);
+  assert.doesNotMatch(workflow, /actions\/(?:checkout|setup-node)@v6/);
   assert.match(workflow, /pnpm\/action-setup@v6/);
   assert.match(workflow, /actions\/upload-artifact@v7/);
   assert.match(workflow, /github\.event_name == 'push'.*refs\/heads\/master/);
