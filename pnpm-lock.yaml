@@ -599,6 +599,9 @@ importers:
       "@mini-types/alipay":
         specifier: ^3.0.14
         version: 3.0.14
+      "@petcare/eslint-config-base":
+        specifier: workspace:*
+        version: link:../../packages/eslint-config-base
       "@types/node":
         specifier: ^20.16.2
         version: 20.19.43
