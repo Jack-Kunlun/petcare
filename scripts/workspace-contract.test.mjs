@@ -62,8 +62,12 @@ test("所有工作区暴露标准生命周期", async () => {
 test("根级命令覆盖质量门禁与三端开发", async () => {
   const manifest = await readJson("package.json");
 
-  assert.equal(manifest.engines.node, ">=22.18.0 <23");
+  assert.equal(manifest.engines.node, ">=24.12.0 <25");
   assert.equal(manifest.engines.pnpm, ">=11.0.0 <12");
+
+  const uniappManifest = await readJson("apps/uniapp/package.json");
+  assert.equal(uniappManifest.engines.node, manifest.engines.node);
+  assert.equal(uniappManifest.engines.pnpm, manifest.engines.pnpm);
   assert.match(manifest.scripts.dev, /@petcare\/admin/);
   assert.match(manifest.scripts.dev, /@petcare\/server/);
   assert.match(manifest.scripts.dev, /@petcare\/miniapp/);
