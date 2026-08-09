@@ -305,6 +305,9 @@ importers:
       jest-environment-jsdom:
         specifier: ^30.4.1
         version: 30.4.1(supports-color@8.1.1)
+      jest-environment-node:
+        specifier: ^30.4.1
+        version: 30.4.1
       postcss:
         specifier: ^8.5.20
         version: 8.5.20
