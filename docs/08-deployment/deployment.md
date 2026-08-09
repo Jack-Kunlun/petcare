@@ -18,7 +18,7 @@
 
 ## 2. 前置要求
 
-- Node.js 22.x
+- Node.js 24.19.x，最低支持 24.12.0
 - pnpm 11.x，项目锁定 `pnpm@11.15.1`
 - Docker 与 Docker Compose v2
 - Windows、macOS 或 Linux
