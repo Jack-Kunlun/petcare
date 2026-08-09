@@ -4,7 +4,7 @@
 
 **Goal:** Remove repository-tracked local task artifacts and prevent local secrets, UniApp build outputs, mobile signing material, and packaged applications from being committed.
 
-**Architecture:** Keep real local credentials in the already ignored root `.env`, preserve intentionally public template configuration such as `.env.example` and `apps/uniapp/.env.{development,staging,production}`, and enforce the boundary with a repository policy test. Remove only files that are simultaneously tracked and ignored; retain their local copies through `git rm --cached`.
+**Architecture:** Keep real local credentials in the already ignored root `.env`, preserve intentionally public template configuration such as `.env.example` and `apps/uniapp/.env.{development,staging,production}`, and enforce the boundary with a repository policy test. The test reads only the repository-root `.gitignore`, so user-level and worktree-local ignore configuration cannot affect the result. Remove only files that are simultaneously tracked and ignored; retain their local copies through `git rm --cached`.
 
 **Tech Stack:** Git ignore rules, Node.js built-in test runner, pnpm workspace policy tests.
 
@@ -28,7 +28,7 @@
 - Test: `scripts/repository-policy.test.mjs`
 
 **Interfaces:**
-- Consumes: Git's `check-ignore` and `ls-files -ci --exclude-standard` commands.
+- Consumes: Git's `check-ignore --verbose --stdin` and `ls-files -ci --exclude-from=.gitignore` commands.
 - Produces: A repository invariant that no committed path is also ignored and that representative secret/mobile artifact paths are ignored.
 
 - [x] **Step 1: Add the failing repository policy test**
@@ -58,11 +58,30 @@ test("local secrets and generated mobile artifacts stay out of Git", () => {
     "apps/uniapp/release/petcare.aab",
     "apps/uniapp/release/petcare.ipa",
   ];
-  const ignored = runGit(["check-ignore", "--stdin"], `${probes.join("\n")}\n`);
+  const ignored = runGit(["check-ignore", "--verbose", "--stdin"], `${probes.join("\n")}\n`);
   assert.equal(ignored.status, 0, ignored.stderr);
-  assert.deepEqual(ignored.stdout.trim().split(/\r?\n/).sort(), probes.toSorted());
+  const rootGitignore = resolve(root, ".gitignore");
+  const ignoredEntries = ignored.stdout
+    .trim()
+    .split(/\r?\n/)
+    .map((line) => {
+      const [sourceAndRule, path] = line.split("\t");
+      const match = /^(.*):\d+:(.*)$/.exec(sourceAndRule);
 
-  const trackedIgnored = runGit(["ls-files", "-ci", "--exclude-standard"]);
+      assert.ok(match, `unexpected check-ignore output: ${line}`);
+      return { path, source: resolve(root, match[1]) };
+    });
+
+  assert.deepEqual(
+    ignoredEntries.map(({ path }) => path).sort(),
+    probes.toSorted(),
+  );
+  assert.ok(
+    ignoredEntries.every(({ source }) => source === rootGitignore),
+    `ignored paths must be matched by the root .gitignore: ${ignored.stdout}`,
+  );
+
+  const trackedIgnored = runGit(["ls-files", "-ci", "--exclude-from=.gitignore"]);
   assert.equal(trackedIgnored.status, 0, trackedIgnored.stderr);
   assert.equal(trackedIgnored.stdout.trim(), "");
 });
@@ -124,13 +143,13 @@ Run:
 
 ```bash
 node --test scripts/repository-policy.test.mjs
-git ls-files -ci --exclude-standard
-git check-ignore -v .env .env.staging.local apps/uniapp/unpackage/app.js apps/uniapp/release/petcare.keystore apps/uniapp/release/petcare.apk
+git ls-files -ci --exclude-from=.gitignore
+git check-ignore --verbose .env .env.staging.local apps/uniapp/unpackage/app.js apps/uniapp/release/petcare.keystore apps/uniapp/release/petcare.apk
 git diff --check
 git diff --cached --check
 ```
 
-Expected: policy tests pass; `git ls-files -ci` is empty; all probes are ignored; both diff checks pass.
+Expected: policy tests pass; every probe is reported by the root `.gitignore`; `git ls-files -ci --exclude-from=.gitignore` is empty; both diff checks pass.
 
 - [x] **Step 6: Review scope without disturbing user work**
 
