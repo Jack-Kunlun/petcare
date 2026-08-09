@@ -19,6 +19,11 @@ allowBuilds:
   unrs-resolver: true
   vue-demi: true
 
+packageExtensions:
+  "@dcloudio/uni-h5-vite@3.0.0-4080520251106001":
+    dependencies:
+      vite: "5.4.21"
+
 minimumReleaseAgeExclude:
   - "@weapp-tailwindcss/postcss@3.2.4"
   - weapp-tailwindcss@5.2.4

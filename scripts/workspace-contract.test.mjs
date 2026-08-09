@@ -31,8 +31,19 @@ test("UniApp workspace uses the official Vitesse scaffold contract", async () =>
 
   assert.equal(manifest.name, "@petcare/uniapp");
   for (const script of [...lifecycle, ...requiredTargetScripts]) {
-    assert.equal(typeof manifest.scripts?.[script], "string", `apps/uniapp/package.json is missing ${script}`);
+    assert.equal(
+      typeof manifest.scripts?.[script],
+      "string",
+      `apps/uniapp/package.json is missing ${script}`,
+    );
   }
+});
+
+test("UniApp H5 compiler resolves its compatible Vite runtime", async () => {
+  const workspace = await readFile(resolve(root, "pnpm-workspace.yaml"), "utf8");
+
+  assert.match(workspace, /["']@dcloudio\/uni-h5-vite@3\.0\.0-4080520251106001["']:/);
+  assert.match(workspace, /vite:\s*["']5\.4\.21["']/);
 });
 
 async function readJson(path) {
@@ -62,16 +73,26 @@ test("所有工作区暴露标准生命周期", async () => {
 test("根级命令覆盖质量门禁与三端开发", async () => {
   const manifest = await readJson("package.json");
 
-  assert.equal(manifest.engines.node, ">=22.18.0 <23");
+  assert.equal(manifest.engines.node, ">=24.12.0 <25");
   assert.equal(manifest.engines.pnpm, ">=11.0.0 <12");
+
+  const uniappManifest = await readJson("apps/uniapp/package.json");
+  assert.equal(uniappManifest.engines.node, manifest.engines.node);
+  assert.equal(uniappManifest.engines.pnpm, manifest.engines.pnpm);
   assert.match(manifest.scripts.dev, /@petcare\/admin/);
   assert.match(manifest.scripts.dev, /@petcare\/server/);
   assert.match(manifest.scripts.dev, /@petcare\/miniapp/);
   assert.match(manifest.scripts.check, /format:check.*lint.*typecheck.*test.*build/);
 
   for (const target of ["h5", "mp-weixin", "app-android", "app-ios"]) {
-    assert.equal(manifest.scripts[`dev:uniapp:${target}`], `pnpm --filter @petcare/uniapp dev:${target}`);
-    assert.equal(manifest.scripts[`build:uniapp:${target}`], `pnpm --filter @petcare/uniapp build:${target}`);
+    assert.equal(
+      manifest.scripts[`dev:uniapp:${target}`],
+      `pnpm --filter @petcare/uniapp dev:${target}`,
+    );
+    assert.equal(
+      manifest.scripts[`build:uniapp:${target}`],
+      `pnpm --filter @petcare/uniapp build:${target}`,
+    );
   }
 });
 
