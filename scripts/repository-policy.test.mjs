@@ -39,6 +39,8 @@ test("Hooks 使用 pnpm exec，换行策略为 Windows 脚本保留 CRLF", async
   const commitCheck = await readFile(resolve(root, "scripts/commit-check.mjs"), "utf8");
   const commitScope = await readFile(resolve(root, "scripts/commit-scope.mjs"), "utf8");
   const attributes = await readFile(resolve(root, ".gitattributes"), "utf8");
+  const prettierIgnore = await readFile(resolve(root, ".prettierignore"), "utf8");
+  const uniappEslint = await readFile(resolve(root, "apps/uniapp/eslint.config.mjs"), "utf8");
   const manifest = JSON.parse(await readFile(resolve(root, "package.json"), "utf8"));
   const lintStaged = JSON.stringify(manifest["lint-staged"]);
 
@@ -64,6 +66,28 @@ test("Hooks 使用 pnpm exec，换行策略为 Windows 脚本保留 CRLF", async
   assert.doesNotMatch(`${commitMsg}\n${preCommit}`, /\bnpx\b/);
   assert.doesNotMatch(lintStaged, /(?<!corepack )pnpm --filter/);
   assert.doesNotMatch(lintStaged, /(?:vitest|jest)\s+run/);
+  assert.doesNotMatch(lintStaged, /eslint\s+\.\s+--fix/);
+  assert.deepEqual(manifest["lint-staged"]["scripts/**/*.{js,mjs,cjs}"], [
+    "prettier --write",
+    "eslint --fix",
+  ]);
+  assert.deepEqual(
+    prettierIgnore.split(/\r?\n/).filter((line) => line.startsWith("apps/uniapp/src/")),
+    [
+      "apps/uniapp/src/uni_modules/",
+      "apps/uniapp/src/auto-imports.d.ts",
+      "apps/uniapp/src/components.d.ts",
+      "apps/uniapp/src/uni-pages.d.ts",
+    ],
+  );
+  for (const ignoredPath of [
+    "src/uni_modules/**/*",
+    "src/auto-imports.d.ts",
+    "src/components.d.ts",
+    "src/uni-pages.d.ts",
+  ]) {
+    assert.ok(uniappEslint.includes(`"${ignoredPath}"`));
+  }
   assert.match(attributes, /^\*\.bat text eol=crlf$/m);
   assert.match(attributes, /^\*\.cmd text eol=crlf$/m);
 });
@@ -96,10 +120,7 @@ test("local secrets and generated mobile artifacts stay out of Git", () => {
       return { path, source: resolve(root, match[1]) };
     });
 
-  assert.deepEqual(
-    ignoredEntries.map(({ path }) => path).sort(),
-    probes.toSorted(),
-  );
+  assert.deepEqual(ignoredEntries.map(({ path }) => path).sort(), probes.toSorted());
   assert.ok(
     ignoredEntries.every(({ source }) => source === rootGitignore),
     `ignored paths must be matched by the root .gitignore: ${ignored.stdout}`,

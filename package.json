@@ -66,38 +66,42 @@
   "packageManager": "pnpm@11.15.1",
   "lint-staged": {
     "apps/admin/src/**/*.{ts,tsx}": [
-      "corepack pnpm --filter @petcare/admin exec -- prettier --write",
-      "corepack pnpm --filter @petcare/admin exec -- eslint . --fix"
+      "prettier --write",
+      "corepack pnpm --filter @petcare/admin exec -- eslint --fix"
     ],
     "apps/miniapp/**/*.{ts,tsx,js,mjs}": [
-      "corepack pnpm --filter @petcare/miniapp exec -- prettier --write",
+      "prettier --write",
       "corepack pnpm --filter @petcare/miniapp exec -- eslint --fix"
     ],
     "apps/miniapp/**/*.css": [
-      "corepack pnpm --filter @petcare/miniapp exec -- prettier --write"
+      "prettier --write"
     ],
     "apps/uniapp/**/*.{js,mjs,ts,vue}": [
-      "corepack pnpm --filter @petcare/uniapp exec -- prettier --write",
-      "corepack pnpm --filter @petcare/uniapp exec -- eslint . --fix"
+      "prettier --write",
+      "corepack pnpm --filter @petcare/uniapp exec -- eslint --fix"
     ],
     "apps/uniapp/**/*.{css,scss,json}": [
-      "corepack pnpm --filter @petcare/uniapp exec -- prettier --write"
+      "prettier --write"
     ],
     "apps/server/src/**/*.ts": [
-      "corepack pnpm --filter @petcare/server exec -- prettier --write",
-      "corepack pnpm --filter @petcare/server exec -- eslint . --fix"
+      "prettier --write",
+      "corepack pnpm --filter @petcare/server exec -- eslint --fix"
     ],
     "packages/shared-types/**/*.ts": [
-      "corepack pnpm --filter @petcare/shared-types exec -- prettier --write",
-      "corepack pnpm --filter @petcare/shared-types exec -- eslint . --fix"
+      "prettier --write",
+      "corepack pnpm --filter @petcare/shared-types exec -- eslint --fix"
     ],
     "packages/shared-utils/**/*.ts": [
-      "corepack pnpm --filter @petcare/shared-utils exec -- prettier --write",
-      "corepack pnpm --filter @petcare/shared-utils exec -- eslint . --fix"
+      "prettier --write",
+      "corepack pnpm --filter @petcare/shared-utils exec -- eslint --fix"
     ],
     "packages/api-client/**/*.ts": [
-      "corepack pnpm --filter @petcare/api-client exec -- prettier --write",
-      "corepack pnpm --filter @petcare/api-client exec -- eslint . --fix"
+      "prettier --write",
+      "corepack pnpm --filter @petcare/api-client exec -- eslint --fix"
+    ],
+    "scripts/**/*.{js,mjs,cjs}": [
+      "prettier --write",
+      "eslint --fix"
     ],
     "*.{md,json,yml,yaml}": [
       "prettier --write"
