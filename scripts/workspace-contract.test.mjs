@@ -8,12 +8,32 @@ const manifests = [
   "apps/admin/package.json",
   "apps/server/package.json",
   "apps/miniapp/package.json",
+  "apps/uniapp/package.json",
   "packages/api-client/package.json",
   "packages/shared-types/package.json",
   "packages/shared-utils/package.json",
   "packages/eslint-config-base/package.json",
 ];
 const lifecycle = ["dev", "build", "typecheck", "lint", "test", "test:coverage", "clean"];
+
+test("UniApp workspace uses the official Vitesse scaffold contract", async () => {
+  const manifest = await readJson("apps/uniapp/package.json");
+  const requiredTargetScripts = [
+    "dev:h5",
+    "dev:mp-weixin",
+    "dev:app-android",
+    "dev:app-ios",
+    "build:h5",
+    "build:mp-weixin",
+    "build:app-android",
+    "build:app-ios",
+  ];
+
+  assert.equal(manifest.name, "@petcare/uniapp");
+  for (const script of [...lifecycle, ...requiredTargetScripts]) {
+    assert.equal(typeof manifest.scripts?.[script], "string", `apps/uniapp/package.json is missing ${script}`);
+  }
+});
 
 async function readJson(path) {
   return JSON.parse(await readFile(resolve(root, path), "utf8"));
@@ -48,6 +68,11 @@ test("根级命令覆盖质量门禁与三端开发", async () => {
   assert.match(manifest.scripts.dev, /@petcare\/server/);
   assert.match(manifest.scripts.dev, /@petcare\/miniapp/);
   assert.match(manifest.scripts.check, /format:check.*lint.*typecheck.*test.*build/);
+
+  for (const target of ["h5", "mp-weixin", "app-android", "app-ios"]) {
+    assert.equal(manifest.scripts[`dev:uniapp:${target}`], `pnpm --filter @petcare/uniapp dev:${target}`);
+    assert.equal(manifest.scripts[`build:uniapp:${target}`], `pnpm --filter @petcare/uniapp build:${target}`);
+  }
 });
 
 test("Miniapp 内部脚本不嵌套 npm", async () => {
