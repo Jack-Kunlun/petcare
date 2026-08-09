@@ -31,6 +31,11 @@ export const FULL_TYPECHECK_PROJECTS = Object.freeze([
   "@petcare/shared-utils",
 ]);
 
+const STYLE_PROJECTS = Object.freeze({
+  admin: "@petcare/admin",
+  miniapp: "@petcare/miniapp",
+});
+
 export function classifyStagedPaths(paths) {
   const normalizedPaths = paths.map((path) => path.replaceAll("\\", "/"));
   const typecheckSelectors = new Set();
@@ -63,4 +68,43 @@ export function classifyStagedPaths(paths) {
     typecheckSelectors: fullTypecheck ? [] : [...typecheckSelectors].sort(),
     styleScopes: [...styleScopes].sort(),
   };
+}
+
+export function createFilterArguments(selectors) {
+  return selectors.flatMap((selector) => ["--filter", selector]);
+}
+
+export function createCommitCheckPlan(scope) {
+  const selectors = scope.fullTypecheck ? FULL_TYPECHECK_PROJECTS : scope.typecheckSelectors;
+
+  return {
+    typecheck:
+      selectors.length === 0
+        ? null
+        : {
+            kind: scope.fullTypecheck ? "full" : "affected",
+            selectors,
+            args: [...createFilterArguments(selectors), "--if-present", "run", "typecheck"],
+          },
+    styles: scope.styleScopes.map((scopeName) => {
+      const project = STYLE_PROJECTS[scopeName];
+
+      return {
+        scope: scopeName,
+        project,
+        args: ["--filter", project, "run", "lint:styles"],
+      };
+    }),
+  };
+}
+
+export function createPnpmInvocation(args, platform, comSpec) {
+  if (platform === "win32") {
+    return {
+      executable: comSpec ?? "cmd.exe",
+      args: ["/d", "/s", "/c", `corepack pnpm ${args.join(" ")}`],
+    };
+  }
+
+  return { executable: "corepack", args: ["pnpm", ...args] };
 }

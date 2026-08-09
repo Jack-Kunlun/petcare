@@ -37,6 +37,7 @@ test("Hooks 使用 pnpm exec，换行策略为 Windows 脚本保留 CRLF", async
   const commitMsg = await readFile(resolve(root, ".husky/commit-msg"), "utf8");
   const preCommit = await readFile(resolve(root, ".husky/pre-commit"), "utf8");
   const commitCheck = await readFile(resolve(root, "scripts/commit-check.mjs"), "utf8");
+  const commitScope = await readFile(resolve(root, "scripts/commit-scope.mjs"), "utf8");
   const attributes = await readFile(resolve(root, ".gitattributes"), "utf8");
   const manifest = JSON.parse(await readFile(resolve(root, "package.json"), "utf8"));
   const lintStaged = JSON.stringify(manifest["lint-staged"]);
@@ -52,8 +53,10 @@ test("Hooks 使用 pnpm exec，换行策略为 Windows 脚本保留 CRLF", async
   assert.match(commitCheck, /"--diff-filter=ACMR"/);
   assert.match(commitCheck, /"-z"/);
   assert.match(commitCheck, /classifyStagedPaths/);
+  assert.match(commitCheck, /createCommitCheckPlan/);
+  assert.match(commitCheck, /createPnpmInvocation/);
   assert.doesNotMatch(commitCheck, /typescript\/bin\/tsc|--noEmit/);
-  assert.match(commitCheck, /"lint:styles"/);
+  assert.match(commitScope, /"lint:styles"/);
   assert.doesNotMatch(commitCheck, /\["lint"\]/);
   assert.doesNotMatch(commitCheck, /\["test:e2e"\]/);
   assert.doesNotMatch(commitCheck, /\b(?:pnpm|corepack pnpm)\s+(?:run\s+)?build\b/);

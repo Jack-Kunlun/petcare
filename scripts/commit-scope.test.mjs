@@ -1,7 +1,12 @@
 import assert from "node:assert/strict";
 import test from "node:test";
 
-import { FULL_TYPECHECK_PROJECTS, classifyStagedPaths } from "./commit-scope.mjs";
+import {
+  FULL_TYPECHECK_PROJECTS,
+  classifyStagedPaths,
+  createCommitCheckPlan,
+  createPnpmInvocation,
+} from "./commit-scope.mjs";
 
 test("a UniApp source change selects only UniApp", () => {
   assert.deepEqual(classifyStagedPaths(["apps/uniapp/src/App.vue"]), {
@@ -98,5 +103,91 @@ test("Windows separators and empty input are supported", () => {
     fullTypecheck: false,
     typecheckSelectors: [],
     styleScopes: [],
+  });
+});
+
+test("full scope plans all workspace typechecks with a single pnpm invocation", () => {
+  const plan = createCommitCheckPlan(classifyStagedPaths(["package.json"]));
+
+  assert.deepEqual(plan.typecheck, {
+    kind: "full",
+    selectors: FULL_TYPECHECK_PROJECTS,
+    args: [
+      "--filter",
+      "@petcare/admin",
+      "--filter",
+      "@petcare/miniapp",
+      "--filter",
+      "@petcare/uniapp",
+      "--filter",
+      "@petcare/server",
+      "--filter",
+      "@petcare/api-client",
+      "--filter",
+      "@petcare/shared-types",
+      "--filter",
+      "@petcare/shared-utils",
+      "--if-present",
+      "run",
+      "typecheck",
+    ],
+  });
+  assert.deepEqual(plan.styles, []);
+});
+
+test("affected scope plans selected typechecks and ordered style checks", () => {
+  const plan = createCommitCheckPlan(
+    classifyStagedPaths(["apps/miniapp/src/pages/index.tsx", "apps/admin/src/App.tsx"]),
+  );
+
+  assert.deepEqual(plan.typecheck, {
+    kind: "affected",
+    selectors: ["@petcare/admin", "@petcare/miniapp"],
+    args: [
+      "--filter",
+      "@petcare/admin",
+      "--filter",
+      "@petcare/miniapp",
+      "--if-present",
+      "run",
+      "typecheck",
+    ],
+  });
+  assert.deepEqual(plan.styles, [
+    {
+      scope: "admin",
+      project: "@petcare/admin",
+      args: ["--filter", "@petcare/admin", "run", "lint:styles"],
+    },
+    {
+      scope: "miniapp",
+      project: "@petcare/miniapp",
+      args: ["--filter", "@petcare/miniapp", "run", "lint:styles"],
+    },
+  ]);
+});
+
+test("empty scope plans no typecheck or style command", () => {
+  assert.deepEqual(createCommitCheckPlan(classifyStagedPaths([])), {
+    typecheck: null,
+    styles: [],
+  });
+});
+
+test("pnpm invocations preserve Windows and POSIX command boundaries", () => {
+  const args = ["--filter", "@petcare/admin", "run", "lint:styles"];
+
+  assert.deepEqual(createPnpmInvocation(args, "win32", "C:\\Windows\\System32\\cmd.exe"), {
+    executable: "C:\\Windows\\System32\\cmd.exe",
+    args: [
+      "/d",
+      "/s",
+      "/c",
+      "corepack pnpm --filter @petcare/admin run lint:styles",
+    ],
+  });
+  assert.deepEqual(createPnpmInvocation(args, "linux"), {
+    executable: "corepack",
+    args: ["pnpm", ...args],
   });
 });

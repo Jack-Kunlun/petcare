@@ -3,14 +3,13 @@ import { execFileSync, spawn } from "node:child_process";
 import { resolve } from "node:path";
 import process from "node:process";
 
-import { FULL_TYPECHECK_PROJECTS, classifyStagedPaths } from "./commit-scope.mjs";
+import {
+  classifyStagedPaths,
+  createCommitCheckPlan,
+  createPnpmInvocation,
+} from "./commit-scope.mjs";
 
 const root = resolve(import.meta.dirname, "..");
-
-const STYLE_PROJECTS = Object.freeze({
-  admin: "@petcare/admin",
-  miniapp: "@petcare/miniapp",
-});
 
 function runCommand(label, executable, args, cwd = root) {
   return new Promise((resolveCommand, reject) => {
@@ -41,12 +40,9 @@ function runCommand(label, executable, args, cwd = root) {
 }
 
 function runPnpm(label, args) {
-  if (process.platform === "win32") {
-    const command = `corepack pnpm ${args.join(" ")}`;
-    return runCommand(label, process.env.ComSpec ?? "cmd.exe", ["/d", "/s", "/c", command]);
-  }
+  const invocation = createPnpmInvocation(args, process.platform, process.env.ComSpec);
 
-  return runCommand(label, "corepack", ["pnpm", ...args]);
+  return runCommand(label, invocation.executable, invocation.args);
 }
 
 function readStagedPaths() {
@@ -59,34 +55,41 @@ function readStagedPaths() {
   return output.toString("utf8").split("\0").filter(Boolean);
 }
 
-function createFilterArguments(selectors) {
-  return selectors.flatMap((selector) => ["--filter", selector]);
+async function runTypechecks(typecheck) {
+  if (!typecheck) return;
+
+  await runPnpm("Typecheck", typecheck.args);
 }
 
-async function runTypechecks(scope) {
-  const selectors = scope.fullTypecheck ? FULL_TYPECHECK_PROJECTS : scope.typecheckSelectors;
-
-  if (selectors.length === 0) return;
-
-  await runPnpm("类型检查", [
-    ...createFilterArguments(selectors),
-    "--if-present",
-    "run",
-    "typecheck",
-  ]);
-}
-
-async function runStyleChecks(styleScopes) {
-  for (const styleScope of styleScopes) {
-    const project = STYLE_PROJECTS[styleScope];
-    await runPnpm(`${project} 样式检查`, ["--filter", project, "run", "lint:styles"]);
+async function runStyleChecks(styles) {
+  for (const styleCheck of styles) {
+    await runPnpm(`${styleCheck.project} style check`, styleCheck.args);
   }
+}
+
+function logPlan(plan) {
+  if (plan.typecheck?.kind === "full") {
+    console.log(
+      `Commit check full scope (root configuration): ${plan.typecheck.selectors.join(", ")}`,
+    );
+  } else if (plan.typecheck) {
+    console.log(`Commit check affected selectors: ${plan.typecheck.selectors.join(", ")}`);
+  } else {
+    console.log("Commit check empty scope: no affected workspaces; skipping checks.");
+  }
+
+  console.log(
+    `Commit check style scopes: ${plan.styles.map(({ scope }) => scope).join(", ") || "none"}`,
+  );
 }
 
 async function main() {
   const scope = classifyStagedPaths(readStagedPaths());
-  await runTypechecks(scope);
-  await runStyleChecks(scope.styleScopes);
+  const plan = createCommitCheckPlan(scope);
+
+  logPlan(plan);
+  await runTypechecks(plan.typecheck);
+  await runStyleChecks(plan.styles);
 }
 
 main().catch((error) => {
