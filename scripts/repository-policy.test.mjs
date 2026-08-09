@@ -45,7 +45,8 @@ test("Hooks 使用 pnpm exec，换行策略为 Windows 脚本保留 CRLF", async
   assert.match(preCommit, /corepack pnpm exec lint-staged/);
   assert.match(preCommit, /corepack pnpm run commit:check/);
   assert.doesNotMatch(preCommit, /\b(?:pnpm|corepack pnpm)\s+(?:run\s+)?(?:build|check)\b/);
-  assert.match(commitCheck, /--noEmit/);
+  assert.match(commitCheck, /\["--filter", project, "run", "typecheck"\]/);
+  assert.doesNotMatch(commitCheck, /typescript\/bin\/tsc|--noEmit/);
   assert.match(commitCheck, /\["lint"\]/);
   assert.match(commitCheck, /\["test:e2e"\]/);
   assert.doesNotMatch(commitCheck, /\b(?:pnpm|corepack pnpm)\s+(?:run\s+)?build\b/);
