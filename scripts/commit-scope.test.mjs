@@ -33,20 +33,16 @@ test("application selectors and style scopes are deduplicated and sorted", () =>
 
 test("shared packages include their dependents", () => {
   assert.deepEqual(
-    classifyStagedPaths([
-      "packages/shared-types/src/index.ts",
-      "packages/shared-utils/src/date.ts",
-    ]).typecheckSelectors,
+    classifyStagedPaths(["packages/shared-types/src/index.ts", "packages/shared-utils/src/date.ts"])
+      .typecheckSelectors,
     ["...@petcare/shared-types", "...@petcare/shared-utils"],
   );
 });
 
 test("server and api-client changes select their workspace mappings", () => {
   assert.deepEqual(
-    classifyStagedPaths([
-      "apps/server/src/main.ts",
-      "packages/api-client/src/index.ts",
-    ]).typecheckSelectors,
+    classifyStagedPaths(["apps/server/src/main.ts", "packages/api-client/src/index.ts"])
+      .typecheckSelectors,
     ["...@petcare/api-client", "@petcare/server"],
   );
 });
@@ -179,12 +175,7 @@ test("pnpm invocations preserve Windows and POSIX command boundaries", () => {
 
   assert.deepEqual(createPnpmInvocation(args, "win32", "C:\\Windows\\System32\\cmd.exe"), {
     executable: "C:\\Windows\\System32\\cmd.exe",
-    args: [
-      "/d",
-      "/s",
-      "/c",
-      "corepack pnpm --filter @petcare/admin run lint:styles",
-    ],
+    args: ["/d", "/s", "/c", "corepack pnpm --filter @petcare/admin run lint:styles"],
   });
   assert.deepEqual(createPnpmInvocation(args, "linux"), {
     executable: "corepack",
