@@ -16,6 +16,14 @@ function lintCommit(message) {
   });
 }
 
+function runGit(args, input) {
+  return spawnSync("git", args, {
+    cwd: root,
+    encoding: "utf8",
+    input,
+  });
+}
+
 test("接受 Conventional Commits 中文主题", () => {
   assert.equal(lintCommit("fix(server): 修复启动配置校验").status, 0);
 });
@@ -47,4 +55,27 @@ test("Hooks 使用 pnpm exec，换行策略为 Windows 脚本保留 CRLF", async
   assert.doesNotMatch(lintStaged, /(?:vitest|jest)\s+run/);
   assert.match(attributes, /^\*\.bat text eol=crlf$/m);
   assert.match(attributes, /^\*\.cmd text eol=crlf$/m);
+});
+
+test("local secrets and generated mobile artifacts stay out of Git", () => {
+  const probes = [
+    ".env.staging.local",
+    ".envrc",
+    ".direnv/allow",
+    ".npmrc",
+    "apps/uniapp/unpackage/dist/build/app-plus/app-service.js",
+    "apps/uniapp/release/petcare.keystore",
+    "apps/uniapp/release/petcare.p12",
+    "apps/uniapp/release/PetCare.mobileprovision",
+    "apps/uniapp/release/petcare.apk",
+    "apps/uniapp/release/petcare.aab",
+    "apps/uniapp/release/petcare.ipa",
+  ];
+  const ignored = runGit(["check-ignore", "--stdin"], `${probes.join("\n")}\n`);
+  assert.equal(ignored.status, 0, ignored.stderr);
+  assert.deepEqual(ignored.stdout.trim().split(/\r?\n/).sort(), probes.toSorted());
+
+  const trackedIgnored = runGit(["ls-files", "-ci", "--exclude-standard"]);
+  assert.equal(trackedIgnored.status, 0, trackedIgnored.stderr);
+  assert.equal(trackedIgnored.stdout.trim(), "");
 });

@@ -10,13 +10,27 @@ build/
 out/
 .swc/
 
-# Environment variables
+# Environment variables and local credentials
 .env
 .env.local
-.env.development.local
-.env.test.local
-.env.production.local
+.env.*.local
+.envrc
+.direnv/
+.npmrc
 !.env.example
+
+# Mobile build outputs and signing material
+unpackage/
+*.apk
+*.aab
+*.ipa
+*.jks
+*.keystore
+*.p12
+*.pfx
+*.mobileprovision
+*.pem
+*.key
 
 # IDE
 .vscode/*
