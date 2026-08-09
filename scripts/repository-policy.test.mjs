@@ -71,11 +71,30 @@ test("local secrets and generated mobile artifacts stay out of Git", () => {
     "apps/uniapp/release/petcare.aab",
     "apps/uniapp/release/petcare.ipa",
   ];
-  const ignored = runGit(["check-ignore", "--stdin"], `${probes.join("\n")}\n`);
+  const ignored = runGit(["check-ignore", "--verbose", "--stdin"], `${probes.join("\n")}\n`);
   assert.equal(ignored.status, 0, ignored.stderr);
-  assert.deepEqual(ignored.stdout.trim().split(/\r?\n/).sort(), probes.toSorted());
+  const rootGitignore = resolve(root, ".gitignore");
+  const ignoredEntries = ignored.stdout
+    .trim()
+    .split(/\r?\n/)
+    .map((line) => {
+      const [sourceAndRule, path] = line.split("\t");
+      const match = /^(.*):\d+:(.*)$/.exec(sourceAndRule);
 
-  const trackedIgnored = runGit(["ls-files", "-ci", "--exclude-standard"]);
+      assert.ok(match, `unexpected check-ignore output: ${line}`);
+      return { path, source: resolve(root, match[1]) };
+    });
+
+  assert.deepEqual(
+    ignoredEntries.map(({ path }) => path).sort(),
+    probes.toSorted(),
+  );
+  assert.ok(
+    ignoredEntries.every(({ source }) => source === rootGitignore),
+    `ignored paths must be matched by the root .gitignore: ${ignored.stdout}`,
+  );
+
+  const trackedIgnored = runGit(["ls-files", "-ci", "--exclude-from=.gitignore"]);
   assert.equal(trackedIgnored.status, 0, trackedIgnored.stderr);
   assert.equal(trackedIgnored.stdout.trim(), "");
 });
