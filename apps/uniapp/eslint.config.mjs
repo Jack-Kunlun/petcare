@@ -87,6 +87,7 @@ export default uni(
       "src/auto-imports.d.ts",
       "src/components.d.ts",
       "src/uni-pages.d.ts",
+      "src/api/apiDefinitions.ts",
       "docs/.vitepress/dist",
       "docs/.vitepress/cache",
       "**/*.md",
