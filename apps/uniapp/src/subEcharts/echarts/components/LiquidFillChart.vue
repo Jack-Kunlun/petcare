@@ -1,16 +1,12 @@
 <script setup lang="ts">
-import { PieChart } from 'echarts/charts'
-import { TooltipComponent } from 'echarts/components'
-import * as echarts from 'echarts/core'
-import { CanvasRenderer } from 'echarts/renderers'
+import { PieChart } from "echarts/charts";
+import { TooltipComponent } from "echarts/components";
+import * as echarts from "echarts/core";
+import { CanvasRenderer } from "echarts/renderers";
 
-echarts.use([
-  TooltipComponent,
-  PieChart,
-  CanvasRenderer,
-])
+echarts.use([TooltipComponent, PieChart, CanvasRenderer]);
 
-const progress = ref(68)
+const progress = ref(68);
 
 const option = computed(() => ({
   tooltip: {
@@ -24,22 +20,22 @@ const option = computed(() => ({
   },
   graphic: [
     {
-      type: 'text',
-      left: 'center',
-      top: 'center',
+      type: "text",
+      left: "center",
+      top: "center",
       style: {
         text: `完成度：${progress.value}%`,
         fontSize: 24,
-        fontWeight: 'bold',
-        fill: '#5470c6',
+        fontWeight: "bold",
+        fill: "#5470c6",
       },
     },
   ],
   series: [
     {
-      type: 'pie',
-      radius: ['60%', '80%'],
-      center: ['50%', '50%'],
+      type: "pie",
+      radius: ["60%", "80%"],
+      center: ["50%", "50%"],
       startAngle: 90,
       clockwise: true,
       silent: true,
@@ -54,7 +50,7 @@ const option = computed(() => ({
           value: progress.value,
           itemStyle: {
             color: {
-              type: 'linear',
+              type: "linear",
               x: 0,
               y: 0,
               x2: 0,
@@ -62,11 +58,11 @@ const option = computed(() => ({
               colorStops: [
                 {
                   offset: 0,
-                  color: '#5470c6',
+                  color: "#5470c6",
                 },
                 {
                   offset: 1,
-                  color: '#91cc75',
+                  color: "#91cc75",
                 },
               ],
             },
@@ -76,7 +72,7 @@ const option = computed(() => ({
         {
           value: 100 - progress.value,
           itemStyle: {
-            color: '#f0f0f0',
+            color: "#f0f0f0",
             borderRadius: 10,
           },
         },
@@ -84,9 +80,9 @@ const option = computed(() => ({
     },
     // 内圆背景
     {
-      type: 'pie',
-      radius: ['0%', '58%'],
-      center: ['50%', '50%'],
+      type: "pie",
+      radius: ["0%", "58%"],
+      center: ["50%", "50%"],
       silent: true,
       label: {
         show: false,
@@ -99,18 +95,18 @@ const option = computed(() => ({
           value: 100,
           itemStyle: {
             color: {
-              type: 'radial',
+              type: "radial",
               x: 0.5,
               y: 0.5,
               r: 0.5,
               colorStops: [
                 {
                   offset: 0,
-                  color: 'rgba(84, 112, 198, 0.1)',
+                  color: "rgba(84, 112, 198, 0.1)",
                 },
                 {
                   offset: 1,
-                  color: 'rgba(84, 112, 198, 0.05)',
+                  color: "rgba(84, 112, 198, 0.05)",
                 },
               ],
             },
@@ -119,22 +115,22 @@ const option = computed(() => ({
       ],
     },
   ],
-}))
+}));
 
 // 模拟进度变化
-let timer: NodeJS.Timeout | null = null
+let timer: NodeJS.Timeout | null = null;
 
 onMounted(() => {
   timer = setInterval(() => {
-    progress.value = Math.round(Math.random() * 100)
-  }, 4000)
-})
+    progress.value = Math.round(Math.random() * 100);
+  }, 4000);
+});
 
 onUnmounted(() => {
   if (timer) {
-    clearInterval(timer)
+    clearInterval(timer);
   }
-})
+});
 </script>
 
 <template>

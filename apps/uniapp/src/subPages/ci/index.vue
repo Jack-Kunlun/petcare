@@ -1,12 +1,12 @@
 <script setup lang="ts">
 definePage({
-  name: 'ci',
+  name: "ci",
   style: {
-    navigationBarTitleText: 'CI 持续集成',
+    navigationBarTitleText: "CI 持续集成",
   },
-})
+});
 
-const { success: showSuccess } = useGlobalToast()
+const { success: showSuccess } = useGlobalToast();
 
 // 配置示例数据
 const configExample = ref(`{
@@ -30,7 +30,7 @@ const configExample = ref(`{
   },
   "version": "0.0.1",
   "desc": "版本描述"
-}`)
+}`);
 
 const packageScripts = ref(`{
   "scripts": {
@@ -41,72 +41,72 @@ const packageScripts = ref(`{
     "upload:mp-alipay": "uni build -p mp-alipay && minici --platform alipay",
     "upload:mp-dingtalk": "uni build -p mp-dingtalk && minici --platform dd"
   }
-}`)
+}`);
 
 // 特性列表
 const features = ref([
   {
-    icon: '📱',
-    title: '多平台支持',
-    desc: '支持微信、支付宝、钉钉小程序的上传',
+    icon: "📱",
+    title: "多平台支持",
+    desc: "支持微信、支付宝、钉钉小程序的上传",
   },
   {
-    icon: '🔢',
-    title: '版本管理',
-    desc: '支持指定版本号和版本号自增',
+    icon: "🔢",
+    title: "版本管理",
+    desc: "支持指定版本号和版本号自增",
   },
   {
-    icon: '⚙️',
-    title: '简单配置',
-    desc: '通过配置文件轻松管理多平台参数',
+    icon: "⚙️",
+    title: "简单配置",
+    desc: "通过配置文件轻松管理多平台参数",
   },
   {
-    icon: '🔄',
-    title: 'CI/CD集成',
-    desc: '完美集成持续集成和持续部署流程',
+    icon: "🔄",
+    title: "CI/CD集成",
+    desc: "完美集成持续集成和持续部署流程",
   },
   {
-    icon: '🛠️',
-    title: '命令行工具',
-    desc: '支持全局和局部安装，灵活使用',
+    icon: "🛠️",
+    title: "命令行工具",
+    desc: "支持全局和局部安装，灵活使用",
   },
   {
-    icon: '📦',
-    title: '打包上传',
-    desc: '支持打包和上传命令组合使用',
+    icon: "📦",
+    title: "打包上传",
+    desc: "支持打包和上传命令组合使用",
   },
-])
+]);
 
 // 平台配置
 const platforms = ref([
   {
-    name: 'weixin',
-    title: '微信小程序',
-    icon: '💚',
-    color: 'text-green-600',
-    bgColor: 'bg-green-50',
-    borderColor: 'border-green-200',
-    features: ['支持企业微信', 'CI机器人选择', '编译设置', '代码压缩保护'],
+    name: "weixin",
+    title: "微信小程序",
+    icon: "💚",
+    color: "text-green-600",
+    bgColor: "bg-green-50",
+    borderColor: "border-green-200",
+    features: ["支持企业微信", "CI机器人选择", "编译设置", "代码压缩保护"],
   },
   {
-    name: 'alipay',
-    title: '支付宝小程序',
-    icon: '💙',
-    color: 'text-blue-600',
-    bgColor: 'bg-blue-50',
-    borderColor: 'border-blue-200',
-    features: ['多终端支持', '版本号自增', '私钥认证', '开放平台集成'],
+    name: "alipay",
+    title: "支付宝小程序",
+    icon: "💙",
+    color: "text-blue-600",
+    bgColor: "bg-blue-50",
+    borderColor: "border-blue-200",
+    features: ["多终端支持", "版本号自增", "私钥认证", "开放平台集成"],
   },
   {
-    name: 'dd',
-    title: '钉钉小程序',
-    icon: '💜',
-    color: 'text-purple-600',
-    bgColor: 'bg-purple-50',
-    borderColor: 'border-purple-200',
-    features: ['企业应用', '版本号自增', 'Token认证', '多应用类型'],
+    name: "dd",
+    title: "钉钉小程序",
+    icon: "💜",
+    color: "text-purple-600",
+    bgColor: "bg-purple-50",
+    borderColor: "border-purple-200",
+    features: ["企业应用", "版本号自增", "Token认证", "多应用类型"],
   },
-])
+]);
 
 // 复制代码到剪贴板
 function copyCode(code: string) {
@@ -114,26 +114,26 @@ function copyCode(code: string) {
     data: code,
     showToast: false,
     success: () => {
-      uni.hideToast()
-      showSuccess({ msg: '代码已复制到剪贴板' })
+      uni.hideToast();
+      showSuccess({ msg: "代码已复制到剪贴板" });
     },
-  })
+  });
 }
 
 // 链接导航处理
 function handleNavigate(url: string) {
   // #ifdef H5
-  window.open(url, '_blank')
+  window.open(url, "_blank");
   // #endif
   // #ifndef H5
   uni.setClipboardData({
     data: url,
     showToast: false,
     success: () => {
-      uni.hideToast()
-      showSuccess({ msg: `${url} 已复制到剪贴板` })
+      uni.hideToast();
+      showSuccess({ msg: `${url} 已复制到剪贴板` });
     },
-  })
+  });
   // #endif
 }
 </script>
@@ -143,12 +143,8 @@ function handleNavigate(url: string) {
     <!-- 头部介绍 -->
     <view class="mx-3 mb-3">
       <view class="rounded-3 px-5 py-8 text-center wot-bg-filled-oppo">
-        <view class="mb-3 text-10">
-          🚀
-        </view>
-        <view class="mb-2 text-6 font-bold wot-text-text-main">
-          uni-mini-ci
-        </view>
+        <view class="mb-3 text-10"> 🚀 </view>
+        <view class="mb-2 text-6 font-bold wot-text-text-main"> uni-mini-ci </view>
         <view class="mb-2 text-3.5 leading-relaxed wot-text-text-secondary">
           小程序持续集成的插件
         </view>
@@ -184,14 +180,15 @@ function handleNavigate(url: string) {
       <view class="space-y-4">
         <!-- 全局安装 -->
         <view class="rounded-2 p-4 wot-bg-filled-oppo">
-          <view class="mb-3 text-4 font-bold wot-text-text-main">
-            全局安装
-          </view>
+          <view class="mb-3 text-4 font-bold wot-text-text-main"> 全局安装 </view>
           <view class="mb-3 text-3 wot-text-text-secondary">
             推荐在开发环境中全局安装，方便在任何项目中使用
           </view>
           <view class="space-y-2">
-            <view class="wot-bg-bg flex items-center justify-between border rounded-2 p-3 wot-border-border-main" @click="copyCode('npm i uni-mini-ci -g')">
+            <view
+              class="wot-bg-bg flex items-center justify-between border rounded-2 p-3 wot-border-border-main"
+              @click="copyCode('npm i uni-mini-ci -g')"
+            >
               <text class="flex-1 text-3 font-mono wot-text-text-secondary">
                 npm i uni-mini-ci -g
               </text>
@@ -202,20 +199,24 @@ function handleNavigate(url: string) {
 
         <!-- 局部安装 -->
         <view class="rounded-2 p-4 wot-bg-filled-oppo">
-          <view class="mb-3 text-4 font-bold wot-text-text-main">
-            局部安装
-          </view>
+          <view class="mb-3 text-4 font-bold wot-text-text-main"> 局部安装 </view>
           <view class="mb-3 text-3 wot-text-text-secondary">
             在项目中作为开发依赖安装，适合团队协作
           </view>
           <view class="space-y-2">
-            <view class="wot-bg-bg flex items-center justify-between border rounded-2 p-3 wot-border-border-main" @click="copyCode('npm i uni-mini-ci --save-dev')">
+            <view
+              class="wot-bg-bg flex items-center justify-between border rounded-2 p-3 wot-border-border-main"
+              @click="copyCode('npm i uni-mini-ci --save-dev')"
+            >
               <text class="flex-1 text-3 font-mono wot-text-text-secondary">
                 npm i uni-mini-ci --save-dev
               </text>
               <wd-icon name="copy" size="16px" color="#666" />
             </view>
-            <view class="wot-bg-bg flex items-center justify-between border rounded-2 p-3 wot-border-border-main" @click="copyCode('pnpm add uni-mini-ci -D')">
+            <view
+              class="wot-bg-bg flex items-center justify-between border rounded-2 p-3 wot-border-border-main"
+              @click="copyCode('pnpm add uni-mini-ci -D')"
+            >
               <text class="flex-1 text-3 font-mono wot-text-text-secondary">
                 pnpm add uni-mini-ci -D
               </text>
@@ -229,24 +230,24 @@ function handleNavigate(url: string) {
     <!-- 配置文件 -->
     <demo-block title="配置文件" transparent>
       <view class="rounded-2 p-4 wot-bg-filled-oppo">
-        <view class="mb-3 text-4 font-bold wot-text-text-main">
-          .minicirc 配置文件
-        </view>
+        <view class="mb-3 text-4 font-bold wot-text-text-main"> .minicirc 配置文件 </view>
         <view class="mb-3 text-3 leading-relaxed wot-text-text-secondary">
-          在项目根目录创建 <text class="rounded px-1 font-mono">
-            .minicirc
-          </text> 文件，配置各平台的上传参数
+          在项目根目录创建
+          <text class="rounded px-1 font-mono"> .minicirc </text> 文件，配置各平台的上传参数
         </view>
 
-        <view class="wot-bg-bg mb-3 border rounded-2 p-3 wot-border-border-main" @click="copyCode(configExample)">
+        <view
+          class="wot-bg-bg mb-3 border rounded-2 p-3 wot-border-border-main"
+          @click="copyCode(configExample)"
+        >
           <view class="mb-2 flex items-center justify-between">
-            <text class="text-3 font-bold wot-text-text-secondary">
-              配置示例:
-            </text>
+            <text class="text-3 font-bold wot-text-text-secondary"> 配置示例: </text>
             <wd-icon name="copy" size="16px" color="#666" />
           </view>
           <view class="max-h-60 overflow-y-auto">
-            <pre class="whitespace-pre-wrap text-2.5 leading-relaxed font-mono wot-text-text-secondary">{{ configExample }}</pre>
+            <pre
+              class="whitespace-pre-wrap text-2.5 leading-relaxed font-mono wot-text-text-secondary"
+              >{{ configExample }}</pre>
           </view>
         </view>
 
@@ -288,7 +289,10 @@ function handleNavigate(url: string) {
               {{ feature }}
             </view>
           </view>
-          <view class="wot-bg-bg flex items-center justify-between border rounded-2 p-3 wot-border-border-main" @click="copyCode(`minici --platform ${platform.name}`)">
+          <view
+            class="wot-bg-bg flex items-center justify-between border rounded-2 p-3 wot-border-border-main"
+            @click="copyCode(`minici --platform ${platform.name}`)"
+          >
             <text class="flex-1 text-3 font-mono wot-text-text-secondary">
               minici --platform {{ platform.name }}
             </text>
@@ -301,37 +305,42 @@ function handleNavigate(url: string) {
     <!-- 添加命令 -->
     <demo-block title="添加命令" transparent>
       <view class="rounded-2 p-4 wot-bg-filled-oppo">
-        <view class="mb-3 text-4 font-bold wot-text-text-main">
-          package.json 脚本配置
-        </view>
+        <view class="mb-3 text-4 font-bold wot-text-text-main"> package.json 脚本配置 </view>
         <view class="mb-3 text-3 leading-relaxed wot-text-text-secondary">
           在 package.json 中添加上传脚本，支持单独上传和打包上传组合
         </view>
 
-        <view class="wot-bg-bg mb-3 border rounded-2 p-3 wot-border-border-main" @click="copyCode(packageScripts)">
+        <view
+          class="wot-bg-bg mb-3 border rounded-2 p-3 wot-border-border-main"
+          @click="copyCode(packageScripts)"
+        >
           <view class="mb-2 flex items-center justify-between">
-            <text class="text-3 font-bold wot-text-text-secondary">
-              脚本配置:
-            </text>
+            <text class="text-3 font-bold wot-text-text-secondary"> 脚本配置: </text>
             <wd-icon name="copy" size="16px" color="#666" />
           </view>
           <view class="max-h-60 overflow-y-auto">
-            <pre class="whitespace-pre-wrap text-2.5 leading-relaxed font-mono wot-text-text-secondary">{{ packageScripts }}</pre>
+            <pre
+              class="whitespace-pre-wrap text-2.5 leading-relaxed font-mono wot-text-text-secondary"
+              >{{ packageScripts }}</pre>
           </view>
         </view>
 
         <view class="space-y-2">
-          <view class="text-3.5 font-bold wot-text-text-main">
-            使用命令:
-          </view>
+          <view class="text-3.5 font-bold wot-text-text-main"> 使用命令: </view>
           <view class="grid grid-cols-1 gap-2">
-            <view class="wot-bg-bg flex items-center justify-between border rounded-2 p-3 wot-border-border-main" @click="copyCode('pnpm upload:weixin')">
+            <view
+              class="wot-bg-bg flex items-center justify-between border rounded-2 p-3 wot-border-border-main"
+              @click="copyCode('pnpm upload:weixin')"
+            >
               <text class="flex-1 text-3 font-mono wot-text-text-secondary">
                 pnpm upload:weixin
               </text>
               <wd-icon name="copy" size="16px" color="#666" />
             </view>
-            <view class="wot-bg-bg flex items-center justify-between border rounded-2 p-3 wot-border-border-main" @click="copyCode('pnpm upload:mp-weixin')">
+            <view
+              class="wot-bg-bg flex items-center justify-between border rounded-2 p-3 wot-border-border-main"
+              @click="copyCode('pnpm upload:mp-weixin')"
+            >
               <text class="flex-1 text-3 font-mono wot-text-text-secondary">
                 pnpm upload:mp-weixin
               </text>
@@ -357,7 +366,9 @@ function handleNavigate(url: string) {
           class="rounded-2 p-4 wot-bg-filled-oppo"
         >
           <view class="flex items-center">
-            <view class="mr-3 h-8 w-8 flex items-center justify-center rounded-full bg-blue-100 text-3.5 text-blue-600 font-bold dark:bg-blue-900/20 dark:text-blue-400">
+            <view
+              class="mr-3 h-8 w-8 flex items-center justify-center rounded-full bg-blue-100 text-3.5 text-blue-600 font-bold dark:bg-blue-900/20 dark:text-blue-400"
+            >
               {{ index + 1 }}
             </view>
             <view class="mr-2 text-5">
@@ -384,7 +395,8 @@ function handleNavigate(url: string) {
             ⚠️ 版本号限制
           </view>
           <view class="text-3 text-red-600 leading-relaxed dark:text-red-200">
-            支付宝和钉钉小程序不支持上传的版本号小于或等于现有版本号。建议测试环境开启 autoincrement 字段，生产环境手动指定版本号。
+            支付宝和钉钉小程序不支持上传的版本号小于或等于现有版本号。建议测试环境开启 autoincrement
+            字段，生产环境手动指定版本号。
           </view>
         </view>
 
@@ -417,11 +429,38 @@ function handleNavigate(url: string) {
     <!-- 相关链接 -->
     <demo-block title="相关链接" transparent>
       <wd-cell-group border custom-class="rounded-2! overflow-hidden">
-        <wd-cell title="📦 NPM 包" value="uni-mini-ci" is-link @click="handleNavigate('https://www.npmjs.com/package/uni-mini-ci')" />
-        <wd-cell title="🐙 GitHub 仓库" value="源码仓库" is-link @click="handleNavigate('https://github.com/Moonofweisheng/uni-mini-ci')" />
-        <wd-cell title="📱 微信小程序 CI" value="官方文档" is-link @click="handleNavigate('https://developers.weixin.qq.com/miniprogram/dev/devtools/ci.html')" />
-        <wd-cell title="💙 支付宝小程序 CI" value="官方文档" is-link @click="handleNavigate('https://opendocs.alipay.com/mini/02q29z')" />
-        <wd-cell title="💜 钉钉小程序 CI" value="官方文档" is-link @click="handleNavigate('https://github.com/open-dingtalk/dingtalk-design-cli')" />
+        <wd-cell
+          title="📦 NPM 包"
+          value="uni-mini-ci"
+          is-link
+          @click="handleNavigate('https://www.npmjs.com/package/uni-mini-ci')"
+        />
+        <wd-cell
+          title="🐙 GitHub 仓库"
+          value="源码仓库"
+          is-link
+          @click="handleNavigate('https://github.com/Moonofweisheng/uni-mini-ci')"
+        />
+        <wd-cell
+          title="📱 微信小程序 CI"
+          value="官方文档"
+          is-link
+          @click="
+            handleNavigate('https://developers.weixin.qq.com/miniprogram/dev/devtools/ci.html')
+          "
+        />
+        <wd-cell
+          title="💙 支付宝小程序 CI"
+          value="官方文档"
+          is-link
+          @click="handleNavigate('https://opendocs.alipay.com/mini/02q29z')"
+        />
+        <wd-cell
+          title="💜 钉钉小程序 CI"
+          value="官方文档"
+          is-link
+          @click="handleNavigate('https://github.com/open-dingtalk/dingtalk-design-cli')"
+        />
       </wd-cell-group>
     </demo-block>
   </view>

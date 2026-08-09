@@ -2,4 +2,4 @@
 Component({
   data: {},
   methods: {},
-})
+});
