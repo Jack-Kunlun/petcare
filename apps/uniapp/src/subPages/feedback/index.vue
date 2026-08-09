@@ -307,11 +307,12 @@ function handleNavigate(url: string) {
 
           <view class="rounded p-3" @click="copyCode(codeExamples.basicToast)">
             <view class="mb-2 text-3 font-bold wot-text-text-secondary"> 代码示例: </view>
-            <view
-              class="whitespace-pre-line text-2.5 leading-relaxed font-mono wot-text-text-secondary"
-            >
-              const { success, error, warning, info } = useGlobalToast() success({ msg: '操作成功！'
-              }) error({ msg: '操作失败！' })
+            <!-- prettier-ignore -->
+            <view class="whitespace-pre-line text-2.5 leading-relaxed font-mono wot-text-text-secondary">
+              const { success, error, warning, info } = useGlobalToast()
+
+              success({ msg: '操作成功！' })
+              error({ msg: '操作失败！' })
             </view>
           </view>
         </view>
@@ -331,10 +332,13 @@ function handleNavigate(url: string) {
 
           <view class="rounded p-3" @click="copyCode(codeExamples.customToast)">
             <view class="mb-2 text-3 font-bold wot-text-text-secondary"> 自定义配置: </view>
-            <view
-              class="whitespace-pre-line text-2.5 leading-relaxed font-mono wot-text-text-secondary"
-            >
-              show({ msg: '自定义消息', duration: 3000, position: 'middle' })
+            <!-- prettier-ignore -->
+            <view class="whitespace-pre-line text-2.5 leading-relaxed font-mono wot-text-text-secondary">
+              show({
+              msg: '自定义消息',
+              duration: 3000,
+              position: 'middle'
+              })
             </view>
           </view>
         </view>
@@ -356,10 +360,12 @@ function handleNavigate(url: string) {
 
           <view class="rounded p-3" @click="copyCode(codeExamples.basicLoading)">
             <view class="mb-2 text-3 font-bold wot-text-text-secondary"> 代码示例: </view>
-            <view
-              class="whitespace-pre-line text-2.5 leading-relaxed font-mono wot-text-text-secondary"
-            >
-              const { loading, close } = useGlobalLoading() loading('加载中...') close()
+            <!-- prettier-ignore -->
+            <view class="whitespace-pre-line text-2.5 leading-relaxed font-mono wot-text-text-secondary">
+              const { loading, close } = useGlobalLoading()
+
+              loading('加载中...')
+              close()
             </view>
           </view>
         </view>
@@ -376,10 +382,12 @@ function handleNavigate(url: string) {
 
           <view class="rounded p-3" @click="copyCode(codeExamples.customLoading)">
             <view class="mb-2 text-3 font-bold wot-text-text-secondary"> 自定义配置: </view>
-            <view
-              class="whitespace-pre-line text-2.5 leading-relaxed font-mono wot-text-text-secondary"
-            >
-              loading({ msg: '正在处理中...', cover: true // 是否显示遮罩 })
+            <!-- prettier-ignore -->
+            <view class="whitespace-pre-line text-2.5 leading-relaxed font-mono wot-text-text-secondary">
+              loading({
+              msg: '正在处理中...',
+              cover: true // 是否显示遮罩
+              })
             </view>
           </view>
         </view>
@@ -400,11 +408,13 @@ function handleNavigate(url: string) {
 
           <view class="rounded p-3" @click="copyCode(codeExamples.basicMessage)">
             <view class="mb-2 text-3 font-bold wot-text-text-secondary"> 代码示例: </view>
-            <view
-              class="whitespace-pre-line text-2.5 leading-relaxed font-mono wot-text-text-secondary"
-            >
-              confirm({ title: '确认操作', msg: '您确定要执行此操作吗？', success: (res) => { /*
-              处理结果 */ } })
+            <!-- prettier-ignore -->
+            <view class="whitespace-pre-line text-2.5 leading-relaxed font-mono wot-text-text-secondary">
+              confirm({
+              title: '确认操作',
+              msg: '您确定要执行此操作吗？',
+              success: (res) => { /* 处理结果 */ }
+              })
             </view>
           </view>
         </view>
@@ -418,10 +428,12 @@ function handleNavigate(url: string) {
 
           <view class="rounded p-3" @click="copyCode(codeExamples.customMessage)">
             <view class="mb-2 text-3 font-bold wot-text-text-secondary"> 自定义按钮: </view>
-            <view
-              class="whitespace-pre-line text-2.5 leading-relaxed font-mono wot-text-text-secondary"
-            >
-              confirm({ confirmButtonText: '好的', cancelButtonText: '算了' })
+            <!-- prettier-ignore -->
+            <view class="whitespace-pre-line text-2.5 leading-relaxed font-mono wot-text-text-secondary">
+              confirm({
+              confirmButtonText: '好的',
+              cancelButtonText: '算了'
+              })
             </view>
           </view>
         </view>

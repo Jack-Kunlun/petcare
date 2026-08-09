@@ -32,6 +32,16 @@ interface ApiResponse {
   more?: boolean;
 }
 
+function hasErrorName(error: unknown, name: string) {
+  return (
+    typeof error === "object" &&
+    error !== null &&
+    "name" in error &&
+    typeof error.name === "string" &&
+    error.name === name
+  );
+}
+
 // Handle successful responses
 export async function handleAlovaResponse(
   response:
@@ -95,9 +105,9 @@ export function handleAlovaError(error: unknown, method: Method) {
   }
 
   // Handle different types of errors
-  if (error instanceof Error && error.name === "NetworkError") {
+  if (hasErrorName(error, "NetworkError")) {
     globalToast.error("网络错误，请检查您的网络连接");
-  } else if (error instanceof Error && error.name === "TimeoutError") {
+  } else if (hasErrorName(error, "TimeoutError")) {
     globalToast.error("请求超时，请重试");
   } else if (error instanceof ApiError) {
     globalToast.error(error.message || "请求失败");

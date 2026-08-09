@@ -122,18 +122,24 @@ function pushToGuard() {
             <view class="mb-2 text-3.5 text-blue-700 font-bold dark:text-blue-300">
               Query 写法 (当前演示)
             </view>
+            <!-- prettier-ignore -->
             <view class="text-3 text-blue-600 leading-relaxed dark:text-blue-200">
-              • 使用 path + query 组合\n • 参数以查询字符串形式出现\n • 写法: router.push({ path:
-              '/page', query: { key: 'value' } })\n • 结果: /page?key=value
+              • 使用 path + query 组合\n
+              • 参数以查询字符串形式出现\n
+              • 写法: router.push({ path: '/page', query: { key: 'value' } })\n
+              • 结果: /page?key=value
             </view>
           </view>
           <view class="border border-green-200 rounded-2 bg-green-50 p-3 dark:bg-green-900/20">
             <view class="mb-2 text-3.5 text-green-700 font-bold dark:text-green-300">
               Params 写法
             </view>
+            <!-- prettier-ignore -->
             <view class="text-3 text-green-600 leading-relaxed dark:text-green-200">
-              • 使用 name + params 组合\n • 参数同样以查询字符串形式出现\n • 写法: router.push({
-              name: 'page', params: { key: 'value' } })\n • 结果: /page?key=value (效果相同)
+              • 使用 name + params 组合\n
+              • 参数同样以查询字符串形式出现\n
+              • 写法: router.push({ name: 'page', params: { key: 'value' } })\n
+              • 结果: /page?key=value (效果相同)
             </view>
           </view>
         </view>
@@ -145,10 +151,21 @@ function pushToGuard() {
       <view class="rounded-2 p-4 wot-bg-filled-oppo">
         <view class="mb-3 text-4 font-bold wot-text-text-main"> 接收查询参数的标准写法 </view>
         <view class="wot-bg-bg border rounded-2 p-3 wot-border-border-main">
+          <!-- prettier-ignore -->
           <text class="text-3 leading-relaxed font-mono wot-text-text-secondary">
-            // 发送方 router.push({ path: '/demo-query', query: { keyword: 'vue', type: 'framework'
-            } }) // 接收方 onLoad((option) => { if (option && option.keyword) { const keyword =
-            option.keyword // 'vue' const type = option.type // 'framework' } })
+            // 发送方
+            router.push({
+            path: '/demo-query',
+            query: { keyword: 'vue', type: 'framework' }
+            })
+
+            // 接收方
+            onLoad((option) => {
+            if (option && option.keyword) {
+            const keyword = option.keyword // 'vue'
+            const type = option.type       // 'framework'
+            }
+            })
           </text>
         </view>
       </view>
