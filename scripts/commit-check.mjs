@@ -1,19 +1,16 @@
 import console from "node:console";
-import { spawn } from "node:child_process";
+import { execFileSync, spawn } from "node:child_process";
 import { resolve } from "node:path";
 import process from "node:process";
 
+import { FULL_TYPECHECK_PROJECTS, classifyStagedPaths } from "./commit-scope.mjs";
+
 const root = resolve(import.meta.dirname, "..");
 
-const typecheckProjects = [
-  "@petcare/admin",
-  "@petcare/miniapp",
-  "@petcare/uniapp",
-  "@petcare/server",
-  "@petcare/api-client",
-  "@petcare/shared-types",
-  "@petcare/shared-utils",
-];
+const STYLE_PROJECTS = Object.freeze({
+  admin: "@petcare/admin",
+  miniapp: "@petcare/miniapp",
+});
 
 function runCommand(label, executable, args, cwd = root) {
   return new Promise((resolveCommand, reject) => {
@@ -52,16 +49,44 @@ function runPnpm(label, args) {
   return runCommand(label, "corepack", ["pnpm", ...args]);
 }
 
-async function runTypechecks() {
-  for (const project of typecheckProjects) {
-    await runPnpm(`${project} 类型检查`, ["--filter", project, "run", "typecheck"]);
+function readStagedPaths() {
+  const output = execFileSync(
+    "git",
+    ["diff", "--cached", "--name-only", "--diff-filter=ACMR", "-z"],
+    { cwd: root, encoding: "buffer" },
+  );
+
+  return output.toString("utf8").split("\0").filter(Boolean);
+}
+
+function createFilterArguments(selectors) {
+  return selectors.flatMap((selector) => ["--filter", selector]);
+}
+
+async function runTypechecks(scope) {
+  const selectors = scope.fullTypecheck ? FULL_TYPECHECK_PROJECTS : scope.typecheckSelectors;
+
+  if (selectors.length === 0) return;
+
+  await runPnpm("类型检查", [
+    ...createFilterArguments(selectors),
+    "--if-present",
+    "run",
+    "typecheck",
+  ]);
+}
+
+async function runStyleChecks(styleScopes) {
+  for (const styleScope of styleScopes) {
+    const project = STYLE_PROJECTS[styleScope];
+    await runPnpm(`${project} 样式检查`, ["--filter", project, "run", "lint:styles"]);
   }
 }
 
 async function main() {
-  await runTypechecks();
-  await runPnpm("Lint 与样式错误检查", ["lint"]);
-  await runPnpm("E2E 测试", ["test:e2e"]);
+  const scope = classifyStagedPaths(readStagedPaths());
+  await runTypechecks(scope);
+  await runStyleChecks(scope.styleScopes);
 }
 
 main().catch((error) => {
