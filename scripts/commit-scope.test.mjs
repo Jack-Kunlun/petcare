@@ -1,0 +1,102 @@
+import assert from "node:assert/strict";
+import test from "node:test";
+
+import { FULL_TYPECHECK_PROJECTS, classifyStagedPaths } from "./commit-scope.mjs";
+
+test("a UniApp source change selects only UniApp", () => {
+  assert.deepEqual(classifyStagedPaths(["apps/uniapp/src/App.vue"]), {
+    fullTypecheck: false,
+    typecheckSelectors: ["@petcare/uniapp"],
+    styleScopes: [],
+  });
+});
+
+test("application selectors and style scopes are deduplicated and sorted", () => {
+  assert.deepEqual(
+    classifyStagedPaths([
+      "apps/miniapp/src/pages/index.tsx",
+      "apps/admin/src/App.tsx",
+      "apps/admin/src/app.css",
+    ]),
+    {
+      fullTypecheck: false,
+      typecheckSelectors: ["@petcare/admin", "@petcare/miniapp"],
+      styleScopes: ["admin", "miniapp"],
+    },
+  );
+});
+
+test("shared packages include their dependents", () => {
+  assert.deepEqual(
+    classifyStagedPaths([
+      "packages/shared-types/src/index.ts",
+      "packages/shared-utils/src/date.ts",
+    ]).typecheckSelectors,
+    ["...@petcare/shared-types", "...@petcare/shared-utils"],
+  );
+});
+
+test("server and api-client changes select their workspace mappings", () => {
+  assert.deepEqual(
+    classifyStagedPaths([
+      "apps/server/src/main.ts",
+      "packages/api-client/src/index.ts",
+    ]).typecheckSelectors,
+    ["...@petcare/api-client", "@petcare/server"],
+  );
+});
+
+test("root and shared lint configuration changes require all workspace typechecks", () => {
+  for (const path of [
+    "package.json",
+    "pnpm-lock.yaml",
+    "pnpm-workspace.yaml",
+    "turbo.json",
+    "tsconfig.base.json",
+    "packages/eslint-config-base/index.js",
+    ".husky/pre-commit",
+    "scripts/commit-check.mjs",
+    "scripts/commit-scope.mjs",
+  ]) {
+    const scope = classifyStagedPaths([path]);
+    assert.equal(scope.fullTypecheck, true, path);
+    assert.deepEqual(scope.typecheckSelectors, []);
+  }
+
+  assert.deepEqual(FULL_TYPECHECK_PROJECTS, [
+    "@petcare/admin",
+    "@petcare/miniapp",
+    "@petcare/uniapp",
+    "@petcare/server",
+    "@petcare/api-client",
+    "@petcare/shared-types",
+    "@petcare/shared-utils",
+  ]);
+});
+
+test("root tsconfig triggers the full typecheck while lookalikes do not", () => {
+  assert.equal(classifyStagedPaths(["tsconfig.json"]).fullTypecheck, true);
+  assert.deepEqual(classifyStagedPaths(["apps/admin2/src/x.ts"]), {
+    fullTypecheck: false,
+    typecheckSelectors: [],
+    styleScopes: [],
+  });
+  assert.deepEqual(classifyStagedPaths(["nested/tsconfig.json"]), {
+    fullTypecheck: false,
+    typecheckSelectors: [],
+    styleScopes: [],
+  });
+});
+
+test("Windows separators and empty input are supported", () => {
+  assert.deepEqual(classifyStagedPaths(["apps\\uniapp\\src\\main.ts"]), {
+    fullTypecheck: false,
+    typecheckSelectors: ["@petcare/uniapp"],
+    styleScopes: [],
+  });
+  assert.deepEqual(classifyStagedPaths([]), {
+    fullTypecheck: false,
+    typecheckSelectors: [],
+    styleScopes: [],
+  });
+});
