@@ -1,8 +1,13 @@
 <script setup lang="ts">
-import { PieChart } from 'echarts/charts'
-import { DatasetComponent, GraphicComponent, LegendComponent, TooltipComponent } from 'echarts/components'
-import * as echarts from 'echarts/core'
-import { CanvasRenderer } from 'echarts/renderers'
+import { PieChart } from "echarts/charts";
+import {
+  DatasetComponent,
+  GraphicComponent,
+  LegendComponent,
+  TooltipComponent,
+} from "echarts/components";
+import * as echarts from "echarts/core";
+import { CanvasRenderer } from "echarts/renderers";
 
 echarts.use([
   LegendComponent,
@@ -11,12 +16,12 @@ echarts.use([
   PieChart,
   CanvasRenderer,
   GraphicComponent,
-])
+]);
 
 const option = ref({
   tooltip: {
-    trigger: 'item',
-    formatter: '{a} <br/>{b}: {c} ({d}%)',
+    trigger: "item",
+    formatter: "{a} <br/>{b}: {c} ({d}%)",
     textStyle: {
       // #ifdef MP-WEIXIN
       // 临时解决微信小程序 tooltip 文字阴影问题
@@ -25,9 +30,9 @@ const option = ref({
     },
   },
   legend: {
-    orient: 'horizontal',
+    orient: "horizontal",
     bottom: 10,
-    left: 'center',
+    left: "center",
     itemWidth: 12,
     itemHeight: 12,
     textStyle: {
@@ -36,20 +41,20 @@ const option = ref({
   },
   series: [
     {
-      name: '用户占比',
-      type: 'pie',
-      radius: ['45%', '70%'],
-      center: ['50%', '50%'],
+      name: "用户占比",
+      type: "pie",
+      radius: ["45%", "70%"],
+      center: ["50%", "50%"],
       avoidLabelOverlap: false,
       label: {
         show: false,
-        position: 'center',
+        position: "center",
       },
       emphasis: {
         label: {
           show: true,
           fontSize: 18,
-          fontWeight: 'bold',
+          fontWeight: "bold",
         },
       },
       labelLine: {
@@ -57,48 +62,48 @@ const option = ref({
       },
       itemStyle: {
         borderWidth: 2,
-        borderColor: '#ffffff',
+        borderColor: "#ffffff",
       },
       data: [
         {
           value: 335,
-          name: 'iOS',
+          name: "iOS",
           itemStyle: {
-            color: '#5470c6',
+            color: "#5470c6",
           },
         },
         {
           value: 310,
-          name: 'Android',
+          name: "Android",
           itemStyle: {
-            color: '#91cc75',
+            color: "#91cc75",
           },
         },
         {
           value: 234,
-          name: 'H5',
+          name: "H5",
           itemStyle: {
-            color: '#fac858',
+            color: "#fac858",
           },
         },
         {
           value: 135,
-          name: '小程序',
+          name: "小程序",
           itemStyle: {
-            color: '#ee6666',
+            color: "#ee6666",
           },
         },
         {
           value: 86,
-          name: '其他',
+          name: "其他",
           itemStyle: {
-            color: '#73c0de',
+            color: "#73c0de",
           },
         },
       ],
     },
   ],
-})
+});
 </script>
 
 <template>

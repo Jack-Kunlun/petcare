@@ -7,27 +7,21 @@
  * @FilePath: /wot-starter/src/api/mock/mockAdapter.ts
  * 记得注释
  */
-import { uniappMockResponse, uniappRequestAdapter } from '@alova/adapter-uniapp'
-import { createAlovaMockAdapter } from '@alova/mock'
-
+import { uniappMockResponse, uniappRequestAdapter } from "@alova/adapter-uniapp";
+import { createAlovaMockAdapter } from "@alova/mock";
 // 导入所有mock模块
-import commonMocks from './modules/common'
-import petMocks from './modules/pet'
-import storeMocks from './modules/store'
-import userMocks from './modules/user'
+import commonMocks from "./modules/common";
+import petMocks from "./modules/pet";
+import storeMocks from "./modules/store";
+import userMocks from "./modules/user";
 
-const canUseGroupLogger
-  = typeof console !== 'undefined'
-    && typeof console.groupCollapsed === 'function'
-    && typeof console.groupEnd === 'function'
+const canUseGroupLogger =
+  typeof console !== "undefined" &&
+  typeof console.groupCollapsed === "function" &&
+  typeof console.groupEnd === "function";
 
 // 合并所有mock定义
-const allMocks = [
-  commonMocks,
-  petMocks,
-  storeMocks,
-  userMocks,
-]
+const allMocks = [commonMocks, petMocks, storeMocks, userMocks];
 
 // 创建mock适配器
 const mockAdapter = createAlovaMockAdapter(allMocks, {
@@ -44,9 +38,9 @@ const mockAdapter = createAlovaMockAdapter(allMocks, {
   delay: Math.random() * 400 + 200,
 
   // 在开发环境下打印mock请求日志
-  mockRequestLogger: import.meta.env.MODE === 'development' && canUseGroupLogger,
+  mockRequestLogger: import.meta.env.MODE === "development" && canUseGroupLogger,
   // 路径匹配模式 - 使用完整路径匹配
-  matchMode: 'pathname',
-})
+  matchMode: "pathname",
+});
 
-export default mockAdapter
+export default mockAdapter;

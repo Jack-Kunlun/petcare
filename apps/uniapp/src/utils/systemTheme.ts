@@ -1,27 +1,29 @@
-import type { ThemeMode } from '@/composables/types/theme'
+import type { ThemeMode } from "@/composables/types/theme";
 
 interface ThemeOwnerState {
-  initialized: boolean
-  listenerCount: number
-  themeChangeHandler?: UniNamespace.OnThemeChangeCallback
+  initialized: boolean;
+  listenerCount: number;
+  themeChangeHandler?: UniNamespace.OnThemeChangeCallback;
 }
 
-const themeOwnerStates = new WeakMap<object, ThemeOwnerState>()
+const themeOwnerStates = new WeakMap<object, ThemeOwnerState>();
 
 function getThemeOwnerState(owner: object) {
-  let state = themeOwnerStates.get(owner)
+  let state = themeOwnerStates.get(owner);
+
   if (!state) {
     state = {
       initialized: false,
       listenerCount: 0,
-    }
-    themeOwnerStates.set(owner, state)
+    };
+    themeOwnerStates.set(owner, state);
   }
-  return state
+
+  return state;
 }
 
 function isThemeMode(theme: unknown): theme is ThemeMode {
-  return theme === 'light' || theme === 'dark'
+  return theme === "light" || theme === "dark";
 }
 
 /**
@@ -30,37 +32,39 @@ function isThemeMode(theme: unknown): theme is ThemeMode {
 export function getSystemTheme(): ThemeMode {
   try {
     // #ifdef MP-WEIXIN
-    const appBaseInfo = uni.getAppBaseInfo()
+    const appBaseInfo = uni.getAppBaseInfo();
+
     if (isThemeMode(appBaseInfo?.theme)) {
-      return appBaseInfo.theme
+      return appBaseInfo.theme;
     }
     // #endif
 
     // #ifndef MP-WEIXIN
-    const systemInfo = uni.getSystemInfoSync()
+    const systemInfo = uni.getSystemInfoSync();
+
     if (isThemeMode(systemInfo?.theme)) {
-      return systemInfo.theme
+      return systemInfo.theme;
     }
     // #endif
-  }
-  catch (error) {
-    console.warn('获取系统主题失败:', error)
+  } catch (error) {
+    console.warn("获取系统主题失败:", error);
   }
 
-  return 'light'
+  return "light";
 }
 
 /**
  * 确保同一个主题 store 在生命周期内只初始化一次。
  */
 export function initializeThemeOnce(owner: object, initialize: () => void) {
-  const state = getThemeOwnerState(owner)
+  const state = getThemeOwnerState(owner);
+
   if (state.initialized) {
-    return
+    return;
   }
 
-  initialize()
-  state.initialized = true
+  initialize();
+  state.initialized = true;
 }
 
 /**
@@ -70,38 +74,35 @@ export function subscribeSystemThemeChange(
   owner: object,
   handler: UniNamespace.OnThemeChangeCallback,
 ) {
-  if (
-    typeof uni === 'undefined'
-    || typeof uni.onThemeChange !== 'function'
-  ) {
-    return () => {}
+  if (typeof uni === "undefined" || typeof uni.onThemeChange !== "function") {
+    return () => undefined;
   }
 
-  const state = getThemeOwnerState(owner)
+  const state = getThemeOwnerState(owner);
 
   if (!state.themeChangeHandler) {
-    state.themeChangeHandler = handler
-    uni.onThemeChange(state.themeChangeHandler)
+    state.themeChangeHandler = handler;
+    uni.onThemeChange(state.themeChangeHandler);
   }
-  state.listenerCount += 1
 
-  let subscribed = true
+  state.listenerCount += 1;
+
+  let subscribed = true;
 
   return () => {
     if (!subscribed) {
-      return
+      return;
     }
-    subscribed = false
-    state.listenerCount = Math.max(0, state.listenerCount - 1)
 
-    if (
-      state.listenerCount === 0
-      && state.themeChangeHandler
-    ) {
-      if (typeof uni.offThemeChange === 'function') {
-        uni.offThemeChange(state.themeChangeHandler)
+    subscribed = false;
+    state.listenerCount = Math.max(0, state.listenerCount - 1);
+
+    if (state.listenerCount === 0 && state.themeChangeHandler) {
+      if (typeof uni.offThemeChange === "function") {
+        uni.offThemeChange(state.themeChangeHandler);
       }
-      state.themeChangeHandler = undefined
+
+      state.themeChangeHandler = undefined;
     }
-  }
+  };
 }

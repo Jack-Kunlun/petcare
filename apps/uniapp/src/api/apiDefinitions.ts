@@ -1,6 +1,6 @@
 /// <reference types='./globals.d.ts' />
 /* tslint:disable */
-/* eslint-disable */
+
 /**
  * Swagger Petstore - OpenAPI 3.0 - version 1.0.27
  *
