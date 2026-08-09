@@ -113,11 +113,15 @@ function pushToGuard() {
           </view>
         </view>
         <view class="wot-bg-bg border rounded-2 p-3 wot-border-border-main">
+          <!-- prettier-ignore -->
           <text class="text-3 leading-relaxed font-mono wot-text-text-secondary">
-            // Params 写法 (当前演示) router.push({ name: 'demo-params', params: { username:
-            'eduardo' } }) // 结果: /demo-params?username=eduardo // Query 写法 (效果相同)
-            router.push({ path: '/demo-params', query: { username: 'eduardo' } }) // 结果:
-            /demo-params?username=eduardo
+            // Params 写法 (当前演示)
+            router.push({ name: 'demo-params', params: { username: 'eduardo' } })
+            // 结果: /demo-params?username=eduardo
+
+            // Query 写法 (效果相同)
+            router.push({ path: '/demo-params', query: { username: 'eduardo' } })
+            // 结果: /demo-params?username=eduardo
           </text>
         </view>
       </view>
@@ -128,10 +132,18 @@ function pushToGuard() {
       <view class="rounded-2 p-4 wot-bg-filled-oppo">
         <view class="mb-3 text-4 font-bold wot-text-text-main"> 接收参数的标准写法 </view>
         <view class="wot-bg-bg border rounded-2 p-3 wot-border-border-main">
+          <!-- prettier-ignore -->
           <text class="text-3 leading-relaxed font-mono wot-text-text-secondary">
-            onLoad((option) => { if (option && option.username) { const username = option.username }
-            // 对象参数需要解码 if (option && option.user) { const user =
-            JSON.parse(decodeURIComponent(decodeURIComponent(option.user))) } })
+            onLoad((option) => {
+            if (option && option.username) {
+            const username = option.username
+            }
+
+            // 对象参数需要解码
+            if (option && option.user) {
+            const user = JSON.parse(decodeURIComponent(decodeURIComponent(option.user)))
+            }
+            })
           </text>
         </view>
       </view>
