@@ -1,6 +1,9 @@
 import assert from "node:assert/strict";
+import { readFile } from "node:fs/promises";
+import process from "node:process";
 import test from "node:test";
 import { resolve } from "node:path";
+import { setImmediate } from "node:timers/promises";
 
 import { ESLint } from "eslint";
 import { createBaseRulesConfig } from "../packages/eslint-config-base/index.js";
@@ -66,4 +69,36 @@ test("UniApp files receive the composed PetCare rules without replacing its pars
   assert.equal(appConfig.rules.semi[0], 2);
   assert.equal(appConfig.rules["petcare-import/named"][0], 0);
   assert.equal(appConfig.languageOptions.parser.meta.name, "vue-eslint-parser");
+});
+
+test("UniApp ESLint configuration reaches a fix-mode fixed point without circular fixes", async () => {
+  const configFile = resolve(uniappRoot, "eslint.config.mjs");
+  const configSource = await readFile(configFile, "utf8");
+  const circularFixWarnings = [];
+  const onWarning = (warning) => {
+    if (warning.name === "ESLintCircularFixesWarning") {
+      circularFixWarnings.push(warning);
+    }
+  };
+  const eslint = new ESLint({
+    cwd: uniappRoot,
+    fix: true,
+    overrideConfigFile: "eslint.config.mjs",
+  });
+
+  process.on("warning", onWarning);
+  try {
+    const [firstPass] = await eslint.lintText(configSource, { filePath: configFile });
+    const [secondPass] = await eslint.lintText(firstPass.output ?? configSource, {
+      filePath: configFile,
+    });
+
+    assert.equal(firstPass.errorCount, 0);
+    assert.equal(secondPass.errorCount, 0);
+    assert.equal(secondPass.output, undefined);
+    await setImmediate();
+    assert.deepEqual(circularFixWarnings, []);
+  } finally {
+    process.off("warning", onWarning);
+  }
 });
