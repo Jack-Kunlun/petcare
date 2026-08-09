@@ -1,8 +1,13 @@
 <script setup lang="ts">
-import { LineChart } from 'echarts/charts'
-import { DatasetComponent, GridComponent, LegendComponent, TooltipComponent } from 'echarts/components'
-import * as echarts from 'echarts/core'
-import { CanvasRenderer } from 'echarts/renderers'
+import { LineChart } from "echarts/charts";
+import {
+  DatasetComponent,
+  GridComponent,
+  LegendComponent,
+  TooltipComponent,
+} from "echarts/components";
+import * as echarts from "echarts/core";
+import { CanvasRenderer } from "echarts/renderers";
 
 echarts.use([
   GridComponent,
@@ -11,43 +16,43 @@ echarts.use([
   DatasetComponent,
   LineChart,
   CanvasRenderer,
-])
+]);
 
 const option = ref({
   tooltip: {
-    trigger: 'axis',
+    trigger: "axis",
   },
   legend: {
-    data: ['访问量', '用户数'],
+    data: ["访问量", "用户数"],
     top: 30,
   },
   grid: {
-    left: '3%',
-    right: '4%',
-    bottom: '3%',
+    left: "3%",
+    right: "4%",
+    bottom: "3%",
     containLabel: true,
   },
   xAxis: {
-    type: 'category',
+    type: "category",
     boundaryGap: false,
-    data: ['周一', '周二', '周三', '周四', '周五', '周六', '周日'],
+    data: ["周一", "周二", "周三", "周四", "周五", "周六", "周日"],
   },
   yAxis: {
-    type: 'value',
+    type: "value",
   },
   series: [
     {
-      name: '访问量',
-      type: 'line',
-      stack: 'Total',
+      name: "访问量",
+      type: "line",
+      stack: "Total",
       data: [120, 132, 101, 134, 90, 230, 210],
       smooth: true,
       itemStyle: {
-        color: '#5470c6',
+        color: "#5470c6",
       },
       areaStyle: {
         color: {
-          type: 'linear',
+          type: "linear",
           x: 0,
           y: 0,
           x2: 0,
@@ -55,28 +60,28 @@ const option = ref({
           colorStops: [
             {
               offset: 0,
-              color: 'rgba(84, 112, 198, 0.3)',
+              color: "rgba(84, 112, 198, 0.3)",
             },
             {
               offset: 1,
-              color: 'rgba(84, 112, 198, 0.1)',
+              color: "rgba(84, 112, 198, 0.1)",
             },
           ],
         },
       },
     },
     {
-      name: '用户数',
-      type: 'line',
-      stack: 'Total',
+      name: "用户数",
+      type: "line",
+      stack: "Total",
       data: [220, 182, 191, 234, 290, 330, 310],
       smooth: true,
       itemStyle: {
-        color: '#91cc75',
+        color: "#91cc75",
       },
       areaStyle: {
         color: {
-          type: 'linear',
+          type: "linear",
           x: 0,
           y: 0,
           x2: 0,
@@ -84,18 +89,18 @@ const option = ref({
           colorStops: [
             {
               offset: 0,
-              color: 'rgba(145, 204, 117, 0.3)',
+              color: "rgba(145, 204, 117, 0.3)",
             },
             {
               offset: 1,
-              color: 'rgba(145, 204, 117, 0.1)',
+              color: "rgba(145, 204, 117, 0.1)",
             },
           ],
         },
       },
     },
   ],
-})
+});
 </script>
 
 <template>

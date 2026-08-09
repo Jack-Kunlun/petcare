@@ -3,12 +3,12 @@ const props = defineProps({
   // 标题
   title: {
     type: String,
-    default: '',
+    default: "",
   },
   // 自定义类名
   customClass: {
     type: String,
-    default: '',
+    default: "",
   },
   // 垂直间距
   ver: {
@@ -25,11 +25,11 @@ const props = defineProps({
     type: Boolean,
     default: false,
   },
-})
+});
 
 const style = computed(() => {
-  return `margin: 0 ${props.hor}px;padding:${props.ver}px 0;`
-})
+  return `margin: 0 ${props.hor}px;padding:${props.ver}px 0;`;
+});
 </script>
 
 <script lang="ts">
@@ -37,18 +37,15 @@ export default {
   options: {
     addGlobalClass: true,
     virtualHost: true,
-    styleIsolation: 'shared',
+    styleIsolation: "shared",
   },
-}
+};
 </script>
 
 <template>
   <view
     class="mb-3 box-border w-full px-3 text-gray-500 last:mb-0 dark:text-gray-300"
-    :class="[
-      transparent ? '' : 'var(--wot-filled-oppo)',
-      customClass,
-    ]"
+    :class="[transparent ? '' : 'var(--wot-filled-oppo)', customClass]"
   >
     <view class="px-4 py-3 text-26rpx">
       {{ title }}

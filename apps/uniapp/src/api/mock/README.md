@@ -34,7 +34,7 @@ const mockAdapter = createAlovaMockAdapter(allMocks, {
   // ...
   enable: true, // 设置为 false 可禁用模拟
   // ...
-})
+});
 ```
 
 ### 添加新的模拟数据
@@ -47,25 +47,25 @@ const mockAdapter = createAlovaMockAdapter(allMocks, {
 
 ```typescript
 // modules/example.ts
-import { defineMock } from '@alova/mock'
+import { defineMock } from "@alova/mock";
 
 // mockAdapter.ts
-import exampleMocks from './modules/example'
+import exampleMocks from "./modules/example";
 
 export default defineMock({
-  '[GET]/api/example': () => {
+  "[GET]/api/example": () => {
     return {
       code: 200,
-      data: { /* 模拟数据 */ },
-      message: 'success'
-    }
-  }
-})
+      data: {/* 模拟数据 */},
+      message: "success",
+    };
+  },
+});
 
 const allMocks = [
   // ...
-  exampleMocks
-]
+  exampleMocks,
+];
 ```
 
 ## 模拟数据生成工具
@@ -73,30 +73,33 @@ const allMocks = [
 在 `utils/generators.ts` 中提供了一系列用于生成模拟数据的工具函数，可以在各个模块中复用：
 
 ```typescript
-import { generateMockData } from '../utils'
+import { generateMockData } from "../utils";
 
 // 生成随机ID
-const id = generateMockData.id()
+const id = generateMockData.id();
 
 // 生成随机名称
-const name = generateMockData.name('前缀')
+const name = generateMockData.name("前缀");
 
 // 生成随机数组
-const array = generateMockData.array(index => ({
-  id: generateMockData.id(),
-  name: generateMockData.name(`项目${index}`)
-}), 10)
+const array = generateMockData.array(
+  (index) => ({
+    id: generateMockData.id(),
+    name: generateMockData.name(`项目${index}`),
+  }),
+  10,
+);
 
 // 生成基础响应对象
-const response = generateMockData.baseResponse(data)
+const response = generateMockData.baseResponse(data);
 
 // 生成列表响应对象
-const listResponse = generateMockData.listResponse(items, total, more)
+const listResponse = generateMockData.listResponse(items, total, more);
 
 // 生成业务对象
-const user = generateMockData.user()
-const goods = generateMockData.goods(0)
-const vehSaleEmp = generateMockData.vehSaleEmp(0)
+const user = generateMockData.user();
+const goods = generateMockData.goods(0);
+const vehSaleEmp = generateMockData.vehSaleEmp(0);
 ```
 
 ## 注意事项

@@ -1,6 +1,6 @@
-import type { ThemeColorOption, ThemeMode } from '@/composables/types/theme'
-import { themeColorOptions } from '@/composables/types/theme'
-import { initializeThemeOnce, subscribeSystemThemeChange } from '@/utils/systemTheme'
+import type { ThemeColorOption, ThemeMode } from "@/composables/types/theme";
+import { themeColorOptions } from "@/composables/types/theme";
+import { initializeThemeOnce, subscribeSystemThemeChange } from "@/utils/systemTheme";
 
 /**
  * 完整版主题管理组合式API
@@ -43,9 +43,9 @@ import { initializeThemeOnce, subscribeSystemThemeChange } from '@/utils/systemT
  * ```
  */
 export function useManualTheme() {
-  const store = useManualThemeStore()
-  const showThemeColorSheet = ref(false)
-  let stopThemeChangeListener: (() => void) | undefined
+  const store = useManualThemeStore();
+  const showThemeColorSheet = ref(false);
+  let stopThemeChangeListener: (() => void) | undefined;
 
   /**
    * 切换暗黑模式
@@ -53,21 +53,21 @@ export function useManualTheme() {
    * @param isFollowSystem 是否跟随系统
    */
   function toggleTheme(mode?: ThemeMode, isFollowSystem: boolean = false) {
-    store.toggleTheme(mode, isFollowSystem)
+    store.toggleTheme(mode, isFollowSystem);
   }
 
   /**
    * 打开主题色选择器
    */
   function openThemeColorPicker() {
-    showThemeColorSheet.value = true
+    showThemeColorSheet.value = true;
   }
 
   /**
    * 关闭主题色选择器
    */
   function closeThemeColorPicker() {
-    showThemeColorSheet.value = false
+    showThemeColorSheet.value = false;
   }
 
   /**
@@ -75,37 +75,37 @@ export function useManualTheme() {
    * @param option 主题色选项
    */
   function selectThemeColor(option: ThemeColorOption) {
-    store.setCurrentThemeColor(option)
-    closeThemeColorPicker()
+    store.setCurrentThemeColor(option);
+    closeThemeColorPicker();
   }
 
   /**
    * 初始化主题
    */
   function initTheme() {
-    store.initTheme()
+    store.initTheme();
   }
 
   // 组件挂载前初始化主题
   onBeforeMount(() => {
-    initializeThemeOnce(store, initTheme)
+    initializeThemeOnce(store, initTheme);
     stopThemeChangeListener = subscribeSystemThemeChange(store, (res) => {
       if (store.followSystem) {
-        store.toggleTheme(res.theme, true)
+        store.toggleTheme(res.theme, true);
       }
-    })
-  })
+    });
+  });
 
   // 页面显示时更新导航栏颜色，确保每次切换页面时导航栏颜色都是正确的
   onShow(() => {
-    store.setNavigationBarColor()
-  })
+    store.setNavigationBarColor();
+  });
 
   // 组件卸载时清理监听
   onUnmounted(() => {
-    stopThemeChangeListener?.()
-    stopThemeChangeListener = undefined
-  })
+    stopThemeChangeListener?.();
+    stopThemeChangeListener = undefined;
+  });
 
   return {
     // 状态
@@ -127,9 +127,9 @@ export function useManualTheme() {
     openThemeColorPicker,
     closeThemeColorPicker,
     selectThemeColor,
-  }
+  };
 }
 
 // 导出类型和常量供外部使用
-export type { ThemeColorOption, ThemeMode }
-export { themeColorOptions }
+export type { ThemeColorOption, ThemeMode };
+export { themeColorOptions };
