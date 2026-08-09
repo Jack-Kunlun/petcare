@@ -78,7 +78,7 @@
     "identity-obj-proxy": "^3.0.0",
     "jest": "^30.4.2",
     "jest-environment-jsdom": "^30.4.1",
-    "postcss": "^8.5.20",
+    "postcss": "^8.5.26",
     "react-refresh": "^0.18.0",
     "sass": "1.102.0",
     "tailwindcss": "^4.3.3",
