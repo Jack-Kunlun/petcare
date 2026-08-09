@@ -6,13 +6,13 @@ import process from "node:process";
 const root = resolve(import.meta.dirname, "..");
 
 const typecheckProjects = [
-  { name: "@petcare/admin", directory: "apps/admin", project: "tsconfig.json" },
-  { name: "@petcare/miniapp", directory: "apps/miniapp", project: "tsconfig.json" },
-  { name: "@petcare/uniapp", directory: "apps/uniapp", project: "tsconfig.json" },
-  { name: "@petcare/server", directory: "apps/server", project: "tsconfig.build.json" },
-  { name: "@petcare/api-client", directory: "packages/api-client", project: "tsconfig.json" },
-  { name: "@petcare/shared-types", directory: "packages/shared-types", project: "tsconfig.json" },
-  { name: "@petcare/shared-utils", directory: "packages/shared-utils", project: "tsconfig.json" },
+  "@petcare/admin",
+  "@petcare/miniapp",
+  "@petcare/uniapp",
+  "@petcare/server",
+  "@petcare/api-client",
+  "@petcare/shared-types",
+  "@petcare/shared-utils",
 ];
 
 function runCommand(label, executable, args, cwd = root) {
@@ -54,22 +54,7 @@ function runPnpm(label, args) {
 
 async function runTypechecks() {
   for (const project of typecheckProjects) {
-    const directory = resolve(root, project.directory);
-    const typescriptCli = resolve(directory, "node_modules/typescript/bin/tsc");
-
-    await runCommand(
-      `${project.name} 类型检查`,
-      process.execPath,
-      [
-        typescriptCli,
-        "--noEmit",
-        "--project",
-        resolve(directory, project.project),
-        "--pretty",
-        "false",
-      ],
-      directory,
-    );
+    await runPnpm(`${project} 类型检查`, ["--filter", project, "run", "typecheck"]);
   }
 }
 
