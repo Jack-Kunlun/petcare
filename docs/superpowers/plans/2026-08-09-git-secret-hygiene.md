@@ -21,6 +21,7 @@
 ### Task 1: Enforce Git hygiene and remove tracked local artifacts
 
 **Files:**
+
 - Modify: `scripts/repository-policy.test.mjs`
 - Modify: `.gitignore`
 - Untrack, keep locally: `.superpowers/sdd/2026-07-29-order-complaint-dispute/task-5-report.md`
@@ -28,6 +29,7 @@
 - Test: `scripts/repository-policy.test.mjs`
 
 **Interfaces:**
+
 - Consumes: Git's `check-ignore --verbose --stdin` and `ls-files -ci --exclude-from=.gitignore` commands.
 - Produces: A repository invariant that no committed path is also ignored and that representative secret/mobile artifact paths are ignored.
 
@@ -72,10 +74,7 @@ test("local secrets and generated mobile artifacts stay out of Git", () => {
       return { path, source: resolve(root, match[1]) };
     });
 
-  assert.deepEqual(
-    ignoredEntries.map(({ path }) => path).sort(),
-    probes.toSorted(),
-  );
+  assert.deepEqual(ignoredEntries.map(({ path }) => path).sort(), probes.toSorted());
   assert.ok(
     ignoredEntries.every(({ source }) => source === rootGitignore),
     `ignored paths must be matched by the root .gitignore: ${ignored.stdout}`,

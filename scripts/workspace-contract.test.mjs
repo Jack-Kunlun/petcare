@@ -31,8 +31,19 @@ test("UniApp workspace uses the official Vitesse scaffold contract", async () =>
 
   assert.equal(manifest.name, "@petcare/uniapp");
   for (const script of [...lifecycle, ...requiredTargetScripts]) {
-    assert.equal(typeof manifest.scripts?.[script], "string", `apps/uniapp/package.json is missing ${script}`);
+    assert.equal(
+      typeof manifest.scripts?.[script],
+      "string",
+      `apps/uniapp/package.json is missing ${script}`,
+    );
   }
+});
+
+test("UniApp H5 compiler resolves its compatible Vite runtime", async () => {
+  const workspace = await readFile(resolve(root, "pnpm-workspace.yaml"), "utf8");
+
+  assert.match(workspace, /["']@dcloudio\/uni-h5-vite@3\.0\.0-4080520251106001["']:/);
+  assert.match(workspace, /vite:\s*["']5\.4\.21["']/);
 });
 
 async function readJson(path) {
@@ -74,8 +85,14 @@ test("根级命令覆盖质量门禁与三端开发", async () => {
   assert.match(manifest.scripts.check, /format:check.*lint.*typecheck.*test.*build/);
 
   for (const target of ["h5", "mp-weixin", "app-android", "app-ios"]) {
-    assert.equal(manifest.scripts[`dev:uniapp:${target}`], `pnpm --filter @petcare/uniapp dev:${target}`);
-    assert.equal(manifest.scripts[`build:uniapp:${target}`], `pnpm --filter @petcare/uniapp build:${target}`);
+    assert.equal(
+      manifest.scripts[`dev:uniapp:${target}`],
+      `pnpm --filter @petcare/uniapp dev:${target}`,
+    );
+    assert.equal(
+      manifest.scripts[`build:uniapp:${target}`],
+      `pnpm --filter @petcare/uniapp build:${target}`,
+    );
   }
 });
 
