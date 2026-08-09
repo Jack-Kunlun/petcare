@@ -6,6 +6,7 @@ import { resolve } from "node:path";
 import { setImmediate } from "node:timers/promises";
 
 import { ESLint } from "eslint";
+import { format, resolveConfig } from "prettier";
 import { createBaseRulesConfig } from "../packages/eslint-config-base/index.js";
 
 const repositoryRoot = resolve(import.meta.dirname, "..");
@@ -60,15 +61,45 @@ test("UniApp files receive the composed PetCare rules without replacing its pars
   assert.ok(mainConfig.plugins["petcare-ts"]);
   assert.ok(appConfig.plugins["petcare-unicorn"]);
   assert.equal(mainConfig.rules["petcare-ts/no-explicit-any"][0], 2);
+  assert.equal(mainConfig.rules.quotes[0], 2);
+  assert.equal(mainConfig.rules.semi[0], 2);
   for (const config of [mainConfig, appConfig]) {
     assert.notEqual(config.rules["style/quotes"]?.[0], 2);
     assert.notEqual(config.rules["style/semi"]?.[0], 2);
-    assert.deepEqual(config.rules.quotes.slice(0, 2), [2, "double"]);
-    assert.deepEqual(config.rules.semi.slice(0, 2), [2, "always"]);
   }
+  assert.deepEqual(mainConfig.rules.quotes.slice(0, 2), [2, "double"]);
+  assert.deepEqual(mainConfig.rules.semi.slice(0, 2), [2, "always"]);
+  assert.equal(appConfig.rules.quotes[0], 0);
   assert.equal(appConfig.rules.semi[0], 2);
+  assert.equal(appConfig.rules["vue/html-indent"][0], 0);
+  assert.equal(appConfig.rules["vue/singleline-html-element-content-newline"][0], 0);
+  assert.equal(appConfig.rules["perfectionist/sort-imports"][0], 0);
+  assert.equal(appConfig.rules["petcare-unicorn/no-nested-ternary"][0], 2);
+  assert.equal(appConfig.rules["petcare-import/order"][0], 2);
+  assert.equal(appConfig.rules["petcare-import/no-duplicates"][0], 2);
+  assert.equal(appConfig.rules["antfu/import-dedupe"][0], 2);
   assert.equal(appConfig.rules["petcare-import/named"][0], 0);
   assert.equal(appConfig.languageOptions.parser.meta.name, "vue-eslint-parser");
+});
+
+test("UniApp Vue ESLint accepts Prettier output without fixes", async () => {
+  const eslint = new ESLint({
+    cwd: uniappRoot,
+    overrideConfigFile: "eslint.config.mjs",
+  });
+
+  for (const relativePath of ["src/subPages/ci/index.vue", "src/subPages/feedback/index.vue"]) {
+    const filePath = resolve(uniappRoot, relativePath);
+    const [source, prettierOptions] = await Promise.all([
+      readFile(filePath, "utf8"),
+      resolveConfig(filePath),
+    ]);
+    const formattedSource = await format(source, { ...prettierOptions, filepath: filePath });
+    const [result] = await eslint.lintText(formattedSource, { filePath });
+
+    assert.equal(result.errorCount, 0, relativePath);
+    assert.equal(result.output, undefined, relativePath);
+  }
 });
 
 test("UniApp ESLint configuration reaches a fix-mode fixed point without circular fixes", async () => {
@@ -100,5 +131,40 @@ test("UniApp ESLint configuration reaches a fix-mode fixed point without circula
     assert.deepEqual(circularFixWarnings, []);
   } finally {
     process.off("warning", onWarning);
+  }
+});
+
+test("UniApp formatting policy uses the root Prettier ignore rules and staged-only linting", async () => {
+  const [rootPackageSource, uniappPackageSource, prettierIgnore] = await Promise.all([
+    readFile(resolve(repositoryRoot, "package.json"), "utf8"),
+    readFile(resolve(uniappRoot, "package.json"), "utf8"),
+    readFile(resolve(repositoryRoot, ".prettierignore"), "utf8"),
+  ]);
+  const rootPackage = JSON.parse(rootPackageSource);
+  const uniappPackage = JSON.parse(uniappPackageSource);
+
+  assert.equal(
+    uniappPackage.scripts.format,
+    "prettier --write . --ignore-path ../../.prettierignore",
+  );
+  assert.equal(
+    uniappPackage.scripts["format:check"],
+    "prettier --check . --ignore-path ../../.prettierignore",
+  );
+  assert.deepEqual(rootPackage["lint-staged"]["apps/uniapp/**/*.{js,mjs,ts,vue}"], [
+    "prettier --write",
+    "corepack pnpm --filter @petcare/uniapp exec -- eslint --fix",
+  ]);
+  assert.deepEqual(rootPackage["lint-staged"]["apps/uniapp/**/*.{md,html}"], ["prettier --write"]);
+  for (const protectedPath of [
+    "apps/uniapp/src/uni_modules/",
+    "apps/uniapp/src/auto-imports.d.ts",
+    "apps/uniapp/src/components.d.ts",
+    "apps/uniapp/src/uni-pages.d.ts",
+  ]) {
+    assert.match(
+      prettierIgnore,
+      new RegExp(`^${protectedPath.replace(/[.*+?^${}()|[\\]\\]/g, "\\$&")}$`, "m"),
+    );
   }
 });

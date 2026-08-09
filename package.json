@@ -83,6 +83,9 @@
     "apps/uniapp/**/*.{css,scss,json}": [
       "prettier --write"
     ],
+    "apps/uniapp/**/*.{md,html}": [
+      "prettier --write"
+    ],
     "apps/server/src/**/*.ts": [
       "prettier --write",
       "corepack pnpm --filter @petcare/server exec -- eslint --fix"
