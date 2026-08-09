@@ -84,7 +84,7 @@
     "tailwindcss": "^4.3.3",
     "ts-jest": "29.4.10",
     "typescript": "^6.0.3",
-    "typescript-eslint": "8.64.0",
+    "typescript-eslint": "8.66.0",
     "weapp-tailwindcss": "5.2.4",
     "webpack": "5.91.0"
   }
