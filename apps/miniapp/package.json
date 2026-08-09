@@ -48,7 +48,7 @@
     "@tarojs/shared": "4.2.1",
     "@tarojs/taro": "4.2.1",
     "react": "^18.3.1",
-    "react-dom": "^18.3.1"
+    "react-dom": "^19.2.8"
   },
   "devDependencies": {
     "@babel/core": "^7.29.7",
@@ -65,7 +65,7 @@
     "@types/jest": "^30.0.0",
     "@types/node": "^26.1.1",
     "@types/react": "^18.3.31",
-    "@types/react-dom": "18.3.7",
+    "@types/react-dom": "19.2.4",
     "@typescript-eslint/eslint-plugin": "8.64.0",
     "@typescript-eslint/parser": "8.64.0",
     "autoprefixer": "^10.5.4",
