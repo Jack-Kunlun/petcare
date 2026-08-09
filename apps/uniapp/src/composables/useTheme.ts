@@ -1,4 +1,4 @@
-import { initializeThemeOnce, subscribeSystemThemeChange } from '@/utils/systemTheme'
+import { initializeThemeOnce, subscribeSystemThemeChange } from "@/utils/systemTheme";
 
 /**
  * 简化版系统主题管理组合式API
@@ -37,29 +37,29 @@ import { initializeThemeOnce, subscribeSystemThemeChange } from '@/utils/systemT
  * ```
  */
 export function useTheme() {
-  const store = useThemeStore()
-  let stopThemeChangeListener: (() => void) | undefined
+  const store = useThemeStore();
+  let stopThemeChangeListener: (() => void) | undefined;
 
   // 组件挂载前初始化系统主题
   onBeforeMount(() => {
-    initializeThemeOnce(store, () => store.initSystemTheme())
+    initializeThemeOnce(store, () => store.initSystemTheme());
     stopThemeChangeListener = subscribeSystemThemeChange(store, (res) => {
       // 系统主题变化时自动更新，导航栏颜色由 theme.json 自动处理
-      store.setTheme(res.theme)
-      console.log('系统主题已切换至:', res.theme)
-    })
-  })
+      store.setTheme(res.theme);
+      console.log("系统主题已切换至:", res.theme);
+    });
+  });
 
   // 组件卸载时清理监听
   onUnmounted(() => {
-    stopThemeChangeListener?.()
-    stopThemeChangeListener = undefined
-  })
+    stopThemeChangeListener?.();
+    stopThemeChangeListener = undefined;
+  });
 
   return {
     // 状态（只读）
     theme: computed(() => store.theme),
     isDark: computed(() => store.isDark),
     themeVars: computed(() => store.themeVars),
-  }
+  };
 }

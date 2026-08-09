@@ -1,8 +1,14 @@
 <script setup lang="ts">
-import { ScatterChart } from 'echarts/charts'
-import { DatasetComponent, GridComponent, LegendComponent, TooltipComponent } from 'echarts/components'
-import * as echarts from 'echarts/core'
-import { CanvasRenderer } from 'echarts/renderers'
+import { ScatterChart } from "echarts/charts";
+import {
+  DatasetComponent,
+  GridComponent,
+  LegendComponent,
+  TooltipComponent,
+} from "echarts/components";
+import * as echarts from "echarts/core";
+import { CanvasRenderer } from "echarts/renderers";
+import type { CallbackDataParams } from "echarts/types/dist/shared";
 
 echarts.use([
   GridComponent,
@@ -11,55 +17,59 @@ echarts.use([
   DatasetComponent,
   ScatterChart,
   CanvasRenderer,
-])
+]);
 
 const option = ref({
   tooltip: {
-    trigger: 'item',
-    formatter: (params: any) => {
-      return `${params.seriesName}<br/>身高: ${params.value[0]}cm<br/>体重: ${params.value[1]}kg`
+    trigger: "item",
+    formatter: (params: CallbackDataParams) => {
+      if (!Array.isArray(params.value)) {
+        return params.seriesName;
+      }
+
+      return `${params.seriesName}<br/>身高: ${params.value[0]}cm<br/>体重: ${params.value[1]}kg`;
     },
   },
   legend: {
-    data: ['男性', '女性'],
+    data: ["男性", "女性"],
     top: 30,
   },
   grid: {
-    left: '3%',
-    right: '4%',
-    bottom: '3%',
+    left: "3%",
+    right: "4%",
+    bottom: "3%",
     containLabel: true,
   },
   xAxis: {
-    type: 'value',
-    name: '身高(cm)',
-    nameLocation: 'middle',
+    type: "value",
+    name: "身高(cm)",
+    nameLocation: "middle",
     nameGap: 30,
     min: 150,
     max: 190,
     splitLine: {
       lineStyle: {
-        type: 'dashed',
+        type: "dashed",
       },
     },
   },
   yAxis: {
-    type: 'value',
-    name: '体重(kg)',
-    nameLocation: 'middle',
+    type: "value",
+    name: "体重(kg)",
+    nameLocation: "middle",
     nameGap: 30,
     min: 40,
     max: 90,
     splitLine: {
       lineStyle: {
-        type: 'dashed',
+        type: "dashed",
       },
     },
   },
   series: [
     {
-      name: '男性',
-      type: 'scatter',
+      name: "男性",
+      type: "scatter",
       data: [
         [175, 70],
         [180, 75],
@@ -74,19 +84,19 @@ const option = ref({
       ],
       symbolSize: 8,
       itemStyle: {
-        color: '#5470c6',
+        color: "#5470c6",
         opacity: 0.8,
       },
       emphasis: {
         itemStyle: {
-          borderColor: '#5470c6',
+          borderColor: "#5470c6",
           borderWidth: 2,
         },
       },
     },
     {
-      name: '女性',
-      type: 'scatter',
+      name: "女性",
+      type: "scatter",
       data: [
         [160, 50],
         [165, 55],
@@ -101,18 +111,18 @@ const option = ref({
       ],
       symbolSize: 8,
       itemStyle: {
-        color: '#91cc75',
+        color: "#91cc75",
         opacity: 0.8,
       },
       emphasis: {
         itemStyle: {
-          borderColor: '#91cc75',
+          borderColor: "#91cc75",
           borderWidth: 2,
         },
       },
     },
   ],
-})
+});
 </script>
 
 <template>

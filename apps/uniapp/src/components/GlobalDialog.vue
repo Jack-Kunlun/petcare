@@ -8,40 +8,46 @@
  * 记得注释
 -->
 <script lang="ts" setup>
-import { deepClone, isFunction } from '@wot-ui/ui/common/util'
+import { deepClone, isFunction } from "@wot-ui/ui/common/util";
 
-const { dialogOptions, currentPage } = storeToRefs(useGlobalDialog())
+const { dialogOptions, currentPage } = storeToRefs(useGlobalDialog());
 
-const dialog = useDialog('globalDialog')
-const currentPath = getCurrentPath()
+const dialog = useDialog("globalDialog");
+const currentPath = getCurrentPath();
 
 // #ifdef MP-ALIPAY
-const hackAlipayVisible = ref(false)
+const hackAlipayVisible = ref(false);
 
 nextTick(() => {
-  hackAlipayVisible.value = true
-})
+  hackAlipayVisible.value = true;
+});
 // #endif
 
-watch(() => dialogOptions.value, (newVal) => {
-  if (newVal) {
-    if (currentPage.value === currentPath) {
-      const option = deepClone(newVal)
-      dialog.show(option).then((res) => {
-        if (isFunction(option.success)) {
-          option.success(res)
-        }
-      }).catch((err) => {
-        if (isFunction(option.fail)) {
-          option.fail(err)
-        }
-      })
+watch(
+  () => dialogOptions.value,
+  (newVal) => {
+    if (newVal) {
+      if (currentPage.value === currentPath) {
+        const option = deepClone(newVal);
+
+        dialog
+          .show(option)
+          .then((res) => {
+            if (isFunction(option.success)) {
+              option.success(res);
+            }
+          })
+          .catch((err) => {
+            if (isFunction(option.fail)) {
+              option.fail(err);
+            }
+          });
+      }
+    } else {
+      dialog.close();
     }
-  }
-  else {
-    dialog.close()
-  }
-})
+  },
+);
 </script>
 
 <script lang="ts">
@@ -49,9 +55,9 @@ export default {
   options: {
     virtualHost: true,
     addGlobalClass: true,
-    styleIsolation: 'shared',
+    styleIsolation: "shared",
   },
-}
+};
 </script>
 
 <template>

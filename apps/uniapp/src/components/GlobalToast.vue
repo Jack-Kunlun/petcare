@@ -1,29 +1,31 @@
 <script lang="ts" setup>
-const { toastOptions, currentPage } = storeToRefs(useGlobalToast())
+const { toastOptions, currentPage } = storeToRefs(useGlobalToast());
 
-const { close: closeGlobalToast } = useGlobalToast()
+const { close: closeGlobalToast } = useGlobalToast();
 
-const toast = useToast('globalToast')
-const currentPath = getCurrentPath()
+const toast = useToast("globalToast");
+const currentPath = getCurrentPath();
 
 // #ifdef MP-ALIPAY
-const hackAlipayVisible = ref(false)
+const hackAlipayVisible = ref(false);
 
 nextTick(() => {
-  hackAlipayVisible.value = true
-})
+  hackAlipayVisible.value = true;
+});
 // #endif
 
-watch(() => toastOptions.value, (newVal) => {
-  if (newVal && newVal.show) {
-    if (currentPage.value === currentPath) {
-      toast.show(toastOptions.value)
+watch(
+  () => toastOptions.value,
+  (newVal) => {
+    if (newVal && newVal.show) {
+      if (currentPage.value === currentPath) {
+        toast.show(toastOptions.value);
+      }
+    } else {
+      toast.close();
     }
-  }
-  else {
-    toast.close()
-  }
-})
+  },
+);
 </script>
 
 <script lang="ts">
@@ -31,9 +33,9 @@ export default {
   options: {
     virtualHost: true,
     addGlobalClass: true,
-    styleIsolation: 'shared',
+    styleIsolation: "shared",
   },
-}
+};
 </script>
 
 <template>

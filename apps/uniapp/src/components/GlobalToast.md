@@ -26,9 +26,9 @@ GlobalToast 基于 Wot UI 的 `wd-toast` 封装，提供统一的全局轻提示
 ## 使用方式
 
 ```ts
-import { useGlobalToast } from '@/composables/useGlobalToast'
+import { useGlobalToast } from "@/composables/useGlobalToast";
 
-const toast = useGlobalToast()
+const toast = useGlobalToast();
 ```
 
 ## API
@@ -38,13 +38,13 @@ const toast = useGlobalToast()
 显示普通提示。
 
 ```ts
-toast.show('这是一条提示信息')
+toast.show("这是一条提示信息");
 
 toast.show({
-  msg: '自定义提示',
+  msg: "自定义提示",
   duration: 3000,
-  position: 'top',
-})
+  position: "top",
+});
 ```
 
 默认配置：
@@ -59,7 +59,7 @@ toast.show({
 成功提示，默认附带 `success` 图标，`duration` 为 `1500`。
 
 ```ts
-toast.success('操作成功')
+toast.success("操作成功");
 ```
 
 ### error(option)
@@ -67,7 +67,7 @@ toast.success('操作成功')
 错误提示，默认附带 `error` 图标，`direction` 为 `vertical`。
 
 ```ts
-toast.error('操作失败')
+toast.error("操作失败");
 ```
 
 ### info(option)
@@ -75,7 +75,7 @@ toast.error('操作失败')
 信息提示，默认附带 `info` 图标。
 
 ```ts
-toast.info('这是一条信息')
+toast.info("这是一条信息");
 ```
 
 ### warning(option)
@@ -83,7 +83,7 @@ toast.info('这是一条信息')
 警告提示，默认附带 `warning` 图标。
 
 ```ts
-toast.warning('警告信息')
+toast.warning("警告信息");
 ```
 
 ### close()
@@ -91,22 +91,22 @@ toast.warning('警告信息')
 手动关闭当前提示。
 
 ```ts
-toast.close()
+toast.close();
 ```
 
 ## 参数说明
 
 ### ToastOptions
 
-| 参数 | 类型 | 默认值 | 说明 |
-|------|------|--------|------|
-| msg | string | - | 提示内容 |
-| duration | number | `2000` | 持续时间，`0` 表示不自动关闭 |
-| position | string | `middle` | 显示位置：`top` \| `middle` \| `bottom` |
-| iconName | string | - | 图标名称 |
-| direction | string | - | 布局方向：`horizontal` \| `vertical` |
-| cover | boolean | `false` | 是否显示遮罩 |
-| show | boolean | `true` | 是否显示，内部状态字段 |
+| 参数      | 类型    | 默认值   | 说明                                    |
+| --------- | ------- | -------- | --------------------------------------- |
+| msg       | string  | -        | 提示内容                                |
+| duration  | number  | `2000`   | 持续时间，`0` 表示不自动关闭            |
+| position  | string  | `middle` | 显示位置：`top` \| `middle` \| `bottom` |
+| iconName  | string  | -        | 图标名称                                |
+| direction | string  | -        | 布局方向：`horizontal` \| `vertical`    |
+| cover     | boolean | `false`  | 是否显示遮罩                            |
+| show      | boolean | `true`   | 是否显示，内部状态字段                  |
 
 ### 参数形式
 
@@ -118,23 +118,22 @@ toast.close()
 ## 示例
 
 ```ts
-const { success, error, info } = useGlobalToast()
+const { success, error, info } = useGlobalToast();
 
 async function handleSubmit() {
   try {
-    await submitData()
-    success('提交成功')
-  }
-  catch (e) {
-    error('提交失败')
+    await submitData();
+    success("提交成功");
+  } catch (e) {
+    error("提交失败");
   }
 }
 
 function remind() {
   info({
-    msg: '请检查填写内容',
-    position: 'top',
-  })
+    msg: "请检查填写内容",
+    position: "top",
+  });
 }
 ```
 

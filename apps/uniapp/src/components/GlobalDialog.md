@@ -27,9 +27,9 @@ GlobalDialog 基于 Wot UI 的 `wd-dialog` 封装，通过 Pinia 状态管理提
 ## 使用方式
 
 ```ts
-import { useGlobalDialog } from '@/composables/useGlobalDialog'
+import { useGlobalDialog } from "@/composables/useGlobalDialog";
 
-const dialog = useGlobalDialog()
+const dialog = useGlobalDialog();
 ```
 
 ## API
@@ -40,15 +40,15 @@ const dialog = useGlobalDialog()
 
 ```ts
 dialog.show({
-  title: '提示',
-  msg: '这是一条消息',
-  success: (res) => console.log('成功', res),
-  fail: (res) => console.log('失败', res),
-})
+  title: "提示",
+  msg: "这是一条消息",
+  success: (res) => console.log("成功", res),
+  fail: (res) => console.log("失败", res),
+});
 
 // 字符串参数会作为 title
 // 等价于 dialog.show({ title: '简单提示' })
-dialog.show('简单提示')
+dialog.show("简单提示");
 ```
 
 ### alert(option)
@@ -56,12 +56,12 @@ dialog.show('简单提示')
 显示提醒弹窗，只显示确认按钮。
 
 ```ts
-dialog.alert('操作完成')
+dialog.alert("操作完成");
 
 dialog.alert({
-  title: '提醒',
-  msg: '请注意查看结果',
-})
+  title: "提醒",
+  msg: "请注意查看结果",
+});
 ```
 
 ### confirm(option)
@@ -69,20 +69,20 @@ dialog.alert({
 显示确认弹窗，自动开启取消按钮。
 
 ```ts
-dialog.confirm('确定要删除吗？')
+dialog.confirm("确定要删除吗？");
 
 dialog.confirm({
-  title: '确认删除',
-  msg: '删除后不可恢复，确定要删除吗？',
+  title: "确认删除",
+  msg: "删除后不可恢复，确定要删除吗？",
   success: (res) => {
-    if (res.action === 'confirm') {
-      console.log('用户确认删除')
+    if (res.action === "confirm") {
+      console.log("用户确认删除");
     }
   },
   fail: (res) => {
-    console.log('用户取消删除')
+    console.log("用户取消删除");
   },
-})
+});
 ```
 
 ### prompt(option)
@@ -90,19 +90,19 @@ dialog.confirm({
 显示输入弹窗，自动开启取消按钮。
 
 ```ts
-dialog.prompt('请输入您的姓名')
+dialog.prompt("请输入您的姓名");
 
 dialog.prompt({
-  title: '输入信息',
-  msg: '请输入新的名称',
-  inputValue: '默认值',
-  inputPlaceholder: '请输入内容',
+  title: "输入信息",
+  msg: "请输入新的名称",
+  inputValue: "默认值",
+  inputPlaceholder: "请输入内容",
   success: (res) => {
-    if (res.action === 'confirm') {
-      console.log('用户输入:', res.value)
+    if (res.action === "confirm") {
+      console.log("用户输入:", res.value);
     }
   },
-})
+});
 ```
 
 ### close()
@@ -110,7 +110,7 @@ dialog.prompt({
 手动关闭弹窗。
 
 ```ts
-dialog.close()
+dialog.close();
 ```
 
 ## 参数说明
@@ -119,27 +119,27 @@ dialog.close()
 
 GlobalDialogOptions 基于 Wot UI 的 DialogOptions 扩展，并额外支持 `success`、`fail` 回调。
 
-| 参数 | 类型 | 默认值 | 说明 |
-|------|------|--------|------|
-| title | string | - | 弹窗标题 |
-| msg | string | - | 弹窗内容 |
-| type | string | - | 弹窗类型：`alert` \| `confirm` \| `prompt` |
-| showCancelButton | boolean | 自动设置 | `alert` 为 `false`，`confirm` 和 `prompt` 为 `true` |
-| inputValue | string | - | `prompt` 模式下输入框默认值 |
-| inputPlaceholder | string | - | `prompt` 模式下输入框占位文案 |
-| success | Function | - | 点击确认后的回调 |
-| fail | Function | - | 取消或关闭后的回调 |
-| confirmButtonText | string | 跟随 wd-dialog 默认值 | 确认按钮文本 |
-| cancelButtonText | string | 跟随 wd-dialog 默认值 | 取消按钮文本 |
+| 参数              | 类型     | 默认值                | 说明                                                |
+| ----------------- | -------- | --------------------- | --------------------------------------------------- |
+| title             | string   | -                     | 弹窗标题                                            |
+| msg               | string   | -                     | 弹窗内容                                            |
+| type              | string   | -                     | 弹窗类型：`alert` \| `confirm` \| `prompt`          |
+| showCancelButton  | boolean  | 自动设置              | `alert` 为 `false`，`confirm` 和 `prompt` 为 `true` |
+| inputValue        | string   | -                     | `prompt` 模式下输入框默认值                         |
+| inputPlaceholder  | string   | -                     | `prompt` 模式下输入框占位文案                       |
+| success           | Function | -                     | 点击确认后的回调                                    |
+| fail              | Function | -                     | 取消或关闭后的回调                                  |
+| confirmButtonText | string   | 跟随 wd-dialog 默认值 | 确认按钮文本                                        |
+| cancelButtonText  | string   | 跟随 wd-dialog 默认值 | 取消按钮文本                                        |
 
 ### DialogResult
 
 回调参数会透传 `wd-dialog` 的结果对象，常用字段如下：
 
-| 参数 | 类型 | 说明 |
-|------|------|------|
-| action | string | 用户操作：`confirm` \| `cancel` |
-| value | string | 输入框的值，仅 `prompt` 模式可用 |
+| 参数   | 类型   | 说明                             |
+| ------ | ------ | -------------------------------- |
+| action | string | 用户操作：`confirm` \| `cancel`  |
+| value  | string | 输入框的值，仅 `prompt` 模式可用 |
 
 ## 注意事项
 

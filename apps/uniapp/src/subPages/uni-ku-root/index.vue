@@ -1,12 +1,12 @@
 <script setup lang="ts">
 definePage({
-  name: 'root',
+  name: "root",
   style: {
-    navigationBarTitleText: 'uni-ku/root',
+    navigationBarTitleText: "uni-ku/root",
   },
-})
+});
 
-const show = ref<boolean>(false)
+const show = ref<boolean>(false);
 </script>
 
 <template>

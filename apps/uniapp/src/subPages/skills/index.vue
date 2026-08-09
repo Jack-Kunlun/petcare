@@ -1,71 +1,72 @@
 <script setup lang="ts">
 definePage({
-  name: 'skills',
-  layout: 'default',
+  name: "skills",
+  layout: "default",
   style: {
-    navigationBarTitleText: 'Agent Skills',
-    navigationBarBackgroundColor: '#f9fafb',
-    navigationBarTextStyle: 'black',
+    navigationBarTitleText: "Agent Skills",
+    navigationBarBackgroundColor: "#f9fafb",
+    navigationBarTextStyle: "black",
   },
-})
+});
 
-const toast = useToast()
+const toast = useToast();
 
 const skills = [
   {
-    name: 'alova-api-module',
-    desc: '快速创建 Alova 请求模块和 Mock 数据',
-    icon: 'swap',
-    color: '#007AFF',
+    name: "alova-api-module",
+    desc: "快速创建 Alova 请求模块和 Mock 数据",
+    icon: "swap",
+    color: "#007AFF",
   },
   {
-    name: 'global-feedback',
-    desc: '全局反馈组件（Toast/Message/Loading）使用指南',
-    icon: 'chat',
-    color: '#34C759',
+    name: "global-feedback",
+    desc: "全局反馈组件（Toast/Message/Loading）使用指南",
+    icon: "chat",
+    color: "#34C759",
   },
   {
-    name: 'pinia-store-generator',
-    desc: '创建符合项目规范的 Pinia Store',
-    icon: 'folder',
-    color: '#FFCC00',
+    name: "pinia-store-generator",
+    desc: "创建符合项目规范的 Pinia Store",
+    icon: "folder",
+    color: "#FFCC00",
   },
   {
-    name: 'uni-page-generator',
-    desc: '基于项目规范快速生成 uni-app 页面',
-    icon: 'file',
-    color: '#FF9500',
+    name: "uni-page-generator",
+    desc: "基于项目规范快速生成 uni-app 页面",
+    icon: "file",
+    color: "#FF9500",
   },
   {
-    name: 'vue-composable-creator',
-    desc: '快速创建 Vue 3 组合式函数',
-    icon: 'setting',
-    color: '#5856D6',
+    name: "vue-composable-creator",
+    desc: "快速创建 Vue 3 组合式函数",
+    icon: "setting",
+    color: "#5856D6",
   },
   {
-    name: 'wot-router-usage',
-    desc: '@wot-ui/router 轻量级路由库使用指南',
-    icon: 'location',
-    color: '#FF2D55',
+    name: "wot-router-usage",
+    desc: "@wot-ui/router 轻量级路由库使用指南",
+    icon: "location",
+    color: "#FF2D55",
   },
   {
-    name: 'wot-ui',
-    desc: 'wot-ui uni-app 组件库开发指南',
-    icon: 'app',
-    color: '#FE5900',
+    name: "wot-ui",
+    desc: "wot-ui uni-app 组件库开发指南",
+    icon: "app",
+    color: "#FE5900",
   },
-]
+];
 
 function handleClick(skill: string) {
-  toast.success(`已选择: ${skill}`)
+  toast.success(`已选择: ${skill}`);
 }
 
 function getIconBg(color: string) {
   // Simple hex to rgba with low opacity
-  const r = Number.parseInt(color.slice(1, 3), 16)
-  const g = Number.parseInt(color.slice(3, 5), 16)
-  const b = Number.parseInt(color.slice(5, 7), 16)
-  return `rgba(${r}, ${g}, ${b}, 0.1)`
+  const r = Number.parseInt(color.slice(1, 3), 16);
+  const g = Number.parseInt(color.slice(3, 5), 16);
+  const b = Number.parseInt(color.slice(5, 7), 16);
+
+  return `rgba(${r}, ${g}, ${b}, 0.1)`;
 }
 </script>
 
@@ -73,11 +74,9 @@ function getIconBg(color: string) {
   <view class="pb-safe wot-bg-bg box-border min-h-screen">
     <!-- Header -->
     <view class="px-6 pb-6 pt-8">
-      <view class="mb-2 text-3xl font-bold leading-tight wot-text-text-main">
-        Agent Skills
-      </view>
+      <view class="mb-2 text-3xl font-bold leading-tight wot-text-text-main"> Agent Skills </view>
       <view class="text-base leading-relaxed wot-text-text-secondary">
-        利用智能工具赋能开发效率，<br>打造极致开发体验。
+        利用智能工具赋能开发效率，<br />打造极致开发体验。
       </view>
     </view>
 
