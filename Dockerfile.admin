@@ -1,5 +1,5 @@
 # ===== 多阶段构建：后台管理系统 =====
-FROM node:24.19-alpine AS admin-builder
+FROM node:26.7-alpine AS admin-builder
 
 WORKDIR /app
 
