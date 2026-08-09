@@ -17,7 +17,9 @@
     },
     "modules": {},
     "distribute": {
-      "android": {},
+      "android": {
+        "permissions": []
+      },
       "ios": {},
       "sdkConfigs": {}
     }
