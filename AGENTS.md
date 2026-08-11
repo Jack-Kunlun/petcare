@@ -11,17 +11,20 @@
 - **Monorepo**: Turborepo + pnpm workspaces
 - **Admin前端**: React 19 + Vite + shadcn/ui + TailwindCSS
 - **后端服务**: Nest.js + Prisma + PostgreSQL + Redis
-- **小程序**: Taro 4.x + React 18 + MobX
+- ~~**小程序**: Taro 4.x + React 18 + MobX（已弃用）~~
+- **跨端客户端**: UniApp + Vue 3 + Wot UI + UnoCSS
 - **测试**: Vitest（单元测试）+ Playwright（E2E测试）
 
 ### 项目结构
 
 ```
+
+> **Taro 弃用说明（2026-08-11）**：项目不再同时维护 Taro 与 UniApp 两套跨端客户端。双项目会重复承担依赖升级、构建配置、样式门禁和文档维护成本，因此删除 `apps/miniapp`，后续功能只在 `apps/uniapp` 实现。此决定是工程收敛，并不表示 Taro 框架本身不可用；原 Taro 功能未迁移，不能视为 UniApp 已具备同等业务能力。
 petcare/
 ├── apps/                    # 应用层
 │   ├── admin/              # 后台管理系统（React + Vite）
 │   ├── server/             # 后端服务（Nest.js）
-│   └── miniapp/            # 小程序端（Taro）
+│   └── uniapp/             # UniApp 跨端客户端
 ├── packages/               # 共享包
 │   ├── eslint-config-base/ # 共享ESLint配置
 │   ├── shared-types/       # 共享类型定义
@@ -88,14 +91,14 @@ REDIS_PASSWORD=  # 可选
 
 ### 样式规范
 
-- Admin 与 Miniapp 均使用 Tailwind CSS v4 CSS-first，默认字号为 `14px`
-- 两端优先直接使用 Tailwind 工具类，只有 Tailwind 无法合理表达时才使用独立 SCSS
-- Miniapp 自定义尺寸必须使用 `app.css` 的 `@theme` 语义 token；允许 `h-mm`，禁止 `h-[20px]`、`h-1/2`、`h-20px`
-- Miniapp 禁止页面级 CSS/SCSS、动态类名片段、未批准变体以及 `rem/rpx`
+- ~~Admin 与 Miniapp 均使用 Tailwind CSS v4 CSS-first；Miniapp 使用 Taro 专属 WXSS 门禁。~~
+- Admin 使用 Tailwind CSS v4 CSS-first，默认字号为 `14px`
+- UniApp 使用 UnoCSS 与 Wot UI，样式配置位于 `apps/uniapp/uno.config.ts`
+- Admin 优先直接使用 Tailwind 工具类，只有 Tailwind 无法合理表达时才使用独立 SCSS
 - Tailwind 入口使用普通 CSS；SCSS 禁止 `@theme`、`@tailwind` 和 `@apply`
-- 样式变更必须通过 `pnpm lint:styles` 和对应端生产构建
+- Admin 样式变更必须通过 `pnpm lint:styles` 和生产构建
 
-详见：[双端样式开发规范](./docs/09-development-guidelines/04-styling-standards.md)
+详见：[Admin 样式开发规范](./docs/09-development-guidelines/04-styling-standards.md)
 
 ### 前端目录与 API 契约
 
