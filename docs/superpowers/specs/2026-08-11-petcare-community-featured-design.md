@@ -240,3 +240,37 @@ UGC 文案优先表现真实生活，不把全部内容写成 PetCare 服务宣�
 - 社区摄影需要足够真实且有差异，不能通过一组风格高度统一的素材制造虚假的 UGC 感。
 - 当前公共组件库经过主动收缩，页面首版应优先复用 Assets & Icons；不得为了追求实例数量重新恢复被清理的组件体系。
 - Figma 静态稿不能验证真实图片加载、长文折叠、分享面板和滚动性能，这些需在 Wot UI v2 实现阶段验证。
+
+## 2026-08-11 精修补充规格
+
+本轮属于原位 Visual Refinement，不改变 Community / Featured 的业务结构，也不新增一级 Figma Page、业务模块或公共组件集。`Community / Featured` 与 `Community / Featured / Full Page` 必须同步更新。
+
+### 顶部区域
+
+- 页面顶部到 Header 为 `16px`，Header 到 Tabs 为 `16px`。
+- Search 使用 `40×40px` hit area、`20px` 图标、Transparent / Very Light Surface；弱化边框且不使用 Shadow。
+- Tabs 高度收紧为 `40px` 或 `44px`，三个文字项等宽；Active 仅使用极浅 Primary Surface，外容器仅保留 Very Light Border 或 Surface 差异。
+- Activity 保留 `社区今日活跃 / 1,286 人 / 328 新增 / 2.4k 互动`，但压缩高度并降低 Mint 饱和度；`1,286` 为唯一主统计，辅助数字降级。
+- Activity 到首条 Feed 固定 `20px`。
+
+### Feed 与内容规则
+
+- Card 继续使用 White Surface、`16px` Radius、`16px` Padding、无 Shadow；Border 改为 Very Light Border。
+- Card 间距固定 `16px`；内部 User Header → Content、Content → Media、Media → Interaction 均为 `12px`。
+- 关注视觉高度 `32px`，外部保留 `44px` hit area；Default 改为 Light Primary Surface + Primary Blue，无明显 Outline；Following 改为 Neutral Light Surface + Secondary Text，无蓝色 Outline。
+- 正文统一最多显示 `4` 行。只有超过 4 行的内容显示 `全文`，正文到全文间距固定 `4px`；短正文不显示全文。
+- 单图固定 `4:3`、Radius `12px`；双图为等宽 2 Columns、Gap `8px`、Radius `8px`；三图为等宽 3 Columns、Gap `4px`、Radius `8px`；四图后续统一使用 `2×2`、Gap `4px`。
+- Interaction 使用统一 `20px` Rounded Outline 图标、`12px` Count、Icon 到 Count `4px`、Item Gap `20px`、左对齐；Share 继续保持当前只显示图标的模式，以避免改变既有 Interaction 结构。
+
+### Fixed Layers 与尾部安全区
+
+- FAB 保持 `56×56px`，Right `16px`，底边距 TabBar 顶部 `16px`，作为滚动视口同级固定层。
+- 最后一条 Post 到 Bottom Content Safe Area 为 `24px`，不得通过透明 Spacer 或巨大 Margin 抬高 FAB。
+- Bottom TabBar 继续复用当前五项结构，Community Active；五个 Tab Item 之间不得出现 Divider，仅容器顶部保留 `1px` Divider。
+
+### 本轮验收补充
+
+- Header、Tabs 与 Activity 的视觉重量均低于首条 Feed 内容。
+- 两个画板的 Feed 内容、状态和几何规则完全同步。
+- 不新增公共 PostCard Component；保留当前页面级 Auto Layout，待更多社区页面稳定后再抽离。
+- 所有新增或调整尺寸遵守 4px Grid 和偶数尺寸体系，必要的 `1px` Border 例外。
