@@ -144,14 +144,10 @@ test("UniApp formatting policy uses the root Prettier ignore rules and staged-on
   const rootPackage = JSON.parse(rootPackageSource);
   const uniappPackage = JSON.parse(uniappPackageSource);
 
-  assert.equal(
-    uniappPackage.scripts.format,
-    "prettier --write . --ignore-path ../../.prettierignore",
-  );
-  assert.equal(
-    uniappPackage.scripts["format:check"],
-    "prettier --check . --ignore-path ../../.prettierignore",
-  );
+  assert.equal(uniappPackage.scripts.format, undefined);
+  assert.equal(uniappPackage.scripts["format:check"], undefined);
+  assert.equal(rootPackage.scripts.format, "prettier --write .");
+  assert.equal(rootPackage.scripts["format:check"], "prettier --check .");
   assert.deepEqual(rootPackage["lint-staged"]["apps/uniapp/**/*.{js,mjs,ts,vue}"], [
     "prettier --write",
     "corepack pnpm --filter @petcare/uniapp exec -- eslint --fix",
