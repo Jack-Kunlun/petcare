@@ -65,7 +65,6 @@ const petcareRules = createBaseRulesConfig({
     import: "petcare-import",
   },
   ruleOverrides: {
-    // Official starter demos intentionally log CI, router, request, and theme behavior.
     "no-console": "off",
     // UniApp virtual modules and conditional exports cannot be resolved reliably by static analysis.
     "import/named": "off",
@@ -87,7 +86,6 @@ export default uni(
       "src/auto-imports.d.ts",
       "src/components.d.ts",
       "src/uni-pages.d.ts",
-      "src/api/apiDefinitions.ts",
       "docs/.vitepress/dist",
       "docs/.vitepress/cache",
       "**/*.md",
