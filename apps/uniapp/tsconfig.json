@@ -8,11 +8,9 @@
     },
     "types": [
       "@dcloudio/types",
-      "@mini-types/alipay",
       "miniprogram-api-typings",
       "@uni-helper/uni-types",
-      "@wot-ui/ui/global",
-      "uni-echarts/global"
+      "@wot-ui/ui/global"
     ],
     "sourceMap": true
   },
