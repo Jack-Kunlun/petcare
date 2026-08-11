@@ -1,6 +1,8 @@
 # PetCare Brand Asset Deliverables
 
-This directory is the production delivery package derived from the 108-page PetCare Brand Book. It is intended for the brand website, React admin, Taro miniapp, social channels, presentations, and future design-system work.
+~~This package targeted the React admin and Taro miniapp.~~
+
+This directory is the production delivery package derived from the 108-page PetCare Brand Book. It is intended for the brand website, React admin, UniApp client, social channels, presentations, and future design-system work.
 
 The machine-readable contract is [`manifest.json`](./manifest.json). Keep its IDs stable and keep asset paths lowercase kebab-case.
 

@@ -181,12 +181,16 @@ docs/
 
 ## 🔧 技术栈约定
 
-### 前端（微信小程序）
+### 前端（UniApp）
 
-- **框架**：原生小程序 / Taro / Uni-app（待选型）
-- **状态管理**：MobX / Redux（待选型）
-- **UI组件库**：Vant Weapp / TDesign（待选型）
-- **HTTP客户端**：wx.request封装
+- ~~**框架**：原生小程序 / Taro / Uni-app（待选型）~~
+- ~~**状态管理**：MobX / Redux（待选型）~~
+- ~~**UI组件库**：Vant Weapp / TDesign（待选型）~~
+- ~~**HTTP客户端**：wx.request封装~~
+- **框架**：UniApp + Vue 3
+- **UI组件库**：Wot UI
+- **样式**：UnoCSS
+- **HTTP客户端**：UniApp 请求适配层
 
 ### 后端
 

@@ -19,14 +19,14 @@ test("a UniApp source change selects only UniApp", () => {
 test("application selectors and style scopes are deduplicated and sorted", () => {
   assert.deepEqual(
     classifyStagedPaths([
-      "apps/miniapp/src/pages/index.tsx",
+      "apps/uniapp/src/pages/index/index.vue",
       "apps/admin/src/App.tsx",
       "apps/admin/src/app.css",
     ]),
     {
       fullTypecheck: false,
-      typecheckSelectors: ["@petcare/admin", "@petcare/miniapp"],
-      styleScopes: ["admin", "miniapp"],
+      typecheckSelectors: ["@petcare/admin", "@petcare/uniapp"],
+      styleScopes: ["admin"],
     },
   );
 });
@@ -66,7 +66,6 @@ test("root and shared lint configuration changes require all workspace typecheck
 
   assert.deepEqual(FULL_TYPECHECK_PROJECTS, [
     "@petcare/admin",
-    "@petcare/miniapp",
     "@petcare/uniapp",
     "@petcare/server",
     "@petcare/api-client",
@@ -112,8 +111,6 @@ test("full scope plans all workspace typechecks with a single pnpm invocation", 
       "--filter",
       "@petcare/admin",
       "--filter",
-      "@petcare/miniapp",
-      "--filter",
       "@petcare/uniapp",
       "--filter",
       "@petcare/server",
@@ -133,17 +130,17 @@ test("full scope plans all workspace typechecks with a single pnpm invocation", 
 
 test("affected scope plans selected typechecks and ordered style checks", () => {
   const plan = createCommitCheckPlan(
-    classifyStagedPaths(["apps/miniapp/src/pages/index.tsx", "apps/admin/src/App.tsx"]),
+    classifyStagedPaths(["apps/uniapp/src/pages/index/index.vue", "apps/admin/src/App.tsx"]),
   );
 
   assert.deepEqual(plan.typecheck, {
     kind: "affected",
-    selectors: ["@petcare/admin", "@petcare/miniapp"],
+    selectors: ["@petcare/admin", "@petcare/uniapp"],
     args: [
       "--filter",
       "@petcare/admin",
       "--filter",
-      "@petcare/miniapp",
+      "@petcare/uniapp",
       "--if-present",
       "run",
       "typecheck",
@@ -154,11 +151,6 @@ test("affected scope plans selected typechecks and ordered style checks", () => 
       scope: "admin",
       project: "@petcare/admin",
       args: ["--filter", "@petcare/admin", "run", "lint:styles"],
-    },
-    {
-      scope: "miniapp",
-      project: "@petcare/miniapp",
-      args: ["--filter", "@petcare/miniapp", "run", "lint:styles"],
     },
   ]);
 });

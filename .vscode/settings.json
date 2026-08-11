@@ -1,5 +1,5 @@
 {
-  "cSpell.words": ["petcare", "taroify", "weapp"],
+  "cSpell.words": ["petcare", "weapp"],
   "editor.codeActionsOnSave": {
     "source.fixAll.eslint": "explicit"
   },
@@ -11,8 +11,7 @@
   },
   "scss.lint.unknownAtRules": "ignore",
   "tailwindCSS.experimental.configFile": {
-    "apps/admin/src/index.css": "apps/admin/**",
-    "apps/miniapp/src/app.css": "apps/miniapp/**"
+    "apps/admin/src/index.css": "apps/admin/**"
   },
   "typescript.enablePromptUseWorkspaceTs": true,
   "typescript.tsdk": "node_modules/typescript/lib"
