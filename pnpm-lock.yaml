@@ -414,9 +414,6 @@ importers:
       miniprogram-api-typings:
         specifier: ^3.12.3
         version: 3.12.3
-      prettier:
-        specifier: 3.9.0
-        version: 3.9.0
       sass:
         specifier: ^1.99.0
         version: 1.102.0
