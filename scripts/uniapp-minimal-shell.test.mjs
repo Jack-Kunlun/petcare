@@ -25,12 +25,18 @@ test("UniApp contains only the minimal PetCare shell", async () => {
 
   const main = await readFile(resolve(uniappRoot, "src/main.ts"), "utf8");
   const page = await readFile(resolve(uniappRoot, "src/pages/index/index.vue"), "utf8");
+  const componentsDeclaration = await readFile(resolve(uniappRoot, "src/components.d.ts"), "utf8");
   const manifest = JSON.parse(await readFile(resolve(uniappRoot, "package.json"), "utf8"));
 
   assert.doesNotMatch(main, /router|pinia|persistPlugin/);
   assert.match(page, /PetCare/);
   assert.match(page, /<wd-button/);
   assert.match(page, /(?:flex|items-center|rounded)/);
+  assert.match(componentsDeclaration, /WdButton:/);
+  assert.doesNotMatch(
+    componentsDeclaration,
+    /DemoBlock|GlobalDialog|GlobalLoading|GlobalToast|PrivacyPopup|UniEcharts/,
+  );
 
   const runtimeDependencies = [
     "@dcloudio/uni-app",
