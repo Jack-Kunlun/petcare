@@ -7,7 +7,6 @@ const root = resolve(import.meta.dirname, "..");
 const manifests = [
   "apps/admin/package.json",
   "apps/server/package.json",
-  "apps/miniapp/package.json",
   "apps/uniapp/package.json",
   "packages/api-client/package.json",
   "packages/shared-types/package.json",
@@ -81,7 +80,7 @@ test("根级命令覆盖质量门禁与三端开发", async () => {
   assert.equal(uniappManifest.engines.pnpm, manifest.engines.pnpm);
   assert.match(manifest.scripts.dev, /@petcare\/admin/);
   assert.match(manifest.scripts.dev, /@petcare\/server/);
-  assert.match(manifest.scripts.dev, /@petcare\/miniapp/);
+  assert.match(manifest.scripts.dev, /@petcare\/uniapp/);
   assert.match(manifest.scripts.check, /format:check.*lint.*typecheck.*test.*build/);
 
   for (const target of ["h5", "mp-weixin", "app-android", "app-ios"]) {
@@ -94,37 +93,6 @@ test("根级命令覆盖质量门禁与三端开发", async () => {
       `pnpm --filter @petcare/uniapp build:${target}`,
     );
   }
-});
-
-test("Miniapp 内部脚本不嵌套 npm", async () => {
-  const manifest = await readJson("apps/miniapp/package.json");
-
-  assert.doesNotMatch(JSON.stringify(manifest.scripts), /\bnpm run\b/);
-});
-
-test("Miniapp 开发命令直接启用 Taro watch", async () => {
-  const manifest = await readJson("apps/miniapp/package.json");
-
-  assert.equal(manifest.scripts["dev:weapp"], "taro build --type weapp --watch");
-  assert.equal(manifest.scripts["dev:h5"], "taro build --type h5 --watch");
-});
-
-test("Miniapp 产物不依赖 WXSS 通配选择器或运行时 process", async () => {
-  const appCss = await readFile(resolve(root, "apps/miniapp/src/app.css"), "utf8");
-  const request = await readFile(resolve(root, "apps/miniapp/src/api/request.ts"), "utf8");
-  const config = await readFile(resolve(root, "apps/miniapp/config/index.ts"), "utf8");
-
-  assert.doesNotMatch(appCss, /@tailwind\s+(?:base|components)/);
-  assert.doesNotMatch(request, /\bprocess\.env\b/);
-  assert.match(config, /__API_BASE_URL__/);
-  assert.match(config, /deviceRatio:\s*\{\s*750:\s*1,\s*\}/);
-});
-
-test("Miniapp Jest 串行运行以避免 Taro 环境 worker 退出告警", async () => {
-  const manifest = await readJson("apps/miniapp/package.json");
-
-  assert.match(manifest.scripts.test, /--runInBand/);
-  assert.match(manifest.scripts["test:coverage"], /--runInBand/);
 });
 
 test("Server 依赖 Prisma Client 的命令在编译前显式生成客户端", async () => {
@@ -151,15 +119,6 @@ test("Server 测试串行运行以避免 Turbo 嵌套 worker 退出告警", asyn
 
   assert.match(manifest.scripts.test, /--runInBand/);
   assert.match(manifest.scripts["test:coverage"], /--runInBand/);
-});
-
-test("Miniapp 提供微信开发者工具和本地 API 配置", async () => {
-  const project = await readJson("apps/miniapp/project.config.json");
-  const envExample = await readFile(resolve(root, ".env.example"), "utf8");
-
-  assert.equal(project.appid, "wx3bdad4ab652f0d1d");
-  assert.equal(project.miniprogramRoot, "dist/");
-  assert.match(envExample, /^TARO_APP_API_BASE_URL=http:\/\/localhost:3000$/m);
 });
 
 test("Server 类型检查复用 Nest 构建边界，无产物包覆盖 Turbo 输出", async () => {

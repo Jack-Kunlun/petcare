@@ -7,8 +7,6 @@ allowBuilds:
   "@prisma/engines": true
   "@scarf/scarf": false
   "@swc/core": true
-  "@tarojs/binding": true
-  "@tarojs/cli": true
   "@uni-helper/unocss-preset-uni": true
   argon2: true
   core-js: false
@@ -23,7 +21,3 @@ packageExtensions:
   "@dcloudio/uni-h5-vite@3.0.0-4080520251106001":
     dependencies:
       vite: "5.4.21"
-
-minimumReleaseAgeExclude:
-  - "@weapp-tailwindcss/postcss@3.2.4"
-  - weapp-tailwindcss@5.2.4

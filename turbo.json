@@ -6,7 +6,7 @@
     "build": {
       "dependsOn": ["^build"],
       "outputs": ["dist/**"],
-      "env": ["VITE_*", "TARO_APP_*"]
+      "env": ["VITE_*"]
     },
     "typecheck": {
       "dependsOn": ["^build"],

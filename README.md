@@ -7,16 +7,23 @@
 - **Monorepo**: Turborepo + pnpm
 - **Admin前端**: React 19 + Vite + shadcn/ui + TailwindCSS
 - **后端服务**: Nest.js + Prisma + PostgreSQL + Redis
-- **小程序**: Taro 4.x + React 18 + React Context
+- ~~**小程序**: Taro 4.x + React 18 + React Context（已弃用）~~
+- **跨端客户端**: UniApp + Vue 3 + Wot UI + UnoCSS
+
+### Taro 弃用说明
+
+项目自 2026-08-11 起只维护 `apps/uniapp`。同时保留 Taro 与 UniApp 会重复维护依赖、构建链、样式规则、质量门禁和使用文档，因此已删除 `apps/miniapp`。这是减少双轨维护的工程决策，不代表 Taro 本身不可用。原 Taro 页面和认证能力没有迁移，后续必须在 UniApp 中重新实现。
 
 ## 项目结构
 
 ```
+
+~~旧客户端目录：`apps/miniapp`（Taro）~~
 petcare-monorepo/
 ├── apps/                    # 应用层
 │   ├── admin/              # 后台管理系统
 │   ├── server/             # 后端服务
-│   └── miniapp/            # 小程序端
+│   └── uniapp/             # H5、微信小程序和移动 App
 ├── packages/               # 共享包
 │   ├── shared-types/       # 共享类型定义
 │   ├── shared-utils/       # 共享工具函数
@@ -54,7 +61,7 @@ cp .env.example .env
 - **JWT配置**：`JWT_SECRET`, `JWT_ACCESS_EXPIRES_IN`, `JWT_REFRESH_EXPIRES_IN`
 - **管理员认证**：`DEFAULT_ADMIN_USERNAME`, `DEFAULT_ADMIN_PHONE`, `DEFAULT_ADMIN_PASSWORD`, `SMS_DEV_CODE`, `CAPTCHA_TTL_SECONDS`, `CAPTCHA_MAX_ATTEMPTS`
 - **第三方服务**：微信、阿里云OSS等
-- **小程序 API**：`TARO_APP_API_BASE_URL`（本地默认 `http://localhost:3000`）
+- ~~**小程序 API**：`TARO_APP_API_BASE_URL`（已随 Taro 项目移除）~~
 
 详见：[环境变量配置指南](./docs/environment-variables.md)
 
@@ -77,15 +84,12 @@ pnpm dev
 # 单独启动某个应用
 pnpm dev:admin
 pnpm dev:server
-pnpm dev:miniapp
+pnpm dev:uniapp:mp-weixin
 ```
 
-本地地址：Admin `http://localhost:8986`，Server `http://localhost:3000`。默认管理员支持“手机号或账号 + 密码”以及“手机号 + 验证码”两种登录方式。发送短信验证码前需要先填写图形验证码；点击验证码图片可以换一张。
+~~旧命令：`pnpm dev:miniapp`~~
 
-小程序微信登录联调时，先执行 `pnpm dev:server` 和 `pnpm dev:miniapp`，再在微信开发者工具中导入
-`apps/miniapp`。AppID 已写入公开的项目配置；AppSecret 只能放在根目录 `.env` 的
-`WECHAT_APP_SECRET` 中。开发工具可关闭域名校验，本地请求直连 Server `3000` 端口；生产环境必须使用
-已在微信公众平台登记的 HTTPS request 域名。
+本地地址：Admin `http://localhost:8986`，Server `http://localhost:3000`。默认管理员支持“手机号或账号 + 密码”以及“手机号 + 验证码”两种登录方式。发送短信验证码前需要先填写图形验证码；点击验证码图片可以换一张。
 
 ### API 响应协议
 
@@ -104,8 +108,10 @@ pnpm build
 # 单独构建某个应用
 pnpm build:admin
 pnpm build:server
-pnpm build:miniapp
+pnpm build:uniapp:mp-weixin
 ```
+
+~~旧命令：`pnpm build:miniapp`~~
 
 ### 测试
 
@@ -132,7 +138,8 @@ pnpm check
 - **ESLint**: `packages/eslint-config-base` - 共享基础配置，所有子项目继承
 - **Commitlint**: `commitlint.config.js` - Git commit消息规范
 - **Husky**: `.husky/` - Git hooks自动化检查（提交前格式化、lint、类型检查和E2E）
-- **Tailwind CSS v4**: Admin 与 Miniapp 均采用 CSS-first；默认字号 `14px`，尺寸使用自适应布局与 `px` token
+- ~~**Tailwind CSS v4**: Admin 与 Taro Miniapp 共用 CSS-first 规则（已弃用）~~
+- **样式工具链**: Admin 使用 Tailwind CSS v4；UniApp 使用 UnoCSS 与 Wot UI
 
 ### 常用命令
 
