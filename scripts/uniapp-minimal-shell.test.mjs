@@ -32,41 +32,48 @@ test("UniApp contains only the minimal PetCare shell", async () => {
   assert.match(page, /<wd-button/);
   assert.match(page, /(?:flex|items-center|rounded)/);
 
-  const forbiddenDependencies = [
-    "@alova/adapter-uniapp",
-    "@alova/mock",
-    "@alova/shared",
-    "@vueuse/core",
-    "@wot-ui/router",
-    "alova",
-    "echarts",
-    "pinia",
-    "uni-echarts",
-    "vue-i18n",
-    "zrender",
+  const runtimeDependencies = [
+    "@dcloudio/uni-app",
+    "@dcloudio/uni-app-plus",
+    "@dcloudio/uni-components",
+    "@dcloudio/uni-h5",
+    "@dcloudio/uni-mp-weixin",
+    "@wot-ui/ui",
+    "@wot-ui/unocss-preset",
+    "tslib",
+    "vue",
+  ];
+  const developmentDependencies = [
+    "@dcloudio/types",
+    "@dcloudio/vite-plugin-uni",
+    "@petcare/eslint-config-base",
+    "@types/node",
+    "@uni-helper/eslint-config",
+    "@uni-helper/plugin-uni",
+    "@uni-helper/uni-types",
+    "@uni-helper/unocss-preset-uni",
+    "@uni-helper/vite-plugin-uni-components",
+    "@uni-helper/vite-plugin-uni-manifest",
+    "@uni-helper/vite-plugin-uni-pages",
+    "@unocss/eslint-config",
+    "@vitest/coverage-v8",
+    "@vue/tsconfig",
+    "eslint",
+    "miniprogram-api-typings",
+    "sass",
+    "typescript",
+    "unocss",
+    "unplugin-auto-import",
+    "vite",
+    "vitest",
+    "vue-tsc",
   ];
 
-  for (const dependency of forbiddenDependencies) {
-    assert.equal(manifest.dependencies?.[dependency], undefined, dependency);
-  }
-
-  const forbiddenPlatformDependencies = [
-    "@dcloudio/uni-app-harmony",
-    "@dcloudio/uni-mp-alipay",
-    "@dcloudio/uni-mp-baidu",
-    "@dcloudio/uni-mp-harmony",
-    "@dcloudio/uni-mp-jd",
-    "@dcloudio/uni-mp-kuaishou",
-    "@dcloudio/uni-mp-lark",
-    "@dcloudio/uni-mp-qq",
-    "@dcloudio/uni-mp-toutiao",
-    "@dcloudio/uni-mp-xhs",
-    "@dcloudio/uni-quickapp-webview",
-  ];
-
-  for (const dependency of forbiddenPlatformDependencies) {
-    assert.equal(manifest.dependencies?.[dependency], undefined, dependency);
-  }
+  assert.deepEqual(Object.keys(manifest.dependencies ?? {}).sort(), runtimeDependencies.sort());
+  assert.deepEqual(
+    Object.keys(manifest.devDependencies ?? {}).sort(),
+    developmentDependencies.sort(),
+  );
 
   const lifecycleScripts = ["dev", "build", "typecheck", "lint", "test", "test:coverage", "clean"];
   const targetScripts = [
