@@ -344,7 +344,8 @@ Docker容器化部署和运维指南。
 - [Nest.js 官方文档](https://docs.nestjs.com/)
 - [Prisma 官方文档](https://www.prisma.io/docs)
 - [React 官方文档](https://react.dev/)
-- [Taro 官方文档](https://taro-docs.jd.com/)
+- ~~[Taro 官方文档](https://taro-docs.jd.com/)（已弃用）~~
+- [UniApp 官方文档](https://uniapp.dcloud.net.cn/)
 - [OpenAPI 规范](https://swagger.io/specification/)
 
 ### 工具推荐

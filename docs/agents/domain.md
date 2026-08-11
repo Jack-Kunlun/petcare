@@ -25,10 +25,7 @@ PetCare 使用多上下文布局：
   - 平台运营人员
   - 后台管理流程
   - 权限与管理界面
-- `apps/miniapp/CONTEXT.md`
-  - 普通用户
-  - 服务提供者
-  - 小程序业务流程
+- ~~`apps/miniapp/CONTEXT.md`（Taro 项目已删除）~~
 - `packages/<包名>/CONTEXT.md`
   - 单个共享包拥有的公共契约或领域概念
 - `docs/adr/`

@@ -147,8 +147,10 @@ Refresh Token 通过 JSON 正文传递，不使用后台管理的 Cookie。
 POST /auth/wechat/login
 Content-Type: application/json
 
+~~旧客户端调用来源：`Taro.login`~~
+
 {
-  "loginCode": "<Taro.login 返回的 code>"
+  "loginCode": "<uni.login 返回的 code>"
 }
 ```
 

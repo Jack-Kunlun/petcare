@@ -4,6 +4,8 @@
 > 范围：微信等小程序、H5、Android/iOS App；Vue 3 + TypeScript；Wot UI 最新版；UnoCSS。
 > 资料范围：仅官方文档、官方 GitHub 仓库与官方 npm 包元数据。
 
+> **决策更新（2026-08-11）**：~~迁移期间保留现有 Taro 项目可发布~~。项目已决定直接删除 Taro 项目，接受原功能暂时缺失，后续只在 UniApp 中重建。这是为了避免双客户端、双依赖和双工具链长期并行，并非认定 Taro 本身不可用。
+
 ## 结论
 
 推荐 **方案 2：Vitesse Uni App**，但实际起点应直接选 uni-helper 官方 `create-uni` 提供的 **`wot-starter-v2`** 模板，而不是先创建裸 Vitesse 再手工接 Wot UI。
@@ -47,7 +49,7 @@ App 端也不能完全摆脱 HBuilderX：unibest 官方文档明确写明 App �
 
 ## 主要风险与落地护栏
 
-1. **不要同时迁移全部旧小程序。** 先选登录、列表、详情、下单前置流程做纵向试点，并保持现有 Taro 项目可发布，验证完成后再决定迁移节奏。
+1. ~~**不要同时迁移全部旧小程序。** 先选登录、列表、详情、下单前置流程做纵向试点，并保持现有 Taro 项目可发布，验证完成后再决定迁移节奏。~~ 当前决策改为直接弃用 Taro，功能只在 UniApp 中重建。
 2. **固定版本而不是永久追 `latest`。** 创建时使用最新模板，但合入后锁定 uni-app、Wot UI、UnoCSS 和相关 preset；升级走独立 PR，并在四个目标环境回归。
 3. **只保留一个工程治理入口。** 新应用继续纳入 PetCare 根 pnpm workspace、Turborepo、ESLint、Prettier、Husky；移除或改造模板自己的 hooks，避免重复执行和规则冲突。
 4. **沿用现有契约。** API 参数/响应继续来自 `@petcare/shared-types`，不要采用模板示例在客户端重复声明类型。请求封装应薄适配现有后端，不让模板反向决定服务端契约。

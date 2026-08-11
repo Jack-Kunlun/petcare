@@ -1,5 +1,7 @@
 ## 二、Monorepo目录结构
 
+~~旧跨端目录：`apps/miniapp/`（Taro + React）~~。现行跨端客户端统一位于 `apps/uniapp/`。
+
 ```
 petcare-monorepo/
 ├── apps/                          # 应用层
@@ -17,15 +19,17 @@ petcare-monorepo/
 │   │   ├── vite.config.ts
 │   │   └── tailwind.config.js
 │   │
-│   ├── miniapp/                   # 小程序端
+│   ├── uniapp/                    # UniApp 跨端客户端
 │   │   ├── src/
-│   │   │   ├── pages/             # 页面
+│   │   │   ├── pages/             # 主包页面
+│   │   │   ├── subPages/          # 分包页面
 │   │   │   ├── components/        # 组件
-│   │   │   ├── stores/            # MobX状态管理
-│   │   │   ├── services/          # API服务
+│   │   │   ├── api/               # API 适配层
 │   │   │   ├── utils/             # 工具函数
-│   │   │   └── app.ts
-│   │   ├── config/                # Taro配置
+│   │   │   └── App.vue
+│   │   ├── manifest.config.ts     # UniApp 平台配置
+│   │   ├── pages.config.ts        # 页面配置
+│   │   ├── uno.config.ts          # UnoCSS 配置
 │   │   ├── package.json
 │   │   └── tsconfig.json
 │   │
@@ -116,7 +120,7 @@ petcare-monorepo/
 
 1. 在 `packages/shared-types` 中定义所有API接口的TypeScript类型
 2. 后端使用这些类型生成DTO和Response
-3. 前端（Admin + Miniapp）直接导入使用
+3. 前端（Admin + UniApp）直接导入使用
 4. 通过pnpm workspace链接，实现热更新
 
 **优势**：

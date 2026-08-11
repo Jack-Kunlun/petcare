@@ -4,7 +4,7 @@ import { tmpdir } from "node:os";
 import path from "node:path";
 import { after, test } from "node:test";
 
-import { checkAdminOutput, checkMiniappOutput } from "./style-output-policy.mjs";
+import { checkAdminOutput } from "./style-output-policy.mjs";
 
 const outputRoots = [];
 
@@ -24,65 +24,6 @@ async function createOutput(files) {
 
   return root;
 }
-
-test("Miniapp 接受纯 px WXSS", async () => {
-  const root = await createOutput({
-    "app.wxss": [
-      ":host,page{--spacing-mm:20px;--spacing-action:240px;--radius-button:8px}",
-      "page{font-size:14px}",
-      ".h-mm{height:var(--spacing-mm)}",
-      ".w-action{width:var(--spacing-action)}",
-      ".rounded-button{border-radius:var(--radius-button)}",
-    ].join(""),
-    "app.js": "App({})",
-  });
-
-  assert.deepEqual(await checkMiniappOutput(root), []);
-});
-
-test("Miniapp 拒绝 rpx、非法选择器和运行时 process", async () => {
-  const root = await createOutput({
-    "app.wxss": String.raw`.h-\[20px\]{height:20rpx}*{box-sizing:border-box}`,
-    "app.js": "process.env.NODE_ENV",
-  });
-
-  const violations = await checkMiniappOutput(root);
-
-  assert.ok(violations.some((item) => item.includes("rpx")));
-  assert.ok(violations.some((item) => item.includes("转义")));
-  assert.ok(violations.some((item) => item.includes("process")));
-  assert.ok(violations.some((item) => item.includes("通用选择器")));
-});
-
-test("Miniapp 拒绝 NaN 构建产物和缺失的关键 px 声明", async () => {
-  const root = await createOutput({
-    "app.wxss": "page{font-size:14px}",
-    "app.js": "const size = NaN",
-  });
-
-  const violations = await checkMiniappOutput(root);
-
-  assert.ok(violations.some((item) => item.includes("NaN")));
-  assert.ok(violations.some((item) => item.includes("height:20px")));
-  assert.ok(violations.some((item) => item.includes("width:240px")));
-  assert.ok(violations.some((item) => item.includes("border-radius:8px")));
-});
-
-test("Miniapp 拒绝只有主题变量但没有对应语义工具类", async () => {
-  const root = await createOutput({
-    "app.wxss": [
-      ":host,page{--spacing-mm:20px;--spacing-action:240px;--radius-button:8px}",
-      "page{font-size:14px}",
-    ].join(""),
-    "app.js": "App({})",
-  });
-
-  const violations = await checkMiniappOutput(root);
-
-  assert.ok(violations.some((item) => item.includes("height:20px")));
-  assert.ok(violations.some((item) => item.includes("width:240px")));
-  assert.ok(violations.some((item) => item.includes("border-radius:8px")));
-});
 
 test("Admin 接受 14px 基线并拒绝 rem", async () => {
   const validRoot = await createOutput({
