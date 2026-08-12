@@ -84,7 +84,7 @@ export class ConfigService {
     check("DEFAULT_ADMIN_PASSWORD", () => this.validateAdminPassword());
     check("ALLOWED_ORIGINS", () => this.validateAllowedOrigins());
     check("WECHAT", () => this.validateWechatConfiguration());
-    check("ALIYUN_OSS", () => this.validateOssConfiguration());
+    check("TENCENT_COS", () => this.validateTencentCosConfiguration());
 
     if (this.nodeEnv === "production") {
       check("REDIS_PASSWORD", () => this.getRequiredString("REDIS_PASSWORD"));
@@ -158,24 +158,42 @@ export class ConfigService {
     }
   }
 
-  private validateOssConfiguration(): void {
+  private validateTencentCosConfiguration(): void {
     if (
       !this.validateOptionalGroup([
-        "ALIYUN_OSS_ACCESS_KEY_ID",
-        "ALIYUN_OSS_ACCESS_KEY_SECRET",
-        "ALIYUN_OSS_BUCKET",
-        "ALIYUN_OSS_REGION",
+        "TENCENT_COS_SECRET_ID",
+        "TENCENT_COS_SECRET_KEY",
+        "TENCENT_COS_BUCKET",
+        "TENCENT_COS_REGION",
       ])
     ) {
+      if (this.tencentCosPublicBaseUrl) {
+        throw new Error("TENCENT_COS_PUBLIC_BASE_URL requires Tencent COS configuration");
+      }
+
       return;
     }
 
-    if (!/^[a-z0-9][a-z0-9-]{1,61}[a-z0-9]$/.test(this.aliyunOssBucket)) {
-      throw new Error("ALIYUN_OSS_BUCKET has an invalid format");
+    if (!/^[a-z0-9][a-z0-9-]*-\d{10,}$/.test(this.tencentCosBucket)) {
+      throw new Error("TENCENT_COS_BUCKET must use the BucketName-APPID format");
     }
 
-    if (!/^[a-z0-9]+(?:-[a-z0-9]+)+$/.test(this.aliyunOssRegion)) {
-      throw new Error("ALIYUN_OSS_REGION has an invalid format");
+    if (!/^[a-z0-9]+(?:-[a-z0-9]+)+$/.test(this.tencentCosRegion)) {
+      throw new Error("TENCENT_COS_REGION has an invalid format");
+    }
+
+    if (!this.tencentCosPublicBaseUrl) {
+      return;
+    }
+
+    try {
+      const publicBaseUrl = new URL(this.tencentCosPublicBaseUrl);
+
+      if (!["http:", "https:"].includes(publicBaseUrl.protocol)) {
+        throw new Error("unsupported protocol");
+      }
+    } catch {
+      throw new Error("TENCENT_COS_PUBLIC_BASE_URL must be an absolute HTTP(S) URL");
     }
   }
 
@@ -374,19 +392,32 @@ export class ConfigService {
     return process.env.WECHAT_APP_SECRET || "";
   }
 
-  get aliyunOssAccessKeyId(): string {
-    return process.env.ALIYUN_OSS_ACCESS_KEY_ID || "";
+  get tencentCosSecretId(): string {
+    return process.env.TENCENT_COS_SECRET_ID?.trim() || "";
   }
 
-  get aliyunOssAccessKeySecret(): string {
-    return process.env.ALIYUN_OSS_ACCESS_KEY_SECRET || "";
+  get tencentCosSecretKey(): string {
+    return process.env.TENCENT_COS_SECRET_KEY?.trim() || "";
   }
 
-  get aliyunOssBucket(): string {
-    return process.env.ALIYUN_OSS_BUCKET || "";
+  get tencentCosBucket(): string {
+    return process.env.TENCENT_COS_BUCKET?.trim() || "";
   }
 
-  get aliyunOssRegion(): string {
-    return process.env.ALIYUN_OSS_REGION || "";
+  get tencentCosRegion(): string {
+    return process.env.TENCENT_COS_REGION?.trim() || "";
+  }
+
+  get tencentCosPublicBaseUrl(): string {
+    return process.env.TENCENT_COS_PUBLIC_BASE_URL?.trim() || "";
+  }
+
+  get tencentCosEnabled(): boolean {
+    return Boolean(
+      this.tencentCosSecretId &&
+      this.tencentCosSecretKey &&
+      this.tencentCosBucket &&
+      this.tencentCosRegion,
+    );
   }
 }
