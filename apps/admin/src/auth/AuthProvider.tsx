@@ -70,9 +70,39 @@ export function AuthProvider({ children }: { children: ReactNode }) {
     }
   }, []);
 
+  const updateUserSummary = useCallback((patch: Pick<AdminUser, "nickname" | "avatar">) => {
+    setUser((current) => (current ? { ...current, ...patch } : current));
+  }, []);
+
+  const invalidateLocalSession = useCallback(() => {
+    authApi.clearAccessToken();
+    setUser(null);
+    setStatus("anonymous");
+  }, []);
+
   const value = useMemo<AuthContextValue>(
-    () => ({ status, user, loginWithPassword, loginWithSms, getCaptcha, sendSmsCode, logout }),
-    [status, user, loginWithPassword, loginWithSms, getCaptcha, sendSmsCode, logout],
+    () => ({
+      status,
+      user,
+      loginWithPassword,
+      loginWithSms,
+      getCaptcha,
+      sendSmsCode,
+      logout,
+      updateUserSummary,
+      invalidateLocalSession,
+    }),
+    [
+      status,
+      user,
+      loginWithPassword,
+      loginWithSms,
+      getCaptcha,
+      sendSmsCode,
+      logout,
+      updateUserSummary,
+      invalidateLocalSession,
+    ],
   );
 
   return <AuthContext.Provider value={value}>{children}</AuthContext.Provider>;

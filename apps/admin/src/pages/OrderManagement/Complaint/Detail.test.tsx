@@ -123,6 +123,7 @@ function renderPage(value = detail, permissions = ["dispute.resolve"]) {
       username: "operator",
       phone: "17679141878",
       nickname: "运营主管",
+      avatar: null,
       roles: ["operator"],
       permissions,
     },
@@ -131,6 +132,8 @@ function renderPage(value = detail, permissions = ["dispute.resolve"]) {
     getCaptcha: vi.fn(),
     sendSmsCode: vi.fn(),
     logout: vi.fn(),
+    updateUserSummary: vi.fn(),
+    invalidateLocalSession: vi.fn(),
   };
 
   vi.mocked(fetchAdminComplaint).mockResolvedValue(value);
