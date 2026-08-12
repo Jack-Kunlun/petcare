@@ -672,8 +672,9 @@ JSON 成功响应均使用本文的统一 envelope，`204 No Content` 接口不�
 { "nickname": "值班管理员" }
 ```
 
-服务端会去除首尾空白，并拒绝空值及控制字符。成功返回 `200` 的标准 envelope，`data` 为 `null`。昵称与头像可独立
-更新；Admin 成功更新后会立即刷新 Header 中显示的资料。
+服务端会去除首尾空白，并拒绝空值及控制字符。成功返回 `200` 的标准 envelope，`data` 为最新完整
+`AdminAccountProfile`（字段与 `GET /admin/account/profile` 相同）。昵称与头像可独立更新；Admin 成功更新后会立即刷新
+Header 中显示的资料。
 
 #### `PUT /admin/account/avatar` 与 `DELETE /admin/account/avatar`
 
@@ -706,8 +707,8 @@ JPEG、PNG 或 WebP，文件最大 2 MiB；成功响应为：
 | HTTP 状态 | 错误码                             | 适用场景                                       |
 | --------- | ---------------------------------- | ---------------------------------------------- |
 | 400       | `VALIDATION_FAILED`                | 昵称、密码请求体或头像格式无效                 |
-| 400       | `ACCOUNT_PASSWORD_NOT_CONFIGURED`  | 当前账户未设置密码                             |
-| 400       | `ACCOUNT_CURRENT_PASSWORD_INVALID` | 当前密码错误                                   |
+| 409       | `ACCOUNT_PASSWORD_NOT_CONFIGURED`  | 当前账户未设置密码                             |
+| 401       | `ACCOUNT_CURRENT_PASSWORD_INVALID` | 当前密码错误                                   |
 | 400       | `ACCOUNT_PASSWORD_REUSED`          | 新密码与当前密码相同                           |
 | 400       | `AVATAR_INVALID_TYPE`              | 非 JPEG、PNG 或 WebP，或 MIME 与文件字节不一致 |
 | 401       | `AUTH_SESSION_EXPIRED`             | Access Token 无效、过期或账户会话版本已失效    |

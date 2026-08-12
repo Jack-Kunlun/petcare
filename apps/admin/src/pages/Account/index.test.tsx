@@ -54,7 +54,7 @@ describe("Account", () => {
   beforeEach(() => {
     vi.clearAllMocks();
     api.getAdminAccountProfile.mockResolvedValue(profile);
-    api.updateAdminAccountProfile.mockResolvedValue(undefined);
+    api.updateAdminAccountProfile.mockResolvedValue({ ...profile, nickname: "服务端规范昵称" });
     api.uploadAdminAvatar.mockResolvedValue({ avatar: "https://cdn.example/avatar.webp" });
     api.deleteAdminAvatar.mockResolvedValue(undefined);
     api.changeAdminPassword.mockResolvedValue(undefined);
@@ -98,7 +98,11 @@ describe("Account", () => {
     await user.click(screen.getByRole("button", { name: "保存昵称" }));
 
     expect(api.updateAdminAccountProfile).toHaveBeenCalledWith({ nickname: "新昵称" });
-    expect(auth.updateUserSummary).toHaveBeenCalledWith({ nickname: "新昵称", avatar: null });
+    expect(auth.updateUserSummary).toHaveBeenCalledWith({
+      nickname: "服务端规范昵称",
+      avatar: null,
+    });
+    expect(await screen.findByDisplayValue("服务端规范昵称")).toBeInTheDocument();
     expect(await screen.findByRole("status")).toHaveTextContent("昵称已保存");
   });
 

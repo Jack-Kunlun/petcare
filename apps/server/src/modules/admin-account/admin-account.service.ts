@@ -70,7 +70,7 @@ export class AdminAccountService {
     };
   }
 
-  async updateProfile(userId: string, nickname: string): Promise<void> {
+  async updateProfile(userId: string, nickname: string): Promise<AdminAccountProfile> {
     const normalizedNickname = nickname.trim();
 
     if (!normalizedNickname || /\p{Cc}/u.test(normalizedNickname)) {
@@ -81,6 +81,8 @@ export class AdminAccountService {
       where: { id: userId },
       data: { nickname: normalizedNickname },
     });
+
+    return this.getProfile(userId);
   }
 
   async changePassword(
@@ -96,7 +98,7 @@ export class AdminAccountService {
       throw this.passwordError(
         ADMIN_ACCOUNT_ERROR_CODE.PASSWORD_NOT_CONFIGURED,
         "当前账号未配置密码",
-        HttpStatus.BAD_REQUEST,
+        HttpStatus.CONFLICT,
       );
     }
 
@@ -104,7 +106,7 @@ export class AdminAccountService {
       throw this.passwordError(
         ADMIN_ACCOUNT_ERROR_CODE.CURRENT_PASSWORD_INVALID,
         "当前密码不正确",
-        HttpStatus.BAD_REQUEST,
+        HttpStatus.UNAUTHORIZED,
       );
     }
 
@@ -137,7 +139,16 @@ export class AdminAccountService {
       );
     }
 
-    await this.tokenService.revokeSession(context.sessionId);
+    try {
+      await this.tokenService.revokeSession(context.sessionId);
+    } catch {
+      this.logger.write("error", "admin_account.session_revoke_failed", {
+        userId: context.userId,
+        sessionId: context.sessionId,
+        requestId: context.requestId,
+      });
+    }
+
     this.logger.write("info", "admin_account.password_changed", {
       userId: context.userId,
       sessionId: context.sessionId,
@@ -145,7 +156,11 @@ export class AdminAccountService {
     });
   }
 
-  async replaceAvatar(userId: string, file: DetectedAvatarFile): Promise<AdminAvatarResponse> {
+  async replaceAvatar(
+    context: AdminAccountMutationContext,
+    file: DetectedAvatarFile,
+  ): Promise<AdminAvatarResponse> {
+    const { requestId, userId } = context;
     const uploaded = await this.avatarStorage.upload({ userId, ...file });
 
     try {
@@ -164,6 +179,11 @@ export class AdminAccountService {
       });
 
       await this.deleteAvatarObject(userId, oldObjectKey);
+      this.logger.write("info", "admin_account.avatar_updated", {
+        userId,
+        result: "success",
+        requestId,
+      });
 
       return { avatar: uploaded.publicUrl };
     } catch (error) {
@@ -177,7 +197,9 @@ export class AdminAccountService {
     }
   }
 
-  async deleteAvatar(userId: string): Promise<void> {
+  async deleteAvatar(context: AdminAccountMutationContext): Promise<void> {
+    const { requestId, userId } = context;
+
     try {
       const oldObjectKey = await this.withAvatarTransaction(async (transaction) => {
         const current = await transaction.user.findUnique({
@@ -194,6 +216,11 @@ export class AdminAccountService {
       });
 
       await this.deleteAvatarObject(userId, oldObjectKey);
+      this.logger.write("info", "admin_account.avatar_deleted", {
+        userId,
+        result: "success",
+        requestId,
+      });
     } catch (error) {
       if (this.isSerializationConflict(error)) {
         throw this.avatarConcurrentUpdate();
