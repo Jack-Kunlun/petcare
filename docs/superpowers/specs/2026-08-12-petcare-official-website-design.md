@@ -12,7 +12,7 @@
 - 草稿保存与线上发布分离，发布前支持安全预览。
 - 每个页面独立发布；导航、页脚和公共联系方式作为独立的全局内容发布。
 - 发布后立即影响新的官网请求，不触发重新构建或部署。
-- 图片使用现有阿里云 OSS，并在 Admin 提供轻量官网素材库。
+- 图片使用现有腾讯云 COS，并在 Admin 提供轻量官网素材库。
 - 查看、编辑和发布权限相互分离。
 - 未来允许新增、归档和排序区块，但首期不实现相关命令和界面。
 
@@ -27,7 +27,7 @@
 | 内容服务   | Nest.js `WebsiteContentModule` | 草稿、预览、发布、历史、素材和公共读取               |
 | 持久化     | PostgreSQL + Prisma            | 保存内容、不可变版本快照、区块、素材元数据和审计记录 |
 | 缓存       | Redis + 进程内最近成功快照     | 加速发布版本读取，并在依赖短暂失败时提供有限回退     |
-| 图片       | 阿里云 OSS                     | 保存稳定对象；内容只引用素材标识，不保存临时签名 URL |
+| 图片       | 腾讯云 COS                     | 保存稳定对象；内容只引用素材标识，不保存临时签名 URL |
 | Admin      | React 19 + 现有组件体系        | 结构化编辑、素材选择、差异、预览、发布和历史         |
 | 共享契约   | `@petcare/shared-types`        | 请求、响应、常量、区分联合类型和稳定错误码的唯一来源 |
 | 测试       | Vitest + Playwright            | 覆盖领域规则、HTTP 契约、Admin 流程和官网端到端行为  |
@@ -69,7 +69,7 @@ WebsiteContent
 
 辅助对象：
 
-- `WebsiteMediaAsset`：可被官网区块引用的 OSS 图片元数据。
+- `WebsiteMediaAsset`：可被官网区块引用的 COS 图片元数据。
 - `WebsiteContentAuditLog`：草稿、预览、发布、恢复和素材操作审计记录。
 - `WebsitePreviewToken`：短时草稿预览凭证的哈希与作用域。
 
@@ -110,7 +110,7 @@ Admin 结构化编辑
 Nest.js WebsiteContentModule
   ├── 草稿与不可变发布版本 -> PostgreSQL
   ├── 素材元数据 -----------> PostgreSQL
-  ├── 图片对象 -------------> 阿里云 OSS
+  ├── 图片对象 -------------> 腾讯云 COS
   ├── 发布版本缓存 ---------> Redis
   └── 预览令牌与审计 -------> PostgreSQL
         |
@@ -124,7 +124,7 @@ Nest.js WebsiteContentModule
                        Nginx
 ```
 
-- 官网浏览器不直接访问 PostgreSQL、Redis 或 OSS 管理接口。
+- 官网浏览器不直接访问 PostgreSQL、Redis 或 COS 管理接口。
 - Astro SSR 只通过 Nest.js 公共接口读取已发布内容，通过预览接口读取指定草稿快照。
 - Admin 只通过 `apps/admin/src/api/website-content/` 访问后台接口。
 - Server DTO 负责运行时校验和 Swagger 元数据，并通过 `implements` 对齐共享请求契约。
@@ -211,13 +211,13 @@ Server 的代码级 `WebsiteSectionTypeRegistry` 是区块业务规则的最终�
 
 `POST /admin/website-content/:contentKey/publish`
 
-发布分为事务前预检和单个数据库事务。事务前完成页面模板、区块类型、链接以及 OSS 对象存在性与可读取性检查；任何预检失败都不会改变线上指针。
+发布分为事务前预检和单个数据库事务。事务前完成页面模板、区块类型、链接以及 COS 对象存在性与可读取性检查；任何预检失败都不会改变线上指针。
 
 数据库事务完成：
 
 1. 锁定并确认草稿 ID 与 `revision`。
 2. 再次通过页面模板和 `WebsiteSectionTypeRegistry` 完整校验草稿。
-3. 再次确认全部 `WebsiteMediaAsset` 数据库记录仍处于可发布状态；事务中不发起 OSS 网络请求。
+3. 再次确认全部 `WebsiteMediaAsset` 数据库记录仍处于可发布状态；事务中不发起 COS 网络请求。
 4. 将当前不可变草稿版本发布，分配新的 `businessVersion` 与发布时间。
 5. 将原发布版本标记为 `superseded`。
 6. 更新 `WebsiteContent.publishedVersionId`。
@@ -238,7 +238,7 @@ Server 的代码级 `WebsiteSectionTypeRegistry` 是区块业务规则的最终�
 - `GET /website-content/previews/:contentKey`：从脱敏请求头读取预览令牌并返回固定草稿快照；响应禁止公共缓存和索引。
 - 课堂文章另由现有内容领域提供已发布列表和详情接口。
 
-公共内容响应包括内容键、发布版本、发布时间、SEO 元数据和有序区块。绝不返回草稿、管理员身份、审计信息或 OSS 管理凭据。
+公共内容响应包括内容键、发布版本、发布时间、SEO 元数据和有序区块。绝不返回草稿、管理员身份、审计信息或 COS 管理凭据。
 
 Astro SSR 请求 `site_shell` 和页面发布快照，根据 `sectionType` 选择代码中注册的渲染模块。未知类型或不支持的 `schemaVersion` 不执行动态代码：Server 在发布前拒绝，Astro 在读取异常数据时记录错误并使用安全失败状态。
 
@@ -334,12 +334,12 @@ website_content:version:<versionId>
 
 规则：
 
-- OSS `storageKey` 由 Server 生成，Admin 不能提交任意对象路径。
+- COS `storageKey` 由 Server 生成，Admin 不能提交任意对象路径。
 - 上传时校验文件真实类型、扩展名、大小、尺寸和图片完整性。
 - 区块 `content` 只保存 `assetId`；使用场景的 `altText` 保存在区块内容中。
 - 裁切焦点和宽高比等展示参数保存在区块 `settings`。
 - 已被草稿或发布版本引用的素材不能物理删除，只能归档。
-- 发布版本引用稳定 OSS 对象；Server 按 `assetId` 生成公共资源地址。
+- 发布版本引用稳定 COS 对象；Server 按 `assetId` 生成公共资源地址。
 
 首期只实现图片上传、选择、预览、归档和引用检查，不实现文件夹、复杂标签、AI 处理或图片编辑器。
 
@@ -386,7 +386,7 @@ Astro 的进程内回退只保存公共已发布快照，按 `contentKey` 设五
 
 - 草稿保存、`revision` 冲突和字段级校验。
 - 首期无法新增、删除、换型或排序区块。
-- 素材引用、OSS 对象和链接校验。
+- 素材引用、COS 对象和链接校验。
 - 单页面发布的事务一致性、不可变快照与幂等性。
 - 公共接口只返回已发布版本。
 - 历史查询与恢复只生成草稿。
@@ -427,14 +427,14 @@ Astro 的进程内回退只保存公共已发布快照，按 `contentKey` 设五
 - 官网样式规则与 Admin 分作用域检查，不能复用 Admin 唯一入口文件假设。
 - 新增 Astro SSR 生产镜像；Nginx 反向代理官网 SSR 和 Nest.js 公共接口，不覆盖 Admin 静态产物。
 - 新增或修改环境变量时同步 `.env.example` 与 `docs/environment-variables.md`；Server 继续只通过 `ConfigService` 访问配置。
-- 生产域名、TLS、OSS 公共域名和缓存头在部署实施中配置，不把凭据写入构建产物。
+- 生产域名、TLS、COS 公共域名和缓存头在部署实施中配置，不把凭据写入构建产物。
 
 ## 实施分解
 
 该功能跨越 Server、Admin、Website 和部署，按依赖拆分为五个连续里程碑：
 
 1. 内容领域基础：Prisma、共享契约、权限、页面模板、区块注册、草稿、发布、历史和公共读取。
-2. 素材与预览：OSS 图片、轻量素材库、短时预览令牌和审计。
+2. 素材与预览：COS 图片、轻量素材库、短时预览令牌和审计。
 3. Admin 内容管理：概览、编辑、差异、预览、发布和历史。
 4. Astro SSR 官网：页面外壳、区块渲染、SEO、缓存与故障回退。
 5. 工程与部署：Docker、Nginx、环境变量、CI、质量门禁和部署文档。
@@ -448,7 +448,7 @@ Astro 的进程内回退只保存公共已发布快照，按 `contentKey` 设五
 - 不允许自由 HTML、CSS、JavaScript 或页面代码编辑。
 - 不构建可视化低代码建站器。
 - 不实现多人实时协同、字段级锁、审批流、定时发布或多语言版本。
-- 不实现 OSS 文件夹、复杂标签、AI 图片处理或图片编辑器。
+- 不实现 COS 文件夹、复杂标签、AI 图片处理或图片编辑器。
 - 不接入外部 Headless CMS，不新增独立后端、数据库或权限系统。
 - 不在官网实现账户认证、下单、支付、订单查询、个性化推荐或在线客服系统。
 - 不重做已经批准的 Logo、Hero 和品牌元素。
