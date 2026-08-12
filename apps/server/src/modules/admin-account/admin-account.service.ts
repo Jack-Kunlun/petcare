@@ -1,14 +1,21 @@
-import { HttpStatus, Injectable } from "@nestjs/common";
+import { HttpStatus, Inject, Injectable } from "@nestjs/common";
 import {
   ADMIN_ACCOUNT_ERROR_CODE,
+  type AdminAvatarResponse,
   type AdminAccountProfile,
   type UpdateAdminAccountPasswordRequest,
 } from "@petcare/shared-types";
 import { PasswordService } from "../../auth/password.service";
 import { TokenService } from "../../auth/token.service";
 import { ApiException } from "../../common/http/api-exception";
+import { Prisma } from "../../generated/prisma/client";
 import { AppLogger } from "../../logging/app-logger.service";
 import { PrismaService } from "../../prisma/prisma.service";
+import { type DetectedAvatarFile } from "../../public-avatar-storage/avatar-file";
+import {
+  PUBLIC_AVATAR_STORAGE,
+  type PublicAvatarStorage,
+} from "../../public-avatar-storage/public-avatar-storage.types";
 
 const profileSelect = {
   id: true,
@@ -38,6 +45,7 @@ export class AdminAccountService {
     private readonly passwordService: PasswordService,
     private readonly tokenService: TokenService,
     private readonly logger: AppLogger,
+    @Inject(PUBLIC_AVATAR_STORAGE) private readonly avatarStorage: PublicAvatarStorage,
   ) {}
 
   async getProfile(userId: string): Promise<AdminAccountProfile> {
@@ -137,11 +145,118 @@ export class AdminAccountService {
     });
   }
 
+  async replaceAvatar(userId: string, file: DetectedAvatarFile): Promise<AdminAvatarResponse> {
+    const uploaded = await this.avatarStorage.upload({ userId, ...file });
+
+    try {
+      const oldObjectKey = await this.withAvatarTransaction(async (transaction) => {
+        const current = await transaction.user.findUnique({
+          where: { id: userId },
+          select: { avatarObjectKey: true },
+        });
+
+        await transaction.user.update({
+          where: { id: userId },
+          data: { avatar: uploaded.publicUrl, avatarObjectKey: uploaded.objectKey },
+        });
+
+        return current?.avatarObjectKey ?? null;
+      });
+
+      await this.deleteAvatarObject(userId, oldObjectKey);
+
+      return { avatar: uploaded.publicUrl };
+    } catch (error) {
+      await this.deleteAvatarObject(userId, uploaded.objectKey);
+
+      if (this.isSerializationConflict(error)) {
+        throw this.avatarConcurrentUpdate();
+      }
+
+      throw error;
+    }
+  }
+
+  async deleteAvatar(userId: string): Promise<void> {
+    try {
+      const oldObjectKey = await this.withAvatarTransaction(async (transaction) => {
+        const current = await transaction.user.findUnique({
+          where: { id: userId },
+          select: { avatarObjectKey: true },
+        });
+
+        await transaction.user.update({
+          where: { id: userId },
+          data: { avatar: null, avatarObjectKey: null },
+        });
+
+        return current?.avatarObjectKey ?? null;
+      });
+
+      await this.deleteAvatarObject(userId, oldObjectKey);
+    } catch (error) {
+      if (this.isSerializationConflict(error)) {
+        throw this.avatarConcurrentUpdate();
+      }
+
+      throw error;
+    }
+  }
+
   private maskPhone(phone: string): string {
     return /^\d{11}$/.test(phone) ? `${phone.slice(0, 3)}****${phone.slice(-4)}` : "****";
   }
 
   private passwordError(code: string, message: string, status: HttpStatus): ApiException {
     return new ApiException(code, message, status);
+  }
+
+  private isManagedAvatarObjectKey(userId: string, objectKey: string | null): objectKey is string {
+    return objectKey?.startsWith(`public/admin-avatars/${userId}/`) ?? false;
+  }
+
+  private async withAvatarTransaction<T>(
+    operation: (transaction: Prisma.TransactionClient) => Promise<T>,
+  ): Promise<T> {
+    for (let attempt = 1; attempt <= 3; attempt += 1) {
+      try {
+        // eslint-disable-next-line no-await-in-loop -- serializable retries must complete in order.
+        return await this.prisma.$transaction(operation, {
+          isolationLevel: Prisma.TransactionIsolationLevel.Serializable,
+        });
+      } catch (error) {
+        if (!this.isSerializationConflict(error) || attempt === 3) {
+          throw error;
+        }
+      }
+    }
+
+    throw new Error("unreachable");
+  }
+
+  private isSerializationConflict(error: unknown): boolean {
+    return (
+      typeof error === "object" && error !== null && "code" in error && error.code === "P2034"
+    );
+  }
+
+  private async deleteAvatarObject(userId: string, objectKey: string | null): Promise<void> {
+    if (!this.isManagedAvatarObjectKey(userId, objectKey)) {
+      return;
+    }
+
+    try {
+      await this.avatarStorage.delete(objectKey);
+    } catch {
+      this.logger.write("error", "admin_account.avatar_cleanup_failed", { userId, objectKey });
+    }
+  }
+
+  private avatarConcurrentUpdate(): ApiException {
+    return new ApiException(
+      ADMIN_ACCOUNT_ERROR_CODE.CONCURRENT_UPDATE,
+      "头像已被其他操作更新，请刷新后重试",
+      HttpStatus.CONFLICT,
+    );
   }
 }

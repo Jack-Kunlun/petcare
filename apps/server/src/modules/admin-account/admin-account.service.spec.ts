@@ -1,7 +1,9 @@
+import { HttpStatus } from "@nestjs/common";
 import { PasswordService } from "../../auth/password.service";
 import { TokenService } from "../../auth/token.service";
 import { AppLogger } from "../../logging/app-logger.service";
 import { PrismaService } from "../../prisma/prisma.service";
+import { PublicAvatarStorage } from "../../public-avatar-storage/public-avatar-storage.types";
 import { AdminAccountService } from "./admin-account.service";
 
 describe("AdminAccountService", () => {
@@ -11,15 +13,24 @@ describe("AdminAccountService", () => {
       update: jest.fn(),
       updateMany: jest.fn(),
     },
+    $transaction: jest.fn(),
+  };
+  const transaction = {
+    user: {
+      findUnique: jest.fn(),
+      update: jest.fn(),
+    },
   };
   const passwordService = { verify: jest.fn(), hash: jest.fn() };
   const tokenService = { revokeSession: jest.fn() };
   const logger = { write: jest.fn() };
+  const avatarStorage = { upload: jest.fn(), delete: jest.fn() };
   const service = new AdminAccountService(
     prisma as unknown as PrismaService,
     passwordService as unknown as PasswordService,
     tokenService as unknown as TokenService,
     logger as unknown as AppLogger,
+    avatarStorage as unknown as PublicAvatarStorage,
   );
 
   beforeEach(() => jest.clearAllMocks());
@@ -169,5 +180,211 @@ describe("AdminAccountService", () => {
       ),
     ).rejects.toMatchObject({ code: "ACCOUNT_CONCURRENT_UPDATE" });
     expect(tokenService.revokeSession).not.toHaveBeenCalled();
+  });
+
+  it("stores the new avatar before atomically swapping the record and then removes the old managed object", async () => {
+    const file = {
+      body: Buffer.from("png-avatar"),
+      contentType: "image/png" as const,
+      extension: "png" as const,
+    };
+
+    avatarStorage.upload.mockResolvedValue({
+      objectKey: "public/admin-avatars/user-1/new.png",
+      publicUrl: "https://cdn.example.com/new.png",
+    });
+    transaction.user.findUnique.mockResolvedValue({
+      avatarObjectKey: "public/admin-avatars/user-1/old.png",
+    });
+    transaction.user.update.mockResolvedValue(undefined);
+    prisma.$transaction.mockImplementation((operation) => operation(transaction));
+
+    await expect(service.replaceAvatar("user-1", file)).resolves.toEqual({
+      avatar: "https://cdn.example.com/new.png",
+    });
+
+    expect(avatarStorage.upload).toHaveBeenCalledWith({ userId: "user-1", ...file });
+    expect(transaction.user.update).toHaveBeenCalledWith({
+      where: { id: "user-1" },
+      data: {
+        avatar: "https://cdn.example.com/new.png",
+        avatarObjectKey: "public/admin-avatars/user-1/new.png",
+      },
+    });
+    expect(avatarStorage.delete).toHaveBeenCalledWith("public/admin-avatars/user-1/old.png");
+  });
+
+  it("deletes the newly uploaded object and rethrows when the avatar record swap fails", async () => {
+    const databaseError = new Error("database unavailable");
+    const file = {
+      body: Buffer.from("png-avatar"),
+      contentType: "image/png" as const,
+      extension: "png" as const,
+    };
+
+    avatarStorage.upload.mockResolvedValue({
+      objectKey: "public/admin-avatars/user-1/new.png",
+      publicUrl: "https://cdn.example.com/new.png",
+    });
+    prisma.$transaction.mockRejectedValue(databaseError);
+    avatarStorage.delete.mockRejectedValue(new Error("cleanup unavailable"));
+
+    await expect(service.replaceAvatar("user-1", file)).rejects.toBe(databaseError);
+
+    expect(avatarStorage.delete).toHaveBeenCalledWith("public/admin-avatars/user-1/new.png");
+    expect(logger.write).toHaveBeenCalledWith("error", "admin_account.avatar_cleanup_failed", {
+      userId: "user-1",
+      objectKey: "public/admin-avatars/user-1/new.png",
+    });
+  });
+
+  it("logs an old-avatar cleanup failure while retaining the successfully replaced avatar", async () => {
+    const file = {
+      body: Buffer.from("png-avatar"),
+      contentType: "image/png" as const,
+      extension: "png" as const,
+    };
+
+    avatarStorage.upload.mockResolvedValue({
+      objectKey: "public/admin-avatars/user-1/new.png",
+      publicUrl: "https://cdn.example.com/new.png",
+    });
+    transaction.user.findUnique.mockResolvedValue({
+      avatarObjectKey: "public/admin-avatars/user-1/old.png",
+    });
+    transaction.user.update.mockResolvedValue(undefined);
+    prisma.$transaction.mockImplementation((operation) => operation(transaction));
+    avatarStorage.delete.mockRejectedValue(new Error("cleanup unavailable"));
+
+    await expect(service.replaceAvatar("user-1", file)).resolves.toEqual({
+      avatar: "https://cdn.example.com/new.png",
+    });
+
+    expect(logger.write).toHaveBeenCalledWith("error", "admin_account.avatar_cleanup_failed", {
+      userId: "user-1",
+      objectKey: "public/admin-avatars/user-1/old.png",
+    });
+  });
+
+  it("retries a serializable avatar swap conflict up to the successful third attempt", async () => {
+    const file = {
+      body: Buffer.from("png-avatar"),
+      contentType: "image/png" as const,
+      extension: "png" as const,
+    };
+    const serializationConflict = { code: "P2034" };
+
+    avatarStorage.upload.mockResolvedValue({
+      objectKey: "public/admin-avatars/user-1/new.png",
+      publicUrl: "https://cdn.example.com/new.png",
+    });
+    transaction.user.findUnique.mockResolvedValue({ avatarObjectKey: null });
+    transaction.user.update.mockResolvedValue(undefined);
+    prisma.$transaction
+      .mockRejectedValueOnce(serializationConflict)
+      .mockRejectedValueOnce(serializationConflict)
+      .mockImplementationOnce((operation) => operation(transaction));
+
+    await expect(service.replaceAvatar("user-1", file)).resolves.toEqual({
+      avatar: "https://cdn.example.com/new.png",
+    });
+
+    expect(prisma.$transaction).toHaveBeenCalledTimes(3);
+    expect(prisma.$transaction).toHaveBeenNthCalledWith(
+      3,
+      expect.any(Function),
+      expect.objectContaining({ isolationLevel: "Serializable" }),
+    );
+    expect(avatarStorage.delete).not.toHaveBeenCalled();
+  });
+
+  it("compensates the new object and returns a stable conflict after three serializable failures", async () => {
+    const file = {
+      body: Buffer.from("png-avatar"),
+      contentType: "image/png" as const,
+      extension: "png" as const,
+    };
+
+    avatarStorage.upload.mockResolvedValue({
+      objectKey: "public/admin-avatars/user-1/new.png",
+      publicUrl: "https://cdn.example.com/new.png",
+    });
+    prisma.$transaction.mockRejectedValue({ code: "P2034" });
+
+    await expect(service.replaceAvatar("user-1", file)).rejects.toMatchObject({
+      code: "ACCOUNT_CONCURRENT_UPDATE",
+      status: HttpStatus.CONFLICT,
+    });
+
+    expect(prisma.$transaction).toHaveBeenCalledTimes(3);
+    expect(avatarStorage.delete).toHaveBeenCalledWith("public/admin-avatars/user-1/new.png");
+  });
+
+  it("clears the database avatar before best-effort deletion of its old managed object", async () => {
+    const sequence: string[] = [];
+
+    transaction.user.findUnique.mockResolvedValue({
+      avatarObjectKey: "public/admin-avatars/user-1/old.png",
+    });
+    transaction.user.update.mockImplementation(async () => {
+      sequence.push("database");
+    });
+    prisma.$transaction.mockImplementation((operation) => operation(transaction));
+    avatarStorage.delete.mockImplementation(async () => {
+      sequence.push("storage");
+      throw new Error("cleanup unavailable");
+    });
+
+    await expect(service.deleteAvatar("user-1")).resolves.toBeUndefined();
+
+    expect(transaction.user.update).toHaveBeenCalledWith({
+      where: { id: "user-1" },
+      data: { avatar: null, avatarObjectKey: null },
+    });
+    expect(avatarStorage.delete).toHaveBeenCalledWith("public/admin-avatars/user-1/old.png");
+    expect(sequence).toEqual(["database", "storage"]);
+    expect(logger.write).toHaveBeenCalledWith("error", "admin_account.avatar_cleanup_failed", {
+      userId: "user-1",
+      objectKey: "public/admin-avatars/user-1/old.png",
+    });
+  });
+
+  it("does not delete an externally hosted avatar whose object key is null", async () => {
+    const file = {
+      body: Buffer.from("png-avatar"),
+      contentType: "image/png" as const,
+      extension: "png" as const,
+    };
+
+    avatarStorage.upload.mockResolvedValue({
+      objectKey: "public/admin-avatars/user-1/new.png",
+      publicUrl: "https://cdn.example.com/new.png",
+    });
+    transaction.user.findUnique.mockResolvedValue({
+      avatar: "https://external.example.com/avatar.png",
+      avatarObjectKey: null,
+    });
+    transaction.user.update.mockResolvedValue(undefined);
+    prisma.$transaction.mockImplementation((operation) => operation(transaction));
+
+    await expect(service.replaceAvatar("user-1", file)).resolves.toEqual({
+      avatar: "https://cdn.example.com/new.png",
+    });
+
+    expect(avatarStorage.delete).not.toHaveBeenCalled();
+  });
+
+  it("clears a default avatar without issuing a storage deletion", async () => {
+    transaction.user.findUnique.mockResolvedValue({ avatarObjectKey: null });
+    transaction.user.update.mockResolvedValue(undefined);
+    prisma.$transaction.mockImplementation((operation) => operation(transaction));
+
+    await expect(service.deleteAvatar("user-1")).resolves.toBeUndefined();
+
+    expect(transaction.user.update).toHaveBeenCalledWith({
+      where: { id: "user-1" },
+      data: { avatar: null, avatarObjectKey: null },
+    });
+    expect(avatarStorage.delete).not.toHaveBeenCalled();
   });
 });
