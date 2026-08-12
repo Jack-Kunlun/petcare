@@ -1,10 +1,11 @@
-import { render, screen } from "@testing-library/react";
+import { render, screen, waitFor } from "@testing-library/react";
 import userEvent from "@testing-library/user-event";
 import { MemoryRouter, Route, Routes, useLocation } from "react-router-dom";
 import { beforeEach, describe, expect, it, vi } from "vitest";
 import { Header } from "./Header";
 
 const logout = vi.hoisted(() => vi.fn());
+const accountUser = vi.hoisted(() => ({ avatar: null as string | null }));
 
 vi.mock("../auth/auth.context", () => ({
   useAuth: () => ({
@@ -14,6 +15,7 @@ vi.mock("../auth/auth.context", () => ({
       username: "admin",
       phone: "13800138000",
       nickname: "系统管理员",
+      avatar: accountUser.avatar,
       roles: ["super_admin"],
     },
     logout,
@@ -21,12 +23,15 @@ vi.mock("../auth/auth.context", () => ({
 }));
 
 function LocationProbe() {
-  return <div>{useLocation().pathname}</div>;
+  const location = useLocation();
+
+  return <div>{`${location.pathname}${location.hash}`}</div>;
 }
 
 describe("Header", () => {
   beforeEach(() => {
     vi.clearAllMocks();
+    accountUser.avatar = null;
     logout.mockResolvedValue(undefined);
   });
 
@@ -72,8 +77,18 @@ describe("Header", () => {
 
   it("keeps every interactive header control touch-friendly and keyboard-visible", () => {
     render(
-      <MemoryRouter>
-        <Header onMenuOpen={vi.fn()} />
+      <MemoryRouter initialEntries={["/"]}>
+        <Routes>
+          <Route
+            path="*"
+            element={
+              <>
+                <Header onMenuOpen={vi.fn()} />
+                <LocationProbe />
+              </>
+            }
+          />
+        </Routes>
       </MemoryRouter>,
     );
 
@@ -86,7 +101,7 @@ describe("Header", () => {
       expect(control.className).toContain("focus-visible:");
     }
 
-    const userInfo = screen.getByRole("button", { name: "账户信息" });
+    const userInfo = screen.getByRole("button", { name: "账户菜单" });
 
     expect(userInfo).toHaveClass("min-h-11", "cursor-pointer");
     expect(userInfo.className).toContain("hover:");
@@ -94,8 +109,74 @@ describe("Header", () => {
     expect(userInfo.className).toContain("focus-visible:");
   });
 
-  it("opens and closes the account information popover from its semantic button", async () => {
+  it("opens an accessible account menu with profile and password navigation", async () => {
     const user = userEvent.setup();
+
+    render(
+      <MemoryRouter initialEntries={["/"]}>
+        <Routes>
+          <Route
+            path="*"
+            element={
+              <>
+                <Header onMenuOpen={vi.fn()} />
+                <LocationProbe />
+              </>
+            }
+          />
+        </Routes>
+      </MemoryRouter>,
+    );
+
+    const accountButton = screen.getByRole("button", { name: "账户菜单" });
+
+    expect(accountButton).toHaveAttribute("aria-expanded", "false");
+    expect(screen.queryByRole("menu")).not.toBeInTheDocument();
+
+    await user.click(accountButton);
+
+    expect(accountButton).toHaveAttribute("aria-expanded", "true");
+    expect(screen.getByRole("menu")).toHaveTextContent("个人中心");
+    expect(screen.getByRole("menuitem", { name: "修改密码" })).toBeInTheDocument();
+    expect(screen.getByRole("menuitem", { name: "退出登录" })).toBeInTheDocument();
+
+    await user.click(screen.getByRole("menuitem", { name: "个人中心" }));
+
+    await waitFor(() => expect(screen.getByText("/account")).toBeInTheDocument());
+  });
+
+  it("keeps the account menu button available at narrow widths and navigates to password", async () => {
+    const user = userEvent.setup();
+
+    render(
+      <MemoryRouter initialEntries={["/"]}>
+        <Routes>
+          <Route
+            path="*"
+            element={
+              <>
+                <Header onMenuOpen={vi.fn()} />
+                <LocationProbe />
+              </>
+            }
+          />
+        </Routes>
+      </MemoryRouter>,
+    );
+
+    const accountButton = screen.getByRole("button", { name: "账户菜单" });
+
+    expect(accountButton).not.toHaveClass("hidden");
+    expect(accountButton).toHaveClass("min-h-11", "min-w-11");
+
+    await user.click(accountButton);
+    await user.click(screen.getByRole("menuitem", { name: "修改密码" }));
+
+    await waitFor(() => expect(screen.getByText("/account#password")).toBeInTheDocument());
+  });
+
+  it("shows the current avatar in the account menu trigger when one is set", () => {
+    accountUser.avatar = "https://cdn.example/avatar.webp";
 
     render(
       <MemoryRouter>
@@ -103,18 +184,9 @@ describe("Header", () => {
       </MemoryRouter>,
     );
 
-    const accountButton = screen.getByRole("button", { name: "账户信息" });
-
-    expect(accountButton).toHaveAttribute("aria-expanded", "false");
-    expect(screen.queryByRole("dialog", { name: "账户信息" })).not.toBeInTheDocument();
-
-    await user.click(accountButton);
-
-    expect(accountButton).toHaveAttribute("aria-expanded", "true");
-    expect(screen.getByRole("dialog", { name: "账户信息" })).toHaveTextContent("admin");
-
-    await user.keyboard("{Enter}");
-
-    expect(accountButton).toHaveAttribute("aria-expanded", "false");
+    expect(screen.getByRole("img", { name: "当前头像" })).toHaveAttribute(
+      "src",
+      "https://cdn.example/avatar.webp",
+    );
   });
 });
