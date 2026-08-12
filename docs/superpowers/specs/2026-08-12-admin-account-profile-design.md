@@ -145,7 +145,7 @@ interface AdminAccountProfile {
 | 409  | `ACCOUNT_PASSWORD_NOT_CONFIGURED`  | 当前账户没有可校验的密码凭据     |
 | 409  | `ACCOUNT_CONCURRENT_UPDATE`        | 账户资料或密码发生并发更新       |
 | 413  | `AVATAR_FILE_TOO_LARGE`            | 头像超过 2 MiB                   |
-| 422  | `VALIDATION_FAILED`                | 昵称、密码长度或请求字段验证失败 |
+| 400  | `VALIDATION_FAILED`                | 昵称、密码长度或请求字段验证失败 |
 | 503  | `STORAGE_UNAVAILABLE`              | COS 未配置或暂时不可用           |
 
 当前密码错误可返回明确错误，因为调用者已经通过身份认证，不存在登录接口的账户枚举风险。
