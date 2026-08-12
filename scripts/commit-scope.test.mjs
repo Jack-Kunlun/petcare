@@ -8,10 +8,10 @@ import {
   createPnpmInvocation,
 } from "./commit-scope.mjs";
 
-test("a UniApp source change selects only UniApp", () => {
-  assert.deepEqual(classifyStagedPaths(["apps/uniapp/src/App.vue"]), {
+test("a Miniapp source change selects only Miniapp", () => {
+  assert.deepEqual(classifyStagedPaths(["apps/miniapp/src/App.vue"]), {
     fullTypecheck: false,
-    typecheckSelectors: ["@petcare/uniapp"],
+    typecheckSelectors: ["@petcare/miniapp"],
     styleScopes: [],
   });
 });
@@ -19,13 +19,13 @@ test("a UniApp source change selects only UniApp", () => {
 test("application selectors and style scopes are deduplicated and sorted", () => {
   assert.deepEqual(
     classifyStagedPaths([
-      "apps/uniapp/src/pages/index/index.vue",
+      "apps/miniapp/src/pages/index/index.vue",
       "apps/admin/src/App.tsx",
       "apps/admin/src/app.css",
     ]),
     {
       fullTypecheck: false,
-      typecheckSelectors: ["@petcare/admin", "@petcare/uniapp"],
+      typecheckSelectors: ["@petcare/admin", "@petcare/miniapp"],
       styleScopes: ["admin"],
     },
   );
@@ -66,7 +66,7 @@ test("root and shared lint configuration changes require all workspace typecheck
 
   assert.deepEqual(FULL_TYPECHECK_PROJECTS, [
     "@petcare/admin",
-    "@petcare/uniapp",
+    "@petcare/miniapp",
     "@petcare/server",
     "@petcare/api-client",
     "@petcare/shared-types",
@@ -89,9 +89,9 @@ test("root tsconfig triggers the full typecheck while lookalikes do not", () => 
 });
 
 test("Windows separators and empty input are supported", () => {
-  assert.deepEqual(classifyStagedPaths(["apps\\uniapp\\src\\main.ts"]), {
+  assert.deepEqual(classifyStagedPaths(["apps\\miniapp\\src\\main.ts"]), {
     fullTypecheck: false,
-    typecheckSelectors: ["@petcare/uniapp"],
+    typecheckSelectors: ["@petcare/miniapp"],
     styleScopes: [],
   });
   assert.deepEqual(classifyStagedPaths([]), {
@@ -111,7 +111,7 @@ test("full scope plans all workspace typechecks with a single pnpm invocation", 
       "--filter",
       "@petcare/admin",
       "--filter",
-      "@petcare/uniapp",
+      "@petcare/miniapp",
       "--filter",
       "@petcare/server",
       "--filter",
@@ -130,17 +130,17 @@ test("full scope plans all workspace typechecks with a single pnpm invocation", 
 
 test("affected scope plans selected typechecks and ordered style checks", () => {
   const plan = createCommitCheckPlan(
-    classifyStagedPaths(["apps/uniapp/src/pages/index/index.vue", "apps/admin/src/App.tsx"]),
+    classifyStagedPaths(["apps/miniapp/src/pages/index/index.vue", "apps/admin/src/App.tsx"]),
   );
 
   assert.deepEqual(plan.typecheck, {
     kind: "affected",
-    selectors: ["@petcare/admin", "@petcare/uniapp"],
+    selectors: ["@petcare/admin", "@petcare/miniapp"],
     args: [
       "--filter",
       "@petcare/admin",
       "--filter",
-      "@petcare/uniapp",
+      "@petcare/miniapp",
       "--if-present",
       "run",
       "typecheck",

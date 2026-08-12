@@ -106,7 +106,7 @@ pnpm dev
 ```bash
 pnpm dev:admin
 pnpm dev:server
-pnpm dev:uniapp:mp-weixin
+pnpm dev:miniapp:mp-weixin
 ```
 
 ~~旧命令：`pnpm dev:miniapp`~~
@@ -180,7 +180,7 @@ pnpm test:e2e
 - `quality`：Prettier、ESLint、TypeScript、中文提交信息；
 - `unit-test`：工具测试与全部工作区单测；
 - ~~`build`：Admin、Server、Taro Miniapp 微信端和共享包；~~
-- `build`：Admin、Server、UniApp H5 和共享包；
+- `build`：Admin、Server、Miniapp H5 和共享包；
 - `e2e`：PostgreSQL、Redis、Prisma 初始化、Server E2E、Admin Playwright；
 - `docker`：仅 `master` push，在前四项通过后校验 Compose 并构建镜像。
 

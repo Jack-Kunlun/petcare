@@ -1115,13 +1115,13 @@ shadcn/ui 与组件变量应指向 PetCare 语义 Token。
 --radius: var(--pc-radius-control);
 ```
 
-### 098 · UniApp 小程序映射
+### 098 · Miniapp 小程序映射（UniApp）
 
 小程序保持与 Admin 相同的语义，不复制不适合移动端的布局。
 
 - ~~全局主题进入 `apps/miniapp/src/app.css`。~~
 - ~~使用 px 语义 Token 与 Tailwind v4；禁止 rpx/rem 与页面级 CSS。~~
-- 全局主题由 `apps/uniapp/uno.config.ts` 与应用入口样式维护。
+- 全局主题由 `apps/miniapp/uno.config.ts` 与应用入口样式维护。
 - 使用 UnoCSS 语义 Token，并按目标平台验证输出。
 - 触控尺寸、底部安全区与微信系统字体优先。
 - TabBar 图标使用专用 28px 资产，不从大 Logo 运行时缩放。

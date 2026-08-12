@@ -1,5 +1,5 @@
 {
-  "name": "@petcare/uniapp",
+  "name": "@petcare/miniapp",
   "type": "module",
   "version": "2.0.0",
   "private": true,
