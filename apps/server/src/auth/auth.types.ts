@@ -3,6 +3,7 @@ export interface SessionPrincipal {
   username: string | null;
   phone: string;
   roles: string[];
+  sessionVersion: number;
 }
 
 export interface AuthTokens {
@@ -12,6 +13,8 @@ export interface AuthTokens {
 
 export interface AccessTokenPayload {
   sub: string;
+  sid: string;
+  sessionVersion: number;
   username: string | null;
   phone: string;
   roles: string[];
@@ -21,5 +24,6 @@ export interface AccessTokenPayload {
 export interface RefreshTokenPayload {
   sub: string;
   sid: string;
+  sessionVersion: number;
   type: "refresh";
 }
