@@ -57,8 +57,15 @@ Copy-Item .env.example .env
 生产 Docker 缺少任一上述变量都会在 Compose 解析或 Server 启动阶段失败。生产环境不得设置
 `SMS_DEV_CODE`；Compose 会强制覆盖为空。
 
-微信配置必须同时留空或同时提供 `WECHAT_APP_ID`、`WECHAT_APP_SECRET`。OSS 配置必须四项同时
-留空或同时提供。详细规则参见[环境变量配置指南](../environment-variables.md)。
+微信配置必须同时留空或同时提供 `WECHAT_APP_ID`、`WECHAT_APP_SECRET`。腾讯云 COS 公开头像配置的
+`TENCENT_COS_SECRET_ID`、`TENCENT_COS_SECRET_KEY`、`TENCENT_COS_BUCKET`（`BucketName-APPID`）和
+`TENCENT_COS_REGION`（例如 `ap-guangzhou`）必须同时提供或同时留空；可选
+`TENCENT_COS_PUBLIC_BASE_URL` 只能在前四项完整时设置。五项均为空时仅禁用管理员头像上传，其他个人中心功能
+仍可用；任一不完整组合会使 Server 在监听端口前退出。详细规则参见[环境变量配置指南](../environment-variables.md)。
+
+生产环境为头像使用独立的公开读、私有写 COS Bucket，并向 Server 注入仅允许读写
+`public/admin-avatars/` 前缀的最小权限子账号凭据。不要将 COS 凭据写入镜像、工作流、客户端或仓库的 `.env`；
+根 `.env` 仅供本地使用且不提交。
 
 ## 4. 本地混合开发
 
@@ -184,7 +191,7 @@ pnpm test:e2e
 - `e2e`：PostgreSQL、Redis、Prisma 初始化、Server E2E、Admin Playwright；
 - `docker`：仅 `master` push，在前四项通过后校验 Compose 并构建镜像。
 
-CI 只使用隔离测试凭据。真实微信、OSS 和生产密钥不得写入工作流。
+CI 只使用隔离测试凭据。真实微信、腾讯云 COS 和生产密钥不得写入工作流。
 
 ## 8. 常用运维命令
 
@@ -218,7 +225,7 @@ docker compose down -v
 docker compose logs server
 ```
 
-重点检查端口是否为正整数、JWT 密钥长度、管理员手机号与密码、CORS URL，以及微信或 OSS
+重点检查端口是否为正整数、JWT 密钥长度、管理员手机号与密码、CORS URL，以及微信或腾讯云 COS
 字段组是否完整。
 
 ### Admin 无法访问 API
