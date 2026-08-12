@@ -49,9 +49,12 @@ apiClient.interceptors.response.use(
   },
   async (error: AxiosError<ApiErrorResponse>) => {
     const request = error.config as RetriableRequest | undefined;
-    const isRefreshRequest = request?.url?.includes("/auth/refresh");
+    const isAuthenticationRequest =
+      request?.url?.includes("/auth/refresh") || request?.url?.includes("/auth/login/");
+    const isExpiredSession =
+      error.response?.status === 401 && error.response.data?.code === "AUTH_SESSION_EXPIRED";
 
-    if (error.response?.status !== 401 || !request || request._authRetried || isRefreshRequest) {
+    if (!isExpiredSession || !request || request._authRetried || isAuthenticationRequest) {
       return Promise.reject(error);
     }
 

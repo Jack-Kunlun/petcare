@@ -70,6 +70,7 @@ const baseAuth: AuthContextValue = {
     username: "root",
     phone: "17600000000",
     nickname: "平台管理员",
+    avatar: null,
     roles: ["root"],
     permissions: ["rbac.view"],
   },
@@ -78,6 +79,8 @@ const baseAuth: AuthContextValue = {
   getCaptcha: vi.fn(),
   sendSmsCode: vi.fn(),
   logout: vi.fn(),
+  updateUserSummary: vi.fn(),
+  invalidateLocalSession: vi.fn(),
 };
 
 function renderDetail(permissions = ["rbac.view"]) {
