@@ -1,4 +1,10 @@
-import { GUARDS_METADATA } from "@nestjs/common/constants";
+import {
+  GUARDS_METADATA,
+  HTTP_CODE_METADATA,
+  INTERCEPTORS_METADATA,
+  METHOD_METADATA,
+  ROUTE_ARGS_METADATA,
+} from "@nestjs/common/constants";
 import { AccessTokenGuard } from "../../auth/access-token.guard";
 import { REFRESH_COOKIE, refreshCookieOptions } from "../../auth/refresh-cookie";
 import { ConfigService } from "../../config/config.service";
@@ -11,6 +17,8 @@ describe("AdminAccountController", () => {
     getProfile: jest.fn(),
     updateProfile: jest.fn(),
     changePassword: jest.fn(),
+    replaceAvatar: jest.fn(),
+    deleteAvatar: jest.fn(),
   };
   const config = { nodeEnv: "development" } as ConfigService;
   const controller = new AdminAccountController(service as unknown as AdminAccountService, config);
@@ -61,5 +69,41 @@ describe("AdminAccountController", () => {
       { currentPassword: "Current-password-1", newPassword: "Replacement-password-2" },
     );
     expect(response.clearCookie).toHaveBeenCalledWith(REFRESH_COOKIE, refreshCookieOptions(config));
+  });
+
+  it("replaces and deletes only the access-token subject avatar", async () => {
+    const file = {
+      buffer: Buffer.from([0x89, 0x50, 0x4e, 0x47, 0x0d, 0x0a, 0x1a, 0x0a]),
+      mimetype: "image/png",
+    } as Express.Multer.File;
+
+    service.replaceAvatar.mockResolvedValue({ avatar: "https://cdn.example.com/avatar.png" });
+    service.deleteAvatar.mockResolvedValue(undefined);
+
+    await expect(controller.replaceAvatar(file, request as never)).resolves.toEqual({
+      avatar: "https://cdn.example.com/avatar.png",
+    });
+    await expect(controller.deleteAvatar(request as never)).resolves.toBeUndefined();
+
+    expect(service.replaceAvatar).toHaveBeenCalledWith("user-1", {
+      body: file.buffer,
+      contentType: "image/png",
+      extension: "png",
+    });
+    expect(service.deleteAvatar).toHaveBeenCalledWith("user-1");
+  });
+
+  it("documents avatar upload as multipart and binds a file field", () => {
+    expect(Reflect.getMetadata("path", AdminAccountController.prototype.replaceAvatar)).toBe("avatar");
+    expect(Reflect.getMetadata(METHOD_METADATA, AdminAccountController.prototype.replaceAvatar)).toBe(2);
+    expect(
+      Reflect.getMetadata(ROUTE_ARGS_METADATA, AdminAccountController, "replaceAvatar"),
+    ).toEqual(expect.objectContaining({ "8:0": expect.objectContaining({ index: 0 }) }));
+    expect(
+      Reflect.getMetadata(INTERCEPTORS_METADATA, AdminAccountController.prototype.replaceAvatar),
+    ).toHaveLength(1);
+    expect(Reflect.getMetadata("path", AdminAccountController.prototype.deleteAvatar)).toBe("avatar");
+    expect(Reflect.getMetadata(METHOD_METADATA, AdminAccountController.prototype.deleteAvatar)).toBe(3);
+    expect(Reflect.getMetadata(HTTP_CODE_METADATA, AdminAccountController.prototype.deleteAvatar)).toBe(204);
   });
 });

@@ -1,6 +1,7 @@
 import {
   Body,
   Controller,
+  Delete,
   Get,
   HttpCode,
   HttpStatus,
@@ -8,11 +9,22 @@ import {
   Put,
   Req,
   Res,
+  UploadedFile,
   UseGuards,
+  UseInterceptors,
 } from "@nestjs/common";
-import { ApiBearerAuth, ApiNoContentResponse, ApiOperation, ApiTags } from "@nestjs/swagger";
-import type { AdminAccountProfile } from "@petcare/shared-types";
+import { FileInterceptor } from "@nestjs/platform-express";
+import {
+  ApiBearerAuth,
+  ApiBody,
+  ApiConsumes,
+  ApiNoContentResponse,
+  ApiOperation,
+  ApiTags,
+} from "@nestjs/swagger";
+import type { AdminAccountProfile, AdminAvatarResponse } from "@petcare/shared-types";
 import type { Response } from "express";
+import { memoryStorage } from "multer";
 import { AccessTokenGuard } from "../../auth/access-token.guard";
 import type { AccessTokenPayload } from "../../auth/auth.types";
 import { REFRESH_COOKIE, refreshCookieOptions } from "../../auth/refresh-cookie";
@@ -22,10 +34,13 @@ import {
   ApiSuccessResponse,
 } from "../../common/swagger/api-response.decorators";
 import { ConfigService } from "../../config/config.service";
+import { detectAvatarFile } from "../../public-avatar-storage/avatar-file";
 import { ActiveAdministratorGuard } from "./active-administrator.guard";
 import { AdminAccountService, type AdminAccountMutationContext } from "./admin-account.service";
 import {
   AdminAccountProfileDto,
+  AdminAvatarResponseDto,
+  UploadAdminAvatarDto,
   UpdateAdminAccountPasswordDto,
   UpdateAdminAccountProfileDto,
 } from "./dto/admin-account.dto";
@@ -79,5 +94,36 @@ export class AdminAccountController {
 
     await this.adminAccountService.changePassword(context, dto);
     response.clearCookie(REFRESH_COOKIE, refreshCookieOptions(this.configService));
+  }
+
+  @Put("avatar")
+  @UseInterceptors(
+    FileInterceptor("file", {
+      storage: memoryStorage(),
+      limits: { fileSize: 2 * 1024 * 1024, files: 1 },
+    }),
+  )
+  @ApiOperation({ summary: "上传当前管理员头像" })
+  @ApiConsumes("multipart/form-data")
+  @ApiBody({ type: UploadAdminAvatarDto })
+  @ApiSuccessResponse(AdminAvatarResponseDto)
+  @ApiStandardErrors(400, 401, 403, 409, 413, 500, 503)
+  replaceAvatar(
+    @UploadedFile() file: Express.Multer.File | undefined,
+    @Req() request: AuthenticatedRequest,
+  ): Promise<AdminAvatarResponse> {
+    return this.adminAccountService.replaceAvatar(
+      request.user.sub,
+      detectAvatarFile(file?.buffer ?? Buffer.alloc(0), file?.mimetype ?? ""),
+    );
+  }
+
+  @Delete("avatar")
+  @HttpCode(HttpStatus.NO_CONTENT)
+  @ApiOperation({ summary: "删除当前管理员头像" })
+  @ApiNoContentResponse({ description: "头像删除成功" })
+  @ApiStandardErrors(401, 403, 409, 500)
+  async deleteAvatar(@Req() request: AuthenticatedRequest): Promise<void> {
+    await this.adminAccountService.deleteAvatar(request.user.sub);
   }
 }
