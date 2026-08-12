@@ -32,6 +32,7 @@ describe("AdminAccountService", () => {
     logger as unknown as AppLogger,
     avatarStorage as unknown as PublicAvatarStorage,
   );
+  const mutationContext = { userId: "user-1", sessionId: "session-1", requestId: "request-1" };
 
   beforeEach(() => jest.clearAllMocks());
 
@@ -86,10 +87,29 @@ describe("AdminAccountService", () => {
     await expect(service.getProfile("user-1")).resolves.toMatchObject({ maskedPhone: "****" });
   });
 
-  it("trims a nickname before persisting it", async () => {
+  it("trims a nickname before persisting it and returns the latest safe profile", async () => {
     prisma.user.update.mockResolvedValue(undefined);
+    prisma.user.findUnique.mockResolvedValue({
+      id: "user-1",
+      username: "admin",
+      phone: "13800138000",
+      nickname: "值班管理员",
+      avatar: null,
+      status: "active",
+      createdAt: new Date("2026-07-22T00:00:00.000Z"),
+      roles: [{ role: { roleName: "operator" } }],
+    });
 
-    await service.updateProfile("user-1", "  值班管理员  ");
+    await expect(service.updateProfile("user-1", "  值班管理员  ")).resolves.toEqual({
+      id: "user-1",
+      username: "admin",
+      maskedPhone: "138****8000",
+      nickname: "值班管理员",
+      avatar: null,
+      status: "active",
+      roles: ["operator"],
+      createdAt: "2026-07-22T00:00:00.000Z",
+    });
 
     expect(prisma.user.update).toHaveBeenCalledWith({
       where: { id: "user-1" },
@@ -112,7 +132,10 @@ describe("AdminAccountService", () => {
         { userId: "user-1", sessionId: "session-1", requestId: "request-1" },
         { currentPassword: "Current-password-1", newPassword: "Replacement-password-2" },
       ),
-    ).rejects.toMatchObject({ code: "ACCOUNT_PASSWORD_NOT_CONFIGURED" });
+    ).rejects.toMatchObject({
+      code: "ACCOUNT_PASSWORD_NOT_CONFIGURED",
+      status: HttpStatus.CONFLICT,
+    });
     expect(passwordService.verify).not.toHaveBeenCalled();
   });
 
@@ -125,7 +148,10 @@ describe("AdminAccountService", () => {
         { userId: "user-1", sessionId: "session-1", requestId: "request-1" },
         { currentPassword: "Wrong-password-1", newPassword: "Replacement-password-2" },
       ),
-    ).rejects.toMatchObject({ code: "ACCOUNT_CURRENT_PASSWORD_INVALID" });
+    ).rejects.toMatchObject({
+      code: "ACCOUNT_CURRENT_PASSWORD_INVALID",
+      status: HttpStatus.UNAUTHORIZED,
+    });
     expect(passwordService.verify).toHaveBeenCalledTimes(1);
   });
 
@@ -167,6 +193,27 @@ describe("AdminAccountService", () => {
     });
   });
 
+  it("keeps a completed password change successful when session revocation is unavailable", async () => {
+    prisma.user.findUnique.mockResolvedValue({ passwordHash: "old-hash", sessionVersion: 2 });
+    passwordService.verify.mockResolvedValueOnce(true).mockResolvedValueOnce(false);
+    passwordService.hash.mockResolvedValue("new-hash");
+    prisma.user.updateMany.mockResolvedValue({ count: 1 });
+    tokenService.revokeSession.mockRejectedValue(new Error("Redis unavailable"));
+
+    await expect(
+      service.changePassword(mutationContext, {
+        currentPassword: "Current-password-1",
+        newPassword: "Replacement-password-2",
+      }),
+    ).resolves.toBeUndefined();
+
+    expect(logger.write).toHaveBeenCalledWith("error", "admin_account.session_revoke_failed", {
+      userId: "user-1",
+      sessionId: "session-1",
+      requestId: "request-1",
+    });
+  });
+
   it("returns a stable conflict when another password rotation wins the optimistic update", async () => {
     prisma.user.findUnique.mockResolvedValue({ passwordHash: "old-hash", sessionVersion: 2 });
     passwordService.verify.mockResolvedValueOnce(true).mockResolvedValueOnce(false);
@@ -199,7 +246,7 @@ describe("AdminAccountService", () => {
     transaction.user.update.mockResolvedValue(undefined);
     prisma.$transaction.mockImplementation((operation) => operation(transaction));
 
-    await expect(service.replaceAvatar("user-1", file)).resolves.toEqual({
+    await expect(service.replaceAvatar(mutationContext, file)).resolves.toEqual({
       avatar: "https://cdn.example.com/new.png",
     });
 
@@ -212,6 +259,11 @@ describe("AdminAccountService", () => {
       },
     });
     expect(avatarStorage.delete).toHaveBeenCalledWith("public/admin-avatars/user-1/old.png");
+    expect(logger.write).toHaveBeenCalledWith("info", "admin_account.avatar_updated", {
+      userId: "user-1",
+      result: "success",
+      requestId: "request-1",
+    });
   });
 
   it("deletes the newly uploaded object and rethrows when the avatar record swap fails", async () => {
@@ -229,7 +281,7 @@ describe("AdminAccountService", () => {
     prisma.$transaction.mockRejectedValue(databaseError);
     avatarStorage.delete.mockRejectedValue(new Error("cleanup unavailable"));
 
-    await expect(service.replaceAvatar("user-1", file)).rejects.toBe(databaseError);
+    await expect(service.replaceAvatar(mutationContext, file)).rejects.toBe(databaseError);
 
     expect(avatarStorage.delete).toHaveBeenCalledWith("public/admin-avatars/user-1/new.png");
     expect(logger.write).toHaveBeenCalledWith("error", "admin_account.avatar_cleanup_failed", {
@@ -256,7 +308,7 @@ describe("AdminAccountService", () => {
     prisma.$transaction.mockImplementation((operation) => operation(transaction));
     avatarStorage.delete.mockRejectedValue(new Error("cleanup unavailable"));
 
-    await expect(service.replaceAvatar("user-1", file)).resolves.toEqual({
+    await expect(service.replaceAvatar(mutationContext, file)).resolves.toEqual({
       avatar: "https://cdn.example.com/new.png",
     });
 
@@ -285,7 +337,7 @@ describe("AdminAccountService", () => {
       .mockRejectedValueOnce(serializationConflict)
       .mockImplementationOnce((operation) => operation(transaction));
 
-    await expect(service.replaceAvatar("user-1", file)).resolves.toEqual({
+    await expect(service.replaceAvatar(mutationContext, file)).resolves.toEqual({
       avatar: "https://cdn.example.com/new.png",
     });
 
@@ -311,7 +363,7 @@ describe("AdminAccountService", () => {
     });
     prisma.$transaction.mockRejectedValue({ code: "P2034" });
 
-    await expect(service.replaceAvatar("user-1", file)).rejects.toMatchObject({
+    await expect(service.replaceAvatar(mutationContext, file)).rejects.toMatchObject({
       code: "ACCOUNT_CONCURRENT_UPDATE",
       status: HttpStatus.CONFLICT,
     });
@@ -335,7 +387,7 @@ describe("AdminAccountService", () => {
       throw new Error("cleanup unavailable");
     });
 
-    await expect(service.deleteAvatar("user-1")).resolves.toBeUndefined();
+    await expect(service.deleteAvatar(mutationContext)).resolves.toBeUndefined();
 
     expect(transaction.user.update).toHaveBeenCalledWith({
       where: { id: "user-1" },
@@ -346,6 +398,11 @@ describe("AdminAccountService", () => {
     expect(logger.write).toHaveBeenCalledWith("error", "admin_account.avatar_cleanup_failed", {
       userId: "user-1",
       objectKey: "public/admin-avatars/user-1/old.png",
+    });
+    expect(logger.write).toHaveBeenCalledWith("info", "admin_account.avatar_deleted", {
+      userId: "user-1",
+      result: "success",
+      requestId: "request-1",
     });
   });
 
@@ -367,7 +424,7 @@ describe("AdminAccountService", () => {
     transaction.user.update.mockResolvedValue(undefined);
     prisma.$transaction.mockImplementation((operation) => operation(transaction));
 
-    await expect(service.replaceAvatar("user-1", file)).resolves.toEqual({
+    await expect(service.replaceAvatar(mutationContext, file)).resolves.toEqual({
       avatar: "https://cdn.example.com/new.png",
     });
 
@@ -379,7 +436,7 @@ describe("AdminAccountService", () => {
     transaction.user.update.mockResolvedValue(undefined);
     prisma.$transaction.mockImplementation((operation) => operation(transaction));
 
-    await expect(service.deleteAvatar("user-1")).resolves.toBeUndefined();
+    await expect(service.deleteAvatar(mutationContext)).resolves.toBeUndefined();
 
     expect(transaction.user.update).toHaveBeenCalledWith({
       where: { id: "user-1" },

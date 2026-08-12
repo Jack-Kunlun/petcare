@@ -16,8 +16,8 @@ export async function getAdminAccountProfile(): Promise<AdminAccountProfile> {
 /** 更新当前管理员的个人资料。 */
 export async function updateAdminAccountProfile(
   request: UpdateAdminAccountProfileRequest,
-): Promise<void> {
-  const response = await apiClient.patch<void>("/admin/account/profile", request);
+): Promise<AdminAccountProfile> {
+  const response = await apiClient.patch<AdminAccountProfile>("/admin/account/profile", request);
 
   return response.data;
 }

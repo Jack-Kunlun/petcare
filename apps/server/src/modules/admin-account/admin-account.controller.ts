@@ -68,12 +68,13 @@ export class AdminAccountController {
 
   @Patch("profile")
   @ApiOperation({ summary: "更新当前管理员昵称" })
+  @ApiSuccessResponse(AdminAccountProfileDto)
   @ApiStandardErrors(400, 401, 403, 500)
-  async updateProfile(
+  updateProfile(
     @Body() dto: UpdateAdminAccountProfileDto,
     @Req() request: AuthenticatedRequest,
-  ): Promise<void> {
-    await this.adminAccountService.updateProfile(request.user.sub, dto.nickname);
+  ): Promise<AdminAccountProfile> {
+    return this.adminAccountService.updateProfile(request.user.sub, dto.nickname);
   }
 
   @Put("password")
@@ -112,8 +113,14 @@ export class AdminAccountController {
     @UploadedFile() file: Express.Multer.File | undefined,
     @Req() request: AuthenticatedRequest,
   ): Promise<AdminAvatarResponse> {
+    const context: AdminAccountMutationContext = {
+      userId: request.user.sub,
+      sessionId: request.user.sid,
+      requestId: request.requestId,
+    };
+
     return this.adminAccountService.replaceAvatar(
-      request.user.sub,
+      context,
       detectAvatarFile(file?.buffer ?? Buffer.alloc(0), file?.mimetype ?? ""),
     );
   }
@@ -124,6 +131,12 @@ export class AdminAccountController {
   @ApiNoContentResponse({ description: "头像删除成功" })
   @ApiStandardErrors(401, 403, 409, 500)
   async deleteAvatar(@Req() request: AuthenticatedRequest): Promise<void> {
-    await this.adminAccountService.deleteAvatar(request.user.sub);
+    const context: AdminAccountMutationContext = {
+      userId: request.user.sub,
+      sessionId: request.user.sid,
+      requestId: request.requestId,
+    };
+
+    await this.adminAccountService.deleteAvatar(context);
   }
 }

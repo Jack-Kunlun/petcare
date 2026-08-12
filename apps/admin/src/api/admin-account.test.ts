@@ -22,10 +22,10 @@ describe("admin account API client", () => {
     const profile = { id: "admin-1", nickname: "原昵称" };
 
     vi.mocked(apiClient.get).mockResolvedValue({ data: profile } as never);
-    vi.mocked(apiClient.patch).mockResolvedValue({ data: undefined } as never);
+    vi.mocked(apiClient.patch).mockResolvedValue({ data: profile } as never);
 
     await expect(getAdminAccountProfile()).resolves.toBe(profile);
-    await expect(updateAdminAccountProfile({ nickname: "新昵称" })).resolves.toBeUndefined();
+    await expect(updateAdminAccountProfile({ nickname: "新昵称" })).resolves.toBe(profile);
 
     expect(apiClient.get).toHaveBeenCalledWith("/admin/account/profile");
     expect(apiClient.patch).toHaveBeenCalledWith("/admin/account/profile", {
