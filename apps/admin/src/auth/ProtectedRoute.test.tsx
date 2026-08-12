@@ -43,6 +43,7 @@ describe("ProtectedRoute", () => {
       username: "admin",
       phone: "13800138000",
       nickname: "系统管理员",
+      avatar: null,
       roles: ["super_admin"],
       permissions: ["system.view"],
     });

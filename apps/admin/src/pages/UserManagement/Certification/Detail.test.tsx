@@ -28,6 +28,7 @@ function renderPage(permissions = ["user.approve_provider", "user.reject_provide
       username: "operator",
       phone: "13800138000",
       nickname: "运营主管",
+      avatar: null,
       roles: ["operator"],
       permissions,
     },
@@ -36,6 +37,8 @@ function renderPage(permissions = ["user.approve_provider", "user.reject_provide
     getCaptcha: vi.fn(),
     sendSmsCode: vi.fn(),
     logout: vi.fn(),
+    updateUserSummary: vi.fn(),
+    invalidateLocalSession: vi.fn(),
   };
 
   return render(
