@@ -89,6 +89,11 @@ model User {
   systemConfigVersionsPublished     SystemConfigVersion[]              @relation("SystemConfigVersionPublishedBy")
   /// 该用户执行的系统配置审计事件。
   systemConfigAuditEvents           SystemConfigAuditEvent[]           @relation("SystemConfigAuditOperator")
+  websiteContentVersionsCreated     WebsiteContentVersion[]            @relation("WebsiteContentVersionCreatedBy")
+  websiteContentVersionsPublished   WebsiteContentVersion[]            @relation("WebsiteContentVersionPublishedBy")
+  websiteMediaAssetsCreated         WebsiteMediaAsset[]                @relation("WebsiteMediaAssetCreatedBy")
+  websitePreviewTokensCreated       WebsitePreviewToken[]              @relation("WebsitePreviewTokenCreatedBy")
+  websiteContentAuditLogs           WebsiteContentAuditLog[]           @relation("WebsiteContentAuditOperator")
 
   @@index([phone])
   @@index([userType])
@@ -563,6 +568,158 @@ model SystemConfigAuditEvent {
 // ============================================
 // 评价与纠纷
 // ============================================
+
+// ============================================
+// 官网内容版本
+// ============================================
+
+model WebsiteContent {
+  id                    String   @id @default(uuid())
+  contentKey            String   @unique @map("content_key")
+  contentType           String   @map("content_type")
+  currentDraftVersionId String?  @unique @map("current_draft_version_id")
+  publishedVersionId    String?  @unique @map("published_version_id")
+  createdAt             DateTime @default(now()) @map("created_at")
+  updatedAt             DateTime @updatedAt @map("updated_at")
+
+  versions            WebsiteContentVersion[]  @relation("WebsiteContentVersions")
+  currentDraftVersion WebsiteContentVersion?   @relation("WebsiteCurrentDraftVersion", fields: [currentDraftVersionId], references: [id], onDelete: Restrict)
+  publishedVersion    WebsiteContentVersion?   @relation("WebsitePublishedVersion", fields: [publishedVersionId], references: [id], onDelete: Restrict)
+  previewTokens       WebsitePreviewToken[]
+  auditLogs           WebsiteContentAuditLog[]
+
+  @@index([contentType])
+  @@map("website_contents")
+}
+
+model WebsiteContentVersion {
+  id               String    @id @default(uuid())
+  websiteContentId String    @map("website_content_id")
+  status           String
+  revision         Int
+  businessVersion  Int?      @map("business_version")
+  seo              Json
+  sourceVersionId  String?   @map("source_version_id")
+  idempotencyKey   String?   @unique @map("idempotency_key")
+  changeSummary    String    @map("change_summary")
+  createdById      String    @map("created_by_id")
+  publishedById    String?   @map("published_by_id")
+  publishedAt      DateTime? @map("published_at")
+  createdAt        DateTime  @default(now()) @map("created_at")
+
+  websiteContent  WebsiteContent           @relation("WebsiteContentVersions", fields: [websiteContentId], references: [id], onDelete: Cascade)
+  currentDraftFor WebsiteContent?          @relation("WebsiteCurrentDraftVersion")
+  publishedFor    WebsiteContent?          @relation("WebsitePublishedVersion")
+  sourceVersion   WebsiteContentVersion?   @relation("WebsiteContentVersionSource", fields: [sourceVersionId], references: [id], onDelete: SetNull)
+  derivedVersions WebsiteContentVersion[]  @relation("WebsiteContentVersionSource")
+  sections        WebsiteContentSection[]
+  previewTokens   WebsitePreviewToken[]
+  auditLogs       WebsiteContentAuditLog[]
+  createdBy       User                     @relation("WebsiteContentVersionCreatedBy", fields: [createdById], references: [id], onDelete: Restrict)
+  publishedBy     User?                    @relation("WebsiteContentVersionPublishedBy", fields: [publishedById], references: [id], onDelete: SetNull)
+
+  @@unique([websiteContentId, revision])
+  @@unique([websiteContentId, businessVersion])
+  @@index([websiteContentId, status])
+  @@index([sourceVersionId])
+  @@index([createdById])
+  @@index([publishedById])
+  @@map("website_content_versions")
+}
+
+model WebsiteContentSection {
+  id            String   @id @default(uuid())
+  versionId     String   @map("version_id")
+  sectionKey    String   @map("section_key")
+  sectionType   String   @map("section_type")
+  sortOrder     Int      @map("sort_order")
+  isEnabled     Boolean  @default(true) @map("is_enabled")
+  schemaVersion Int      @default(1) @map("schema_version")
+  content       Json
+  settings      Json
+  createdAt     DateTime @default(now()) @map("created_at")
+
+  version WebsiteContentVersion @relation(fields: [versionId], references: [id], onDelete: Cascade)
+
+  @@unique([versionId, sectionKey])
+  @@unique([versionId, sortOrder])
+  @@index([versionId, sortOrder])
+  @@map("website_content_sections")
+}
+
+model WebsiteMediaAsset {
+  id           String    @id @default(uuid())
+  storageKey   String    @unique @map("storage_key")
+  originalName String    @map("original_name")
+  mimeType     String    @map("mime_type")
+  sizeBytes    Int       @map("size_bytes")
+  width        Int
+  height       Int
+  checksum     String
+  status       String    @default("active")
+  createdById  String    @map("created_by_id")
+  archivedAt   DateTime? @map("archived_at")
+  createdAt    DateTime  @default(now()) @map("created_at")
+  updatedAt    DateTime  @updatedAt @map("updated_at")
+
+  createdBy User                     @relation("WebsiteMediaAssetCreatedBy", fields: [createdById], references: [id], onDelete: Restrict)
+  auditLogs WebsiteContentAuditLog[]
+
+  @@index([status, createdAt])
+  @@index([checksum])
+  @@index([createdById])
+  @@map("website_media_assets")
+}
+
+model WebsitePreviewToken {
+  id               String    @id @default(uuid())
+  tokenHash        String    @unique @map("token_hash")
+  websiteContentId String    @map("website_content_id")
+  contentVersionId String    @map("content_version_id")
+  revision         Int
+  createdById      String    @map("created_by_id")
+  expiresAt        DateTime  @map("expires_at")
+  revokedAt        DateTime? @map("revoked_at")
+  lastUsedAt       DateTime? @map("last_used_at")
+  createdAt        DateTime  @default(now()) @map("created_at")
+
+  websiteContent WebsiteContent        @relation(fields: [websiteContentId], references: [id], onDelete: Cascade)
+  contentVersion WebsiteContentVersion @relation(fields: [contentVersionId], references: [id], onDelete: Cascade)
+  createdBy      User                  @relation("WebsitePreviewTokenCreatedBy", fields: [createdById], references: [id], onDelete: Restrict)
+
+  @@index([websiteContentId, contentVersionId])
+  @@index([expiresAt, revokedAt])
+  @@index([createdById])
+  @@map("website_preview_tokens")
+}
+
+model WebsiteContentAuditLog {
+  id               String   @id @default(uuid())
+  websiteContentId String?  @map("website_content_id")
+  contentVersionId String?  @map("content_version_id")
+  mediaAssetId     String?  @map("media_asset_id")
+  operatorId       String   @map("operator_id")
+  action           String
+  targetType       String   @map("target_type")
+  targetId         String?  @map("target_id")
+  revision         Int?
+  businessVersion  Int?     @map("business_version")
+  requestId        String   @map("request_id")
+  result           Json?
+  createdAt        DateTime @default(now()) @map("created_at")
+
+  websiteContent WebsiteContent?        @relation(fields: [websiteContentId], references: [id], onDelete: SetNull)
+  contentVersion WebsiteContentVersion? @relation(fields: [contentVersionId], references: [id], onDelete: SetNull)
+  mediaAsset     WebsiteMediaAsset?     @relation(fields: [mediaAssetId], references: [id], onDelete: SetNull)
+  operator       User                   @relation("WebsiteContentAuditOperator", fields: [operatorId], references: [id], onDelete: Restrict)
+
+  @@index([websiteContentId, createdAt])
+  @@index([contentVersionId])
+  @@index([mediaAssetId])
+  @@index([operatorId, createdAt])
+  @@index([requestId])
+  @@map("website_content_audit_logs")
+}
 
 model Review {
   id                 String   @id @default(uuid())

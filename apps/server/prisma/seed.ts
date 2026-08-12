@@ -4,6 +4,7 @@ import { ConfigService } from "../src/config/config.service";
 import { PrismaClient } from "../src/generated/prisma/client";
 import { seedInitialData } from "../src/seed/seed-initial-data";
 import { seedSystemSettings } from "../src/seed/seed-system-settings";
+import { seedWebsiteContent } from "../src/seed/seed-website-content";
 
 const configService = new ConfigService();
 const logger = new Logger("PrismaSeed");
@@ -28,6 +29,7 @@ async function main(): Promise<void> {
   });
 
   await seedSystemSettings(prisma, administrator.id);
+  await seedWebsiteContent(prisma, administrator.id);
 }
 
 main()
