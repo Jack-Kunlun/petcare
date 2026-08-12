@@ -54,8 +54,9 @@ export function ProfileCard({ profile, onProfileChange }: ProfileCardProps) {
     setSuccess(null);
 
     try {
-      await updateAdminAccountProfile({ nickname: trimmedNickname });
-      updateSummary({ ...profile, nickname: trimmedNickname });
+      const updatedProfile = await updateAdminAccountProfile({ nickname: trimmedNickname });
+
+      updateSummary(updatedProfile);
       setSuccess("昵称已保存");
     } catch {
       setError("昵称保存失败，请稍后重试。");
