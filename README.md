@@ -154,7 +154,7 @@ pnpm clean:modules
 - **Redis配置**：`REDIS_HOST`, `REDIS_PORT`, `REDIS_PASSWORD`
 - **JWT配置**：`JWT_SECRET`, `JWT_ACCESS_EXPIRES_IN`, `JWT_REFRESH_EXPIRES_IN`
 - **管理员认证**：`DEFAULT_ADMIN_USERNAME`, `DEFAULT_ADMIN_PHONE`, `DEFAULT_ADMIN_PASSWORD`, `SMS_DEV_CODE`, `CAPTCHA_TTL_SECONDS`, `CAPTCHA_MAX_ATTEMPTS`
-- **第三方服务**：微信、阿里云OSS等
+- **第三方服务**：微信、腾讯云 COS 管理员公开头像存储等
 - ~~**小程序 API**：`TARO_APP_API_BASE_URL`（已随 Taro 项目移除）~~
 
 详见：[环境变量配置指南](./docs/environment-variables.md)
@@ -276,7 +276,7 @@ const jwtSecret = this.configService.jwtSecret;
 - ✅ 易于测试 - 可以mock ConfigService
 - ✅ 统一入口 - 所有配置访问都通过ConfigService
 - ✅ 启动失败快 - 监听端口前集中校验必填值、端口、JWT 和允许来源
-- ✅ 可选集成成组校验 - 微信与 OSS 未启用时允许为空，启用后必须提供完整合法配置
+- ✅ 可选集成成组校验 - 微信与腾讯云 COS 未启用时允许为空，启用后必须提供完整合法配置；COS 五项均留空时仅禁用头像上传
 
 详见：[环境变量配置指南](./docs/environment-variables.md)
 

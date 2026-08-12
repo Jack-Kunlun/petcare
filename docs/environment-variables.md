@@ -109,14 +109,15 @@ API 和独立 Worker 必须使用相同的 `QUEUE_PREFIX`；生产、预发和�
 
 ### 第三方服务（可选）
 
-| 变量名                         | 说明                       |
-| ------------------------------ | -------------------------- |
-| `WECHAT_APP_ID`                | 微信小程序AppID            |
-| `WECHAT_APP_SECRET`            | 微信小程序AppSecret        |
-| `ALIYUN_OSS_ACCESS_KEY_ID`     | 阿里云OSS AccessKey ID     |
-| `ALIYUN_OSS_ACCESS_KEY_SECRET` | 阿里云OSS AccessKey Secret |
-| `ALIYUN_OSS_BUCKET`            | 阿里云OSS Bucket名称       |
-| `ALIYUN_OSS_REGION`            | 阿里云OSS区域              |
+| 变量名                        | 说明                                                  |
+| ----------------------------- | ----------------------------------------------------- |
+| `WECHAT_APP_ID`               | 微信小程序 AppID                                      |
+| `WECHAT_APP_SECRET`           | 微信小程序 AppSecret                                  |
+| `TENCENT_COS_SECRET_ID`       | 腾讯云 COS 最小权限子账号的 SecretId；仅 Server 读取  |
+| `TENCENT_COS_SECRET_KEY`      | 腾讯云 COS 最小权限子账号的 SecretKey；仅 Server 读取 |
+| `TENCENT_COS_BUCKET`          | 公开头像 Bucket，格式为 `BucketName-APPID`            |
+| `TENCENT_COS_REGION`          | COS 区域代码，例如 `ap-guangzhou`                     |
+| `TENCENT_COS_PUBLIC_BASE_URL` | 可选的头像公开访问基础 URL；留空时使用 COS 默认域名   |
 
 微信配置必须同时留空或同时提供。启用时，`WECHAT_APP_ID` 必须符合 `wx` 加 16 位字符的格式，
 `WECHAT_APP_SECRET` 必须为 32 位十六进制字符串。
@@ -125,8 +126,17 @@ API 和独立 Worker 必须使用相同的 `QUEUE_PREFIX`；生产、预发和�
 
 `WECHAT_APP_ID` 和 `WECHAT_APP_SECRET` 只由 Server 使用，任何客户端都不得包含或读取 AppSecret。Miniapp 的业务请求边界尚未迁移，相关客户端变量将在实际接入时另行确定。
 
-OSS 配置必须四项同时留空或同时提供；Bucket 只能使用小写字母、数字和连字符，Region 使用
-类似 `cn-hangzhou` 的格式。任何不完整或格式错误的字段组都会在 Server 监听端口前使启动失败。
+腾讯云 COS 采用三态配置：
+
+- `TENCENT_COS_SECRET_ID`、`TENCENT_COS_SECRET_KEY`、`TENCENT_COS_BUCKET`、`TENCENT_COS_REGION` 和
+  `TENCENT_COS_PUBLIC_BASE_URL` 都为空时，只禁用管理员公开头像上传；个人资料和密码修改仍可用，上传接口返回
+  `503 STORAGE_UNAVAILABLE`。
+- 前四项中任一项已配置但未完整提供，或只有 `TENCENT_COS_PUBLIC_BASE_URL` 被配置时，Server 会在监听端口前启动失败。
+- 前四项完整提供时启用 COS；`TENCENT_COS_PUBLIC_BASE_URL` 可选，若提供必须是绝对 HTTP(S) URL。
+
+生产环境应使用独立的公开读、私有写头像 Bucket，并为 Server 配置仅能操作该 Bucket 中
+`public/admin-avatars/` 前缀的最小权限子账号凭据。不要将 SecretId、SecretKey 或根账号凭据写入客户端、仓库或
+文档示例；根目录 `.env` 仅供本地使用，已被 Git 忽略。
 
 ## 使用方法
 
