@@ -31,8 +31,10 @@
     "commit:check": "node scripts/commit-check.mjs",
     "check": "pnpm format:check && pnpm lint && pnpm typecheck && pnpm test && pnpm build",
     "clean": "turbo run clean && node scripts/clean.mjs node_modules .turbo",
+    "clean:modules": "node scripts/clean.mjs --modules",
     "format": "prettier --write .",
     "format:check": "prettier --check .",
+    "preinstall": "node scripts/enforce-pnpm.mjs",
     "prepare": "husky",
     "changelog": "conventional-changelog -p conventionalcommits -i CHANGELOG.md -s -r 0",
     "release": "pnpm changelog && git add CHANGELOG.md && git commit -m \"docs: 更新发布变更日志\" && git tag",
@@ -64,11 +66,11 @@
   "lint-staged": {
     "apps/admin/src/**/*.{ts,tsx}": [
       "prettier --write",
-      "corepack pnpm --filter @petcare/admin exec -- eslint --fix"
+      "pnpm --filter @petcare/admin exec -- eslint --fix"
     ],
     "apps/miniapp/**/*.{js,mjs,ts,vue}": [
       "prettier --write",
-      "corepack pnpm --filter @petcare/miniapp exec -- eslint --fix"
+      "pnpm --filter @petcare/miniapp exec -- eslint --fix"
     ],
     "apps/miniapp/**/*.{css,scss,json}": [
       "prettier --write"
@@ -78,19 +80,19 @@
     ],
     "apps/server/src/**/*.ts": [
       "prettier --write",
-      "corepack pnpm --filter @petcare/server exec -- eslint --fix"
+      "pnpm --filter @petcare/server exec -- eslint --fix"
     ],
     "packages/shared-types/**/*.ts": [
       "prettier --write",
-      "corepack pnpm --filter @petcare/shared-types exec -- eslint --fix"
+      "pnpm --filter @petcare/shared-types exec -- eslint --fix"
     ],
     "packages/shared-utils/**/*.ts": [
       "prettier --write",
-      "corepack pnpm --filter @petcare/shared-utils exec -- eslint --fix"
+      "pnpm --filter @petcare/shared-utils exec -- eslint --fix"
     ],
     "packages/api-client/**/*.ts": [
       "prettier --write",
-      "corepack pnpm --filter @petcare/api-client exec -- eslint --fix"
+      "pnpm --filter @petcare/api-client exec -- eslint --fix"
     ],
     "scripts/**/*.{js,mjs,cjs}": [
       "prettier --write",

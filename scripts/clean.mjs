@@ -1,5 +1,5 @@
-import { rm } from "node:fs/promises";
-import { isAbsolute, relative, resolve } from "node:path";
+import { readdir, rm } from "node:fs/promises";
+import { isAbsolute, join, relative, resolve } from "node:path";
 import process from "node:process";
 import { fileURLToPath } from "node:url";
 
@@ -25,8 +25,32 @@ export async function cleanPaths(root, relativePaths) {
   }
 }
 
+export async function cleanWorkspaceModules(root) {
+  const modulePaths = ["node_modules"];
+
+  for (const workspaceRoot of ["apps", "packages"]) {
+    const workspaceDirectories = await readdir(join(root, workspaceRoot), {
+      withFileTypes: true,
+    }).catch(() => []);
+
+    for (const directory of workspaceDirectories) {
+      if (directory.isDirectory()) {
+        modulePaths.push(join(workspaceRoot, directory.name, "node_modules"));
+      }
+    }
+  }
+
+  await cleanPaths(root, modulePaths);
+}
+
 const isCli = process.argv[1] && resolve(process.argv[1]) === fileURLToPath(import.meta.url);
 
 if (isCli) {
-  await cleanPaths(process.cwd(), process.argv.slice(2));
+  const targets = process.argv.slice(2);
+
+  if (targets.length === 1 && targets[0] === "--modules") {
+    await cleanWorkspaceModules(process.cwd());
+  } else {
+    await cleanPaths(process.cwd(), targets);
+  }
 }
