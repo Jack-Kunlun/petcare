@@ -11,8 +11,10 @@ const activeAdmin = {
   username: "admin",
   phone: "13800138000",
   nickname: "系统管理员",
+  avatar: null,
   status: "active",
   passwordHash: "$argon2id$v=19$test",
+  sessionVersion: 0,
   roles: [
     {
       role: {
@@ -94,10 +96,14 @@ describe("AuthService", () => {
         username: "admin",
         phone: "13800138000",
         nickname: "系统管理员",
+        avatar: null,
         roles: ["super_admin"],
         permissions: RBAC_PERMISSION_CATALOG.map((permission) => permission.code),
       },
     });
+    expect(tokenService.issue).toHaveBeenCalledWith(
+      expect.objectContaining({ sessionVersion: 0 }),
+    );
   });
 
   it("allows an active ordinary RBAC administrator to log in", async () => {

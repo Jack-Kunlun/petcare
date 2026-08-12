@@ -11,6 +11,7 @@ const activeUser = {
   username: null,
   nickname: "宠友1878",
   avatar: null,
+  sessionVersion: 0,
   userType: "pet_owner",
   status: "active",
   roles: [],
@@ -104,6 +105,9 @@ describe("WechatAuthService", () => {
         userType: "pet_owner",
       },
     });
+    expect(tokenService.issue).toHaveBeenCalledWith(
+      expect.objectContaining({ sessionVersion: 0 }),
+    );
   });
 
   it("stores a short-lived binding challenge without creating a user", async () => {
