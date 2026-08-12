@@ -123,7 +123,7 @@ API 和独立 Worker 必须使用相同的 `QUEUE_PREFIX`；生产、预发和�
 
 ~~Miniapp 只读取 `TARO_APP_API_BASE_URL`，并从 `apps/miniapp/project.config.json` 取得公开 AppID。~~
 
-`WECHAT_APP_ID` 和 `WECHAT_APP_SECRET` 只由 Server 使用，任何客户端都不得包含或读取 AppSecret。UniApp 的业务请求边界尚未迁移，相关客户端变量将在实际接入时另行确定。
+`WECHAT_APP_ID` 和 `WECHAT_APP_SECRET` 只由 Server 使用，任何客户端都不得包含或读取 AppSecret。Miniapp 的业务请求边界尚未迁移，相关客户端变量将在实际接入时另行确定。
 
 OSS 配置必须四项同时留空或同时提供；Bucket 只能使用小写字母、数字和连字符，Region 使用
 类似 `cn-hangzhou` 的格式。任何不完整或格式错误的字段组都会在 Server 监听端口前使启动失败。
@@ -155,7 +155,7 @@ OSS 配置必须四项同时留空或同时提供；Bucket 只能使用小写字
 
 5. ~~在微信开发者工具中导入 `apps/miniapp`，并通过 `TARO_APP_API_BASE_URL` 配置请求地址。~~
 
-   原 Taro 联调流程已弃用；UniApp 业务请求尚未迁移，不沿用旧变量和旧项目配置。
+   原 Taro 联调流程已弃用；Miniapp 业务请求尚未迁移，不沿用旧变量和旧项目配置。
 
 ## 注意事项
 

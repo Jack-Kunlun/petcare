@@ -7,23 +7,23 @@
   "scripts": {
     "build": "turbo run build",
     "build:admin": "pnpm --filter @petcare/admin build",
-    "build:uniapp:h5": "pnpm --filter @petcare/uniapp build:h5",
-    "build:uniapp:mp-weixin": "pnpm --filter @petcare/uniapp build:mp-weixin",
-    "build:uniapp:app-android": "pnpm --filter @petcare/uniapp build:app-android",
-    "build:uniapp:app-ios": "pnpm --filter @petcare/uniapp build:app-ios",
+    "build:miniapp:h5": "pnpm --filter @petcare/miniapp build:h5",
+    "build:miniapp:mp-weixin": "pnpm --filter @petcare/miniapp build:mp-weixin",
+    "build:miniapp:app-android": "pnpm --filter @petcare/miniapp build:app-android",
+    "build:miniapp:app-ios": "pnpm --filter @petcare/miniapp build:app-ios",
     "build:server": "pnpm --filter @petcare/server build",
-    "dev": "turbo run dev --filter=@petcare/admin --filter=@petcare/server --filter=@petcare/uniapp",
+    "dev": "turbo run dev --filter=@petcare/admin --filter=@petcare/server --filter=@petcare/miniapp",
     "dev:admin": "pnpm --filter @petcare/admin dev",
-    "dev:uniapp:h5": "pnpm --filter @petcare/uniapp dev:h5",
-    "dev:uniapp:mp-weixin": "pnpm --filter @petcare/uniapp dev:mp-weixin",
-    "dev:uniapp:app-android": "pnpm --filter @petcare/uniapp dev:app-android",
-    "dev:uniapp:app-ios": "pnpm --filter @petcare/uniapp dev:app-ios",
+    "dev:miniapp:h5": "pnpm --filter @petcare/miniapp dev:h5",
+    "dev:miniapp:mp-weixin": "pnpm --filter @petcare/miniapp dev:mp-weixin",
+    "dev:miniapp:app-android": "pnpm --filter @petcare/miniapp dev:app-android",
+    "dev:miniapp:app-ios": "pnpm --filter @petcare/miniapp dev:app-ios",
     "dev:server": "pnpm --filter @petcare/server start:dev",
     "typecheck": "turbo run typecheck",
     "lint": "pnpm lint:styles && pnpm lint:scripts && turbo run lint",
     "lint:styles": "node scripts/style-policy.mjs admin",
     "lint:scripts": "node node_modules/eslint/bin/eslint.js scripts",
-    "test:tooling": "node --test scripts/repository-policy.test.mjs scripts/dependency-alignment.test.mjs scripts/clean.test.mjs scripts/workspace-contract.test.mjs scripts/compose-policy.test.mjs scripts/ci-policy.test.mjs scripts/style-policy.test.mjs scripts/style-output-policy.test.mjs scripts/admin-e2e-runner.test.mjs scripts/uniapp-minimal-shell.test.mjs",
+    "test:tooling": "node --test scripts/repository-policy.test.mjs scripts/dependency-alignment.test.mjs scripts/clean.test.mjs scripts/workspace-contract.test.mjs scripts/compose-policy.test.mjs scripts/ci-policy.test.mjs scripts/style-policy.test.mjs scripts/style-output-policy.test.mjs scripts/admin-e2e-runner.test.mjs scripts/miniapp-minimal-shell.test.mjs",
     "test": "pnpm test:tooling && turbo run test",
     "test:ci": "pnpm test:tooling && turbo run test --concurrency=1",
     "test:coverage": "turbo run test:coverage",
@@ -66,14 +66,14 @@
       "prettier --write",
       "corepack pnpm --filter @petcare/admin exec -- eslint --fix"
     ],
-    "apps/uniapp/**/*.{js,mjs,ts,vue}": [
+    "apps/miniapp/**/*.{js,mjs,ts,vue}": [
       "prettier --write",
-      "corepack pnpm --filter @petcare/uniapp exec -- eslint --fix"
+      "corepack pnpm --filter @petcare/miniapp exec -- eslint --fix"
     ],
-    "apps/uniapp/**/*.{css,scss,json}": [
+    "apps/miniapp/**/*.{css,scss,json}": [
       "prettier --write"
     ],
-    "apps/uniapp/**/*.{md,html}": [
+    "apps/miniapp/**/*.{md,html}": [
       "prettier --write"
     ],
     "apps/server/src/**/*.ts": [

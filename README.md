@@ -8,11 +8,11 @@
 - **Admin前端**: React 19 + Vite + shadcn/ui + TailwindCSS
 - **后端服务**: Nest.js + Prisma + PostgreSQL + Redis
 - ~~**小程序**: Taro 4.x + React 18 + React Context（已弃用）~~
-- **跨端客户端**: UniApp + Vue 3 + Wot UI + UnoCSS
+- **跨端客户端**: Miniapp 项目（UniApp + Vue 3 + Wot UI + UnoCSS）
 
 ### Taro 弃用说明
 
-项目自 2026-08-11 起只维护 `apps/uniapp`。同时保留 Taro 与 UniApp 会重复维护依赖、构建链、样式规则、质量门禁和使用文档，因此已删除 `apps/miniapp`。这是减少双轨维护的工程决策，不代表 Taro 本身不可用。原 Taro 页面和认证能力没有迁移，后续必须在 UniApp 中重新实现。
+项目自 2026-08-11 起只维护 `apps/miniapp`，其技术框架为 UniApp。同时保留 Taro 与 UniApp 会重复维护依赖、构建链、样式规则、质量门禁和使用文档，因此已删除原 Taro 客户端。原 Taro 页面和认证能力没有迁移，后续必须在 Miniapp 项目中重新实现。
 
 ## 项目结构
 
@@ -23,7 +23,7 @@ petcare-monorepo/
 ├── apps/                    # 应用层
 │   ├── admin/              # 后台管理系统
 │   ├── server/             # 后端服务
-│   └── uniapp/             # H5、微信小程序和移动 App
+│   └── miniapp/            # UniApp 跨端客户端：H5、微信小程序和移动 App
 ├── packages/               # 共享包
 │   ├── shared-types/       # 共享类型定义
 │   ├── shared-utils/       # 共享工具函数
@@ -84,7 +84,7 @@ pnpm dev
 # 单独启动某个应用
 pnpm dev:admin
 pnpm dev:server
-pnpm dev:uniapp:mp-weixin
+pnpm dev:miniapp:mp-weixin
 ```
 
 ~~旧命令：`pnpm dev:miniapp`~~
@@ -108,7 +108,7 @@ pnpm build
 # 单独构建某个应用
 pnpm build:admin
 pnpm build:server
-pnpm build:uniapp:mp-weixin
+pnpm build:miniapp:mp-weixin
 ```
 
 ~~旧命令：`pnpm build:miniapp`~~
@@ -139,7 +139,7 @@ pnpm check
 - **Commitlint**: `commitlint.config.js` - Git commit消息规范
 - **Husky**: `.husky/` - Git hooks自动化检查（提交前格式化、lint、类型检查和E2E）
 - ~~**Tailwind CSS v4**: Admin 与 Taro Miniapp 共用 CSS-first 规则（已弃用）~~
-- **样式工具链**: Admin 使用 Tailwind CSS v4；UniApp 使用 UnoCSS 与 Wot UI
+- **样式工具链**: Admin 使用 Tailwind CSS v4；Miniapp 使用 UnoCSS 与 Wot UI
 
 ### 常用命令
 
