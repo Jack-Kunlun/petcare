@@ -49,6 +49,23 @@ describe("ADMIN_ROUTE_REGISTRY", () => {
     }
   });
 
+  it("registers account as a protected, menu-less route available without business permissions", () => {
+    expect(ADMIN_ROUTE_REGISTRY.find((route) => route.path === "/account")).toMatchObject({
+      id: "account",
+      menuPermission: null,
+      requiredPermissions: [],
+      parentPath: null,
+      menuLabel: null,
+    });
+
+    expect(getVisibleMenuRoutes([])).not.toContainEqual(
+      expect.objectContaining({ path: "/account" }),
+    );
+    expect(getVisibleRootMenuRoutes([])).not.toContainEqual(
+      expect.objectContaining({ path: "/account" }),
+    );
+  });
+
   it("returns only menu routes allowed by the current permission codes in catalog order", () => {
     expect(
       getVisibleMenuRoutes(["stats.view", "dispute.view", "system.view"]).map(

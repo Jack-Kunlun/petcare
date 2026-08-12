@@ -35,6 +35,7 @@ vi.mock("./pages/OrderManagement/Complaint/Detail", () => ({
 vi.mock("./pages/Settings", () => ({ default: () => "系统设置概览路由" }));
 vi.mock("./pages/Settings/Edit", () => ({ default: () => "系统设置编辑路由" }));
 vi.mock("./pages/Settings/Detail", () => ({ default: () => "系统设置历史详情路由" }));
+vi.mock("./pages/Account", () => ({ default: () => "个人中心路由" }));
 
 describe("App complaint routes", () => {
   beforeEach(() => {
@@ -64,5 +65,14 @@ describe("App system settings routes", () => {
     render(<App />);
 
     expect(await screen.findByText(expected)).toBeInTheDocument();
+  });
+});
+
+describe("App account route", () => {
+  it("renders for an authenticated user without a business permission", async () => {
+    window.history.replaceState({}, "", "/account");
+    render(<App />);
+
+    expect(await screen.findByText("个人中心路由")).toBeInTheDocument();
   });
 });
