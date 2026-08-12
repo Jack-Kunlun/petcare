@@ -1,5 +1,6 @@
 import { ArgumentsHost, Catch, ExceptionFilter, HttpException } from "@nestjs/common";
 import { Response } from "express";
+import { MulterError } from "multer";
 import { AppLogger } from "../../logging/app-logger.service";
 import { ApiException } from "./api-exception";
 import { RequestWithId } from "./api-response.types";
@@ -17,7 +18,7 @@ export class ApiExceptionFilter implements ExceptionFilter {
     const context = host.switchToHttp();
     const request = context.getRequest<RequestWithId>();
     const response = context.getResponse<Response>();
-    const status = exception instanceof HttpException ? exception.getStatus() : 500;
+    const status = this.statusFor(exception);
     const mapped = this.mapException(exception, status);
 
     if (status >= 500) {
@@ -48,6 +49,10 @@ export class ApiExceptionFilter implements ExceptionFilter {
   }
 
   private mapException(exception: unknown, status: number): MappedException {
+    if (exception instanceof MulterError && exception.code === "LIMIT_FILE_SIZE") {
+      return { code: "AVATAR_FILE_TOO_LARGE", message: "头像文件不能超过 2MB" };
+    }
+
     if (exception instanceof ApiException) {
       return { code: exception.code, message: exception.clientMessage };
     }
@@ -73,5 +78,17 @@ export class ApiExceptionFilter implements ExceptionFilter {
     }
 
     return { code: "INTERNAL_SERVER_ERROR", message: "服务内部错误" };
+  }
+
+  private statusFor(exception: unknown): number {
+    if (exception instanceof MulterError && exception.code === "LIMIT_FILE_SIZE") {
+      return 413;
+    }
+
+    if (exception instanceof MulterError) {
+      return 400;
+    }
+
+    return exception instanceof HttpException ? exception.getStatus() : 500;
   }
 }
