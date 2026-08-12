@@ -40,19 +40,113 @@ petcare-monorepo/
 - PostgreSQL >= 15.0
 - Redis >= 7.0
 
-### 安装依赖
+### 首次启动
+
+1. 启用 Corepack，并安装项目 `packageManager` 字段声明的 pnpm 版本：
 
 ```bash
-pnpm install
+corepack enable
+corepack install
 ```
 
-### 环境变量配置
+`pnpm-workspace.yaml` 会在本机 pnpm 版本不同时自动下载项目声明的版本，
+因此无需手动把全局 pnpm 降级。项目只允许 pnpm 安装依赖；
+`npm install`、`yarn install` 和 `bun install` 会被拒绝。
 
-项目使用独立的环境变量配置。本地开发统一读取根目录 `.env`：
+2. 按锁文件安装依赖：
+
+```bash
+pnpm install --frozen-lockfile
+```
+
+Node 和 pnpm 的严格校验策略位于 `pnpm-workspace.yaml`。项目级 `.npmrc` 仅用于本地
+registry 认证且不提交；请将 token 保存在 pnpm 用户级认证配置或 CI 密钥中。
+
+3. 创建本地配置：
 
 ```bash
 cp .env.example .env
 ```
+
+PowerShell：
+
+```powershell
+Copy-Item .env.example .env
+```
+
+至少替换 `.env` 中的 `DB_PASSWORD`、`REDIS_PASSWORD`、`JWT_SECRET`、
+`DEFAULT_ADMIN_PHONE` 和 `DEFAULT_ADMIN_PASSWORD`。本地 Server 连接容器时保持
+`DB_HOST=localhost`、`REDIS_HOST=localhost`、`EXPOSE_DB_PORT=5432` 和
+`EXPOSE_REDIS_PORT=6379`。
+
+4. 启动 PostgreSQL 和 Redis，然后初始化数据库：
+
+```bash
+docker compose --env-file .env up -d postgres redis
+pnpm --filter @petcare/server prisma:push
+pnpm --filter @petcare/server prisma:seed
+```
+
+5. 启动 Admin、Server 和 Miniapp H5 开发服务：
+
+```bash
+pnpm dev
+```
+
+启动后可访问 Admin <http://localhost:8986>、Server <http://localhost:3000>、
+Swagger <http://localhost:3000/api-docs> 和健康检查 <http://localhost:3000/health>。
+
+Miniapp 的微信小程序端需单独运行：
+
+```bash
+pnpm dev:miniapp:mp-weixin
+```
+
+然后在微信开发者工具中导入 `apps/miniapp/dist/dev/mp-weixin`。
+
+### 日常启动
+
+完成首次初始化后，日常开发只需：
+
+```bash
+docker compose --env-file .env up -d postgres redis
+pnpm dev
+```
+
+也可单独启动：
+
+```bash
+pnpm dev:admin
+pnpm dev:server
+pnpm dev:miniapp:h5
+pnpm dev:miniapp:mp-weixin
+```
+
+### 升级 pnpm
+
+pnpm 版本不跟随开发者的全局安装自动漂移。升级由维护者显式执行：
+
+```bash
+corepack use pnpm@<目标版本>
+pnpm install
+pnpm check
+```
+
+`corepack use` 会更新根 `package.json` 的 `packageManager` 并安装依赖。审查并提交
+`package.json`、`pnpm-lock.yaml` 的变化后，本地、CI 和 Docker 就会统一使用新版本。
+
+如需重置本地依赖，可一键删除根目录以及所有 `apps/*`、`packages/*`
+工作区中的 `node_modules`：
+
+```bash
+pnpm clean:modules
+```
+
+该命令不会删除 pnpm 全局 store，执行后需重新运行 `pnpm install`。
+
+### 环境变量配置
+
+项目使用独立的环境变量配置。本地开发统一读取根目录 `.env`：
 
 **主要配置项：**
 
@@ -65,31 +159,7 @@ cp .env.example .env
 
 详见：[环境变量配置指南](./docs/environment-variables.md)
 
-### 开发环境启动
-
-先启动本地依赖容器，再同步数据库并初始化默认管理员：
-
-```bash
-docker compose up -d postgres redis
-pnpm --filter @petcare/server prisma:push
-pnpm --filter @petcare/server prisma:seed
-```
-
-当 Server 在宿主机运行时，根 `.env` 中应使用 `DB_HOST=localhost`、`REDIS_HOST=localhost`。然后可直接从根目录启动：
-
-```bash
-# 启动所有应用
-pnpm dev
-
-# 单独启动某个应用
-pnpm dev:admin
-pnpm dev:server
-pnpm dev:miniapp:mp-weixin
-```
-
-~~旧命令：`pnpm dev:miniapp`~~
-
-本地地址：Admin `http://localhost:8986`，Server `http://localhost:3000`。默认管理员支持“手机号或账号 + 密码”以及“手机号 + 验证码”两种登录方式。发送短信验证码前需要先填写图形验证码；点击验证码图片可以换一张。
+默认管理员支持“手机号或账号 + 密码”以及“手机号 + 验证码”两种登录方式。发送短信验证码前需要先填写图形验证码；点击验证码图片可以换一张。
 
 ### API 响应协议
 

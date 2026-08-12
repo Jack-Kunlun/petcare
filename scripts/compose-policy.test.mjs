@@ -58,3 +58,12 @@ test("Server 构建镜像在编译应用前构建共享类型", async () => {
   assert.notEqual(serverBuild, -1);
   assert.ok(sharedTypesBuild < serverBuild);
 });
+
+test("Docker 从根 packageManager 读取 pnpm 版本", async () => {
+  for (const path of ["Dockerfile.admin", "Dockerfile.server"]) {
+    const dockerfile = await readFile(resolve(root, path), "utf8");
+
+    assert.doesNotMatch(dockerfile, /pnpm@\d/);
+    assert.match(dockerfile, /COPY package\.json .*\n(?:.*\n)*?RUN corepack enable/);
+  }
+});

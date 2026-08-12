@@ -98,9 +98,9 @@ export function createPnpmInvocation(args, platform, comSpec) {
   if (platform === "win32") {
     return {
       executable: comSpec ?? "cmd.exe",
-      args: ["/d", "/s", "/c", `corepack pnpm ${args.join(" ")}`],
+      args: ["/d", "/s", "/c", `pnpm ${args.join(" ")}`],
     };
   }
 
-  return { executable: "corepack", args: ["pnpm", ...args] };
+  return { executable: "pnpm", args };
 }
