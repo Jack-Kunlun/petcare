@@ -13,8 +13,10 @@ interface AdminUserRecord {
   username: string | null;
   phone: string;
   nickname: string;
+  avatar: string | null;
   status: string;
   passwordHash: string | null;
+  sessionVersion: number;
   roles: Array<{
     role: {
       roleName: string;
@@ -29,6 +31,7 @@ export interface SafeAdminUser {
   username: string | null;
   phone: string;
   nickname: string;
+  avatar: string | null;
   roles: string[];
   permissions: string[];
 }
@@ -50,8 +53,10 @@ const adminUserSelect = {
   username: true,
   phone: true,
   nickname: true,
+  avatar: true,
   status: true,
   passwordHash: true,
+  sessionVersion: true,
   roles: {
     select: {
       role: {
@@ -225,6 +230,7 @@ export class AuthService {
       username: user.username,
       phone: user.phone,
       roles: safeUser.roles,
+      sessionVersion: user.sessionVersion,
     });
 
     return { ...tokens, user: safeUser };
@@ -240,6 +246,7 @@ export class AuthService {
       username: user.username,
       phone: user.phone,
       nickname: user.nickname,
+      avatar: user.avatar,
       roles: user.roles
         .filter((assignment) => assignment.role.isActive)
         .map((assignment) => assignment.role.roleName),
