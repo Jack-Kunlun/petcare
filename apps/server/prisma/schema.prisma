@@ -30,17 +30,19 @@ enum ProviderRetrainingStatus {
 // ============================================
 
 model User {
-  id           String   @id @default(uuid())
-  openid       String?  @unique
-  phone        String   @unique
-  username     String?  @unique
-  passwordHash String?  @map("password_hash")
-  nickname     String
-  avatar       String?
-  userType     String   @default("pet_owner") @map("user_type") // pet_owner / provider
-  status       String   @default("active") // active / inactive / banned
-  createdAt    DateTime @default(now()) @map("created_at")
-  updatedAt    DateTime @updatedAt @map("updated_at")
+  id              String   @id @default(uuid())
+  openid          String?  @unique
+  phone           String   @unique
+  username        String?  @unique
+  passwordHash    String?  @map("password_hash")
+  nickname        String
+  avatar          String?
+  avatarObjectKey String?  @map("avatar_object_key")
+  sessionVersion  Int      @default(0) @map("session_version")
+  userType        String   @default("pet_owner") @map("user_type") // pet_owner / provider
+  status          String   @default("active") // active / inactive / banned
+  createdAt       DateTime @default(now()) @map("created_at")
+  updatedAt       DateTime @updatedAt @map("updated_at")
 
   profile                           UserProfile?
   provider                          Provider?

@@ -4,6 +4,7 @@ export * from "./response";
 export * from "./user";
 export * from "./order";
 export * from "./auth";
+export * from "./admin-account";
 export * from "./admin";
 export * from "./provider-certification";
 export * from "./complaint-dispute";
