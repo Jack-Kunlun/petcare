@@ -5,7 +5,7 @@
 - 请求参数、响应数据、分页结构和业务枚举统一定义在
   `packages/shared-types/src/api/`。
 - ~~Admin、Taro Miniapp 和 Server 必须从 `@petcare/shared-types` 导入契约。~~
-- Admin、UniApp 和 Server 必须从 `@petcare/shared-types` 导入契约，禁止在应用内重复声明同名接口。
+- Admin、Miniapp 和 Server 必须从 `@petcare/shared-types` 导入契约，禁止在应用内重复声明同名接口。
 - Server 的 DTO 负责运行时校验和 Swagger 元数据，并通过 `implements` 对齐共享请求契约。
 - 时间在 HTTP 契约中统一使用 ISO 8601 字符串；数据库实体中的 `Date` 由响应序列化层转换。
 - 新增或修改字段时先更新共享契约，再同步服务端 DTO、业务实现和客户端调用。

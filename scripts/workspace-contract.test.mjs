@@ -7,7 +7,7 @@ const root = resolve(import.meta.dirname, "..");
 const manifests = [
   "apps/admin/package.json",
   "apps/server/package.json",
-  "apps/uniapp/package.json",
+  "apps/miniapp/package.json",
   "packages/api-client/package.json",
   "packages/shared-types/package.json",
   "packages/shared-utils/package.json",
@@ -15,8 +15,8 @@ const manifests = [
 ];
 const lifecycle = ["dev", "build", "typecheck", "lint", "test", "test:coverage", "clean"];
 
-test("UniApp workspace uses the official Vitesse scaffold contract", async () => {
-  const manifest = await readJson("apps/uniapp/package.json");
+test("Miniapp workspace preserves the UniApp target contract", async () => {
+  const manifest = await readJson("apps/miniapp/package.json");
   const requiredTargetScripts = [
     "dev:h5",
     "dev:mp-weixin",
@@ -28,12 +28,12 @@ test("UniApp workspace uses the official Vitesse scaffold contract", async () =>
     "build:app-ios",
   ];
 
-  assert.equal(manifest.name, "@petcare/uniapp");
+  assert.equal(manifest.name, "@petcare/miniapp");
   for (const script of [...lifecycle, ...requiredTargetScripts]) {
     assert.equal(
       typeof manifest.scripts?.[script],
       "string",
-      `apps/uniapp/package.json is missing ${script}`,
+      `apps/miniapp/package.json is missing ${script}`,
     );
   }
 });
@@ -75,23 +75,25 @@ test("根级命令覆盖质量门禁与三端开发", async () => {
   assert.equal(manifest.engines.node, ">=24.12.0 <25");
   assert.equal(manifest.engines.pnpm, ">=11.0.0 <12");
 
-  const uniappManifest = await readJson("apps/uniapp/package.json");
-  assert.equal(uniappManifest.engines.node, manifest.engines.node);
-  assert.equal(uniappManifest.engines.pnpm, manifest.engines.pnpm);
+  const miniappManifest = await readJson("apps/miniapp/package.json");
+  assert.equal(miniappManifest.engines.node, manifest.engines.node);
+  assert.equal(miniappManifest.engines.pnpm, manifest.engines.pnpm);
   assert.match(manifest.scripts.dev, /@petcare\/admin/);
   assert.match(manifest.scripts.dev, /@petcare\/server/);
-  assert.match(manifest.scripts.dev, /@petcare\/uniapp/);
+  assert.match(manifest.scripts.dev, /@petcare\/miniapp/);
   assert.match(manifest.scripts.check, /format:check.*lint.*typecheck.*test.*build/);
 
   for (const target of ["h5", "mp-weixin", "app-android", "app-ios"]) {
     assert.equal(
-      manifest.scripts[`dev:uniapp:${target}`],
-      `pnpm --filter @petcare/uniapp dev:${target}`,
+      manifest.scripts[`dev:miniapp:${target}`],
+      `pnpm --filter @petcare/miniapp dev:${target}`,
     );
     assert.equal(
-      manifest.scripts[`build:uniapp:${target}`],
-      `pnpm --filter @petcare/uniapp build:${target}`,
+      manifest.scripts[`build:miniapp:${target}`],
+      `pnpm --filter @petcare/miniapp build:${target}`,
     );
+    assert.equal(manifest.scripts[`dev:uniapp:${target}`], undefined);
+    assert.equal(manifest.scripts[`build:uniapp:${target}`], undefined);
   }
 });
 

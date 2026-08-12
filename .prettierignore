@@ -41,7 +41,7 @@ coverage
 .turbo
 
 # UniApp vendor and generated declarations
-apps/uniapp/src/uni_modules/
-apps/uniapp/src/auto-imports.d.ts
-apps/uniapp/src/components.d.ts
-apps/uniapp/src/uni-pages.d.ts
+apps/miniapp/src/uni_modules/
+apps/miniapp/src/auto-imports.d.ts
+apps/miniapp/src/components.d.ts
+apps/miniapp/src/uni-pages.d.ts

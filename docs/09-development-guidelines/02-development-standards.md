@@ -958,7 +958,7 @@ git commit -m "refactor(user): 重构用户服务层"
 | **apps/admin**            | Vite        | Vitest + React Testing Library | 与Vite无缝集成，配置简单 |
 | **apps/server**           | Nest.js CLI | Jest + ts-jest                 | Nest.js官方推荐          |
 | ~~**apps/miniapp**~~      | ~~Taro~~    | ~~Jest~~                       | ~~已弃用并删除~~         |
-| **apps/uniapp**           | UniApp CLI  | Vitest                         | Vue 3 跨端客户端         |
+| **apps/miniapp**          | UniApp CLI  | Vitest                         | Vue 3 跨端客户端         |
 | **packages/shared-types** | TypeScript  | Vitest                         | 轻量快速                 |
 | **packages/shared-utils** | TypeScript  | Vitest                         | 轻量快速                 |
 | **packages/api-client**   | TypeScript  | Vitest                         | 轻量快速                 |

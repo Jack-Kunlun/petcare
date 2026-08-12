@@ -1,6 +1,6 @@
 const DIRECT_WORKSPACES = Object.freeze({
   "apps/admin/": "@petcare/admin",
-  "apps/uniapp/": "@petcare/uniapp",
+  "apps/miniapp/": "@petcare/miniapp",
   "apps/server/": "@petcare/server",
 });
 
@@ -22,7 +22,7 @@ const FULL_SCOPE_PATHS = new Set([
 
 export const FULL_TYPECHECK_PROJECTS = Object.freeze([
   "@petcare/admin",
-  "@petcare/uniapp",
+  "@petcare/miniapp",
   "@petcare/server",
   "@petcare/api-client",
   "@petcare/shared-types",

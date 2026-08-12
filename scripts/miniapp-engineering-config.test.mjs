@@ -10,7 +10,7 @@ import { format, resolveConfig } from "prettier";
 import { createBaseRulesConfig } from "../packages/eslint-config-base/index.js";
 
 const repositoryRoot = resolve(import.meta.dirname, "..");
-const uniappRoot = resolve(repositoryRoot, "apps/uniapp");
+const miniappRoot = resolve(repositoryRoot, "apps/miniapp");
 
 test("createBaseRulesConfig rewrites plugin rule IDs without setting a parser", () => {
   const config = createBaseRulesConfig({
@@ -47,9 +47,9 @@ test("createBaseRulesConfig rewrites plugin rule IDs without setting a parser", 
   );
 });
 
-test("UniApp files receive the composed PetCare rules without replacing its parser", async () => {
+test("Miniapp files receive the composed PetCare rules without replacing the UniApp parser", async () => {
   const eslint = new ESLint({
-    cwd: uniappRoot,
+    cwd: miniappRoot,
     overrideConfigFile: "eslint.config.mjs",
   });
 
@@ -82,15 +82,15 @@ test("UniApp files receive the composed PetCare rules without replacing its pars
   assert.equal(appConfig.languageOptions.parser.meta.name, "vue-eslint-parser");
 });
 
-test("UniApp Vue ESLint reaches a Prettier fixed point in fix mode", async () => {
+test("Miniapp Vue ESLint reaches a Prettier fixed point in fix mode", async () => {
   const eslint = new ESLint({
-    cwd: uniappRoot,
+    cwd: miniappRoot,
     fix: true,
     overrideConfigFile: "eslint.config.mjs",
   });
 
   for (const relativePath of ["src/pages/index/index.vue"]) {
-    const filePath = resolve(uniappRoot, relativePath);
+    const filePath = resolve(miniappRoot, relativePath);
     const [source, prettierOptions] = await Promise.all([
       readFile(filePath, "utf8"),
       resolveConfig(filePath),
@@ -103,8 +103,8 @@ test("UniApp Vue ESLint reaches a Prettier fixed point in fix mode", async () =>
   }
 });
 
-test("UniApp ESLint configuration reaches a fix-mode fixed point without circular fixes", async () => {
-  const configFile = resolve(uniappRoot, "eslint.config.mjs");
+test("Miniapp ESLint configuration reaches a fix-mode fixed point without circular fixes", async () => {
+  const configFile = resolve(miniappRoot, "eslint.config.mjs");
   const configSource = await readFile(configFile, "utf8");
   const circularFixWarnings = [];
   const onWarning = (warning) => {
@@ -113,7 +113,7 @@ test("UniApp ESLint configuration reaches a fix-mode fixed point without circula
     }
   };
   const eslint = new ESLint({
-    cwd: uniappRoot,
+    cwd: miniappRoot,
     fix: true,
     overrideConfigFile: "eslint.config.mjs",
   });
@@ -135,29 +135,29 @@ test("UniApp ESLint configuration reaches a fix-mode fixed point without circula
   }
 });
 
-test("UniApp formatting policy uses the root Prettier ignore rules and staged-only linting", async () => {
-  const [rootPackageSource, uniappPackageSource, prettierIgnore] = await Promise.all([
+test("Miniapp formatting policy uses the root Prettier ignore rules and staged-only linting", async () => {
+  const [rootPackageSource, miniappPackageSource, prettierIgnore] = await Promise.all([
     readFile(resolve(repositoryRoot, "package.json"), "utf8"),
-    readFile(resolve(uniappRoot, "package.json"), "utf8"),
+    readFile(resolve(miniappRoot, "package.json"), "utf8"),
     readFile(resolve(repositoryRoot, ".prettierignore"), "utf8"),
   ]);
   const rootPackage = JSON.parse(rootPackageSource);
-  const uniappPackage = JSON.parse(uniappPackageSource);
+  const miniappPackage = JSON.parse(miniappPackageSource);
 
-  assert.equal(uniappPackage.scripts.format, undefined);
-  assert.equal(uniappPackage.scripts["format:check"], undefined);
+  assert.equal(miniappPackage.scripts.format, undefined);
+  assert.equal(miniappPackage.scripts["format:check"], undefined);
   assert.equal(rootPackage.scripts.format, "prettier --write .");
   assert.equal(rootPackage.scripts["format:check"], "prettier --check .");
-  assert.deepEqual(rootPackage["lint-staged"]["apps/uniapp/**/*.{js,mjs,ts,vue}"], [
+  assert.deepEqual(rootPackage["lint-staged"]["apps/miniapp/**/*.{js,mjs,ts,vue}"], [
     "prettier --write",
-    "corepack pnpm --filter @petcare/uniapp exec -- eslint --fix",
+    "corepack pnpm --filter @petcare/miniapp exec -- eslint --fix",
   ]);
-  assert.deepEqual(rootPackage["lint-staged"]["apps/uniapp/**/*.{md,html}"], ["prettier --write"]);
+  assert.deepEqual(rootPackage["lint-staged"]["apps/miniapp/**/*.{md,html}"], ["prettier --write"]);
   for (const protectedPath of [
-    "apps/uniapp/src/uni_modules/",
-    "apps/uniapp/src/auto-imports.d.ts",
-    "apps/uniapp/src/components.d.ts",
-    "apps/uniapp/src/uni-pages.d.ts",
+    "apps/miniapp/src/uni_modules/",
+    "apps/miniapp/src/auto-imports.d.ts",
+    "apps/miniapp/src/components.d.ts",
+    "apps/miniapp/src/uni-pages.d.ts",
   ]) {
     assert.match(
       prettierIgnore,
