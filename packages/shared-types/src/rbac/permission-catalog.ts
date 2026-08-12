@@ -395,6 +395,78 @@ export const RBAC_PERMISSION_CATALOG: readonly RbacPermissionDefinition[] = [
     icon: null,
     impliedApiCodes: [],
   },
+  /** Opens Website Content management and its version history. */
+  {
+    code: "website.view",
+    type: "menu",
+    label: "官网内容管理",
+    module: "website",
+    path: "/website-content",
+    parentCode: null,
+    order: 50,
+    icon: "Globe2",
+    impliedApiCodes: ["website.read"],
+  },
+  /** Allows reading Website Content drafts, history, diffs, and media. */
+  {
+    code: "website.read",
+    type: "api",
+    label: "读取官网内容",
+    module: "website",
+    path: null,
+    parentCode: null,
+    order: 10,
+    icon: null,
+    impliedApiCodes: [],
+  },
+  /** Shows draft editing, media, and preview actions. */
+  {
+    code: "website.edit",
+    type: "button",
+    label: "编辑官网草稿",
+    module: "website",
+    path: null,
+    parentCode: "website.view",
+    order: 10,
+    icon: null,
+    impliedApiCodes: ["website.read", "website.edit_action"],
+  },
+  /** Allows saving drafts, managing media, and creating previews. */
+  {
+    code: "website.edit_action",
+    type: "api",
+    label: "编辑官网内容接口",
+    module: "website",
+    path: null,
+    parentCode: null,
+    order: 20,
+    icon: null,
+    impliedApiCodes: [],
+  },
+  /** Shows explicit publish and history-restore actions. */
+  {
+    code: "website.publish",
+    type: "button",
+    label: "发布官网内容",
+    module: "website",
+    path: null,
+    parentCode: "website.view",
+    order: 20,
+    icon: null,
+    impliedApiCodes: ["website.read", "website.publish_action"],
+  },
+  /** Allows page-scoped publishing and creating restore drafts. */
+  {
+    code: "website.publish_action",
+    type: "api",
+    label: "发布官网内容接口",
+    module: "website",
+    path: null,
+    parentCode: null,
+    order: 30,
+    icon: null,
+    impliedApiCodes: [],
+  },
   /** Opens the system settings section in the administration console. */
   {
     code: "system.view",

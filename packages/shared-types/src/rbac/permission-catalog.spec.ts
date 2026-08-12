@@ -25,6 +25,7 @@ describe("RBAC permission catalog", () => {
       "/content",
       "/content/posts",
       "/content/articles",
+      "/website-content",
       "/settings",
       "/rbac",
       "/rbac/catalog",
@@ -56,6 +57,23 @@ describe("RBAC permission catalog", () => {
       path: "/content/articles",
       parentCode: "content.view",
       impliedApiCodes: ["content.article.read"],
+    });
+
+    expect(byCode.get("website.view")).toMatchObject({
+      type: RBAC_PERMISSION_TYPES.MENU,
+      path: "/website-content",
+      parentCode: null,
+      impliedApiCodes: ["website.read"],
+    });
+    expect(byCode.get("website.edit")).toMatchObject({
+      type: RBAC_PERMISSION_TYPES.BUTTON,
+      parentCode: "website.view",
+      impliedApiCodes: ["website.read", "website.edit_action"],
+    });
+    expect(byCode.get("website.publish")).toMatchObject({
+      type: RBAC_PERMISSION_TYPES.BUTTON,
+      parentCode: "website.view",
+      impliedApiCodes: ["website.read", "website.publish_action"],
     });
 
     for (const permission of RBAC_PERMISSION_CATALOG) {
