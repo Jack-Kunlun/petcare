@@ -13,10 +13,12 @@ test("CI 提供分层质量门禁并使用当前稳定 Actions 主版本", async
   }
 
   assert.match(workflow, /^ {2}NODE_VERSION: "24\.19\.0"$/m);
+  assert.doesNotMatch(workflow, /PNPM_VERSION/);
   assert.match(workflow, /actions\/checkout@v7/);
   assert.match(workflow, /actions\/setup-node@v7/);
   assert.doesNotMatch(workflow, /actions\/(?:checkout|setup-node)@v6/);
   assert.match(workflow, /pnpm\/action-setup@v6/);
+  assert.doesNotMatch(workflow, /pnpm\/action-setup@v6\s*\n\s+with:\s*\n\s+version:/);
   assert.match(workflow, /actions\/upload-artifact@v7/);
   assert.match(workflow, /github\.event_name == 'push'.*refs\/heads\/master/);
   assert.doesNotMatch(workflow, /WECHAT_APP_SECRET|ALIYUN_OSS_ACCESS_KEY_SECRET/);

@@ -1,4 +1,4 @@
 #!/usr/bin/env sh
 
-corepack pnpm exec lint-staged
-corepack pnpm run commit:check
+pnpm exec lint-staged
+pnpm run commit:check

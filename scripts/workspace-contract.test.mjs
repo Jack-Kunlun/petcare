@@ -45,6 +45,37 @@ test("UniApp H5 compiler resolves its compatible Vite runtime", async () => {
   assert.match(workspace, /vite:\s*["']5\.4\.21["']/);
 });
 
+test("pnpm 自动使用项目版本并严格校验 Node 兼容性", async () => {
+  const workspace = await readFile(resolve(root, "pnpm-workspace.yaml"), "utf8");
+
+  assert.match(workspace, /^pmOnFail: download$/m);
+  assert.match(workspace, /^engineStrict: true$/m);
+  assert.match(workspace, /^nodeVersion: "24\.19\.0"$/m);
+});
+
+test("README 覆盖首次启动和 pnpm 升级路径", async () => {
+  const readme = await readFile(resolve(root, "README.md"), "utf8");
+  const startupCommands = [
+    "corepack enable",
+    "corepack install",
+    "pnpm install --frozen-lockfile",
+    "docker compose --env-file .env up -d postgres redis",
+    "pnpm --filter @petcare/server prisma:push",
+    "pnpm --filter @petcare/server prisma:seed",
+    "pnpm dev",
+  ];
+  let previousIndex = -1;
+
+  for (const command of startupCommands) {
+    const index = readme.indexOf(command);
+    assert.ok(index > previousIndex, `README 缺少或顺序错误: ${command}`);
+    previousIndex = index;
+  }
+
+  assert.match(readme, /corepack use pnpm@<目标版本>/);
+  assert.match(readme, /packageManager/);
+});
+
 async function readJson(path) {
   return JSON.parse(await readFile(resolve(root, path), "utf8"));
 }
