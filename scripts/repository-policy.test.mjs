@@ -40,7 +40,7 @@ test("Hooks 使用 pnpm exec，换行策略为 Windows 脚本保留 CRLF", async
   const commitScope = await readFile(resolve(root, "scripts/commit-scope.mjs"), "utf8");
   const attributes = await readFile(resolve(root, ".gitattributes"), "utf8");
   const prettierIgnore = await readFile(resolve(root, ".prettierignore"), "utf8");
-  const uniappEslint = await readFile(resolve(root, "apps/uniapp/eslint.config.mjs"), "utf8");
+  const miniappEslint = await readFile(resolve(root, "apps/miniapp/eslint.config.mjs"), "utf8");
   const manifest = JSON.parse(await readFile(resolve(root, "package.json"), "utf8"));
   const lintStaged = JSON.stringify(manifest["lint-staged"]);
 
@@ -86,12 +86,12 @@ test("Hooks 使用 pnpm exec，换行策略为 Windows 脚本保留 CRLF", async
     "eslint --fix",
   ]);
   assert.deepEqual(
-    prettierIgnore.split(/\r?\n/).filter((line) => line.startsWith("apps/uniapp/src/")),
+    prettierIgnore.split(/\r?\n/).filter((line) => line.startsWith("apps/miniapp/src/")),
     [
-      "apps/uniapp/src/uni_modules/",
-      "apps/uniapp/src/auto-imports.d.ts",
-      "apps/uniapp/src/components.d.ts",
-      "apps/uniapp/src/uni-pages.d.ts",
+      "apps/miniapp/src/uni_modules/",
+      "apps/miniapp/src/auto-imports.d.ts",
+      "apps/miniapp/src/components.d.ts",
+      "apps/miniapp/src/uni-pages.d.ts",
     ],
   );
   for (const ignoredPath of [
@@ -100,7 +100,7 @@ test("Hooks 使用 pnpm exec，换行策略为 Windows 脚本保留 CRLF", async
     "src/components.d.ts",
     "src/uni-pages.d.ts",
   ]) {
-    assert.ok(uniappEslint.includes(`"${ignoredPath}"`));
+    assert.ok(miniappEslint.includes(`"${ignoredPath}"`));
   }
   assert.match(attributes, /^\*\.bat text eol=crlf$/m);
   assert.match(attributes, /^\*\.cmd text eol=crlf$/m);
@@ -112,13 +112,13 @@ test("local secrets and generated mobile artifacts stay out of Git", () => {
     ".envrc",
     ".direnv/allow",
     ".npmrc",
-    "apps/uniapp/unpackage/dist/build/app-plus/app-service.js",
-    "apps/uniapp/release/petcare.keystore",
-    "apps/uniapp/release/petcare.p12",
-    "apps/uniapp/release/PetCare.mobileprovision",
-    "apps/uniapp/release/petcare.apk",
-    "apps/uniapp/release/petcare.aab",
-    "apps/uniapp/release/petcare.ipa",
+    "apps/miniapp/unpackage/dist/build/app-plus/app-service.js",
+    "apps/miniapp/release/petcare.keystore",
+    "apps/miniapp/release/petcare.p12",
+    "apps/miniapp/release/PetCare.mobileprovision",
+    "apps/miniapp/release/petcare.apk",
+    "apps/miniapp/release/petcare.aab",
+    "apps/miniapp/release/petcare.ipa",
   ];
   const ignored = runGit(["check-ignore", "--verbose", "--stdin"], `${probes.join("\n")}\n`);
   assert.equal(ignored.status, 0, ignored.stderr);

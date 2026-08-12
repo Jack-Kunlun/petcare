@@ -1,14 +1,14 @@
-# PetCare UniApp
+# PetCare Miniapp
 
 此工作区是 PetCare 的最小业务壳，仅保留单页入口、Wot UI 与 UnoCSS。
 
 ## 四端运行
 
 ```powershell
-pnpm dev:uniapp:h5
-pnpm dev:uniapp:mp-weixin
-pnpm dev:uniapp:app-android
-pnpm dev:uniapp:app-ios
+pnpm dev:miniapp:h5
+pnpm dev:miniapp:mp-weixin
+pnpm dev:miniapp:app-android
+pnpm dev:miniapp:app-ios
 ```
 
 ## 发布前配置

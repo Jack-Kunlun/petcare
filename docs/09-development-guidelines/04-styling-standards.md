@@ -2,7 +2,7 @@
 
 本文约束 `apps/admin` 的样式实现、构建和校验方式。
 
-> ~~原规范同时约束 `apps/miniapp` 的 Taro、Tailwind v4、WXSS 和 `px` Token 输出。~~ Taro 项目已于 2026-08-11 删除；对应源码门禁和构建产物检查不再保留。UniApp 使用 UnoCSS 与 Wot UI，不继承已删除项目的 Taro/Tailwind 规则。
+> 原 Taro、Tailwind v4、WXSS 和 `px` Token 输出规范已随旧客户端删除；对应源码门禁和构建产物检查不再保留。当前 `apps/miniapp` 使用 UniApp、UnoCSS 与 Wot UI，不继承旧项目的 Taro/Tailwind 规则。
 
 ## 1. 样式原则
 

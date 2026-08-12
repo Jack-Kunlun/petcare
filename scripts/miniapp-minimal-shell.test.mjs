@@ -4,9 +4,9 @@ import { resolve } from "node:path";
 import test from "node:test";
 
 const repositoryRoot = resolve(import.meta.dirname, "..");
-const uniappRoot = resolve(repositoryRoot, "apps/uniapp");
+const miniappRoot = resolve(repositoryRoot, "apps/miniapp");
 
-test("UniApp contains only the minimal PetCare shell", async () => {
+test("Miniapp contains only the minimal PetCare UniApp shell", async () => {
   for (const relativePath of [
     "src/api",
     "src/components",
@@ -20,13 +20,13 @@ test("UniApp contains only the minimal PetCare shell", async () => {
     "src/subAsyncEcharts",
     "src/uni_modules/mp-html",
   ]) {
-    await assert.rejects(access(resolve(uniappRoot, relativePath)));
+    await assert.rejects(access(resolve(miniappRoot, relativePath)));
   }
 
-  const main = await readFile(resolve(uniappRoot, "src/main.ts"), "utf8");
-  const page = await readFile(resolve(uniappRoot, "src/pages/index/index.vue"), "utf8");
-  const componentsDeclaration = await readFile(resolve(uniappRoot, "src/components.d.ts"), "utf8");
-  const manifest = JSON.parse(await readFile(resolve(uniappRoot, "package.json"), "utf8"));
+  const main = await readFile(resolve(miniappRoot, "src/main.ts"), "utf8");
+  const page = await readFile(resolve(miniappRoot, "src/pages/index/index.vue"), "utf8");
+  const componentsDeclaration = await readFile(resolve(miniappRoot, "src/components.d.ts"), "utf8");
+  const manifest = JSON.parse(await readFile(resolve(miniappRoot, "package.json"), "utf8"));
 
   assert.doesNotMatch(main, /router|pinia|persistPlugin/);
   assert.match(page, /PetCare/);

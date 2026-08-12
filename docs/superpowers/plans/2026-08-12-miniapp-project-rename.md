@@ -21,6 +21,7 @@
 ### Task 1: 将工程契约切换到 Miniapp 项目身份
 
 **Files:**
+
 - Modify: `scripts/commit-scope.mjs`
 - Modify: `scripts/commit-scope.test.mjs`
 - Modify: `scripts/workspace-contract.test.mjs`
@@ -29,6 +30,7 @@
 - Rename: `scripts/uniapp-minimal-shell.test.mjs` to `scripts/miniapp-minimal-shell.test.mjs`
 
 **Interfaces:**
+
 - Consumes: Git 暂存路径、根 `package.json`、客户端 `package.json` 和 ESLint 配置。
 - Produces: `apps/miniapp` 到 `@petcare/miniapp` 的受影响 workspace 分类和新项目身份契约。
 
@@ -49,15 +51,16 @@
 ### Task 2: 硬更名客户端目录和 workspace 配置
 
 **Files:**
+
 - Rename: `apps/uniapp/` to `apps/miniapp/`
 - Modify: `apps/miniapp/package.json`
 - Modify: `apps/miniapp/eslint.config.mjs`
 - Modify: `package.json`
 - Modify: `.prettierignore`
-- Modify: `.gitignore`
 - Modify: `pnpm-lock.yaml`
 
 **Interfaces:**
+
 - Consumes: Task 1 的新工程契约。
 - Produces: `apps/miniapp` workspace、`@petcare/miniapp` filter 和 `*:miniapp:*` 根命令。
 
@@ -67,7 +70,7 @@
 
 - [ ] **Step 2: 精确更新活动配置**
 
-  更新根脚本、lint-staged、客户端包名、ESLint ignore、Prettier ignore、Git ignore 和测试文件名引用。UniApp 框架注释与依赖名保持不变。
+  更新根脚本、lint-staged、客户端包名、ESLint ignore、Prettier ignore 和测试文件名引用。根 `.gitignore` 已使用通用 `unpackage/` 与签名扩展规则，无需按目录更改。UniApp 框架注释与依赖名保持不变。
 
 - [ ] **Step 3: 更新 lockfile importer**
 
@@ -84,6 +87,7 @@
 ### Task 3: 更新现行文档并完成验收
 
 **Files:**
+
 - Modify: `README.md`
 - Modify: `AGENTS.md`
 - Modify: `docs/03-technical-architecture/01-tech-stack.md`
@@ -99,6 +103,7 @@
 - Modify: `apps/miniapp/README.md`
 
 **Interfaces:**
+
 - Consumes: 新目录、包名和根命令。
 - Produces: 现行文档中一致的“Miniapp 项目，技术框架为 UniApp”表述。
 

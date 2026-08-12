@@ -336,7 +336,7 @@ importers:
         specifier: ^6.0.3
         version: 6.0.3
 
-  apps/uniapp:
+  apps/miniapp:
     dependencies:
       "@dcloudio/uni-app":
         specifier: 3.0.0-4080520251106001
