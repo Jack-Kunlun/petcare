@@ -1,5 +1,6 @@
 import { ApiProperty } from "@nestjs/swagger";
 import type {
+  AdminAvatarResponse,
   AdminAccountProfile,
   UpdateAdminAccountPasswordRequest,
   UpdateAdminAccountProfileRequest,
@@ -40,6 +41,18 @@ export class AdminAccountProfileDto implements AdminAccountProfile {
 
   @ApiProperty({ format: "date-time" })
   createdAt: string;
+}
+
+/** Documents a multipart avatar upload body. The server validates the actual file bytes. */
+export class UploadAdminAvatarDto {
+  @ApiProperty({ type: "string", format: "binary" })
+  file: string;
+}
+
+/** Documents the public URL returned after a validated avatar replacement. */
+export class AdminAvatarResponseDto implements AdminAvatarResponse {
+  @ApiProperty({ format: "uri", example: "https://cdn.example.com/public/admin-avatars/user/avatar.png" })
+  avatar: string;
 }
 
 /** Validates a current password and its replacement for a self-service rotation. */
