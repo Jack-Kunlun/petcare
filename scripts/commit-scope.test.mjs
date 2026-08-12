@@ -167,10 +167,10 @@ test("pnpm invocations preserve Windows and POSIX command boundaries", () => {
 
   assert.deepEqual(createPnpmInvocation(args, "win32", "C:\\Windows\\System32\\cmd.exe"), {
     executable: "C:\\Windows\\System32\\cmd.exe",
-    args: ["/d", "/s", "/c", "corepack pnpm --filter @petcare/admin run lint:styles"],
+    args: ["/d", "/s", "/c", "pnpm --filter @petcare/admin run lint:styles"],
   });
   assert.deepEqual(createPnpmInvocation(args, "linux"), {
-    executable: "corepack",
-    args: ["pnpm", ...args],
+    executable: "pnpm",
+    args,
   });
 });

@@ -44,9 +44,9 @@ test("Hooks 使用 pnpm exec，换行策略为 Windows 脚本保留 CRLF", async
   const manifest = JSON.parse(await readFile(resolve(root, "package.json"), "utf8"));
   const lintStaged = JSON.stringify(manifest["lint-staged"]);
 
-  assert.match(commitMsg, /corepack pnpm exec commitlint --edit/);
-  assert.match(preCommit, /corepack pnpm exec lint-staged/);
-  assert.match(preCommit, /corepack pnpm run commit:check/);
+  assert.match(commitMsg, /^pnpm exec commitlint --edit$/m);
+  assert.match(preCommit, /^pnpm exec lint-staged$/m);
+  assert.match(preCommit, /^pnpm run commit:check$/m);
   assert.doesNotMatch(preCommit, /\b(?:pnpm|corepack pnpm)\s+(?:run\s+)?(?:build|check)\b/);
   assert.match(commitCheck, /execFileSync\(/);
   assert.match(commitCheck, /"git"/);
@@ -64,7 +64,7 @@ test("Hooks 使用 pnpm exec，换行策略为 Windows 脚本保留 CRLF", async
   assert.doesNotMatch(commitCheck, /\b(?:pnpm|corepack pnpm)\s+(?:run\s+)?build\b/);
   assert.equal(manifest.scripts["lint:scripts"], "node node_modules/eslint/bin/eslint.js scripts");
   assert.doesNotMatch(`${commitMsg}\n${preCommit}`, /\bnpx\b/);
-  assert.doesNotMatch(lintStaged, /(?<!corepack )pnpm --filter/);
+  assert.doesNotMatch(`${commitMsg}\n${preCommit}\n${commitScope}\n${lintStaged}`, /corepack pnpm/);
   assert.doesNotMatch(lintStaged, /(?:vitest|jest)\s+run/);
   for (const commands of Object.values(manifest["lint-staged"])) {
     for (const command of commands) {
@@ -143,4 +143,39 @@ test("local secrets and generated mobile artifacts stay out of Git", () => {
   const trackedIgnored = runGit(["ls-files", "-ci", "--exclude-from=.gitignore"]);
   assert.equal(trackedIgnored.status, 0, trackedIgnored.stderr);
   assert.equal(trackedIgnored.stdout.trim(), "");
+});
+
+test("依赖安装只允许使用 pnpm", async () => {
+  const manifest = JSON.parse(await readFile(resolve(root, "package.json"), "utf8"));
+  const guard = resolve(root, "scripts/enforce-pnpm.mjs");
+
+  assert.equal(manifest.packageManager, "pnpm@11.15.1");
+  assert.equal(manifest.scripts.preinstall, "node scripts/enforce-pnpm.mjs");
+  assert.equal(manifest.scripts["clean:modules"], "node scripts/clean.mjs --modules");
+
+  const pnpm = spawnSync(process.execPath, [guard], {
+    cwd: root,
+    encoding: "utf8",
+    env: { ...process.env, npm_config_user_agent: "pnpm/11.15.1 npm/? node/v24.19.0" },
+  });
+  const npm = spawnSync(process.execPath, [guard], {
+    cwd: root,
+    encoding: "utf8",
+    env: { ...process.env, npm_config_user_agent: "npm/11.0.0 node/v24.19.0" },
+  });
+
+  assert.equal(pnpm.status, 0, pnpm.stderr);
+  assert.notEqual(npm.status, 0);
+  assert.match(npm.stderr, /pnpm@11\.15\.1/);
+
+  const foreignLockfiles = runGit([
+    "ls-files",
+    "package-lock.json",
+    "npm-shrinkwrap.json",
+    "yarn.lock",
+    "bun.lock",
+    "bun.lockb",
+  ]);
+  assert.equal(foreignLockfiles.status, 0, foreignLockfiles.stderr);
+  assert.equal(foreignLockfiles.stdout.trim(), "");
 });

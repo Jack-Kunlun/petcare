@@ -3,11 +3,10 @@ FROM node:24.19-alpine AS server-builder
 
 WORKDIR /app
 
-# 安装pnpm
-RUN corepack enable && corepack prepare pnpm@11.15.1 --activate
-
 # 复制依赖文件
 COPY package.json pnpm-workspace.yaml pnpm-lock.yaml ./
+RUN corepack enable
+
 COPY apps/server/package.json ./apps/server/
 COPY packages/eslint-config-base/package.json ./packages/eslint-config-base/
 COPY packages/shared-types/package.json ./packages/shared-types/
@@ -31,12 +30,12 @@ FROM node:24.19-alpine AS server-runner
 
 WORKDIR /app
 
-RUN corepack enable && corepack prepare pnpm@11.15.1 --activate
-
 # 复制构建产物和依赖
 COPY --from=server-builder /app/pnpm-workspace.yaml ./
 COPY --from=server-builder /app/pnpm-lock.yaml ./
 COPY --from=server-builder /app/package.json ./
+RUN corepack enable
+
 COPY --from=server-builder /app/apps/server/package.json ./apps/server/
 COPY --from=server-builder /app/apps/server/prisma.config.ts ./apps/server/
 COPY --from=server-builder /app/apps/server/prisma ./apps/server/prisma

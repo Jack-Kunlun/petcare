@@ -3,9 +3,9 @@ FROM node:24.19-alpine AS admin-builder
 
 WORKDIR /app
 
-RUN corepack enable && corepack prepare pnpm@11.15.1 --activate
-
 COPY package.json pnpm-workspace.yaml pnpm-lock.yaml ./
+RUN corepack enable
+
 COPY apps/admin/package.json ./apps/admin/
 COPY packages/api-client/package.json ./packages/api-client/
 COPY packages/eslint-config-base/package.json ./packages/eslint-config-base/

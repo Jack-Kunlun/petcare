@@ -23,14 +23,20 @@
 - Docker 与 Docker Compose v2
 - Windows、macOS 或 Linux
 
-验证：
+验证并启用 Corepack：
 
 ```bash
 node --version
+corepack --version
+corepack enable
+corepack install
 pnpm --version
 docker --version
 docker compose version
 ```
+
+`package.json#packageManager` 是 pnpm 版本的唯一项目级来源。如果开发者本机安装的
+pnpm 版本不同，pnpm 会自动下载并使用项目声明的版本。
 
 ## 3. 环境变量
 
@@ -110,6 +116,29 @@ pnpm dev:miniapp:mp-weixin
 ```
 
 ~~旧命令：`pnpm dev:miniapp`~~
+
+### 4.5 日常启动
+
+首次初始化后，日常开发只需：
+
+```bash
+docker compose --env-file .env up -d postgres redis
+pnpm dev
+```
+
+### 4.6 升级 pnpm
+
+由维护者显式升级并验证：
+
+```bash
+corepack use pnpm@<目标版本>
+pnpm install
+pnpm check
+```
+
+`corepack use` 会更新根 `package.json` 的 `packageManager` 并执行安装。提交
+`package.json` 和 `pnpm-lock.yaml` 前应审查实际变化。CI 和 Docker 均从
+`packageManager` 读取 pnpm 版本，无需在其他文件重复修改。
 
 ## 5. 全容器运行
 
