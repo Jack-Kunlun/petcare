@@ -2,7 +2,7 @@
 import "@testing-library/jest-dom/vitest";
 import { cleanup, render, screen, waitFor } from "@testing-library/react";
 import userEvent from "@testing-library/user-event";
-import { MemoryRouter, Route, Routes } from "react-router-dom";
+import { type InitialEntry, MemoryRouter, Route, Routes } from "react-router-dom";
 import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
 import loginBackgroundUrl from "../../assets/brand/petcare-background-soft.svg";
 import Login from ".";
@@ -35,9 +35,9 @@ vi.mock("../../auth/auth.context", () => ({
   }),
 }));
 
-function renderLogin() {
+function renderLogin(initialEntries: InitialEntry[] = ["/login"]) {
   return render(
-    <MemoryRouter initialEntries={["/login"]}>
+    <MemoryRouter initialEntries={initialEntries}>
       <Routes>
         <Route path="/login" element={<Login />} />
         <Route path="/" element={<h1>仪表盘</h1>} />
@@ -291,5 +291,11 @@ describe("Login", () => {
     await user.click(screen.getByRole("button", { name: "登录" }));
 
     expect(await screen.findByRole("alert")).toHaveTextContent("登录失败，请检查账号或凭据");
+  });
+
+  it("shows a safe one-time password-change message from navigation state", () => {
+    renderLogin([{ pathname: "/login", state: { message: "密码已修改，请重新登录" } }]);
+
+    expect(screen.getByRole("status")).toHaveTextContent("密码已修改，请重新登录");
   });
 });

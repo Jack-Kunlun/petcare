@@ -1,6 +1,6 @@
 import type { CaptchaChallenge } from "@petcare/shared-types";
 import { FormEvent, useCallback, useEffect, useState } from "react";
-import { Navigate, useNavigate } from "react-router-dom";
+import { Navigate, useLocation, useNavigate } from "react-router-dom";
 import loginBackgroundUrl from "../../assets/brand/petcare-background-soft.svg";
 import { useAuth } from "../../auth/auth.context";
 import { BrandLogo } from "../../components/BrandLogo";
@@ -21,6 +21,7 @@ export default function Login() {
   const auth = useAuth();
   const getCaptcha = auth.getCaptcha;
   const navigate = useNavigate();
+  const location = useLocation();
   const [mode, setMode] = useState<LoginMode>("password");
   const [identifier, setIdentifier] = useState("");
   const [password, setPassword] = useState("");
@@ -204,6 +205,17 @@ export default function Login() {
             </p>
             <h2 className="mt-2 text-2xl font-bold text-text-primary">登录 PetCare</h2>
             <p className="mt-2 text-sm text-text-secondary">使用管理员身份继续</p>
+            {typeof location.state === "object" &&
+            location.state !== null &&
+            "message" in location.state &&
+            typeof location.state.message === "string" ? (
+              <p
+                role="status"
+                className="mt-3 rounded-lg border border-emerald-200 bg-emerald-50 px-3 py-2 text-sm text-emerald-800"
+              >
+                {location.state.message}
+              </p>
+            ) : null}
           </div>
 
           <div
