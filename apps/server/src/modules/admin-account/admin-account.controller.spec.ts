@@ -39,12 +39,12 @@ describe("AdminAccountController", () => {
 
   it("loads and updates only the access-token subject profile", async () => {
     service.getProfile.mockResolvedValue({ id: "user-1" });
-    service.updateProfile.mockResolvedValue(undefined);
+    service.updateProfile.mockResolvedValue({ id: "user-1", nickname: "值班管理员" });
 
     await expect(controller.getProfile(request as never)).resolves.toEqual({ id: "user-1" });
     await expect(
       controller.updateProfile({ nickname: "值班管理员" }, request as never),
-    ).resolves.toBeUndefined();
+    ).resolves.toEqual({ id: "user-1", nickname: "值班管理员" });
 
     expect(service.getProfile).toHaveBeenCalledWith("user-1");
 
@@ -85,12 +85,19 @@ describe("AdminAccountController", () => {
     });
     await expect(controller.deleteAvatar(request as never)).resolves.toBeUndefined();
 
-    expect(service.replaceAvatar).toHaveBeenCalledWith("user-1", {
-      body: file.buffer,
-      contentType: "image/png",
-      extension: "png",
+    expect(service.replaceAvatar).toHaveBeenCalledWith(
+      { userId: "user-1", sessionId: "session-1", requestId: "request-1" },
+      {
+        body: file.buffer,
+        contentType: "image/png",
+        extension: "png",
+      },
+    );
+    expect(service.deleteAvatar).toHaveBeenCalledWith({
+      userId: "user-1",
+      sessionId: "session-1",
+      requestId: "request-1",
     });
-    expect(service.deleteAvatar).toHaveBeenCalledWith("user-1");
   });
 
   it("documents avatar upload as multipart and binds a file field", () => {
