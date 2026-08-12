@@ -11,6 +11,7 @@ const auth: AuthContextValue = {
     username: "admin",
     phone: "17679141878",
     nickname: "系统管理员",
+    avatar: null,
     roles: ["super_admin"],
     permissions: ["user.view", "provider_certification.view"],
   },
@@ -19,6 +20,8 @@ const auth: AuthContextValue = {
   getCaptcha: vi.fn(),
   sendSmsCode: vi.fn(),
   logout: vi.fn(),
+  updateUserSummary: vi.fn(),
+  invalidateLocalSession: vi.fn(),
 };
 
 describe("Layout", () => {

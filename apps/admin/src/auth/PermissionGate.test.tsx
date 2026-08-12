@@ -15,6 +15,7 @@ function createAuth(permissions: string[]): AuthContextValue {
       username: "operator",
       phone: "17679141878",
       nickname: "Operator",
+      avatar: null,
       roles: ["operator"],
       permissions,
     },
@@ -23,6 +24,8 @@ function createAuth(permissions: string[]): AuthContextValue {
     getCaptcha: vi.fn(),
     sendSmsCode: vi.fn(),
     logout: vi.fn(),
+    updateUserSummary: vi.fn(),
+    invalidateLocalSession: vi.fn(),
   };
 }
 
