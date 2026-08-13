@@ -48,6 +48,20 @@ export async function openHomeEditor(page: Page): Promise<void> {
   await expect(page).toHaveURL(/\/website-content\/home\/edit$/u);
 }
 
+/** Opens the protected Home editor through the SPA when an operator lacks the edit-card link. */
+export async function openHomeEditorRoute(page: Page): Promise<void> {
+  await page
+    .getByTestId("desktop-menu-tree")
+    .getByRole("link", { name: "官网内容管理" })
+    .click();
+  await expect(page).toHaveURL(/\/website-content$/u);
+  await page.evaluate(() => {
+    globalThis.history.pushState({}, "", "/website-content/home/edit");
+    globalThis.dispatchEvent(new PopStateEvent("popstate"));
+  });
+  await expect(page).toHaveURL(/\/website-content\/home\/edit$/u);
+}
+
 /** Creates a predictable title that remains unique across parallel retries. */
 export function createWebsiteLifecycleTitle(): string {
   return `官网 E2E 草稿 ${Date.now()}`;
