@@ -22,8 +22,9 @@ const version: WebsiteContentVersion = {
 };
 
 const auth: AuthContextValue = {
-  status: "authenticated", user: { id: "admin-1", username: "operator", phone: "13800138000", nickname: "运营管理员", roles: ["operator"], permissions: ["website.view", "website.publish"] },
+  status: "authenticated", user: { id: "admin-1", username: "operator", phone: "13800138000", nickname: "运营管理员", avatar: null, roles: ["operator"], permissions: ["website.view", "website.publish"] },
   loginWithPassword: vi.fn(), loginWithSms: vi.fn(), getCaptcha: vi.fn(), sendSmsCode: vi.fn(), logout: vi.fn(),
+  updateUserSummary: vi.fn(), invalidateLocalSession: vi.fn(),
 };
 
 function renderDetail() {
