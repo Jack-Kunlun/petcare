@@ -1,0 +1,49 @@
+---
+import type { WebsiteContentKey } from "@petcare/shared-types";
+import PublicLayout from "../layouts/PublicLayout.astro";
+import { createWebsiteContentApi } from "../lib/api";
+import { loadPublishedPageContent } from "../lib/load-page-content";
+import { getPublishedContentCache } from "../lib/published-content-cache.runtime";
+import { getWebsiteRuntimeConfig } from "../lib/runtime-config";
+
+interface Props {
+  /** Code-owned, individually publishable public page identity. */
+  contentKey: Exclude<WebsiteContentKey, "site_shell">;
+}
+
+const { contentKey } = Astro.props;
+const runtimeConfig = getWebsiteRuntimeConfig();
+const api = createWebsiteContentApi({ baseUrl: runtimeConfig.contentApiBaseUrl });
+const cache = getPublishedContentCache(runtimeConfig.lastSuccessTtlMilliseconds);
+let content;
+
+try {
+  content = await loadPublishedPageContent({ api, cache, contentKey });
+} catch {
+  Astro.response.status = 503;
+}
+---
+
+{
+  content ? (
+    <PublicLayout shell={content.shell} page={content.page} publicUrl={runtimeConfig.publicUrl} />
+  ) : (
+    <html lang="zh-CN">
+      <head>
+        <meta charset="utf-8" />
+        <meta name="viewport" content="width=device-width, initial-scale=1" />
+        <meta name="robots" content="noindex" />
+        <title>Service temporarily unavailable | PetCare</title>
+      </head>
+      <body>
+        <main class="failure-page">
+          <h1>Service temporarily unavailable</h1>
+          <p>Website content is recovering. Please try again shortly.</p>
+          <a class="button" href="/">
+            Return home
+          </a>
+        </main>
+      </body>
+    </html>
+  )
+}

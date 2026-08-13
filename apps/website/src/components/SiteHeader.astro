@@ -1,0 +1,79 @@
+---
+import type { WebsitePublicSiteHeaderSection } from "./sections/public-section-types";
+import { getSafeWebsiteHref } from "./sections/safe-rendering";
+
+interface Props {
+  /** Validated public site-header section. */
+  section: WebsitePublicSiteHeaderSection;
+  /** Whether this is a preview render whose navigation should remain visibly scoped. */
+  preview?: boolean;
+}
+
+const { section, preview = false } = Astro.props;
+const { action, brandLabel, navigation } = section.content;
+const headerClass = section.settings.sticky ? "site-header site-header--sticky" : "site-header";
+---
+
+<header class={headerClass} data-preview={preview ? "true" : undefined}>
+  <div class="site-header__inner">
+    <a class="site-header__brand" href="/" aria-label={brandLabel}>
+      <img src="/brand/petcare-symbol-color.svg" width="36" height="36" alt="" />
+      <span>{brandLabel}</span>
+    </a>
+    <button
+      class="site-header__menu-button"
+      type="button"
+      aria-expanded="false"
+      aria-controls="site-navigation"
+      data-site-menu-button
+    >
+      <span class="sr-only">Open navigation</span>
+      <span aria-hidden="true">Menu</span>
+    </button>
+    <nav
+      id="site-navigation"
+      class="site-header__navigation"
+      aria-label="Primary navigation"
+      data-site-navigation
+    >
+      <ul>
+        {
+          navigation.map((item) => {
+            const href = getSafeWebsiteHref(item.href);
+
+            return href ? (
+              <li>
+                <a href={href}>{item.label}</a>
+              </li>
+            ) : null;
+          })
+        }
+      </ul>
+      {
+        action
+          ? (() => {
+              const href = getSafeWebsiteHref(action.href);
+
+              return href ? (
+                <a class="button button--compact" href={href}>
+                  {action.label}
+                </a>
+              ) : null;
+            })()
+          : null
+      }
+    </nav>
+  </div>
+</header>
+
+<script>
+  const button = document.querySelector<HTMLButtonElement>("[data-site-menu-button]");
+  const navigation = document.querySelector<HTMLElement>("[data-site-navigation]");
+
+  button?.addEventListener("click", () => {
+    const expanded = button.getAttribute("aria-expanded") === "true";
+
+    button.setAttribute("aria-expanded", String(!expanded));
+    navigation?.toggleAttribute("data-open", !expanded);
+  });
+</script>

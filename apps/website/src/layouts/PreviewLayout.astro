@@ -1,0 +1,44 @@
+---
+import SectionRenderer from "../components/sections/SectionRenderer.astro";
+import type { WebsitePreviewContent } from "../lib/api";
+import { isRenderablePublicSection } from "./layout-section";
+import "../styles/global.css";
+
+interface Props {
+  /** Capability-scoped immutable draft snapshot. */
+  page: WebsitePreviewContent;
+}
+
+const { page } = Astro.props;
+const sections = page.sections.filter(isRenderablePublicSection);
+const pageHeadingSectionKey = sections.find(
+  (section) => section.sectionType === "hero" || section.sectionType === "rich_text",
+)?.sectionKey;
+---
+
+<!doctype html>
+<html lang="zh-CN">
+  <head>
+    <meta charset="utf-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1" />
+    <meta name="robots" content="noindex,nofollow" />
+    <title>{`${page.seo.title} (Draft preview)`}</title>
+  </head>
+  <body>
+    <a class="skip-link" href="#main-content">Skip to main content</a>
+    <aside class="preview-notice" aria-label="Preview status">
+      Draft preview: this version is not published.
+    </aside>
+    <main id="main-content">
+      {
+        sections.map((section) => (
+          <SectionRenderer
+            section={section}
+            isPageHeading={section.sectionKey === pageHeadingSectionKey}
+            preview
+          />
+        ))
+      }
+    </main>
+  </body>
+</html>

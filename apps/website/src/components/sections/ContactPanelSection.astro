@@ -1,0 +1,38 @@
+---
+import { getSafeWebsiteHref } from "./safe-rendering";
+import type { WebsitePublicContactPanelSection } from "./public-section-types";
+
+interface Props {
+  /** Validated public contact-panel section. */
+  section: WebsitePublicContactPanelSection;
+}
+
+const { section } = Astro.props;
+---
+
+<section class="content-section contact-panel" aria-labelledby={`section-${section.sectionKey}`}>
+  <div class="content-container">
+    <h2 id={`section-${section.sectionKey}`}>{section.content.title}</h2>
+    <p class="section-description">{section.content.description}</p>
+    <ul
+      class:list={[
+        "contact-panel__channels",
+        `contact-panel__channels--${section.settings.columns}`,
+      ]}
+    >
+      {
+        section.content.channels.map((channel) => {
+          const href = getSafeWebsiteHref(channel.href);
+
+          return (
+            <li>
+              <h3>{channel.label}</h3>
+              {href ? <a href={href}>{channel.value}</a> : <span>{channel.value}</span>}
+              {channel.availability ? <p>{channel.availability}</p> : null}
+            </li>
+          );
+        })
+      }
+    </ul>
+  </div>
+</section>

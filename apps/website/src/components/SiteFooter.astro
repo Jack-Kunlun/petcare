@@ -1,0 +1,43 @@
+---
+import { getSafeWebsiteHref } from "./sections/safe-rendering";
+import type { WebsitePublicSiteFooterSection } from "./sections/public-section-types";
+
+interface Props {
+  /** Validated public site-footer section. */
+  section: WebsitePublicSiteFooterSection;
+}
+
+const { section } = Astro.props;
+---
+
+<footer class="site-footer">
+  <div class="site-footer__inner">
+    <section class="site-footer__brand" aria-label="PetCare">
+      {
+        section.settings.showLogo ? (
+          <img src="/brand/petcare-symbol-color.svg" width="44" height="44" alt="" loading="lazy" />
+        ) : null
+      }
+      <p>{section.content.description}</p>
+    </section>
+    {
+      section.content.groups.map((group) => (
+        <section aria-labelledby={`footer-${group.groupKey}`}>
+          <h2 id={`footer-${group.groupKey}`}>{group.title}</h2>
+          <ul>
+            {group.links.map((item) => {
+              const href = getSafeWebsiteHref(item.href);
+
+              return href ? (
+                <li>
+                  <a href={href}>{item.label}</a>
+                </li>
+              ) : null;
+            })}
+          </ul>
+        </section>
+      ))
+    }
+  </div>
+  <p class="site-footer__copyright">{section.content.copyright}</p>
+</footer>
