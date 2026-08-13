@@ -42,3 +42,19 @@ runner 在 POSIX 上把受管命令放入独立进程组，收到 `SIGINT`/`SIGT
 pnpm test:e2e:ui
 pnpm test:e2e:debug
 ```
+
+## 官网内容端到端场景
+
+官网内容测试会在同一个隔离 schema 生命周期中启动 Nest Server、Astro Website 和 Admin。
+runner 为三者分配独立端口，并通过 `ADMIN_E2E_WEBSITE_URL` 把 Website 地址传给 Playwright；
+它们会在测试失败、启动失败和信号中断后按同一受控进程树清理。
+
+可仅运行官网内容场景：
+
+```bash
+pnpm --filter @petcare/admin test:e2e -- website-content.spec.ts
+```
+
+该场景验证公开页与草稿隔离、固定修订预览的 `no-store`/`noindex` 响应、显式发布、历史恢复、
+读者/编辑者/发布者的操作边界，以及预设区块不提供新增、删除、换型或排序控件。
+素材选择使用 runner 写入隔离 schema 的确定性测试记录和本地 Website URL，不上传、读取或校验任何生产腾讯云 COS 对象；COS provider 契约仍由服务端单元测试覆盖。

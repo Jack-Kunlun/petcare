@@ -12,6 +12,7 @@ import { fileURLToPath, pathToFileURL, URL } from "node:url";
 
 const adminDirectory = path.resolve(path.dirname(fileURLToPath(import.meta.url)), "..");
 const serverDirectory = path.resolve(adminDirectory, "../server");
+const websiteDirectory = path.resolve(adminDirectory, "../website");
 const repositoryDirectory = path.resolve(adminDirectory, "../..");
 const serverRequire = createRequire(path.join(serverDirectory, "package.json"));
 const rbacRestrictedAdmin = {
@@ -391,7 +392,9 @@ export async function startApplicationServers(
 ) {
   const serverPort = requireEnvironmentValue(env, "ADMIN_E2E_SERVER_PORT");
   const adminPort = requireEnvironmentValue(env, "ADMIN_E2E_ADMIN_PORT");
+  const websitePort = requireEnvironmentValue(env, "ADMIN_E2E_WEBSITE_PORT");
   const viteCli = path.join(adminDirectory, "node_modules", "vite", "bin", "vite.js");
+  const websiteEntry = path.join(websiteDirectory, "dist", "server", "entry.mjs");
   const children = [];
 
   try {
@@ -405,6 +408,17 @@ export async function startApplicationServers(
 
     children.push(server);
     await waitForServer("Server", `http://127.0.0.1:${serverPort}/health`, server, signal);
+
+    const website = spawnProcess(process.execPath, [websiteEntry], {
+      cwd: websiteDirectory,
+      detached: process.platform !== "win32",
+      env: { ...env, PORT: websitePort, HOST: "127.0.0.1" },
+      shell: false,
+      stdio: "inherit",
+    });
+
+    children.push(website);
+    await waitForServer("Website", `http://127.0.0.1:${websitePort}/healthz`, website, signal);
 
     const admin = spawnProcess(
       process.execPath,
@@ -572,6 +586,17 @@ async function buildServerForE2e(env, signal) {
     },
     signal,
   );
+  await requireSuccessfulCommand(
+    "website build",
+    process.execPath,
+    [path.join(websiteDirectory, "node_modules", "astro", "bin", "astro.mjs"), "build"],
+    {
+      ...silentOptions,
+      env: { ...env, ASTRO_TELEMETRY_DISABLED: "1" },
+      cwd: websiteDirectory,
+    },
+    signal,
+  );
 }
 
 async function seedCompiledServer(env) {
@@ -584,6 +609,9 @@ async function seedCompiledServer(env) {
   );
   const { seedSystemSettings } = serverRequire(
     path.join(serverDirectory, "dist", "seed", "seed-system-settings.js"),
+  );
+  const { seedWebsiteContent } = serverRequire(
+    path.join(serverDirectory, "dist", "seed", "seed-website-content.js"),
   );
   const { PasswordService } = serverRequire(
     path.join(serverDirectory, "dist", "auth", "password.service.js"),
@@ -609,15 +637,87 @@ async function seedCompiledServer(env) {
     });
 
     await seedSystemSettings(prisma, administrator.id);
-    const [systemViewPermission, systemFeeConfigPermission, restrictedRole] = await Promise.all([
+    await seedWebsiteContent(prisma, administrator.id);
+    await prisma.websiteMediaAsset.upsert({
+      where: { storageKey: "public/website-media/e2e/website-e2e-selection.png" },
+      update: {
+        originalName: "website-e2e-selection.png",
+        mimeType: "image/png",
+        sizeBytes: 67,
+        width: 1,
+        height: 1,
+        checksum: "website-e2e-selection-png",
+        status: "active",
+        archivedAt: null,
+        createdById: administrator.id,
+      },
+      create: {
+        storageKey: "public/website-media/e2e/website-e2e-selection.png",
+        originalName: "website-e2e-selection.png",
+        mimeType: "image/png",
+        sizeBytes: 67,
+        width: 1,
+        height: 1,
+        checksum: "website-e2e-selection-png",
+        status: "active",
+        createdById: administrator.id,
+      },
+    });
+    const [
+      systemViewPermission,
+      systemFeeConfigPermission,
+      websiteViewPermission,
+      websiteReadPermission,
+      websiteEditPermission,
+      websiteEditActionPermission,
+      websitePublishPermission,
+      websitePublishActionPermission,
+      restrictedRole,
+      websiteReaderRole,
+      websiteEditorRole,
+      websitePublisherRole,
+    ] = await Promise.all([
       prisma.permission.findUniqueOrThrow({ where: { permissionCode: "system.view" } }),
       prisma.permission.findUniqueOrThrow({ where: { permissionCode: "system.fee_config" } }),
+      prisma.permission.findUniqueOrThrow({ where: { permissionCode: "website.view" } }),
+      prisma.permission.findUniqueOrThrow({ where: { permissionCode: "website.read" } }),
+      prisma.permission.findUniqueOrThrow({ where: { permissionCode: "website.edit" } }),
+      prisma.permission.findUniqueOrThrow({ where: { permissionCode: "website.edit_action" } }),
+      prisma.permission.findUniqueOrThrow({ where: { permissionCode: "website.publish" } }),
+      prisma.permission.findUniqueOrThrow({ where: { permissionCode: "website.publish_action" } }),
       prisma.role.upsert({
         where: { roleName: "rbac_e2e_system_viewer" },
         update: { description: "Admin RBAC E2E restricted session" },
         create: {
           roleName: "rbac_e2e_system_viewer",
           description: "Admin RBAC E2E restricted session",
+          isActive: true,
+        },
+      }),
+      prisma.role.upsert({
+        where: { roleName: "rbac_e2e_website_reader" },
+        update: { description: "Website Content read-only E2E session" },
+        create: {
+          roleName: "rbac_e2e_website_reader",
+          description: "Website Content read-only E2E session",
+          isActive: true,
+        },
+      }),
+      prisma.role.upsert({
+        where: { roleName: "rbac_e2e_website_editor" },
+        update: { description: "Website Content editor E2E session" },
+        create: {
+          roleName: "rbac_e2e_website_editor",
+          description: "Website Content editor E2E session",
+          isActive: true,
+        },
+      }),
+      prisma.role.upsert({
+        where: { roleName: "rbac_e2e_website_publisher" },
+        update: { description: "Website Content publisher E2E session" },
+        create: {
+          roleName: "rbac_e2e_website_publisher",
+          description: "Website Content publisher E2E session",
           isActive: true,
         },
       }),
@@ -636,30 +736,85 @@ async function seedCompiledServer(env) {
         }),
       ),
     );
-    const restrictedPasswordHash = await new PasswordService().hash(rbacRestrictedAdmin.password);
-    const restrictedUser = await prisma.user.upsert({
-      where: { phone: rbacRestrictedAdmin.phone },
-      update: {
-        username: rbacRestrictedAdmin.username,
-        nickname: "RBAC E2E restricted administrator",
-        passwordHash: restrictedPasswordHash,
-        status: "active",
+    const websiteRoles = [
+      {
+        username: "rbac-e2e-website-reader",
+        phone: "13900000092",
+        nickname: "Website Content reader",
+        role: websiteReaderRole,
+        permissions: [websiteViewPermission, websiteReadPermission],
       },
-      create: {
+      {
+        username: "rbac-e2e-website-editor",
+        phone: "13900000093",
+        nickname: "Website Content editor",
+        role: websiteEditorRole,
+        permissions: [
+          websiteViewPermission,
+          websiteReadPermission,
+          websiteEditPermission,
+          websiteEditActionPermission,
+        ],
+      },
+      {
+        username: "rbac-e2e-website-publisher",
+        phone: "13900000094",
+        nickname: "Website Content publisher",
+        role: websitePublisherRole,
+        permissions: [
+          websiteViewPermission,
+          websiteReadPermission,
+          websitePublishPermission,
+          websitePublishActionPermission,
+        ],
+      },
+    ];
+    const passwordHash = await new PasswordService().hash(rbacRestrictedAdmin.password);
+
+    for (const fixture of [
+      {
+        username: rbacRestrictedAdmin.username,
         phone: rbacRestrictedAdmin.phone,
-        username: rbacRestrictedAdmin.username,
         nickname: "RBAC E2E restricted administrator",
-        passwordHash: restrictedPasswordHash,
-        status: "active",
+        role: restrictedRole,
+        permissions: [systemViewPermission, systemFeeConfigPermission],
       },
-    });
-    await prisma.userRole.upsert({
-      where: {
-        userId_roleId: { userId: restrictedUser.id, roleId: restrictedRole.id },
-      },
-      update: {},
-      create: { userId: restrictedUser.id, roleId: restrictedRole.id },
-    });
+      ...websiteRoles,
+    ]) {
+      const user = await prisma.user.upsert({
+        where: { phone: fixture.phone },
+        update: {
+          username: fixture.username,
+          nickname: fixture.nickname,
+          passwordHash,
+          status: "active",
+        },
+        create: {
+          phone: fixture.phone,
+          username: fixture.username,
+          nickname: fixture.nickname,
+          passwordHash,
+          status: "active",
+        },
+      });
+
+      await Promise.all([
+        ...fixture.permissions.map((permission) =>
+          prisma.rolePermission.upsert({
+            where: {
+              roleId_permissionId: { roleId: fixture.role.id, permissionId: permission.id },
+            },
+            update: {},
+            create: { roleId: fixture.role.id, permissionId: permission.id },
+          }),
+        ),
+        prisma.userRole.upsert({
+          where: { userId_roleId: { userId: user.id, roleId: fixture.role.id } },
+          update: {},
+          create: { userId: user.id, roleId: fixture.role.id },
+        }),
+      ]);
+    }
   } finally {
     await prisma.$disconnect();
   }
@@ -701,9 +856,14 @@ async function runMain(playwrightArgs, signal) {
   const temporaryDirectory = path.join(tmpdir(), schemaName);
   const serverPort = await findAvailablePort();
   let adminPort = await findAvailablePort();
+  let websitePort = await findAvailablePort();
 
   while (adminPort === serverPort) {
     adminPort = await findAvailablePort();
+  }
+
+  while (websitePort === serverPort || websitePort === adminPort) {
+    websitePort = await findAvailablePort();
   }
 
   const baseEnv = {
@@ -711,9 +871,20 @@ async function runMain(playwrightArgs, signal) {
     PORT: String(serverPort),
     ADMIN_E2E_SERVER_PORT: String(serverPort),
     ADMIN_E2E_ADMIN_PORT: String(adminPort),
+    ADMIN_E2E_WEBSITE_PORT: String(websitePort),
+    ADMIN_E2E_WEBSITE_URL: `http://127.0.0.1:${websitePort}`,
     ADMIN_E2E_VITE_CACHE_DIR: path.join(temporaryDirectory, "vite-cache"),
     LOG_DIR: path.join(temporaryDirectory, "server-logs"),
-    ALLOWED_ORIGINS: `http://127.0.0.1:${adminPort}`,
+    ALLOWED_ORIGINS: `http://127.0.0.1:${adminPort},http://127.0.0.1:${websitePort}`,
+    WEBSITE_PUBLIC_URL: `http://127.0.0.1:${websitePort}`,
+    WEBSITE_CONTENT_API_BASE_URL: `http://127.0.0.1:${serverPort}`,
+    // Fake, isolated configuration makes the list adapter resolve the seeded asset URL locally.
+    // This flow never uploads, reads, or verifies a Tencent COS object.
+    TENCENT_COS_SECRET_ID: "admin-e2e-fake-secret-id",
+    TENCENT_COS_SECRET_KEY: "admin-e2e-fake-secret-key",
+    TENCENT_COS_BUCKET: "admin-e2e-media-1250000000",
+    TENCENT_COS_REGION: "ap-guangzhou",
+    TENCENT_COS_PUBLIC_BASE_URL: `http://127.0.0.1:${websitePort}`,
     RBAC_E2E_RESTRICTED_USERNAME: rbacRestrictedAdmin.username,
     RBAC_E2E_RESTRICTED_PASSWORD: rbacRestrictedAdmin.password,
   };
