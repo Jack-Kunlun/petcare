@@ -1,0 +1,14 @@
+@import "tailwindcss";
+
+@theme {
+  --color-website-brand: #4a6cf7;
+  --color-website-accent: #5bc8af;
+  --color-website-ink: #172033;
+  --color-website-surface: #fafbfc;
+}
+
+:root {
+  color: var(--color-website-ink);
+  background-color: var(--color-website-surface);
+  font-family: Arial, "Microsoft YaHei", sans-serif;
+}
