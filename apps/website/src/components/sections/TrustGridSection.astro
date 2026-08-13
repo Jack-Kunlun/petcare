@@ -1,0 +1,50 @@
+---
+import type { WebsitePublicTrustGridSection } from "./public-section-types";
+
+interface Props {
+  /** Validated public trust-grid section. */
+  section: WebsitePublicTrustGridSection;
+}
+
+const { section } = Astro.props;
+const columnClass = `trust-grid--columns-${section.settings.columns}`;
+
+function iconLabel(
+  icon: WebsitePublicTrustGridSection["content"]["items"][number]["icon"],
+): string {
+  return {
+    shield: "Security",
+    certificate: "Verified",
+    clipboard: "Recorded",
+    star: "Rated",
+    support: "Support",
+  }[icon];
+}
+---
+
+<section
+  class="content-section trust-grid-section"
+  aria-labelledby={`section-${section.sectionKey}`}
+>
+  <div class="content-container">
+    <h2 id={`section-${section.sectionKey}`}>{section.content.title}</h2>
+    {
+      section.content.description ? (
+        <p class="section-description">{section.content.description}</p>
+      ) : null
+    }
+    <ul class:list={["trust-grid", columnClass]}>
+      {
+        section.content.items.map((item) => (
+          <li>
+            <span class="trust-grid__icon" aria-hidden="true">
+              {iconLabel(item.icon)}
+            </span>
+            <h3>{item.title}</h3>
+            <p>{item.description}</p>
+          </li>
+        ))
+      }
+    </ul>
+  </div>
+</section>

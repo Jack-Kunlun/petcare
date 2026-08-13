@@ -1,0 +1,67 @@
+---
+import { getPublicImage, getSafeWebsiteHref, hasPublicImage } from "./safe-rendering";
+import type { WebsitePublicHeroSection } from "./public-section-types";
+
+interface Props {
+  /** Validated public hero section. */
+  section: WebsitePublicHeroSection;
+  /** Renders the sole page heading when true. */
+  isPageHeading?: boolean;
+}
+
+const { section, isPageHeading = false } = Astro.props;
+const image = getPublicImage(section.content.image.asset, "hero");
+const usesFallbackImage = !hasPublicImage(section.content.image.asset);
+const Heading = isPageHeading ? "h1" : "h2";
+const hasBackgroundImage = section.settings.imagePosition === "background";
+const alignment = section.settings.alignment === "center" ? "section--centered" : "";
+---
+
+<section class:list={["hero-section", alignment, hasBackgroundImage && "hero-section--background"]}>
+  <div class="hero-section__inner">
+    <div class="hero-section__content">
+      {section.content.eyebrow ? <p class="eyebrow">{section.content.eyebrow}</p> : null}
+      <Heading>{section.content.title}</Heading>
+      <p class="hero-section__description">{section.content.description}</p>
+      <div class="section-actions">
+        {
+          [section.content.primaryAction, section.content.secondaryAction].map((action, index) => {
+            if (!action) return null;
+            const href = getSafeWebsiteHref(action.href);
+
+            return href ? (
+              <a class:list={["button", index === 1 && "button--secondary"]} href={href}>
+                {action.label}
+              </a>
+            ) : null;
+          })
+        }
+      </div>
+    </div>
+    {
+      usesFallbackImage ? (
+        <picture class="hero-section__media">
+          <source srcset="/brand/hero-trusted-care-desktop-v1.webp" type="image/webp" />
+          <img
+            src="/brand/hero-trusted-care-desktop-v1.png"
+            width={image.width}
+            height={image.height}
+            alt={section.content.image.altText}
+            loading="eager"
+            fetchpriority="high"
+          />
+        </picture>
+      ) : (
+        <img
+          class="hero-section__media"
+          src={image.src}
+          width={image.width}
+          height={image.height}
+          alt={section.content.image.altText}
+          loading="eager"
+          fetchpriority="high"
+        />
+      )
+    }
+  </div>
+</section>

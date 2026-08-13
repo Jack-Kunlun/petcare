@@ -1,0 +1,53 @@
+---
+import { WEBSITE_SECTION_TYPE, type WebsitePublicContentSection } from "@petcare/shared-types";
+import SiteFooter from "../SiteFooter.astro";
+import SiteHeader from "../SiteHeader.astro";
+import ContactPanelSection from "./ContactPanelSection.astro";
+import CtaSection from "./CtaSection.astro";
+import FeatureSplitSection from "./FeatureSplitSection.astro";
+import HeroSection from "./HeroSection.astro";
+import RichTextSection from "./RichTextSection.astro";
+import TrustGridSection from "./TrustGridSection.astro";
+import { assertRenderableSection } from "./rendering-contract";
+import type {
+  WebsitePublicSiteFooterSection,
+  WebsitePublicSiteHeaderSection,
+} from "./public-section-types";
+
+interface Props {
+  /** One public server-validated section that must map to a code-owned Astro renderer. */
+  section: WebsitePublicContentSection;
+  /** Enables the sole page heading on the page's first content section. */
+  isPageHeading?: boolean;
+  /** Marks site-shell rendering on preview pages. */
+  preview?: boolean;
+}
+
+const { section, isPageHeading = false, preview = false } = Astro.props;
+assertRenderableSection(section);
+---
+
+{
+  (() => {
+    switch (section.sectionType) {
+      case WEBSITE_SECTION_TYPE.SITE_HEADER:
+        return <SiteHeader section={section as WebsitePublicSiteHeaderSection} preview={preview} />;
+      case WEBSITE_SECTION_TYPE.SITE_FOOTER:
+        return <SiteFooter section={section as WebsitePublicSiteFooterSection} />;
+      case WEBSITE_SECTION_TYPE.HERO:
+        return <HeroSection section={section} isPageHeading={isPageHeading} />;
+      case WEBSITE_SECTION_TYPE.TRUST_GRID:
+        return <TrustGridSection section={section} />;
+      case WEBSITE_SECTION_TYPE.FEATURE_SPLIT:
+        return <FeatureSplitSection section={section} />;
+      case WEBSITE_SECTION_TYPE.CTA:
+        return <CtaSection section={section} />;
+      case WEBSITE_SECTION_TYPE.RICH_TEXT:
+        return <RichTextSection section={section} isPageHeading={isPageHeading} />;
+      case WEBSITE_SECTION_TYPE.CONTACT_PANEL:
+        return <ContactPanelSection section={section} />;
+      default:
+        return null;
+    }
+  })()
+}

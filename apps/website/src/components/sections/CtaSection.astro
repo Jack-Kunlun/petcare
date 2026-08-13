@@ -1,0 +1,44 @@
+---
+import { getSafeWebsiteHref } from "./safe-rendering";
+import type { WebsitePublicCtaSection } from "./public-section-types";
+
+interface Props {
+  /** Validated public CTA section. */
+  section: WebsitePublicCtaSection;
+}
+
+const { section } = Astro.props;
+const primaryHref = getSafeWebsiteHref(section.content.primaryAction.href);
+const secondaryHref = section.content.secondaryAction
+  ? getSafeWebsiteHref(section.content.secondaryAction.href)
+  : null;
+---
+
+<section
+  class:list={[
+    "cta-section",
+    `cta-section--${section.settings.tone}`,
+    section.settings.alignment === "center" && "section--centered",
+  ]}
+>
+  <div class="content-container">
+    <h2>{section.content.title}</h2>
+    <p>{section.content.description}</p>
+    <div class="section-actions">
+      {
+        primaryHref ? (
+          <a class="button" href={primaryHref}>
+            {section.content.primaryAction.label}
+          </a>
+        ) : null
+      }
+      {
+        secondaryHref && section.content.secondaryAction ? (
+          <a class="button button--secondary" href={secondaryHref}>
+            {section.content.secondaryAction.label}
+          </a>
+        ) : null
+      }
+    </div>
+  </div>
+</section>
