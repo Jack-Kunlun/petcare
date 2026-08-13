@@ -6,10 +6,12 @@
   "scripts": {
     "dev": "astro dev",
     "build": "astro build",
+    "clean": "node ../../scripts/clean.mjs dist .astro coverage .turbo",
     "preview": "astro preview",
     "typecheck": "astro check",
-    "lint": "eslint .",
-    "test": "vitest",
+    "lint": "pnpm lint:styles && eslint .",
+    "lint:styles": "node ../../scripts/style-policy.mjs website",
+    "test": "vitest run",
     "test:run": "vitest run",
     "test:coverage": "vitest run --coverage"
   },

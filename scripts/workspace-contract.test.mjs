@@ -8,6 +8,7 @@ const manifests = [
   "apps/admin/package.json",
   "apps/server/package.json",
   "apps/miniapp/package.json",
+  "apps/website/package.json",
   "packages/api-client/package.json",
   "packages/shared-types/package.json",
   "packages/shared-utils/package.json",
@@ -102,6 +103,7 @@ test("所有工作区暴露标准生命周期", async () => {
 
 test("根级命令覆盖质量门禁与三端开发", async () => {
   const manifest = await readJson("package.json");
+  const workspace = await readFile(resolve(root, "pnpm-workspace.yaml"), "utf8");
 
   assert.equal(manifest.engines.node, ">=24.12.0 <25");
   assert.equal(manifest.engines.pnpm, ">=11.0.0 <12");
@@ -113,6 +115,11 @@ test("根级命令覆盖质量门禁与三端开发", async () => {
   assert.match(manifest.scripts.dev, /@petcare\/server/);
   assert.match(manifest.scripts.dev, /@petcare\/miniapp/);
   assert.match(manifest.scripts.check, /format:check.*lint.*typecheck.*test.*build/);
+  assert.match(workspace, /^\s*- "apps\/\*"$/m);
+  assert.equal(manifest.scripts.build, "turbo run build");
+  assert.equal(manifest.scripts.typecheck, "turbo run typecheck");
+  assert.match(manifest.scripts.lint, /turbo run lint$/);
+  assert.equal(manifest.scripts.test, "pnpm test:tooling && turbo run test");
 
   for (const target of ["h5", "mp-weixin", "app-android", "app-ios"]) {
     assert.equal(

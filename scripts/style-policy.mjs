@@ -9,18 +9,26 @@ const DEFAULT_REPO_ROOT = path.resolve(path.dirname(SCRIPT_PATH), "..");
 const SOURCE_EXTENSIONS = new Set([".css", ".scss"]);
 
 export function validateStyleFile(scope, relativePath, source) {
-  if (scope !== "admin") {
+  if (scope !== "admin" && scope !== "website") {
     throw new Error(`未知样式检查范围：${scope}`);
   }
 
   const violations = [];
   const normalizedPath = relativePath.replaceAll("\\", "/");
 
-  if (normalizedPath.endsWith(".css") && normalizedPath !== "apps/admin/src/index.css") {
+  if (
+    scope === "admin" &&
+    normalizedPath.endsWith(".css") &&
+    normalizedPath !== "apps/admin/src/index.css"
+  ) {
     violations.push(`${normalizedPath}: Admin 仅允许 index.css 作为 Tailwind 入口`);
   }
 
-  if (normalizedPath.endsWith(".scss") && /@(theme|tailwind|apply)\b/.test(source)) {
+  if (
+    scope === "admin" &&
+    normalizedPath.endsWith(".scss") &&
+    /@(theme|tailwind|apply)\b/.test(source)
+  ) {
     violations.push(`${normalizedPath}: Admin SCSS 禁止 Tailwind 指令`);
   }
 
@@ -63,12 +71,12 @@ export function validateAdminTheme(source) {
 }
 
 export async function checkStylePolicy(repoRoot = DEFAULT_REPO_ROOT, scope = "admin") {
-  if (scope !== "admin") {
+  if (scope !== "admin" && scope !== "website") {
     throw new Error(`未知样式检查范围：${scope}`);
   }
 
   const violations = [];
-  const sourceRoot = path.join(repoRoot, "apps", "admin", "src");
+  const sourceRoot = path.join(repoRoot, "apps", scope, "src");
 
   for (const file of await collectSourceFiles(sourceRoot)) {
     const source = await readFile(file, "utf8");
@@ -76,7 +84,7 @@ export async function checkStylePolicy(repoRoot = DEFAULT_REPO_ROOT, scope = "ad
 
     violations.push(...validateStyleFile(scope, relativePath, source));
 
-    if (relativePath === "apps/admin/src/index.css") {
+    if (scope === "admin" && relativePath === "apps/admin/src/index.css") {
       violations.push(...validateAdminTheme(source));
     }
   }

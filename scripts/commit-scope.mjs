@@ -2,6 +2,7 @@ const DIRECT_WORKSPACES = Object.freeze({
   "apps/admin/": "@petcare/admin",
   "apps/miniapp/": "@petcare/miniapp",
   "apps/server/": "@petcare/server",
+  "apps/website/": "@petcare/website",
 });
 
 const DEPENDENT_WORKSPACES = Object.freeze({
@@ -24,6 +25,7 @@ export const FULL_TYPECHECK_PROJECTS = Object.freeze([
   "@petcare/admin",
   "@petcare/miniapp",
   "@petcare/server",
+  "@petcare/website",
   "@petcare/api-client",
   "@petcare/shared-types",
   "@petcare/shared-utils",
@@ -31,6 +33,7 @@ export const FULL_TYPECHECK_PROJECTS = Object.freeze([
 
 const STYLE_PROJECTS = Object.freeze({
   admin: "@petcare/admin",
+  website: "@petcare/website",
 });
 
 export function classifyStagedPaths(paths) {
@@ -57,6 +60,7 @@ export function classifyStagedPaths(paths) {
     }
 
     if (path.startsWith("apps/admin/src/")) styleScopes.add("admin");
+    if (path.startsWith("apps/website/src/")) styleScopes.add("website");
   }
 
   return {
