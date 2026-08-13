@@ -7,6 +7,8 @@ dist
 build
 .next
 out
+apps/website/.astro/
+apps/website/dist/
 
 # Generated files
 *.min.js

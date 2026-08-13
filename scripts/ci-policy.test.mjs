@@ -50,6 +50,24 @@ test("CI 串行执行各工作区测试以适配 GitHub runner 资源限制", as
   assert.match(unitTestJob, /- run: pnpm test:ci/u);
 });
 
+test("CI 通过根级 Turbo 命令覆盖 Website 的测试与构建", async () => {
+  const [workflow, websitePackage] = await Promise.all([
+    readFile(resolve(root, ".github/workflows/ci.yml"), "utf8"),
+    readFile(resolve(root, "apps/website/package.json"), "utf8"),
+  ]);
+  const manifest = JSON.parse(websitePackage);
+  const unitTestJob = workflow.slice(
+    workflow.indexOf("\n  unit-test:"),
+    workflow.indexOf("\n  build:"),
+  );
+  const buildJob = workflow.slice(workflow.indexOf("\n  build:"), workflow.indexOf("\n  e2e:"));
+
+  assert.equal(manifest.scripts.test, "vitest run");
+  assert.equal(manifest.scripts.build, "astro build");
+  assert.match(unitTestJob, /- run: pnpm test:ci/u);
+  assert.match(buildJob, /- run: pnpm build/u);
+});
+
 test("Dependabot 每周检查 pnpm、Docker 和 GitHub Actions", async () => {
   const dependabot = await readFile(resolve(root, ".github/dependabot.yml"), "utf8");
 
