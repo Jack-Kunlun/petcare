@@ -24,6 +24,7 @@ import {
   ArrayMinSize,
   Equals,
   IsArray,
+  IsBoolean,
   IsIn,
   IsInt,
   IsObject,
@@ -110,6 +111,7 @@ export class WebsiteContentSectionDto {
 
   /** Whether the fixed section is rendered. */
   @ApiProperty()
+  @IsBoolean()
   isEnabled: boolean;
 
   /** First-release schema version, validated again by the section registry. */

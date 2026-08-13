@@ -8,6 +8,8 @@ import test from "node:test";
 import { setTimeout } from "node:timers";
 import { fileURLToPath } from "node:url";
 import path from "node:path";
+
+/* global AbortController */
 import {
   assertDisposableAdminSchema,
   createAdminE2eSchemaName,
