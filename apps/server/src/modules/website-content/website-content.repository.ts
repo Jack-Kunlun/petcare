@@ -5,6 +5,7 @@ import {
   type WebsiteContentHistoryQuery,
   type WebsiteContentHistoryResponse,
   type WebsiteContentKey,
+  type WebsiteContentOverviewResponse,
   type PublishWebsiteContentResponse,
   type WebsiteContentSection,
   type WebsiteContentVersion,
@@ -109,6 +110,37 @@ function isUniqueConflict(error: unknown): boolean {
 @Injectable()
 export class WebsiteContentRepository {
   constructor(private readonly prisma: PrismaService) {}
+
+  /** Lists all independently managed content units and their current pointer summaries. */
+  async getOverview(): Promise<WebsiteContentOverviewResponse> {
+    const records = await this.prisma.websiteContent.findMany({
+      include: {
+        currentDraftVersion: {
+          include: { createdBy: { select: { id: true, nickname: true, username: true } } },
+        },
+        publishedVersion: { select: { id: true, businessVersion: true, publishedAt: true } },
+      },
+      orderBy: { contentKey: "asc" },
+    });
+
+    return records.flatMap((record) => {
+      const draft = record.currentDraftVersion;
+
+      if (!draft) {
+        return [];
+      }
+
+      return [{
+        contentKey: record.contentKey as WebsiteContentKey,
+        draftRevision: draft.revision,
+        publishedBusinessVersion: record.publishedVersion?.businessVersion ?? null,
+        hasUnpublishedChanges: draft.sourceVersionId !== record.publishedVersion?.id,
+        lastEditedBy: operatorSummary(draft.createdBy),
+        lastEditedAt: draft.createdAt.toISOString(),
+        publishedAt: record.publishedVersion?.publishedAt?.toISOString() ?? null,
+      }];
+    });
+  }
 
   /** Creates a new immutable draft and advances only the draft pointer. */
   async saveDraft(
@@ -610,6 +642,11 @@ export class WebsiteContentRepository {
       draft: toVersion(content.currentDraftVersion),
       published: content.publishedVersion ? toVersion(content.publishedVersion) : null,
     };
+  }
+
+  /** Reads the current immutable draft snapshot selected by the draft pointer. */
+  async getCurrentDraft(contentKey: WebsiteContentKey): Promise<WebsiteContentVersion> {
+    return (await this.getDraftAndPublished(contentKey)).draft;
   }
 
   private async assertActiveMedia(
