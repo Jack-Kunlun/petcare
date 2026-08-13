@@ -1,4 +1,5 @@
 import { ArgumentsHost, BadRequestException, NotFoundException } from "@nestjs/common";
+import { MulterError } from "multer";
 import { AppLogger } from "../../logging/app-logger.service";
 import { ApiException } from "./api-exception";
 import { ApiExceptionFilter } from "./api-exception.filter";
@@ -75,5 +76,31 @@ describe("ApiExceptionFilter", () => {
       }),
     );
     expect(JSON.stringify(response.json.mock.calls)).not.toContain("postgresql://");
+  });
+
+  it("maps only Multer's file-size limit to the public avatar size error", () => {
+    filter.catch(new MulterError("LIMIT_FILE_SIZE"), host);
+
+    expect(response.status).toHaveBeenCalledWith(413);
+    expect(response.json).toHaveBeenCalledWith({
+      code: "AVATAR_FILE_TOO_LARGE",
+      message: "头像文件不能超过 2MB",
+      data: null,
+      meta: {
+        requestId: "request-123",
+        timestamp: expect.any(String),
+      },
+    });
+    expect(JSON.stringify(response.json.mock.calls)).not.toContain("LIMIT_FILE_SIZE");
+    expect(JSON.stringify(response.json.mock.calls)).not.toContain("stack");
+  });
+
+  it("keeps other Multer failures as safe validation errors", () => {
+    filter.catch(new MulterError("LIMIT_FILE_COUNT"), host);
+
+    expect(response.status).toHaveBeenCalledWith(400);
+    expect(response.json).toHaveBeenCalledWith(
+      expect.objectContaining({ code: "VALIDATION_FAILED", message: "请求参数校验失败" }),
+    );
   });
 });

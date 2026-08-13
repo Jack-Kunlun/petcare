@@ -20,6 +20,7 @@ const Settings = lazy(() => import("../pages/Settings"));
 const SettingsDetail = lazy(() => import("../pages/Settings/Detail"));
 const SettingsEdit = lazy(() => import("../pages/Settings/Edit"));
 const RbacCatalog = lazy(() => import("../pages/Rbac/Catalog"));
+const Account = lazy(() => import("../pages/Account"));
 
 /** A protected administration route, including its menu metadata when it has a menu entry. */
 export interface AdminRouteDefinition {
@@ -97,12 +98,41 @@ function settingsRoute(element: ReactNode) {
   );
 }
 
+function accountRoute(element: ReactNode) {
+  return createElement(
+    LazyRouteBoundary,
+    null,
+    createElement(
+      Suspense,
+      {
+        fallback: createElement(
+          "p",
+          { "aria-live": "polite", className: "p-8 text-center text-slate-600" },
+          "正在加载个人中心…",
+        ),
+      },
+      element,
+    ),
+  );
+}
+
 /**
  * The adapter from serializable shared permission catalog records to React route elements.
  *
  * The adapter keeps shared catalog data serializable while routing each protected Admin view.
  */
 export const ADMIN_ROUTE_REGISTRY: readonly AdminRouteDefinition[] = [
+  {
+    id: "account",
+    path: "/account",
+    element: accountRoute(createElement(Account)),
+    menuPermission: null,
+    requiredPermissions: [],
+    parentPath: null,
+    order: 0,
+    icon: null,
+    menuLabel: null,
+  },
   catalogMenuRoute("dashboard", "stats.view", createElement(Dashboard)),
   catalogMenuRoute("users", "user.view", createElement(UserManagement), "用户列表"),
   catalogMenuRoute(

@@ -27,8 +27,7 @@ import {
 import { PasswordLoginDto } from "./dto/password-login.dto";
 import { SendSmsCodeDto } from "./dto/send-sms-code.dto";
 import { SmsLoginDto } from "./dto/sms-login.dto";
-
-const REFRESH_COOKIE = "petcare_refresh_token";
+import { REFRESH_COOKIE, refreshCookieOptions } from "./refresh-cookie";
 
 type AuthRequest = Request & {
   user?: AccessTokenPayload;
@@ -126,7 +125,7 @@ export class AuthController {
       await this.authService.logout(refreshToken);
     }
 
-    response.clearCookie(REFRESH_COOKIE, this.cookieOptions());
+    response.clearCookie(REFRESH_COOKIE, refreshCookieOptions(this.configService));
   }
 
   @Get("me")
@@ -147,19 +146,10 @@ export class AuthController {
 
   private completeLogin(result: LoginResult, response: Response): LoginResponse {
     response.cookie(REFRESH_COOKIE, result.refreshToken, {
-      ...this.cookieOptions(),
+      ...refreshCookieOptions(this.configService),
       maxAge: this.configService.refreshTokenTtlSeconds * 1000,
     });
 
     return { accessToken: result.accessToken, user: result.user };
-  }
-
-  private cookieOptions() {
-    return {
-      httpOnly: true,
-      sameSite: "lax" as const,
-      secure: this.configService.nodeEnv === "production",
-      path: "/api/auth",
-    };
   }
 }

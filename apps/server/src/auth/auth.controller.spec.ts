@@ -5,6 +5,7 @@ import { AdminGuard } from "./admin.guard";
 import { AuthController } from "./auth.controller";
 import { AuthService } from "./auth.service";
 import { CaptchaService } from "./captcha.service";
+import { REFRESH_COOKIE, refreshCookieOptions } from "./refresh-cookie";
 
 describe("AuthController", () => {
   const user = {
@@ -83,11 +84,8 @@ describe("AuthController", () => {
       response as never,
     );
 
-    expect(response.cookie).toHaveBeenCalledWith("petcare_refresh_token", "refresh", {
-      httpOnly: true,
-      sameSite: "lax",
-      secure: false,
-      path: "/api/auth",
+    expect(response.cookie).toHaveBeenCalledWith(REFRESH_COOKIE, "refresh", {
+      ...refreshCookieOptions({ nodeEnv: "development" } as ConfigService),
       maxAge: 604800000,
     });
     expect(result).toEqual({ accessToken: "access", user });
@@ -95,13 +93,13 @@ describe("AuthController", () => {
 
   it("rotates the refresh cookie", async () => {
     const result = await controller.refresh(
-      { cookies: { petcare_refresh_token: "old-refresh" } } as never,
+      { cookies: { [REFRESH_COOKIE]: "old-refresh" } } as never,
       response as never,
     );
 
     expect(authService.refresh).toHaveBeenCalledWith("old-refresh");
     expect(response.cookie).toHaveBeenCalledWith(
-      "petcare_refresh_token",
+      REFRESH_COOKIE,
       "new-refresh",
       expect.objectContaining({ httpOnly: true }),
     );
@@ -119,15 +117,22 @@ describe("AuthController", () => {
 
   it("revokes the session and clears the refresh cookie", async () => {
     await controller.logout(
-      { cookies: { petcare_refresh_token: "refresh" } } as never,
+      { cookies: { [REFRESH_COOKIE]: "refresh" } } as never,
       response as never,
     );
 
     expect(authService.logout).toHaveBeenCalledWith("refresh");
-    expect(response.clearCookie).toHaveBeenCalledWith("petcare_refresh_token", {
+    expect(response.clearCookie).toHaveBeenCalledWith(
+      REFRESH_COOKIE,
+      refreshCookieOptions({ nodeEnv: "development" } as ConfigService),
+    );
+  });
+
+  it("keeps refresh cookies limited to auth routes and enables secure delivery in production", () => {
+    expect(refreshCookieOptions({ nodeEnv: "production" } as ConfigService)).toEqual({
       httpOnly: true,
       sameSite: "lax",
-      secure: false,
+      secure: true,
       path: "/api/auth",
     });
   });

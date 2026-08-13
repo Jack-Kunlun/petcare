@@ -12,6 +12,7 @@ function renderPermissionRoute(permissions: string[]) {
       username: "operator",
       phone: "17679141878",
       nickname: "运营管理员",
+      avatar: null,
       roles: ["operator"],
       permissions,
     },
@@ -20,6 +21,8 @@ function renderPermissionRoute(permissions: string[]) {
     getCaptcha: vi.fn(),
     sendSmsCode: vi.fn(),
     logout: vi.fn(),
+    updateUserSummary: vi.fn(),
+    invalidateLocalSession: vi.fn(),
   };
 
   render(

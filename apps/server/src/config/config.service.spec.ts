@@ -21,10 +21,11 @@ describe("ConfigService", () => {
     ALLOWED_ORIGINS: "http://localhost:8986",
     WECHAT_APP_ID: "",
     WECHAT_APP_SECRET: "",
-    ALIYUN_OSS_ACCESS_KEY_ID: "",
-    ALIYUN_OSS_ACCESS_KEY_SECRET: "",
-    ALIYUN_OSS_BUCKET: "",
-    ALIYUN_OSS_REGION: "",
+    TENCENT_COS_SECRET_ID: "",
+    TENCENT_COS_SECRET_KEY: "",
+    TENCENT_COS_BUCKET: "",
+    TENCENT_COS_REGION: "",
+    TENCENT_COS_PUBLIC_BASE_URL: "",
   };
 
   beforeEach(() => {
@@ -115,6 +116,22 @@ describe("ConfigService", () => {
       expect(() => new ConfigService().validateForStartup()).not.toThrow();
     });
 
+    it("keeps COS disabled when all fields are empty", () => {
+      process.env = {
+        ...originalEnv,
+        ...validStartupEnv,
+        TENCENT_COS_SECRET_ID: "",
+        TENCENT_COS_SECRET_KEY: "",
+        TENCENT_COS_BUCKET: "",
+        TENCENT_COS_REGION: "",
+        TENCENT_COS_PUBLIC_BASE_URL: "",
+      };
+      const config = new ConfigService();
+
+      expect(() => config.validateForStartup()).not.toThrow();
+      expect(config.tencentCosEnabled).toBe(false);
+    });
+
     it("reports all missing required startup variables without exposing values", () => {
       process.env = { NODE_ENV: "development" };
 
@@ -123,34 +140,60 @@ describe("ConfigService", () => {
       );
     });
 
-    it("rejects partially configured WeChat and OSS integrations", () => {
+    it("rejects partially configured WeChat and Tencent COS integrations", () => {
       process.env = {
         ...originalEnv,
         ...validStartupEnv,
         WECHAT_APP_ID: "wx3bdad4ab652f0d1d",
-        ALIYUN_OSS_BUCKET: "petcare-test",
+        TENCENT_COS_BUCKET: "petcare-avatar-1250000000",
       };
 
       expect(() => new ConfigService().validateForStartup()).toThrow(
-        /WECHAT_APP_SECRET.*ALIYUN_OSS_ACCESS_KEY_ID.*ALIYUN_OSS_REGION/s,
+        /WECHAT_APP_SECRET.*TENCENT_COS_SECRET_ID.*TENCENT_COS_REGION/s,
       );
     });
 
-    it("rejects malformed complete WeChat and OSS integrations", () => {
+    it("accepts valid Tencent COS configuration and exposes typed getters", () => {
       process.env = {
         ...originalEnv,
         ...validStartupEnv,
-        WECHAT_APP_ID: "invalid-app-id",
-        WECHAT_APP_SECRET: "invalid-secret",
-        ALIYUN_OSS_ACCESS_KEY_ID: "test-access-key",
-        ALIYUN_OSS_ACCESS_KEY_SECRET: "test-access-secret",
-        ALIYUN_OSS_BUCKET: "Invalid_Bucket",
-        ALIYUN_OSS_REGION: "cn-hangzhou",
+        TENCENT_COS_SECRET_ID: "test-secret-id",
+        TENCENT_COS_SECRET_KEY: "test-secret-key",
+        TENCENT_COS_BUCKET: "petcare-avatar-1250000000",
+        TENCENT_COS_REGION: "ap-guangzhou",
+        TENCENT_COS_PUBLIC_BASE_URL: "https://cdn.example.com/public-assets",
+      };
+      const config = new ConfigService();
+
+      expect(() => config.validateForStartup()).not.toThrow();
+      expect(config.tencentCosSecretId).toBe("test-secret-id");
+      expect(config.tencentCosSecretKey).toBe("test-secret-key");
+      expect(config.tencentCosBucket).toBe("petcare-avatar-1250000000");
+      expect(config.tencentCosRegion).toBe("ap-guangzhou");
+      expect(config.tencentCosPublicBaseUrl).toBe("https://cdn.example.com/public-assets");
+      expect(config.tencentCosEnabled).toBe(true);
+    });
+
+    it.each([
+      ["bucket", { TENCENT_COS_BUCKET: "Invalid_Bucket" }, "TENCENT_COS_BUCKET"],
+      ["region", { TENCENT_COS_REGION: "guangzhou" }, "TENCENT_COS_REGION"],
+      [
+        "public base URL",
+        { TENCENT_COS_PUBLIC_BASE_URL: "ftp://cdn.example.com/public-assets" },
+        "TENCENT_COS_PUBLIC_BASE_URL",
+      ],
+    ])("rejects a malformed Tencent COS %s", (_name, overrides, errorName) => {
+      process.env = {
+        ...originalEnv,
+        ...validStartupEnv,
+        TENCENT_COS_SECRET_ID: "test-secret-id",
+        TENCENT_COS_SECRET_KEY: "test-secret-key",
+        TENCENT_COS_BUCKET: "petcare-avatar-1250000000",
+        TENCENT_COS_REGION: "ap-guangzhou",
+        ...overrides,
       };
 
-      expect(() => new ConfigService().validateForStartup()).toThrow(
-        /WECHAT_APP_ID.*ALIYUN_OSS_BUCKET/s,
-      );
+      expect(() => new ConfigService().validateForStartup()).toThrow(errorName);
     });
 
     it("rejects malformed ports, token durations, and allowed origins", () => {

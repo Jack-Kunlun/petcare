@@ -16,6 +16,7 @@ const auth: AuthContextValue = {
     username: "operator",
     phone: "17679141878",
     nickname: "运营主管",
+    avatar: null,
     roles: ["operator"],
     permissions: ["system.view", "system.fee_config", "system.publish"],
   },
@@ -24,6 +25,8 @@ const auth: AuthContextValue = {
   getCaptcha: vi.fn(),
   sendSmsCode: vi.fn(),
   logout: vi.fn(),
+  updateUserSummary: vi.fn(),
+  invalidateLocalSession: vi.fn(),
 };
 
 function renderDetail(permissions = auth.user?.permissions ?? []) {

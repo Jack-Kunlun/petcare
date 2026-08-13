@@ -8,6 +8,7 @@ import { ConfigModule } from "./config/config.module";
 import { HealthModule } from "./health/health.module";
 import { HttpLoggingMiddleware } from "./logging/http-logging.middleware";
 import { LoggingModule } from "./logging/logging.module";
+import { AdminAccountModule } from "./modules/admin-account/admin-account.module";
 import { ComplaintDisputeModule } from "./modules/complaint-dispute/complaint-dispute.module";
 import { ContentModule } from "./modules/content/content.module";
 import { OrderModule } from "./modules/order/order.module";
@@ -33,6 +34,7 @@ import { PrismaModule } from "./prisma/prisma.module";
     ProviderModule,
     SystemSettingsModule,
     RbacModule,
+    AdminAccountModule,
   ],
   providers: [
     { provide: APP_INTERCEPTOR, useClass: ApiResponseInterceptor },
