@@ -157,3 +157,44 @@ export interface AdminClassroomArticleListQuery {
 
 /** 后台课堂文章列表响应。 */
 export type AdminClassroomArticleListResponse = PaginatedResponse<AdminClassroomArticleListItem>;
+
+/** Public article-author display data that is safe for website visitors. */
+export interface PublicClassroomArticleAuthor {
+  /** Display name selected from the article author's public profile fields. */
+  displayName: string;
+  /** Optional public avatar URL for the article author. */
+  avatar: string | null;
+}
+
+/** Public classroom article summary for the official website. */
+export interface PublicClassroomArticleListItem {
+  /** Stable route value; the first release uses the article ID directly. */
+  slug: string;
+  /** Public article title. */
+  title: string;
+  /** Public article summary. */
+  summary: string;
+  /** Optional public cover image URL. */
+  coverUrl: string | null;
+  /** Optional public author display data. */
+  author: PublicClassroomArticleAuthor | null;
+  /** Publication timestamp in ISO 8601 format when the source article records one. */
+  publishedAt: string | null;
+}
+
+/** Public classroom article detail for the official website. */
+export interface PublicClassroomArticleDetail extends PublicClassroomArticleListItem {
+  /** Escaped text body that must be rendered as text, never trusted HTML. */
+  body: string;
+}
+
+/** Pagination query accepted by the public classroom article list. */
+export interface PublicClassroomArticleListQuery {
+  /** One-based result page. */
+  page: number;
+  /** Number of articles per page, from 1 through 100. */
+  pageSize: number;
+}
+
+/** Public paginated classroom article list response. */
+export type PublicClassroomArticleListResponse = PaginatedResponse<PublicClassroomArticleListItem>;
