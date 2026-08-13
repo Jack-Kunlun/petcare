@@ -1,4 +1,10 @@
-import type { WebsiteContentKey, WebsitePublicContent } from "@petcare/shared-types";
+import type {
+  PublicClassroomArticleDetail,
+  PublicClassroomArticleListQuery,
+  PublicClassroomArticleListResponse,
+  WebsiteContentKey,
+  WebsitePublicContent,
+} from "@petcare/shared-types";
 
 /** Public-safe draft snapshot returned only after a valid preview capability exchange. */
 export type WebsitePreviewContent = Omit<WebsitePublicContent, "businessVersion" | "publishedAt"> & {
@@ -37,6 +43,10 @@ export interface WebsiteContentApi {
   getPublished(contentKey: WebsiteContentKey): Promise<WebsitePublicContent>;
   /** Reads a fixed draft snapshot with a preview capability header. */
   getPreview(contentKey: WebsiteContentKey, token: string): Promise<WebsitePreviewContent>;
+  /** Reads one public page of published classroom article summaries. */
+  getArticles(query: PublicClassroomArticleListQuery): Promise<PublicClassroomArticleListResponse>;
+  /** Reads one published classroom article by its stable public route value. */
+  getArticle(slug: string): Promise<PublicClassroomArticleDetail>;
 }
 
 interface WebsiteApiEnvelope<T> {
@@ -70,6 +80,22 @@ export function createWebsiteContentApi({
         `${normalizedBaseUrl}/website-content/previews/${encodeURIComponent(contentKey)}`,
         timeoutMs,
         { "X-Website-Preview-Token": token },
+      );
+    },
+    getArticles({ page, pageSize }) {
+      const query = new URLSearchParams({ page: String(page), pageSize: String(pageSize) });
+
+      return request<PublicClassroomArticleListResponse>(
+        fetcher,
+        `${normalizedBaseUrl}/content/articles?${query.toString()}`,
+        timeoutMs,
+      );
+    },
+    getArticle(slug) {
+      return request<PublicClassroomArticleDetail>(
+        fetcher,
+        `${normalizedBaseUrl}/content/articles/${encodeURIComponent(slug)}`,
+        timeoutMs,
       );
     },
   };
