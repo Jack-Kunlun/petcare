@@ -1,0 +1,53 @@
+---
+import { createWebsiteContentApi } from "../../lib/api";
+import { loadPreviewPageContent } from "../../lib/load-page-content";
+import { getWebsiteRuntimeConfig } from "../../lib/runtime-config";
+import { WEBSITE_PREVIEW_COOKIE } from "./session";
+
+const contentKey = Astro.params.contentKey;
+const previewToken = Astro.cookies.get(WEBSITE_PREVIEW_COOKIE)?.value;
+
+if (!previewToken || !contentKey || contentKey === "site_shell") {
+  return Astro.redirect("/preview", 302);
+}
+
+const api = createWebsiteContentApi({ baseUrl: getWebsiteRuntimeConfig().contentApiBaseUrl });
+let content;
+
+try {
+  content = await loadPreviewPageContent({
+    api,
+    contentKey: contentKey as Exclude<Parameters<typeof loadPreviewPageContent>[0]["contentKey"], "site_shell">,
+    token: previewToken,
+  });
+} catch {
+  return new Response("预览链接无效或已失效。", {
+    status: 401,
+    headers: {
+      "Cache-Control": "private, no-store",
+      "X-Robots-Tag": "noindex, nofollow",
+      "content-type": "text/plain; charset=utf-8",
+    },
+  });
+}
+
+Astro.response.headers.set("Cache-Control", "private, no-store");
+Astro.response.headers.set("X-Robots-Tag", "noindex, nofollow");
+---
+
+<!doctype html>
+<html lang="zh-CN">
+  <head>
+    <meta charset="utf-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1" />
+    <meta name="robots" content="noindex,nofollow" />
+    <title>{content.page.seo.title}（草稿预览）</title>
+  </head>
+  <body>
+    <header><p>草稿预览</p></header>
+    <main>
+      <h1>{content.page.seo.title}</h1>
+      <p>{content.page.seo.description}</p>
+    </main>
+  </body>
+</html>

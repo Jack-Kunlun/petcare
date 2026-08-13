@@ -1,0 +1,49 @@
+---
+const contentKey = Astro.url.searchParams.get("contentKey");
+---
+
+<!doctype html>
+<html lang="zh-CN">
+  <head>
+    <meta charset="utf-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1" />
+    <meta name="robots" content="noindex,nofollow" />
+    <meta http-equiv="Cache-Control" content="private, no-store" />
+    <title>官网草稿预览</title>
+  </head>
+  <body>
+    <main>
+      <p id="preview-status">正在打开草稿预览…</p>
+    </main>
+    <script is:inline define:vars={{ contentKey }}>
+      const status = document.querySelector("#preview-status");
+      const hash = new URLSearchParams(window.location.hash.slice(1));
+      const token = hash.get("token");
+
+      history.replaceState(null, "", `${window.location.pathname}${window.location.search}`);
+
+      if (!token || !contentKey) {
+        status.textContent = "预览链接无效或已失效。";
+      } else {
+        fetch("/preview/session", {
+          method: "POST",
+          headers: { "content-type": "application/json" },
+          body: JSON.stringify({ contentKey, token }),
+          cache: "no-store",
+        })
+          .then(async (response) => {
+            if (!response.ok) {
+              throw new Error("Preview exchange failed");
+            }
+
+            const session = await response.json();
+
+            window.location.replace(session.path);
+          })
+          .catch(() => {
+            status.textContent = "预览链接无效或已失效。";
+          });
+      }
+    </script>
+  </body>
+</html>
