@@ -85,6 +85,10 @@ test("Hooks 使用 pnpm exec，换行策略为 Windows 脚本保留 CRLF", async
     "prettier --write",
     "eslint --fix",
   ]);
+  assert.deepEqual(manifest["lint-staged"]["apps/website/**/*.{astro,ts,css,json}"], [
+    "prettier --write",
+    "pnpm --filter @petcare/website exec -- eslint --fix",
+  ]);
   assert.deepEqual(
     prettierIgnore.split(/\r?\n/).filter((line) => line.startsWith("apps/miniapp/src/")),
     [
@@ -94,6 +98,9 @@ test("Hooks 使用 pnpm exec，换行策略为 Windows 脚本保留 CRLF", async
       "apps/miniapp/src/uni-pages.d.ts",
     ],
   );
+  for (const ignoredPath of ["apps/website/.astro/", "apps/website/dist/"]) {
+    assert.ok(prettierIgnore.split(/\r?\n/).includes(ignoredPath));
+  }
   for (const ignoredPath of [
     "src/uni_modules/**/*",
     "src/auto-imports.d.ts",
