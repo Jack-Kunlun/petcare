@@ -18,6 +18,12 @@ vi.mock("../../api/website-content", async () => {
     fetchWebsiteContentDraft: vi.fn(),
     saveWebsiteContentDraft: vi.fn(),
     fetchWebsiteMediaAssets: vi.fn(),
+    fetchWebsiteContentDiff: vi.fn(),
+    fetchWebsiteContentHistory: vi.fn(),
+    createWebsiteContentPreview: vi.fn(),
+    publishWebsiteContent: vi.fn(),
+    uploadWebsiteMediaAsset: vi.fn(),
+    archiveWebsiteMediaAsset: vi.fn(),
   };
 });
 
@@ -91,8 +97,10 @@ const authenticated: AuthContextValue = {
   logout: vi.fn(),
 };
 
-function renderEditor(permissions = authenticated.user?.permissions ?? []) {
-  const queryClient = new QueryClient({ defaultOptions: { queries: { retry: false } } });
+function renderEditor(
+  permissions = authenticated.user?.permissions ?? [],
+  queryClient = new QueryClient({ defaultOptions: { queries: { retry: false } } }),
+) {
   const context: AuthContextValue = {
     ...authenticated,
     user: authenticated.user ? { ...authenticated.user, permissions } : null,
@@ -120,6 +128,15 @@ describe("WebsiteContentEdit", () => {
       page: 1,
       pageSize: 100,
     });
+    vi.mocked(websiteContentApi.fetchWebsiteContentHistory).mockResolvedValue({
+      list: [],
+      total: 0,
+      page: 1,
+      pageSize: 20,
+    });
+    vi.mocked(websiteContentApi.fetchWebsiteContentDiff).mockResolvedValue([
+      { path: "seo.title", before: "before", after: "after", changeType: "modified" },
+    ]);
   });
 
   it("keeps fixed sections ordered and saves a complete immutable draft snapshot", async () => {
@@ -274,5 +291,94 @@ describe("WebsiteContentEdit", () => {
     expect(await screen.findByText("没有官网内容编辑权限")).toBeInTheDocument();
     expect(screen.queryByRole("button", { name: "保存草稿" })).toBeNull();
     expect(websiteContentApi.fetchWebsiteContentDraft).not.toHaveBeenCalled();
+  });
+
+  it("only previews saved revisions, keeps dirty work out of publish, and exposes publish and history separately", async () => {
+    const user = userEvent.setup();
+    const open = vi.spyOn(globalThis, "open").mockReturnValue(null);
+
+    vi.mocked(websiteContentApi.fetchWebsiteContentDraft).mockResolvedValue(draft);
+    vi.mocked(websiteContentApi.saveWebsiteContentDraft).mockResolvedValue({
+      ...draft,
+      id: "draft-home-r3",
+      revision: 3,
+    });
+    vi.mocked(websiteContentApi.createWebsiteContentPreview).mockResolvedValue({
+      previewUrl: "https://website.example/preview#token=opaque-token",
+      expiresAt: "2026-08-13T00:10:00.000Z",
+      revision: 3,
+    });
+
+    renderEditor(["website.view", "website.edit", "website.publish"]);
+
+    const title = await screen.findByRole("textbox", { name: "主标题" });
+
+    expect(screen.getByRole("button", { name: "preview-saved-draft" })).toBeEnabled();
+    expect(screen.getByRole("button", { name: "publish-saved-draft" })).toBeEnabled();
+    expect(screen.getByLabelText("website-media-library")).toBeInTheDocument();
+    expect(screen.getByLabelText("website-content-history")).toBeInTheDocument();
+
+    await user.clear(title);
+    await user.type(title, "dirty title");
+    expect(screen.getByRole("button", { name: "preview-saved-draft" })).toBeDisabled();
+    expect(screen.getByRole("button", { name: "publish-saved-draft" })).toBeDisabled();
+    expect(websiteContentApi.createWebsiteContentPreview).not.toHaveBeenCalled();
+
+    await user.click(screen.getByRole("button", { name: "保存草稿" }));
+    await screen.findByText("草稿已保存，当前修订版为 r3。", { exact: false });
+    await user.click(screen.getByRole("button", { name: "preview-saved-draft" }));
+
+    await waitFor(() =>
+      expect(websiteContentApi.createWebsiteContentPreview).toHaveBeenCalledWith("home", { revision: 3 }),
+    );
+    expect(open).toHaveBeenCalledWith(
+      "https://website.example/preview#token=opaque-token",
+      "_blank",
+      "noopener,noreferrer",
+    );
+    open.mockRestore();
+  });
+
+  it("makes publisher-only access read-only while retaining publish and history", async () => {
+    vi.mocked(websiteContentApi.fetchWebsiteContentDraft).mockResolvedValue(draft);
+    renderEditor(["website.view", "website.publish"]);
+
+    expect(await screen.findByRole("button", { name: "publish-saved-draft" })).toBeEnabled();
+    expect(screen.queryByRole("button", { name: "preview-saved-draft" })).toBeNull();
+    expect(screen.queryByLabelText("website-media-library")).toBeNull();
+    expect(screen.queryByRole("button", { name: "保存草稿" })).toBeNull();
+    expect(screen.getByRole("textbox", { name: "SEO 标题" })).toBeDisabled();
+  });
+
+  it("publishes a saved revision, reports its business version, and invalidates affected content queries", async () => {
+    const user = userEvent.setup();
+    const queryClient = new QueryClient({ defaultOptions: { queries: { retry: false } } });
+    const invalidateQueries = vi.spyOn(queryClient, "invalidateQueries");
+
+    vi.mocked(websiteContentApi.fetchWebsiteContentDraft).mockResolvedValue(draft);
+    vi.mocked(websiteContentApi.publishWebsiteContent).mockResolvedValue({
+      published: { ...draft, status: "published", businessVersion: 2, publishedAt: "2026-08-13T01:00:00.000Z" },
+      draft: { ...draft, id: "draft-home-r3", revision: 3, businessVersion: 2 },
+    });
+    renderEditor(["website.view", "website.edit", "website.publish"], queryClient);
+
+    await screen.findByRole("button", { name: "publish-saved-draft" });
+    await user.click(screen.getByRole("button", { name: "publish-saved-draft" }));
+    await screen.findByText("before");
+    await user.type(screen.getByRole("textbox", { name: "变更摘要" }), "发布首页更新");
+    await user.click(screen.getByRole("button", { name: "继续发布" }));
+    await user.click(screen.getByRole("button", { name: "确认发布" }));
+
+    await waitFor(() =>
+      expect(websiteContentApi.publishWebsiteContent).toHaveBeenCalledWith(
+        "home",
+        expect.objectContaining({ revision: 2, changeSummary: "发布首页更新", idempotencyKey: expect.any(String) }),
+      ),
+    );
+    expect(await screen.findByText("已发布业务版本 v2。", { exact: false })).toBeInTheDocument();
+    expect(invalidateQueries).toHaveBeenCalledWith({ queryKey: websiteContentApi.websiteContentQueryKeys.overview() });
+    expect(invalidateQueries).toHaveBeenCalledWith({ queryKey: websiteContentApi.websiteContentQueryKeys.draft("home") });
+    expect(invalidateQueries).toHaveBeenCalledWith({ queryKey: websiteContentApi.websiteContentQueryKeys.diff("home") });
+    expect(invalidateQueries).toHaveBeenCalledWith({ queryKey: ["website-content", "home", "history"] });
   });
 });
