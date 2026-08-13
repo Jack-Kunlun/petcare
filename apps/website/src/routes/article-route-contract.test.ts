@@ -1,12 +1,12 @@
 import { readFile } from "node:fs/promises";
 import { describe, expect, it } from "vitest";
 
-const articleListPath = new URL("./index.astro", import.meta.url);
-const articleDetailPath = new URL("./[slug].astro", import.meta.url);
-const robotsPath = new URL("../robots.txt.ts", import.meta.url);
-const sitemapPath = new URL("../sitemap.xml.ts", import.meta.url);
-const healthPath = new URL("../healthz.ts", import.meta.url);
-const unavailablePath = new URL("../503.astro", import.meta.url);
+const articleListPath = new URL("../pages/articles/index.astro", import.meta.url);
+const articleDetailPath = new URL("../pages/articles/[slug].astro", import.meta.url);
+const robotsPath = new URL("../pages/robots.txt.ts", import.meta.url);
+const sitemapPath = new URL("../pages/sitemap.xml.ts", import.meta.url);
+const healthPath = new URL("../pages/healthz.ts", import.meta.url);
+const unavailablePath = new URL("../pages/503.astro", import.meta.url);
 
 describe("public article and operational route contracts", () => {
   it("renders article text semantically without trusted HTML insertion", async () => {
