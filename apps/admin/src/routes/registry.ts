@@ -21,6 +21,9 @@ const SettingsDetail = lazy(() => import("../pages/Settings/Detail"));
 const SettingsEdit = lazy(() => import("../pages/Settings/Edit"));
 const RbacCatalog = lazy(() => import("../pages/Rbac/Catalog"));
 const Account = lazy(() => import("../pages/Account"));
+const WebsiteContent = lazy(() => import("../pages/WebsiteContent"));
+const WebsiteContentEdit = lazy(() => import("../pages/WebsiteContent/Edit"));
+const WebsiteContentDetail = lazy(() => import("../pages/WebsiteContent/Detail"));
 
 /** A protected administration route, including its menu metadata when it has a menu entry. */
 export interface AdminRouteDefinition {
@@ -167,6 +170,33 @@ export const ADMIN_ROUTE_REGISTRY: readonly AdminRouteDefinition[] = [
   catalogMenuRoute("content", "content.view", createElement(ContentManagement), "悬赏管理"),
   catalogMenuRoute("content-posts", "content.post.view", createElement(ContentPosts)),
   catalogMenuRoute("content-articles", "content.article.view", createElement(ContentArticles)),
+  catalogMenuRoute(
+    "website-content",
+    "website.view",
+    settingsRoute(createElement(WebsiteContent)),
+  ),
+  {
+    id: "website-content-edit",
+    path: "/website-content/:contentKey/edit",
+    element: settingsRoute(createElement(WebsiteContentEdit)),
+    menuPermission: null,
+    requiredPermissions: ["website.view"],
+    parentPath: "/website-content",
+    order: 0,
+    icon: null,
+    menuLabel: null,
+  },
+  {
+    id: "website-content-history",
+    path: "/website-content/:contentKey/history/:versionId",
+    element: settingsRoute(createElement(WebsiteContentDetail)),
+    menuPermission: null,
+    requiredPermissions: ["website.view"],
+    parentPath: "/website-content",
+    order: 0,
+    icon: null,
+    menuLabel: null,
+  },
   catalogMenuRoute("settings", "system.view", settingsRoute(createElement(Settings)), "系统设置"),
   {
     id: "settings-edit",
