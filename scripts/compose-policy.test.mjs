@@ -67,3 +67,93 @@ test("Docker 从根 packageManager 读取 pnpm 版本", async () => {
     assert.match(dockerfile, /COPY package\.json .*\n(?:.*\n)*?RUN corepack enable/);
   }
 });
+
+test("Compose 包含独立的 Website SSR 与公网网关", async () => {
+  const compose = await readFile(resolve(root, "docker-compose.yml"), "utf8");
+
+  assert.match(compose, /^  website:\s*$/m);
+  assert.match(compose, /^  website-gateway:\s*$/m);
+  assert.match(compose, /dockerfile:\s*Dockerfile\.website/);
+  assert.match(compose, /website-nginx\.conf/);
+});
+
+test("Website 镜像以非 root 身份运行独立 SSR 并提供健康检查", async () => {
+  const dockerfile = await readFile(resolve(root, "Dockerfile.website"), "utf8");
+
+  assert.match(dockerfile, /^FROM node:24\.19-alpine AS website-builder$/m);
+  assert.match(dockerfile, /^FROM node:24\.19-alpine AS website-runner$/m);
+  assert.match(dockerfile, /RUN pnpm --filter @petcare\/shared-types build/);
+  assert.match(dockerfile, /RUN pnpm --filter @petcare\/website build/);
+  assert.match(dockerfile, /^EXPOSE 4321$/m);
+  assert.match(dockerfile, /^USER node$/m);
+  assert.match(dockerfile, /^HEALTHCHECK .*\/healthz/m);
+  assert.doesNotMatch(dockerfile, /\b(?:ARG|ENV)\s+\w*(?:SECRET|PASSWORD|TOKEN|KEY)/i);
+  assert.doesNotMatch(dockerfile, /\.env\b/i);
+});
+
+test("官网网关只暴露 Website 页面和已发布公共内容接口", async () => {
+  const nginx = await readFile(resolve(root, "docker/website-nginx.conf"), "utf8");
+
+  assert.match(nginx, /proxy_pass http:\/\/website:4321/);
+  assert.match(nginx, /location \^~ \/website-content\/previews\//);
+  assert.match(nginx, /location \^~ \/website-content\/previews\/[\s\S]*?return 404/);
+  assert.match(nginx, /location \^~ \/website-content\/[\s\S]*?proxy_pass http:\/\/server:3000/);
+  assert.match(nginx, /location = \/content\/articles[\s\S]*?proxy_pass http:\/\/server:3000/);
+  assert.match(nginx, /location \^~ \/content\/articles\/[\s\S]*?proxy_pass http:\/\/server:3000/);
+  assert.doesNotMatch(nginx, /location\s+(?:=\s*)?(?:\^~\s*)?\/(?:admin|api-docs|api(?:\/|\s))/);
+  assert.match(nginx, /location \^~ \/_astro\/[\s\S]*?max-age=31536000, immutable/);
+  assert.match(nginx, /location \/ \{[\s\S]*?add_header Cache-Control "no-store" always/);
+});
+
+test("Compose 将官网 SSR 保持在内部网络并仅传递所需运行变量", async () => {
+  const [compose, environment] = await Promise.all([
+    readFile(resolve(root, "docker-compose.yml"), "utf8"),
+    readFile(resolve(root, ".env.example"), "utf8"),
+  ]);
+  const website = serviceBlock(compose, "website");
+  const server = serviceBlock(compose, "server");
+  const gateway = serviceBlock(compose, "website-gateway");
+  const admin = serviceBlock(compose, "admin");
+
+  assert.match(website, /dockerfile: Dockerfile\.website/);
+  assert.doesNotMatch(website, /^    ports:/m);
+  assert.match(
+    website,
+    /WEBSITE_CONTENT_API_BASE_URL: \$\{WEBSITE_CONTENT_API_BASE_URL:-http:\/\/server:3000\}/,
+  );
+  assert.doesNotMatch(server, /WEBSITE_CONTENT_API_BASE_URL/);
+  assert.match(gateway, /- "\$\{WEBSITE_PORT:-8080\}:80"/);
+  assert.match(gateway, /website-nginx\.conf/);
+  assert.doesNotMatch(
+    server,
+    /^    ports:/m,
+    "全容器部署不得绕过官网网关直接暴露 Nest 的管理或 Swagger 路由",
+  );
+  assert.match(admin, /dockerfile: Dockerfile\.admin/);
+  assert.match(admin, /- "8986:80"/);
+
+  for (const [name, value] of [
+    ["WEBSITE_PUBLIC_URL", "http://localhost:8080"],
+    ["WEBSITE_CONTENT_API_BASE_URL", "http://server:3000"],
+    ["WEBSITE_PREVIEW_TTL_SECONDS", "600"],
+    ["WEBSITE_CONTENT_CACHE_TTL_SECONDS", "86400"],
+    ["WEBSITE_LAST_SUCCESS_TTL_SECONDS", "300"],
+    ["WEBSITE_PORT", "8080"],
+  ]) {
+    assert.match(environment, new RegExp(`^${name}=${value}$`, "m"));
+  }
+});
+
+function serviceBlock(compose, name) {
+  const start = compose.indexOf(`\n  ${name}:\n`);
+
+  assert.notEqual(start, -1, `Compose 缺少 ${name} 服务`);
+
+  const remainder = compose.slice(start + 1);
+  const nextService = /\n  [A-Za-z][\w-]*:\n/g;
+
+  nextService.lastIndex = `  ${name}:\n`.length;
+  const match = nextService.exec(remainder);
+
+  return remainder.slice(0, match?.index);
+}

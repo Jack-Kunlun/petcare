@@ -1,0 +1,41 @@
+# ===== Multi-stage build: official Website SSR =====
+FROM node:24.19-alpine AS website-builder
+
+WORKDIR /app
+
+COPY package.json pnpm-workspace.yaml pnpm-lock.yaml ./
+RUN corepack enable
+
+COPY apps/website/package.json ./apps/website/
+COPY packages/eslint-config-base/package.json ./packages/eslint-config-base/
+COPY packages/shared-types/package.json ./packages/shared-types/
+
+RUN pnpm install --frozen-lockfile
+
+COPY apps/website ./apps/website
+COPY packages/eslint-config-base ./packages/eslint-config-base
+COPY packages/shared-types ./packages/shared-types
+
+RUN pnpm --filter @petcare/shared-types build
+RUN pnpm --filter @petcare/website build
+
+# ===== Runtime stage =====
+FROM node:24.19-alpine AS website-runner
+
+WORKDIR /app
+
+ENV NODE_ENV=production
+ENV HOST=0.0.0.0
+ENV PORT=4321
+
+RUN mkdir -p /app/apps/website && chown -R node:node /app
+
+COPY --from=website-builder --chown=node:node /app/apps/website/dist ./apps/website/dist
+
+EXPOSE 4321
+
+USER node
+
+HEALTHCHECK --interval=30s --timeout=10s --start-period=20s --retries=3 CMD node -e "fetch('http://127.0.0.1:4321/healthz').then((response) => { if (!response.ok) process.exit(1); }).catch(() => process.exit(1))"
+
+CMD ["node", "apps/website/dist/server/entry.mjs"]
