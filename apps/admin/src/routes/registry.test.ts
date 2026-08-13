@@ -95,6 +95,38 @@ describe("ADMIN_ROUTE_REGISTRY", () => {
     });
   });
 
+  it("registers Website Content overview, edit, and history behind website.view", () => {
+    expect(
+      ADMIN_ROUTE_REGISTRY.filter((route) => route.path.startsWith("/website-content")).map(
+        (route) => ({
+          path: route.path,
+          menuPermission: route.menuPermission,
+          requiredPermissions: route.requiredPermissions,
+          parentPath: route.parentPath,
+        }),
+      ),
+    ).toEqual([
+      {
+        path: "/website-content",
+        menuPermission: "website.view",
+        requiredPermissions: ["website.view"],
+        parentPath: null,
+      },
+      {
+        path: "/website-content/:contentKey/edit",
+        menuPermission: null,
+        requiredPermissions: ["website.view"],
+        parentPath: "/website-content",
+      },
+      {
+        path: "/website-content/:contentKey/history/:versionId",
+        menuPermission: null,
+        requiredPermissions: ["website.view"],
+        parentPath: "/website-content",
+      },
+    ]);
+  });
+
   it("registers content management with three child pages", () => {
     expect(
       ADMIN_ROUTE_REGISTRY.filter((route) => route.path.startsWith("/content")).map((route) => ({
