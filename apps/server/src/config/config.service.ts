@@ -85,6 +85,9 @@ export class ConfigService {
     check("ALLOWED_ORIGINS", () => this.validateAllowedOrigins());
     check("WECHAT", () => this.validateWechatConfiguration());
     check("TENCENT_COS", () => this.validateTencentCosConfiguration());
+    check("WEBSITE_PUBLIC_URL", () => this.websitePublicUrl);
+    check("WEBSITE_PREVIEW_TTL_SECONDS", () => this.websitePreviewTtlSeconds);
+    check("WEBSITE_CONTENT_CACHE_TTL_SECONDS", () => this.websiteContentCacheTtlSeconds);
 
     if (this.nodeEnv === "production") {
       check("REDIS_PASSWORD", () => this.getRequiredString("REDIS_PASSWORD"));
@@ -182,19 +185,23 @@ export class ConfigService {
       throw new Error("TENCENT_COS_REGION has an invalid format");
     }
 
-    if (!this.tencentCosPublicBaseUrl) {
-      return;
+    if (this.tencentCosPublicBaseUrl) {
+      this.validateAbsoluteHttpUrl("TENCENT_COS_PUBLIC_BASE_URL", this.tencentCosPublicBaseUrl);
     }
+  }
 
+  private validateAbsoluteHttpUrl(name: string, value: string): string {
     try {
-      const publicBaseUrl = new URL(this.tencentCosPublicBaseUrl);
+      const url = new URL(value);
 
-      if (!["http:", "https:"].includes(publicBaseUrl.protocol)) {
+      if (!["http:", "https:"].includes(url.protocol)) {
         throw new Error("unsupported protocol");
       }
     } catch {
-      throw new Error("TENCENT_COS_PUBLIC_BASE_URL must be an absolute HTTP(S) URL");
+      throw new Error(`${name} must be an absolute HTTP(S) URL`);
     }
+
+    return value;
   }
 
   // 数据库配置
@@ -333,6 +340,21 @@ export class ConfigService {
   // API配置
   get apiBaseUrl(): string {
     return process.env.API_BASE_URL || "http://localhost:8986/api";
+  }
+
+  get websitePublicUrl(): string {
+    return this.validateAbsoluteHttpUrl(
+      "WEBSITE_PUBLIC_URL",
+      process.env.WEBSITE_PUBLIC_URL?.trim() || "http://localhost:8080",
+    );
+  }
+
+  get websitePreviewTtlSeconds(): number {
+    return this.getPositiveInteger("WEBSITE_PREVIEW_TTL_SECONDS", 600);
+  }
+
+  get websiteContentCacheTtlSeconds(): number {
+    return this.getPositiveInteger("WEBSITE_CONTENT_CACHE_TTL_SECONDS", 86400);
   }
 
   // 服务器配置
