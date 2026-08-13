@@ -8,6 +8,10 @@ import type {
   AdminContentPostListResponse,
   AdminContentRewardListItem,
   AdminContentRewardListResponse,
+  PublicClassroomArticleAuthor,
+  PublicClassroomArticleDetail,
+  PublicClassroomArticleListItem,
+  PublicClassroomArticleListResponse,
 } from "@petcare/shared-types";
 
 /** 内容作者摘要响应。 */
@@ -164,6 +168,60 @@ export class AdminClassroomArticleListItemDto implements AdminClassroomArticleLi
 export class AdminClassroomArticleListResponseDto implements AdminClassroomArticleListResponse {
   @ApiProperty({ type: [AdminClassroomArticleListItemDto] })
   list: AdminClassroomArticleListItemDto[];
+
+  @ApiProperty({ example: 120 })
+  total: number;
+
+  @ApiProperty({ example: 1 })
+  page: number;
+
+  @ApiProperty({ example: 20 })
+  pageSize: number;
+}
+
+/** Public author display data for the official website. */
+export class PublicClassroomArticleAuthorDto implements PublicClassroomArticleAuthor {
+  @ApiProperty()
+  displayName: string;
+
+  @ApiProperty({ nullable: true })
+  avatar: string | null;
+}
+
+/** Public classroom article summary for the official website. */
+export class PublicClassroomArticleListItemDto implements PublicClassroomArticleListItem {
+  @ApiProperty({ description: "Stable route value; currently the article ID." })
+  slug: string;
+
+  @ApiProperty()
+  title: string;
+
+  @ApiProperty()
+  summary: string;
+
+  @ApiProperty({ nullable: true })
+  coverUrl: string | null;
+
+  @ApiProperty({ type: PublicClassroomArticleAuthorDto, nullable: true })
+  author: PublicClassroomArticleAuthorDto | null;
+
+  @ApiProperty({ format: "date-time", nullable: true })
+  publishedAt: string | null;
+}
+
+/** Public classroom article detail with an escaped, non-HTML body. */
+export class PublicClassroomArticleDetailDto
+  extends PublicClassroomArticleListItemDto
+  implements PublicClassroomArticleDetail
+{
+  @ApiProperty({ description: "Escaped text body. Consumers must not render it as trusted HTML." })
+  body: string;
+}
+
+/** Public paginated classroom article response. */
+export class PublicClassroomArticleListResponseDto implements PublicClassroomArticleListResponse {
+  @ApiProperty({ type: [PublicClassroomArticleListItemDto] })
+  list: PublicClassroomArticleListItemDto[];
 
   @ApiProperty({ example: 120 })
   total: number;
