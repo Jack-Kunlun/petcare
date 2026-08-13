@@ -1,0 +1,31 @@
+{
+  "name": "@petcare/website",
+  "version": "1.0.0",
+  "private": true,
+  "type": "module",
+  "scripts": {
+    "dev": "astro dev",
+    "build": "astro build",
+    "preview": "astro preview",
+    "typecheck": "astro check",
+    "lint": "eslint .",
+    "test": "vitest",
+    "test:run": "vitest run",
+    "test:coverage": "vitest run --coverage"
+  },
+  "dependencies": {
+    "@astrojs/node": "^11.1.1",
+    "astro": "^7.2.1"
+  },
+  "devDependencies": {
+    "@astrojs/check": "^0.9.10",
+    "@petcare/eslint-config-base": "workspace:*",
+    "@tailwindcss/vite": "^4.3.3",
+    "@vitest/coverage-v8": "^4.1.10",
+    "eslint": "9.39.5",
+    "eslint-plugin-astro": "^3.1.0",
+    "tailwindcss": "^4.3.3",
+    "typescript": "^6.0.3",
+    "vitest": "^4.1.10"
+  }
+}
