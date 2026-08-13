@@ -4,17 +4,18 @@
 
 ## 1. 运行模式
 
-| 模式         | Admin           | Server          | PostgreSQL / Redis | 适用场景            |
-| ------------ | --------------- | --------------- | ------------------ | ------------------- |
-| 本地混合开发 | 宿主机 `8986`   | 宿主机 `3000`   | Docker 容器        | 日常开发、调试、E2E |
-| 全容器运行   | 容器映射 `8986` | 容器映射 `3000` | Docker 容器        | 集成验证、部署演练  |
+| 模式         | Admin           | 官网                | Server         | PostgreSQL / Redis | 适用场景            |
+| ------------ | --------------- | ------------------- | -------------- | ------------------ | ------------------- |
+| 本地混合开发 | 宿主机 `8986`   | Astro 开发服务      | 宿主机 `3000`  | Docker 容器        | 日常开发、调试、E2E |
+| 全容器运行   | 容器映射 `8986` | 独立网关映射 `8080` | 仅 Docker 内网 | Docker 容器        | 集成验证、部署演练  |
 
 端口约定：
 
 - Admin：`http://localhost:8986`
-- Server：`http://localhost:3000`
-- Swagger：`http://localhost:3000/api-docs`，仅宿主机非生产模式启用
-- 健康检查：`http://localhost:3000/health`
+- 官网：`http://localhost:8080`
+- Server：本地混合开发为 `http://localhost:3000`；全容器运行仅 Docker 内网可达
+- Swagger：仅宿主机非生产模式的 `http://localhost:3000/api-docs`
+- 健康检查：本地混合开发为 `http://localhost:3000/health`；容器内为 `http://server:3000/health`
 
 ## 2. 前置要求
 
@@ -63,15 +64,19 @@ Copy-Item .env.example .env
 生产 Docker 缺少任一上述变量都会在 Compose 解析或 Server 启动阶段失败。生产环境不得设置
 `SMS_DEV_CODE`；Compose 会强制覆盖为空。
 
-微信配置必须同时留空或同时提供 `WECHAT_APP_ID`、`WECHAT_APP_SECRET`。腾讯云 COS 公开头像配置的
+微信配置必须同时留空或同时提供 `WECHAT_APP_ID`、`WECHAT_APP_SECRET`。腾讯云 COS 配置的
 `TENCENT_COS_SECRET_ID`、`TENCENT_COS_SECRET_KEY`、`TENCENT_COS_BUCKET`（`BucketName-APPID`）和
 `TENCENT_COS_REGION`（例如 `ap-guangzhou`）必须同时提供或同时留空；可选
-`TENCENT_COS_PUBLIC_BASE_URL` 只能在前四项完整时设置。五项均为空时仅禁用管理员头像上传，其他个人中心功能
+`TENCENT_COS_PUBLIC_BASE_URL` 只能在前四项完整时设置。五项均为空时禁用管理员头像与官网素材上传，其他功能
 仍可用；任一不完整组合会使 Server 在监听端口前退出。详细规则参见[环境变量配置指南](../environment-variables.md)。
 
-生产环境为头像使用独立的公开读、私有写 COS Bucket，并向 Server 注入仅允许读写
-`public/admin-avatars/` 前缀的最小权限子账号凭据。不要将 COS 凭据写入镜像、工作流、客户端或仓库的 `.env`；
+生产环境使用公开读、私有写 COS Bucket，并向 Server 注入仅允许读写
+`public/admin-avatars/` 与 `public/website-media/` 前缀的最小权限子账号凭据。不要将 COS 凭据写入镜像、工作流、客户端或仓库的 `.env`；
 根 `.env` 仅供本地使用且不提交。
+
+官网运行时变量中，`WEBSITE_CONTENT_API_BASE_URL` 仅供 Astro SSR 容器走 Docker 内网访问 Nest，绝不作为浏览器
+变量或镜像构建参数。`WEBSITE_PUBLIC_URL`、`WEBSITE_PORT` 和 `WEBSITE_LAST_SUCCESS_TTL_SECONDS` 分别定义公网
+源地址、网关端口和最多五分钟的上次成功快照回退窗口。
 
 ## 4. 本地混合开发
 
@@ -108,7 +113,7 @@ pnpm --filter @petcare/server prisma:seed
 
 seed 创建或更新默认管理员、超级管理员角色和权限数据，凭据读取根 `.env`。
 
-### 4.4 启动三端
+### 4.4 启动应用
 
 ```bash
 pnpm dev
@@ -119,6 +124,7 @@ pnpm dev
 ```bash
 pnpm dev:admin
 pnpm dev:server
+pnpm --filter @petcare/website dev
 pnpm dev:miniapp:mp-weixin
 ```
 
@@ -157,11 +163,11 @@ docker compose config --quiet
 
 该命令必须成功后才能构建。不要把 `.env.example` 的占位密钥直接用于生产。
 
-### 5.2 构建基础设施与 Server 镜像
+### 5.2 构建基础设施与应用镜像
 
 ```bash
 docker compose up -d postgres redis
-docker compose build server admin
+docker compose build server admin website
 ```
 
 ### 5.3 在 Server 镜像中初始化
@@ -176,11 +182,36 @@ docker compose run --rm server pnpm --filter @petcare/server prisma:seed
 ### 5.4 启动应用
 
 ```bash
-docker compose up -d server admin
+docker compose up -d server admin website website-gateway
 docker compose ps
 ```
 
 容器中的 Server 固定为 `NODE_ENV=production`，因此不提供 Swagger UI。
+
+官网 `website` 是非 root 的 Astro standalone SSR 容器，只在 `petcare-network` 内部监听 `4321`，健康检查为
+`GET /healthz`。`website-gateway` 是独立 Nginx 公网入口，发布 `${WEBSITE_PORT:-8080}:80`，不会替换或复用
+Admin 的静态 Nginx 容器。网关仅代理官网页面、`/website-content/*` 的已发布读取，以及
+`/content/articles/*` 的公开课堂读取；不代理 `/admin/*`、`/api-docs` 或预览 API。全容器模式不会直接向宿主机
+映射 Nest `3000`，从而不能绕过官网网关的公开路由白名单。
+
+### 5.5 官网发布、缓存与回滚
+
+页面 HTML 由 Astro 按请求 SSR，公网 CDN 不得配置 HTML TTL，以免掩盖一次显式发布。发布事务提交后，新请求读取
+新的已发布版本指针；因此不需要等待旧缓存失效。静态资源和 COS 公开素材可由 CDN 按各自版本化 URL 缓存。
+
+当 Nest 或 Redis 短暂不可用时，官网最多使用 `WEBSITE_LAST_SUCCESS_TTL_SECONDS=300` 秒内的上次成功发布快照；
+超过五分钟返回官网故障页。这个回退不适用于草稿预览，预览仍为私有、`no-store` 的服务端读取。
+
+回滚操作在 Admin 的官网内容历史中选择目标修订执行“恢复为草稿”，核对差异后显式发布。恢复草稿本身不会改变线上
+页面；只有新的显式发布才会切换公开版本。
+
+### 5.6 DNS、TLS、CDN 与 COS 责任边界
+
+- DNS、TLS 证书续期、WAF/CDN 域名绑定由部署平台或边缘基础设施负责，Compose 不申请证书，也不保存私钥；
+- `WEBSITE_PUBLIC_URL` 必须设为最终 HTTPS 官网地址，反向代理把 `X-Forwarded-Proto` 和主机名传给 SSR；
+- CDN 仅缓存带版本的静态资源和 `TENCENT_COS_PUBLIC_BASE_URL` 下的公开素材，不缓存 SSR HTML 或预览响应；
+- COS `SecretId`、`SecretKey` 只通过部署平台的 Secret Manager 注入 Server，绝不写入 Dockerfile、构建参数、镜像或
+  浏览器变量。公开素材地址使用 `TENCENT_COS_PUBLIC_BASE_URL`，不把 COS 管理凭据暴露给客户端。
 
 ## 6. 质量与端到端测试
 
@@ -216,9 +247,9 @@ pnpm test:e2e
 - `quality`：Prettier、ESLint、TypeScript、中文提交信息；
 - `unit-test`：工具测试与全部工作区单测；
 - ~~`build`：Admin、Server、Taro Miniapp 微信端和共享包；~~
-- `build`：Admin、Server、Miniapp H5 和共享包；
+- `build`：Admin、Website SSR、Server、Miniapp H5 和共享包；
 - `e2e`：PostgreSQL、Redis、Prisma 初始化、Server E2E、Admin Playwright；
-- `docker`：仅 `master` push，在前四项通过后校验 Compose 并构建镜像。
+- `docker`：仅 `master` push，在前四项通过后校验 Compose 并执行工作流中声明的容器构建；官网镜像的本地验证命令见第 5 节。
 
 CI 只使用隔离测试凭据。真实微信、腾讯云 COS 和生产密钥不得写入工作流。
 
@@ -227,6 +258,7 @@ CI 只使用隔离测试凭据。真实微信、腾讯云 COS 和生产密钥不
 ```bash
 docker compose ps
 docker compose logs -f server
+docker compose logs -f website website-gateway
 docker compose restart server
 docker compose down
 ```
@@ -264,6 +296,14 @@ docker compose logs server
 - 本地 Vite 通过 `/api` 代理到 `http://localhost:3000`；
 - 检查 `ALLOWED_ORIGINS` 是否包含实际 Admin 来源。
 
+### 官网返回 503 或未显示刚发布内容
+
+- 检查 `website` 和 `website-gateway` 均通过 `/healthz`；
+- 检查 `WEBSITE_CONTENT_API_BASE_URL=http://server:3000` 只注入 `website` 容器；
+- 核对 Admin 中该页面是否执行了显式发布，而不只是保存草稿；
+- 确认 CDN 没有缓存官网 HTML。故障回退最多展示五分钟内的上次成功发布快照，超过窗口返回 503 是预期保护行为；
+- 通过历史“恢复为草稿”后必须再次显式发布，才能完成回滚。
+
 ### E2E 失败
 
 - 重新执行 `prisma:push` 与 `prisma:seed`；
@@ -276,6 +316,8 @@ docker compose logs server
 - 使用部署平台或 Secret Manager 注入敏感值；
 - 数据库与 Redis 不暴露到公网；
 - 使用 HTTPS 和明确的 CORS 白名单；
+- DNS、TLS、CDN 和 WAF 在边缘层维护，禁止给官网 HTML 或草稿预览配置共享缓存；
+- 只向 Server 注入腾讯云 COS 凭据，使用 `TENCENT_COS_PUBLIC_BASE_URL` 提供公开素材；
 - 禁用 `SMS_DEV_CODE`；
 - 定期轮换数据库、Redis、JWT 和管理员密码；
 - 启动前执行 `docker compose config --quiet`；

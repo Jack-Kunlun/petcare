@@ -93,8 +93,9 @@ pnpm --filter @petcare/server prisma:seed
 pnpm dev
 ```
 
-启动后可访问 Admin <http://localhost:8986>、Server <http://localhost:3000>、
-Swagger <http://localhost:3000/api-docs> 和健康检查 <http://localhost:3000/health>。
+启动后可访问 Admin <http://localhost:8986>、官网 Astro SSR、Server <http://localhost:3000>、
+Swagger <http://localhost:3000/api-docs> 和健康检查 <http://localhost:3000/health>。全容器官网入口为
+<http://localhost:8080>。
 
 Miniapp 的微信小程序端需单独运行：
 
@@ -118,6 +119,7 @@ pnpm dev
 ```bash
 pnpm dev:admin
 pnpm dev:server
+pnpm --filter @petcare/website dev
 pnpm dev:miniapp:h5
 pnpm dev:miniapp:mp-weixin
 ```
@@ -154,7 +156,8 @@ pnpm clean:modules
 - **Redis配置**：`REDIS_HOST`, `REDIS_PORT`, `REDIS_PASSWORD`
 - **JWT配置**：`JWT_SECRET`, `JWT_ACCESS_EXPIRES_IN`, `JWT_REFRESH_EXPIRES_IN`
 - **管理员认证**：`DEFAULT_ADMIN_USERNAME`, `DEFAULT_ADMIN_PHONE`, `DEFAULT_ADMIN_PASSWORD`, `SMS_DEV_CODE`, `CAPTCHA_TTL_SECONDS`, `CAPTCHA_MAX_ATTEMPTS`
-- **第三方服务**：微信、腾讯云 COS 管理员公开头像存储等
+- **第三方服务**：微信、腾讯云 COS；管理员公开头像与官网公开素材共享同一套 COS 配置
+- **官网 SSR**：`WEBSITE_PUBLIC_URL`、仅服务端使用的 `WEBSITE_CONTENT_API_BASE_URL`、预览/缓存 TTL 与网关端口
 - ~~**小程序 API**：`TARO_APP_API_BASE_URL`（已随 Taro 项目移除）~~
 
 详见：[环境变量配置指南](./docs/environment-variables.md)
@@ -276,7 +279,7 @@ const jwtSecret = this.configService.jwtSecret;
 - ✅ 易于测试 - 可以mock ConfigService
 - ✅ 统一入口 - 所有配置访问都通过ConfigService
 - ✅ 启动失败快 - 监听端口前集中校验必填值、端口、JWT 和允许来源
-- ✅ 可选集成成组校验 - 微信与腾讯云 COS 未启用时允许为空，启用后必须提供完整合法配置；COS 五项均留空时仅禁用头像上传
+- ✅ 可选集成成组校验 - 微信与腾讯云 COS 未启用时允许为空，启用后必须提供完整合法配置；COS 五项均留空时禁用公开头像和官网素材上传
 
 详见：[环境变量配置指南](./docs/environment-variables.md)
 
@@ -303,8 +306,10 @@ const jwtSecret = this.configService.jwtSecret;
 
 - `Dockerfile.server` - 后端服务多阶段构建
 - `Dockerfile.admin` - 后台管理多阶段构建（含Nginx）
-- `docker-compose.yml` - 多容器编排（PostgreSQL + Redis + Server + Admin）
-- `docker/nginx.conf` - Nginx反向代理配置
+- `Dockerfile.website` - 官网 Astro standalone SSR 多阶段构建（非 root 运行）
+- `docker-compose.yml` - 多容器编排（PostgreSQL + Redis + Server + Admin + Website）
+- `docker/nginx.conf` - Admin 静态站点 Nginx 配置
+- `docker/website-nginx.conf` - 官网独立 Nginx 网关，只暴露页面与已发布公共内容读取
 
 **快速启动：**
 
@@ -334,9 +339,14 @@ docker compose down -v
 **访问地址：**
 
 - 后台管理系统: http://localhost:8986
-- API服务: http://localhost:3000
+- 官网: http://localhost:8080
+- API服务: 本地混合开发为 http://localhost:3000；全容器模式仅 Docker 内网可达
 - API文档: 仅宿主机开发模式提供 http://localhost:3000/api-docs
-- 健康检查: http://localhost:3000/health
+- 健康检查: 本地混合开发为 http://localhost:3000/health；容器内为 http://server:3000/health
+
+官网 HTML 由独立网关代理 Astro SSR，不缓存 HTML，因此显式发布在下一次请求可见。腾讯云 COS 凭据只注入
+Server；Astro 仅从 Docker 内网读取公开内容 API。完整的 DNS、TLS、CDN、回退与回滚约定见
+[部署指南](./docs/08-deployment/deployment.md)。
 
 ## License
 

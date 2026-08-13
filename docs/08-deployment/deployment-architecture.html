@@ -219,7 +219,7 @@
           <span class="pulse-dot"></span>
           PetCare Docker 部署架构
         </h1>
-        <p class="subtitle">基于 Docker Compose 的多容器编排方案 · v1.0</p>
+        <p class="subtitle">Admin 与 Website SSR 独立网关的 Docker Compose 编排方案 · v1.1</p>
 
         <div class="toolbar">
           <div class="toolbar-actions" id="toolbarActions">
@@ -286,7 +286,7 @@
           </text>
           <text x="160" y="145" fill="#94a3b8" font-size="9" text-anchor="middle">HTTP/HTTPS</text>
           <text x="160" y="160" fill="#94a3b8" font-size="8" text-anchor="middle">
-            localhost:80 / :3001
+            Admin :8986 · Website :8080
           </text>
 
           <!-- 箭头：用户 → Admin -->
@@ -334,6 +334,80 @@
           />
           <text x="550" y="132" fill="#fb923c" font-size="7" text-anchor="middle">API调用</text>
 
+          <!-- Website gateway and SSR -->
+          <rect x="320" y="240" width="200" height="100" rx="8" fill="#0f172a" />
+          <rect
+            x="320"
+            y="240"
+            width="200"
+            height="100"
+            rx="8"
+            fill="rgba(8, 51, 68, 0.4)"
+            stroke="#22d3ee"
+            stroke-width="1.5"
+          />
+          <text x="420" y="275" fill="white" font-size="12" font-weight="600" text-anchor="middle">
+            Website Gateway
+          </text>
+          <text x="420" y="295" fill="#94a3b8" font-size="9" text-anchor="middle">
+            独立 Nginx · Port 8080
+          </text>
+          <text x="420" y="310" fill="#22d3ee" font-size="8" text-anchor="middle">
+            仅页面与公开内容 API
+          </text>
+          <line
+            x1="420"
+            y1="190"
+            x2="420"
+            y2="240"
+            stroke="#64748b"
+            stroke-width="2"
+            marker-end="url(#arrowhead)"
+          />
+
+          <rect x="320" y="380" width="200" height="100" rx="8" fill="#0f172a" />
+          <rect
+            x="320"
+            y="380"
+            width="200"
+            height="100"
+            rx="8"
+            fill="rgba(30, 41, 59, 0.7)"
+            stroke="#38bdf8"
+            stroke-width="1.5"
+          />
+          <text x="420" y="415" fill="white" font-size="12" font-weight="600" text-anchor="middle">
+            Website SSR
+          </text>
+          <text x="420" y="435" fill="#94a3b8" font-size="9" text-anchor="middle">
+            Astro standalone · 内部 4321
+          </text>
+          <text x="420" y="450" fill="#38bdf8" font-size="8" text-anchor="middle">
+            非 root · GET /healthz
+          </text>
+          <line
+            x1="420"
+            y1="340"
+            x2="420"
+            y2="380"
+            stroke="#64748b"
+            stroke-width="2"
+            marker-end="url(#arrowhead)"
+          />
+
+          <line
+            x1="520"
+            y1="430"
+            x2="580"
+            y2="190"
+            stroke="#64748b"
+            stroke-width="2"
+            marker-end="url(#arrowhead)"
+          />
+          <text x="540" y="320" fill="#fb923c" font-size="7" text-anchor="middle">
+            内网已发布内容 / 预览读取
+          </text>
+
           <!-- Server 后端容器 -->
           <rect x="590" y="90" width="200" height="100" rx="8" fill="#0f172a" />
           <rect
@@ -352,7 +426,9 @@
           <text x="690" y="145" fill="#94a3b8" font-size="9" text-anchor="middle">
             Nest.js + Prisma
           </text>
-          <text x="690" y="160" fill="#34d399" font-size="8" text-anchor="middle">Port 3001</text>
+          <text x="690" y="160" fill="#34d399" font-size="8" text-anchor="middle">
+            Docker 内网 Port 3000
+          </text>
 
           <!-- 安全特性标签 -->
           <rect
@@ -367,7 +443,7 @@
             stroke-dasharray="4,4"
           />
           <text x="690" y="215" fill="#fb7185" font-size="8" text-anchor="middle">
-            ✓ CORS ✓ JWT ✓ Swagger保护
+            ✓ CORS ✓ JWT ✓ 生产禁用 Swagger
           </text>
 
           <!-- 箭头：Server → PostgreSQL -->
@@ -521,7 +597,7 @@
             本地日志挂载
           </text>
           <text x="290" y="605" fill="#94a3b8" font-size="8" text-anchor="middle">
-            logs/server/ · logs/nginx/
+            logs/server/ · logs/nginx/（Admin）
           </text>
 
           <!-- 连接线：PostgreSQL → Volume -->
@@ -563,7 +639,8 @@
             健康检查机制：
           </text>
           <text x="560" y="690" fill="#34d399" font-size="8" text-anchor="middle">
-            PostgreSQL (pg_isready) · Redis (ping) · Server (GET /health) · Admin (curl /)
+            PostgreSQL · Redis · Server /health · Admin / · Website SSR /healthz · Website Gateway
+            /healthz
           </text>
 
           <!-- 图例 -->
@@ -662,8 +739,9 @@
             <h3>核心服务</h3>
           </div>
           <ul>
-            <li>Admin: React + Nginx (Port 80)</li>
-            <li>Server: Nest.js API (Port 3001)</li>
+            <li>Admin: React + Nginx（独立映射 8986）</li>
+            <li>Website: Astro SSR + 独立 Nginx Gateway（8080）</li>
+            <li>Server: Nest.js API（内部 3000）</li>
             <li>PostgreSQL 15 (Port 5432)</li>
             <li>Redis 7 (Port 6379)</li>
           </ul>
@@ -680,6 +758,7 @@
             <li>CORS 动态配置</li>
             <li>生产环境禁用 Swagger UI</li>
             <li>JWT 密钥强度验证 (≥32字符)</li>
+            <li>官网仅代理页面和已发布公共内容 API</li>
           </ul>
         </div>
 
@@ -694,12 +773,13 @@
             <li>资源限制 (CPU/Memory)</li>
             <li>日志本地挂载便于调试</li>
             <li>启动依赖顺序控制</li>
+            <li>官网上次成功快照最多回退 5 分钟</li>
           </ul>
         </div>
       </div>
 
       <footer>
-        PetCare Platform · Docker Compose Deployment Architecture · Generated 2026-07-16
+        PetCare Platform · Docker Compose Deployment Architecture · Updated 2026-08-13
       </footer>
     </div>
 
