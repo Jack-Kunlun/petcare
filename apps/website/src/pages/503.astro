@@ -1,0 +1,21 @@
+---
+import "../styles/global.css";
+Astro.response.status = 503;
+---
+
+<!doctype html>
+<html lang="zh-CN">
+  <head>
+    <meta charset="utf-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1" />
+    <meta name="robots" content="noindex" />
+    <title>Service temporarily unavailable | PetCare</title>
+  </head>
+  <body>
+    <main class="failure-page">
+      <h1>Service temporarily unavailable</h1>
+      <p>网站内容正在恢复，请稍后再试。</p>
+      <a class="button" href="/">返回首页</a>
+    </main>
+  </body>
+</html>
