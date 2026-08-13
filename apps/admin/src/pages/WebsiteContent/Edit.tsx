@@ -3,6 +3,7 @@ import type {
   WebsiteContentKey,
   WebsiteContentSection,
   WebsiteContentVersion,
+  WebsiteMediaListQuery,
   WebsiteSeoContent,
 } from "@petcare/shared-types";
 import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
@@ -11,15 +12,25 @@ import { AlertCircle, ArrowLeft, CheckCircle2, RefreshCw, Save } from "lucide-re
 import { type FormEvent, useEffect, useMemo, useState } from "react";
 import { Link, useParams } from "react-router-dom";
 import {
+  archiveWebsiteMediaAsset,
+  createWebsiteContentPreview,
+  fetchWebsiteContentDiff,
   fetchWebsiteContentDraft,
+  fetchWebsiteContentHistory,
+  fetchWebsiteMediaAssets,
+  publishWebsiteContent,
   saveWebsiteContentDraft,
+  uploadWebsiteMediaAsset,
   websiteContentQueryKeys,
 } from "../../api/website-content";
 import { useAuth } from "../../auth/auth.context";
 import { PermissionGate } from "../../auth/PermissionGate";
+import { ContentHistory } from "./ContentHistory";
 import { TextField } from "./editors/fields";
 import { WebsiteSectionEditor } from "./editors/WebsiteSectionEditor";
 import { MediaAssetPicker } from "./MediaAssetPicker";
+import { PublishDialog } from "./PublishDialog";
+import { WebsiteMediaLibrary } from "./WebsiteMediaLibrary";
 
 const WEBSITE_CONTENT_KEYS = new Set<WebsiteContentKey>([
   "site_shell",
@@ -157,16 +168,38 @@ export default function WebsiteContentEdit() {
   const queryClient = useQueryClient();
   const contentKey = isWebsiteContentKey(contentKeyParam) ? contentKeyParam : null;
   const canEdit = auth.user?.permissions.includes("website.edit") ?? false;
+  const canPublish = auth.user?.permissions.includes("website.publish") ?? false;
+  const canReadDraft = canEdit || canPublish;
   const [editorState, setEditorState] = useState<DraftEditorState | null>(null);
   const [dirty, setDirty] = useState(false);
   const [validationError, setValidationError] = useState<string | null>(null);
   const [notice, setNotice] = useState<string | null>(null);
   const [serverRevision, setServerRevision] = useState<number | null>(null);
+  const [publishDialogOpen, setPublishDialogOpen] = useState(false);
+  const [mediaQuery, setMediaQuery] = useState<WebsiteMediaListQuery>({ page: 1, pageSize: 20 });
 
   const draftQuery = useQuery({
     queryKey: websiteContentQueryKeys.draft(contentKey ?? "home"),
     queryFn: () => fetchWebsiteContentDraft(contentKey!),
-    enabled: Boolean(contentKey && canEdit),
+    enabled: Boolean(contentKey && canReadDraft),
+  });
+
+  const historyQuery = useQuery({
+    queryKey: websiteContentQueryKeys.history(contentKey ?? "home", { page: 1, pageSize: 20 }),
+    queryFn: () => fetchWebsiteContentHistory(contentKey!, { page: 1, pageSize: 20 }),
+    enabled: Boolean(contentKey && canReadDraft),
+  });
+
+  const diffQuery = useQuery({
+    queryKey: websiteContentQueryKeys.diff(contentKey ?? "home"),
+    queryFn: () => fetchWebsiteContentDiff(contentKey!),
+    enabled: Boolean(contentKey && canPublish && publishDialogOpen && !dirty),
+  });
+
+  const mediaAssetsQuery = useQuery({
+    queryKey: websiteContentQueryKeys.media(mediaQuery),
+    queryFn: () => fetchWebsiteMediaAssets(mediaQuery),
+    enabled: canEdit,
   });
 
   const remoteState = useMemo(
@@ -231,6 +264,58 @@ export default function WebsiteContentEdit() {
     },
   });
 
+  const previewMutation = useMutation({
+    mutationFn: async () => {
+      if (!contentKey || !editorState || dirty) {
+        throw new Error("预览必须使用已保存草稿。");
+      }
+
+      return createWebsiteContentPreview(contentKey, { revision: editorState.revision });
+    },
+    onSuccess: (preview) => {
+      globalThis.open(preview.previewUrl, "_blank", "noopener,noreferrer");
+    },
+  });
+
+  const publishMutation = useMutation({
+    mutationFn: async (request: Parameters<typeof publishWebsiteContent>[1]) => {
+      if (!contentKey || dirty) {
+        throw new Error("发布必须使用已保存草稿。");
+      }
+
+      return publishWebsiteContent(contentKey, request);
+    },
+    onSuccess: (result) => {
+      const next = stateFromDraft(result.draft);
+
+      setEditorState(next);
+      setDirty(false);
+      setPublishDialogOpen(false);
+      setNotice(`已发布业务版本 v${result.published.businessVersion}。`);
+      queryClient.setQueryData(websiteContentQueryKeys.draft(result.draft.contentKey), result.draft);
+      void Promise.all([
+        queryClient.invalidateQueries({ queryKey: websiteContentQueryKeys.overview() }),
+        queryClient.invalidateQueries({ queryKey: websiteContentQueryKeys.draft(result.draft.contentKey) }),
+        queryClient.invalidateQueries({ queryKey: websiteContentQueryKeys.diff(result.draft.contentKey) }),
+        queryClient.invalidateQueries({ queryKey: ["website-content", result.draft.contentKey, "history"] }),
+      ]);
+    },
+  });
+
+  const uploadMediaMutation = useMutation({
+    mutationFn: uploadWebsiteMediaAsset,
+    onSuccess: () => {
+      void queryClient.invalidateQueries({ queryKey: ["website-content", "media-assets"] });
+    },
+  });
+
+  const archiveMediaMutation = useMutation({
+    mutationFn: archiveWebsiteMediaAsset,
+    onSuccess: () => {
+      void queryClient.invalidateQueries({ queryKey: ["website-content", "media-assets"] });
+    },
+  });
+
   const updateState = (updater: (current: DraftEditorState) => DraftEditorState) => {
     setEditorState((current) => (current ? updater(current) : current));
     setDirty(true);
@@ -284,7 +369,7 @@ export default function WebsiteContentEdit() {
     );
   }
 
-  if (!canEdit) {
+  if (!canReadDraft) {
     return (
       <PageMessage
         title="没有官网内容编辑权限"
@@ -391,25 +476,28 @@ export default function WebsiteContentEdit() {
         <section className="rounded-xl border border-slate-200 bg-white p-5 shadow-sm">
           <h2 className="text-lg font-semibold text-slate-950">SEO 元数据</h2>
           <div className="mt-4 grid gap-4">
-            <TextField
-              label="SEO 标题"
-              value={editorState.seo.title}
-              required
+              <TextField
+                label="SEO 标题"
+                value={editorState.seo.title}
+                required
+                disabled={!canEdit}
               onChange={(title) => updateState((current) => ({ ...current, seo: { ...current.seo, title } }))}
             />
             <TextField
               label="SEO 描述"
-              value={editorState.seo.description}
-              required
-              multiline
+                value={editorState.seo.description}
+                required
+                multiline
+                disabled={!canEdit}
               onChange={(description) =>
                 updateState((current) => ({ ...current, seo: { ...current.seo, description } }))
               }
             />
             <TextField
-              label="规范路径"
-              value={editorState.seo.canonicalPath}
-              required
+                label="规范路径"
+                value={editorState.seo.canonicalPath}
+                required
+                disabled={!canEdit}
               onChange={(canonicalPath) =>
                 updateState((current) => ({
                   ...current,
@@ -421,6 +509,7 @@ export default function WebsiteContentEdit() {
               <MediaAssetPicker
                 label="Open Graph 图片"
                 value={editorState.seo.image}
+                disabled={!canEdit}
                 onChange={(image) =>
                   updateState((current) => ({ ...current, seo: { ...current.seo, image } }))
                 }
@@ -435,6 +524,7 @@ export default function WebsiteContentEdit() {
             section={section}
             onChange={(nextSection) => updateSection(index, nextSection)}
             canDisable={!REQUIRED_SECTION_KEYS[contentKey].includes(section.sectionKey)}
+            disabled={!canEdit}
           />
         ))}
 
@@ -444,6 +534,7 @@ export default function WebsiteContentEdit() {
             value={editorState.changeSummary}
             required
             multiline
+            disabled={!canEdit}
             onChange={(changeSummary) => updateState((current) => ({ ...current, changeSummary }))}
           />
           <p className="mt-2 text-sm text-slate-500">每次保存都必须说明本次不可变草稿的业务变更。</p>
@@ -460,6 +551,89 @@ export default function WebsiteContentEdit() {
           </button>
         </PermissionGate>
       </form>
+
+      <section className="mt-6 rounded-xl border border-slate-200 bg-white p-5 shadow-sm">
+        <h2 className="text-lg font-semibold text-slate-950">预览与发布</h2>
+        <p className="mt-2 text-sm leading-6 text-slate-600">
+          预览和发布始终使用最近一次保存的不可变草稿修订版。
+        </p>
+        <div className="mt-4 flex flex-wrap gap-3">
+          <PermissionGate all={["website.edit"]}>
+            <button
+              type="button"
+              aria-label="preview-saved-draft"
+              disabled={dirty || previewMutation.isPending}
+              onClick={() => previewMutation.mutate()}
+              className="min-h-11 rounded-lg border border-blue-700 px-4 font-semibold text-blue-800 outline-none hover:bg-blue-50 focus-visible:ring-2 focus-visible:ring-blue-800 disabled:cursor-not-allowed disabled:opacity-40"
+            >
+              预览已保存草稿
+            </button>
+          </PermissionGate>
+          <PermissionGate all={["website.publish"]}>
+            <button
+              type="button"
+              aria-label="publish-saved-draft"
+              disabled={dirty || publishMutation.isPending}
+              onClick={() => setPublishDialogOpen(true)}
+              className="min-h-11 rounded-lg bg-red-700 px-4 font-semibold text-white outline-none hover:bg-red-800 focus-visible:ring-2 focus-visible:ring-red-700 disabled:cursor-not-allowed disabled:opacity-40"
+            >
+              发布已保存草稿
+            </button>
+          </PermissionGate>
+        </div>
+        {dirty ? <p className="mt-3 text-sm text-amber-800">请先保存当前变更，再预览或发布。</p> : null}
+        {previewMutation.isError ? <p role="alert" className="mt-3 text-sm text-red-700">无法为当前已保存修订创建预览。</p> : null}
+        {publishMutation.isError ? <p role="alert" className="mt-3 text-sm text-red-700">无法发布当前已保存修订。</p> : null}
+      </section>
+
+      <section aria-label="website-content-history" className="mt-6 rounded-xl border border-slate-200 bg-white p-5 shadow-sm">
+        <h2 className="text-lg font-semibold text-slate-950">已发布历史</h2>
+        <div className="mt-4">
+          <ContentHistory
+            contentKey={contentKey}
+            items={historyQuery.data?.list ?? []}
+            loading={historyQuery.isPending}
+            error={historyQuery.isError}
+            onRetry={() => void historyQuery.refetch()}
+          />
+        </div>
+      </section>
+
+      <PermissionGate all={["website.edit"]}>
+        <div aria-label="website-media-library" className="mt-6">
+          <WebsiteMediaLibrary
+            assets={mediaAssetsQuery.data?.list ?? []}
+            total={mediaAssetsQuery.data?.total ?? 0}
+            query={mediaQuery}
+            loading={mediaAssetsQuery.isPending}
+            error={mediaAssetsQuery.isError}
+            pendingAssetId={archiveMediaMutation.isPending ? archiveMediaMutation.variables ?? null : null}
+            onQueryChange={setMediaQuery}
+            onUpload={async (file) => {
+              await uploadMediaMutation.mutateAsync(file);
+            }}
+            onArchive={async (asset) => {
+              await archiveMediaMutation.mutateAsync(asset.id);
+            }}
+          />
+        </div>
+      </PermissionGate>
+
+      <PermissionGate all={["website.publish"]}>
+        <PublishDialog
+          open={publishDialogOpen}
+          contentKey={contentKey}
+          revision={editorState.revision}
+          diff={diffQuery.data ?? []}
+          diffLoading={diffQuery.isPending}
+          diffError={diffQuery.isError}
+          pending={publishMutation.isPending}
+          canPublish={!dirty}
+          onOpenChange={setPublishDialogOpen}
+          onRetryDiff={() => void diffQuery.refetch()}
+          onPublish={(request) => publishMutation.mutate(request)}
+        />
+      </PermissionGate>
     </section>
   );
 }
