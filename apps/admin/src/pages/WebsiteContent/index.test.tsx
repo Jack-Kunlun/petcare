@@ -44,6 +44,7 @@ const authenticated: AuthContextValue = {
     username: "operator",
     phone: "17679141878",
     nickname: "运营主管",
+    avatar: null,
     roles: ["operator"],
     permissions: ["website.view", "website.edit"],
   },
@@ -52,6 +53,8 @@ const authenticated: AuthContextValue = {
   getCaptcha: vi.fn(),
   sendSmsCode: vi.fn(),
   logout: vi.fn(),
+  updateUserSummary: vi.fn(),
+  invalidateLocalSession: vi.fn(),
 };
 
 function renderOverview(permissions = authenticated.user?.permissions ?? []) {
