@@ -65,7 +65,7 @@
 | **验证**      | class-validator + class-transformer | 最新版 | DTO验证                 |
 | **日志**      | Winston + Pino                      | 最新版 | 结构化日志，高性能      |
 | **任务队列**  | BullMQ                              | 最新版 | 基于Redis的异步任务处理 |
-| **文件存储**  | MinIO / 阿里云OSS                   | -      | 对象存储                |
+| **文件存储**  | 腾讯云 COS（管理员公开头像）        | -      | Server 托管公开头像对象 |
 | **WebSocket** | @nestjs/websockets                  | -      | 实时通知、SOP进度推送   |
 | **错误追踪**  | Sentry                              | 最新版 | 生产环境错误监控        |
 
@@ -75,17 +75,17 @@
 
 > **选型变更（2026-08-11）**：~~Taro 4.x + React 18 + MobX~~ 已弃用。项目只保留 Miniapp 客户端，其技术框架为 UniApp，以消除双客户端带来的重复依赖、构建链、样式门禁和文档维护；原 Taro 业务功能没有迁移。
 
-| 技术领域     | 技术选型                    | 版本      | 说明                      |
-| ------------ | --------------------------- | --------- | ------------------------- |
-| **框架**     | UniApp                      | 3.x       | H5、小程序与 App 跨端框架 |
-| **UI库**     | Vue + Wot UI                | 3.x / 2.x | 统一跨端组件体系          |
-| **语言**     | TypeScript                  | 5.x       | 类型安全                  |
-| **样式**     | UnoCSS                      | 66.x      | 跨端原子化样式            |
-| **HTTP请求** | UniApp 请求适配层           | -         | 统一请求封装              |
-| **地图SDK**  | 腾讯地图SDK                 | 最新版    | LBS定位、路线规划         |
-| **图片上传** | `uni.chooseImage` + OSS直传 | -         | 高效图片上传              |
-| **微信登录** | `uni.login` + code2Session  | -         | 微信授权登录              |
-| **推送通知** | 微信订阅消息                | -         | 订单状态通知              |
+| 技术领域     | 技术选型                         | 版本      | 说明                                   |
+| ------------ | -------------------------------- | --------- | -------------------------------------- |
+| **框架**     | UniApp                           | 3.x       | H5、小程序与 App 跨端框架              |
+| **UI库**     | Vue + Wot UI                     | 3.x / 2.x | 统一跨端组件体系                       |
+| **语言**     | TypeScript                       | 5.x       | 类型安全                               |
+| **样式**     | UnoCSS                           | 66.x      | 跨端原子化样式                         |
+| **HTTP请求** | UniApp 请求适配层                | -         | 统一请求封装                           |
+| **地图SDK**  | 腾讯地图SDK                      | 最新版    | LBS定位、路线规划                      |
+| **图片上传** | `uni.chooseImage` + 对象存储接入 | -         | Miniapp 图片上传需求，具体端点另行交付 |
+| **微信登录** | `uni.login` + code2Session       | -         | 微信授权登录                           |
+| **推送通知** | 微信订阅消息                     | -         | 订单状态通知                           |
 
 ---
 
@@ -109,3 +109,13 @@
 Prisma 模型和字段在 TypeScript 中使用 PascalCase / camelCase，例如 `User.userType`；PostgreSQL 的物理表和列统一使用复数 `snake_case`，例如 `users.user_type`。通过 Prisma 的 `@@map` 和 `@map` 保持两者映射，业务代码不直接依赖物理数据库命名。
 
 新建或调整数据库结构时，使用 Prisma CLI 执行 schema 同步或生成迁移；已有生产数据时必须先评估并执行迁移，不可直接重置数据库。
+
+## 管理员公开头像存储
+
+当前实现仅提供管理员个人中心的公开头像存储：Server 使用腾讯云 COS 将经过字节校验的 JPEG、PNG 或 WebP
+文件（最大 2 MiB）写入 `public/admin-avatars/{userId}/`。COS 五项配置均留空时采取 fail-closed 策略：头像上传返回
+`503 STORAGE_UNAVAILABLE`，但个人资料和密码接口继续可用；部分配置会使 Server 在启动前失败。
+
+生产环境使用独立的公开读、私有写 Bucket 与最小权限子账号。Bucket 使用 `BucketName-APPID` 格式，Region 使用
+`ap-guangzhou` 等 COS 代码；可选的公开基础 URL 可替代 COS 默认访问域名。此能力不是通用图片上传服务，未提供
+`/uploads/images` 或客户端直传接口。

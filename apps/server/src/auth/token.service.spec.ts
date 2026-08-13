@@ -2,6 +2,7 @@ import { UnauthorizedException } from "@nestjs/common";
 import { JwtService } from "@nestjs/jwt";
 import { ConfigService } from "../config/config.service";
 import { RedisService } from "../config/redis.service";
+import { SessionValidationService } from "./session-validation.service";
 import { TokenService } from "./token.service";
 
 class InMemorySessionRedis {
@@ -37,14 +38,17 @@ describe("TokenService", () => {
     username: "admin",
     phone: "13800138000",
     roles: ["super_admin"],
+    sessionVersion: 2,
   };
   let jwtService: JwtService;
   let redis: InMemorySessionRedis;
+  let sessionValidation: { assertActiveVersion: jest.Mock };
   let service: TokenService;
 
   beforeEach(() => {
     jwtService = new JwtService();
     redis = new InMemorySessionRedis();
+    sessionValidation = { assertActiveVersion: jest.fn().mockResolvedValue(undefined) };
     const config = {
       jwtSecret,
       jwtAccessExpiresIn: "15m",
@@ -52,7 +56,12 @@ describe("TokenService", () => {
       refreshTokenTtlSeconds: 604800,
     } as ConfigService;
 
-    service = new TokenService(jwtService, redis as unknown as RedisService, config);
+    service = new TokenService(
+      jwtService,
+      redis as unknown as RedisService,
+      config,
+      sessionValidation as unknown as SessionValidationService,
+    );
   });
 
   it("issues typed access and refresh tokens and stores only a refresh digest", async () => {
@@ -60,8 +69,19 @@ describe("TokenService", () => {
     const accessPayload = await jwtService.verifyAsync(tokens.accessToken, { secret: jwtSecret });
     const refreshPayload = await jwtService.verifyAsync(tokens.refreshToken, { secret: jwtSecret });
 
-    expect(accessPayload).toMatchObject({ sub: "user-1", type: "access", roles: ["super_admin"] });
-    expect(refreshPayload).toMatchObject({ sub: "user-1", type: "refresh" });
+    expect(accessPayload).toMatchObject({
+      sub: "user-1",
+      sid: refreshPayload.sid,
+      sessionVersion: 2,
+      type: "access",
+      roles: ["super_admin"],
+    });
+    expect(refreshPayload).toMatchObject({
+      sub: "user-1",
+      sid: accessPayload.sid,
+      sessionVersion: 2,
+      type: "refresh",
+    });
     expect(redis.values.get(`auth:session:${refreshPayload.sid}`)).toBeDefined();
     expect(redis.values.get(`auth:session:${refreshPayload.sid}`)).not.toBe(tokens.refreshToken);
   });
@@ -72,6 +92,16 @@ describe("TokenService", () => {
     await expect(service.consumeRefresh(tokens.refreshToken)).resolves.toMatchObject({
       userId: "user-1",
     });
+    await expect(service.consumeRefresh(tokens.refreshToken)).rejects.toBeInstanceOf(
+      UnauthorizedException,
+    );
+  });
+
+  it("rejects a refresh token whose account session version is stale", async () => {
+    const tokens = await service.issue(principal);
+
+    sessionValidation.assertActiveVersion.mockRejectedValue(new UnauthorizedException());
+
     await expect(service.consumeRefresh(tokens.refreshToken)).rejects.toBeInstanceOf(
       UnauthorizedException,
     );
@@ -96,5 +126,17 @@ describe("TokenService", () => {
     await expect(service.consumeRefresh(tokens.refreshToken)).rejects.toBeInstanceOf(
       UnauthorizedException,
     );
+  });
+
+  it("revokes only the selected session by id", async () => {
+    const firstTokens = await service.issue(principal);
+    const secondTokens = await service.issue(principal);
+    const firstPayload = await jwtService.verifyAsync(firstTokens.refreshToken, { secret: jwtSecret });
+    const secondPayload = await jwtService.verifyAsync(secondTokens.refreshToken, { secret: jwtSecret });
+
+    await service.revokeSession(firstPayload.sid);
+
+    expect(redis.values.has(`auth:session:${firstPayload.sid}`)).toBe(false);
+    expect(redis.values.has(`auth:session:${secondPayload.sid}`)).toBe(true);
   });
 });

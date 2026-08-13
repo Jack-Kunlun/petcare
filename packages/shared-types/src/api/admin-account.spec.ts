@@ -1,0 +1,16 @@
+import { describe, expect, it } from "vitest";
+import { ADMIN_ACCOUNT_ERROR_CODE } from "./admin-account";
+
+describe("ADMIN_ACCOUNT_ERROR_CODE", () => {
+  it("exports stable public account error codes", () => {
+    expect(ADMIN_ACCOUNT_ERROR_CODE).toEqual({
+      PASSWORD_REUSED: "ACCOUNT_PASSWORD_REUSED",
+      CURRENT_PASSWORD_INVALID: "ACCOUNT_CURRENT_PASSWORD_INVALID",
+      PASSWORD_NOT_CONFIGURED: "ACCOUNT_PASSWORD_NOT_CONFIGURED",
+      CONCURRENT_UPDATE: "ACCOUNT_CONCURRENT_UPDATE",
+      AVATAR_INVALID_TYPE: "AVATAR_INVALID_TYPE",
+      AVATAR_FILE_TOO_LARGE: "AVATAR_FILE_TOO_LARGE",
+      STORAGE_UNAVAILABLE: "STORAGE_UNAVAILABLE",
+    });
+  });
+});

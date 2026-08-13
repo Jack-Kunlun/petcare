@@ -22,6 +22,7 @@ const adminUser = {
   username: "admin",
   phone: "13800138000",
   nickname: "系统管理员",
+  avatar: null,
   roles: ["super_admin"],
   permissions: ["system.view", "system.publish"],
 };
@@ -54,6 +55,39 @@ function CaptchaActionsProbe() {
         }}
       >
         send sms
+      </button>
+    </>
+  );
+}
+
+function AccountActionsProbe() {
+  const auth = useAuth();
+
+  return (
+    <>
+      <output data-testid="auth-status">{auth.status}</output>
+      <output data-testid="user-summary">
+        {auth.user
+          ? [
+              auth.user.id,
+              auth.user.username,
+              auth.user.roles.join(","),
+              auth.user.permissions.join(","),
+              auth.user.nickname,
+              auth.user.avatar,
+            ].join("|")
+          : "none"}
+      </output>
+      <button
+        type="button"
+        onClick={() =>
+          auth.updateUserSummary({ nickname: "新昵称", avatar: "https://cdn/avatar.png" })
+        }
+      >
+        update summary
+      </button>
+      <button type="button" onClick={() => auth.invalidateLocalSession()}>
+        invalidate session
       </button>
     </>
   );
@@ -113,5 +147,30 @@ describe("AuthProvider", () => {
 
     expect(authApi.getCaptcha).toHaveBeenCalledOnce();
     expect(authApi.sendSmsCode).toHaveBeenCalledWith("13800138000", "0123456789abcdef", "2345");
+  });
+
+  it("updates only the user summary and invalidates the local session without logout", async () => {
+    vi.mocked(authApi.refreshSession).mockResolvedValue({ accessToken: "access" });
+    vi.mocked(authApi.getCurrentUser).mockResolvedValue(adminUser);
+
+    render(
+      <AuthProvider>
+        <AccountActionsProbe />
+      </AuthProvider>,
+    );
+
+    await screen.findByText("user-1|admin|super_admin|system.view,system.publish|系统管理员|");
+    fireEvent.click(screen.getByRole("button", { name: "update summary" }));
+
+    expect(screen.getByTestId("user-summary")).toHaveTextContent(
+      "user-1|admin|super_admin|system.view,system.publish|新昵称|https://cdn/avatar.png",
+    );
+
+    fireEvent.click(screen.getByRole("button", { name: "invalidate session" }));
+
+    expect(screen.getByTestId("auth-status")).toHaveTextContent("anonymous");
+    expect(screen.getByTestId("user-summary")).toHaveTextContent("none");
+    expect(authApi.clearAccessToken).toHaveBeenCalledOnce();
+    expect(authApi.logout).not.toHaveBeenCalled();
   });
 });

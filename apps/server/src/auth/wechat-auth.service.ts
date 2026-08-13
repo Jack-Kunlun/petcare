@@ -14,6 +14,7 @@ interface MiniappUserRecord {
   username: string | null;
   nickname: string;
   avatar: string | null;
+  sessionVersion: number;
   userType: string;
   status: string;
   roles: Array<{ role: { roleName: string; isActive: boolean } }>;
@@ -27,6 +28,7 @@ const miniappUserSelect = {
   username: true,
   nickname: true,
   avatar: true,
+  sessionVersion: true,
   userType: true,
   status: true,
   roles: {
@@ -210,6 +212,7 @@ export class WechatAuthService {
       roles: user.roles
         .filter((assignment) => assignment.role.isActive)
         .map((assignment) => assignment.role.roleName),
+      sessionVersion: user.sessionVersion,
     });
 
     return {

@@ -381,33 +381,8 @@ PATCH /orders/{id}
 
 ### 文件上传
 
-使用 `multipart/form-data`：
-
-```http
-POST /uploads/images
-Content-Type: multipart/form-data
-
-file: (binary)
-```
-
-**响应**：
-
-```json
-{
-  "code": "SUCCESS",
-  "message": "操作成功",
-  "data": {
-    "url": "https://oss.petcare.com/images/xxx.jpg",
-    "thumbnailUrl": "https://oss.petcare.com/images/xxx_thumb.jpg",
-    "size": 1024000,
-    "mimeType": "image/jpeg"
-  },
-  "meta": {
-    "requestId": "request-123",
-    "timestamp": "2026-07-22T14:00:00.000Z"
-  }
-}
-```
+当前没有已实现的通用 `POST /uploads/images` 或 `/uploads/documents` 服务。本节历史描述不构成可调用接口；
+当前唯一已交付的文件上传能力是下文 `/admin/account/avatar` 的管理员公开头像替换接口。
 
 ---
 
@@ -656,6 +631,92 @@ Retry-After: 30
 `GET /admin/users` 支持 `page`、`pageSize`、`keyword`、`userType` 和 `status`
 查询参数，分页数据统一返回 `list`、`total`、`page`、`pageSize`。
 
+### 管理员个人中心模块 (`/admin/account`)
+
+以下接口要求有效 Bearer Access Token，且调用者当前至少保有一个活跃的后台角色；不要求额外的业务权限码。所有
+JSON 成功响应均使用本文的统一 envelope，`204 No Content` 接口不返回响应体。
+
+| 方法   | 路径                      | 说明                 | 成功响应 |
+| ------ | ------------------------- | -------------------- | -------- |
+| GET    | `/admin/account/profile`  | 获取当前管理员资料   | 200      |
+| PATCH  | `/admin/account/profile`  | 仅更新当前管理员昵称 | 200      |
+| PUT    | `/admin/account/avatar`   | 替换当前管理员头像   | 200      |
+| DELETE | `/admin/account/avatar`   | 删除当前管理员头像   | 204      |
+| PUT    | `/admin/account/password` | 修改当前管理员密码   | 204      |
+
+#### `GET /admin/account/profile`
+
+成功时 `data` 仅包含安全资料：
+
+```json
+{
+  "id": "8bf4e1f5-2b85-49a9-ae7b-5f8193ccf7b4",
+  "username": "admin",
+  "maskedPhone": "138****8000",
+  "nickname": "值班管理员",
+  "avatar": "https://cdn.example.com/public/admin-avatars/.../avatar.webp",
+  "status": "active",
+  "roles": ["operator"],
+  "createdAt": "2026-08-12T00:00:00.000Z"
+}
+```
+
+`maskedPhone` 只在原号码为 11 位数字时显示前三位、四个星号和后四位；任何非标准存量号码均返回 `"****"`。
+完整手机号、密码或密码哈希、COS 对象键和 `sessionVersion` 均不会出现在资料响应中。
+
+#### `PATCH /admin/account/profile`
+
+请求体仅允许昵称，长度为 1–30 个字符：
+
+```json
+{ "nickname": "值班管理员" }
+```
+
+服务端会去除首尾空白，并拒绝空值及控制字符。成功返回 `200` 的标准 envelope，`data` 为最新完整
+`AdminAccountProfile`（字段与 `GET /admin/account/profile` 相同）。昵称与头像可独立更新；Admin 成功更新后会立即刷新
+Header 中显示的资料。
+
+#### `PUT /admin/account/avatar` 与 `DELETE /admin/account/avatar`
+
+替换接口使用 `multipart/form-data`，文件字段名为 `file`。仅接受服务器按文件字节和声明 MIME 类型共同确认的
+JPEG、PNG 或 WebP，文件最大 2 MiB；成功响应为：
+
+```json
+{ "avatar": "https://cdn.example.com/public/admin-avatars/.../new-avatar.png" }
+```
+
+上传先写入新对象，再以可串行化事务切换数据库中的当前头像，随后尽力清理旧对象；失败或并发冲突不会让新的未关联对象
+成为活跃头像。`DELETE` 清空当前头像并返回 `204 No Content`。COS 五项配置均留空（上传功能禁用）或运行中的存储服务
+不可用时，资料和密码接口仍可用，但上传返回 `503 STORAGE_UNAVAILABLE`；COS 部分配置会使 Server 在启动前失败。
+
+#### `PUT /admin/account/password`
+
+请求体：
+
+```json
+{
+  "currentPassword": "current-password",
+  "newPassword": "replacement-password-at-least-12"
+}
+```
+
+`newPassword` 至少 12 个字符。成功返回 `204 No Content`，服务端以乐观版本检查更新密码并递增账户
+`sessionVersion`，使该账户所有 Admin 和 Miniapp 的既有 Access/Refresh Token 失效；同时按当前 Access Token 的
+`sid` 撤销本次 Redis 会话，并清除路径限定为 `/api/auth` 的 Refresh Cookie。
+
+| HTTP 状态 | 错误码                             | 适用场景                                       |
+| --------- | ---------------------------------- | ---------------------------------------------- |
+| 400       | `VALIDATION_FAILED`                | 昵称、密码请求体或头像格式无效                 |
+| 409       | `ACCOUNT_PASSWORD_NOT_CONFIGURED`  | 当前账户未设置密码                             |
+| 401       | `ACCOUNT_CURRENT_PASSWORD_INVALID` | 当前密码错误                                   |
+| 400       | `ACCOUNT_PASSWORD_REUSED`          | 新密码与当前密码相同                           |
+| 400       | `AVATAR_INVALID_TYPE`              | 非 JPEG、PNG 或 WebP，或 MIME 与文件字节不一致 |
+| 401       | `AUTH_SESSION_EXPIRED`             | Access Token 无效、过期或账户会话版本已失效    |
+| 403       | `FORBIDDEN`                        | 当前用户没有活跃后台角色                       |
+| 409       | `ACCOUNT_CONCURRENT_UPDATE`        | 密码或头像被并发更新                           |
+| 413       | `AVATAR_FILE_TOO_LARGE`            | 文件超过 2 MiB                                 |
+| 503       | `STORAGE_UNAVAILABLE`              | COS 未启用或存储服务不可用                     |
+
 ### 宠托师认证审核模块 (/admin/provider-certifications)
 
 | 方法 | 路径                                          | 说明             | 权限  |
@@ -731,12 +792,10 @@ Token 获取，客户端不得传入。接口只返回脱敏姓名、脱敏身�
 | PATCH  | `/notifications/read-all`  | 全部标记已读 | 本人 |
 | DELETE | `/notifications/{id}`      | 删除通知     | 本人 |
 
-### 文件上传 (/uploads)
+### 文件上传
 
-| 方法 | 路径                 | 说明     | 权限 |
-| ---- | -------------------- | -------- | ---- |
-| POST | `/uploads/images`    | 上传图片 | 认证 |
-| POST | `/uploads/documents` | 上传文档 | 认证 |
+通用 `/uploads` 模块尚未实现，不能将历史接口表中的 `/uploads/images` 或 `/uploads/documents` 视为可用。
+管理员头像上传的实际接口、格式限制和错误码见“管理员个人中心模块 (`/admin/account`)”。
 
 ---
 

@@ -30,6 +30,9 @@ export class AdminUserResponseDto implements AdminSessionUser {
   @ApiProperty({ example: "系统管理员" })
   nickname: string;
 
+  @ApiProperty({ nullable: true, example: "https://cdn.example.com/avatar.jpg" })
+  avatar: string | null;
+
   @ApiProperty({ type: [String], example: ["super_admin"] })
   roles: string[];
 

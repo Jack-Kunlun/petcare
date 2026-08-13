@@ -69,6 +69,7 @@ const auth: AuthContextValue = {
     username: "operator",
     phone: "13800138000",
     nickname: "运营主管",
+    avatar: null,
     roles: ["operator"],
     permissions: ["rbac.view", "rbac.role.create", "rbac.role.update"],
   },
@@ -77,6 +78,8 @@ const auth: AuthContextValue = {
   getCaptcha: vi.fn(),
   sendSmsCode: vi.fn(),
   logout: vi.fn(),
+  updateUserSummary: vi.fn(),
+  invalidateLocalSession: vi.fn(),
 };
 
 function renderEdit(path: string) {

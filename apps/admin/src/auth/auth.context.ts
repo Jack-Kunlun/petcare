@@ -9,6 +9,8 @@ export interface AuthContextValue {
   getCaptcha(): Promise<CaptchaChallenge>;
   sendSmsCode(phone: string, captchaId: string, captchaCode: string): Promise<void>;
   logout(): Promise<void>;
+  updateUserSummary(patch: Pick<AdminUser, "nickname" | "avatar">): void;
+  invalidateLocalSession(): void;
 }
 
 /** Holds the current authenticated administrator and local authentication actions. */
