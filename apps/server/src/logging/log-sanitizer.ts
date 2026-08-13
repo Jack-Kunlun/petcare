@@ -17,6 +17,8 @@ const secretKeys = new Set([
   "smscode",
   "verificationcode",
   "captchaanswer",
+  "websitepreviewtoken",
+  "xwebsitepreviewtoken",
 ]);
 
 const personalKeys = new Set(["phone", "mobile", "phonenumber", "openid", "email", "address"]);
@@ -59,7 +61,7 @@ export class LogSanitizer {
     seen: WeakSet<object>,
     key = "",
   ): unknown {
-    const normalizedKey = key.toLowerCase();
+    const normalizedKey = key.toLowerCase().replaceAll(/[-_\s]/gu, "");
 
     if (!options.raw && secretKeys.has(normalizedKey)) {
       return REDACTED;

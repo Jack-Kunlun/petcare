@@ -331,6 +331,11 @@ export class WebsiteContentRepository {
           },
         });
 
+        await tx.websitePreviewToken.updateMany({
+          where: { contentVersionId: published.id, revokedAt: null },
+          data: { revokedAt: published.publishedAt ?? new Date() },
+        });
+
         return { published: toVersion(published), draft: toVersion(draft) };
       });
     } catch (error) {
@@ -384,6 +389,50 @@ export class WebsiteContentRepository {
     }
 
     return toVersion(record);
+  }
+
+  /** Reads any exact immutable version for capability-scoped preview rendering. */
+  async getVersionForPreview(
+    contentKey: WebsiteContentKey,
+    versionId: string,
+    revision: number,
+  ): Promise<WebsiteContentVersion> {
+    const record = await this.prisma.websiteContentVersion.findFirst({
+      where: { id: versionId, revision, websiteContent: { contentKey } },
+      include: versionInclude,
+    });
+
+    if (!record) {
+      throw websiteContentVersionNotFound(versionId);
+    }
+
+    return toVersion(record);
+  }
+
+  /** Resolves the exact currently saved draft scope used to mint a preview capability. */
+  async getCurrentDraftScope(contentKey: WebsiteContentKey, revision: number): Promise<{
+    contentId: string;
+    versionId: string;
+    revision: number;
+  }> {
+    const content = await this.prisma.websiteContent.findUnique({
+      where: { contentKey },
+      include: { currentDraftVersion: { select: { id: true, revision: true } } },
+    });
+
+    if (!content?.currentDraftVersion) {
+      throw websiteContentNotFound(contentKey);
+    }
+
+    if (content.currentDraftVersion.revision !== revision) {
+      throw websiteContentRevisionConflict();
+    }
+
+    return {
+      contentId: content.id,
+      versionId: content.currentDraftVersion.id,
+      revision: content.currentDraftVersion.revision,
+    };
   }
 
   /** Lists only versions that have entered the public business-version sequence. */

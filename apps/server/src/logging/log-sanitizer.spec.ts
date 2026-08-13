@@ -29,6 +29,27 @@ describe("LogSanitizer", () => {
     });
   });
 
+  it("redacts Website preview tokens across normalized nested header keys", () => {
+    const result = sanitizer.prepare(
+      {
+        headers: {
+          "X-Website-Preview-Token": "header-secret",
+          websitePreviewToken: "body-secret",
+          x_website_preview_token: "normalized-secret",
+        },
+      },
+      { production: false },
+    );
+
+    expect(result.value).toEqual({
+      headers: {
+        "X-Website-Preview-Token": "[REDACTED]",
+        websitePreviewToken: "[REDACTED]",
+        x_website_preview_token: "[REDACTED]",
+      },
+    });
+  });
+
   it("masks production personal information", () => {
     const result = sanitizer.prepare(
       {
