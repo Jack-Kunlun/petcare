@@ -1,8 +1,8 @@
 import { readFile } from "node:fs/promises";
 import { describe, expect, it } from "vitest";
 
-const previewIndexPath = new URL("./index.astro", import.meta.url);
-const previewPagePath = new URL("./[contentKey].astro", import.meta.url);
+const previewIndexPath = new URL("../pages/preview/index.astro", import.meta.url);
+const previewPagePath = new URL("../pages/preview/[contentKey].astro", import.meta.url);
 
 describe("preview route contract", () => {
   it("removes the fragment token before the exchange and never stores it in browser storage", async () => {

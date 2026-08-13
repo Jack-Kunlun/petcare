@@ -23,16 +23,6 @@ export class PublicWebsiteContentController {
     private readonly previews: WebsitePreviewService,
   ) {}
 
-  /** Reads the current published snapshot for one independently published content key. */
-  @Get(":contentKey")
-  @ApiParam({ name: "contentKey" })
-  @ApiOperation({ summary: "Read published Website Content" })
-  @ApiSuccessResponse(WebsitePublicContentResponseDto)
-  @ApiStandardErrors(404, 500)
-  getPublished(@Param("contentKey") contentKey: WebsiteContentKey): Promise<WebsitePublicContent> {
-    return this.published.getPublished(contentKey);
-  }
-
   /** Reads a fixed draft snapshot only from the explicitly supplied preview-token header. */
   @Get("previews/:contentKey")
   @ApiParam({ name: "contentKey" })
@@ -51,5 +41,15 @@ export class PublicWebsiteContentController {
     return toWebsitePreviewContent(
       await this.previews.readPreview(contentKey, token, request.requestId ?? "unknown"),
     );
+  }
+
+  /** Reads the current published snapshot for one independently published content key. */
+  @Get(":contentKey")
+  @ApiParam({ name: "contentKey" })
+  @ApiOperation({ summary: "Read published Website Content" })
+  @ApiSuccessResponse(WebsitePublicContentResponseDto)
+  @ApiStandardErrors(404, 500)
+  getPublished(@Param("contentKey") contentKey: WebsiteContentKey): Promise<WebsitePublicContent> {
+    return this.published.getPublished(contentKey);
   }
 }

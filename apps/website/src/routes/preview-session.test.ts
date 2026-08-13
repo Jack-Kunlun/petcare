@@ -3,7 +3,7 @@ import {
   WEBSITE_PREVIEW_COOKIE,
   createPreviewSessionHandler,
   type PreviewSessionApi,
-} from "./session";
+} from "../pages/preview/session";
 
 function createContext(body: unknown) {
   return {

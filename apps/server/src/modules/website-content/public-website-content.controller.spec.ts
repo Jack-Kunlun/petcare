@@ -1,10 +1,18 @@
 import { SwaggerModule } from "@nestjs/swagger";
 import { Test } from "@nestjs/testing";
+import { ROUTE_ARGS_METADATA } from "@nestjs/common/constants";
 import { PublicWebsiteContentController } from "./public-website-content.controller";
 import { WebsiteContentPublicService } from "./website-content-public.service";
 import { WebsitePreviewService } from "./website-preview.service";
 
 describe("PublicWebsiteContentController", () => {
+  it("declares the static preview route before the content-key parameter route", () => {
+    const methods = Object.getOwnPropertyNames(PublicWebsiteContentController.prototype);
+
+    expect(methods.indexOf("getPreview")).toBeLessThan(methods.indexOf("getPublished"));
+    expect(Reflect.getMetadata(ROUTE_ARGS_METADATA, PublicWebsiteContentController, "getPreview")).toBeDefined();
+  });
+
   it("returns only published content for the public fixed route", async () => {
     const content = { contentKey: "home", businessVersion: 1 };
     const published = { getPublished: jest.fn().mockResolvedValue(content) };
