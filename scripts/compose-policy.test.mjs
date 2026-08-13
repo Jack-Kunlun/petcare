@@ -71,8 +71,8 @@ test("Docker 从根 packageManager 读取 pnpm 版本", async () => {
 test("Compose 包含独立的 Website SSR 与公网网关", async () => {
   const compose = await readFile(resolve(root, "docker-compose.yml"), "utf8");
 
-  assert.match(compose, /^  website:\s*$/m);
-  assert.match(compose, /^  website-gateway:\s*$/m);
+  assert.match(compose, /^ {2}website:\s*$/m);
+  assert.match(compose, /^ {2}website-gateway:\s*$/m);
   assert.match(compose, /dockerfile:\s*Dockerfile\.website/);
   assert.match(compose, /website-nginx\.conf/);
 });
@@ -116,7 +116,7 @@ test("Compose 将官网 SSR 保持在内部网络并仅传递所需运行变量"
   const admin = serviceBlock(compose, "admin");
 
   assert.match(website, /dockerfile: Dockerfile\.website/);
-  assert.doesNotMatch(website, /^    ports:/m);
+  assert.doesNotMatch(website, /^ {4}ports:/m);
   assert.match(
     website,
     /WEBSITE_CONTENT_API_BASE_URL: \$\{WEBSITE_CONTENT_API_BASE_URL:-http:\/\/server:3000\}/,
@@ -126,7 +126,7 @@ test("Compose 将官网 SSR 保持在内部网络并仅传递所需运行变量"
   assert.match(gateway, /website-nginx\.conf/);
   assert.doesNotMatch(
     server,
-    /^    ports:/m,
+    /^ {4}ports:/m,
     "全容器部署不得绕过官网网关直接暴露 Nest 的管理或 Swagger 路由",
   );
   assert.match(admin, /dockerfile: Dockerfile\.admin/);
@@ -150,7 +150,7 @@ function serviceBlock(compose, name) {
   assert.notEqual(start, -1, `Compose 缺少 ${name} 服务`);
 
   const remainder = compose.slice(start + 1);
-  const nextService = /\n  [A-Za-z][\w-]*:\n/g;
+  const nextService = /\n {2}[A-Za-z][\w-]*:\n/g;
 
   nextService.lastIndex = `  ${name}:\n`.length;
   const match = nextService.exec(remainder);
