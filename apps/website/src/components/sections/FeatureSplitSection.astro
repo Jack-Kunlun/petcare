@@ -1,0 +1,46 @@
+---
+import { getPublicImage, getSafeWebsiteHref } from "./safe-rendering";
+import type { WebsitePublicFeatureSplitSection } from "./public-section-types";
+
+interface Props {
+  /** Validated public split-feature section. */
+  section: WebsitePublicFeatureSplitSection;
+}
+
+const { section } = Astro.props;
+const image = getPublicImage(section.content.image.asset, "placeholder");
+const href = section.content.action ? getSafeWebsiteHref(section.content.action.href) : null;
+---
+
+<section
+  class:list={["content-section", "feature-split", `feature-split--${section.settings.tone}`]}
+>
+  <div
+    class:list={[
+      "content-container",
+      "feature-split__inner",
+      `feature-split__inner--${section.settings.imagePosition}`,
+    ]}
+  >
+    <div class="feature-split__copy">
+      {section.content.eyebrow ? <p class="eyebrow">{section.content.eyebrow}</p> : null}
+      <h2>{section.content.title}</h2>
+      <p class="section-description">{section.content.description}</p>
+      {
+        href ? (
+          <a class="button button--secondary" href={href}>
+            {section.content.action?.label}
+          </a>
+        ) : null
+      }
+    </div>
+    <img
+      class="feature-split__image"
+      src={image.src}
+      width={image.width}
+      height={image.height}
+      alt={section.content.image.altText}
+      loading="lazy"
+    />
+  </div>
+</section>
