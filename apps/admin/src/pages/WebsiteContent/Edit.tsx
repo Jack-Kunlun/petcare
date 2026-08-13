@@ -1,27 +1,481 @@
-import { AlertCircle, ArrowLeft } from "lucide-react";
+import type {
+  ApiErrorResponse,
+  WebsiteContentKey,
+  WebsiteContentSection,
+  WebsiteContentVersion,
+  WebsiteSeoContent,
+} from "@petcare/shared-types";
+import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
+import axios from "axios";
+import { AlertCircle, ArrowLeft, CheckCircle2, RefreshCw, Save } from "lucide-react";
+import { type FormEvent, useEffect, useMemo, useState } from "react";
 import { Link, useParams } from "react-router-dom";
+import {
+  fetchWebsiteContentDraft,
+  saveWebsiteContentDraft,
+  websiteContentQueryKeys,
+} from "../../api/website-content";
+import { useAuth } from "../../auth/auth.context";
+import { PermissionGate } from "../../auth/PermissionGate";
+import { TextField } from "./editors/fields";
+import { WebsiteSectionEditor } from "./editors/WebsiteSectionEditor";
+import { MediaAssetPicker } from "./MediaAssetPicker";
 
-/** Route-readable placeholder for the fixed preset-section editor. */
-export default function WebsiteContentEdit() {
-  const { contentKey } = useParams();
+const WEBSITE_CONTENT_KEYS = new Set<WebsiteContentKey>([
+  "site_shell",
+  "home",
+  "services",
+  "trust",
+  "companions",
+  "about",
+  "contact",
+  "privacy",
+  "terms",
+]);
+
+const REQUIRED_SECTION_KEYS: Record<WebsiteContentKey, readonly string[]> = {
+  site_shell: ["site_header", "site_footer"],
+  home: ["hero"],
+  services: ["hero"],
+  trust: ["hero"],
+  companions: ["hero"],
+  about: ["hero"],
+  contact: ["hero", "contact_channels"],
+  privacy: ["legal_content"],
+  terms: ["legal_content"],
+};
+
+interface DraftEditorState {
+  contentKey: WebsiteContentKey;
+  revision: number;
+  seo: WebsiteSeoContent;
+  sections: WebsiteContentSection[];
+  changeSummary: string;
+}
+
+function isWebsiteContentKey(value: string | undefined): value is WebsiteContentKey {
+  return value !== undefined && WEBSITE_CONTENT_KEYS.has(value as WebsiteContentKey);
+}
+
+function isRevisionConflict(error: unknown): boolean {
+  if (
+    typeof error === "object" &&
+    error !== null &&
+    "response" in error &&
+    typeof error.response === "object" &&
+    error.response !== null &&
+    "status" in error.response &&
+    "data" in error.response &&
+    error.response.status === 409 &&
+    typeof error.response.data === "object" &&
+    error.response.data !== null &&
+    "code" in error.response.data &&
+    error.response.data.code === "WEBSITE_CONTENT_REVISION_CONFLICT"
+  ) {
+    return true;
+  }
 
   return (
-    <section className="mx-auto w-full max-w-[960px]">
+    axios.isAxiosError<ApiErrorResponse>(error) &&
+    error.response?.status === 409 &&
+    error.response.data?.code === "WEBSITE_CONTENT_REVISION_CONFLICT"
+  );
+}
+
+function isSafeLinkDestination(value: string): boolean {
+  if (value.startsWith("/")) {
+    return true;
+  }
+
+  return /^(https:\/\/|mailto:|tel:)/u.test(value);
+}
+
+function findReferenceValidationError(sections: readonly WebsiteContentSection[]): string | null {
+  const visit = (value: unknown): string | null => {
+    if (Array.isArray(value)) {
+      for (const item of value) {
+        const issue = visit(item);
+
+        if (issue) {
+          return issue;
+        }
+      }
+
+      return null;
+    }
+
+    if (typeof value !== "object" || value === null) {
+      return null;
+    }
+
+    const record = value as Record<string, unknown>;
+
+    if ("altText" in record && (!record.altText || typeof record.altText !== "string" || !record.altText.trim())) {
+      return "请为每张图片填写有意义的替代文本。";
+    }
+
+    if ("href" in record && (typeof record.href !== "string" || !isSafeLinkDestination(record.href))) {
+      return "请使用站内路径、HTTPS、mailto 或 tel 链接。";
+    }
+
+    for (const child of Object.values(record)) {
+      const issue = visit(child);
+
+      if (issue) {
+        return issue;
+      }
+    }
+
+    return null;
+  };
+
+  return visit(sections);
+}
+
+function errorMessage(error: unknown): string {
+  if (axios.isAxiosError<ApiErrorResponse>(error)) {
+    return error.response?.data?.message ?? "保存草稿失败，请稍后重试。";
+  }
+
+  return "保存草稿失败，请稍后重试。";
+}
+
+function stateFromDraft(draft: WebsiteContentVersion): DraftEditorState {
+  return {
+    contentKey: draft.contentKey,
+    revision: draft.revision,
+    seo: structuredClone(draft.seo),
+    sections: structuredClone(draft.sections).sort((left, right) => left.sortOrder - right.sortOrder),
+    changeSummary: draft.changeSummary,
+  };
+}
+
+/** Edits one fixed Website Content template and saves complete immutable draft snapshots. */
+export default function WebsiteContentEdit() {
+  const { contentKey: contentKeyParam } = useParams();
+  const auth = useAuth();
+  const queryClient = useQueryClient();
+  const contentKey = isWebsiteContentKey(contentKeyParam) ? contentKeyParam : null;
+  const canEdit = auth.user?.permissions.includes("website.edit") ?? false;
+  const [editorState, setEditorState] = useState<DraftEditorState | null>(null);
+  const [dirty, setDirty] = useState(false);
+  const [validationError, setValidationError] = useState<string | null>(null);
+  const [notice, setNotice] = useState<string | null>(null);
+  const [serverRevision, setServerRevision] = useState<number | null>(null);
+
+  const draftQuery = useQuery({
+    queryKey: websiteContentQueryKeys.draft(contentKey ?? "home"),
+    queryFn: () => fetchWebsiteContentDraft(contentKey!),
+    enabled: Boolean(contentKey && canEdit),
+  });
+
+  const remoteState = useMemo(
+    () => (draftQuery.data ? stateFromDraft(draftQuery.data) : null),
+    [draftQuery.data],
+  );
+
+  useEffect(() => {
+    if (remoteState && !dirty) {
+      setEditorState(remoteState);
+      setValidationError(null);
+    }
+  }, [remoteState, dirty]);
+
+  useEffect(() => {
+    if (!dirty) {
+      return undefined;
+    }
+
+    const onBeforeUnload = (event: BeforeUnloadEvent) => {
+      event.preventDefault();
+      event.returnValue = "";
+    };
+
+    globalThis.addEventListener("beforeunload", onBeforeUnload);
+
+    return () => globalThis.removeEventListener("beforeunload", onBeforeUnload);
+  }, [dirty]);
+
+  const saveMutation = useMutation({
+    mutationFn: async () => {
+      if (!contentKey || !editorState) {
+        throw new Error("官网内容草稿不可用");
+      }
+
+      return saveWebsiteContentDraft(contentKey, {
+        revision: editorState.revision,
+        changeSummary: editorState.changeSummary.trim(),
+        seo: editorState.seo,
+        sections: editorState.sections,
+      });
+    },
+    onSuccess: (savedDraft) => {
+      const next = stateFromDraft(savedDraft);
+
+      setEditorState(next);
+      setDirty(false);
+      setServerRevision(null);
+      setNotice(`草稿已保存，当前修订版为 r${savedDraft.revision}。`);
+      queryClient.setQueryData(websiteContentQueryKeys.draft(savedDraft.contentKey), savedDraft);
+      void queryClient.invalidateQueries({ queryKey: websiteContentQueryKeys.overview() });
+      void queryClient.invalidateQueries({ queryKey: websiteContentQueryKeys.diff(savedDraft.contentKey) });
+    },
+    onError: async (error) => {
+      if (isRevisionConflict(error)) {
+        const result = await draftQuery.refetch();
+
+        setServerRevision(result.data?.revision ?? null);
+
+        return;
+      }
+    },
+  });
+
+  const updateState = (updater: (current: DraftEditorState) => DraftEditorState) => {
+    setEditorState((current) => (current ? updater(current) : current));
+    setDirty(true);
+    setValidationError(null);
+    setNotice(null);
+  };
+
+  const updateSection = (sectionIndex: number, section: WebsiteContentSection) => {
+    updateState((current) => ({
+      ...current,
+      sections: current.sections.map((candidate, index) => (index === sectionIndex ? section : candidate)),
+    }));
+  };
+
+  function submit(event: FormEvent<HTMLFormElement>) {
+    event.preventDefault();
+
+    if (
+      !editorState?.seo.title.trim() ||
+      !editorState.seo.description.trim() ||
+      !editorState.changeSummary.trim()
+    ) {
+      setValidationError("请填写 SEO 标题、SEO 描述和变更摘要后再保存草稿。");
+
+      return;
+    }
+
+    if (!event.currentTarget.checkValidity()) {
+      setValidationError("请填写所有区块中的必填字段后再保存草稿。");
+
+      return;
+    }
+
+    const referenceValidationError = findReferenceValidationError(editorState.sections);
+
+    if (referenceValidationError) {
+      setValidationError(referenceValidationError);
+
+      return;
+    }
+
+    saveMutation.mutate();
+  }
+
+  if (!contentKey) {
+    return (
+      <PageMessage
+        title="官网内容不存在"
+        message="请从官网内容列表选择有效的内容单元。"
+      />
+    );
+  }
+
+  if (!canEdit) {
+    return (
+      <PageMessage
+        title="没有官网内容编辑权限"
+        message="请联系管理员授予 website.edit 权限。"
+      />
+    );
+  }
+
+  if (draftQuery.isPending) {
+    return (
+      <section
+        aria-label="正在加载官网内容草稿"
+        className="mx-auto h-96 w-full max-w-[1080px] animate-pulse rounded-xl bg-slate-200 motion-reduce:animate-none"
+      />
+    );
+  }
+
+  if (draftQuery.isError) {
+    return (
+      <section
+        role="alert"
+        className="mx-auto w-full max-w-[960px] rounded-xl border border-red-200 bg-red-50 p-6 text-red-950"
+      >
+        <h1 className="font-bold">官网内容草稿加载失败</h1>
+        <p className="mt-2">无法读取当前草稿，请重试后再编辑。</p>
+        <button
+          type="button"
+          onClick={() => void draftQuery.refetch()}
+          className="mt-4 inline-flex min-h-11 items-center gap-2 rounded-lg border border-red-700 px-4 font-semibold outline-none hover:bg-red-100 focus-visible:ring-2 focus-visible:ring-red-700"
+        >
+          <RefreshCw aria-hidden="true" className="h-4 w-4" />
+          重新加载
+        </button>
+      </section>
+    );
+  }
+
+  if (!editorState) {
+    return (
+      <section
+        aria-label="正在加载官网内容草稿"
+        className="mx-auto h-96 w-full max-w-[1080px] animate-pulse rounded-xl bg-slate-200 motion-reduce:animate-none"
+      />
+    );
+  }
+
+  return (
+    <section className="mx-auto w-full max-w-[1080px]">
       <Link
         to="/website-content"
+        onClick={(event) => {
+          if (dirty && !globalThis.confirm("当前有未保存变更，确定离开编辑页吗？")) {
+            event.preventDefault();
+          }
+        }}
         className="inline-flex min-h-11 items-center gap-2 rounded-lg px-2 font-medium text-blue-800 outline-none hover:bg-blue-50 focus-visible:ring-2 focus-visible:ring-blue-800"
       >
         <ArrowLeft aria-hidden="true" className="h-4 w-4" />
         返回官网内容
       </Link>
-      <div className="mt-4 rounded-xl border border-slate-200 bg-white p-6">
+      <header className="mt-4">
         <p className="font-medium text-blue-800">预设区块编辑</p>
-        <h1 className="mt-1 text-2xl font-bold text-slate-950">编辑 {contentKey ?? "官网内容"}</h1>
-        <div className="mt-4 flex gap-3 rounded-lg border border-blue-200 bg-blue-50 p-4 text-blue-950">
+        <h1 className="mt-1 text-2xl font-bold tracking-tight text-slate-950 sm:text-3xl">
+          编辑 {contentKey}
+        </h1>
+        <p className="mt-2 max-w-[760px] leading-6 text-slate-600">
+          仅可编辑预设区块的内容、有限展示设置和允许的显示状态。保存会创建新的不可变草稿，不会直接发布。
+        </p>
+      </header>
+
+      {dirty ? (
+        <div className="mt-5 flex gap-3 rounded-xl border border-amber-200 bg-amber-50 p-4 text-amber-950">
           <AlertCircle aria-hidden="true" className="h-5 w-5 shrink-0" />
-          <p>区块结构固定；编辑表单、保存草稿与预览将在后续界面中提供。</p>
+          <p>有未保存变更。离开页面前请保存草稿，浏览器关闭时会提示确认。</p>
         </div>
-      </div>
+      ) : null}
+      {notice ? (
+        <div className="mt-5 flex gap-3 rounded-xl border border-emerald-200 bg-emerald-50 p-4 text-emerald-950">
+          <CheckCircle2 aria-hidden="true" className="h-5 w-5 shrink-0" />
+          <p>{notice}</p>
+        </div>
+      ) : null}
+      {serverRevision !== null ? (
+        <div role="alert" className="mt-5 rounded-xl border border-amber-200 bg-amber-50 p-4 text-amber-950">
+          <h2 className="font-semibold">检测到版本冲突</h2>
+          <p className="mt-1">
+            服务端草稿已更新。本地输入仍保留，请根据最新草稿协调后重新保存。
+          </p>
+          <p className="mt-2 font-medium">服务端当前修订版：r{serverRevision}</p>
+        </div>
+      ) : null}
+      {validationError ? (
+        <div role="alert" className="mt-5 rounded-xl border border-red-200 bg-red-50 p-4 text-red-950">
+          {validationError}
+        </div>
+      ) : null}
+      {saveMutation.isError && !isRevisionConflict(saveMutation.error) ? (
+        <div role="alert" className="mt-5 rounded-xl border border-red-200 bg-red-50 p-4 text-red-950">
+          {errorMessage(saveMutation.error)}
+        </div>
+      ) : null}
+
+      <form className="mt-6 space-y-6" noValidate onSubmit={submit}>
+        <section className="rounded-xl border border-slate-200 bg-white p-5 shadow-sm">
+          <h2 className="text-lg font-semibold text-slate-950">SEO 元数据</h2>
+          <div className="mt-4 grid gap-4">
+            <TextField
+              label="SEO 标题"
+              value={editorState.seo.title}
+              required
+              onChange={(title) => updateState((current) => ({ ...current, seo: { ...current.seo, title } }))}
+            />
+            <TextField
+              label="SEO 描述"
+              value={editorState.seo.description}
+              required
+              multiline
+              onChange={(description) =>
+                updateState((current) => ({ ...current, seo: { ...current.seo, description } }))
+              }
+            />
+            <TextField
+              label="规范路径"
+              value={editorState.seo.canonicalPath}
+              required
+              onChange={(canonicalPath) =>
+                updateState((current) => ({
+                  ...current,
+                  seo: { ...current.seo, canonicalPath: canonicalPath as WebsiteSeoContent["canonicalPath"] },
+                }))
+              }
+            />
+            {editorState.seo.image ? (
+              <MediaAssetPicker
+                label="Open Graph 图片"
+                value={editorState.seo.image}
+                onChange={(image) =>
+                  updateState((current) => ({ ...current, seo: { ...current.seo, image } }))
+                }
+              />
+            ) : null}
+          </div>
+        </section>
+
+        {editorState.sections.map((section, index) => (
+          <WebsiteSectionEditor
+            key={section.sectionKey}
+            section={section}
+            onChange={(nextSection) => updateSection(index, nextSection)}
+            canDisable={!REQUIRED_SECTION_KEYS[contentKey].includes(section.sectionKey)}
+          />
+        ))}
+
+        <section className="rounded-xl border border-slate-200 bg-white p-5 shadow-sm">
+          <TextField
+            label="变更摘要"
+            value={editorState.changeSummary}
+            required
+            multiline
+            onChange={(changeSummary) => updateState((current) => ({ ...current, changeSummary }))}
+          />
+          <p className="mt-2 text-sm text-slate-500">每次保存都必须说明本次不可变草稿的业务变更。</p>
+        </section>
+
+        <PermissionGate all={["website.edit"]}>
+          <button
+            type="submit"
+            disabled={saveMutation.isPending}
+            className="inline-flex min-h-11 items-center gap-2 rounded-lg bg-blue-700 px-5 font-semibold text-white outline-none transition-colors hover:bg-blue-800 focus-visible:ring-2 focus-visible:ring-blue-700 disabled:cursor-not-allowed disabled:opacity-50"
+          >
+            <Save aria-hidden="true" className="h-4 w-4" />
+            保存草稿
+          </button>
+        </PermissionGate>
+      </form>
+    </section>
+  );
+}
+
+/** Presents a route-level Website Content editor error with a safe return link. */
+function PageMessage({ title, message }: { title: string; message: string }) {
+  return (
+    <section className="mx-auto w-full max-w-[960px] rounded-xl border border-slate-200 bg-white p-6">
+      <h1 className="text-xl font-bold text-slate-950">{title}</h1>
+      <p className="mt-2 text-slate-600">{message}</p>
+      <Link
+        to="/website-content"
+        className="mt-5 inline-flex min-h-11 items-center rounded-lg px-3 font-semibold text-blue-800 outline-none hover:bg-blue-50 focus-visible:ring-2 focus-visible:ring-blue-800"
+      >
+        返回官网内容
+      </Link>
     </section>
   );
 }
