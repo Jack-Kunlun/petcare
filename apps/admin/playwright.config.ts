@@ -1,6 +1,7 @@
 import { defineConfig, devices } from "@playwright/test";
 
 const adminPort = Number(process.env.ADMIN_E2E_ADMIN_PORT || 8986);
+const websitePort = Number(process.env.ADMIN_E2E_WEBSITE_PORT || 8080);
 
 export default defineConfig({
   testDir: "./e2e",
@@ -14,6 +15,9 @@ export default defineConfig({
     trace: "on-first-retry",
     screenshot: "only-on-failure",
     video: "retain-on-failure",
+  },
+  metadata: {
+    websiteURL: `http://127.0.0.1:${websitePort}`,
   },
   projects: [
     {
