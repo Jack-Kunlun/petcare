@@ -265,8 +265,16 @@ test("受控关闭会清除真实子孙进程及其监听端口", async () => {
 
     await stopProcess(treeRoot);
 
-    assert.equal(await waitUntil(async () => !(await canConnect(tree.port))), true);
-    assert.equal(await waitUntil(() => !processExists(tree.descendantPid)), true);
+    assert.equal(
+      await waitUntil(async () => !(await canConnect(tree.port))),
+      true,
+      "descendant listener port should close",
+    );
+    assert.equal(
+      await waitUntil(() => !processExists(tree.descendantPid)),
+      true,
+      "descendant process should exit",
+    );
   } finally {
     await forceKillTestProcess(treeRoot.pid);
     await forceKillTestProcess(tree?.descendantPid);
@@ -335,8 +343,9 @@ test("应用部分启动失败时继续关闭全部进程并聚合启动与清�
   const startupError = new Error("Admin failed to become ready");
   const stopError = new Error("Admin failed to stop");
   const server = { name: "server" };
+  const website = { name: "website" };
   const admin = { name: "admin" };
-  const children = [server, admin];
+  const children = [server, website, admin];
   const stopped = [];
   let readinessChecks = 0;
 
@@ -345,13 +354,14 @@ test("应用部分启动失败时继续关闭全部进程并聚合启动与清�
       {
         ADMIN_E2E_SERVER_PORT: "3001",
         ADMIN_E2E_ADMIN_PORT: "8987",
+        ADMIN_E2E_WEBSITE_PORT: "8081",
       },
       undefined,
       {
         spawnProcess: () => children.shift(),
         waitForServer: async () => {
           readinessChecks += 1;
-          if (readinessChecks === 2) {
+          if (readinessChecks === 3) {
             throw startupError;
           }
         },
@@ -371,5 +381,82 @@ test("应用部分启动失败时继续关闭全部进程并聚合启动与清�
     },
   );
 
-  assert.deepEqual(stopped, ["admin", "server"]);
+  assert.deepEqual(stopped, ["admin", "website", "server"]);
+});
+
+test("Website startup failure closes Website and Server in reverse order", async () => {
+  const startupError = new Error("Website failed to become ready");
+  const server = { name: "server" };
+  const website = { name: "website" };
+  const admin = { name: "admin" };
+  const children = [server, website, admin];
+  const readinessLabels = [];
+  const readinessUrls = [];
+  const stopped = [];
+
+  await assert.rejects(
+    startApplicationServers(
+      {
+        ADMIN_E2E_SERVER_PORT: "3001",
+        ADMIN_E2E_ADMIN_PORT: "8987",
+        ADMIN_E2E_WEBSITE_PORT: "8081",
+      },
+      undefined,
+      {
+        spawnProcess: () => children.shift(),
+        waitForServer: async (label, url) => {
+          readinessLabels.push(label);
+          readinessUrls.push(url);
+          if (label === "Website") throw startupError;
+        },
+        stopChild: async (child) => stopped.push(child.name),
+      },
+    ),
+    startupError,
+  );
+
+  assert.deepEqual(readinessLabels, ["Server", "Website"]);
+  assert.deepEqual(readinessUrls, [
+    "http://127.0.0.1:3001/health",
+    "http://127.0.0.1:8081/healthz",
+  ]);
+  assert.deepEqual(stopped, ["website", "server"]);
+});
+
+test("Website participates in signal-safe isolated lifecycle cleanup", async () => {
+  const controller = new AbortController();
+  const interruption = new Error("interrupted after all application servers started");
+  const server = { name: "server" };
+  const website = { name: "website" };
+  const admin = { name: "admin" };
+  const children = [server, website, admin];
+  const stopped = [];
+
+  await assert.rejects(
+    runWithIsolatedAdminSchema({
+      schemaName: "admin_e2e_42_1000_aaaaaa",
+      baseEnv: {
+        ADMIN_E2E_SERVER_PORT: "3001",
+        ADMIN_E2E_ADMIN_PORT: "8987",
+        ADMIN_E2E_WEBSITE_PORT: "8081",
+      },
+      signal: controller.signal,
+      pushSchema: async () => {},
+      seedSchema: async () => {},
+      startServers: (environment, signal) =>
+        startApplicationServers(environment, signal, {
+          spawnProcess: () => children.shift(),
+          waitForServer: async () => {},
+          stopChild: async (child) => stopped.push(child.name),
+        }),
+      runPlaywright: async () => {
+        controller.abort(interruption);
+        throw interruption;
+      },
+      dropSchema: async () => {},
+    }),
+    interruption,
+  );
+
+  assert.deepEqual(stopped, ["admin", "website", "server"]);
 });
