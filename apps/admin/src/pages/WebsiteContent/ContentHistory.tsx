@@ -15,6 +15,7 @@ interface ContentHistoryProps {
   /** Retries the history request. */
   onRetry?(): void;
 }
+
 /** Renders immutable Website Content history links without presenting rollback semantics. */
 export function ContentHistory({
   contentKey,
