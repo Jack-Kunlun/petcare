@@ -1,8 +1,13 @@
-import { Injectable } from "@nestjs/common";
+import { Injectable, NotFoundException } from "@nestjs/common";
 import type {
   AdminClassroomArticleListResponse,
   AdminContentPostListResponse,
   AdminContentRewardListResponse,
+  PublicClassroomArticleAuthor,
+  PublicClassroomArticleDetail,
+  PublicClassroomArticleListItem,
+  PublicClassroomArticleListQuery,
+  PublicClassroomArticleListResponse,
 } from "@petcare/shared-types";
 import { PrismaService } from "../../prisma/prisma.service";
 import {
@@ -25,6 +30,26 @@ const petSelect = {
   breed: true,
 } as const;
 
+const publicArticleAuthorSelect = {
+  nickname: true,
+  username: true,
+  avatar: true,
+} as const;
+
+const publicArticleListSelect = {
+  id: true,
+  title: true,
+  summary: true,
+  coverUrl: true,
+  publishedAt: true,
+  author: { select: publicArticleAuthorSelect },
+} as const;
+
+const publicArticleDetailSelect = {
+  ...publicArticleListSelect,
+  content: true,
+} as const;
+
 function excerpt(value: string): string {
   const normalized = value.replace(/\s+/g, " ").trim();
 
@@ -39,6 +64,45 @@ function asAuthor(value: {
   avatar: string | null;
 }) {
   return value;
+}
+
+function asPublicAuthor(
+  value: { nickname: string; username: string | null; avatar: string | null } | null,
+): PublicClassroomArticleAuthor | null {
+  if (!value) {
+    return null;
+  }
+
+  const displayName = value.nickname.trim() || value.username?.trim();
+
+  return displayName ? { displayName, avatar: value.avatar } : null;
+}
+
+function asPublicArticleListItem(value: {
+  id: string;
+  title: string;
+  summary: string;
+  coverUrl: string | null;
+  publishedAt: Date | null;
+  author: { nickname: string; username: string | null; avatar: string | null } | null;
+}): PublicClassroomArticleListItem {
+  return {
+    slug: value.id,
+    title: value.title,
+    summary: value.summary,
+    coverUrl: value.coverUrl,
+    author: asPublicAuthor(value.author),
+    publishedAt: value.publishedAt?.toISOString() ?? null,
+  };
+}
+
+function escapePlainText(value: string): string {
+  return value
+    .replace(/&/g, "&amp;")
+    .replace(/</g, "&lt;")
+    .replace(/>/g, "&gt;")
+    .replaceAll(String.fromCharCode(34), "&quot;")
+    .replace(/'/g, "&#39;");
 }
 
 /** 提供后台内容管理的只读分页查询。 */
@@ -231,6 +295,47 @@ export class ContentService {
       total,
       page: query.page,
       pageSize: query.pageSize,
+    };
+  }
+
+  /** Returns only published classroom articles for unauthenticated website readers. */
+  async findPublishedArticlePage(
+    query: PublicClassroomArticleListQuery,
+  ): Promise<PublicClassroomArticleListResponse> {
+    const where = { status: "published" };
+    const [list, total] = await Promise.all([
+      this.prisma.classroomArticle.findMany({
+        where,
+        orderBy: { publishedAt: "desc" },
+        skip: (query.page - 1) * query.pageSize,
+        take: query.pageSize,
+        select: publicArticleListSelect,
+      }),
+      this.prisma.classroomArticle.count({ where }),
+    ]);
+
+    return {
+      list: list.map(asPublicArticleListItem),
+      total,
+      page: query.page,
+      pageSize: query.pageSize,
+    };
+  }
+
+  /** Returns one published classroom article by its stable ID route value. */
+  async findPublishedArticleBySlug(slug: string): Promise<PublicClassroomArticleDetail> {
+    const article = await this.prisma.classroomArticle.findFirst({
+      where: { id: slug, status: "published" },
+      select: publicArticleDetailSelect,
+    });
+
+    if (!article) {
+      throw new NotFoundException("Public classroom article was not found");
+    }
+
+    return {
+      ...asPublicArticleListItem(article),
+      body: escapePlainText(article.content),
     };
   }
 }
