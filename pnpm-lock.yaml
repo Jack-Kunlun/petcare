@@ -338,6 +338,9 @@ importers:
       pg:
         specifier: ^8.16.3
         version: 8.22.0
+      probe-image-size:
+        specifier: ^7.3.0
+        version: 7.3.0(supports-color@8.1.1)
       redis:
         specifier: ^6.1.0
         version: 6.1.0
@@ -27170,7 +27173,6 @@ snapshots:
       sax: 1.6.0
     transitivePeerDependencies:
       - supports-color
-    optional: true
 
   needle@3.5.0:
     dependencies:
@@ -27929,7 +27931,6 @@ snapshots:
       stream-parser: 0.3.1(supports-color@8.1.1)
     transitivePeerDependencies:
       - supports-color
-    optional: true
 
   process@0.11.10: {}
 
@@ -28607,7 +28608,6 @@ snapshots:
       debug: 2.6.9(supports-color@8.1.1)
     transitivePeerDependencies:
       - supports-color
-    optional: true
 
   streamsearch@1.1.0: {}
 

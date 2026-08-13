@@ -46,6 +46,14 @@ describe("ConfigService", () => {
     delete process.env.LOG_LEVEL;
     delete process.env.LOG_DIR;
     delete process.env.NODE_ENV;
+    delete process.env.TENCENT_COS_SECRET_ID;
+    delete process.env.TENCENT_COS_SECRET_KEY;
+    delete process.env.TENCENT_COS_BUCKET;
+    delete process.env.TENCENT_COS_REGION;
+    delete process.env.TENCENT_COS_PUBLIC_BASE_URL;
+    delete process.env.WEBSITE_PUBLIC_URL;
+    delete process.env.WEBSITE_PREVIEW_TTL_SECONDS;
+    delete process.env.WEBSITE_CONTENT_CACHE_TTL_SECONDS;
   });
 
   afterAll(() => {
@@ -65,6 +73,14 @@ describe("ConfigService", () => {
     expect(config.captchaTtlSeconds).toBe(300);
     expect(config.captchaMaxAttempts).toBe(5);
     expect(config.defaultAdminUsername).toBe("admin");
+  });
+
+  it("returns documented website runtime defaults", () => {
+    const config = new ConfigService();
+
+    expect(config.websitePublicUrl).toBe("http://localhost:8080");
+    expect(config.websitePreviewTtlSeconds).toBe(600);
+    expect(config.websiteContentCacheTtlSeconds).toBe(86400);
   });
 
   it("exposes the configured database schema to runtime adapters", () => {
@@ -145,7 +161,7 @@ describe("ConfigService", () => {
         ...originalEnv,
         ...validStartupEnv,
         WECHAT_APP_ID: "wx3bdad4ab652f0d1d",
-        TENCENT_COS_BUCKET: "petcare-avatar-1250000000",
+        TENCENT_COS_BUCKET: "petcare-1250000000",
       };
 
       expect(() => new ConfigService().validateForStartup()).toThrow(
@@ -153,24 +169,24 @@ describe("ConfigService", () => {
       );
     });
 
-    it("accepts valid Tencent COS configuration and exposes typed getters", () => {
+    it("accepts configured Tencent COS and exposes typed getters", () => {
       process.env = {
         ...originalEnv,
         ...validStartupEnv,
         TENCENT_COS_SECRET_ID: "test-secret-id",
         TENCENT_COS_SECRET_KEY: "test-secret-key",
-        TENCENT_COS_BUCKET: "petcare-avatar-1250000000",
+        TENCENT_COS_BUCKET: "petcare-media-1250000000",
         TENCENT_COS_REGION: "ap-guangzhou",
-        TENCENT_COS_PUBLIC_BASE_URL: "https://cdn.example.com/public-assets",
+        TENCENT_COS_PUBLIC_BASE_URL: "https://cdn.example.com/petcare",
       };
       const config = new ConfigService();
 
       expect(() => config.validateForStartup()).not.toThrow();
       expect(config.tencentCosSecretId).toBe("test-secret-id");
       expect(config.tencentCosSecretKey).toBe("test-secret-key");
-      expect(config.tencentCosBucket).toBe("petcare-avatar-1250000000");
+      expect(config.tencentCosBucket).toBe("petcare-media-1250000000");
       expect(config.tencentCosRegion).toBe("ap-guangzhou");
-      expect(config.tencentCosPublicBaseUrl).toBe("https://cdn.example.com/public-assets");
+      expect(config.tencentCosPublicBaseUrl).toBe("https://cdn.example.com/petcare");
       expect(config.tencentCosEnabled).toBe(true);
     });
 
@@ -179,7 +195,7 @@ describe("ConfigService", () => {
       ["region", { TENCENT_COS_REGION: "guangzhou" }, "TENCENT_COS_REGION"],
       [
         "public base URL",
-        { TENCENT_COS_PUBLIC_BASE_URL: "ftp://cdn.example.com/public-assets" },
+        { TENCENT_COS_PUBLIC_BASE_URL: "ftp://cdn.example.com/petcare" },
         "TENCENT_COS_PUBLIC_BASE_URL",
       ],
     ])("rejects a malformed Tencent COS %s", (_name, overrides, errorName) => {
@@ -188,12 +204,38 @@ describe("ConfigService", () => {
         ...validStartupEnv,
         TENCENT_COS_SECRET_ID: "test-secret-id",
         TENCENT_COS_SECRET_KEY: "test-secret-key",
-        TENCENT_COS_BUCKET: "petcare-avatar-1250000000",
+        TENCENT_COS_BUCKET: "petcare-media-1250000000",
         TENCENT_COS_REGION: "ap-guangzhou",
         ...overrides,
       };
 
       expect(() => new ConfigService().validateForStartup()).toThrow(errorName);
+    });
+
+    it("rejects an unconfigured Tencent COS public base URL", () => {
+      process.env = {
+        ...originalEnv,
+        ...validStartupEnv,
+        TENCENT_COS_PUBLIC_BASE_URL: "https://cdn.example.com/petcare",
+      };
+
+      expect(() => new ConfigService().validateForStartup()).toThrow(
+        "TENCENT_COS_PUBLIC_BASE_URL requires Tencent COS configuration",
+      );
+    });
+
+    it("validates website runtime URL and positive lifetimes", () => {
+      process.env = {
+        ...originalEnv,
+        ...validStartupEnv,
+        WEBSITE_PUBLIC_URL: "ftp://website.example.com",
+        WEBSITE_PREVIEW_TTL_SECONDS: "0",
+        WEBSITE_CONTENT_CACHE_TTL_SECONDS: "tomorrow",
+      };
+
+      expect(() => new ConfigService().validateForStartup()).toThrow(
+        /WEBSITE_PUBLIC_URL.*WEBSITE_PREVIEW_TTL_SECONDS.*WEBSITE_CONTENT_CACHE_TTL_SECONDS/s,
+      );
     });
 
     it("rejects malformed ports, token durations, and allowed origins", () => {
