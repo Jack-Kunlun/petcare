@@ -17,6 +17,7 @@ import { ProviderCertificationModule } from "./modules/provider-certification/pr
 import { RbacModule } from "./modules/rbac/rbac.module";
 import { SystemSettingsModule } from "./modules/system-settings/system-settings.module";
 import { UserModule } from "./modules/user/user.module";
+import { WebsiteContentModule } from "./modules/website-content/website-content.module";
 import { PrismaModule } from "./prisma/prisma.module";
 
 @Module({
@@ -35,6 +36,7 @@ import { PrismaModule } from "./prisma/prisma.module";
     SystemSettingsModule,
     RbacModule,
     AdminAccountModule,
+    WebsiteContentModule,
   ],
   providers: [
     { provide: APP_INTERCEPTOR, useClass: ApiResponseInterceptor },
