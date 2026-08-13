@@ -9,6 +9,22 @@ const publishedSnapshot = {
   sections: [],
 };
 
+const articleList = {
+  list: [
+    {
+      slug: "pet-first-aid",
+      title: "Pet first aid",
+      summary: "What to do before help arrives.",
+      coverUrl: null,
+      author: { displayName: "PetCare team", avatar: null },
+      publishedAt: "2026-08-13T00:00:00.000Z",
+    },
+  ],
+  total: 1,
+  page: 2,
+  pageSize: 12,
+};
+
 function successResponse(data: unknown): Response {
   return new Response(
     JSON.stringify({
@@ -82,6 +98,29 @@ describe("createWebsiteContentApi", () => {
       expect.objectContaining({
         headers: { "X-Website-Preview-Token": "preview-capability" },
       }),
+    );
+  });
+
+  it("reads published article pages through the same response envelope", async () => {
+    const fetcher = vi.fn().mockResolvedValue(successResponse(articleList));
+    const api = createWebsiteContentApi({ baseUrl: "http://server:3000", fetcher });
+
+    await expect(api.getArticles({ page: 2, pageSize: 12 })).resolves.toEqual(articleList);
+    expect(fetcher).toHaveBeenCalledWith(
+      "http://server:3000/content/articles?page=2&pageSize=12",
+      expect.objectContaining({ signal: expect.any(AbortSignal) }),
+    );
+  });
+
+  it("reads one published article by its stable slug without treating it as HTML", async () => {
+    const article = { ...articleList.list[0], body: "<p>Read this as text.</p>" };
+    const fetcher = vi.fn().mockResolvedValue(successResponse(article));
+    const api = createWebsiteContentApi({ baseUrl: "http://server:3000", fetcher });
+
+    await expect(api.getArticle("pet-first-aid")).resolves.toEqual(article);
+    expect(fetcher).toHaveBeenCalledWith(
+      "http://server:3000/content/articles/pet-first-aid",
+      expect.objectContaining({ signal: expect.any(AbortSignal) }),
     );
   });
 

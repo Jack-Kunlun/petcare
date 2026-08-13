@@ -1,0 +1,65 @@
+---
+import type { WebsitePublicContent, WebsitePublicContentSection } from "@petcare/shared-types";
+import SectionRenderer from "../components/sections/SectionRenderer.astro";
+import { isRenderablePublicSection } from "./layout-section";
+import "../styles/global.css";
+
+interface Props {
+  /** Published shell snapshot, or the code-owned fallback used when it is temporarily unavailable. */
+  shell: Pick<WebsitePublicContent, "sections"> | { sections: unknown[] };
+  /** Unique document title for the public article route. */
+  title: string;
+  /** Unique document description for the public article route. */
+  description: string;
+  /** Canonical public article URL. */
+  canonical: string;
+  /** Optional public image URL used by social crawlers. */
+  image?: string | null;
+  /** Keeps unavailable or missing article responses out of crawler indexes. */
+  noindex?: boolean;
+}
+
+const { shell, title, description, canonical, image = null, noindex = false } = Astro.props;
+const shellSections: WebsitePublicContentSection[] = (shell.sections as unknown[]).filter(
+  isRenderablePublicSection,
+);
+const header = shellSections.find((section) => section.sectionType === "site_header");
+const footer = shellSections.find((section) => section.sectionType === "site_footer");
+---
+
+<!doctype html>
+<html lang="zh-CN">
+  <head>
+    <meta charset="utf-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1" />
+    <meta name="description" content={description} />
+    {noindex ? <meta name="robots" content="noindex" /> : null}
+    <link rel="canonical" href={canonical} />
+    <link rel="icon" href="/brand/petcare-favicon.svg" type="image/svg+xml" />
+    <meta property="og:title" content={title} />
+    <meta property="og:description" content={description} />
+    <meta property="og:url" content={canonical} />
+    {image ? <meta property="og:image" content={image} /> : null}
+    <title>{title}</title>
+  </head>
+  <body>
+    <a class="skip-link" href="#main-content">Skip to main content</a>
+    {
+      header ? (
+        <SectionRenderer section={header} />
+      ) : (
+        <header class="site-header">
+          <a class="site-header__brand" href="/">PetCare</a>
+        </header>
+      )
+    }
+    <main id="main-content"><slot /></main>
+    {
+      footer ? (
+        <SectionRenderer section={footer} />
+      ) : (
+        <footer class="site-footer"><p>PetCare</p></footer>
+      )
+    }
+  </body>
+</html>
