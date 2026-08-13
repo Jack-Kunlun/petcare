@@ -16,6 +16,14 @@ test("a Miniapp source change selects only Miniapp", () => {
   });
 });
 
+test("a Website source change selects only Website and its style scope", () => {
+  assert.deepEqual(classifyStagedPaths(["apps/website/src/pages/index.astro"]), {
+    fullTypecheck: false,
+    typecheckSelectors: ["@petcare/website"],
+    styleScopes: ["website"],
+  });
+});
+
 test("application selectors and style scopes are deduplicated and sorted", () => {
   assert.deepEqual(
     classifyStagedPaths([
@@ -68,6 +76,7 @@ test("root and shared lint configuration changes require all workspace typecheck
     "@petcare/admin",
     "@petcare/miniapp",
     "@petcare/server",
+    "@petcare/website",
     "@petcare/api-client",
     "@petcare/shared-types",
     "@petcare/shared-utils",
@@ -115,6 +124,8 @@ test("full scope plans all workspace typechecks with a single pnpm invocation", 
       "--filter",
       "@petcare/server",
       "--filter",
+      "@petcare/website",
+      "--filter",
       "@petcare/api-client",
       "--filter",
       "@petcare/shared-types",
@@ -151,6 +162,18 @@ test("affected scope plans selected typechecks and ordered style checks", () => 
       scope: "admin",
       project: "@petcare/admin",
       args: ["--filter", "@petcare/admin", "run", "lint:styles"],
+    },
+  ]);
+});
+
+test("Website changes plan the Website style gate", () => {
+  const plan = createCommitCheckPlan(classifyStagedPaths(["apps/website/src/styles/global.css"]));
+
+  assert.deepEqual(plan.styles, [
+    {
+      scope: "website",
+      project: "@petcare/website",
+      args: ["--filter", "@petcare/website", "run", "lint:styles"],
     },
   ]);
 });

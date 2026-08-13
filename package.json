@@ -12,7 +12,7 @@
     "build:miniapp:app-android": "pnpm --filter @petcare/miniapp build:app-android",
     "build:miniapp:app-ios": "pnpm --filter @petcare/miniapp build:app-ios",
     "build:server": "pnpm --filter @petcare/server build",
-    "dev": "turbo run dev --filter=@petcare/admin --filter=@petcare/server --filter=@petcare/miniapp",
+    "dev": "turbo run dev --filter=@petcare/admin --filter=@petcare/server --filter=@petcare/miniapp --filter=@petcare/website",
     "dev:admin": "pnpm --filter @petcare/admin dev",
     "dev:miniapp:h5": "pnpm --filter @petcare/miniapp dev:h5",
     "dev:miniapp:mp-weixin": "pnpm --filter @petcare/miniapp dev:mp-weixin",
@@ -21,7 +21,7 @@
     "dev:server": "pnpm --filter @petcare/server start:dev",
     "typecheck": "turbo run typecheck",
     "lint": "pnpm lint:styles && pnpm lint:scripts && turbo run lint",
-    "lint:styles": "node scripts/style-policy.mjs admin",
+    "lint:styles": "node scripts/style-policy.mjs admin && node scripts/style-policy.mjs website",
     "lint:scripts": "node node_modules/eslint/bin/eslint.js scripts",
     "test:tooling": "node --test scripts/repository-policy.test.mjs scripts/dependency-alignment.test.mjs scripts/clean.test.mjs scripts/workspace-contract.test.mjs scripts/compose-policy.test.mjs scripts/ci-policy.test.mjs scripts/style-policy.test.mjs scripts/style-output-policy.test.mjs scripts/admin-e2e-runner.test.mjs scripts/miniapp-minimal-shell.test.mjs",
     "test": "pnpm test:tooling && turbo run test",
@@ -82,6 +82,10 @@
     "apps/server/src/**/*.ts": [
       "prettier --write",
       "pnpm --filter @petcare/server exec -- eslint --fix"
+    ],
+    "apps/website/**/*.{astro,ts,css,json}": [
+      "prettier --write",
+      "pnpm --filter @petcare/website exec -- eslint --fix"
     ],
     "packages/shared-types/**/*.ts": [
       "prettier --write",
