@@ -65,6 +65,22 @@ export function toWebsitePublicContent(version: WebsiteContentVersion): WebsiteP
   };
 }
 
+/** Converts an authorized preview snapshot without requiring published lifecycle metadata. */
+export function toWebsitePreviewContent(version: WebsiteContentVersion): Omit<
+  WebsitePublicContent,
+  "businessVersion" | "publishedAt"
+> & { revision: number } {
+  return {
+    contentKey: version.contentKey,
+    revision: version.revision,
+    seo: resolvePublicImages(version.seo) as unknown as WebsitePublicContent["seo"],
+    sections: version.sections
+      .filter((section) => section.isEnabled)
+      .sort((left, right) => left.sortOrder - right.sortOrder)
+      .map((section) => resolvePublicImages(section) as unknown as WebsitePublicContentSection),
+  };
+}
+
 /** Reads only current published Website Content through immutable version cache entries. */
 @Injectable()
 export class WebsiteContentPublicService {
