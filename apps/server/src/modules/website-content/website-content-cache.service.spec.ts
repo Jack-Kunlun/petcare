@@ -18,6 +18,29 @@ const publicContent: WebsitePublicContent = {
 };
 
 describe("WebsiteContentCacheService", () => {
+  it("configures the default Redis client with shared credentials and a bounded retry policy", async () => {
+    const connect = jest.fn(async () => {
+      throw new Error("redis unavailable");
+    });
+    const clientFactory = jest.fn(() => ({ isOpen: false, connect, get: jest.fn(), setEx: jest.fn() }));
+    const service = new WebsiteContentCacheService({
+      clientFactory,
+      redis: { host: "redis.internal", port: 6380, password: "shared-secret" },
+    });
+
+    await expect(service.get("published-home-1")).resolves.toBeNull();
+    expect(clientFactory).toHaveBeenCalledWith({
+      socket: {
+        host: "redis.internal",
+        port: 6380,
+        connectTimeout: 1_000,
+        reconnectStrategy: false,
+      },
+      password: "shared-secret",
+      disableOfflineQueue: true,
+    });
+  });
+
   it("lazily reads an immutable published-version cache entry", async () => {
     const client = {
       isOpen: false,

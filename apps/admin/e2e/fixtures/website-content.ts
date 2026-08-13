@@ -35,7 +35,7 @@ export async function loginWebsiteOperator(
 
 /** Opens the fixed Home template editor after the overview navigation is available. */
 export async function openHomeEditor(page: Page): Promise<void> {
-  await page.goto("/website-content");
+  await page.locator('a[href="/website-content"]').click();
   await expect(page.getByRole("heading", { name: "官网内容" })).toBeVisible();
   const homeCard = page.getByRole("listitem").filter({
     has: page.getByRole("heading", { name: websiteContentFixtures.home.contentKey, exact: true }),
