@@ -5,6 +5,7 @@ import {
   type WebsiteContentHistoryQuery,
   type WebsiteContentHistoryResponse,
   type WebsiteContentKey,
+  type PublishWebsiteContentResponse,
   type WebsiteContentSection,
   type WebsiteContentVersion,
   type WebsiteSeoContent,
@@ -34,6 +35,16 @@ export interface RestoreWebsiteContentDraftCommand {
   contentKey: WebsiteContentKey;
   versionId: string;
   revision: number;
+  changeSummary: string;
+  operatorId: string;
+  requestId: string;
+}
+
+/** Exact application command for explicitly publishing one content unit. */
+export interface PublishWebsiteContentCommand {
+  contentKey: WebsiteContentKey;
+  revision: number;
+  idempotencyKey: string;
   changeSummary: string;
   operatorId: string;
   requestId: string;
@@ -189,6 +200,190 @@ export class WebsiteContentRepository {
 
       throw error;
     }
+  }
+
+  /** Atomically publishes the selected draft and clones the next editable draft. */
+  async publishDraft(
+    command: PublishWebsiteContentCommand,
+    assetIds: readonly string[],
+  ): Promise<PublishWebsiteContentResponse> {
+    const replay = await this.findPublishReplay(command);
+
+    if (replay) {
+      return replay;
+    }
+
+    try {
+      return await this.prisma.$transaction(async (tx) => {
+        const transactionReplay = await this.findPublishReplay(command, tx);
+
+        if (transactionReplay) {
+          return transactionReplay;
+        }
+
+        const content = await tx.websiteContent.findUnique({
+          where: { contentKey: command.contentKey },
+          include: {
+            currentDraftVersion: {
+              include: { sections: { orderBy: { sortOrder: "asc" } } },
+            },
+            publishedVersion: { select: { id: true, businessVersion: true } },
+          },
+        });
+
+        if (!content) {
+          throw websiteContentNotFound(command.contentKey);
+        }
+
+        const currentDraft = content.currentDraftVersion;
+
+        if (
+          !currentDraft ||
+          currentDraft.revision !== command.revision ||
+          currentDraft.status !== WEBSITE_CONTENT_STATUS.DRAFT
+        ) {
+          throw websiteContentRevisionConflict();
+        }
+
+        await this.assertActiveMedia(tx, assetIds);
+
+        const highestBusinessVersion = await tx.websiteContentVersion.aggregate({
+          where: { websiteContentId: content.id },
+          _max: { businessVersion: true },
+        });
+        const businessVersion = (highestBusinessVersion._max.businessVersion ?? 0) + 1;
+
+        if (content.publishedVersionId) {
+          await tx.websiteContentVersion.updateMany({
+            where: { id: content.publishedVersionId, status: WEBSITE_CONTENT_STATUS.PUBLISHED },
+            data: { status: WEBSITE_CONTENT_STATUS.SUPERSEDED },
+          });
+        }
+
+        const published = await tx.websiteContentVersion.update({
+          where: { id: currentDraft.id },
+          data: {
+            status: WEBSITE_CONTENT_STATUS.PUBLISHED,
+            businessVersion,
+            idempotencyKey: command.idempotencyKey,
+            changeSummary: command.changeSummary,
+            publishedById: command.operatorId,
+            publishedAt: new Date(),
+          },
+          include: versionInclude,
+        });
+
+        const draft = await tx.websiteContentVersion.create({
+          data: {
+            websiteContentId: content.id,
+            status: WEBSITE_CONTENT_STATUS.DRAFT,
+            revision: published.revision + 1,
+            businessVersion: null,
+            seo: published.seo,
+            sourceVersionId: published.id,
+            idempotencyKey: null,
+            changeSummary: command.changeSummary,
+            createdById: command.operatorId,
+            sections: {
+              create: currentDraft.sections.map((section) => ({
+                sectionKey: section.sectionKey,
+                sectionType: section.sectionType,
+                sortOrder: section.sortOrder,
+                isEnabled: section.isEnabled,
+                schemaVersion: section.schemaVersion,
+                content: section.content,
+                settings: section.settings,
+              })),
+            },
+          },
+          include: versionInclude,
+        });
+
+        const advanced = await tx.websiteContent.updateMany({
+          where: {
+            id: content.id,
+            currentDraftVersionId: currentDraft.id,
+            publishedVersionId: content.publishedVersionId,
+          },
+          data: { currentDraftVersionId: draft.id, publishedVersionId: published.id },
+        });
+
+        if (advanced.count !== 1) {
+          throw websiteContentRevisionConflict();
+        }
+
+        await tx.websiteContentAuditLog.create({
+          data: {
+            websiteContentId: content.id,
+            contentVersionId: published.id,
+            operatorId: command.operatorId,
+            action: "publish",
+            targetType: "website_content_version",
+            targetId: published.id,
+            revision: published.revision,
+            businessVersion,
+            requestId: command.requestId,
+            result: {
+              status: "succeeded",
+              idempotencyKey: command.idempotencyKey,
+              draftVersionId: draft.id,
+            },
+          },
+        });
+
+        return { published: toVersion(published), draft: toVersion(draft) };
+      });
+    } catch (error) {
+      if (isUniqueConflict(error)) {
+        const concurrentReplay = await this.findPublishReplay(command);
+
+        if (concurrentReplay) {
+          return concurrentReplay;
+        }
+
+        throw websiteContentRevisionConflict();
+      }
+
+      throw error;
+    }
+  }
+
+  /** Reads only the immutable public pointer for one content unit. */
+  async getPublishedPointer(contentKey: WebsiteContentKey): Promise<{
+    contentId: string;
+    publishedVersionId: string | null;
+  }> {
+    const content = await this.prisma.websiteContent.findUnique({
+      where: { contentKey },
+      select: { id: true, publishedVersionId: true },
+    });
+
+    if (!content) {
+      throw websiteContentNotFound(contentKey);
+    }
+
+    return { contentId: content.id, publishedVersionId: content.publishedVersionId };
+  }
+
+  /** Reads one published version by the already selected immutable pointer. */
+  async getPublishedVersion(
+    contentKey: WebsiteContentKey,
+    versionId: string,
+  ): Promise<WebsiteContentVersion> {
+    const record = await this.prisma.websiteContentVersion.findFirst({
+      where: {
+        id: versionId,
+        websiteContent: { contentKey },
+        status: WEBSITE_CONTENT_STATUS.PUBLISHED,
+      },
+      include: versionInclude,
+    });
+
+    if (!record) {
+      throw websiteContentVersionNotFound(versionId);
+    }
+
+    return toVersion(record);
   }
 
   /** Lists only versions that have entered the public business-version sequence. */
@@ -385,6 +580,44 @@ export class WebsiteContentRepository {
     if (active !== uniqueIds.length) {
       throw websiteContentInvalidMedia();
     }
+  }
+
+  private async findPublishReplay(
+    command: PublishWebsiteContentCommand,
+    client: Prisma.TransactionClient | PrismaService = this.prisma,
+  ): Promise<PublishWebsiteContentResponse | null> {
+    const published = await client.websiteContentVersion.findUnique({
+      where: { idempotencyKey: command.idempotencyKey },
+      include: versionInclude,
+    });
+
+    if (!published) {
+      return null;
+    }
+
+    if (
+      published.websiteContent.contentKey !== command.contentKey ||
+      published.revision !== command.revision ||
+      published.changeSummary !== command.changeSummary
+    ) {
+      throw websiteContentRevisionConflict();
+    }
+
+    const draft = await client.websiteContentVersion.findUnique({
+      where: {
+        websiteContentId_revision: {
+          websiteContentId: published.websiteContentId,
+          revision: published.revision + 1,
+        },
+      },
+      include: versionInclude,
+    });
+
+    if (!draft) {
+      return null;
+    }
+
+    return { published: toVersion(published), draft: toVersion(draft) };
   }
 }
 
