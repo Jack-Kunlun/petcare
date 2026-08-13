@@ -70,6 +70,7 @@ apps/server/src/generated/
 # Temporary files
 tmp/
 *.tmp
+.codex-tmp/
 
 # Local Git worktrees
 .worktrees/
