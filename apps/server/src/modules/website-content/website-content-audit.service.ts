@@ -11,6 +11,7 @@ const AUDIT_ACTIONS = new Set([
   "revoke_preview",
   "upload_media",
   "archive_media",
+  "permission_denied",
 ]);
 
 const RESULT_KEYS = new Set([
@@ -20,6 +21,8 @@ const RESULT_KEYS = new Set([
   "draftVersionId",
   "revokedCount",
   "idempotencyKey",
+  "permissionCode",
+  "occurredAt",
 ]);
 
 type AuditClient = Pick<Prisma.TransactionClient, "websiteContentAuditLog">;
@@ -38,7 +41,8 @@ export interface WebsiteContentAuditCommand {
     | "read_preview"
     | "revoke_preview"
     | "upload_media"
-    | "archive_media";
+    | "archive_media"
+    | "permission_denied";
   targetType: string;
   targetId?: string | null;
   revision?: number | null;

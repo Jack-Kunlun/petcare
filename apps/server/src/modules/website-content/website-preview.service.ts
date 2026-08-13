@@ -1,5 +1,5 @@
 import { createHash, randomBytes } from "node:crypto";
-import { Injectable } from "@nestjs/common";
+import { Inject, Injectable } from "@nestjs/common";
 import {
   type CreateWebsitePreviewResponse,
   type WebsiteContentKey,
@@ -19,6 +19,9 @@ export interface WebsitePreviewConfig {
   websitePublicUrl: string;
   websitePreviewTtlSeconds: number;
 }
+
+/** Injection token for central Website Content preview runtime configuration. */
+export const WEBSITE_PREVIEW_CONFIG = Symbol("WEBSITE_PREVIEW_CONFIG");
 
 /** Command for minting a preview capability for an exact saved revision. */
 export interface CreateWebsitePreviewCommand {
@@ -40,7 +43,7 @@ function hashToken(token: string): string {
 export class WebsitePreviewService {
   constructor(
     private readonly prisma: PrismaService,
-    private readonly config: WebsitePreviewConfig,
+    @Inject(WEBSITE_PREVIEW_CONFIG) private readonly config: WebsitePreviewConfig,
     private readonly audit: WebsiteContentAuditService,
     private readonly repository: WebsiteContentRepository,
     private readonly tokenFactory: TokenFactory = () => randomBytes(32).toString("base64url"),

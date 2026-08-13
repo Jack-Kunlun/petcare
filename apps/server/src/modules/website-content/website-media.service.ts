@@ -1,4 +1,4 @@
-import { Injectable } from "@nestjs/common";
+import { Inject, Injectable } from "@nestjs/common";
 import {
   WEBSITE_MEDIA_STATUS,
   type WebsiteContentVersion,
@@ -10,6 +10,9 @@ import { PrismaService } from "../../prisma/prisma.service";
 import type { ValidatedWebsiteMediaFile } from "./media/website-media-file";
 import type { WebsiteMediaStorage } from "./media/website-media-storage.types";
 import { websiteContentInvalidMedia } from "./website-content.errors";
+
+/** Injection token for the provider-specific Website Content media object store. */
+export const WEBSITE_MEDIA_STORAGE = Symbol("WEBSITE_MEDIA_STORAGE");
 
 /** Raw multipart file fields accepted after controller-level presence validation. */
 export interface WebsiteMediaUploadFile {
@@ -24,7 +27,7 @@ export interface WebsiteMediaUploadFile {
 export class WebsiteMediaService {
   constructor(
     private readonly prisma: PrismaService,
-    private readonly storage: WebsiteMediaStorage,
+    @Inject(WEBSITE_MEDIA_STORAGE) private readonly storage: WebsiteMediaStorage,
   ) {}
 
   /** Registers a validated object and compensates COS if database persistence fails. */
@@ -98,17 +101,24 @@ export class WebsiteMediaService {
   }
 
   /** Archives only objects not referenced by current draft or published snapshots. */
-  async archive(assetId: string): Promise<void> {
+  async archive(
+    assetId: string,
+    _operatorId?: string,
+    _requestId?: string,
+  ): Promise<WebsiteMediaAsset> {
     const references = await this.findReferences(assetId);
 
     if (references.length > 0) {
       throw websiteContentInvalidMedia("仍被当前草稿或已发布内容引用的素材不能归档");
     }
 
-    await this.prisma.websiteMediaAsset.update({
+    const record = await this.prisma.websiteMediaAsset.update({
       where: { id: assetId },
       data: { status: WEBSITE_MEDIA_STATUS.ARCHIVED, archivedAt: new Date() },
+      include: { createdBy: { select: { id: true, nickname: true, username: true } } },
     });
+
+    return this.toAsset(record);
   }
 
   /** Resolves a provider URL from a managed asset id. */

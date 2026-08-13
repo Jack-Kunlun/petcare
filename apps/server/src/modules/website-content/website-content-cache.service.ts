@@ -1,6 +1,7 @@
 import { Injectable, OnModuleDestroy } from "@nestjs/common";
 import type { WebsitePublicContent } from "@petcare/shared-types";
 import { createClient } from "redis";
+import { ConfigService } from "../../config/config.service";
 
 /** Fixed TTL for immutable published Website Content snapshots. */
 export const WEBSITE_CONTENT_CACHE_TTL_SECONDS = 24 * 60 * 60;
@@ -53,9 +54,13 @@ export class WebsiteContentCacheService implements OnModuleDestroy {
   private client: WebsiteContentCacheClient | null = null;
   private connecting: Promise<WebsiteContentCacheClient | null> | null = null;
 
-  constructor(options: WebsiteContentCacheServiceOptions = {}) {
-    this.clientFactory = options.clientFactory ?? (() => createClient());
-    this.ttlSeconds = options.ttlSeconds ?? WEBSITE_CONTENT_CACHE_TTL_SECONDS;
+  constructor(options: WebsiteContentCacheServiceOptions | ConfigService = {}) {
+    const serviceOptions = options instanceof ConfigService
+      ? { ttlSeconds: options.websiteContentCacheTtlSeconds }
+      : options;
+
+    this.clientFactory = serviceOptions.clientFactory ?? (() => createClient());
+    this.ttlSeconds = serviceOptions.ttlSeconds ?? WEBSITE_CONTENT_CACHE_TTL_SECONDS;
   }
 
   /** Reads a previously cached immutable published version, or returns a cache miss. */
