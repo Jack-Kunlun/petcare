@@ -143,8 +143,19 @@ API 和独立 Worker 必须使用相同的 `QUEUE_PREFIX`；生产、预发和�
 | 变量名                              | 必填 | 默认值                  | 说明                                                |
 | ----------------------------------- | ---- | ----------------------- | --------------------------------------------------- |
 | `WEBSITE_PUBLIC_URL`                | 否   | `http://localhost:8080` | 官网公开地址，必须为绝对 HTTP(S) URL                |
+| `WEBSITE_CONTENT_API_BASE_URL`      | 否   | `http://server:3000`    | 仅 Astro SSR 使用的 Nest 公共内容 API 内网地址      |
 | `WEBSITE_PREVIEW_TTL_SECONDS`       | 否   | `600`                   | 草稿预览令牌有效期（秒），必须为正整数              |
 | `WEBSITE_CONTENT_CACHE_TTL_SECONDS` | 否   | `86400`                 | 已发布官网内容 Redis 缓存有效期（秒），必须为正整数 |
+| `WEBSITE_LAST_SUCCESS_TTL_SECONDS`  | 否   | `300`                   | Astro SSR 上次成功发布快照的故障回退窗口（秒）      |
+| `WEBSITE_PORT`                      | 否   | `8080`                  | 官网独立 Nginx 网关映射到宿主机的端口               |
+
+`WEBSITE_CONTENT_API_BASE_URL` 仅注入 `website` 容器，不得使用 `PUBLIC_` 前缀，也不得出现在浏览器
+JavaScript、构建参数或 CDN 配置中。Astro 通过它在 Docker 内网调用 Nest 的已发布内容和课堂文章接口；草稿预览
+同样由 Astro 服务端在内网读取，预览令牌不会经过公网 Nginx 网关。
+
+`WEBSITE_LAST_SUCCESS_TTL_SECONDS` 是官网 SSR 在 Nest 或 Redis 短暂不可用时可展示上次成功发布快照的最大时长；
+超过该窗口必须返回故障页面，不能把旧内容伪装成最新发布。`WEBSITE_PORT` 只影响 `website-gateway` 的宿主机
+映射，不改变 Astro 容器内部固定的 `4321` 端口。
 
 ## 使用方法
 
