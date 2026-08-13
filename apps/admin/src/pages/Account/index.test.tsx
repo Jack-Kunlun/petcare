@@ -39,7 +39,9 @@ function LocationProbe() {
 
 function renderAccount(initialEntry = "/account") {
   return render(
-    <QueryClientProvider client={new QueryClient({ defaultOptions: { queries: { retry: false } } })}>
+    <QueryClientProvider
+      client={new QueryClient({ defaultOptions: { queries: { retry: false } } })}
+    >
       <MemoryRouter initialEntries={[initialEntry]}>
         <Routes>
           <Route path="/account" element={<Account />} />
@@ -93,8 +95,11 @@ describe("Account", () => {
     expect(screen.getByText(/2026/)).toBeInTheDocument();
     expect(screen.getByRole("button", { name: "保存昵称" })).toBeDisabled();
 
-    await user.clear(screen.getByLabelText("昵称"));
-    await user.type(screen.getByLabelText("昵称"), "  新昵称  ");
+    const nicknameInput = screen.getByLabelText("昵称");
+
+    await user.clear(nicknameInput);
+    await waitFor(() => expect(nicknameInput).toHaveValue(""));
+    await user.type(nicknameInput, "  新昵称  ");
     await user.click(screen.getByRole("button", { name: "保存昵称" }));
 
     expect(api.updateAdminAccountProfile).toHaveBeenCalledWith({ nickname: "新昵称" });
@@ -112,7 +117,7 @@ describe("Account", () => {
 
     await screen.findByDisplayValue("系统管理员");
 
-    const input = container.querySelector("input[type=\"file\"]") as HTMLInputElement;
+    const input = container.querySelector("input[type=file]") as HTMLInputElement;
 
     expect(input).toHaveAttribute("accept", "image/jpeg,image/png,image/webp");
 
@@ -180,7 +185,9 @@ describe("Account", () => {
 
     const currentPassword = await screen.findByLabelText("当前密码");
 
-    expect(scrollIntoView).toHaveBeenCalled();
-    expect(currentPassword).toHaveFocus();
+    await waitFor(() => {
+      expect(scrollIntoView).toHaveBeenCalled();
+      expect(currentPassword).toHaveFocus();
+    });
   });
 });
