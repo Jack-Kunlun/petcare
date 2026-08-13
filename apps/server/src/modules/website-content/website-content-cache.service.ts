@@ -17,8 +17,26 @@ export interface WebsiteContentCacheClient {
 
 /** Construction options kept local until the typed Website cache configuration lands. */
 export interface WebsiteContentCacheServiceOptions {
-  clientFactory?: () => WebsiteContentCacheClient;
+  clientFactory?: (options?: WebsiteContentRedisOptions) => WebsiteContentCacheClient;
   ttlSeconds?: number;
+  redis?: WebsiteContentRedisConnection;
+}
+
+interface WebsiteContentRedisConnection {
+  host: string;
+  port: number;
+  password?: string;
+}
+
+interface WebsiteContentRedisOptions {
+  socket: {
+    host: string;
+    port: number;
+    connectTimeout: number;
+    reconnectStrategy: false;
+  };
+  password?: string;
+  disableOfflineQueue: true;
 }
 
 /** Returns the immutable Redis key for one published Website Content version. */
@@ -56,10 +74,31 @@ export class WebsiteContentCacheService implements OnModuleDestroy {
 
   constructor(options: WebsiteContentCacheServiceOptions | ConfigService = {}) {
     const serviceOptions = options instanceof ConfigService
-      ? { ttlSeconds: options.websiteContentCacheTtlSeconds }
+      ? {
+          ttlSeconds: options.websiteContentCacheTtlSeconds,
+          redis: {
+            host: options.redisHost,
+            port: options.redisPort,
+            password: options.redisPassword,
+          },
+        }
       : options;
+    const redisOptions = serviceOptions.redis
+      ? {
+          socket: {
+            host: serviceOptions.redis.host,
+            port: serviceOptions.redis.port,
+            connectTimeout: 1_000,
+            reconnectStrategy: false as const,
+          },
+          password: serviceOptions.redis.password,
+          disableOfflineQueue: true as const,
+        }
+      : undefined;
 
-    this.clientFactory = serviceOptions.clientFactory ?? (() => createClient());
+    const factory = serviceOptions.clientFactory ?? ((clientOptions) => createClient(clientOptions));
+
+    this.clientFactory = () => factory(redisOptions);
     this.ttlSeconds = serviceOptions.ttlSeconds ?? WEBSITE_CONTENT_CACHE_TTL_SECONDS;
   }
 
