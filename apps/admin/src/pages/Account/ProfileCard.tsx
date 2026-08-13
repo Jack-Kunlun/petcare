@@ -1,6 +1,6 @@
 import type { AdminAccountProfile } from "@petcare/shared-types";
 import { Camera, Trash2, Upload, UserRound } from "lucide-react";
-import { type ChangeEvent, useEffect, useState } from "react";
+import { type ChangeEvent, useState } from "react";
 import {
   deleteAdminAvatar,
   updateAdminAccountProfile,
@@ -35,10 +35,6 @@ export function ProfileCard({ profile, onProfileChange }: ProfileCardProps) {
   const canSaveNickname =
     !nicknamePending && trimmedNickname.length > 0 && trimmedNickname !== profile.nickname;
 
-  useEffect(() => {
-    setNickname(profile.nickname);
-  }, [profile.nickname]);
-
   function updateSummary(next: AdminAccountProfile) {
     onProfileChange(next);
     auth.updateUserSummary({ nickname: next.nickname, avatar: next.avatar });
@@ -56,6 +52,7 @@ export function ProfileCard({ profile, onProfileChange }: ProfileCardProps) {
     try {
       const updatedProfile = await updateAdminAccountProfile({ nickname: trimmedNickname });
 
+      setNickname(updatedProfile.nickname);
       updateSummary(updatedProfile);
       setSuccess("昵称已保存");
     } catch {
@@ -128,7 +125,9 @@ export function ProfileCard({ profile, onProfileChange }: ProfileCardProps) {
       <div className="flex flex-col gap-5 sm:flex-row sm:items-start sm:justify-between">
         <div>
           <h2 className="text-xl font-semibold text-slate-950">个人资料</h2>
-          <p className="mt-1 leading-6 text-slate-600">更新昵称和头像，变更会同步到顶部账户菜单。</p>
+          <p className="mt-1 leading-6 text-slate-600">
+            更新昵称和头像，变更会同步到顶部账户菜单。
+          </p>
         </div>
         <div className="flex items-center gap-3">
           <span className="flex h-16 w-16 shrink-0 items-center justify-center overflow-hidden rounded-full bg-blue-50 text-blue-700">
@@ -179,7 +178,10 @@ export function ProfileCard({ profile, onProfileChange }: ProfileCardProps) {
         </p>
       ) : null}
       {success ? (
-        <p role="status" className="mt-4 rounded-lg border border-emerald-200 bg-emerald-50 px-3 py-2 text-sm text-emerald-800">
+        <p
+          role="status"
+          className="mt-4 rounded-lg border border-emerald-200 bg-emerald-50 px-3 py-2 text-sm text-emerald-800"
+        >
           {success}
         </p>
       ) : null}
@@ -229,7 +231,9 @@ export function ProfileCard({ profile, onProfileChange }: ProfileCardProps) {
           </div>
           <div>
             <dt className="text-slate-500">角色</dt>
-            <dd className="mt-1 font-medium text-slate-900">{profile.roles.join("、") || "未分配角色"}</dd>
+            <dd className="mt-1 font-medium text-slate-900">
+              {profile.roles.join("、") || "未分配角色"}
+            </dd>
           </div>
           <div>
             <dt className="text-slate-500">创建时间</dt>
