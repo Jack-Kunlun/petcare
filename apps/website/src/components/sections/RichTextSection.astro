@@ -1,0 +1,39 @@
+---
+import type { WebsitePublicRichTextSection } from "./public-section-types";
+
+interface Props {
+  /** Validated public rich-text section. */
+  section: WebsitePublicRichTextSection;
+  /** Renders the sole page heading when no hero exists. */
+  isPageHeading?: boolean;
+}
+
+const { section, isPageHeading = false } = Astro.props;
+const Heading = isPageHeading ? "h1" : "h2";
+const PartHeading = isPageHeading ? "h2" : "h3";
+---
+
+<section class="content-section rich-text-section">
+  <div
+    class:list={["rich-text-section__inner", `rich-text-section__inner--${section.settings.width}`]}
+  >
+    <Heading>{section.content.title}</Heading>
+    {
+      section.content.effectiveDate ? (
+        <p class="effective-date">{section.content.effectiveDate}</p>
+      ) : null
+    }
+    {
+      section.content.parts.map((part) => (
+        <section aria-labelledby={`part-${section.sectionKey}-${part.partKey}`}>
+          <PartHeading id={`part-${section.sectionKey}-${part.partKey}`}>
+            {part.heading}
+          </PartHeading>
+          {part.paragraphs.map((paragraph) => (
+            <p>{paragraph}</p>
+          ))}
+        </section>
+      ))
+    }
+  </div>
+</section>

@@ -1,0 +1,77 @@
+---
+import type { WebsitePublicContent, WebsitePublicContentSection } from "@petcare/shared-types";
+import SectionRenderer from "../components/sections/SectionRenderer.astro";
+import { isRenderablePublicSection } from "./layout-section";
+import "../styles/global.css";
+
+interface Props {
+  /** Published independently managed shared shell snapshot or a code-owned fallback. */
+  shell: Pick<WebsitePublicContent, "sections"> | { sections: unknown[] };
+  /** Published fixed-route page snapshot. */
+  page: WebsitePublicContent;
+  /** Configured public origin, never inferred from an internal SSR request host. */
+  publicUrl: string;
+}
+
+const { shell, page, publicUrl } = Astro.props;
+const shellSections: WebsitePublicContentSection[] = (shell.sections as unknown[]).filter(
+  isRenderablePublicSection,
+);
+const pageSections = page.sections.filter(isRenderablePublicSection);
+const header = shellSections.find((section) => section.sectionType === "site_header");
+const footer = shellSections.find((section) => section.sectionType === "site_footer");
+const pageHeadingSectionKey = pageSections.find(
+  (section) => section.sectionType === "hero" || section.sectionType === "rich_text",
+)?.sectionKey;
+const canonical = new URL(page.seo.canonicalPath, publicUrl).toString();
+const ogImage = page.seo.image?.asset?.url;
+---
+
+<!doctype html>
+<html lang="zh-CN">
+  <head>
+    <meta charset="utf-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1" />
+    <meta name="description" content={page.seo.description} />
+    <link rel="canonical" href={canonical} />
+    <link rel="icon" href="/brand/petcare-favicon.svg" type="image/svg+xml" />
+    <meta property="og:title" content={page.seo.title} />
+    <meta property="og:description" content={page.seo.description} />
+    <meta property="og:url" content={canonical} />
+    {ogImage ? <meta property="og:image" content={ogImage} /> : null}
+    <title>{page.seo.title}</title>
+  </head>
+  <body>
+    <a class="skip-link" href="#main-content">Skip to main content</a>
+    {
+      header ? (
+        <SectionRenderer section={header} />
+      ) : (
+        <header class="site-header">
+          <a class="site-header__brand" href="/">
+            PetCare
+          </a>
+        </header>
+      )
+    }
+    <main id="main-content">
+      {
+        pageSections.map((section) => (
+          <SectionRenderer
+            section={section}
+            isPageHeading={section.sectionKey === pageHeadingSectionKey}
+          />
+        ))
+      }
+    </main>
+    {
+      footer ? (
+        <SectionRenderer section={footer} />
+      ) : (
+        <footer class="site-footer">
+          <p>PetCare</p>
+        </footer>
+      )
+    }
+  </body>
+</html>
