@@ -35,6 +35,14 @@ test("CI 在执行数据库 seed 前构建共享类型", async () => {
   assert.ok(sharedTypesBuild < serverSeed, "共享类型必须在数据库 seed 前完成构建");
 });
 
+test("CI 拒绝主线和 PR 分支中的 merge commit", async () => {
+  const workflow = await readFile(resolve(root, ".github/workflows/ci.yml"), "utf8");
+
+  assert.match(workflow, /name: 校验线性历史/u);
+  assert.match(workflow, /github\.event\.pull_request\.head\.sha/u);
+  assert.match(workflow, /git rev-list --min-parents=2/u);
+});
+
 test("CI 串行执行各工作区测试以适配 GitHub runner 资源限制", async () => {
   const workflow = await readFile(resolve(root, ".github/workflows/ci.yml"), "utf8");
   const packageJson = JSON.parse(await readFile(resolve(root, "package.json"), "utf8"));

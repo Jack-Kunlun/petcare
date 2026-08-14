@@ -36,6 +36,7 @@ test("拒绝纯英文主题和非法 type", () => {
 test("Hooks 使用 pnpm exec，换行策略为 Windows 脚本保留 CRLF", async () => {
   const commitMsg = await readFile(resolve(root, ".husky/commit-msg"), "utf8");
   const preCommit = await readFile(resolve(root, ".husky/pre-commit"), "utf8");
+  const prePush = await readFile(resolve(root, ".husky/pre-push"), "utf8");
   const commitCheck = await readFile(resolve(root, "scripts/commit-check.mjs"), "utf8");
   const commitScope = await readFile(resolve(root, "scripts/commit-scope.mjs"), "utf8");
   const attributes = await readFile(resolve(root, ".gitattributes"), "utf8");
@@ -47,6 +48,8 @@ test("Hooks 使用 pnpm exec，换行策略为 Windows 脚本保留 CRLF", async
   assert.match(commitMsg, /^pnpm exec commitlint --edit$/m);
   assert.match(preCommit, /^pnpm exec lint-staged$/m);
   assert.match(preCommit, /^pnpm run commit:check$/m);
+  assert.match(prePush, /refs\/heads\/master/u);
+  assert.match(prePush, /git rev-list --min-parents=2/u);
   assert.doesNotMatch(preCommit, /\b(?:pnpm|corepack pnpm)\s+(?:run\s+)?(?:build|check)\b/);
   assert.match(commitCheck, /execFileSync\(/);
   assert.match(commitCheck, /"git"/);
