@@ -6,6 +6,7 @@
 
 - **Monorepo**: Turborepo + pnpm
 - **Admin前端**: React 19 + Vite + shadcn/ui + TailwindCSS
+- **项目官网**: Astro SSR + TailwindCSS，通过 Admin 管理预设区块并显式发布
 - **后端服务**: Nest.js + Prisma + PostgreSQL + Redis
 - ~~**小程序**: Taro 4.x + React 18 + React Context（已弃用）~~
 - **跨端客户端**: Miniapp 项目（UniApp + Vue 3 + Wot UI + UnoCSS）
@@ -22,8 +23,9 @@
 petcare-monorepo/
 ├── apps/                    # 应用层
 │   ├── admin/              # 后台管理系统
+│   ├── miniapp/            # UniApp 跨端客户端：H5、微信小程序和移动 App
 │   ├── server/             # 后端服务
-│   └── miniapp/            # UniApp 跨端客户端：H5、微信小程序和移动 App
+│   └── website/            # Astro SSR 项目官网
 ├── packages/               # 共享包
 │   ├── shared-types/       # 共享类型定义
 │   ├── shared-utils/       # 共享工具函数
@@ -87,15 +89,15 @@ pnpm --filter @petcare/server prisma:push
 pnpm --filter @petcare/server prisma:seed
 ```
 
-5. 启动 Admin、Server 和 Miniapp H5 开发服务：
+5. 启动 Admin、Server、Miniapp H5 和 Website 开发服务：
 
 ```bash
 pnpm dev
 ```
 
-启动后可访问 Admin <http://localhost:8986>、官网 Astro SSR、Server <http://localhost:3000>、
-Swagger <http://localhost:3000/api-docs> 和健康检查 <http://localhost:3000/health>。全容器官网入口为
-<http://localhost:8080>。
+启动后可访问 Admin <http://localhost:8986>、官网 Astro SSR <http://localhost:4321>、
+Server <http://localhost:3000>、Swagger <http://localhost:3000/api-docs> 和健康检查
+<http://localhost:3000/health>。全容器官网入口为 <http://localhost:8080>。
 
 Miniapp 的微信小程序端需单独运行：
 
@@ -119,7 +121,7 @@ pnpm dev
 ```bash
 pnpm dev:admin
 pnpm dev:server
-pnpm --filter @petcare/website dev
+pnpm dev:website
 pnpm dev:miniapp:h5
 pnpm dev:miniapp:mp-weixin
 ```
@@ -181,8 +183,11 @@ pnpm build
 # 单独构建某个应用
 pnpm build:admin
 pnpm build:server
+pnpm build:website
 pnpm build:miniapp:mp-weixin
 ```
+
+本地验证官网 standalone 产物时，先执行 `pnpm build:website`，再运行 `pnpm start:website`。
 
 ~~旧命令：`pnpm build:miniapp`~~
 
@@ -212,7 +217,7 @@ pnpm check
 - **Commitlint**: `commitlint.config.js` - Git commit消息规范
 - **Husky**: `.husky/` - Git hooks自动化检查（提交前格式化、lint、类型检查和E2E）
 - ~~**Tailwind CSS v4**: Admin 与 Taro Miniapp 共用 CSS-first 规则（已弃用）~~
-- **样式工具链**: Admin 使用 Tailwind CSS v4；Miniapp 使用 UnoCSS 与 Wot UI
+- **样式工具链**: Admin 与 Website 使用 Tailwind CSS v4；Miniapp 使用 UnoCSS 与 Wot UI
 
 ### 常用命令
 

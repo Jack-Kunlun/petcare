@@ -101,7 +101,7 @@ test("所有工作区暴露标准生命周期", async () => {
   }
 });
 
-test("根级命令覆盖质量门禁与三端开发", async () => {
+test("根级命令覆盖质量门禁与全部应用开发", async () => {
   const manifest = await readJson("package.json");
   const workspace = await readFile(resolve(root, "pnpm-workspace.yaml"), "utf8");
 
@@ -114,6 +114,13 @@ test("根级命令覆盖质量门禁与三端开发", async () => {
   assert.match(manifest.scripts.dev, /@petcare\/admin/);
   assert.match(manifest.scripts.dev, /@petcare\/server/);
   assert.match(manifest.scripts.dev, /@petcare\/miniapp/);
+  assert.match(manifest.scripts.dev, /@petcare\/website/);
+  assert.equal(manifest.scripts["dev:website"], "pnpm --filter @petcare/website dev");
+  assert.equal(manifest.scripts["build:website"], "pnpm --filter @petcare/website build");
+  assert.equal(manifest.scripts["start:website"], "pnpm --filter @petcare/website start");
+
+  const websiteManifest = await readJson("apps/website/package.json");
+  assert.equal(websiteManifest.scripts.start, "node dist/server/entry.mjs");
   assert.match(manifest.scripts.check, /format:check.*lint.*typecheck.*test.*build/);
   assert.match(workspace, /^\s*- "apps\/\*"$/m);
   assert.equal(manifest.scripts.build, "turbo run build");

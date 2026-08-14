@@ -7,6 +7,7 @@
 - [设计原则](#设计原则)
 - [基础规范](#基础规范)
 - [认证授权](#认证授权)
+- [官网内容模块](#官网内容模块)
 - [请求规范](#请求规范)
 - [响应规范](#响应规范)
 - [错误处理](#错误处理)
@@ -310,6 +311,33 @@ Authorization: Bearer eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9...
 
 ---
 
+## 官网内容模块
+
+模块使用 `/admin/website-content`、`/website-content` 与 `/content` 三组路径。Admin 接口要求管理员 Bearer Token，并由官网内容权限码控制。公开接口无需登录，只返回已发布版本；预览接口必须携带有效的 `X-Website-Preview-Token`。
+
+| 方法   | 路径                                                    | 所需权限/认证            | 用途                                 |
+| ------ | ------------------------------------------------------- | ------------------------ | ------------------------------------ |
+| `GET`  | `/admin/website-content`                                | `website.read`           | 读取官网内容总览。                   |
+| `GET`  | `/admin/website-content/:contentKey/draft`              | `website.read`           | 读取当前草稿。                       |
+| `PUT`  | `/admin/website-content/:contentKey/draft`              | `website.edit_action`    | 保存新的不可变草稿版本。             |
+| `GET`  | `/admin/website-content/:contentKey/diff`               | `website.read`           | 比较草稿与当前发布版本。             |
+| `GET`  | `/admin/website-content/:contentKey/history`            | `website.read`           | 读取版本历史。                       |
+| `GET`  | `/admin/website-content/:contentKey/history/:versionId` | `website.read`           | 读取指定历史版本。                   |
+| `POST` | `/admin/website-content/:contentKey/previews`           | `website.edit_action`    | 创建短期预览令牌。                   |
+| `POST` | `/admin/website-content/:contentKey/publish`            | `website.publish_action` | 显式发布当前草稿。                   |
+| `POST` | `/admin/website-content/:contentKey/restore`            | `website.edit_action`    | 将历史版本恢复为新草稿，不自动发布。 |
+| `GET`  | `/admin/website-content/media-assets`                   | `website.read`           | 查询腾讯云 COS 官网素材。            |
+| `POST` | `/admin/website-content/media-assets`                   | `website.edit_action`    | 创建素材记录并签发上传信息。         |
+| `POST` | `/admin/website-content/media-assets/:assetId/archive`  | `website.edit_action`    | 归档素材。                           |
+| `GET`  | `/website-content/:contentKey`                          | 公开                     | 读取指定页面或站点外壳的已发布内容。 |
+| `GET`  | `/website-content/previews/:contentKey`                 | 预览令牌                 | 读取预览令牌绑定的内容版本。         |
+| `GET`  | `/content/articles`                                     | 公开                     | 读取已发布课堂文章列表。             |
+| `GET`  | `/content/articles/:slug`                               | 公开                     | 按 slug 读取已发布课堂文章详情。     |
+
+当前 Admin 只编辑已注册的预设区块，区块数据仍使用带 `sectionType` 与 `schemaVersion` 的共享契约保存，后续新增、删除和排序能力无需改变页面版本模型。发布是独立动作；保存草稿、恢复历史版本和创建预览均不会改变线上内容。素材内容只保存 COS 对象标识和公开 URL，不保存或下发 COS 管理密钥。
+
+---
+
 ## 请求规范
 
 ### 请求头
@@ -506,6 +534,7 @@ Controller 和 Service 只返回领域数据或抛出异常，不得手工再包
 - `@petcare/api-client` 执行同样的中央解包，并将错误转换为带 `code`、`requestId` 和 HTTP `status` 的 `ApiClientError`。
 - 页面、Store 与 endpoint 方法只消费领域数据，不得再次读取 `.data.data`。
 - Miniapp 当前没有网络调用点；后续接入时应复用共享 Client 或实现等价的单一边界适配。
+- Website 的服务端请求统一由 `apps/website/src/lib/api.ts` 解包；公开页面不得直接访问 Admin 接口。
 
 ### 公共字段安全
 
