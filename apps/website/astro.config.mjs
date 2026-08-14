@@ -7,5 +7,8 @@ export default defineConfig({
   adapter: node({ mode: "standalone" }),
   vite: {
     plugins: [tailwindcss()],
+    ssr: {
+      external: ["@petcare/shared-types"],
+    },
   },
 });

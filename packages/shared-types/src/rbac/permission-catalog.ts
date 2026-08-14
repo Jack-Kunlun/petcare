@@ -399,7 +399,7 @@ export const RBAC_PERMISSION_CATALOG: readonly RbacPermissionDefinition[] = [
   {
     code: "website.view",
     type: "menu",
-    label: "官网内容管理",
+    label: "官网设置",
     module: "website",
     path: "/website-content",
     parentCode: null,
