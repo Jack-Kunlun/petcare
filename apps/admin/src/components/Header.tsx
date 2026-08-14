@@ -54,7 +54,11 @@ export function Header({ onMenuOpen }: HeaderProps) {
             >
               <span className="flex h-8 w-8 shrink-0 items-center justify-center overflow-hidden rounded-full bg-blue-50 text-blue-700">
                 {auth.user?.avatar ? (
-                  <img src={auth.user.avatar} alt="当前头像" className="h-full w-full object-cover" />
+                  <img
+                    src={auth.user.avatar}
+                    alt="当前头像"
+                    className="h-full w-full object-cover"
+                  />
                 ) : (
                   <UserRound aria-hidden="true" className="h-4 w-4" />
                 )}
@@ -74,9 +78,10 @@ export function Header({ onMenuOpen }: HeaderProps) {
               className="z-50 w-48 rounded-lg border border-slate-200 bg-white p-1 shadow-lg outline-none"
             >
               <DropdownMenu.Item
-                className="flex min-h-11 cursor-pointer items-center rounded-md px-3 py-2 text-sm font-medium text-slate-700 outline-none hover:bg-slate-100 focus:bg-slate-100"
+                className="flex min-h-11 cursor-pointer items-center gap-2 rounded-md px-3 py-2 text-sm font-medium text-slate-700 outline-none hover:bg-slate-100 focus:bg-slate-100"
                 onSelect={() => navigate("/account")}
               >
+                <UserRound aria-hidden="true" className="h-4 w-4" />
                 个人中心
               </DropdownMenu.Item>
               <DropdownMenu.Item
