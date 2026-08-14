@@ -121,6 +121,22 @@ describe("Sidebar", () => {
     expect(tree.getByRole("link", { name: "菜单目录" })).toHaveAttribute("aria-current", "page");
   });
 
+  it("renders Website Settings as a leaf menu without an expand indicator", () => {
+    render(
+      <MemoryRouter initialEntries={["/website-content"]}>
+        <Sidebar permissions={["website.view"]} />
+      </MemoryRouter>,
+    );
+
+    const tree = within(screen.getByTestId("desktop-menu-tree"));
+    const websiteSettings = tree.getByRole("link", { name: "官网设置" });
+
+    expect(websiteSettings).toHaveAttribute("href", "/website-content");
+    expect(websiteSettings.querySelector(".lucide-earth")).toBeInTheDocument();
+    expect(websiteSettings.querySelector(".lucide-chevron-right")).toBeNull();
+    expect(tree.queryByRole("button", { name: "官网设置菜单" })).not.toBeInTheDocument();
+  });
+
   it("keeps mobile navigation flat while the desktop menu uses the tree", () => {
     render(
       <MemoryRouter initialEntries={["/orders"]}>

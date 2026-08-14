@@ -2,8 +2,8 @@ import { RBAC_PERMISSION_CATALOG, RBAC_PERMISSION_TYPES } from "@petcare/shared-
 import {
   BadgeCheck,
   ChevronDown,
-  ChevronRight,
   FileText,
+  Globe2,
   House,
   MessageSquareWarning,
   Settings,
@@ -36,6 +36,7 @@ const icons: Record<string, LucideIcon> = {
   BadgeCheck,
   FileText,
   MessageSquareWarning,
+  Globe2,
   ShieldCheck,
 };
 
@@ -101,7 +102,6 @@ function RootMenuLink({
             className={`h-4.5 w-4.5 shrink-0 ${isActive ? "text-white" : "text-slate-400 group-hover:text-white"}`}
           />
           <span className="min-w-0 flex-1 truncate">{label}</span>
-          {isActive ? <ChevronRight aria-hidden="true" className="h-4 w-4 text-blue-100" /> : null}
         </>
       )}
     </NavLink>

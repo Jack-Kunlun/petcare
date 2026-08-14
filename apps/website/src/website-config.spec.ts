@@ -6,4 +6,8 @@ describe("website Astro configuration", () => {
     expect(config.output).toBe("server");
     expect(config.adapter?.name).toBe("@astrojs/node");
   });
+
+  it("loads the CommonJS shared contract package through Node during SSR", () => {
+    expect(config.vite?.ssr?.external).toContain("@petcare/shared-types");
+  });
 });
