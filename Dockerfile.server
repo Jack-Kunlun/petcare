@@ -1,5 +1,5 @@
 # ===== 多阶段构建：后端服务 =====
-FROM node:24.19-alpine AS server-builder
+FROM node:26.7-alpine AS server-builder
 
 WORKDIR /app
 
@@ -26,7 +26,7 @@ RUN pnpm --filter @petcare/shared-types build
 RUN pnpm --filter @petcare/server build
 
 # ===== 运行阶段 =====
-FROM node:24.19-alpine AS server-runner
+FROM node:26.7-alpine AS server-runner
 
 WORKDIR /app
 

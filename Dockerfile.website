@@ -1,5 +1,5 @@
 # ===== Multi-stage build: official Website SSR =====
-FROM node:24.19-alpine AS website-builder
+FROM node:26.7-alpine AS website-builder
 
 WORKDIR /app
 
@@ -20,7 +20,7 @@ RUN pnpm --filter @petcare/shared-types build
 RUN pnpm --filter @petcare/website build
 
 # ===== Runtime stage =====
-FROM node:24.19-alpine AS website-runner
+FROM node:26.7-alpine AS website-runner
 
 WORKDIR /app
 
