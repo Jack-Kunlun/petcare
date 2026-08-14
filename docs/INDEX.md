@@ -2,7 +2,7 @@
 
 本文档提供PetCare项目所有文档的分类索引，便于快速查找所需信息。
 
-**最后更新**: 2026-07-16
+**最后更新**: 2026-08-15
 
 ---
 
@@ -127,7 +127,8 @@ RESTful API设计规范和接口定义。
 - 请求/响应格式规范
 - 错误处理标准
 - 分页和速率限制
-- 完整API列表（含后台系统设置、RBAC 和内容管理的分页与权限接口）
+- 完整API列表（含后台系统设置、RBAC、内容管理与官网内容发布接口）
+- 官网公开内容、预览令牌与课堂文章读取接口
 - 系统设置稳定错误码、整数单位与订单版本快照约束
 
 **使用场景**:
@@ -169,6 +170,7 @@ Docker容器化部署和运维指南。
 **核心内容**:
 
 - Docker Compose多容器编排
+- Website Astro SSR、独立 Nginx 网关与腾讯云 COS 素材配置
 - 安全配置（Redis密码、端口暴露控制）
 - 健康检查和资源限制
 - 数据备份和恢复
@@ -191,13 +193,13 @@ Docker容器化部署和运维指南。
 | -------------------------------------------------------------------------------------------------------------------- | ----------------------------------------- | ---------- |
 | [01-development-guidelines.md](./09-development-guidelines/01-development-guidelines.md)                             | 开发指南                                  | 全体开发   |
 | [02-development-standards.md](./09-development-guidelines/02-development-standards.md)                               | 开发规范详细版                            | 全体开发   |
-| [04-styling-standards.md](./09-development-guidelines/04-styling-standards.md)                                       | 双端样式规范                              | 前端开发   |
-| [05-frontend-structure-and-api-contracts.md](./09-development-guidelines/05-frontend-structure-and-api-contracts.md) | 前端目录与 API 契约规范（含系统设置示例） | 前后端开发 |
+| [04-styling-standards.md](./09-development-guidelines/04-styling-standards.md)                                       | Admin、Website 与 Miniapp 样式规范        | 前端开发   |
+| [05-frontend-structure-and-api-contracts.md](./09-development-guidelines/05-frontend-structure-and-api-contracts.md) | 前端目录与 API 契约规范（含官网内容管理） | 前后端开发 |
 
 **核心内容**:
 
 - 代码风格（ESLint + Prettier）
-- 双端 Tailwind v4、px token 与 CSS/SCSS 边界
+- Admin/Website Tailwind v4、Miniapp UnoCSS 与 CSS/SCSS 边界
 - Git提交规范（Conventional Commits）
 - 测试规范（Vitest + Playwright）
 - ConfigService使用规范

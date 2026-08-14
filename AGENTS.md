@@ -10,6 +10,7 @@
 
 - **Monorepo**: Turborepo + pnpm workspaces
 - **Admin前端**: React 19 + Vite + shadcn/ui + TailwindCSS
+- **项目官网**: Astro SSR + TailwindCSS
 - **后端服务**: Nest.js + Prisma + PostgreSQL + Redis
 - ~~**小程序**: Taro 4.x + React 18 + MobX（已弃用）~~
 - **跨端客户端**: Miniapp 项目（UniApp + Vue 3 + Wot UI + UnoCSS）
@@ -23,6 +24,7 @@
 petcare/
 ├── apps/                    # 应用层
 │   ├── admin/              # 后台管理系统（React + Vite）
+│   ├── website/            # 项目官网（Astro SSR）
 │   ├── server/             # 后端服务（Nest.js）
 │   └── miniapp/            # UniApp 跨端客户端
 ├── packages/               # 共享包
@@ -93,6 +95,7 @@ REDIS_PASSWORD=  # 可选
 
 - ~~Admin 与 Miniapp 均使用 Tailwind CSS v4 CSS-first；Miniapp 使用 Taro 专属 WXSS 门禁。~~
 - Admin 使用 Tailwind CSS v4 CSS-first，默认字号为 `14px`
+- Website 使用 Tailwind CSS v4 CSS-first，样式入口位于 `apps/website/src/styles/global.css`
 - Miniapp 使用 UniApp、UnoCSS 与 Wot UI，样式配置位于 `apps/miniapp/uno.config.ts`
 - Admin 优先直接使用 Tailwind 工具类，只有 Tailwind 无法合理表达时才使用独立 SCSS
 - Tailwind 入口使用普通 CSS；SCSS 禁止 `@theme`、`@tailwind` 和 `@apply`
@@ -277,8 +280,10 @@ pnpm test:e2e              # E2E测试
 
 - `Dockerfile.server` - 后端服务（根目录）
 - `Dockerfile.admin` - 后台管理（根目录）
+- `Dockerfile.website` - Astro SSR 官网（根目录）
 - `docker-compose.yml` - 多容器编排（根目录）
 - `docker/nginx.conf` - Nginx配置（docker目录）
+- `docker/website-nginx.conf` - 官网独立网关配置（docker目录）
 
 **为什么Dockerfile在根目录？**
 
@@ -312,6 +317,7 @@ docker compose --env-file .env up -d
 **访问地址：**
 
 - Admin前端: http://localhost:8986
+- Website官网: http://localhost:8080（Docker Compose）/ http://localhost:4321（本地开发）
 - API服务: http://localhost:3000
 - API文档: http://localhost:3000/api-docs（仅宿主机非生产环境）
 
@@ -345,5 +351,5 @@ docker compose --env-file .env up -d
 
 ---
 
-**最后更新**: 2026-07-16  
+**最后更新**: 2026-08-15
 **维护者**: PetCare 开发团队

@@ -969,6 +969,7 @@ git commit -m "refactor(user): 重构用户服务层"
 | **apps/server**           | Nest.js CLI | Jest + ts-jest                 | Nest.js官方推荐          |
 | ~~**apps/miniapp**~~      | ~~Taro~~    | ~~Jest~~                       | ~~已弃用并删除~~         |
 | **apps/miniapp**          | UniApp CLI  | Vitest                         | Vue 3 跨端客户端         |
+| **apps/website**          | Astro       | Vitest                         | 官网 SSR 与渲染契约      |
 | **packages/shared-types** | TypeScript  | Vitest                         | 轻量快速                 |
 | **packages/shared-utils** | TypeScript  | Vitest                         | 轻量快速                 |
 | **packages/api-client**   | TypeScript  | Vitest                         | 轻量快速                 |

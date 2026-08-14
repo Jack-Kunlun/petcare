@@ -5,7 +5,7 @@
 - 请求参数、响应数据、分页结构和业务枚举统一定义在
   `packages/shared-types/src/api/`。
 - ~~Admin、Taro Miniapp 和 Server 必须从 `@petcare/shared-types` 导入契约。~~
-- Admin、Miniapp 和 Server 必须从 `@petcare/shared-types` 导入契约，禁止在应用内重复声明同名接口。
+- Admin、Miniapp、Website 和 Server 必须从 `@petcare/shared-types` 导入契约，禁止在应用内重复声明同名接口。
 - Server 的 DTO 负责运行时校验和 Swagger 元数据，并通过 `implements` 对齐共享请求契约。
 - 时间在 HTTP 契约中统一使用 ISO 8601 字符串；数据库实体中的 `Date` 由响应序列化层转换。
 - 新增或修改字段时先更新共享契约，再同步服务端 DTO、业务实现和客户端调用。
@@ -96,3 +96,12 @@ apps/admin/src/pages/Settings/
 - `/rbac`、`/rbac/new`、`/rbac/:id/edit` 与 `/rbac/:id` 只通过 `apps/admin/src/api/rbac/` 访问 `/admin/rbac/*`。请求与响应类型从 `@petcare/shared-types` 导入，不在页面内重复声明。
 - 角色编辑器展示 `menu`、`button` 和 `api` 类型权限；`api` 节点仅作为只读信息显示并禁用勾选，不纳入提交 payload。服务端根据共享目录的 `impliedApiCodes` 自动补齐有效 API 权限。
 - 页面级入口、编辑、删除、分配管理员和发布等操作必须使用 `PermissionGate`，并与路由的 `PermissionRoute` 配合，避免向无权限会话展示不可执行的操作。`PermissionGate` 可改善界面和可访问性，但绝不替代 Server 的 `PermissionGuard`：所有 `/admin/rbac/*` 及其他受保护 API 仍必须在服务端逐请求重新授权。
+
+## 7. 官网内容契约与调用边界
+
+- 官网页面、区块、媒体和版本契约统一定义在 `packages/shared-types/src/api/website-content.ts`。
+- Admin 只通过 `apps/admin/src/api/website-content/` 调用 `/admin/website-content/*`；保存草稿与发布必须保持为两个显式操作。
+- Website 只通过 `apps/website/src/lib/api.ts` 调用公开的 `/website-content/*` 与 `/content/articles*`，不得复用管理员令牌或访问 Admin 接口。
+- `SectionRenderer.astro` 必须对共享契约中的区块类型进行穷尽分发；正文按结构化区块渲染，禁止用 `set:html` 注入后台内容。
+- 当前编辑器只开放预设区块字段，但持久化契约保留 `sectionType`、`schemaVersion` 与区块数组，后续新增、删除和排序仍复用同一页面版本模型。
+- 预览令牌仅用于服务端预览请求，预览响应不得进入公开内容缓存；公开页面只渲染已发布版本。

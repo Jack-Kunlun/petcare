@@ -12,6 +12,7 @@
     "build:miniapp:app-android": "pnpm --filter @petcare/miniapp build:app-android",
     "build:miniapp:app-ios": "pnpm --filter @petcare/miniapp build:app-ios",
     "build:server": "pnpm --filter @petcare/server build",
+    "build:website": "pnpm --filter @petcare/website build",
     "dev": "turbo run dev --filter=@petcare/admin --filter=@petcare/server --filter=@petcare/miniapp --filter=@petcare/website",
     "dev:admin": "pnpm --filter @petcare/admin dev",
     "dev:miniapp:h5": "pnpm --filter @petcare/miniapp dev:h5",
@@ -19,6 +20,7 @@
     "dev:miniapp:app-android": "pnpm --filter @petcare/miniapp dev:app-android",
     "dev:miniapp:app-ios": "pnpm --filter @petcare/miniapp dev:app-ios",
     "dev:server": "pnpm --filter @petcare/server start:dev",
+    "dev:website": "pnpm --filter @petcare/website dev",
     "typecheck": "turbo run typecheck",
     "lint": "pnpm lint:styles && pnpm lint:scripts && turbo run lint",
     "lint:styles": "node scripts/style-policy.mjs admin && node scripts/style-policy.mjs website",
@@ -38,7 +40,8 @@
     "prepare": "husky",
     "changelog": "conventional-changelog -p conventionalcommits -i CHANGELOG.md -s -r 0",
     "release": "pnpm changelog && git add CHANGELOG.md && git commit -m \"docs: 更新发布变更日志\" && git tag",
-    "start:server": "pnpm --filter @petcare/server start:prod"
+    "start:server": "pnpm --filter @petcare/server start:prod",
+    "start:website": "pnpm --filter @petcare/website start"
   },
   "devDependencies": {
     "@commitlint/cli": "^21.2.1",

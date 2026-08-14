@@ -1,111 +1,37 @@
 ## 二、Monorepo目录结构
 
-旧 Taro + React 跨端客户端已删除。现行 Miniapp 跨端客户端统一位于 `apps/miniapp/`，技术框架为 UniApp。
+旧 Taro + React 跨端客户端已删除。现行 Miniapp 跨端客户端统一位于 `apps/miniapp/`；项目官网位于 `apps/website/`，使用 Astro SSR。
 
 ```
-petcare-monorepo/
-├── apps/                          # 应用层
-│   ├── admin/                     # 后台管理系统
-│   │   ├── src/
-│   │   │   ├── components/        # 通用组件
-│   │   │   ├── pages/             # 页面组件
-│   │   │   ├── hooks/             # 自定义Hooks
-│   │   │   ├── stores/            # Zustand状态管理
-│   │   │   ├── services/          # API服务层
-│   │   │   ├── utils/             # 工具函数
-│   │   │   └── App.tsx
-│   │   ├── package.json
-│   │   ├── tsconfig.json
-│   │   ├── vite.config.ts
-│   │   └── tailwind.config.js
-│   │
-│   ├── miniapp/                   # UniApp 跨端客户端
-│   │   ├── src/
-│   │   │   ├── pages/             # 主包页面
-│   │   │   ├── subPages/          # 分包页面
-│   │   │   ├── components/        # 组件
-│   │   │   ├── api/               # API 适配层
-│   │   │   ├── utils/             # 工具函数
-│   │   │   └── App.vue
-│   │   ├── manifest.config.ts     # UniApp 平台配置
-│   │   ├── pages.config.ts        # 页面配置
-│   │   ├── uno.config.ts          # UnoCSS 配置
-│   │   ├── package.json
-│   │   └── tsconfig.json
-│   │
-│   └── api/                       # 后端API服务
-│       ├── src/
-│       │   ├── modules/           # 功能模块
-│       │   │   ├── auth/          # 认证模块
-│       │   │   ├── user/          # 用户模块
-│       │   │   ├── order/         # 订单模块
-│       │   │   ├── community/     # 社区模块
-│       │   │   ├── payment/       # 支付模块
-│       │   │   └── admin/         # 后台管理模块
-│       │   ├── common/            # 公共模块
-│       │   │   ├── decorators/    # 装饰器
-│       │   │   ├── filters/       # 异常过滤器
-│       │   │   ├── guards/        # 守卫（RBAC）
-│       │   │   ├── interceptors/  # 拦截器
-│       │   │   └── pipes/         # 管道
-│       │   ├── config/            # 配置文件
-│       │   ├── prisma/            # Prisma Schema和迁移
-│       │   └── main.ts
-│       ├── prisma/
-│       │   ├── schema.prisma      # 数据库Schema
-│       │   └── migrations/        # 数据库迁移
-│       ├── package.json
-│       ├── tsconfig.json
-│       └── nest-cli.json
-│
-├── packages/                      # 共享包
-│   ├── shared-types/              # ⭐ 共享类型定义
-│   │   ├── src/
-│   │   │   ├── api/               # API接口类型
-│   │   │   │   ├── request.ts     # 请求类型
-│   │   │   │   ├── response.ts    # 响应类型
-│   │   │   │   ├── user.ts        # 用户相关
-│   │   │   │   ├── order.ts       # 订单相关
-│   │   │   │   ├── pet.ts         # 宠物相关
-│   │   │   │   ├── community.ts   # 社区相关
-│   │   │   │   └── index.ts       # 统一导出
-│   │   │   ├── models/            # 数据模型类型
-│   │   │   ├── enums/             # 枚举定义
-│   │   │   └── index.ts           # 统一导出
-│   │   ├── package.json
-│   │   └── tsconfig.json
-│   │
-│   ├── shared-utils/              # 共享工具函数
-│   │   ├── src/
-│   │   │   ├── date.ts            # 日期处理
-│   │   │   ├── string.ts          # 字符串处理
-│   │   │   ├── validate.ts        # 验证工具
-│   │   │   ├── format.ts          # 格式化工具
-│   │   │   └── index.ts
-│   │   ├── package.json
-│   │   └── tsconfig.json
-│   │
-│   ├── api-client/                # ⭐ API客户端封装
-│   │   ├── src/
-│   │   │   ├── http.ts            # Axios实例配置
-│   │   │   ├── interceptors.ts    # 请求/响应拦截器
-│   │   │   ├── endpoints/         # API端点定义
-│   │   │   │   ├── user.ts
-│   │   │   │   ├── order.ts
-│   │   │   │   └── index.ts
-│   │   │   └── index.ts           # 统一导出
-│   │   ├── package.json
-│   │   └── tsconfig.json
-│   │
-│   └── eslint-config/             # 统一ESLint配置
-│       ├── index.js
-│       └── package.json
-│
-├── pnpm-workspace.yaml            # pnpm工作区配置
-├── turbo.json                     # Turborepo配置
-├── package.json                   # 根package.json
-├── .gitignore
-└── README.md
+petcare/
+├── apps/
+│   ├── admin/                # React + Vite 后台管理
+│   │   └── src/
+│   │       ├── api/          # 按业务域组织的 HTTP 调用
+│   │       ├── components/   # 通用组件
+│   │       ├── pages/        # 页面模块
+│   │       └── routes/       # 集中路由登记
+│   ├── miniapp/              # UniApp 跨端客户端
+│   │   ├── src/pages/        # 页面
+│   │   └── uno.config.ts     # UnoCSS 配置
+│   ├── server/               # NestJS API 与 Prisma
+│   │   ├── prisma/           # Schema、迁移与 seed
+│   │   └── src/modules/      # 领域模块
+│   └── website/              # Astro SSR 项目官网
+│       └── src/
+│           ├── components/   # 页面与预设区块渲染器
+│           ├── layouts/      # 公共页、文章页与预览布局
+│           ├── lib/          # API、缓存和运行时配置
+│           └── pages/        # 官网路由
+├── packages/
+│   ├── api-client/           # 共享 API 客户端
+│   ├── eslint-config-base/   # 共享 ESLint 配置
+│   ├── shared-types/         # 请求、响应与业务类型契约
+│   └── shared-utils/         # 共享工具函数
+├── docs/                     # 项目文档
+├── package.json              # 根工作区脚本
+├── pnpm-workspace.yaml       # pnpm 工作区配置
+└── turbo.json                # Turborepo 任务配置
 ```
 
 ---
@@ -120,7 +46,7 @@ petcare-monorepo/
 
 1. 在 `packages/shared-types` 中定义所有API接口的TypeScript类型
 2. 后端使用这些类型生成DTO和Response
-3. 前端（Admin + Miniapp）直接导入使用
+3. Admin、Miniapp、Website 与 Server 直接导入使用
 4. 通过pnpm workspace链接，实现热更新
 
 **优势**：
