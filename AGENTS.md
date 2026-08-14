@@ -132,6 +132,13 @@ chore: 构建/工具链
 
 提交说明正文建议优先使用中文，除非需要保留通用的英文关键字、技术名称或工具名称。
 
+### 主线线性历史
+
+- `master` 必须永久保持线性历史，禁止任何 merge commit。
+- 本地集成只能使用 rebase 后的 `git merge --ff-only`；拉取使用 rebase，禁止普通 `git merge` 和产生合并提交的 `git pull`。
+- GitHub PR 只能使用 **Rebase and merge** 或 **Squash and merge**，禁止 **Create a merge commit**。
+- 推送主线前必须确认 `git rev-list --min-parents=2 master` 无输出。
+
 ## 🏗️ 后端架构规范
 
 ### ConfigService 使用规范

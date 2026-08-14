@@ -1,0 +1,21 @@
+#!/usr/bin/env sh
+
+zero=0000000000000000000000000000000000000000
+
+while read -r local_ref local_sha remote_ref remote_sha; do
+  if [ "$remote_ref" != "refs/heads/master" ]; then
+    continue
+  fi
+
+  if [ "$local_sha" = "$zero" ]; then
+    echo "禁止删除 master"
+    exit 1
+  fi
+
+  merge_commits="$(git rev-list --min-parents=2 "$local_sha")"
+  if [ -n "$merge_commits" ]; then
+    echo "master 禁止 merge commit："
+    git show --no-patch --oneline $merge_commits
+    exit 1
+  fi
+done

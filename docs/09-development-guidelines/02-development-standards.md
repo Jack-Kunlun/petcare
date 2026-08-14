@@ -12,6 +12,8 @@
 
 ## 一、Git Flow分支策略
 
+> **强制规则**：受保护主线 `master` 必须永久保持线性历史。所有分支先 rebase，再通过 fast-forward 集成；禁止 merge commit。GitHub PR 仅允许 Rebase 或 Squash 合并。
+
 ### 1.1 分支类型
 
 | 分支类型    | 命名规范           | 说明                     | 生命周期 |
@@ -50,7 +52,7 @@ graph LR
 ```bash
 # 从develop创建功能分支
 git checkout develop
-git pull origin develop
+git pull --rebase origin develop
 git checkout -b feature/user-authentication
 
 # 开发完成后推送到远程
@@ -67,35 +69,43 @@ git push origin feature/user-authentication
 #### 合并到main
 
 ```bash
-# 从release分支合并到main
-git checkout main
-git pull origin main
-git merge release/v1.0.0
+# 从release分支线性集成到master
+git checkout release/v1.0.0
+git rebase origin/master
+git checkout master
+git pull --ff-only origin master
+git merge --ff-only release/v1.0.0
 git tag v1.0.0
-git push origin main --tags
+git push origin master --tags
 
-# 同时合并回develop
+# 同时线性集成回develop
+git checkout release/v1.0.0
+git rebase origin/develop
 git checkout develop
-git merge release/v1.0.0
+git merge --ff-only release/v1.0.0
 git push origin develop
 ```
 
 #### 紧急Hotfix流程
 
 ```bash
-# 从main创建hotfix分支
-git checkout main
-git pull origin main
+# 从master创建hotfix分支
+git checkout master
+git pull --ff-only origin master
 git checkout -b hotfix/critical-bug-fix
 
-# 修复后合并到main和develop
-git checkout main
-git merge hotfix/critical-bug-fix
+# 修复后线性集成到master和develop
+git checkout hotfix/critical-bug-fix
+git rebase origin/master
+git checkout master
+git merge --ff-only hotfix/critical-bug-fix
 git tag v1.0.1
-git push origin main --tags
+git push origin master --tags
 
+git checkout hotfix/critical-bug-fix
+git rebase origin/develop
 git checkout develop
-git merge hotfix/critical-bug-fix
+git merge --ff-only hotfix/critical-bug-fix
 git push origin develop
 
 # 删除hotfix分支
@@ -745,7 +755,7 @@ OSS_BUCKET=
 2. **更新版本号**：修改package.json中的version字段
 3. **更新CHANGELOG.md**：记录本次发布的所有变更
 4. **运行测试**：确保所有测试通过
-5. **合并到main**：`git merge release/v1.1.0`
+5. **线性集成到master**：release 分支先 rebase `origin/master`，再执行 `git merge --ff-only release/v1.1.0`
 6. **打标签**：`git tag v1.1.0`
 7. **推送**：`git push origin main --tags`
 8. **部署**：触发CI/CD自动部署
@@ -810,9 +820,9 @@ docs/
 
 **A**:
 
-1. 在本地合并目标分支：`git merge develop`
+1. 在本地更新并变基目标分支：`git fetch origin && git rebase origin/develop`
 2. 解决冲突
-3. 提交解决后的代码：`git commit -m "resolve conflicts"`
+3. 继续变基：`git add <已解决文件> && git rebase --continue`
 4. 推送到远程：`git push origin feature/xxx`
 
 ### Q2: 如何撤销最后一次commit？
@@ -901,7 +911,7 @@ git commit -m "feat: 添加新功能"
 git push origin feature/xxx
 
 # 拉取最新代码
-git pull origin develop
+git pull --rebase origin develop
 
 # 查看日志
 git log --oneline -10
@@ -909,8 +919,8 @@ git log --oneline -10
 # 切换分支
 git checkout develop
 
-# 合并分支
-git merge feature/xxx
+# 线性集成分支
+git merge --ff-only feature/xxx
 
 # 删除本地分支
 git branch -d feature/xxx
