@@ -54,7 +54,13 @@ apiClient.interceptors.response.use(
     const isExpiredSession =
       error.response?.status === 401 && error.response.data?.code === "AUTH_SESSION_EXPIRED";
 
-    if (!isExpiredSession || !request || request._authRetried || isAuthenticationRequest) {
+    if (
+      !isExpiredSession ||
+      !request ||
+      request._authRetried ||
+      isAuthenticationRequest ||
+      !request.headers.has("Authorization")
+    ) {
       return Promise.reject(error);
     }
 
