@@ -46,7 +46,15 @@ test("UniApp H5 compiler resolves its compatible Vite runtime", async () => {
 
   assert.match(workspace, /["']@dcloudio\/uni-h5-vite@3\.0\.0-4080520251106001["']:/);
   assert.match(workspace, /vite:\s*["']5\.4\.21["']/);
-  assert.match(manifest.devDependencies.vite, /^\^5\./);
+  assert.match(
+    workspace,
+    /["']@wot-ui\/ui@2\.3\.1["']:\s*\n\s+peerDependencies:\s*\n\s+["']@dcloudio\/uni-app["']:\s*["']3\.0\.0-4080520251106001["']/,
+  );
+  assert.match(
+    workspace,
+    /["']@dcloudio\/uni-cli-shared@3\.0\.0-4080520251106001["']:\s*\n\s+dependencies:\s*\n\s+postcss:\s*["']8\.4\.45["']/,
+  );
+  assert.equal(manifest.devDependencies.vite, "5.4.21");
   assert.equal(manifest.devDependencies.vitest, manifest.devDependencies["@vitest/coverage-v8"]);
   for (const dependency of [
     "@dcloudio/uni-app-plus",
@@ -57,6 +65,26 @@ test("UniApp H5 compiler resolves its compatible Vite runtime", async () => {
     assert.equal(manifest.dependencies[dependency], compilerVersion);
   }
   assert.equal(manifest.devDependencies["@dcloudio/vite-plugin-uni"], compilerVersion);
+});
+
+test("依赖清单使用精确版本", async () => {
+  const workspace = await readFile(resolve(root, "pnpm-workspace.yaml"), "utf8");
+
+  assert.match(workspace, /^saveExact: true$/m);
+  for (const path of ["package.json", ...manifests]) {
+    const manifest = await readJson(path);
+
+    for (const section of ["dependencies", "devDependencies", "optionalDependencies"]) {
+      for (const [dependency, version] of Object.entries(manifest[section] ?? {})) {
+        if (version.startsWith("workspace:")) continue;
+        assert.match(
+          version,
+          /^\d+\.\d+\.\d+(?:-[0-9A-Za-z.-]+)?$/,
+          `${path} 的 ${dependency} 必须使用精确版本`,
+        );
+      }
+    }
+  }
 });
 
 test("pnpm 自动使用项目版本并严格校验 Node 兼容性", async () => {
