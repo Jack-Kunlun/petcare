@@ -175,6 +175,15 @@ export function WebsiteMediaLibrary({
           {assets.map((asset) => {
             const referenced = asset.references.length > 0;
             const pending = pendingAssetId === asset.id;
+            let archiveLabel = "归档";
+
+            if (referenced) {
+              archiveLabel = "已引用";
+            }
+
+            if (asset.status === "archived") {
+              archiveLabel = "已归档";
+            }
 
             return (
               <li
@@ -219,7 +228,7 @@ export function WebsiteMediaLibrary({
                   ) : (
                     <Archive aria-hidden="true" className="h-4 w-4" />
                   )}
-                  {asset.status === "archived" ? "已归档" : referenced ? "已引用" : "归档"}
+                  {archiveLabel}
                 </button>
               </li>
             );

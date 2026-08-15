@@ -39,6 +39,7 @@ test("createBaseRulesConfig rewrites plugin rule IDs without setting a parser", 
   assert.equal(config.rules["petcare-import/order"][0], "error");
   assert.equal(config.rules["petcare-import/named"], "off");
   assert.equal(config.rules["no-console"], "off");
+  assert.deepEqual(config.rules.quotes, ["error", "double", { avoidEscape: true }]);
   assert.equal(
     Object.keys(config.rules).some((ruleId) =>
       ["@typescript-eslint/", "unicorn/", "import/"].some((prefix) => ruleId.startsWith(prefix)),

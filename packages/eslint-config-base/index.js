@@ -20,7 +20,7 @@ const baseRules = {
   "arrow-body-style": "off",
   "prefer-arrow-callback": "off",
   semi: ["error", "always"],
-  quotes: ["error", "double"],
+  quotes: ["error", "double", { avoidEscape: true }],
   eqeqeq: ["error", "always"],
   "object-shorthand": ["error", "always"],
   "no-sequences": ["error", { allowInParentheses: false }],
