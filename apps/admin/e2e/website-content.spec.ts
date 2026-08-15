@@ -128,7 +128,7 @@ test.describe("官网内容 Admin 到 Website 发布流程", () => {
     await loginWebsiteOperator(page, websiteContentFixtures.reader);
     await page
       .getByTestId("desktop-menu-tree")
-      .getByRole("link", { name: "官网内容管理" })
+      .getByRole("link", { name: "官网设置" })
       .click();
     await expect(page.getByRole("heading", { name: "官网内容" })).toBeVisible();
     await expect(page.getByRole("link", { name: "编辑草稿" })).toHaveCount(0);

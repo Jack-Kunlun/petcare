@@ -10,4 +10,8 @@ describe("website Astro configuration", () => {
   it("loads the CommonJS shared contract package through Node during SSR", () => {
     expect(config.vite?.ssr?.external).toContain("@petcare/shared-types");
   });
+
+  it("uses the same local development origin that the Server puts in preview URLs", () => {
+    expect(config.server).toMatchObject({ port: 8080 });
+  });
 });
