@@ -131,8 +131,12 @@ describe("TokenService", () => {
   it("revokes only the selected session by id", async () => {
     const firstTokens = await service.issue(principal);
     const secondTokens = await service.issue(principal);
-    const firstPayload = await jwtService.verifyAsync(firstTokens.refreshToken, { secret: jwtSecret });
-    const secondPayload = await jwtService.verifyAsync(secondTokens.refreshToken, { secret: jwtSecret });
+    const firstPayload = await jwtService.verifyAsync(firstTokens.refreshToken, {
+      secret: jwtSecret,
+    });
+    const secondPayload = await jwtService.verifyAsync(secondTokens.refreshToken, {
+      secret: jwtSecret,
+    });
 
     await service.revokeSession(firstPayload.sid);
 

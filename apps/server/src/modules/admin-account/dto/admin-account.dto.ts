@@ -51,7 +51,10 @@ export class UploadAdminAvatarDto {
 
 /** Documents the public URL returned after a validated avatar replacement. */
 export class AdminAvatarResponseDto implements AdminAvatarResponse {
-  @ApiProperty({ format: "uri", example: "https://cdn.example.com/public/admin-avatars/user/avatar.png" })
+  @ApiProperty({
+    format: "uri",
+    example: "https://cdn.example.com/public/admin-avatars/user/avatar.png",
+  })
   avatar: string;
 }
 

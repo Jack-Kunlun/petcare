@@ -11,7 +11,10 @@ import {
   WebsitePreviewContentResponseDto,
   WebsitePublicContentResponseDto,
 } from "./dto/public-website-content.dto";
-import { toWebsitePreviewContent, WebsiteContentPublicService } from "./website-content-public.service";
+import {
+  toWebsitePreviewContent,
+  WebsiteContentPublicService,
+} from "./website-content-public.service";
 import { WebsitePreviewService } from "./website-preview.service";
 
 /** Exposes published and capability-scoped Website Content to the SSR website only. */
@@ -26,7 +29,11 @@ export class PublicWebsiteContentController {
   /** Reads a fixed draft snapshot only from the explicitly supplied preview-token header. */
   @Get("previews/:contentKey")
   @ApiParam({ name: "contentKey" })
-  @ApiHeader({ name: "X-Website-Preview-Token", required: true, description: "Preview capability token" })
+  @ApiHeader({
+    name: "X-Website-Preview-Token",
+    required: true,
+    description: "Preview capability token",
+  })
   @ApiOperation({ summary: "Read capability-scoped Website Content preview" })
   @ApiSuccessResponse(WebsitePreviewContentResponseDto)
   @ApiStandardErrors(401, 404, 500)

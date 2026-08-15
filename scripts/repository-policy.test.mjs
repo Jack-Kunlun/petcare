@@ -70,6 +70,10 @@ test("Hooks 使用 pnpm exec，换行策略为 Windows 脚本保留 CRLF", async
   assert.doesNotMatch(`${commitMsg}\n${preCommit}\n${commitScope}\n${lintStaged}`, /corepack pnpm/);
   assert.doesNotMatch(lintStaged, /(?:vitest|jest)\s+run/);
   for (const commands of Object.values(manifest["lint-staged"])) {
+    const eslintIndex = commands.findIndex((command) => command.includes("eslint"));
+    const prettierIndex = commands.findIndex((command) => command.includes("prettier"));
+
+    if (eslintIndex >= 0 && prettierIndex >= 0) assert.ok(eslintIndex < prettierIndex);
     for (const command of commands) {
       if (command.includes("eslint")) {
         const eslintArguments = command
@@ -85,12 +89,12 @@ test("Hooks 使用 pnpm exec，换行策略为 Windows 脚本保留 CRLF", async
     }
   }
   assert.deepEqual(manifest["lint-staged"]["scripts/**/*.{js,mjs,cjs}"], [
-    "prettier --write",
     "eslint --fix",
+    "prettier --write",
   ]);
   assert.deepEqual(manifest["lint-staged"]["apps/website/**/*.{astro,ts,css,json}"], [
-    "prettier --write",
     "pnpm --filter @petcare/website exec -- eslint --fix",
+    "prettier --write",
   ]);
   assert.deepEqual(
     prettierIgnore.split(/\r?\n/).filter((line) => line.startsWith("apps/miniapp/src/")),
@@ -104,6 +108,7 @@ test("Hooks 使用 pnpm exec，换行策略为 Windows 脚本保留 CRLF", async
   for (const ignoredPath of ["apps/website/.astro/", "apps/website/dist/"]) {
     assert.ok(prettierIgnore.split(/\r?\n/).includes(ignoredPath));
   }
+  assert.ok(prettierIgnore.split(/\r?\n/).includes("pnpm-lock.yaml"));
   for (const ignoredPath of [
     "src/uni_modules/**/*",
     "src/auto-imports.d.ts",

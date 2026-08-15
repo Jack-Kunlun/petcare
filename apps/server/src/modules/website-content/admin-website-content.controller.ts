@@ -109,7 +109,9 @@ export class AdminWebsiteContentController {
   @ApiOperation({ summary: "Read Website Content draft" })
   @ApiSuccessResponse(WebsiteContentVersionResponseDto)
   @ApiStandardErrors(401, 403, 404, 500)
-  getDraft(@Param("contentKey") contentKey: WebsiteContentKey): Promise<WebsiteContentDraftResponse> {
+  getDraft(
+    @Param("contentKey") contentKey: WebsiteContentKey,
+  ): Promise<WebsiteContentDraftResponse> {
     return this.repository.getCurrentDraft(contentKey);
   }
 

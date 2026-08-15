@@ -23,8 +23,7 @@ export const WEBSITE_CONTENT_KEY = {
 } as const;
 
 /** Stable key of an independently published Website Content unit. */
-export type WebsiteContentKey =
-  (typeof WEBSITE_CONTENT_KEY)[keyof typeof WEBSITE_CONTENT_KEY];
+export type WebsiteContentKey = (typeof WEBSITE_CONTENT_KEY)[keyof typeof WEBSITE_CONTENT_KEY];
 
 /** Supported Website Content section renderer types. */
 export const WEBSITE_SECTION_TYPE = {
@@ -47,8 +46,7 @@ export const WEBSITE_SECTION_TYPE = {
 } as const;
 
 /** Discriminator of a supported Website Content section. */
-export type WebsiteSectionType =
-  (typeof WEBSITE_SECTION_TYPE)[keyof typeof WEBSITE_SECTION_TYPE];
+export type WebsiteSectionType = (typeof WEBSITE_SECTION_TYPE)[keyof typeof WEBSITE_SECTION_TYPE];
 
 /** Lifecycle states of immutable Website Content versions. */
 export const WEBSITE_CONTENT_STATUS = {
@@ -73,8 +71,7 @@ export const WEBSITE_MEDIA_STATUS = {
 } as const;
 
 /** Lifecycle state of a managed website media asset. */
-export type WebsiteMediaStatus =
-  (typeof WEBSITE_MEDIA_STATUS)[keyof typeof WEBSITE_MEDIA_STATUS];
+export type WebsiteMediaStatus = (typeof WEBSITE_MEDIA_STATUS)[keyof typeof WEBSITE_MEDIA_STATUS];
 
 /** Stable machine-readable Website Content failures. */
 export const WEBSITE_CONTENT_ERROR_CODE = {
@@ -106,10 +103,7 @@ export type WebsiteContentErrorCode =
 
 /** Safe destination accepted by managed website actions. */
 export type WebsiteLinkDestination =
-  | `/${string}`
-  | `https://${string}`
-  | `mailto:${string}`
-  | `tel:${string}`;
+  `/${string}` | `https://${string}` | `mailto:${string}` | `tel:${string}`;
 
 /** Label and allow-listed destination for a managed website action. */
 export interface WebsiteActionLink {
@@ -154,11 +148,7 @@ export interface WebsiteSeoContent {
 }
 
 /** Common immutable shape shared by every supported section type. */
-export interface WebsiteContentSectionBase<
-  TType extends WebsiteSectionType,
-  TContent,
-  TSettings,
-> {
+export interface WebsiteContentSectionBase<TType extends WebsiteSectionType, TContent, TSettings> {
   /** Stable key within one page template. */
   sectionKey: string;
   /** Renderer and validator discriminator. */

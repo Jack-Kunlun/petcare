@@ -32,14 +32,14 @@ describe("public article and operational route contracts", () => {
     expect(robotsSource).toContain("createRobotsText");
     expect(sitemapSource).toContain("export const prerender = false");
     expect(sitemapSource).toContain("loadPublishedSitemapPaths");
-    expect(healthSource).toContain("status: \"ok\"");
+    expect(healthSource).toContain('status: "ok"');
     expect(healthSource).not.toContain("getWebsiteRuntimeConfig");
   });
 
   it("uses a dedicated noindex unavailable state instead of a draft fallback", async () => {
     const source = await readFile(unavailablePath, "utf8");
 
-    expect(source).toContain("name=\"robots\" content=\"noindex\"");
+    expect(source).toContain('name="robots" content="noindex"');
     expect(source).not.toContain("getPreview");
     expect(source).not.toContain("getDraft");
   });

@@ -120,11 +120,7 @@ describe("website content API", () => {
 
   it("keeps website content query identities scoped to content and revision-sensitive history", () => {
     expect(websiteContentQueryKeys.overview()).toEqual(["website-content", "overview"]);
-    expect(websiteContentQueryKeys.draft(contentKey)).toEqual([
-      "website-content",
-      "home",
-      "draft",
-    ]);
+    expect(websiteContentQueryKeys.draft(contentKey)).toEqual(["website-content", "home", "draft"]);
     expect(websiteContentQueryKeys.historyVersion(contentKey, "history-1")).toEqual([
       "website-content",
       "home",

@@ -105,9 +105,7 @@ describe("WechatAuthService", () => {
         userType: "pet_owner",
       },
     });
-    expect(tokenService.issue).toHaveBeenCalledWith(
-      expect.objectContaining({ sessionVersion: 0 }),
-    );
+    expect(tokenService.issue).toHaveBeenCalledWith(expect.objectContaining({ sessionVersion: 0 }));
   });
 
   it("stores a short-lived binding challenge without creating a user", async () => {

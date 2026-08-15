@@ -69,12 +69,12 @@
   "packageManager": "pnpm@11.15.1",
   "lint-staged": {
     "apps/admin/src/**/*.{ts,tsx}": [
-      "prettier --write",
-      "pnpm --filter @petcare/admin exec -- eslint --fix"
+      "pnpm --filter @petcare/admin exec -- eslint --fix",
+      "prettier --write"
     ],
     "apps/miniapp/**/*.{js,mjs,ts,vue}": [
-      "prettier --write",
-      "pnpm --filter @petcare/miniapp exec -- eslint --fix"
+      "pnpm --filter @petcare/miniapp exec -- eslint --fix",
+      "prettier --write"
     ],
     "apps/miniapp/**/*.{css,scss,json}": [
       "prettier --write"
@@ -83,28 +83,28 @@
       "prettier --write"
     ],
     "apps/server/src/**/*.ts": [
-      "prettier --write",
-      "pnpm --filter @petcare/server exec -- eslint --fix"
+      "pnpm --filter @petcare/server exec -- eslint --fix",
+      "prettier --write"
     ],
     "apps/website/**/*.{astro,ts,css,json}": [
-      "prettier --write",
-      "pnpm --filter @petcare/website exec -- eslint --fix"
+      "pnpm --filter @petcare/website exec -- eslint --fix",
+      "prettier --write"
     ],
     "packages/shared-types/**/*.ts": [
-      "prettier --write",
-      "pnpm --filter @petcare/shared-types exec -- eslint --fix"
+      "pnpm --filter @petcare/shared-types exec -- eslint --fix",
+      "prettier --write"
     ],
     "packages/shared-utils/**/*.ts": [
-      "prettier --write",
-      "pnpm --filter @petcare/shared-utils exec -- eslint --fix"
+      "pnpm --filter @petcare/shared-utils exec -- eslint --fix",
+      "prettier --write"
     ],
     "packages/api-client/**/*.ts": [
-      "prettier --write",
-      "pnpm --filter @petcare/api-client exec -- eslint --fix"
+      "pnpm --filter @petcare/api-client exec -- eslint --fix",
+      "prettier --write"
     ],
     "scripts/**/*.{js,mjs,cjs}": [
-      "prettier --write",
-      "eslint --fix"
+      "eslint --fix",
+      "prettier --write"
     ],
     "*.{md,json,yml,yaml}": [
       "prettier --write"

@@ -26,6 +26,8 @@ describe("SaveWebsiteContentDraftDto", () => {
       ],
     });
 
-    await expect(validate(dto, { whitelist: true, forbidNonWhitelisted: true })).resolves.toEqual([]);
+    await expect(validate(dto, { whitelist: true, forbidNonWhitelisted: true })).resolves.toEqual(
+      [],
+    );
   });
 });

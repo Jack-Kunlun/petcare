@@ -39,6 +39,7 @@ test("createBaseRulesConfig rewrites plugin rule IDs without setting a parser", 
   assert.equal(config.rules["petcare-import/order"][0], "error");
   assert.equal(config.rules["petcare-import/named"], "off");
   assert.equal(config.rules["no-console"], "off");
+  assert.deepEqual(config.rules.quotes, ["error", "double", { avoidEscape: true }]);
   assert.equal(
     Object.keys(config.rules).some((ruleId) =>
       ["@typescript-eslint/", "unicorn/", "import/"].some((prefix) => ruleId.startsWith(prefix)),
@@ -149,8 +150,8 @@ test("Miniapp formatting policy uses the root Prettier ignore rules and staged-o
   assert.equal(rootPackage.scripts.format, "prettier --write .");
   assert.equal(rootPackage.scripts["format:check"], "prettier --check .");
   assert.deepEqual(rootPackage["lint-staged"]["apps/miniapp/**/*.{js,mjs,ts,vue}"], [
-    "prettier --write",
     "pnpm --filter @petcare/miniapp exec -- eslint --fix",
+    "prettier --write",
   ]);
   assert.deepEqual(rootPackage["lint-staged"]["apps/miniapp/**/*.{md,html}"], ["prettier --write"]);
   for (const protectedPath of [

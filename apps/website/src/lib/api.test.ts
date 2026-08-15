@@ -86,9 +86,11 @@ describe("createWebsiteContentApi", () => {
   });
 
   it("forwards preview capability only in the dedicated server-side header", async () => {
-    const fetcher = vi.fn().mockResolvedValue(
-      successResponse({ contentKey: "home", revision: 4, seo: {}, sections: [] }),
-    );
+    const fetcher = vi
+      .fn()
+      .mockResolvedValue(
+        successResponse({ contentKey: "home", revision: 4, seo: {}, sections: [] }),
+      );
     const api = createWebsiteContentApi({ baseUrl: "http://server:3000", fetcher });
 
     await api.getPreview("home", "preview-capability");

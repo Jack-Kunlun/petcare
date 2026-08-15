@@ -101,9 +101,7 @@ describe("AuthService", () => {
         permissions: RBAC_PERMISSION_CATALOG.map((permission) => permission.code),
       },
     });
-    expect(tokenService.issue).toHaveBeenCalledWith(
-      expect.objectContaining({ sessionVersion: 0 }),
-    );
+    expect(tokenService.issue).toHaveBeenCalledWith(expect.objectContaining({ sessionVersion: 0 }));
   });
 
   it("allows an active ordinary RBAC administrator to log in", async () => {

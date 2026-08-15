@@ -15,7 +15,9 @@ export default function WebsiteContent() {
     <section className="mx-auto w-full max-w-[1280px]">
       <header>
         <p className="font-medium text-blue-800">官网内容管理</p>
-        <h1 className="mt-1 text-2xl font-bold tracking-tight text-slate-950 sm:text-3xl">官网内容</h1>
+        <h1 className="mt-1 text-2xl font-bold tracking-tight text-slate-950 sm:text-3xl">
+          官网内容
+        </h1>
         <p className="mt-2 max-w-[720px] leading-6 text-slate-600">
           每个内容单元独立保存草稿并显式发布。编辑固定模板不会新增、删除、换型或排序区块。
         </p>
@@ -36,7 +38,10 @@ export default function WebsiteContent() {
       ) : null}
 
       {overviewQuery.isError ? (
-        <div role="alert" className="mt-6 rounded-xl border border-red-200 bg-red-50 p-5 text-red-950">
+        <div
+          role="alert"
+          className="mt-6 rounded-xl border border-red-200 bg-red-50 p-5 text-red-950"
+        >
           <AlertCircle aria-hidden="true" className="h-5 w-5" />
           <h2 className="mt-2 font-semibold">官网内容加载失败</h2>
           <p className="mt-1">请检查网络连接后重试，已发布内容不会受到影响。</p>
@@ -54,7 +59,10 @@ export default function WebsiteContent() {
       {overviewQuery.data ? (
         <ul className="mt-6 grid gap-4 sm:grid-cols-2 lg:grid-cols-3" aria-label="官网内容单元">
           {overviewQuery.data.map((item) => (
-            <li key={item.contentKey} className="rounded-xl border border-slate-200 bg-white p-5 shadow-sm">
+            <li
+              key={item.contentKey}
+              className="rounded-xl border border-slate-200 bg-white p-5 shadow-sm"
+            >
               <div className="flex items-start justify-between gap-3">
                 <div>
                   <FileText aria-hidden="true" className="h-5 w-5 text-blue-800" />
@@ -79,7 +87,11 @@ export default function WebsiteContent() {
                 </div>
                 <div className="flex justify-between gap-3">
                   <dt>发布时间</dt>
-                  <dd>{item.publishedAt ? new Date(item.publishedAt).toLocaleString("zh-CN") : "未发布"}</dd>
+                  <dd>
+                    {item.publishedAt
+                      ? new Date(item.publishedAt).toLocaleString("zh-CN")
+                      : "未发布"}
+                  </dd>
                 </div>
               </dl>
               <p className="mt-3 text-sm text-slate-600">

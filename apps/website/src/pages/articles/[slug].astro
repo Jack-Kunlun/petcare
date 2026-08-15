@@ -50,16 +50,16 @@ function formatDate(value: string): string {
           <p class="eyebrow">PetCare Classroom</p>
           <h1>{article.title}</h1>
           <p class="section-description">{article.summary}</p>
-          {
-            article.publishedAt ? (
-              <p class="article-meta">
-                <time datetime={article.publishedAt}>{formatDate(article.publishedAt)}</time>
-                {article.author ? ` · ${article.author.displayName}` : ""}
-              </p>
-            ) : null
-          }
+          {article.publishedAt ? (
+            <p class="article-meta">
+              <time datetime={article.publishedAt}>{formatDate(article.publishedAt)}</time>
+              {article.author ? ` · ${article.author.displayName}` : ""}
+            </p>
+          ) : null}
         </header>
-        {article.coverUrl ? <img src={article.coverUrl} alt={article.title} loading="lazy" /> : null}
+        {article.coverUrl ? (
+          <img src={article.coverUrl} alt={article.title} loading="lazy" />
+        ) : null}
         <div class="article-detail__body">{article.body}</div>
       </article>
     </ArticleLayout>
@@ -69,13 +69,19 @@ function formatDate(value: string): string {
         <meta charset="utf-8" />
         <meta name="viewport" content="width=device-width, initial-scale=1" />
         <meta name="robots" content="noindex" />
-        <title>{failureStatus === 404 ? "Article not found | PetCare" : "Service temporarily unavailable | PetCare"}</title>
+        <title>
+          {failureStatus === 404
+            ? "Article not found | PetCare"
+            : "Service temporarily unavailable | PetCare"}
+        </title>
       </head>
       <body>
         <main class="failure-page">
           <h1>{failureStatus === 404 ? "Article not found" : "Service temporarily unavailable"}</h1>
           <p>{failureStatus === 404 ? "该文章不存在或已下线。" : "请稍后再试。"}</p>
-          <a class="button" href="/articles">返回宠物课堂</a>
+          <a class="button" href="/articles">
+            返回宠物课堂
+          </a>
         </main>
       </body>
     </html>

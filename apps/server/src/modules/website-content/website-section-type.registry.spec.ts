@@ -61,7 +61,10 @@ describe("WebsiteSectionTypeRegistry", () => {
   );
 
   it("resolves only the managed image asset identifiers referenced by a section", () => {
-    const hero = sectionOfType(defaultSections(WEBSITE_CONTENT_KEY.HOME), WEBSITE_SECTION_TYPE.HERO);
+    const hero = sectionOfType(
+      defaultSections(WEBSITE_CONTENT_KEY.HOME),
+      WEBSITE_SECTION_TYPE.HERO,
+    );
     const feature = sectionOfType(
       defaultSections(WEBSITE_CONTENT_KEY.HOME),
       WEBSITE_SECTION_TYPE.FEATURE_SPLIT,
@@ -72,11 +75,18 @@ describe("WebsiteSectionTypeRegistry", () => {
 
     expect(registry.resolveAssetIds(hero)).toEqual(["hero-asset"]);
     expect(registry.resolveAssetIds(feature)).toEqual(["feature-asset"]);
-    expect(registry.resolveAssetIds(sectionOfType(defaultSections(WEBSITE_CONTENT_KEY.HOME), WEBSITE_SECTION_TYPE.CTA))).toEqual([]);
+    expect(
+      registry.resolveAssetIds(
+        sectionOfType(defaultSections(WEBSITE_CONTENT_KEY.HOME), WEBSITE_SECTION_TYPE.CTA),
+      ),
+    ).toEqual([]);
   });
 
   it("reports an unknown section discriminator without attempting dynamic execution", () => {
-    const section = sectionOfType(defaultSections(WEBSITE_CONTENT_KEY.HOME), WEBSITE_SECTION_TYPE.HERO);
+    const section = sectionOfType(
+      defaultSections(WEBSITE_CONTENT_KEY.HOME),
+      WEBSITE_SECTION_TYPE.HERO,
+    );
     const unknownSection = {
       ...section,
       sectionType: "template_from_database",
@@ -89,7 +99,10 @@ describe("WebsiteSectionTypeRegistry", () => {
   });
 
   it("reports an unsupported schema version", () => {
-    const section = sectionOfType(defaultSections(WEBSITE_CONTENT_KEY.HOME), WEBSITE_SECTION_TYPE.HERO);
+    const section = sectionOfType(
+      defaultSections(WEBSITE_CONTENT_KEY.HOME),
+      WEBSITE_SECTION_TYPE.HERO,
+    );
 
     section.schemaVersion = 2 as 1;
 
@@ -99,7 +112,10 @@ describe("WebsiteSectionTypeRegistry", () => {
   });
 
   it("rejects unsafe action destinations while retaining the allow-listed protocols", () => {
-    const unsafeCta = sectionOfType(defaultSections(WEBSITE_CONTENT_KEY.HOME), WEBSITE_SECTION_TYPE.CTA);
+    const unsafeCta = sectionOfType(
+      defaultSections(WEBSITE_CONTENT_KEY.HOME),
+      WEBSITE_SECTION_TYPE.CTA,
+    );
 
     unsafeCta.content.primaryAction.href = "javascript:alert(1)" as never;
 
@@ -115,7 +131,10 @@ describe("WebsiteSectionTypeRegistry", () => {
     ];
 
     for (const href of destinations) {
-      const cta = sectionOfType(defaultSections(WEBSITE_CONTENT_KEY.HOME), WEBSITE_SECTION_TYPE.CTA);
+      const cta = sectionOfType(
+        defaultSections(WEBSITE_CONTENT_KEY.HOME),
+        WEBSITE_SECTION_TYPE.CTA,
+      );
 
       cta.content.primaryAction.href = href;
 
@@ -144,7 +163,10 @@ describe("WebsiteSectionTypeRegistry", () => {
   });
 
   it("reports missing image alt text and settings outside their bounded values", () => {
-    const hero = sectionOfType(defaultSections(WEBSITE_CONTENT_KEY.HOME), WEBSITE_SECTION_TYPE.HERO);
+    const hero = sectionOfType(
+      defaultSections(WEBSITE_CONTENT_KEY.HOME),
+      WEBSITE_SECTION_TYPE.HERO,
+    );
 
     hero.content.image.altText = "";
     hero.settings.alignment = "bottom" as never;

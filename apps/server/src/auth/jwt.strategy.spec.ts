@@ -13,10 +13,7 @@ describe("JwtStrategy", () => {
 
   beforeEach(() => {
     sessionValidation = { assertActiveVersion: jest.fn().mockResolvedValue(undefined) };
-    strategy = new JwtStrategy(
-      config,
-      sessionValidation as unknown as SessionValidationService,
-    );
+    strategy = new JwtStrategy(config, sessionValidation as unknown as SessionValidationService);
   });
 
   it("accepts a current access session without requiring an administrator role", async () => {

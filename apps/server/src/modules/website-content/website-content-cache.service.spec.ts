@@ -22,7 +22,12 @@ describe("WebsiteContentCacheService", () => {
     const connect = jest.fn(async () => {
       throw new Error("redis unavailable");
     });
-    const clientFactory = jest.fn(() => ({ isOpen: false, connect, get: jest.fn(), setEx: jest.fn() }));
+    const clientFactory = jest.fn(() => ({
+      isOpen: false,
+      connect,
+      get: jest.fn(),
+      setEx: jest.fn(),
+    }));
     const service = new WebsiteContentCacheService({
       clientFactory,
       redis: { host: "redis.internal", port: 6380, password: "shared-secret" },

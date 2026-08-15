@@ -7,7 +7,10 @@ import type {
 } from "@petcare/shared-types";
 
 /** Public-safe draft snapshot returned only after a valid preview capability exchange. */
-export type WebsitePreviewContent = Omit<WebsitePublicContent, "businessVersion" | "publishedAt"> & {
+export type WebsitePreviewContent = Omit<
+  WebsitePublicContent,
+  "businessVersion" | "publishedAt"
+> & {
   /** Immutable draft revision fixed when the preview capability was created. */
   revision: number;
 };

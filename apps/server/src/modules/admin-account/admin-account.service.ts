@@ -262,9 +262,7 @@ export class AdminAccountService {
   }
 
   private isSerializationConflict(error: unknown): boolean {
-    return (
-      typeof error === "object" && error !== null && "code" in error && error.code === "P2034"
-    );
+    return typeof error === "object" && error !== null && "code" in error && error.code === "P2034";
   }
 
   private async deleteAvatarObject(userId: string, objectKey: string | null): Promise<void> {

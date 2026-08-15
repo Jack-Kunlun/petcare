@@ -138,12 +138,19 @@ export function WebsiteSectionEditor({
             <span className="text-sm font-medium text-slate-800">显示区块</span>
           </label>
         ) : (
-          <p className="rounded-lg bg-slate-100 px-3 py-2 text-sm text-slate-600">此区块为页面必需区块</p>
+          <p className="rounded-lg bg-slate-100 px-3 py-2 text-sm text-slate-600">
+            此区块为页面必需区块
+          </p>
         )}
       </div>
       {section.isEnabled ? (
         <div className="mt-5">
-          <Editor section={section} onChange={onChange} disabled={disabled} canDisable={canDisable} />
+          <Editor
+            section={section}
+            onChange={onChange}
+            disabled={disabled}
+            canDisable={canDisable}
+          />
         </div>
       ) : (
         <p className="mt-5 rounded-lg bg-slate-100 p-4 text-sm text-slate-600">
