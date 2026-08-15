@@ -76,11 +76,8 @@ test("CI 通过根级 Turbo 命令覆盖 Website 的测试与构建", async () =
   assert.match(buildJob, /- run: pnpm build/u);
 });
 
-test("Dependabot 每周检查 pnpm、Docker 和 GitHub Actions", async () => {
-  const dependabot = await readFile(resolve(root, ".github/dependabot.yml"), "utf8");
-
-  assert.match(dependabot, /package-ecosystem: npm/);
-  assert.match(dependabot, /package-ecosystem: docker/);
-  assert.match(dependabot, /package-ecosystem: github-actions/);
-  assert.equal((dependabot.match(/interval: weekly/g) ?? []).length, 3);
+test("仓库不再配置 Dependabot 版本更新 PR", async () => {
+  await assert.rejects(readFile(resolve(root, ".github/dependabot.yml"), "utf8"), {
+    code: "ENOENT",
+  });
 });

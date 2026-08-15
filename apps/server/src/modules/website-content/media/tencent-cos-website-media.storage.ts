@@ -6,7 +6,9 @@ import type {
   WebsiteMediaStorageUpload,
 } from "./website-media-storage.types";
 
-interface CosCallbackError { RequestId?: string }
+interface CosCallbackError {
+  RequestId?: string;
+}
 type CosCallback = (error: CosCallbackError | null, data?: unknown) => void;
 interface CosClient {
   putObject(params: Record<string, unknown>, callback: CosCallback): void;
@@ -62,8 +64,9 @@ export class TencentCosWebsiteMediaStorage implements WebsiteMediaStorage {
   }
 
   resolvePublicUrl(storageKey: string): string {
-    const base = this.config.publicBaseUrl.trim()
-      || `https://${this.config.bucket}.cos.${this.config.region}.myqcloud.com`;
+    const base =
+      this.config.publicBaseUrl.trim() ||
+      `https://${this.config.bucket}.cos.${this.config.region}.myqcloud.com`;
 
     return `${base.replace(/\/+$/u, "")}/${storageKey}`;
   }

@@ -7,8 +7,9 @@ import { WebsiteSectionTypeRegistry } from "./website-section-type.registry";
 describe("WebsiteContentDraftService", () => {
   it("creates a new immutable draft and never changes the published pointer", async () => {
     const sections = structuredClone(
-      WEBSITE_CONTENT_SEED_TEMPLATES.find(({ contentKey }) => contentKey === WEBSITE_CONTENT_KEY.HOME)!
-        .sections,
+      WEBSITE_CONTENT_SEED_TEMPLATES.find(
+        ({ contentKey }) => contentKey === WEBSITE_CONTENT_KEY.HOME,
+      )!.sections,
     );
     const repository = {
       saveDraft: jest.fn(async () => ({ id: "draft-3", revision: 3 })),

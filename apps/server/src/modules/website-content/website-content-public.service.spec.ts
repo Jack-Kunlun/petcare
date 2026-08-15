@@ -46,7 +46,10 @@ describe("WebsiteContentPublicService", () => {
 
     const result = await service.getPublished(WEBSITE_CONTENT_KEY.HOME);
 
-    expect(repository.getPublishedVersion).toHaveBeenCalledWith(WEBSITE_CONTENT_KEY.HOME, version.id);
+    expect(repository.getPublishedVersion).toHaveBeenCalledWith(
+      WEBSITE_CONTENT_KEY.HOME,
+      version.id,
+    );
     expect(cache.set).toHaveBeenCalledWith(version.id, result);
     expect(result).toMatchObject({
       contentKey: WEBSITE_CONTENT_KEY.HOME,

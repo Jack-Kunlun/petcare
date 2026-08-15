@@ -12,7 +12,13 @@ const asset: WebsiteMediaAsset = {
   height: 800,
   checksum: "checksum",
   status: "active",
-  publicAsset: { id: "asset-1", url: "https://cdn.example/hero.webp", width: 1200, height: 800, mimeType: "image/webp" },
+  publicAsset: {
+    id: "asset-1",
+    url: "https://cdn.example/hero.webp",
+    width: 1200,
+    height: 800,
+    mimeType: "image/webp",
+  },
   createdBy: { id: "admin-1", displayName: "运营管理员" },
   createdAt: "2026-08-12T00:00:00.000Z",
   references: [],
@@ -34,9 +40,11 @@ describe("WebsiteMediaLibrary", () => {
       />,
     );
 
-    const input = document.querySelector("input[type=\"file\"]") as HTMLInputElement;
+    const input = document.querySelector('input[type="file"]') as HTMLInputElement;
 
-    fireEvent.change(input, { target: { files: [new File(["x"], "note.txt", { type: "text/plain" })] } });
+    fireEvent.change(input, {
+      target: { files: [new File(["x"], "note.txt", { type: "text/plain" })] },
+    });
     expect(onUpload).not.toHaveBeenCalled();
     expect(screen.getByRole("alert")).toHaveTextContent("JPEG、PNG 或 WebP");
 
@@ -45,10 +53,27 @@ describe("WebsiteMediaLibrary", () => {
   });
 
   it("disables archive and explains references", () => {
-    const referenced = { ...asset, references: [{ contentKey: "home" as const, versionId: "v1", sectionKey: "hero", status: "published" as const }] };
+    const referenced = {
+      ...asset,
+      references: [
+        {
+          contentKey: "home" as const,
+          versionId: "v1",
+          sectionKey: "hero",
+          status: "published" as const,
+        },
+      ],
+    };
 
     render(
-      <WebsiteMediaLibrary assets={[referenced]} query={{ page: 1, pageSize: 20 }} total={1} onUpload={vi.fn()} onArchive={vi.fn()} onQueryChange={vi.fn()} />,
+      <WebsiteMediaLibrary
+        assets={[referenced]}
+        query={{ page: 1, pageSize: 20 }}
+        total={1}
+        onUpload={vi.fn()}
+        onArchive={vi.fn()}
+        onQueryChange={vi.fn()}
+      />,
     );
 
     expect(screen.getByText(/已被 1 个草稿或发布版本引用/)).toBeInTheDocument();

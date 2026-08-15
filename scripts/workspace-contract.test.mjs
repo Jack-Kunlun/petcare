@@ -40,10 +40,23 @@ test("Miniapp workspace preserves the UniApp target contract", async () => {
 });
 
 test("UniApp H5 compiler resolves its compatible Vite runtime", async () => {
+  const manifest = await readJson("apps/miniapp/package.json");
   const workspace = await readFile(resolve(root, "pnpm-workspace.yaml"), "utf8");
+  const compilerVersion = manifest.dependencies["@dcloudio/uni-app"];
 
   assert.match(workspace, /["']@dcloudio\/uni-h5-vite@3\.0\.0-4080520251106001["']:/);
   assert.match(workspace, /vite:\s*["']5\.4\.21["']/);
+  assert.match(manifest.devDependencies.vite, /^\^5\./);
+  assert.equal(manifest.devDependencies.vitest, manifest.devDependencies["@vitest/coverage-v8"]);
+  for (const dependency of [
+    "@dcloudio/uni-app-plus",
+    "@dcloudio/uni-components",
+    "@dcloudio/uni-h5",
+    "@dcloudio/uni-mp-weixin",
+  ]) {
+    assert.equal(manifest.dependencies[dependency], compilerVersion);
+  }
+  assert.equal(manifest.devDependencies["@dcloudio/vite-plugin-uni"], compilerVersion);
 });
 
 test("pnpm 自动使用项目版本并严格校验 Node 兼容性", async () => {

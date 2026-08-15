@@ -96,8 +96,7 @@ function createFakePrisma() {
       upsert: jest.fn(async ({ where, update, create }) => {
         const key = where.versionId_sectionKey;
         const existing = sections.find(
-          (section) =>
-            section.versionId === key.versionId && section.sectionKey === key.sectionKey,
+          (section) => section.versionId === key.versionId && section.sectionKey === key.sectionKey,
         );
 
         if (existing) {

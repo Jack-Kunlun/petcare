@@ -46,7 +46,10 @@ export function ContentDiff({ items }: { items: readonly WebsiteContentDiffItem[
   return (
     <ol aria-label="官网内容字段差异" className="space-y-3">
       {items.map((item) => (
-        <li key={`${item.path}-${item.changeType}`} className="min-w-0 rounded-lg border border-slate-200 bg-white p-4">
+        <li
+          key={`${item.path}-${item.changeType}`}
+          className="min-w-0 rounded-lg border border-slate-200 bg-white p-4"
+        >
           <div className="flex flex-wrap items-center justify-between gap-2">
             <p className="break-all font-mono text-sm font-semibold text-slate-950">{item.path}</p>
             <span className="rounded-full border border-blue-200 bg-blue-50 px-2.5 py-1 text-xs font-semibold text-blue-900">
@@ -60,7 +63,10 @@ export function ContentDiff({ items }: { items: readonly WebsiteContentDiffItem[
                 {formatValue(item.before)}
               </pre>
             </div>
-            <ArrowRight aria-hidden="true" className="h-4 w-4 rotate-90 justify-self-center text-slate-500 sm:rotate-0" />
+            <ArrowRight
+              aria-hidden="true"
+              className="h-4 w-4 rotate-90 justify-self-center text-slate-500 sm:rotate-0"
+            />
             <div className="min-w-0 rounded-md bg-emerald-50 p-3">
               <span className="block text-xs font-semibold text-emerald-800">发布后</span>
               <pre className="mt-1 whitespace-pre-wrap break-words font-sans text-sm text-emerald-950">

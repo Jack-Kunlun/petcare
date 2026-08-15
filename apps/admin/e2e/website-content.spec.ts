@@ -80,17 +80,26 @@ test.describe("官网内容 Admin 到 Website 发布流程", () => {
       expect(previewResponse).not.toBeNull();
       expect(previewResponse?.headers()["cache-control"]).toContain("no-store");
       expect(previewResponse?.headers()["x-robots-tag"]).toContain("noindex");
-      await expect(previewPage.locator("meta[name=\"robots\"]")).toHaveAttribute("content", /noindex/u);
-      await expect(previewPage.getByRole("heading", { name: draftTitle, exact: true })).toBeVisible();
+      await expect(previewPage.locator('meta[name="robots"]')).toHaveAttribute(
+        "content",
+        /noindex/u,
+      );
+      await expect(
+        previewPage.getByRole("heading", { name: draftTitle, exact: true }),
+      ).toBeVisible();
 
       publisherContext = await browser.newContext({ baseURL: new URL(page.url()).origin });
       const publisherPage = await publisherContext.newPage();
 
       await loginWebsiteOperator(publisherPage, websiteContentFixtures.publisher);
       await openHomeEditorRoute(publisherPage);
-      await expect(publisherPage.getByLabel(websiteContentFixtures.home.heroTitleLabel)).toBeDisabled();
+      await expect(
+        publisherPage.getByLabel(websiteContentFixtures.home.heroTitleLabel),
+      ).toBeDisabled();
       await expect(publisherPage.getByRole("button", { name: "保存草稿" })).toHaveCount(0);
-      await expect(publisherPage.getByRole("button", { name: "preview-saved-draft" })).toHaveCount(0);
+      await expect(publisherPage.getByRole("button", { name: "preview-saved-draft" })).toHaveCount(
+        0,
+      );
       await publishSavedDraft(publisherPage, "官网 E2E：发布已保存首屏草稿");
 
       await livePage.reload();
@@ -102,7 +111,9 @@ test.describe("官网内容 Admin 到 Website 发布流程", () => {
       await originalVersion.click();
       await expect(publisherPage).toHaveURL(/\/website-content\/home\/history\//u);
       await publisherPage.getByRole("button", { name: "恢复为新草稿" }).click();
-      await publisherPage.getByRole("textbox", { name: "恢复变更摘要" }).fill("官网 E2E：恢复初始首页");
+      await publisherPage
+        .getByRole("textbox", { name: "恢复变更摘要" })
+        .fill("官网 E2E：恢复初始首页");
       await publisherPage.getByRole("button", { name: "确认创建草稿" }).click();
       await expect(publisherPage).toHaveURL(/\/website-content\/home\/edit$/u);
 
@@ -126,10 +137,7 @@ test.describe("官网内容 Admin 到 Website 发布流程", () => {
 
   test("读者、编辑者和发布者分别只看到其授权的官网内容操作", async ({ browser, page }) => {
     await loginWebsiteOperator(page, websiteContentFixtures.reader);
-    await page
-      .getByTestId("desktop-menu-tree")
-      .getByRole("link", { name: "官网设置" })
-      .click();
+    await page.getByTestId("desktop-menu-tree").getByRole("link", { name: "官网设置" }).click();
     await expect(page.getByRole("heading", { name: "官网内容" })).toBeVisible();
     await expect(page.getByRole("link", { name: "编辑草稿" })).toHaveCount(0);
     await openHomeEditorRoute(page);
@@ -153,10 +161,16 @@ test.describe("官网内容 Admin 到 Website 发布流程", () => {
 
       await loginWebsiteOperator(publisherPage, websiteContentFixtures.publisher);
       await openHomeEditorRoute(publisherPage);
-      await expect(publisherPage.getByLabel(websiteContentFixtures.home.heroTitleLabel)).toBeDisabled();
+      await expect(
+        publisherPage.getByLabel(websiteContentFixtures.home.heroTitleLabel),
+      ).toBeDisabled();
       await expect(publisherPage.getByRole("button", { name: "保存草稿" })).toHaveCount(0);
-      await expect(publisherPage.getByRole("button", { name: "preview-saved-draft" })).toHaveCount(0);
-      await expect(publisherPage.getByRole("button", { name: "publish-saved-draft" })).toBeVisible();
+      await expect(publisherPage.getByRole("button", { name: "preview-saved-draft" })).toHaveCount(
+        0,
+      );
+      await expect(
+        publisherPage.getByRole("button", { name: "publish-saved-draft" }),
+      ).toBeVisible();
       await expectNoStructureControls(publisherPage);
     } finally {
       await editorContext.close();

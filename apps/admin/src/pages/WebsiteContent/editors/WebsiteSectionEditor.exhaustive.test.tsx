@@ -108,16 +108,23 @@ describe("WebsiteSectionEditor exhaustive section support", () => {
     expect(Object.keys(editorByType).sort()).toEqual(Object.values(WEBSITE_SECTION_TYPE).sort());
   });
 
-  it.each(Object.values(WEBSITE_SECTION_TYPE))("renders %s through its typed editor", (sectionType) => {
-    const queryClient = new QueryClient({ defaultOptions: { queries: { retry: false } } });
+  it.each(Object.values(WEBSITE_SECTION_TYPE))(
+    "renders %s through its typed editor",
+    (sectionType) => {
+      const queryClient = new QueryClient({ defaultOptions: { queries: { retry: false } } });
 
-    render(
-      <QueryClientProvider client={queryClient}>
-        <WebsiteSectionEditor section={sectionFor(sectionType)} onChange={vi.fn()} disabled />
-      </QueryClientProvider>,
-    );
+      render(
+        <QueryClientProvider client={queryClient}>
+          <WebsiteSectionEditor section={sectionFor(sectionType)} onChange={vi.fn()} disabled />
+        </QueryClientProvider>,
+      );
 
-    expect(screen.getByRole("textbox", { name: fieldLabelByType[sectionType] })).toBeInTheDocument();
-    expect(screen.queryByRole("button", { name: /新增区块|删除区块|更换区块类型|拖拽排序/ })).toBeNull();
-  });
+      expect(
+        screen.getByRole("textbox", { name: fieldLabelByType[sectionType] }),
+      ).toBeInTheDocument();
+      expect(
+        screen.queryByRole("button", { name: /新增区块|删除区块|更换区块类型|拖拽排序/ }),
+      ).toBeNull();
+    },
+  );
 });

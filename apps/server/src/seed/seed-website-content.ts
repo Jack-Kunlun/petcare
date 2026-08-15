@@ -262,7 +262,12 @@ export const WEBSITE_CONTENT_SEED_TEMPLATES: readonly WebsiteSeedTemplate[] = [
           title: "透明的服务保障",
           description: "关键环节有依据、有记录、有反馈。",
           items: [
-            { itemKey: "verified", title: "认证", description: "核验服务身份。", icon: "certificate" },
+            {
+              itemKey: "verified",
+              title: "认证",
+              description: "核验服务身份。",
+              icon: "certificate",
+            },
             { itemKey: "sop", title: "SOP", description: "明确照护步骤。", icon: "clipboard" },
             { itemKey: "review", title: "评价", description: "积累真实反馈。", icon: "star" },
             { itemKey: "appeal", title: "申诉", description: "提供处理路径。", icon: "support" },
@@ -517,34 +522,32 @@ export const WEBSITE_CONTENT_SEED_TEMPLATES: readonly WebsiteSeedTemplate[] = [
       description: "PetCare 服务条款。",
       canonicalPath: "/terms" as const,
     },
-  ].map(
-    ({ contentKey, title, description, canonicalPath }): WebsiteSeedTemplate => ({
-      contentKey,
-      contentType: "page",
-      seo: { title: `${title}｜PetCare 宠伴`, description, canonicalPath, image: null },
-      sections: [
-        {
-          sectionKey: "legal_content",
-          sectionType: WEBSITE_SECTION_TYPE.RICH_TEXT,
-          sortOrder: 1,
-          isEnabled: true,
-          schemaVersion: 1,
-          content: {
-            title,
-            effectiveDate: null,
-            parts: [
-              {
-                partKey: "review_required",
-                heading: "内容待审核",
-                paragraphs: ["本页正式内容需经业务与法务审核后显式发布。"],
-              },
-            ],
-          },
-          settings: { width: "normal" },
+  ].map(({ contentKey, title, description, canonicalPath }): WebsiteSeedTemplate => ({
+    contentKey,
+    contentType: "page",
+    seo: { title: `${title}｜PetCare 宠伴`, description, canonicalPath, image: null },
+    sections: [
+      {
+        sectionKey: "legal_content",
+        sectionType: WEBSITE_SECTION_TYPE.RICH_TEXT,
+        sortOrder: 1,
+        isEnabled: true,
+        schemaVersion: 1,
+        content: {
+          title,
+          effectiveDate: null,
+          parts: [
+            {
+              partKey: "review_required",
+              heading: "内容待审核",
+              paragraphs: ["本页正式内容需经业务与法务审核后显式发布。"],
+            },
+          ],
         },
-      ],
-    }),
-  ),
+        settings: { width: "normal" },
+      },
+    ],
+  })),
 ];
 
 async function upsertSections(
@@ -645,17 +648,11 @@ async function seedTemplate(
 }
 
 /** Seeds an initial published snapshot and editable draft without replacing later operator work. */
-export async function seedWebsiteContent(
-  prisma: PrismaClient,
-  operatorId: string,
-): Promise<void> {
+export async function seedWebsiteContent(prisma: PrismaClient, operatorId: string): Promise<void> {
   await prisma.$transaction(async (tx) => {
-    await WEBSITE_CONTENT_SEED_TEMPLATES.reduce(
-      async (previous, template) => {
-        await previous;
-        await seedTemplate(tx, template, operatorId);
-      },
-      Promise.resolve(),
-    );
+    await WEBSITE_CONTENT_SEED_TEMPLATES.reduce(async (previous, template) => {
+      await previous;
+      await seedTemplate(tx, template, operatorId);
+    }, Promise.resolve());
   });
 }

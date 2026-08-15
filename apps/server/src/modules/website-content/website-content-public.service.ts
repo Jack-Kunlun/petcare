@@ -11,12 +11,7 @@ import { websiteContentNotFound } from "./website-content.errors";
 import { WebsiteContentRepository } from "./website-content.repository";
 
 type ResolvedPublicValue =
-  | string
-  | number
-  | boolean
-  | null
-  | ResolvedPublicValue[]
-  | { [key: string]: ResolvedPublicValue };
+  string | number | boolean | null | ResolvedPublicValue[] | { [key: string]: ResolvedPublicValue };
 
 function isImageReference(value: Record<string, unknown>): boolean {
   return typeof value.assetId === "string" || value.assetId === null;
@@ -66,10 +61,9 @@ export function toWebsitePublicContent(version: WebsiteContentVersion): WebsiteP
 }
 
 /** Converts an authorized preview snapshot without requiring published lifecycle metadata. */
-export function toWebsitePreviewContent(version: WebsiteContentVersion): Omit<
-  WebsitePublicContent,
-  "businessVersion" | "publishedAt"
-> & { revision: number } {
+export function toWebsitePreviewContent(
+  version: WebsiteContentVersion,
+): Omit<WebsitePublicContent, "businessVersion" | "publishedAt"> & { revision: number } {
   return {
     contentKey: version.contentKey,
     revision: version.revision,
@@ -103,7 +97,10 @@ export class WebsiteContentPublicService {
       return cached;
     }
 
-    const version = await this.repository.getPublishedVersion(contentKey, pointer.publishedVersionId);
+    const version = await this.repository.getPublishedVersion(
+      contentKey,
+      pointer.publishedVersionId,
+    );
     const content = toWebsitePublicContent(version);
 
     await this.fillCache(pointer.publishedVersionId, content);

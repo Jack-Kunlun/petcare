@@ -38,38 +38,47 @@ function formatDate(value: string): string {
         <p class="eyebrow">PetCare Classroom</p>
         <h1 id="article-list-title">宠物课堂</h1>
         <p class="section-description">已发布的养宠知识与服务指南。</p>
-        {
-          articles.list.length > 0 ? (
-            <ol class="article-list__items">
-              {
-                articles.list.map((article) => (
-                  <li>
-                    <article>
-                      <h2><a href={`/articles/${encodeURIComponent(article.slug)}`}>{article.title}</a></h2>
-                      <p>{article.summary}</p>
-                      {
-                        article.publishedAt ? (
-                          <p class="article-meta">
-                            <time datetime={article.publishedAt}>{formatDate(article.publishedAt)}</time>
-                            {article.author ? ` · ${article.author.displayName}` : ""}
-                          </p>
-                        ) : null
-                      }
-                    </article>
-                  </li>
-                ))
-              }
-            </ol>
-          ) : (
-            <p>暂无已发布文章。</p>
-          )
-        }
+        {articles.list.length > 0 ? (
+          <ol class="article-list__items">
+            {articles.list.map((article) => (
+              <li>
+                <article>
+                  <h2>
+                    <a href={`/articles/${encodeURIComponent(article.slug)}`}>{article.title}</a>
+                  </h2>
+                  <p>{article.summary}</p>
+                  {article.publishedAt ? (
+                    <p class="article-meta">
+                      <time datetime={article.publishedAt}>{formatDate(article.publishedAt)}</time>
+                      {article.author ? ` · ${article.author.displayName}` : ""}
+                    </p>
+                  ) : null}
+                </article>
+              </li>
+            ))}
+          </ol>
+        ) : (
+          <p>暂无已发布文章。</p>
+        )}
       </section>
     </ArticleLayout>
   ) : (
     <html lang="zh-CN">
-      <head><meta charset="utf-8" /><meta name="robots" content="noindex" /><title>Service temporarily unavailable | PetCare</title></head>
-      <body><main class="failure-page"><h1>Service temporarily unavailable</h1><p>请稍后再试。</p></main></body>
+      <head>
+        <>
+          <meta charset="utf-8" />
+          <meta name="robots" content="noindex" />
+          <title>Service temporarily unavailable | PetCare</title>
+        </>
+      </head>
+      <body>
+        <main class="failure-page">
+          <>
+            <h1>Service temporarily unavailable</h1>
+            <p>请稍后再试。</p>
+          </>
+        </main>
+      </body>
     </html>
   )
 }

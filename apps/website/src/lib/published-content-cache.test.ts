@@ -44,7 +44,12 @@ describe("PublishedContentCache", () => {
     const cache = new PublishedContentCache({ ttlMilliseconds: 300_000, now: () => 1_000 });
 
     expect(() =>
-      cache.store({ contentKey: "home", revision: 2, seo: {}, sections: [] } as unknown as WebsitePublicContent),
+      cache.store({
+        contentKey: "home",
+        revision: 2,
+        seo: {},
+        sections: [],
+      } as unknown as WebsitePublicContent),
     ).toThrow("published snapshot");
     expect(() => cache.read("home")).toThrow(PublishedContentUnavailableError);
   });

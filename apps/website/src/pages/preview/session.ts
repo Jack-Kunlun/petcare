@@ -23,18 +23,14 @@ export interface PreviewSessionApi {
 }
 
 type PreviewableContentKey =
-  | "home"
-  | "services"
-  | "trust"
-  | "companions"
-  | "about"
-  | "contact"
-  | "privacy"
-  | "terms";
+  "home" | "services" | "trust" | "companions" | "about" | "contact" | "privacy" | "terms";
 
 /** Creates the same-origin POST handler that exchanges a fragment token for an HttpOnly session cookie. */
 export function createPreviewSessionHandler(api: PreviewSessionApi) {
-  return async ({ request, cookies }: Pick<APIContext, "request" | "cookies">): Promise<Response> => {
+  return async ({
+    request,
+    cookies,
+  }: Pick<APIContext, "request" | "cookies">): Promise<Response> => {
     const exchange = await readExchangeRequest(request);
 
     if (!exchange) {

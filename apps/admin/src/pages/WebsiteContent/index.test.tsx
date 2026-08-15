@@ -96,7 +96,9 @@ describe("WebsiteContent overview", () => {
   });
 
   it("shows retryable loading failure without hiding the overview route", async () => {
-    vi.mocked(websiteContentApi.fetchWebsiteContentOverview).mockRejectedValue(new Error("offline"));
+    vi.mocked(websiteContentApi.fetchWebsiteContentOverview).mockRejectedValue(
+      new Error("offline"),
+    );
     renderOverview();
 
     expect(await screen.findByRole("alert")).toHaveTextContent("官网内容加载失败");

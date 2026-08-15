@@ -36,7 +36,8 @@ export const websiteContentQueryKeys = {
   historyVersion: (contentKey: WebsiteContentKey, versionId: string) =>
     ["website-content", contentKey, "history", versionId] as const,
   /** Managed website media library query identity. */
-  media: (query?: WebsiteMediaListQuery) => ["website-content", "media-assets", query ?? null] as const,
+  media: (query?: WebsiteMediaListQuery) =>
+    ["website-content", "media-assets", query ?? null] as const,
 };
 
 /** Lists every independently managed Website Content unit. */

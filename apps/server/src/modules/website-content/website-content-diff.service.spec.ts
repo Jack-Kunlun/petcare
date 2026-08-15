@@ -6,8 +6,14 @@ describe("WebsiteContentDiffService", () => {
 
     expect(
       service.diff(
-        { seo: { title: "旧标题" }, sections: [{ sectionKey: "hero", content: { title: "旧标题" } }] },
-        { sections: [{ content: { title: "新标题" }, sectionKey: "hero" }], seo: { title: "新标题" } },
+        {
+          seo: { title: "旧标题" },
+          sections: [{ sectionKey: "hero", content: { title: "旧标题" } }],
+        },
+        {
+          sections: [{ content: { title: "新标题" }, sectionKey: "hero" }],
+          seo: { title: "新标题" },
+        },
       ),
     ).toEqual([
       expect.objectContaining({ path: "sections.hero.content.title", changeType: "modified" }),

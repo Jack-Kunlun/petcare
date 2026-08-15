@@ -12,9 +12,7 @@ export function websiteContentRevisionConflict(): ApiException {
 }
 
 /** Creates a stable error for a Website Content schema or template violation. */
-export function websiteContentValidationFailed(
-  message = "官网内容未通过校验",
-): ApiException {
+export function websiteContentValidationFailed(message = "官网内容未通过校验"): ApiException {
   return new ApiException(
     WEBSITE_CONTENT_ERROR_CODE.INVALID_CONTENT,
     message,

@@ -7,7 +7,12 @@ describe("ContentDiff", () => {
   it("renders field paths, values, and change labels", () => {
     const items: WebsiteContentDiffItem[] = [
       { path: "seo.title", before: "旧标题", after: "新标题", changeType: "modified" },
-      { path: "sections.hero.image", before: undefined, after: { assetId: "asset-1" }, changeType: "added" },
+      {
+        path: "sections.hero.image",
+        before: undefined,
+        after: { assetId: "asset-1" },
+        changeType: "added",
+      },
     ];
 
     render(<ContentDiff items={items} />);
@@ -23,7 +28,6 @@ describe("ContentDiff", () => {
   it("communicates that no changes exist", () => {
     render(<ContentDiff items={[]} />);
 
-    expect(screen.getByText("当前草稿与已发布版本没有字段差异。"))
-      .toBeInTheDocument();
+    expect(screen.getByText("当前草稿与已发布版本没有字段差异。")).toBeInTheDocument();
   });
 });

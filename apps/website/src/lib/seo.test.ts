@@ -3,9 +3,9 @@ import { createRobotsText, createSitemapXml } from "./seo";
 
 describe("Website SEO documents", () => {
   it("publishes only canonical public URLs and XML-escapes dynamic values", () => {
-    expect(
-      createSitemapXml("https://www.petcare.example", ["/", "/articles/pet&care"]),
-    ).toContain("<loc>https://www.petcare.example/articles/pet&amp;care</loc>");
+    expect(createSitemapXml("https://www.petcare.example", ["/", "/articles/pet&care"])).toContain(
+      "<loc>https://www.petcare.example/articles/pet&amp;care</loc>",
+    );
   });
 
   it("keeps preview routes out of crawler discovery and points robots to the canonical sitemap", () => {

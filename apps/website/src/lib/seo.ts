@@ -3,7 +3,9 @@ import { PAGE_CONTENT_BY_PATH } from "./page-routes";
 /** Minimal published-content reader required to build a current public sitemap. */
 export interface WebsiteSitemapReader {
   /** Verifies that a code-owned public page currently has a published snapshot. */
-  getPublished(contentKey: (typeof PAGE_CONTENT_BY_PATH)[keyof typeof PAGE_CONTENT_BY_PATH]): Promise<unknown>;
+  getPublished(
+    contentKey: (typeof PAGE_CONTENT_BY_PATH)[keyof typeof PAGE_CONTENT_BY_PATH],
+  ): Promise<unknown>;
   /** Reads a bounded public page of already-published classroom articles. */
   getArticles(query: { page: number; pageSize: number }): Promise<{
     list: Array<{ slug: string }>;
@@ -67,7 +69,7 @@ function escapeXml(value: string): string {
         "&": "&amp;",
         "<": "&lt;",
         ">": "&gt;",
-        "\"": "&quot;",
+        '"': "&quot;",
         "'": "&apos;",
       }[character] ?? character
     );

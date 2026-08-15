@@ -50,7 +50,10 @@ function isObject(value: unknown): value is UnknownObject {
 }
 
 function isWebsiteSectionType(value: unknown): value is WebsiteSectionType {
-  return typeof value === "string" && Object.values(WEBSITE_SECTION_TYPE).includes(value as WebsiteSectionType);
+  return (
+    typeof value === "string" &&
+    Object.values(WEBSITE_SECTION_TYPE).includes(value as WebsiteSectionType)
+  );
 }
 
 function hasOnlyKeys(
@@ -139,7 +142,11 @@ function validateActionLink(value: unknown, path: string, issues: ValidationIssu
   }
 }
 
-function validateActionLinkFields(value: UnknownObject, path: string, issues: ValidationIssue[]): void {
+function validateActionLinkFields(
+  value: UnknownObject,
+  path: string,
+  issues: ValidationIssue[],
+): void {
   validateText(value.label, `${path}.label`, issues);
 
   if (!validateText(value.href, `${path}.href`, issues)) {
@@ -192,11 +199,7 @@ function validateUniqueKeys(
   });
 }
 
-function validateNavigationItem(
-  value: unknown,
-  path: string,
-  issues: ValidationIssue[],
-): void {
+function validateNavigationItem(value: unknown, path: string, issues: ValidationIssue[]): void {
   if (!hasOnlyKeys(value, path, ["itemKey", "label", "href"], issues)) {
     return;
   }
@@ -219,7 +222,9 @@ function validateFooterGroup(value: unknown, path: string, issues: ValidationIss
     return;
   }
 
-  value.links.forEach((link, index) => validateNavigationItem(link, `${path}.links[${index}]`, issues));
+  value.links.forEach((link, index) =>
+    validateNavigationItem(link, `${path}.links[${index}]`, issues),
+  );
   validateUniqueKeys(value.links, "itemKey", `${path}.links`, issues);
 }
 
@@ -338,12 +343,14 @@ function validateSiteFooter(section: WebsiteSiteFooterSection): ValidationIssue[
 function validateHero(section: WebsiteHeroSection): ValidationIssue[] {
   const issues: ValidationIssue[] = [];
 
-  if (!hasOnlyKeys(
-    section.content,
-    "content",
-    ["eyebrow", "title", "description", "primaryAction", "secondaryAction", "image"],
-    issues,
-  )) {
+  if (
+    !hasOnlyKeys(
+      section.content,
+      "content",
+      ["eyebrow", "title", "description", "primaryAction", "secondaryAction", "image"],
+      issues,
+    )
+  ) {
     return issues;
   }
 
@@ -354,7 +361,9 @@ function validateHero(section: WebsiteHeroSection): ValidationIssue[] {
   validateOptionalActionLink(section.content.secondaryAction, "content.secondaryAction", issues);
   validateImageReference(section.content.image, "content.image", issues);
 
-  if (validateSettingsObject(section.settings, "settings", ["alignment", "imagePosition"], issues)) {
+  if (
+    validateSettingsObject(section.settings, "settings", ["alignment", "imagePosition"], issues)
+  ) {
     if (!["left", "center"].includes(section.settings.alignment)) {
       issues.push(issue("settings.alignment", "必须是已批准的对齐方式"));
     }
@@ -398,12 +407,14 @@ function validateTrustGrid(section: WebsiteTrustGridSection): ValidationIssue[] 
 function validateFeatureSplit(section: WebsiteFeatureSplitSection): ValidationIssue[] {
   const issues: ValidationIssue[] = [];
 
-  if (!hasOnlyKeys(
-    section.content,
-    "content",
-    ["eyebrow", "title", "description", "action", "image"],
-    issues,
-  )) {
+  if (
+    !hasOnlyKeys(
+      section.content,
+      "content",
+      ["eyebrow", "title", "description", "action", "image"],
+      issues,
+    )
+  ) {
     return issues;
   }
 
@@ -429,12 +440,14 @@ function validateFeatureSplit(section: WebsiteFeatureSplitSection): ValidationIs
 function validateCta(section: WebsiteCtaSection): ValidationIssue[] {
   const issues: ValidationIssue[] = [];
 
-  if (!hasOnlyKeys(
-    section.content,
-    "content",
-    ["title", "description", "primaryAction", "secondaryAction"],
-    issues,
-  )) {
+  if (
+    !hasOnlyKeys(
+      section.content,
+      "content",
+      ["title", "description", "primaryAction", "secondaryAction"],
+      issues,
+    )
+  ) {
     return issues;
   }
 
@@ -586,12 +599,22 @@ export class WebsiteSectionTypeRegistry {
     const issues: ValidationIssue[] = [];
     const untypedSection = section as unknown;
 
-    if (!hasOnlyKeys(
-      untypedSection,
-      "section",
-      ["sectionKey", "sectionType", "sortOrder", "isEnabled", "schemaVersion", "content", "settings"],
-      issues,
-    )) {
+    if (
+      !hasOnlyKeys(
+        untypedSection,
+        "section",
+        [
+          "sectionKey",
+          "sectionType",
+          "sortOrder",
+          "isEnabled",
+          "schemaVersion",
+          "content",
+          "settings",
+        ],
+        issues,
+      )
+    ) {
       return issues;
     }
 
@@ -615,7 +638,9 @@ export class WebsiteSectionTypeRegistry {
       issues.push(issue("isEnabled", "必须是布尔值"));
     }
 
-    const definition = definitions[untypedSection.sectionType] as SectionDefinition<WebsiteContentSection>;
+    const definition = definitions[
+      untypedSection.sectionType
+    ] as SectionDefinition<WebsiteContentSection>;
 
     if (untypedSection.schemaVersion !== definition.schemaVersion) {
       issues.push(issue("schemaVersion", "不支持该区块结构版本"));
@@ -634,7 +659,9 @@ export class WebsiteSectionTypeRegistry {
       return [];
     }
 
-    const definition = definitions[untypedSection.sectionType] as SectionDefinition<WebsiteContentSection>;
+    const definition = definitions[
+      untypedSection.sectionType
+    ] as SectionDefinition<WebsiteContentSection>;
 
     return definition.resolveAssetIds(section);
   }

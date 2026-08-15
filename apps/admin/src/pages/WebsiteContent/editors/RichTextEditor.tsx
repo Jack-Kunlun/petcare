@@ -71,10 +71,11 @@ export function RichTextEditor({
 
                         return {
                           ...candidate,
-                          paragraphs: candidate.paragraphs.map((candidateParagraph, candidateParagraphIndex) =>
-                            candidateParagraphIndex === paragraphIndex
-                              ? nextParagraph
-                              : candidateParagraph,
+                          paragraphs: candidate.paragraphs.map(
+                            (candidateParagraph, candidateParagraphIndex) =>
+                              candidateParagraphIndex === paragraphIndex
+                                ? nextParagraph
+                                : candidateParagraph,
                           ),
                         };
                       });
