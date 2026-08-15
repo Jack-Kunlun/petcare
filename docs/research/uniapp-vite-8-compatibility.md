@@ -9,6 +9,8 @@
 
 当前 `@dcloudio/vite-plugin-uni@3.0.0-4080520251106001`、#19 目标版 `3.0.0-5020420260811002`，以及核验时 npm `vue3` 标签指向的更新版本 `3.0.0-5020420260813002`，均把 `peerDependencies.vite` 精确声明为 `5.2.8`，不是包含 Vite 8 的版本范围。DCloud 两个对应 tag 的 workspace catalog 也都固定为 Vite `5.2.8`。未找到 DCloud 对这几版插件支持 Vite 8 的官方说明。
 
+PetCare 现有 Node 24/H5 构建基线通过 `packageExtensions` 为 `@dcloudio/uni-h5-vite` 显式注入 Vite `5.4.21`，客户端也实际解析到该版本。本次维护锁定这个已验证的项目基线，不扩大到 Vite 8；但 `5.4.21` 同样不满足插件精确 peer `5.2.8`，因此它是项目现有兼容性例外，不代表 DCloud 官方支持。
+
 #19 也不应原样合并：它只更新 `@dcloudio/vite-plugin-uni`，没有同步项目中的其他 `@dcloudio/*` 编译器包。DCloud 官方建议使用 `@dcloudio/uvm` 管理编译器主要依赖，并说明 IDE、编译器、运行时保持版本一致可减少兼容问题。[官方 CLI 升级说明](https://uniapp.dcloud.net.cn/quickstart-cli.html#%E6%9B%B4%E6%96%B0%E4%BE%9D%E8%B5%96%E5%88%B0%E6%8C%87%E5%AE%9A%E7%89%88%E6%9C%AC)
 
 ## 已验证事实

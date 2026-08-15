@@ -30,9 +30,9 @@ test("Admin React 依赖族保持一致", async () => {
   const admin = await readManifest("apps/admin/package.json");
 
   assert.equal(admin.dependencies.react, admin.dependencies["react-dom"]);
-  assert.equal(admin.dependencies.react, "^19.2.8");
-  assert.equal(admin.devDependencies["@types/react"], "^19.2.18");
-  assert.equal(admin.devDependencies["@types/react-dom"], "^19.2.4");
+  assert.equal(admin.dependencies.react, "19.2.8");
+  assert.equal(admin.devDependencies["@types/react"], "19.2.18");
+  assert.equal(admin.devDependencies["@types/react-dom"], "19.2.4");
 });
 
 test("Server Prisma 依赖族保持一致", async () => {
