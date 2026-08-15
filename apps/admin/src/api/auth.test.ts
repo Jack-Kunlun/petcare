@@ -63,10 +63,16 @@ describe("Admin Axios response boundary", () => {
   it("refreshes and retries only expired sessions", async () => {
     await import("./auth");
     const onRejected = axiosMocks.responseUse.mock.calls[0]?.[1] as (error: {
-      config: { headers: { set: ReturnType<typeof vi.fn> }; url: string };
+      config: {
+        headers: { has: ReturnType<typeof vi.fn>; set: ReturnType<typeof vi.fn> };
+        url: string;
+      };
       response: { data: { code: string }; status: number };
     }) => Promise<unknown>;
-    const request = { headers: { set: vi.fn() }, url: "/admin/account/profile" };
+    const request = {
+      headers: { has: vi.fn(() => true), set: vi.fn() },
+      url: "/admin/account/profile",
+    };
 
     axiosMocks.client.post.mockResolvedValue({ data: { accessToken: "refreshed-access" } });
     axiosMocks.client.mockResolvedValue({ data: { id: "admin-1" } });
@@ -82,6 +88,28 @@ describe("Admin Axios response boundary", () => {
     expect(axiosMocks.client.post).toHaveBeenCalledWith("/auth/refresh");
     expect(request.headers.set).toHaveBeenCalledWith("Authorization", "Bearer refreshed-access");
     expect(axiosMocks.client).toHaveBeenCalledWith(request);
+  });
+
+  it("does not refresh requests sent without an access token", async () => {
+    await import("./auth");
+    const onRejected = axiosMocks.responseUse.mock.calls[0]?.[1] as (error: {
+      config: {
+        headers: { has: ReturnType<typeof vi.fn>; set: ReturnType<typeof vi.fn> };
+        url: string;
+      };
+      response: { data: { code: string }; status: number };
+    }) => Promise<unknown>;
+    const error = {
+      config: {
+        headers: { has: vi.fn(() => false), set: vi.fn() },
+        url: "/admin/account/profile",
+      },
+      response: { data: { code: "AUTH_SESSION_EXPIRED" }, status: 401 },
+    };
+
+    await expect(onRejected(error)).rejects.toBe(error);
+
+    expect(axiosMocks.client.post).not.toHaveBeenCalledWith("/auth/refresh");
   });
 
   it("rejects business 401 responses without refreshing", async () => {
