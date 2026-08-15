@@ -10,7 +10,7 @@ describe("preview route contract", () => {
 
     expect(source).toContain("window.location.hash.slice(1)");
     expect(source).toContain("history.replaceState");
-    expect(source).toContain("fetch(\"/preview/session\"");
+    expect(source).toContain('fetch("/preview/session"');
     expect(source).not.toMatch(/(?:local|session)Storage/u);
   });
 
@@ -20,7 +20,7 @@ describe("preview route contract", () => {
     expect(source).toContain("Astro.cookies.get(WEBSITE_PREVIEW_COOKIE)");
     expect(source).toContain("loadPreviewPageContent");
     expect(source).not.toContain("loadPublishedPageContent");
-    expect(source).toContain("\"Cache-Control\", \"private, no-store\"");
-    expect(source).toContain("\"X-Robots-Tag\", \"noindex, nofollow\"");
+    expect(source).toContain('"Cache-Control", "private, no-store"');
+    expect(source).toContain('"X-Robots-Tag", "noindex, nofollow"');
   });
 });

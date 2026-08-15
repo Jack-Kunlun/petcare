@@ -14,9 +14,15 @@ describe("WebsiteContentPermissionGuard", () => {
     const permission = { canActivate: jest.fn().mockResolvedValue(true) };
     const audit = { record: jest.fn() };
     const reflector = { getAllAndOverride: jest.fn().mockReturnValue(["website.read"]) };
-    const guard = new WebsiteContentPermissionGuard(permission as never, audit as never, reflector as never);
+    const guard = new WebsiteContentPermissionGuard(
+      permission as never,
+      audit as never,
+      reflector as never,
+    );
 
-    await expect(guard.canActivate(contextFor({ user: { sub: "operator-1" } }))).resolves.toBe(true);
+    await expect(guard.canActivate(contextFor({ user: { sub: "operator-1" } }))).resolves.toBe(
+      true,
+    );
     expect(audit.record).not.toHaveBeenCalled();
   });
 
@@ -25,7 +31,11 @@ describe("WebsiteContentPermissionGuard", () => {
     const permission = { canActivate: jest.fn().mockRejectedValue(forbidden) };
     const audit = { record: jest.fn().mockRejectedValue(new Error("audit unavailable")) };
     const reflector = { getAllAndOverride: jest.fn().mockReturnValue(["website.edit_action"]) };
-    const guard = new WebsiteContentPermissionGuard(permission as never, audit as never, reflector as never);
+    const guard = new WebsiteContentPermissionGuard(
+      permission as never,
+      audit as never,
+      reflector as never,
+    );
 
     await expect(
       guard.canActivate(contextFor({ user: { sub: "operator-1" }, requestId: "request-1" })),

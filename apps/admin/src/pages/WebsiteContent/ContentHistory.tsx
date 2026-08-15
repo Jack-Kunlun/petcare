@@ -26,7 +26,14 @@ export function ContentHistory({
   onRetry,
 }: ContentHistoryProps) {
   if (loading) {
-    return <p aria-live="polite" className="rounded-lg border border-slate-200 bg-white p-5 text-slate-600">正在加载历史版本…</p>;
+    return (
+      <p
+        aria-live="polite"
+        className="rounded-lg border border-slate-200 bg-white p-5 text-slate-600"
+      >
+        正在加载历史版本…
+      </p>
+    );
   }
 
   if (error) {
@@ -47,7 +54,11 @@ export function ContentHistory({
   }
 
   if (items.length === 0) {
-    return <p className="rounded-lg border border-dashed border-slate-300 bg-white p-5 text-slate-600">暂无已发布历史版本。</p>;
+    return (
+      <p className="rounded-lg border border-dashed border-slate-300 bg-white p-5 text-slate-600">
+        暂无已发布历史版本。
+      </p>
+    );
   }
 
   return (
@@ -62,10 +73,15 @@ export function ContentHistory({
             >
               <div className="flex flex-wrap items-center justify-between gap-2">
                 <span className="font-semibold text-slate-950">
-                  {version.businessVersion === null ? `修订 r${version.revision}` : `已发布 v${version.businessVersion}`}
+                  {version.businessVersion === null
+                    ? `修订 r${version.revision}`
+                    : `已发布 v${version.businessVersion}`}
                 </span>
                 <span className="text-sm text-slate-600">
-                  {new Intl.DateTimeFormat("zh-CN", { dateStyle: "medium", timeStyle: "short" }).format(new Date(version.publishedAt ?? version.createdAt))}
+                  {new Intl.DateTimeFormat("zh-CN", {
+                    dateStyle: "medium",
+                    timeStyle: "short",
+                  }).format(new Date(version.publishedAt ?? version.createdAt))}
                 </span>
               </div>
               <p className="mt-1 line-clamp-2 text-sm text-slate-600">{version.changeSummary}</p>

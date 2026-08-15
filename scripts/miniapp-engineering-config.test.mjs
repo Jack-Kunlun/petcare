@@ -149,8 +149,8 @@ test("Miniapp formatting policy uses the root Prettier ignore rules and staged-o
   assert.equal(rootPackage.scripts.format, "prettier --write .");
   assert.equal(rootPackage.scripts["format:check"], "prettier --check .");
   assert.deepEqual(rootPackage["lint-staged"]["apps/miniapp/**/*.{js,mjs,ts,vue}"], [
-    "prettier --write",
     "pnpm --filter @petcare/miniapp exec -- eslint --fix",
+    "prettier --write",
   ]);
   assert.deepEqual(rootPackage["lint-staged"]["apps/miniapp/**/*.{md,html}"], ["prettier --write"]);
   for (const protectedPath of [

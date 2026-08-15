@@ -27,10 +27,10 @@ describe("WebsiteSectionEditor", () => {
 
     expect(brandLabel).toHaveValue("PetCare 宠伴");
     expect(screen.getByRole("checkbox", { name: "滚动时固定页头" })).toBeChecked();
-    expect(screen.getByRole("textbox", { name: "导航项 服务模式 文案" })).toHaveValue(
-      "服务模式",
-    );
-    expect(screen.queryByRole("button", { name: /新增区块|删除区块|更换区块类型|拖拽排序/ })).toBeNull();
+    expect(screen.getByRole("textbox", { name: "导航项 服务模式 文案" })).toHaveValue("服务模式");
+    expect(
+      screen.queryByRole("button", { name: /新增区块|删除区块|更换区块类型|拖拽排序/ }),
+    ).toBeNull();
 
     fireEvent.change(brandLabel, { target: { value: "PetCare" } });
 

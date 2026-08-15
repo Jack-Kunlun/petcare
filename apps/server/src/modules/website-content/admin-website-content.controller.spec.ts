@@ -70,9 +70,14 @@ describe("AdminWebsiteContentController", () => {
   it("declares the fixed admin route, guards, and separated permissions", () => {
     const guards = Reflect.getMetadata(GUARDS_METADATA, AdminWebsiteContentController) as unknown[];
     const permissions = (method: keyof AdminWebsiteContentController) =>
-      Reflect.getMetadata(PERMISSIONS_METADATA_KEY, AdminWebsiteContentController.prototype[method]);
+      Reflect.getMetadata(
+        PERMISSIONS_METADATA_KEY,
+        AdminWebsiteContentController.prototype[method],
+      );
 
-    expect(Reflect.getMetadata("path", AdminWebsiteContentController)).toBe("admin/website-content");
+    expect(Reflect.getMetadata("path", AdminWebsiteContentController)).toBe(
+      "admin/website-content",
+    );
     expect(guards).toEqual([AccessTokenGuard, WebsiteContentPermissionGuard]);
 
     for (const method of [
@@ -86,13 +91,18 @@ describe("AdminWebsiteContentController", () => {
       expect(permissions(method)).toEqual(["website.read"]);
     }
 
-    for (const method of ["saveDraft", "createPreview", "uploadMedia", "archiveMedia"] satisfies Array<
-      keyof AdminWebsiteContentController
-    >) {
+    for (const method of [
+      "saveDraft",
+      "createPreview",
+      "uploadMedia",
+      "archiveMedia",
+    ] satisfies Array<keyof AdminWebsiteContentController>) {
       expect(permissions(method)).toEqual(["website.edit_action"]);
     }
 
-    for (const method of ["publish", "restore"] satisfies Array<keyof AdminWebsiteContentController>) {
+    for (const method of ["publish", "restore"] satisfies Array<
+      keyof AdminWebsiteContentController
+    >) {
       expect(permissions(method)).toEqual(["website.publish_action"]);
       expect(
         Reflect.getMetadata(HTTP_CODE_METADATA, AdminWebsiteContentController.prototype[method]),

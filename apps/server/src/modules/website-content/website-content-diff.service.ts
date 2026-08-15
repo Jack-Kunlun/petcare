@@ -16,9 +16,13 @@ function isObject(value: unknown): value is Record<string, unknown> {
 }
 
 function canonical(value: unknown): string {
-  if (value === undefined) {return "undefined";}
+  if (value === undefined) {
+    return "undefined";
+  }
 
-  if (Array.isArray(value)) {return `[${value.map(canonical).join(",")}]`;}
+  if (Array.isArray(value)) {
+    return `[${value.map(canonical).join(",")}]`;
+  }
 
   if (isObject(value)) {
     return `{${Object.keys(value)
@@ -31,19 +35,27 @@ function canonical(value: unknown): string {
 }
 
 function indexSections(value: unknown): unknown {
-  if (!Array.isArray(value)) {return value;}
+  if (!Array.isArray(value)) {
+    return value;
+  }
 
   const keyed = new Map<string, unknown>();
 
   for (const section of value) {
-    if (!isObject(section) || typeof section.sectionKey !== "string" || keyed.has(section.sectionKey)) {
+    if (
+      !isObject(section) ||
+      typeof section.sectionKey !== "string" ||
+      keyed.has(section.sectionKey)
+    ) {
       return value;
     }
 
     keyed.set(section.sectionKey, section);
   }
 
-  return Object.fromEntries([...keyed.entries()].sort(([left], [right]) => left.localeCompare(right)));
+  return Object.fromEntries(
+    [...keyed.entries()].sort(([left], [right]) => left.localeCompare(right)),
+  );
 }
 
 /** Produces stable field-level Website Content snapshot differences. */
@@ -79,22 +91,35 @@ export class WebsiteContentDiffService {
     return output.sort((left, right) => left.path.localeCompare(right.path));
   }
 
-  private walk(before: unknown, after: unknown, path: string, output: WebsiteContentDiffItem[]): void {
-    if (canonical(before) === canonical(after)) {return;}
+  private walk(
+    before: unknown,
+    after: unknown,
+    path: string,
+    output: WebsiteContentDiffItem[],
+  ): void {
+    if (canonical(before) === canonical(after)) {
+      return;
+    }
 
     if (isObject(before) && isObject(after)) {
       const keys = [...new Set([...Object.keys(before), ...Object.keys(after)])].sort();
 
-      keys.forEach((key) => this.walk(before[key], after[key], path ? `${path}.${key}` : key, output));
+      keys.forEach((key) =>
+        this.walk(before[key], after[key], path ? `${path}.${key}` : key, output),
+      );
 
       return;
     }
 
     let changeType: WebsiteContentDiffChangeType = WEBSITE_CONTENT_DIFF_CHANGE_TYPE.MODIFIED;
 
-    if (before === undefined) {changeType = WEBSITE_CONTENT_DIFF_CHANGE_TYPE.ADDED;}
+    if (before === undefined) {
+      changeType = WEBSITE_CONTENT_DIFF_CHANGE_TYPE.ADDED;
+    }
 
-    if (after === undefined) {changeType = WEBSITE_CONTENT_DIFF_CHANGE_TYPE.REMOVED;}
+    if (after === undefined) {
+      changeType = WEBSITE_CONTENT_DIFF_CHANGE_TYPE.REMOVED;
+    }
 
     output.push({
       path,

@@ -25,7 +25,10 @@ export class WebsitePublicContentResponseDto implements WebsitePublicContent {
 }
 
 /** Swagger response model for a capability-scoped unpublished preview snapshot. */
-export class WebsitePreviewContentResponseDto implements Omit<WebsitePublicContent, "businessVersion" | "publishedAt"> {
+export class WebsitePreviewContentResponseDto implements Omit<
+  WebsitePublicContent,
+  "businessVersion" | "publishedAt"
+> {
   /** Content key selected by the capability. */
   @ApiProperty()
   contentKey: WebsitePublicContent["contentKey"];

@@ -64,7 +64,9 @@ export function PasswordCard({ currentPasswordRef, sectionRef }: PasswordCardPro
         </span>
         <div>
           <h2 className="text-xl font-semibold text-slate-950">修改密码</h2>
-          <p className="mt-1 leading-6 text-slate-600">修改后需要重新登录，其他设备的登录状态也会失效。</p>
+          <p className="mt-1 leading-6 text-slate-600">
+            修改后需要重新登录，其他设备的登录状态也会失效。
+          </p>
         </div>
       </div>
 
@@ -104,7 +106,10 @@ export function PasswordCard({ currentPasswordRef, sectionRef }: PasswordCardPro
           />
         </label>
         {error ? (
-          <p role="alert" className="rounded-lg border border-red-200 bg-red-50 px-3 py-2 text-sm text-red-800">
+          <p
+            role="alert"
+            className="rounded-lg border border-red-200 bg-red-50 px-3 py-2 text-sm text-red-800"
+          >
             {error}
           </p>
         ) : null}

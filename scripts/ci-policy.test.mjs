@@ -83,4 +83,8 @@ test("Dependabot 每周检查 pnpm、Docker 和 GitHub Actions", async () => {
   assert.match(dependabot, /package-ecosystem: docker/);
   assert.match(dependabot, /package-ecosystem: github-actions/);
   assert.equal((dependabot.match(/interval: weekly/g) ?? []).length, 3);
+  for (const dependency of ["@dcloudio/vite-plugin-uni", "@vitest/coverage-v8", "vite", "node"]) {
+    assert.match(dependabot, new RegExp(`dependency-name: ["']?${dependency.replace("/", "\\/")}`));
+  }
+  assert.equal((dependabot.match(/version-update:semver-major/g) ?? []).length, 3);
 });

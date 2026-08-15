@@ -101,16 +101,26 @@ describe("AdminAccountController", () => {
   });
 
   it("documents avatar upload as multipart and binds a file field", () => {
-    expect(Reflect.getMetadata("path", AdminAccountController.prototype.replaceAvatar)).toBe("avatar");
-    expect(Reflect.getMetadata(METHOD_METADATA, AdminAccountController.prototype.replaceAvatar)).toBe(2);
+    expect(Reflect.getMetadata("path", AdminAccountController.prototype.replaceAvatar)).toBe(
+      "avatar",
+    );
+    expect(
+      Reflect.getMetadata(METHOD_METADATA, AdminAccountController.prototype.replaceAvatar),
+    ).toBe(2);
     expect(
       Reflect.getMetadata(ROUTE_ARGS_METADATA, AdminAccountController, "replaceAvatar"),
     ).toEqual(expect.objectContaining({ "8:0": expect.objectContaining({ index: 0 }) }));
     expect(
       Reflect.getMetadata(INTERCEPTORS_METADATA, AdminAccountController.prototype.replaceAvatar),
     ).toHaveLength(1);
-    expect(Reflect.getMetadata("path", AdminAccountController.prototype.deleteAvatar)).toBe("avatar");
-    expect(Reflect.getMetadata(METHOD_METADATA, AdminAccountController.prototype.deleteAvatar)).toBe(3);
-    expect(Reflect.getMetadata(HTTP_CODE_METADATA, AdminAccountController.prototype.deleteAvatar)).toBe(204);
+    expect(Reflect.getMetadata("path", AdminAccountController.prototype.deleteAvatar)).toBe(
+      "avatar",
+    );
+    expect(
+      Reflect.getMetadata(METHOD_METADATA, AdminAccountController.prototype.deleteAvatar),
+    ).toBe(3);
+    expect(
+      Reflect.getMetadata(HTTP_CODE_METADATA, AdminAccountController.prototype.deleteAvatar),
+    ).toBe(204);
   });
 });

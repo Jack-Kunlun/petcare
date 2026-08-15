@@ -130,15 +130,17 @@ export class WebsiteContentRepository {
         return [];
       }
 
-      return [{
-        contentKey: record.contentKey as WebsiteContentKey,
-        draftRevision: draft.revision,
-        publishedBusinessVersion: record.publishedVersion?.businessVersion ?? null,
-        hasUnpublishedChanges: draft.sourceVersionId !== record.publishedVersion?.id,
-        lastEditedBy: operatorSummary(draft.createdBy),
-        lastEditedAt: draft.createdAt.toISOString(),
-        publishedAt: record.publishedVersion?.publishedAt?.toISOString() ?? null,
-      }];
+      return [
+        {
+          contentKey: record.contentKey as WebsiteContentKey,
+          draftRevision: draft.revision,
+          publishedBusinessVersion: record.publishedVersion?.businessVersion ?? null,
+          hasUnpublishedChanges: draft.sourceVersionId !== record.publishedVersion?.id,
+          lastEditedBy: operatorSummary(draft.createdBy),
+          lastEditedAt: draft.createdAt.toISOString(),
+          publishedAt: record.publishedVersion?.publishedAt?.toISOString() ?? null,
+        },
+      ];
     });
   }
 
@@ -442,7 +444,10 @@ export class WebsiteContentRepository {
   }
 
   /** Resolves the exact currently saved draft scope used to mint a preview capability. */
-  async getCurrentDraftScope(contentKey: WebsiteContentKey, revision: number): Promise<{
+  async getCurrentDraftScope(
+    contentKey: WebsiteContentKey,
+    revision: number,
+  ): Promise<{
     contentId: string;
     versionId: string;
     revision: number;
@@ -562,7 +567,11 @@ export class WebsiteContentRepository {
         await this.assertActiveMedia(tx, resolveAssetIds(source.seo, sourceSections));
 
         const superseded = await tx.websiteContentVersion.updateMany({
-          where: { id: currentDraft.id, revision: command.revision, status: WEBSITE_CONTENT_STATUS.DRAFT },
+          where: {
+            id: currentDraft.id,
+            revision: command.revision,
+            status: WEBSITE_CONTENT_STATUS.DRAFT,
+          },
           data: { status: WEBSITE_CONTENT_STATUS.SUPERSEDED },
         });
 

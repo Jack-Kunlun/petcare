@@ -10,7 +10,9 @@ describe("PublicWebsiteContentController", () => {
     const methods = Object.getOwnPropertyNames(PublicWebsiteContentController.prototype);
 
     expect(methods.indexOf("getPreview")).toBeLessThan(methods.indexOf("getPublished"));
-    expect(Reflect.getMetadata(ROUTE_ARGS_METADATA, PublicWebsiteContentController, "getPreview")).toBeDefined();
+    expect(
+      Reflect.getMetadata(ROUTE_ARGS_METADATA, PublicWebsiteContentController, "getPreview"),
+    ).toBeDefined();
   });
 
   it("returns only published content for the public fixed route", async () => {
@@ -31,7 +33,12 @@ describe("PublicWebsiteContentController", () => {
     const controller = new PublicWebsiteContentController(published as never, previews as never);
 
     await expect(
-      controller.getPreview("home", "preview-token", { requestId: "request-1" } as never, response as never),
+      controller.getPreview(
+        "home",
+        "preview-token",
+        { requestId: "request-1" } as never,
+        response as never,
+      ),
     ).resolves.toMatchObject({ contentKey: "home", revision: 2 });
 
     expect(previews.readPreview).toHaveBeenCalledWith("home", "preview-token", "request-1");

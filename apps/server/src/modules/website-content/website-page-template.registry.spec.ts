@@ -48,7 +48,9 @@ describe("WebsitePageTemplateRegistry", () => {
   it.each(WEBSITE_CONTENT_SEED_TEMPLATES)(
     "accepts the fixed seeded $contentKey snapshot",
     ({ contentKey }) => {
-      expect(() => registry.validateSnapshot(contentKey, defaultSections(contentKey))).not.toThrow();
+      expect(() =>
+        registry.validateSnapshot(contentKey, defaultSections(contentKey)),
+      ).not.toThrow();
     },
   );
 
@@ -61,10 +63,18 @@ describe("WebsitePageTemplateRegistry", () => {
 
     duplicateOrderSections[1].sortOrder = duplicateOrderSections[0].sortOrder;
 
-    expect(invalidContentError(() => registry.validateSnapshot(WEBSITE_CONTENT_KEY.HOME, duplicateKeySections))).toMatchObject({
+    expect(
+      invalidContentError(() =>
+        registry.validateSnapshot(WEBSITE_CONTENT_KEY.HOME, duplicateKeySections),
+      ),
+    ).toMatchObject({
       code: WEBSITE_CONTENT_ERROR_CODE.INVALID_CONTENT,
     });
-    expect(invalidContentError(() => registry.validateSnapshot(WEBSITE_CONTENT_KEY.HOME, duplicateOrderSections))).toMatchObject({
+    expect(
+      invalidContentError(() =>
+        registry.validateSnapshot(WEBSITE_CONTENT_KEY.HOME, duplicateOrderSections),
+      ),
+    ).toMatchObject({
       code: WEBSITE_CONTENT_ERROR_CODE.INVALID_CONTENT,
     });
   });
@@ -82,10 +92,16 @@ describe("WebsitePageTemplateRegistry", () => {
       sortOrder: 99,
     });
 
-    expect(invalidContentError(() => registry.validateSnapshot(WEBSITE_CONTENT_KEY.HOME, missingSection))).toMatchObject({
+    expect(
+      invalidContentError(() =>
+        registry.validateSnapshot(WEBSITE_CONTENT_KEY.HOME, missingSection),
+      ),
+    ).toMatchObject({
       code: WEBSITE_CONTENT_ERROR_CODE.INVALID_CONTENT,
     });
-    expect(invalidContentError(() => registry.validateSnapshot(WEBSITE_CONTENT_KEY.HOME, addedSection))).toMatchObject({
+    expect(
+      invalidContentError(() => registry.validateSnapshot(WEBSITE_CONTENT_KEY.HOME, addedSection)),
+    ).toMatchObject({
       code: WEBSITE_CONTENT_ERROR_CODE.INVALID_CONTENT,
     });
   });
@@ -102,10 +118,14 @@ describe("WebsitePageTemplateRegistry", () => {
       reordered[0].sortOrder,
     ];
 
-    expect(invalidContentError(() => registry.validateSnapshot(WEBSITE_CONTENT_KEY.HOME, changedType))).toMatchObject({
+    expect(
+      invalidContentError(() => registry.validateSnapshot(WEBSITE_CONTENT_KEY.HOME, changedType)),
+    ).toMatchObject({
       code: WEBSITE_CONTENT_ERROR_CODE.INVALID_CONTENT,
     });
-    expect(invalidContentError(() => registry.validateSnapshot(WEBSITE_CONTENT_KEY.HOME, reordered))).toMatchObject({
+    expect(
+      invalidContentError(() => registry.validateSnapshot(WEBSITE_CONTENT_KEY.HOME, reordered)),
+    ).toMatchObject({
       code: WEBSITE_CONTENT_ERROR_CODE.INVALID_CONTENT,
     });
   });
@@ -116,9 +136,7 @@ describe("WebsitePageTemplateRegistry", () => {
     requiredDisabled[0].isEnabled = false;
 
     const optionalDisabled = defaultSections(WEBSITE_CONTENT_KEY.HOME);
-    const homeCta = optionalDisabled.find(
-      (section) => section.sectionKey === "home_cta",
-    );
+    const homeCta = optionalDisabled.find((section) => section.sectionKey === "home_cta");
 
     if (!homeCta) {
       throw new Error("Home CTA seed section is required for this test");
@@ -126,10 +144,16 @@ describe("WebsitePageTemplateRegistry", () => {
 
     homeCta.isEnabled = false;
 
-    expect(invalidContentError(() => registry.validateSnapshot(WEBSITE_CONTENT_KEY.HOME, requiredDisabled))).toMatchObject({
+    expect(
+      invalidContentError(() =>
+        registry.validateSnapshot(WEBSITE_CONTENT_KEY.HOME, requiredDisabled),
+      ),
+    ).toMatchObject({
       code: WEBSITE_CONTENT_ERROR_CODE.INVALID_CONTENT,
     });
-    expect(() => registry.validateSnapshot(WEBSITE_CONTENT_KEY.HOME, optionalDisabled)).not.toThrow();
+    expect(() =>
+      registry.validateSnapshot(WEBSITE_CONTENT_KEY.HOME, optionalDisabled),
+    ).not.toThrow();
   });
 
   it("rejects disabling the required contact channel panel", () => {

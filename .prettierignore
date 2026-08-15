@@ -13,6 +13,7 @@ apps/website/dist/
 # Generated files
 *.min.js
 *.min.css
+pnpm-lock.yaml
 
 # Logs
 *.log

@@ -44,8 +44,13 @@ function createSubject() {
   prisma.$transaction.mockImplementation((work: (tx: typeof prisma) => unknown) => work(prisma));
 
   const audit = { record: jest.fn(async () => undefined) };
-  const repository = { getVersionForPreview: jest.fn(async () => createVersion("draft-home-2", 2)) };
-  const config = { websitePublicUrl: "https://www.petcare.example/", websitePreviewTtlSeconds: 600 };
+  const repository = {
+    getVersionForPreview: jest.fn(async () => createVersion("draft-home-2", 2)),
+  };
+  const config = {
+    websitePublicUrl: "https://www.petcare.example/",
+    websitePreviewTtlSeconds: 600,
+  };
   const service = new WebsitePreviewService(
     prisma as never,
     config as never,
@@ -64,7 +69,11 @@ describe("WebsitePreviewService", () => {
 
     prisma.websiteContent.findUnique.mockResolvedValue({
       id: "content-home",
-      currentDraftVersion: { id: "draft-home-2", revision: 2, status: WEBSITE_CONTENT_STATUS.DRAFT },
+      currentDraftVersion: {
+        id: "draft-home-2",
+        revision: 2,
+        status: WEBSITE_CONTENT_STATUS.DRAFT,
+      },
     });
     prisma.websitePreviewToken.create.mockResolvedValue({ id: "preview-row-1" });
 
@@ -96,7 +105,9 @@ describe("WebsitePreviewService", () => {
         expiresAt: new Date("2026-08-13T00:10:00.000Z"),
       }),
     });
-    expect(JSON.stringify(prisma.websitePreviewToken.create.mock.calls)).not.toContain(PLAINTEXT_TOKEN);
+    expect(JSON.stringify(prisma.websitePreviewToken.create.mock.calls)).not.toContain(
+      PLAINTEXT_TOKEN,
+    );
     expect(JSON.stringify(audit.record.mock.calls)).not.toContain(PLAINTEXT_TOKEN);
   });
 
@@ -134,8 +145,16 @@ describe("WebsitePreviewService", () => {
   });
 
   it.each([
-    ["expired", { expiresAt: new Date("2026-08-12T23:59:59.999Z"), revokedAt: null }, WEBSITE_CONTENT_ERROR_CODE.PREVIEW_TOKEN_EXPIRED],
-    ["revoked", { expiresAt: new Date("2026-08-13T00:10:00.000Z"), revokedAt: NOW }, WEBSITE_CONTENT_ERROR_CODE.PREVIEW_TOKEN_INVALID],
+    [
+      "expired",
+      { expiresAt: new Date("2026-08-12T23:59:59.999Z"), revokedAt: null },
+      WEBSITE_CONTENT_ERROR_CODE.PREVIEW_TOKEN_EXPIRED,
+    ],
+    [
+      "revoked",
+      { expiresAt: new Date("2026-08-13T00:10:00.000Z"), revokedAt: NOW },
+      WEBSITE_CONTENT_ERROR_CODE.PREVIEW_TOKEN_INVALID,
+    ],
   ])("rejects %s preview capabilities with the stable error code", async (_label, state, code) => {
     const { prisma, repository, service } = createSubject();
 
@@ -161,9 +180,7 @@ describe("WebsitePreviewService", () => {
 
     prisma.websitePreviewToken.updateMany.mockResolvedValue({ count: 2 });
 
-    await expect(
-      service.revokeForVersion("draft-home-2", "admin-1", "request-4"),
-    ).resolves.toBe(2);
+    await expect(service.revokeForVersion("draft-home-2", "admin-1", "request-4")).resolves.toBe(2);
     expect(prisma.websitePreviewToken.updateMany).toHaveBeenCalledWith({
       where: { contentVersionId: "draft-home-2", revokedAt: null },
       data: { revokedAt: NOW },

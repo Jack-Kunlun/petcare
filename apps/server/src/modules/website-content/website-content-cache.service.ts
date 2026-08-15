@@ -73,16 +73,17 @@ export class WebsiteContentCacheService implements OnModuleDestroy {
   private connecting: Promise<WebsiteContentCacheClient | null> | null = null;
 
   constructor(options: WebsiteContentCacheServiceOptions | ConfigService = {}) {
-    const serviceOptions = options instanceof ConfigService
-      ? {
-          ttlSeconds: options.websiteContentCacheTtlSeconds,
-          redis: {
-            host: options.redisHost,
-            port: options.redisPort,
-            password: options.redisPassword,
-          },
-        }
-      : options;
+    const serviceOptions =
+      options instanceof ConfigService
+        ? {
+            ttlSeconds: options.websiteContentCacheTtlSeconds,
+            redis: {
+              host: options.redisHost,
+              port: options.redisPort,
+              password: options.redisPassword,
+            },
+          }
+        : options;
     const redisOptions = serviceOptions.redis
       ? {
           socket: {
@@ -96,7 +97,8 @@ export class WebsiteContentCacheService implements OnModuleDestroy {
         }
       : undefined;
 
-    const factory = serviceOptions.clientFactory ?? ((clientOptions) => createClient(clientOptions));
+    const factory =
+      serviceOptions.clientFactory ?? ((clientOptions) => createClient(clientOptions));
 
     this.clientFactory = () => factory(redisOptions);
     this.ttlSeconds = serviceOptions.ttlSeconds ?? WEBSITE_CONTENT_CACHE_TTL_SECONDS;
@@ -134,7 +136,11 @@ export class WebsiteContentCacheService implements OnModuleDestroy {
         return false;
       }
 
-      await client.setEx(websiteContentCacheKey(versionId), this.ttlSeconds, JSON.stringify(content));
+      await client.setEx(
+        websiteContentCacheKey(versionId),
+        this.ttlSeconds,
+        JSON.stringify(content),
+      );
 
       return true;
     } catch {

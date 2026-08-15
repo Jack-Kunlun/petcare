@@ -150,13 +150,22 @@ export class WebsiteMediaService {
       select: { versionId: true, content: true },
     });
 
-    return sections.filter((section) => JSON.stringify(section.content).includes(assetId))
+    return sections
+      .filter((section) => JSON.stringify(section.content).includes(assetId))
       .map((section) => section.versionId);
   }
 
   private toAsset(record: {
-    id: string; originalName: string; mimeType: string; sizeBytes: number; width: number; height: number;
-    checksum: string; status: string; storageKey: string; createdAt: Date;
+    id: string;
+    originalName: string;
+    mimeType: string;
+    sizeBytes: number;
+    width: number;
+    height: number;
+    checksum: string;
+    status: string;
+    storageKey: string;
+    createdAt: Date;
     createdBy: { id: string; nickname: string; username: string | null };
   }): WebsiteMediaAsset {
     return {
@@ -168,8 +177,17 @@ export class WebsiteMediaService {
       height: record.height,
       checksum: record.checksum,
       status: record.status as WebsiteMediaAsset["status"],
-      publicAsset: { id: record.id, url: this.storage.resolvePublicUrl(record.storageKey), width: record.width, height: record.height, mimeType: record.mimeType as WebsiteMediaAsset["mimeType"] },
-      createdBy: { id: record.createdBy.id, displayName: record.createdBy.nickname || record.createdBy.username || record.createdBy.id },
+      publicAsset: {
+        id: record.id,
+        url: this.storage.resolvePublicUrl(record.storageKey),
+        width: record.width,
+        height: record.height,
+        mimeType: record.mimeType as WebsiteMediaAsset["mimeType"],
+      },
+      createdBy: {
+        id: record.createdBy.id,
+        displayName: record.createdBy.nickname || record.createdBy.username || record.createdBy.id,
+      },
       createdAt: record.createdAt.toISOString(),
       references: [],
     };

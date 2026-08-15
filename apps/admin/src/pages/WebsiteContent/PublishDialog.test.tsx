@@ -37,13 +37,18 @@ describe("PublishDialog", () => {
     expect(screen.getByText("旧标题")).toBeInTheDocument();
     expect(screen.getByRole("button", { name: "继续发布" })).toBeEnabled();
     fireEvent.click(screen.getByRole("button", { name: "继续发布" }));
-    expect(screen.getByText("这是第二次确认。发布后新的业务版本会立即对外生效。"))
-      .toBeInTheDocument();
+    expect(
+      screen.getByText("这是第二次确认。发布后新的业务版本会立即对外生效。"),
+    ).toBeInTheDocument();
     expect(onPublish).not.toHaveBeenCalled();
 
     fireEvent.click(screen.getByRole("button", { name: "确认发布" }));
     expect(onPublish).toHaveBeenCalledWith(
-      expect.objectContaining({ revision: 4, changeSummary: "更新首页内容", idempotencyKey: expect.any(String) }),
+      expect.objectContaining({
+        revision: 4,
+        changeSummary: "更新首页内容",
+        idempotencyKey: expect.any(String),
+      }),
     );
   });
 

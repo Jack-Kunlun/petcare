@@ -7,10 +7,7 @@ import {
 } from "@petcare/shared-types";
 import { WEBSITE_CONTENT_SEED_TEMPLATES } from "../../seed/seed-website-content";
 import { websiteContentNotFound, websiteContentValidationFailed } from "./website-content.errors";
-import {
-  type ValidationIssue,
-  WebsiteSectionTypeRegistry,
-} from "./website-section-type.registry";
+import { type ValidationIssue, WebsiteSectionTypeRegistry } from "./website-section-type.registry";
 
 interface TemplateSectionDefinition {
   /** Stable key owned by the fixed page template. */
@@ -65,7 +62,9 @@ function createTemplateDefinition(contentKey: WebsiteContentKey): TemplateSectio
 function formatIssues(issues: readonly ValidationIssue[]): string {
   const firstIssue = issues[0];
 
-  return firstIssue ? `官网内容校验失败：${firstIssue.path} ${firstIssue.message}` : "官网内容未通过校验";
+  return firstIssue
+    ? `官网内容校验失败：${firstIssue.path} ${firstIssue.message}`
+    : "官网内容未通过校验";
 }
 
 /** Protects first-release pages from section composition mutations while preserving future seams. */
@@ -84,9 +83,7 @@ export class WebsitePageTemplateRegistry {
       throw websiteContentValidationFailed("官网内容校验失败：sections 必须是数组");
     }
 
-    const expectedByKey = new Map(
-      templateSections.map((section) => [section.sectionKey, section]),
-    );
+    const expectedByKey = new Map(templateSections.map((section) => [section.sectionKey, section]));
     const sectionKeys = new Set<string>();
     const sortOrders = new Set<number>();
 
@@ -124,9 +121,7 @@ export class WebsitePageTemplateRegistry {
       }
 
       const expected =
-        typeof section.sectionKey === "string"
-          ? expectedByKey.get(section.sectionKey)
-          : undefined;
+        typeof section.sectionKey === "string" ? expectedByKey.get(section.sectionKey) : undefined;
 
       if (!expected) {
         issues.push({ path: `${sectionPath}.sectionKey`, message: "不属于当前页面模板" });

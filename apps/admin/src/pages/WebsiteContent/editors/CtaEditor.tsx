@@ -3,7 +3,11 @@ import type { SectionEditorProps } from "./editor-types";
 import { ActionLinkFields, SelectField, TextField } from "./fields";
 
 /** Edits the fixed call-to-action fields and approved visual variants. */
-export function CtaEditor({ section, onChange, disabled = false }: SectionEditorProps<WebsiteCtaSection>) {
+export function CtaEditor({
+  section,
+  onChange,
+  disabled = false,
+}: SectionEditorProps<WebsiteCtaSection>) {
   const updateContent = (content: WebsiteCtaSection["content"]) =>
     onChange({ ...section, content });
 
@@ -60,7 +64,9 @@ export function CtaEditor({ section, onChange, disabled = false }: SectionEditor
             { value: "left", label: "左对齐" },
             { value: "center", label: "居中" },
           ]}
-          onChange={(alignment) => onChange({ ...section, settings: { ...section.settings, alignment } })}
+          onChange={(alignment) =>
+            onChange({ ...section, settings: { ...section.settings, alignment } })
+          }
         />
       </div>
     </div>

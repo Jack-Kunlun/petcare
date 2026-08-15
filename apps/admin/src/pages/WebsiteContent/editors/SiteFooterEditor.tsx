@@ -108,7 +108,9 @@ export function SiteFooterEditor({
         label="显示已批准的品牌标识"
         checked={section.settings.showLogo}
         disabled={disabled}
-        onChange={(showLogo) => onChange({ ...section, settings: { ...section.settings, showLogo } })}
+        onChange={(showLogo) =>
+          onChange({ ...section, settings: { ...section.settings, showLogo } })
+        }
       />
     </div>
   );

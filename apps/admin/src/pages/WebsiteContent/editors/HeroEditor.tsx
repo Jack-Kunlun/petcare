@@ -4,7 +4,11 @@ import type { SectionEditorProps } from "./editor-types";
 import { ActionLinkFields, SelectField, TextField } from "./fields";
 
 /** Edits the strongly typed hero copy, actions, image reference, and bounded display settings. */
-export function HeroEditor({ section, onChange, disabled = false }: SectionEditorProps<WebsiteHeroSection>) {
+export function HeroEditor({
+  section,
+  onChange,
+  disabled = false,
+}: SectionEditorProps<WebsiteHeroSection>) {
   const updateContent = (content: WebsiteHeroSection["content"]) =>
     onChange({ ...section, content });
 
@@ -58,7 +62,9 @@ export function HeroEditor({ section, onChange, disabled = false }: SectionEdito
             { value: "left", label: "左对齐" },
             { value: "center", label: "居中" },
           ]}
-          onChange={(alignment) => onChange({ ...section, settings: { ...section.settings, alignment } })}
+          onChange={(alignment) =>
+            onChange({ ...section, settings: { ...section.settings, alignment } })
+          }
         />
         <SelectField
           label="图片位置"

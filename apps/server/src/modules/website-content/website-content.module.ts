@@ -32,14 +32,11 @@ function createWebsiteMediaStorage(config: ConfigService): WebsiteMediaStorage {
     SecretKey: config.tencentCosSecretKey,
   });
 
-  return new TencentCosWebsiteMediaStorage(
-    client as never,
-    {
-      bucket: config.tencentCosBucket,
-      region: config.tencentCosRegion,
-      publicBaseUrl: config.tencentCosPublicBaseUrl,
-    },
-  );
+  return new TencentCosWebsiteMediaStorage(client as never, {
+    bucket: config.tencentCosBucket,
+    region: config.tencentCosRegion,
+    publicBaseUrl: config.tencentCosPublicBaseUrl,
+  });
 }
 
 /** Assembles bounded Website Content persistence, media, lifecycle, Admin, and public HTTP adapters. */

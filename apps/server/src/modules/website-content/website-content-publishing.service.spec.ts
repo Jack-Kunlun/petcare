@@ -31,7 +31,8 @@ function version(
     sourceVersionId: null,
     createdBy: { id: "admin-1", displayName: "Admin" },
     createdAt: "2026-08-13T00:00:00.000Z",
-    publishedBy: status === WEBSITE_CONTENT_STATUS.DRAFT ? null : { id: "admin-1", displayName: "Admin" },
+    publishedBy:
+      status === WEBSITE_CONTENT_STATUS.DRAFT ? null : { id: "admin-1", displayName: "Admin" },
     publishedAt: status === WEBSITE_CONTENT_STATUS.DRAFT ? null : "2026-08-13T00:01:00.000Z",
   };
 }

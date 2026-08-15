@@ -51,20 +51,23 @@ export class WebsitePreviewService {
   ) {}
 
   /** Creates a ten-minute fragment-only plaintext capability and stores only its digest. */
-  async createPreview(
-    command: CreateWebsitePreviewCommand,
-  ): Promise<CreateWebsitePreviewResponse> {
+  async createPreview(command: CreateWebsitePreviewCommand): Promise<CreateWebsitePreviewResponse> {
     const content = await this.prisma.websiteContent.findUnique({
       where: { contentKey: command.contentKey },
       include: { currentDraftVersion: { select: { id: true, revision: true, status: true } } },
     });
 
-    if (!content?.currentDraftVersion || content.currentDraftVersion.revision !== command.revision) {
+    if (
+      !content?.currentDraftVersion ||
+      content.currentDraftVersion.revision !== command.revision
+    ) {
       throw websiteContentRevisionConflict();
     }
 
     const plaintext = this.tokenFactory();
-    const expiresAt = new Date(this.clock().getTime() + this.config.websitePreviewTtlSeconds * 1000);
+    const expiresAt = new Date(
+      this.clock().getTime() + this.config.websitePreviewTtlSeconds * 1000,
+    );
     const row = await this.prisma.websitePreviewToken.create({
       data: {
         tokenHash: hashToken(plaintext),
@@ -94,7 +97,11 @@ export class WebsitePreviewService {
     url.searchParams.set("contentKey", command.contentKey);
     url.hash = `token=${plaintext}`;
 
-    return { previewUrl: url.toString(), expiresAt: expiresAt.toISOString(), revision: command.revision };
+    return {
+      previewUrl: url.toString(),
+      expiresAt: expiresAt.toISOString(),
+      revision: command.revision,
+    };
   }
 
   /** Reads the exact immutable version selected when the capability was minted. */

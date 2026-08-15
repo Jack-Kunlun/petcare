@@ -170,11 +170,7 @@ export const ADMIN_ROUTE_REGISTRY: readonly AdminRouteDefinition[] = [
   catalogMenuRoute("content", "content.view", createElement(ContentManagement), "悬赏管理"),
   catalogMenuRoute("content-posts", "content.post.view", createElement(ContentPosts)),
   catalogMenuRoute("content-articles", "content.article.view", createElement(ContentArticles)),
-  catalogMenuRoute(
-    "website-content",
-    "website.view",
-    settingsRoute(createElement(WebsiteContent)),
-  ),
+  catalogMenuRoute("website-content", "website.view", settingsRoute(createElement(WebsiteContent))),
   {
     id: "website-content-edit",
     path: "/website-content/:contentKey/edit",
