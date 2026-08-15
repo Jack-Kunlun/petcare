@@ -37,7 +37,7 @@ export async function loginWebsiteOperator(
 export async function openHomeEditor(page: Page): Promise<void> {
   await page
     .getByTestId("desktop-menu-tree")
-    .getByRole("link", { name: "官网内容管理" })
+    .getByRole("link", { name: "官网设置" })
     .click();
   await expect(page.getByRole("heading", { name: "官网内容" })).toBeVisible();
   const homeCard = page.getByRole("listitem").filter({
@@ -52,7 +52,7 @@ export async function openHomeEditor(page: Page): Promise<void> {
 export async function openHomeEditorRoute(page: Page): Promise<void> {
   await page
     .getByTestId("desktop-menu-tree")
-    .getByRole("link", { name: "官网内容管理" })
+    .getByRole("link", { name: "官网设置" })
     .click();
   await expect(page).toHaveURL(/\/website-content$/u);
   await page.evaluate(() => {

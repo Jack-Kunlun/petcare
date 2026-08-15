@@ -121,11 +121,17 @@ function findReferenceValidationError(sections: readonly WebsiteContentSection[]
 
     const record = value as Record<string, unknown>;
 
-    if ("altText" in record && (!record.altText || typeof record.altText !== "string" || !record.altText.trim())) {
+    if (
+      "altText" in record &&
+      (!record.altText || typeof record.altText !== "string" || !record.altText.trim())
+    ) {
       return "请为每张图片填写有意义的替代文本。";
     }
 
-    if ("href" in record && (typeof record.href !== "string" || !isSafeLinkDestination(record.href))) {
+    if (
+      "href" in record &&
+      (typeof record.href !== "string" || !isSafeLinkDestination(record.href))
+    ) {
       return "请使用站内路径、HTTPS、mailto 或 tel 链接。";
     }
 
@@ -156,7 +162,9 @@ function stateFromDraft(draft: WebsiteContentVersion): DraftEditorState {
     contentKey: draft.contentKey,
     revision: draft.revision,
     seo: structuredClone(draft.seo),
-    sections: structuredClone(draft.sections).sort((left, right) => left.sortOrder - right.sortOrder),
+    sections: structuredClone(draft.sections).sort(
+      (left, right) => left.sortOrder - right.sortOrder,
+    ),
     changeSummary: draft.changeSummary,
   };
 }
@@ -251,7 +259,9 @@ export default function WebsiteContentEdit() {
       setNotice(`草稿已保存，当前修订版为 r${savedDraft.revision}。`);
       queryClient.setQueryData(websiteContentQueryKeys.draft(savedDraft.contentKey), savedDraft);
       void queryClient.invalidateQueries({ queryKey: websiteContentQueryKeys.overview() });
-      void queryClient.invalidateQueries({ queryKey: websiteContentQueryKeys.diff(savedDraft.contentKey) });
+      void queryClient.invalidateQueries({
+        queryKey: websiteContentQueryKeys.diff(savedDraft.contentKey),
+      });
     },
     onError: async (error) => {
       if (isRevisionConflict(error)) {
@@ -265,15 +275,22 @@ export default function WebsiteContentEdit() {
   });
 
   const previewMutation = useMutation({
-    mutationFn: async () => {
+    mutationFn: async (previewWindow: Window | null) => {
       if (!contentKey || !editorState || dirty) {
         throw new Error("预览必须使用已保存草稿。");
       }
 
+      if (!previewWindow) {
+        throw new Error("浏览器阻止了预览窗口，请允许弹窗后重试。");
+      }
+
       return createWebsiteContentPreview(contentKey, { revision: editorState.revision });
     },
-    onSuccess: (preview) => {
-      globalThis.open(preview.previewUrl, "_blank", "noopener,noreferrer");
+    onSuccess: (preview, previewWindow) => {
+      previewWindow?.location.replace(preview.previewUrl);
+    },
+    onError: (_error, previewWindow) => {
+      previewWindow?.close();
     },
   });
 
@@ -292,12 +309,21 @@ export default function WebsiteContentEdit() {
       setDirty(false);
       setPublishDialogOpen(false);
       setNotice(`已发布业务版本 v${result.published.businessVersion}。`);
-      queryClient.setQueryData(websiteContentQueryKeys.draft(result.draft.contentKey), result.draft);
+      queryClient.setQueryData(
+        websiteContentQueryKeys.draft(result.draft.contentKey),
+        result.draft,
+      );
       void Promise.all([
         queryClient.invalidateQueries({ queryKey: websiteContentQueryKeys.overview() }),
-        queryClient.invalidateQueries({ queryKey: websiteContentQueryKeys.draft(result.draft.contentKey) }),
-        queryClient.invalidateQueries({ queryKey: websiteContentQueryKeys.diff(result.draft.contentKey) }),
-        queryClient.invalidateQueries({ queryKey: ["website-content", result.draft.contentKey, "history"] }),
+        queryClient.invalidateQueries({
+          queryKey: websiteContentQueryKeys.draft(result.draft.contentKey),
+        }),
+        queryClient.invalidateQueries({
+          queryKey: websiteContentQueryKeys.diff(result.draft.contentKey),
+        }),
+        queryClient.invalidateQueries({
+          queryKey: ["website-content", result.draft.contentKey, "history"],
+        }),
       ]);
     },
   });
@@ -326,7 +352,9 @@ export default function WebsiteContentEdit() {
   const updateSection = (sectionIndex: number, section: WebsiteContentSection) => {
     updateState((current) => ({
       ...current,
-      sections: current.sections.map((candidate, index) => (index === sectionIndex ? section : candidate)),
+      sections: current.sections.map((candidate, index) =>
+        index === sectionIndex ? section : candidate,
+      ),
     }));
   };
 
@@ -361,20 +389,12 @@ export default function WebsiteContentEdit() {
   }
 
   if (!contentKey) {
-    return (
-      <PageMessage
-        title="官网内容不存在"
-        message="请从官网内容列表选择有效的内容单元。"
-      />
-    );
+    return <PageMessage title="官网内容不存在" message="请从官网内容列表选择有效的内容单元。" />;
   }
 
   if (!canReadDraft) {
     return (
-      <PageMessage
-        title="没有官网内容编辑权限"
-        message="请联系管理员授予 website.edit 权限。"
-      />
+      <PageMessage title="没有官网内容编辑权限" message="请联系管理员授予 website.edit 权限。" />
     );
   }
 
@@ -453,21 +473,28 @@ export default function WebsiteContentEdit() {
         </div>
       ) : null}
       {serverRevision !== null ? (
-        <div role="alert" className="mt-5 rounded-xl border border-amber-200 bg-amber-50 p-4 text-amber-950">
+        <div
+          role="alert"
+          className="mt-5 rounded-xl border border-amber-200 bg-amber-50 p-4 text-amber-950"
+        >
           <h2 className="font-semibold">检测到版本冲突</h2>
-          <p className="mt-1">
-            服务端草稿已更新。本地输入仍保留，请根据最新草稿协调后重新保存。
-          </p>
+          <p className="mt-1">服务端草稿已更新。本地输入仍保留，请根据最新草稿协调后重新保存。</p>
           <p className="mt-2 font-medium">服务端当前修订版：r{serverRevision}</p>
         </div>
       ) : null}
       {validationError ? (
-        <div role="alert" className="mt-5 rounded-xl border border-red-200 bg-red-50 p-4 text-red-950">
+        <div
+          role="alert"
+          className="mt-5 rounded-xl border border-red-200 bg-red-50 p-4 text-red-950"
+        >
           {validationError}
         </div>
       ) : null}
       {saveMutation.isError && !isRevisionConflict(saveMutation.error) ? (
-        <div role="alert" className="mt-5 rounded-xl border border-red-200 bg-red-50 p-4 text-red-950">
+        <div
+          role="alert"
+          className="mt-5 rounded-xl border border-red-200 bg-red-50 p-4 text-red-950"
+        >
           {errorMessage(saveMutation.error)}
         </div>
       ) : null}
@@ -476,32 +503,37 @@ export default function WebsiteContentEdit() {
         <section className="rounded-xl border border-slate-200 bg-white p-5 shadow-sm">
           <h2 className="text-lg font-semibold text-slate-950">SEO 元数据</h2>
           <div className="mt-4 grid gap-4">
-              <TextField
-                label="SEO 标题"
-                value={editorState.seo.title}
-                required
-                disabled={!canEdit}
-              onChange={(title) => updateState((current) => ({ ...current, seo: { ...current.seo, title } }))}
+            <TextField
+              label="SEO 标题"
+              value={editorState.seo.title}
+              required
+              disabled={!canEdit}
+              onChange={(title) =>
+                updateState((current) => ({ ...current, seo: { ...current.seo, title } }))
+              }
             />
             <TextField
               label="SEO 描述"
-                value={editorState.seo.description}
-                required
-                multiline
-                disabled={!canEdit}
+              value={editorState.seo.description}
+              required
+              multiline
+              disabled={!canEdit}
               onChange={(description) =>
                 updateState((current) => ({ ...current, seo: { ...current.seo, description } }))
               }
             />
             <TextField
-                label="规范路径"
-                value={editorState.seo.canonicalPath}
-                required
-                disabled={!canEdit}
+              label="规范路径"
+              value={editorState.seo.canonicalPath}
+              required
+              disabled={!canEdit}
               onChange={(canonicalPath) =>
                 updateState((current) => ({
                   ...current,
-                  seo: { ...current.seo, canonicalPath: canonicalPath as WebsiteSeoContent["canonicalPath"] },
+                  seo: {
+                    ...current.seo,
+                    canonicalPath: canonicalPath as WebsiteSeoContent["canonicalPath"],
+                  },
                 }))
               }
             />
@@ -537,14 +569,16 @@ export default function WebsiteContentEdit() {
             disabled={!canEdit}
             onChange={(changeSummary) => updateState((current) => ({ ...current, changeSummary }))}
           />
-          <p className="mt-2 text-sm text-slate-500">每次保存都必须说明本次不可变草稿的业务变更。</p>
+          <p className="mt-2 text-sm text-slate-500">
+            每次保存都必须说明本次不可变草稿的业务变更。
+          </p>
         </section>
 
         <PermissionGate all={["website.edit"]}>
           <button
             type="submit"
             disabled={saveMutation.isPending}
-            className="inline-flex min-h-11 items-center gap-2 rounded-lg bg-blue-700 px-5 font-semibold text-white outline-none transition-colors hover:bg-blue-800 focus-visible:ring-2 focus-visible:ring-blue-700 disabled:cursor-not-allowed disabled:opacity-50"
+            className="inline-flex min-h-11 cursor-pointer items-center gap-2 rounded-lg bg-blue-700 px-5 font-semibold text-white outline-none transition-colors hover:bg-blue-800 focus-visible:ring-2 focus-visible:ring-blue-700 disabled:cursor-not-allowed disabled:opacity-50"
           >
             <Save aria-hidden="true" className="h-4 w-4" />
             保存草稿
@@ -563,8 +597,16 @@ export default function WebsiteContentEdit() {
               type="button"
               aria-label="preview-saved-draft"
               disabled={dirty || previewMutation.isPending}
-              onClick={() => previewMutation.mutate()}
-              className="min-h-11 rounded-lg border border-blue-700 px-4 font-semibold text-blue-800 outline-none hover:bg-blue-50 focus-visible:ring-2 focus-visible:ring-blue-800 disabled:cursor-not-allowed disabled:opacity-40"
+              onClick={() => {
+                const previewWindow = globalThis.open("about:blank", "_blank");
+
+                if (previewWindow) {
+                  previewWindow.opener = null;
+                }
+
+                previewMutation.mutate(previewWindow);
+              }}
+              className="min-h-11 cursor-pointer rounded-lg border border-blue-700 px-4 font-semibold text-blue-800 outline-none hover:bg-blue-50 focus-visible:ring-2 focus-visible:ring-blue-800 disabled:cursor-not-allowed disabled:opacity-40"
             >
               预览已保存草稿
             </button>
@@ -575,18 +617,31 @@ export default function WebsiteContentEdit() {
               aria-label="publish-saved-draft"
               disabled={dirty || publishMutation.isPending}
               onClick={() => setPublishDialogOpen(true)}
-              className="min-h-11 rounded-lg bg-red-700 px-4 font-semibold text-white outline-none hover:bg-red-800 focus-visible:ring-2 focus-visible:ring-red-700 disabled:cursor-not-allowed disabled:opacity-40"
+              className="min-h-11 cursor-pointer rounded-lg bg-red-700 px-4 font-semibold text-white outline-none hover:bg-red-800 focus-visible:ring-2 focus-visible:ring-red-700 disabled:cursor-not-allowed disabled:opacity-40"
             >
               发布已保存草稿
             </button>
           </PermissionGate>
         </div>
-        {dirty ? <p className="mt-3 text-sm text-amber-800">请先保存当前变更，再预览或发布。</p> : null}
-        {previewMutation.isError ? <p role="alert" className="mt-3 text-sm text-red-700">无法为当前已保存修订创建预览。</p> : null}
-        {publishMutation.isError ? <p role="alert" className="mt-3 text-sm text-red-700">无法发布当前已保存修订。</p> : null}
+        {dirty ? (
+          <p className="mt-3 text-sm text-amber-800">请先保存当前变更，再预览或发布。</p>
+        ) : null}
+        {previewMutation.isError ? (
+          <p role="alert" className="mt-3 text-sm text-red-700">
+            无法为当前已保存修订创建预览。
+          </p>
+        ) : null}
+        {publishMutation.isError ? (
+          <p role="alert" className="mt-3 text-sm text-red-700">
+            无法发布当前已保存修订。
+          </p>
+        ) : null}
       </section>
 
-      <section aria-label="website-content-history" className="mt-6 rounded-xl border border-slate-200 bg-white p-5 shadow-sm">
+      <section
+        aria-label="website-content-history"
+        className="mt-6 rounded-xl border border-slate-200 bg-white p-5 shadow-sm"
+      >
         <h2 className="text-lg font-semibold text-slate-950">已发布历史</h2>
         <div className="mt-4">
           <ContentHistory
@@ -607,7 +662,9 @@ export default function WebsiteContentEdit() {
             query={mediaQuery}
             loading={mediaAssetsQuery.isPending}
             error={mediaAssetsQuery.isError}
-            pendingAssetId={archiveMediaMutation.isPending ? archiveMediaMutation.variables ?? null : null}
+            pendingAssetId={
+              archiveMediaMutation.isPending ? (archiveMediaMutation.variables ?? null) : null
+            }
             onQueryChange={setMediaQuery}
             onUpload={async (file) => {
               await uploadMediaMutation.mutateAsync(file);
