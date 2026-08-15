@@ -68,6 +68,19 @@ test("Docker 从根 packageManager 读取 pnpm 版本", async () => {
   }
 });
 
+test("Docker 构建镜像在安装依赖前复制 pnpm 守卫脚本", async () => {
+  for (const path of ["Dockerfile.admin", "Dockerfile.server", "Dockerfile.website"]) {
+    const dockerfile = await readFile(resolve(root, path), "utf8");
+    const guardCopy = dockerfile.indexOf(
+      "COPY scripts/enforce-pnpm.mjs ./scripts/enforce-pnpm.mjs",
+    );
+    const install = dockerfile.indexOf("RUN pnpm install --frozen-lockfile");
+
+    assert.notEqual(guardCopy, -1, `${path} 必须复制 pnpm 守卫脚本`);
+    assert.ok(guardCopy < install, `${path} 必须在安装依赖前复制 pnpm 守卫脚本`);
+  }
+});
+
 test("Compose 包含独立的 Website SSR 与公网网关", async () => {
   const compose = await readFile(resolve(root, "docker-compose.yml"), "utf8");
 

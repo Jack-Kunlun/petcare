@@ -11,6 +11,7 @@ COPY packages/api-client/package.json ./packages/api-client/
 COPY packages/eslint-config-base/package.json ./packages/eslint-config-base/
 COPY packages/shared-types/package.json ./packages/shared-types/
 COPY packages/shared-utils/package.json ./packages/shared-utils/
+COPY scripts/enforce-pnpm.mjs ./scripts/enforce-pnpm.mjs
 
 RUN pnpm install --frozen-lockfile
 
