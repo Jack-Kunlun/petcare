@@ -11,6 +11,7 @@ COPY apps/server/package.json ./apps/server/
 COPY packages/eslint-config-base/package.json ./packages/eslint-config-base/
 COPY packages/shared-types/package.json ./packages/shared-types/
 COPY packages/shared-utils/package.json ./packages/shared-utils/
+COPY scripts/enforce-pnpm.mjs ./scripts/enforce-pnpm.mjs
 
 # 安装依赖
 RUN pnpm install --frozen-lockfile

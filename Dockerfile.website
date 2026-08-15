@@ -9,6 +9,7 @@ RUN corepack enable
 COPY apps/website/package.json ./apps/website/
 COPY packages/eslint-config-base/package.json ./packages/eslint-config-base/
 COPY packages/shared-types/package.json ./packages/shared-types/
+COPY scripts/enforce-pnpm.mjs ./scripts/enforce-pnpm.mjs
 
 RUN pnpm install --frozen-lockfile
 
