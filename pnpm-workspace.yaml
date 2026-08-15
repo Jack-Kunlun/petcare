@@ -5,6 +5,7 @@ packages:
 pmOnFail: download
 engineStrict: true
 nodeVersion: "24.19.0"
+saveExact: true
 
 allowBuilds:
   "@parcel/watcher": true
@@ -22,6 +23,12 @@ allowBuilds:
   vue-demi: true
 
 packageExtensions:
+  "@dcloudio/uni-cli-shared@3.0.0-4080520251106001":
+    dependencies:
+      postcss: "8.4.45"
   "@dcloudio/uni-h5-vite@3.0.0-4080520251106001":
     dependencies:
       vite: "5.4.21"
+  "@wot-ui/ui@2.3.1":
+    peerDependencies:
+      "@dcloudio/uni-app": "3.0.0-4080520251106001"

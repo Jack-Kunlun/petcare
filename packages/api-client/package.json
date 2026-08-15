@@ -20,13 +20,13 @@
   },
   "dependencies": {
     "@petcare/shared-types": "workspace:*",
-    "axios": "^1.18.1"
+    "axios": "1.18.1"
   },
   "devDependencies": {
     "@petcare/eslint-config-base": "workspace:*",
-    "@vitest/coverage-v8": "^4.1.10",
+    "@vitest/coverage-v8": "4.1.10",
     "eslint": "9.39.0",
-    "typescript": "^6.0.3",
-    "vitest": "^4.1.10"
+    "typescript": "6.0.3",
+    "vitest": "4.1.10"
   }
 }
