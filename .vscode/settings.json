@@ -7,7 +7,8 @@
   "editor.formatOnSave": true,
   "eslint.workingDirectories": [{ "mode": "auto" }],
   "files.associations": {
-    "*.css": "tailwindcss"
+    "*.css": "tailwindcss",
+    "**/pages.json": "jsonc"
   },
   "scss.lint.unknownAtRules": "ignore",
   "tailwindCSS.experimental.configFile": {

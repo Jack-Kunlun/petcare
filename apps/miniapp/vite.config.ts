@@ -24,7 +24,9 @@ export default defineConfig({
       dts: "src/auto-imports.d.ts",
       vueTemplate: true,
     }),
-    UnoCSS(),
+    UnoCSS({
+      mode: "dist-chunk",
+    }),
   ],
   css: {
     preprocessorOptions: {
