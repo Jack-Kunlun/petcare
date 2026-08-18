@@ -161,11 +161,12 @@ RESTful API设计规范和接口定义。
 
 Docker容器化部署和运维指南。
 
-| 文档                                                                         | 说明            | 适合人群         |
-| ---------------------------------------------------------------------------- | --------------- | ---------------- |
-| [deployment.md](./08-deployment/deployment.md)                               | 完整部署指南 ⭐ | DevOps、后端开发 |
-| [deployment-architecture.html](./08-deployment/deployment-architecture.html) | 交互式架构图 🎨 | 全体技术         |
-| [env-example.md](./08-deployment/env-example.md)                             | 环境变量示例    | DevOps           |
+| 文档                                                                         | 说明                              | 适合人群         |
+| ---------------------------------------------------------------------------- | --------------------------------- | ---------------- |
+| [deployment.md](./08-deployment/deployment.md)                               | 完整部署指南 ⭐                   | DevOps、后端开发 |
+| [github-actions-deploy.md](./08-deployment/github-actions-deploy.md)         | GitHub Actions 手动部署（轻量云） | DevOps           |
+| [deployment-architecture.html](./08-deployment/deployment-architecture.html) | 交互式架构图 🎨                   | 全体技术         |
+| [env-example.md](./08-deployment/env-example.md)                             | 环境变量示例                      | DevOps           |
 
 **核心内容**:
 
