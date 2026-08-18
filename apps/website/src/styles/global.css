@@ -360,10 +360,38 @@ button:focus-visible {
 
 .site-footer__copyright {
   width: min(100%, 72rem);
-  padding-top: 1.5rem;
-  margin: 2rem auto 0;
-  border-top: 1px solid #3b465c;
+  margin: 0 auto;
   color: #cbd4e4;
+}
+
+/* 备案信息：工信部 + 公安备案，公网合规展示 */
+.site-footer__icp {
+  width: min(100%, 72rem);
+  padding-top: 0.5rem;
+  padding-bottom: 1.5rem;
+  margin: 0 auto;
+  border-top: 1px solid #3b465c;
+  color: #8b96ab;
+  font-size: 0.75rem;
+  text-align: center;
+}
+
+.site-footer__icp a {
+  display: inline-flex;
+  align-items: center;
+  gap: 0.25rem;
+  margin: 0 0.5rem;
+  color: #8b96ab;
+  text-decoration: none;
+}
+
+.site-footer__icp a:hover {
+  color: #cbd4e4;
+  text-decoration: underline;
+}
+
+.site-footer__icp img {
+  display: inline-block;
 }
 
 .preview-notice {
