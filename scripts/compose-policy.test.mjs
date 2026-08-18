@@ -135,7 +135,7 @@ test("Compose 将官网 SSR 保持在内部网络并仅传递所需运行变量"
     /WEBSITE_CONTENT_API_BASE_URL: \$\{WEBSITE_CONTENT_API_BASE_URL:-http:\/\/server:3000\}/,
   );
   assert.doesNotMatch(server, /WEBSITE_CONTENT_API_BASE_URL/);
-  assert.match(gateway, /- "\$\{WEBSITE_PORT:-8080\}:80"/);
+  assert.match(gateway, /- "127\.0\.0\.1:\$\{WEBSITE_PORT:-8080\}:80"/);
   assert.match(gateway, /website-nginx\.conf/);
   assert.doesNotMatch(
     server,
@@ -143,7 +143,16 @@ test("Compose 将官网 SSR 保持在内部网络并仅传递所需运行变量"
     "全容器部署不得绕过官网网关直接暴露 Nest 的管理或 Swagger 路由",
   );
   assert.match(admin, /dockerfile: Dockerfile\.admin/);
-  assert.match(admin, /- "8986:80"/);
+  assert.match(admin, /- "127\.0\.0\.1:8986:80"/);
+
+  // HTTPS 边缘网关是唯一公网入口，80/443 之外的端口必须绑定本机回环
+  const edgeGateway = serviceBlock(compose, "edge-gateway");
+  assert.match(edgeGateway, /edge-nginx\.conf/);
+  assert.match(edgeGateway, /- "80:80"/);
+  assert.match(edgeGateway, /- "443:443"/);
+  assert.match(edgeGateway, /\.\/certs:\/etc\/nginx\/certs:ro/);
+  assert.match(admin, /127\.0\.0\.1:8986:80/);
+  assert.match(gateway, /127\.0\.0\.1:\$\{WEBSITE_PORT:-8080\}:80/);
 
   for (const [name, value] of [
     ["WEBSITE_PUBLIC_URL", "http://localhost:8080"],
