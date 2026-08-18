@@ -1,0 +1,146 @@
+# 手动触发：构建镜像 → 推送 GHCR → SSH 到腾讯轻量云服务器拉取并重启
+# 使用前置条件见 docs/08-deployment/github-actions-deploy.md
+name: 手动部署
+
+on:
+  workflow_dispatch:
+    inputs:
+      ref:
+        description: "要部署的分支 / 标签 / commit SHA"
+        required: true
+        default: "master"
+      target:
+        description: "部署范围"
+        required: true
+        type: choice
+        default: "all"
+        options:
+          - "all"
+          - "server"
+          - "admin"
+          - "website"
+      sync_schema:
+        description: "部署后同步数据库 Schema 并执行幂等 seed（首次部署必须勾选）"
+        required: false
+        type: boolean
+        default: true
+
+permissions:
+  contents: read
+  packages: write
+
+env:
+  REGISTRY: ghcr.io
+
+jobs:
+  resolve:
+    name: 解析部署参数
+    runs-on: ubuntu-latest
+    outputs:
+      image_tag: ${{ steps.meta.outputs.image_tag }}
+      services: ${{ steps.meta.outputs.services }}
+      registry_path: ${{ steps.meta.outputs.registry_path }}
+    steps:
+      - name: 计算镜像标签与服务列表
+        id: meta
+        shell: bash
+        env:
+          TARGET: ${{ inputs.target }}
+          SHA: ${{ github.sha }}
+          OWNER: ${{ github.repository_owner }}
+        run: |
+          case "$TARGET" in
+            all) services="server admin website" ;;
+            *)   services="$TARGET" ;;
+          esac
+          {
+            echo "services=$services"
+            echo "image_tag=sha-${SHA::7}"
+            echo "registry_path=${REGISTRY}/${OWNER,,}"
+          } >> "$GITHUB_OUTPUT"
+
+  build:
+    name: 构建镜像
+    needs: resolve
+    runs-on: ubuntu-latest
+    strategy:
+      fail-fast: false
+      matrix:
+        target: ${{ fromJSON(toJSON(split(needs.resolve.outputs.services, ' '))) }}
+    steps:
+      - uses: actions/checkout@v7
+        with:
+          ref: ${{ github.sha }}
+
+      - uses: docker/setup-buildx-action@v3
+
+      - uses: docker/login-action@v3
+        with:
+          registry: ${{ env.REGISTRY }}
+          username: ${{ github.actor }}
+          password: ${{ secrets.GITHUB_TOKEN }}
+
+      - name: 构建并推送 ${{ matrix.target }}
+        uses: docker/build-push-action@v6
+        with:
+          context: .
+          file: Dockerfile.${{ matrix.target }}
+          push: true
+          tags: ${{ needs.resolve.outputs.registry_path }}/petcare-${{ matrix.target }}:${{ needs.resolve.outputs.image_tag }}
+          cache-from: type=gha,scope=${{ matrix.target }}
+          cache-to: type=gha,mode=max,scope=${{ matrix.target }}
+
+  deploy:
+    name: 部署到轻量云
+    runs-on: ubuntu-latest
+    needs: [resolve, build]
+    steps:
+      - name: SSH 部署
+        uses: appleboy/ssh-action@v1
+        with:
+          host: ${{ secrets.DEPLOY_HOST }}
+          port: ${{ vars.DEPLOY_PORT || 22 }}
+          username: ${{ secrets.DEPLOY_USER }}
+          key: ${{ secrets.DEPLOY_SSH_KEY }}
+          script_stop: true
+          script: |
+            set -euo pipefail
+            cd /opt/petcare
+
+            echo "== 同步部署配置（compose / nginx 以部署版本为准）=="
+            git fetch origin
+            git checkout --force '${{ github.sha }}'
+
+            echo "== 登录 GHCR =="
+            echo '${{ secrets.GHCR_PULL_TOKEN }}' | docker login ghcr.io -u '${{ github.repository_owner }}' --password-stdin
+
+            export IMAGE_REGISTRY='${{ needs.resolve.outputs.registry_path }}'
+            export IMAGE_TAG='${{ needs.resolve.outputs.image_tag }}'
+            services='${{ needs.resolve.outputs.services }}'
+
+            echo "== 拉取镜像 =="
+            docker compose --env-file .env pull $services
+
+            echo "== 启动 / 更新服务 =="
+            if [ "$services" = "server admin website" ]; then
+              docker compose --env-file .env up -d --no-build --remove-orphans
+            else
+              docker compose --env-file .env up -d --no-build $services
+            fi
+
+            echo "== 等待健康检查 =="
+            sleep 20
+            docker compose --env-file .env ps
+
+            echo "== 同步数据库 Schema 与 seed =="
+            if [ '${{ inputs.sync_schema }}' = 'true' ]; then
+              docker compose --env-file .env run --rm server pnpm --filter @petcare/server prisma:push
+              docker compose --env-file .env run --rm server pnpm --filter @petcare/server prisma:seed
+            else
+              echo "已跳过（sync_schema=false）"
+            fi
+
+            echo "== 清理悬空镜像 =="
+            docker image prune -f
+
+            echo "== 部署完成 IMAGE_TAG=$IMAGE_TAG =="
