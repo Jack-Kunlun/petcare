@@ -123,3 +123,126 @@ test("生产发布只在完整验证后原子保存可回退的镜像状态", as
   assert.match(script, /--proto '=https' --tlsv1\.2/);
   assert.match(packageJson.scripts["test:tooling"], /\bscripts\/deploy-policy\.test\.mjs\b/);
 });
+
+test("手动部署只发布已通过 CI 的不可变所选镜像", async () => {
+  const workflow = await readFile(resolve(root, ".github/workflows/deploy.yml"), "utf8");
+
+  assert.match(workflow, /ref: \$\{\{ inputs\.ref \}\}/);
+  assert.match(workflow, /fetch-depth: 0/);
+  assert.match(workflow, /sha="\$\(git rev-parse HEAD\)"/);
+  assert.match(workflow, /actions\/workflows\/ci\.yml\/runs\?head_sha=\$sha&status=completed/);
+  assert.match(workflow, /select\(\.conclusion == "success"\)/);
+  assert.match(workflow, /services='\["server","admin","website"\]'/);
+  assert.match(workflow, /fromJSON\(needs\.resolve\.outputs\.services\)/);
+  assert.match(workflow, /ref: \$\{\{ needs\.resolve\.outputs\.sha \}\}/);
+  assert.match(
+    workflow,
+    /registry \}\}\/\$\{\{ matrix\.service \}\}:\$\{\{ needs\.resolve\.outputs\.image_tag \}\}/,
+  );
+  assert.match(workflow, /image_tag=sha-\$sha/);
+  assert.doesNotMatch(workflow, /ref: \$\{\{ github\.sha \}\}/);
+  assert.doesNotMatch(workflow, /sha-\$\{SHA::7\}/);
+});
+
+test("部署工作流先在受保护 runner 临时目录验证 SSH 与 TLS", async () => {
+  const workflow = await readFile(resolve(root, ".github/workflows/deploy.yml"), "utf8");
+
+  assert.match(workflow, /environment: production/);
+  assert.match(workflow, /group: petcare-production/);
+  assert.match(workflow, /cancel-in-progress: false/);
+  assert.match(
+    workflow,
+    /DEPLOY_TMP: \$\{\{ runner\.temp \}\}\/petcare-deploy-\$\{\{ github\.run_id \}\}-\$\{\{ github\.run_attempt \}\}/,
+  );
+  for (const secret of [
+    "DEPLOY_HOST",
+    "DEPLOY_USER",
+    "DEPLOY_SSH_KEY",
+    "DEPLOY_HOST_FINGERPRINT",
+    "GHCR_PULL_USER",
+    "GHCR_PULL_TOKEN",
+    "TLS_WEBSITE_CERT_B64",
+    "TLS_WEBSITE_KEY_B64",
+    "TLS_ADMIN_CERT_B64",
+    "TLS_ADMIN_KEY_B64",
+    "BACKUP_COS_SECRET_ID",
+    "BACKUP_COS_SECRET_KEY",
+    "BACKUP_COS_BUCKET",
+    "BACKUP_COS_REGION",
+  ]) {
+    assert.match(workflow, new RegExp(`secrets\\.${secret}`));
+  }
+  assert.match(workflow, /install -d -m 700 "\$DEPLOY_TMP"/);
+  assert.match(workflow, /chmod 600 "\$DEPLOY_TMP"\/\*/);
+  assert.match(workflow, /openssl x509 -in "\$cert" -noout -checkend 604800/);
+  assert.match(workflow, /openssl x509 .* -checkhost petcare-home\.com/);
+  assert.match(workflow, /openssl x509 .* -checkhost www\.petcare-home\.com/);
+  assert.match(workflow, /openssl x509 .* -checkhost admin\.petcare-home\.com/);
+  assert.match(workflow, /cert_pub=.*openssl x509[\s\S]*key_pub=.*openssl pkey/);
+  assert.match(workflow, /ssh-keyscan -p "\$DEPLOY_PORT" "\$DEPLOY_HOST"/);
+  assert.match(workflow, /ssh-keygen -lf - -E sha256/);
+  assert.match(workflow, /StrictHostKeyChecking=yes/);
+  assert.match(workflow, /UserKnownHostsFile="\$DEPLOY_TMP\/known_hosts"/);
+  assert.match(workflow, /GHCR_PULL_USER GHCR_PULL_TOKEN/);
+  assert.match(workflow, /\[\[ "\$GHCR_PULL_USER" =~ \^\[a-zA-Z0-9\]/);
+  assert.doesNotMatch(workflow, /REGISTRY_USER: \$\{\{ github\.repository_owner \}\}/);
+  assert.match(workflow, /if: always\(\)/);
+  assert.doesNotMatch(workflow, /appleboy\/ssh-action/);
+  assert.doesNotMatch(workflow, /prisma:push|sync_schema/);
+});
+
+test("远端发布以 root 仓库和临时凭据完成 TLS 与 release 事务", async () => {
+  const workflow = await readFile(resolve(root, ".github/workflows/deploy.yml"), "utf8");
+
+  assert.match(
+    workflow,
+    /REMOTE_TMP="\/tmp\/petcare-release-\$GITHUB_RUN_ID-\$GITHUB_RUN_ATTEMPT"/,
+  );
+  assert.match(workflow, /scp[\s\S]*StrictHostKeyChecking=yes[\s\S]*-P "\$DEPLOY_PORT"/);
+  assert.match(workflow, /local status=\$\?/);
+  assert.match(workflow, /sudo rm -rf -- "\$REMOTE_TMP"/);
+  assert.match(workflow, /sudo -H git -C \/opt\/petcare fetch --prune --tags origin/);
+  assert.match(workflow, /sudo -H git -C \/opt\/petcare checkout --detach --force "\$RELEASE_SHA"/);
+  assert.match(workflow, /checked_out=.*sudo -H git -C \/opt\/petcare rev-parse HEAD/);
+  assert.match(workflow, /\[\[ "\$checked_out" == "\$RELEASE_SHA" \]\]/);
+
+  const remoteValidate = position(
+    workflow,
+    'validate_pair "/opt/petcare/certs/petcare-home.com_bundle.crt.new"',
+  );
+  const finalCert = position(
+    workflow,
+    'sudo mv -f -- "/opt/petcare/certs/petcare-home.com_bundle.crt.new"',
+  );
+  const reload = position(workflow, "nginx -s reload");
+  assert.ok(remoteValidate < finalCert && finalCert < reload);
+  assert.match(workflow, /checkhost petcare-home\.com/);
+  assert.match(workflow, /checkhost www\.petcare-home\.com/);
+  assert.match(workflow, /checkhost admin\.petcare-home\.com/);
+
+  assert.match(workflow, /DOCKER_CONFIG="\$REMOTE_TMP\/docker-config"/);
+  assert.match(workflow, /sudo env DOCKER_CONFIG="\$DOCKER_CONFIG" docker login/);
+  assert.match(workflow, /docker login ghcr\.io[\s\S]*-u "\$GHCR_PULL_USER"/);
+  assert.match(workflow, /sudo rm -f -- "\$REMOTE_TMP\/ghcr\.token"/);
+  assert.match(
+    workflow,
+    /DOCKER_CONFIG="\$DOCKER_CONFIG"[\s\S]*bash \/opt\/petcare\/scripts\/release-production\.sh/,
+  );
+  assert.match(
+    workflow,
+    /install -m 0644[\s\S]*petcare-backup\.service[\s\S]*petcare-backup\.timer/,
+  );
+  assert.match(workflow, /systemctl daemon-reload/);
+  const release = position(workflow, "bash /opt/petcare/scripts/release-production.sh");
+  const enableTimer = position(workflow, "systemctl enable --now petcare-backup.timer");
+  const preReleaseReload = workflow.slice(finalCert, release);
+  assert.match(
+    preReleaseReload,
+    /docker inspect --format '\{\{\.State\.Running\}\}' petcare-edge-gateway/,
+  );
+  assert.match(preReleaseReload, /docker exec petcare-edge-gateway nginx -t/);
+  assert.match(preReleaseReload, /docker exec petcare-edge-gateway nginx -s reload/);
+  assert.doesNotMatch(preReleaseReload, /docker compose/);
+  assert.doesNotMatch(preReleaseReload, /\|\s*grep -q/);
+  assert.ok(release < enableTimer);
+});

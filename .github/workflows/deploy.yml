@@ -1,12 +1,10 @@
-# 手动触发：构建镜像 → 推送 GHCR → SSH 到腾讯轻量云服务器拉取并重启
-# 使用前置条件见 docs/08-deployment/github-actions-deploy.md
-name: 手动部署
+name: 手动生产发布
 
 on:
   workflow_dispatch:
     inputs:
       ref:
-        description: "要部署的分支 / 标签 / commit SHA"
+        description: "要部署的分支、标签或 commit SHA"
         required: true
         default: "master"
       target:
@@ -14,133 +12,395 @@ on:
         required: true
         type: choice
         default: "all"
-        options:
-          - "all"
-          - "server"
-          - "admin"
-          - "website"
-      sync_schema:
-        description: "部署后同步数据库 Schema 并执行幂等 seed（首次部署必须勾选）"
+        options: ["all", "server", "admin", "website"]
+      initialize_data:
+        description: "仅首次全量部署创建默认数据"
         required: false
         type: boolean
-        default: true
+        default: false
 
 permissions:
+  actions: read
   contents: read
   packages: write
 
-env:
-  REGISTRY: ghcr.io
+concurrency:
+  group: petcare-production
+  cancel-in-progress: false
 
 jobs:
   resolve:
-    name: 解析部署参数
+    name: 解析并校验部署提交
     runs-on: ubuntu-latest
     outputs:
       image_tag: ${{ steps.meta.outputs.image_tag }}
+      registry: ${{ steps.meta.outputs.registry }}
       services: ${{ steps.meta.outputs.services }}
-      registry_path: ${{ steps.meta.outputs.registry_path }}
+      sha: ${{ steps.meta.outputs.sha }}
     steps:
-      - name: 计算镜像标签与服务列表
+      - uses: actions/checkout@v7
+        with:
+          fetch-depth: 0
+          ref: ${{ inputs.ref }}
+
+      - name: 解析不可变部署参数
         id: meta
         shell: bash
         env:
           TARGET: ${{ inputs.target }}
-          SHA: ${{ github.sha }}
-          OWNER: ${{ github.repository_owner }}
         run: |
+          set -Eeuo pipefail
+          sha="$(git rev-parse HEAD)"
+          [[ "$sha" =~ ^[0-9a-f]{40}$ ]]
           case "$TARGET" in
-            all) services="server admin website" ;;
-            *)   services="$TARGET" ;;
+            all) services='["server","admin","website"]' ;;
+            server) services='["server"]' ;;
+            admin) services='["admin"]' ;;
+            website) services='["website"]' ;;
+            *) exit 1 ;;
           esac
           {
+            echo "sha=$sha"
+            echo "image_tag=sha-$sha"
             echo "services=$services"
-            echo "image_tag=sha-${SHA::7}"
-            echo "registry_path=${REGISTRY}/${OWNER,,}"
+            echo "registry=ghcr.io/${GITHUB_REPOSITORY_OWNER,,}"
           } >> "$GITHUB_OUTPUT"
 
+      - name: 要求该提交的持续集成已成功
+        shell: bash
+        env:
+          GH_TOKEN: ${{ github.token }}
+          SHA: ${{ steps.meta.outputs.sha }}
+        run: |
+          set -Eeuo pipefail
+          sha="$SHA"
+          count="$(gh api \
+            "repos/$GITHUB_REPOSITORY/actions/workflows/ci.yml/runs?head_sha=$sha&status=completed&per_page=50" \
+            --jq '[.workflow_runs[] | select(.conclusion == "success")] | length')"
+          [[ "$count" -gt 0 ]] || {
+            echo "所选提交没有成功的持续集成记录" >&2
+            exit 1
+          }
+
   build:
-    name: 构建镜像
+    name: 构建并推送 ${{ matrix.service }}
     needs: resolve
     runs-on: ubuntu-latest
     strategy:
       fail-fast: false
       matrix:
-        target: ${{ fromJSON(toJSON(split(needs.resolve.outputs.services, ' '))) }}
+        service: ${{ fromJSON(needs.resolve.outputs.services) }}
     steps:
       - uses: actions/checkout@v7
         with:
-          ref: ${{ github.sha }}
+          ref: ${{ needs.resolve.outputs.sha }}
 
       - uses: docker/setup-buildx-action@v3
 
       - uses: docker/login-action@v3
         with:
-          registry: ${{ env.REGISTRY }}
+          registry: ghcr.io
           username: ${{ github.actor }}
-          password: ${{ secrets.GITHUB_TOKEN }}
+          password: ${{ github.token }}
 
-      - name: 构建并推送 ${{ matrix.target }}
+      - name: 构建并推送 ${{ matrix.service }}
         uses: docker/build-push-action@v6
         with:
           context: .
-          file: Dockerfile.${{ matrix.target }}
+          file: Dockerfile.${{ matrix.service }}
           push: true
-          tags: ${{ needs.resolve.outputs.registry_path }}/petcare-${{ matrix.target }}:${{ needs.resolve.outputs.image_tag }}
-          cache-from: type=gha,scope=${{ matrix.target }}
-          cache-to: type=gha,mode=max,scope=${{ matrix.target }}
+          tags: ${{ needs.resolve.outputs.registry }}/${{ matrix.service }}:${{ needs.resolve.outputs.image_tag }}
+          cache-from: type=gha,scope=${{ matrix.service }}
+          cache-to: type=gha,mode=max,scope=${{ matrix.service }}
 
   deploy:
-    name: 部署到轻量云
-    runs-on: ubuntu-latest
+    name: 发布到生产环境
     needs: [resolve, build]
+    runs-on: ubuntu-latest
+    environment: production
+    env:
+      DEPLOY_TMP: ${{ runner.temp }}/petcare-deploy-${{ github.run_id }}-${{ github.run_attempt }}
+      DEPLOY_PORT: ${{ vars.DEPLOY_PORT || 22 }}
+      DEPLOY_HOST: ${{ secrets.DEPLOY_HOST }}
+      DEPLOY_USER: ${{ secrets.DEPLOY_USER }}
+      DEPLOY_SSH_KEY: ${{ secrets.DEPLOY_SSH_KEY }}
+      DEPLOY_HOST_FINGERPRINT: ${{ secrets.DEPLOY_HOST_FINGERPRINT }}
+      GHCR_PULL_USER: ${{ secrets.GHCR_PULL_USER }}
+      GHCR_PULL_TOKEN: ${{ secrets.GHCR_PULL_TOKEN }}
+      TLS_WEBSITE_CERT_B64: ${{ secrets.TLS_WEBSITE_CERT_B64 }}
+      TLS_WEBSITE_KEY_B64: ${{ secrets.TLS_WEBSITE_KEY_B64 }}
+      TLS_ADMIN_CERT_B64: ${{ secrets.TLS_ADMIN_CERT_B64 }}
+      TLS_ADMIN_KEY_B64: ${{ secrets.TLS_ADMIN_KEY_B64 }}
+      BACKUP_COS_SECRET_ID: ${{ secrets.BACKUP_COS_SECRET_ID }}
+      BACKUP_COS_SECRET_KEY: ${{ secrets.BACKUP_COS_SECRET_KEY }}
+      BACKUP_COS_BUCKET: ${{ secrets.BACKUP_COS_BUCKET }}
+      BACKUP_COS_REGION: ${{ secrets.BACKUP_COS_REGION }}
+      TARGET: ${{ inputs.target }}
+      INITIALIZE_DATA: ${{ inputs.initialize_data }}
+      IMAGE_REGISTRY: ${{ needs.resolve.outputs.registry }}
+      NEW_IMAGE_TAG: ${{ needs.resolve.outputs.image_tag }}
+      RELEASE_SHA: ${{ needs.resolve.outputs.sha }}
     steps:
-      - name: SSH 部署
-        uses: appleboy/ssh-action@v1
-        with:
-          host: ${{ secrets.DEPLOY_HOST }}
-          port: ${{ vars.DEPLOY_PORT || 22 }}
-          username: ${{ secrets.DEPLOY_USER }}
-          key: ${{ secrets.DEPLOY_SSH_KEY }}
-          script_stop: true
-          script: |
-            set -euo pipefail
-            cd /opt/petcare
+      - name: 验证并准备临时部署材料
+        shell: bash
+        run: |
+          set -Eeuo pipefail
+          umask 077
 
-            echo "== 同步部署配置（compose / nginx 以部署版本为准）=="
-            git fetch origin
-            git checkout --force '${{ github.sha }}'
+          for name in \
+            DEPLOY_HOST DEPLOY_USER DEPLOY_SSH_KEY DEPLOY_HOST_FINGERPRINT GHCR_PULL_USER GHCR_PULL_TOKEN \
+            TLS_WEBSITE_CERT_B64 TLS_WEBSITE_KEY_B64 TLS_ADMIN_CERT_B64 TLS_ADMIN_KEY_B64 \
+            BACKUP_COS_SECRET_ID BACKUP_COS_SECRET_KEY BACKUP_COS_BUCKET BACKUP_COS_REGION
+          do
+            [[ -n "${!name:-}" ]] || {
+              echo "$name is required" >&2
+              exit 1
+            }
+          done
+          [[ "$DEPLOY_HOST" =~ ^[a-zA-Z0-9.-]+$ ]]
+          [[ "$DEPLOY_USER" =~ ^[a-z_][a-z0-9_-]*$ ]]
+          [[ "$DEPLOY_HOST_FINGERPRINT" =~ ^SHA256:[a-zA-Z0-9+/]{43}$ ]]
+          [[ "$DEPLOY_PORT" =~ ^[0-9]+$ && "$DEPLOY_PORT" -ge 1 && "$DEPLOY_PORT" -le 65535 ]] || {
+            echo "DEPLOY_PORT must be between 1 and 65535" >&2
+            exit 1
+          }
+          [[ "$TARGET" =~ ^(all|server|admin|website)$ ]]
+          [[ "$INITIALIZE_DATA" =~ ^(true|false)$ ]]
+          [[ "$RELEASE_SHA" =~ ^[0-9a-f]{40}$ ]]
+          [[ "$NEW_IMAGE_TAG" == "sha-$RELEASE_SHA" ]]
+          [[ "$IMAGE_REGISTRY" =~ ^ghcr\.io/[a-z0-9][a-z0-9._-]*$ ]]
+          [[ "$GHCR_PULL_USER" =~ ^[a-zA-Z0-9][a-zA-Z0-9-]*$ ]]
 
-            echo "== 登录 GHCR =="
-            echo '${{ secrets.GHCR_PULL_TOKEN }}' | docker login ghcr.io -u '${{ github.repository_owner }}' --password-stdin
+          install -d -m 700 "$DEPLOY_TMP"
+          printf '%s\n' "$DEPLOY_SSH_KEY" > "$DEPLOY_TMP/deploy_key"
+          printf '%s' "$TLS_WEBSITE_CERT_B64" | base64 --decode > "$DEPLOY_TMP/petcare-home.com_bundle.crt"
+          printf '%s' "$TLS_WEBSITE_KEY_B64" | base64 --decode > "$DEPLOY_TMP/petcare-home.com.key"
+          printf '%s' "$TLS_ADMIN_CERT_B64" | base64 --decode > "$DEPLOY_TMP/admin.petcare-home.com_bundle.crt"
+          printf '%s' "$TLS_ADMIN_KEY_B64" | base64 --decode > "$DEPLOY_TMP/admin.petcare-home.com.key"
+          printf '%s' "$GHCR_PULL_TOKEN" > "$DEPLOY_TMP/ghcr.token"
+          {
+            printf 'BACKUP_COS_SECRET_ID=%s\n' "$BACKUP_COS_SECRET_ID"
+            printf 'BACKUP_COS_SECRET_KEY=%s\n' "$BACKUP_COS_SECRET_KEY"
+            printf 'BACKUP_COS_BUCKET=%s\n' "$BACKUP_COS_BUCKET"
+            printf 'BACKUP_COS_REGION=%s\n' "$BACKUP_COS_REGION"
+          } > "$DEPLOY_TMP/petcare-backup.env"
+          chmod 600 "$DEPLOY_TMP"/*
 
-            export IMAGE_REGISTRY='${{ needs.resolve.outputs.registry_path }}'
-            export IMAGE_TAG='${{ needs.resolve.outputs.image_tag }}'
-            services='${{ needs.resolve.outputs.services }}'
+          validate_pair() {
+            local cert="$1"
+            local key="$2"
+            local cert_pub=""
+            local key_pub=""
 
-            echo "== 拉取镜像 =="
-            docker compose --env-file .env pull $services
+            test -s "$cert"
+            test -s "$key"
+            openssl x509 -in "$cert" -noout -checkend 604800
+            cert_pub="$(openssl x509 -in "$cert" -pubkey -noout | openssl pkey -pubin -outform DER | sha256sum | cut -d' ' -f1)"
+            key_pub="$(openssl pkey -in "$key" -pubout -outform DER | sha256sum | cut -d' ' -f1)"
+            [[ "$cert_pub" == "$key_pub" ]]
+          }
 
-            echo "== 启动 / 更新服务 =="
-            if [ "$services" = "server admin website" ]; then
-              docker compose --env-file .env up -d --no-build --remove-orphans
-            else
-              docker compose --env-file .env up -d --no-build $services
+          validate_pair \
+            "$DEPLOY_TMP/petcare-home.com_bundle.crt" \
+            "$DEPLOY_TMP/petcare-home.com.key"
+          validate_pair \
+            "$DEPLOY_TMP/admin.petcare-home.com_bundle.crt" \
+            "$DEPLOY_TMP/admin.petcare-home.com.key"
+          openssl x509 -in "$DEPLOY_TMP/petcare-home.com_bundle.crt" -noout -checkhost petcare-home.com
+          openssl x509 -in "$DEPLOY_TMP/petcare-home.com_bundle.crt" -noout -checkhost www.petcare-home.com
+          openssl x509 -in "$DEPLOY_TMP/admin.petcare-home.com_bundle.crt" -noout -checkhost admin.petcare-home.com
+
+          ssh-keyscan -p "$DEPLOY_PORT" "$DEPLOY_HOST" > "$DEPLOY_TMP/scanned_hosts"
+          : > "$DEPLOY_TMP/known_hosts"
+          while IFS= read -r host_key; do
+            fingerprint="$(printf '%s\n' "$host_key" | ssh-keygen -lf - -E sha256 | awk '{print $2}')"
+            if [[ "$fingerprint" == "$DEPLOY_HOST_FINGERPRINT" ]]; then
+              printf '%s\n' "$host_key" >> "$DEPLOY_TMP/known_hosts"
             fi
+          done < "$DEPLOY_TMP/scanned_hosts"
+          test -s "$DEPLOY_TMP/known_hosts"
+          chmod 600 "$DEPLOY_TMP/known_hosts"
 
-            echo "== 等待健康检查 =="
-            sleep 20
-            docker compose --env-file .env ps
+          ssh -o StrictHostKeyChecking=yes \
+            -o UserKnownHostsFile="$DEPLOY_TMP/known_hosts" \
+            -i "$DEPLOY_TMP/deploy_key" -p "$DEPLOY_PORT" \
+            "$DEPLOY_USER@$DEPLOY_HOST" true
 
-            echo "== 同步数据库 Schema 与 seed =="
-            if [ '${{ inputs.sync_schema }}' = 'true' ]; then
-              docker compose --env-file .env run --rm server pnpm --filter @petcare/server prisma:push
-              docker compose --env-file .env run --rm server pnpm --filter @petcare/server prisma:seed
-            else
-              echo "已跳过（sync_schema=false）"
+      - name: 传输并执行生产发布事务
+        shell: bash
+        run: |
+          set -Eeuo pipefail
+          REMOTE_TMP="/tmp/petcare-release-$GITHUB_RUN_ID-$GITHUB_RUN_ATTEMPT"
+          destination="$DEPLOY_USER@$DEPLOY_HOST"
+          remote_ready=false
+
+          cleanup_remote() {
+            local status=$?
+            if [[ "$remote_ready" == true ]]; then
+              ssh -o StrictHostKeyChecking=yes \
+                -o UserKnownHostsFile="$DEPLOY_TMP/known_hosts" \
+                -i "$DEPLOY_TMP/deploy_key" -p "$DEPLOY_PORT" \
+                "$destination" "sudo rm -rf -- '$REMOTE_TMP'" \
+                || [[ "$status" -ne 0 ]] || status=1
             fi
+            return "$status"
+          }
+          trap cleanup_remote EXIT
 
-            echo "== 清理悬空镜像 =="
-            docker image prune -f
+          ssh -o StrictHostKeyChecking=yes \
+            -o UserKnownHostsFile="$DEPLOY_TMP/known_hosts" \
+            -i "$DEPLOY_TMP/deploy_key" -p "$DEPLOY_PORT" \
+            "$destination" "install -d -m 700 '$REMOTE_TMP'"
+          remote_ready=true
 
-            echo "== 部署完成 IMAGE_TAG=$IMAGE_TAG =="
+          scp -o StrictHostKeyChecking=yes \
+            -o UserKnownHostsFile="$DEPLOY_TMP/known_hosts" \
+            -i "$DEPLOY_TMP/deploy_key" -P "$DEPLOY_PORT" \
+            "$DEPLOY_TMP/petcare-home.com_bundle.crt" \
+            "$DEPLOY_TMP/petcare-home.com.key" \
+            "$DEPLOY_TMP/admin.petcare-home.com_bundle.crt" \
+            "$DEPLOY_TMP/admin.petcare-home.com.key" \
+            "$DEPLOY_TMP/ghcr.token" \
+            "$DEPLOY_TMP/petcare-backup.env" \
+            "$destination:$REMOTE_TMP/"
+
+          ssh -o StrictHostKeyChecking=yes \
+            -o UserKnownHostsFile="$DEPLOY_TMP/known_hosts" \
+            -i "$DEPLOY_TMP/deploy_key" -p "$DEPLOY_PORT" \
+            "$destination" bash -s -- \
+            "$REMOTE_TMP" "$TARGET" "$IMAGE_REGISTRY" "$RELEASE_SHA" \
+            "$NEW_IMAGE_TAG" "$INITIALIZE_DATA" "$GHCR_PULL_USER" <<'REMOTE'
+          set -Eeuo pipefail
+          umask 077
+
+          REMOTE_TMP="$1"
+          TARGET="$2"
+          IMAGE_REGISTRY="$3"
+          RELEASE_SHA="$4"
+          NEW_IMAGE_TAG="$5"
+          INITIALIZE_DATA="$6"
+          GHCR_PULL_USER="$7"
+          DOCKER_CONFIG="$REMOTE_TMP/docker-config"
+
+          cleanup() {
+            local status=$?
+            sudo rm -rf -- "$REMOTE_TMP" || [[ "$status" -ne 0 ]] || status=1
+            return "$status"
+          }
+          trap cleanup EXIT
+
+          [[ "$REMOTE_TMP" =~ ^/tmp/petcare-release-[0-9]+-[0-9]+$ ]]
+          [[ "$TARGET" =~ ^(all|server|admin|website)$ ]]
+          [[ "$IMAGE_REGISTRY" =~ ^ghcr\.io/[a-z0-9][a-z0-9._-]*$ ]]
+          [[ "$RELEASE_SHA" =~ ^[0-9a-f]{40}$ ]]
+          [[ "$NEW_IMAGE_TAG" == "sha-$RELEASE_SHA" ]]
+          [[ "$INITIALIZE_DATA" =~ ^(true|false)$ ]]
+          [[ "$GHCR_PULL_USER" =~ ^[a-zA-Z0-9][a-zA-Z0-9-]*$ ]]
+
+          sudo install -d -o root -g root -m 700 "$DOCKER_CONFIG"
+          sudo env DOCKER_CONFIG="$DOCKER_CONFIG" docker login ghcr.io \
+            -u "$GHCR_PULL_USER" --password-stdin < "$REMOTE_TMP/ghcr.token"
+          sudo rm -f -- "$REMOTE_TMP/ghcr.token"
+
+          sudo -H git -C /opt/petcare fetch --prune --tags origin
+          sudo -H git -C /opt/petcare cat-file -e "$RELEASE_SHA^{commit}"
+          sudo -H git -C /opt/petcare checkout --detach --force "$RELEASE_SHA"
+          checked_out="$(sudo -H git -C /opt/petcare rev-parse HEAD)"
+          [[ "$checked_out" == "$RELEASE_SHA" ]]
+
+          sudo install -d -o root -g root -m 700 /opt/petcare/certs
+          sudo install -o root -g root -m 644 \
+            "$REMOTE_TMP/petcare-home.com_bundle.crt" \
+            "/opt/petcare/certs/petcare-home.com_bundle.crt.new"
+          sudo install -o root -g root -m 600 \
+            "$REMOTE_TMP/petcare-home.com.key" \
+            "/opt/petcare/certs/petcare-home.com.key.new"
+          sudo install -o root -g root -m 644 \
+            "$REMOTE_TMP/admin.petcare-home.com_bundle.crt" \
+            "/opt/petcare/certs/admin.petcare-home.com_bundle.crt.new"
+          sudo install -o root -g root -m 600 \
+            "$REMOTE_TMP/admin.petcare-home.com.key" \
+            "/opt/petcare/certs/admin.petcare-home.com.key.new"
+
+          validate_pair() {
+            local cert="$1"
+            local key="$2"
+            local cert_pub=""
+            local key_pub=""
+
+            sudo test -s "$cert"
+            sudo test -s "$key"
+            sudo openssl x509 -in "$cert" -noout -checkend 604800
+            cert_pub="$(sudo openssl x509 -in "$cert" -pubkey -noout | openssl pkey -pubin -outform DER | sha256sum | cut -d' ' -f1)"
+            key_pub="$(sudo openssl pkey -in "$key" -pubout -outform DER | sha256sum | cut -d' ' -f1)"
+            [[ "$cert_pub" == "$key_pub" ]]
+          }
+
+          validate_pair "/opt/petcare/certs/petcare-home.com_bundle.crt.new" \
+            "/opt/petcare/certs/petcare-home.com.key.new"
+          validate_pair "/opt/petcare/certs/admin.petcare-home.com_bundle.crt.new" \
+            "/opt/petcare/certs/admin.petcare-home.com.key.new"
+          sudo openssl x509 -in "/opt/petcare/certs/petcare-home.com_bundle.crt.new" \
+            -noout -checkhost petcare-home.com
+          sudo openssl x509 -in "/opt/petcare/certs/petcare-home.com_bundle.crt.new" \
+            -noout -checkhost www.petcare-home.com
+          sudo openssl x509 -in "/opt/petcare/certs/admin.petcare-home.com_bundle.crt.new" \
+            -noout -checkhost admin.petcare-home.com
+
+          sudo mv -f -- "/opt/petcare/certs/petcare-home.com_bundle.crt.new" \
+            "/opt/petcare/certs/petcare-home.com_bundle.crt"
+          sudo mv -f -- "/opt/petcare/certs/petcare-home.com.key.new" \
+            "/opt/petcare/certs/petcare-home.com.key"
+          sudo mv -f -- "/opt/petcare/certs/admin.petcare-home.com_bundle.crt.new" \
+            "/opt/petcare/certs/admin.petcare-home.com_bundle.crt"
+          sudo mv -f -- "/opt/petcare/certs/admin.petcare-home.com.key.new" \
+            "/opt/petcare/certs/admin.petcare-home.com.key"
+          sudo test -s /opt/petcare/certs/petcare-home.com_bundle.crt
+          sudo test -s /opt/petcare/certs/petcare-home.com.key
+          sudo test -s /opt/petcare/certs/admin.petcare-home.com_bundle.crt
+          sudo test -s /opt/petcare/certs/admin.petcare-home.com.key
+
+          sudo install -o root -g root -m 600 "$REMOTE_TMP/petcare-backup.env" \
+            /etc/petcare-backup.env.new
+          sudo mv -f -- /etc/petcare-backup.env.new /etc/petcare-backup.env
+          sudo chmod 0755 \
+            /opt/petcare/scripts/release-production.sh \
+            /opt/petcare/scripts/database-backup.sh \
+            /opt/petcare/scripts/database-restore.sh
+          sudo install -m 0644 \
+            /opt/petcare/deploy/systemd/petcare-backup.service \
+            /etc/systemd/system/petcare-backup.service
+          sudo install -m 0644 \
+            /opt/petcare/deploy/systemd/petcare-backup.timer \
+            /etc/systemd/system/petcare-backup.timer
+          sudo systemctl daemon-reload
+
+          if edge_running="$(sudo docker inspect --format '{{.State.Running}}' petcare-edge-gateway 2>/dev/null)" \
+            && [[ "$edge_running" == true ]]
+          then
+            sudo docker exec petcare-edge-gateway nginx -t
+            sudo docker exec petcare-edge-gateway nginx -s reload
+          fi
+
+          sudo env \
+            DOCKER_CONFIG="$DOCKER_CONFIG" \
+            TARGET="$TARGET" \
+            IMAGE_REGISTRY="$IMAGE_REGISTRY" \
+            RELEASE_SHA="$RELEASE_SHA" \
+            NEW_IMAGE_TAG="$NEW_IMAGE_TAG" \
+            INITIALIZE_DATA="$INITIALIZE_DATA" \
+            bash /opt/petcare/scripts/release-production.sh
+          sudo systemctl enable --now petcare-backup.timer
+          REMOTE
+
+      - name: 清理 runner 临时凭据
+        if: always()
+        shell: bash
+        run: |
+          set -Eeuo pipefail
+          cleanup() {
+            local status=$?
+            rm -rf -- "$DEPLOY_TMP" || [[ "$status" -ne 0 ]] || status=1
+            return "$status"
+          }
+          trap cleanup EXIT
