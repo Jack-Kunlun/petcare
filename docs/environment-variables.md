@@ -148,6 +148,25 @@ Aliyun 短信发送器，并禁止配置该变量。生产环境固定使用端�
 `public/admin-avatars/` 和 `public/website-media/` 前缀的最小权限子账号凭据。不要将 SecretId、SecretKey 或根账号凭据写入客户端、仓库或
 文档示例；根目录 `.env` 仅供本地使用，已被 Git 忽略。
 
+### 数据库异地备份（仅生产 Linux/systemd）
+
+数据库备份使用独立于公开素材 COS 的专用 Bucket 和以下四个变量；它们不是根 `.env`、Docker Compose 或 Server
+启动配置，只由备份/恢复脚本读取：
+
+```dotenv
+BACKUP_COS_SECRET_ID=
+BACKUP_COS_SECRET_KEY=
+BACKUP_COS_BUCKET=
+BACKUP_COS_REGION=
+```
+
+真实值仅保存在 GitHub `production` Environment 的同名 Secrets，并由后续主生产部署原子写入
+`/etc/petcare-backup.env`。该文件必须由 `root` 持有、权限为 `0600`。不得将任一值存入 Git、GitHub
+Variables、根 `.env`、镜像、日志或聊天；也不得为备份向应用 `TENCENT_COS_*` 变量复用公开素材 Bucket。
+
+完整的 COS 权限、生命周期、轮换、定时任务和恢复步骤见
+[部署指南的数据库异地备份运行手册](08-deployment/deployment.md)。
+
 ### 官网内容运行时配置
 
 | 变量名                              | 必填 | 默认值                  | 说明                                                |

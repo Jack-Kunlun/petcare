@@ -36,6 +36,22 @@
   JWT_SECRET=<使用 openssl rand -base64 48 生成>
   ```
 
+### 数据库异地备份（上线前必须）
+
+- [ ] 专用 COS Bucket 是**私有读写**、仅 HTTPS，上传对象的 COS 元数据确认 SSE-COS/AES256。
+- [ ] 专用 CAM 子账号/密钥仅有 `name/cos:PutObject` 与 `name/cos:GetObject`，资源仅为所选 Bucket 的
+      `postgresql/*`；没有 `cos:*`、资源 `*`、列举、删除或管理权限。
+- [ ] `postgresql/` 生命周期在 30 天后删除对象；若启用版本控制，同时配置 noncurrent versions 与
+      delete markers。
+- [ ] `BACKUP_COS_*` 真实值仅在 GitHub `production` Environment Secrets 和服务器 `root` 所有、
+      `0600` 的 `/etc/petcare-backup.env` 中；不进入 Git、GitHub Variables、根 `.env`、镜像、日志或聊天。
+- [ ] `petcare-backup.service` 失败有外部告警；journal 不是通知机制。
+- [ ] 已按运行手册完成一次手动备份的 COS 元数据核验和显式 object key 的临时数据库恢复演练；生产库恢复另行
+      人工授权并在维护窗口执行。
+- [ ] 密钥轮换后，先通过部署重写服务器文件并验证新备份，再禁用旧 key；失败时保留旧 key 以回滚。
+
+详见[数据库异地备份运行手册](docs/08-deployment/deployment.md)。
+
 ---
 
 ## 🟡 P1 - 强烈建议（中危）

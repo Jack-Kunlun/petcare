@@ -321,6 +321,73 @@ docker compose exec redis redis-cli -a "$REDIS_PASSWORD" ping
 docker compose down -v
 ```
 
+### 8.1 数据库异地备份（仅 Linux 生产服务器）
+
+备份 unit 与脚本已随仓库安装：`petcare-backup.service` 每次调用 `/opt/petcare/scripts/database-backup.sh`，
+timer 每日 `03:17 Asia/Shanghai`、随机延迟最多 30 分钟。`scripts/server-init.sh` 只安装 unit 并执行
+`daemon-reload`，**不**启用或启动 timer；后续主生产部署必须先原子写入 `/etc/petcare-backup.env`（`root` 所有、
+`0600`），再启用 timer。该流程尚未由当前手动部署工作流实现。
+
+以下步骤只能在 Linux/systemd 生产服务器执行。本地尚未实际运行 Bash、systemd、Docker、PostgreSQL 或 COS
+备份/恢复，不能把静态脚本和 unit 安装当作真实运行验证。
+
+#### COS 控制台前置配置
+
+为备份创建独立的 COS Bucket 与专用 CAM 子账号/密钥：
+
+- Bucket ACL 必须为**私有读写**，访问仅使用 HTTPS。
+- 上传代码会请求 SSE-COS 的 `AES256` 服务端加密；每个对象都应在 COS 元数据中显示该加密状态。
+- CAM 只授予 `name/cos:PutObject` 和 `name/cos:GetObject`，资源仅限已选 Bucket 的 `postgresql/*` 前缀。
+  不授予 `cos:*`、资源 `*`、列举、删除或管理权限。
+- 生命周期规则的前缀为 `postgresql/`，对象在 30 天后删除。启用版本控制时，还必须同步处理 noncurrent versions
+  与 delete markers，避免旧版本绕过 30 天保留期。
+
+腾讯云官方资料：[最小权限](https://cloud.tencent.com/document/product/436/38618)、
+[访问控制和默认私有](https://cloud.tencent.com/document/product/436/30749)、
+[生命周期](https://cloud.tencent.com/document/product/436/56548) 与
+[服务端加密](https://cloud.tencent.com/document/product/436/121732)。
+
+备份凭据只允许通过 GitHub `production` Environment 的同名 Secrets 写入服务器专用文件；变量名、文件边界和
+禁止存放位置见[环境变量配置指南](../environment-variables.md)。
+
+#### 排程、手动备份与 COS 核验
+
+```bash
+# Verify scheduling
+systemctl status petcare-backup.timer
+systemctl list-timers petcare-backup.timer
+
+# Run and inspect one backup
+systemctl start petcare-backup.service
+journalctl -u petcare-backup.service --since today
+```
+
+服务成功退出和 journal 仅是初步证据。到 COS 控制台核对该次对象的显式 object key、非零 size、时间是否对应
+UTC 时间戳，以及服务端加密是否为 SSE-COS/AES256。还必须配置外部监控在 `petcare-backup.service` 失败时告警；
+journal 本身不会通知操作员。
+
+#### 仅临时库的恢复演练
+
+恢复必须指定一个已核对过的对象 key，不能按“最新”或列举结果自动选择：
+
+```bash
+# Restore one selected object into a temporary database
+/opt/petcare/scripts/database-restore.sh postgresql/petcare-public/2026/08/petcare-public-20260820T010203Z.dump
+```
+
+脚本只创建并验证 `petcare_restore_<UTC timestamp>` 临时数据库，完成后删除它；不会修改生产数据库。恢复生产库是
+独立的人工授权、维护窗口操作，自动脚本永远不执行。
+
+#### 轮换、保留期与清单
+
+轮换 CAM 密钥时，先在 GitHub `production` Environment 更新四个 `BACKUP_COS_*` Secrets（或换用新的
+专用 CAM key），随后通过后续主生产部署原子重写 `0600` 的服务器文件。手动运行一次 backup 并在 COS 核验对象后，
+才禁用旧 key。若新 key 或验证失败，保留旧 key，并通过受控 Secret 管理恢复原先四项后重新部署；不得把旧值写回
+Git、根 `.env`、镜像、日志或聊天。
+
+将以下项目纳入上线后和定期恢复演练清单：30 天 `postgresql/` 生命周期（含版本控制时的非当前版本/delete
+markers）、timer 的下一次执行、手动备份的 COS 元数据、显式 key 的临时库恢复，以及 service 失败的外部告警。
+
 ## 9. 故障排查
 
 ### Server 启动前退出

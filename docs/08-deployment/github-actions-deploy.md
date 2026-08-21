@@ -121,6 +121,24 @@ GitHub 仓库 → **Settings → Secrets and variables → Actions → New repos
 
 可选：在 **Variables** 中添加 `DEPLOY_PORT`（SSH 端口，默认 22）。
 
+### 4. `production` Environment 的数据库备份 Secret
+
+在 GitHub 仓库 **Settings → Environments → production → Environment secrets** 中创建以下四个同名 Secret：
+
+| Secret 名称             | 用途                   |
+| ----------------------- | ---------------------- |
+| `BACKUP_COS_SECRET_ID`  | 备份专用 CAM SecretId  |
+| `BACKUP_COS_SECRET_KEY` | 备份专用 CAM SecretKey |
+| `BACKUP_COS_BUCKET`     | 备份专用私有 Bucket    |
+| `BACKUP_COS_REGION`     | 备份专用 COS 区域      |
+
+这四个值只能保存在该 Environment 的 Secrets。不得放入 Git、GitHub Variables、根 `.env`、镜像、日志或聊天，
+也不得复用公开素材 COS 凭据。
+
+当前初始化仅安装备份 unit 并执行 `daemon-reload`，**不会**启用 timer。后续主生产部署必须先以 `root` 所有、`0600`
+权限原子写入 `/etc/petcare-backup.env`，再执行 `systemctl enable --now petcare-backup.timer`。现有手动部署工作流
+尚未执行这一步，因此不能把已安装 unit 误认为备份已启用。
+
 ---
 
 ## 三、日常使用
