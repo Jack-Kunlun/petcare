@@ -99,3 +99,22 @@ test("仓库不再配置 Dependabot 版本更新 PR", async () => {
     code: "ENOENT",
   });
 });
+
+test("CI 可手动触发并覆盖全部发布产物", async () => {
+  const workflow = await readFile(resolve(root, ".github/workflows/ci.yml"), "utf8");
+  const dockerJob = workflow.slice(workflow.indexOf("\n  docker:"));
+
+  assert.match(workflow, /^ {2}workflow_dispatch:$/m);
+  assert.match(workflow, /pnpm build:miniapp:mp-weixin/);
+  assert.match(workflow, /rhysd\/actionlint:1\.7\.7/);
+  assert.match(dockerJob, /docker compose build server admin website/);
+  assert.match(dockerJob, /docker compose config --quiet/);
+  assert.match(
+    dockerJob,
+    /github\.event_name == 'push'.*github\.ref == 'refs\/heads\/master'.*github\.event_name == 'workflow_dispatch'/,
+  );
+  for (const name of ["API_BASE_URL", "ALLOWED_ORIGINS", "WEBSITE_PUBLIC_URL"]) {
+    assert.match(dockerJob, new RegExp(`^ {6}${name}: https://`, "m"));
+  }
+  assert.doesNotMatch(workflow, /WECHAT_APP_SECRET|MP_UPLOAD_PRIVATE_KEY/);
+});

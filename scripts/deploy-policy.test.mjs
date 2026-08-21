@@ -125,8 +125,12 @@ test("生产发布只在完整验证后原子保存可回退的镜像状态", as
 });
 
 test("手动部署只发布已通过 CI 的不可变所选镜像", async () => {
-  const workflow = await readFile(resolve(root, ".github/workflows/deploy.yml"), "utf8");
+  const [workflow, ciWorkflow] = await Promise.all([
+    readFile(resolve(root, ".github/workflows/deploy.yml"), "utf8"),
+    readFile(resolve(root, ".github/workflows/ci.yml"), "utf8"),
+  ]);
 
+  assert.match(ciWorkflow, /^ {2}workflow_dispatch:$/m);
   assert.match(workflow, /ref: \$\{\{ inputs\.ref \}\}/);
   assert.match(workflow, /fetch-depth: 0/);
   assert.match(workflow, /sha="\$\(git rev-parse HEAD\)"/);
