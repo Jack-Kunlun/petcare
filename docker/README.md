@@ -20,8 +20,9 @@ docker compose --env-file .env config
 # 构建并启动全部容器
 docker compose --env-file .env up -d --build
 
-# 同步数据库结构并写入初始数据
-docker compose --env-file .env run --rm server pnpm --filter @petcare/server prisma:push
+# 空数据库初始化，以及之后每次生产 Schema 发布
+docker compose --env-file .env run --rm server pnpm --filter @petcare/server prisma:migrate:deploy
+# 仅在需要首次基础数据时显式执行
 docker compose --env-file .env run --rm server pnpm --filter @petcare/server prisma:seed
 
 # 查看状态和日志
@@ -31,6 +32,8 @@ docker compose --env-file .env logs -f server
 # 停止容器但保留数据卷
 docker compose --env-file .env down
 ```
+
+`prisma:push` 仅可用于可丢弃的本地 Schema 实验，绝不属于 Docker 或生产部署流程。
 
 删除数据卷会永久清除本地 PostgreSQL 和 Redis 数据。仅在确认需要重置环境时执行：
 

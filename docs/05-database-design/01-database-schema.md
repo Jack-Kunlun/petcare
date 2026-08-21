@@ -721,19 +721,20 @@ erDiagram
 
 ---
 
-## 当前建表策略
+## 当前迁移策略
 
-项目仍处于早期建表阶段，当前直接使用 Prisma Schema 同步数据库，不维护迁移文件：
+项目使用已提交的 Prisma Migrate 迁移。空数据库初始化，以及之后每次生产 Schema 发布，都执行：
 
 ```bash
-# 同步数据库结构
-pnpm --filter @petcare/server prisma:push
+pnpm --filter @petcare/server prisma:migrate:deploy
 
-# 写入默认角色与管理员等初始数据
+# 仅在需要首次基础数据时显式执行
 pnpm --filter @petcare/server prisma:seed
 ```
 
-进入稳定迭代或生产数据需要保留历史后，再启用 Prisma Migrate 并补充迁移与回滚规范。
+`prisma:push` 仅用于可丢弃的本地 Schema 实验，永远不是部署命令。重复种子不会覆盖已有管理员的
+账号、昵称、密码或状态，也会保留官网草稿/已发布版本指针和系统设置的已发布版本指针；平台权限目录及其关联
+允许按当前目录同步。
 
 ---
 

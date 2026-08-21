@@ -85,9 +85,14 @@ Copy-Item .env.example .env
 
 ```bash
 docker compose --env-file .env up -d postgres redis
+# 空数据库初始化，以及之后每次生产 Schema 发布
 pnpm --filter @petcare/server prisma:migrate:deploy
+# 仅在需要首次基础数据时显式执行
 pnpm --filter @petcare/server prisma:seed
 ```
+
+`prisma:migrate:deploy` 是空数据库初始化和生产 Schema 发布的唯一命令；`prisma:seed` 只用于显式
+初始化首次基础数据。`prisma:push` 仅可用于可丢弃的本地 Schema 实验，绝不属于部署流程。
 
 5. 启动 Admin、Server、Miniapp H5 和 Website 开发服务：
 
@@ -97,7 +102,8 @@ pnpm dev
 
 启动后可访问 Admin <http://localhost:8986>、官网 Astro SSR <http://localhost:4321>、
 Server <http://localhost:3000>、Swagger <http://localhost:3000/api-docs> 和健康检查
-<http://localhost:3000/health>。全容器官网入口为 <http://localhost:8080>。
+<http://localhost:3000/health>、流量就绪检查 <http://localhost:3000/ready>。全容器官网入口为
+<http://localhost:8080>。
 
 Miniapp 的微信小程序端需单独运行：
 
@@ -171,7 +177,8 @@ pnpm clean:modules
 Server 的 JSON 接口统一返回 `{ code, message, data, meta }`：成功业务码为 `SUCCESS`，错误使用稳定的字符串业务码并保留正确的 HTTP 状态；`meta.requestId` 与响应头 `X-Request-Id` 始终一致。Admin 和共享 API Client 会在 HTTP 边界统一解包，业务代码直接消费 `data`。
 
 - Swagger UI：<http://localhost:3000/api-docs>
-- 健康检查：<http://localhost:3000/health>
+- 进程存活检查：<http://localhost:3000/health>
+- 流量就绪检查：<http://localhost:3000/ready>
 - 完整规范：[API 接口规范](./docs/06-api-specification/01-api-specification.md)
 
 ### 构建
@@ -347,7 +354,8 @@ docker compose down -v
 - 官网: http://localhost:8080
 - API服务: 本地混合开发为 http://localhost:3000；全容器模式仅 Docker 内网可达
 - API文档: 仅宿主机开发模式提供 http://localhost:3000/api-docs
-- 健康检查: 本地混合开发为 http://localhost:3000/health；容器内为 http://server:3000/health
+- 进程存活检查: 本地混合开发为 http://localhost:3000/health；容器内为 http://server:3000/health
+- 流量就绪检查: 本地混合开发为 http://localhost:3000/ready；容器内为 http://server:3000/ready
 
 官网 HTML 由独立网关代理 Astro SSR，不缓存 HTML，因此显式发布在下一次请求可见。腾讯云 COS 凭据只注入
 Server；Astro 仅从 Docker 内网读取公开内容 API。完整的 DNS、TLS、CDN、回退与回滚约定见

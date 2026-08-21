@@ -15,7 +15,13 @@
 - 官网：`http://localhost:8080`
 - Server：本地混合开发为 `http://localhost:3000`；全容器运行仅 Docker 内网可达
 - Swagger：仅宿主机非生产模式的 `http://localhost:3000/api-docs`
-- 健康检查：本地混合开发为 `http://localhost:3000/health`；容器内为 `http://server:3000/health`
+- 进程存活检查：本地混合开发为 `http://localhost:3000/health`；容器内为 `http://server:3000/health`
+- 流量就绪检查：本地混合开发为 `http://localhost:3000/ready`；容器内为 `http://server:3000/ready`
+
+| Endpoint  | Meaning               | Dependencies                    |
+| --------- | --------------------- | ------------------------------- |
+| `/health` | Nest process liveness | None                            |
+| `/ready`  | Traffic readiness     | PostgreSQL query + Redis `PING` |
 
 ## 2. 前置要求
 
@@ -60,6 +66,10 @@ Copy-Item .env.example .env
 - `JWT_SECRET`，至少 32 位
 - `DEFAULT_ADMIN_PHONE`
 - `DEFAULT_ADMIN_PASSWORD`，至少 12 位
+- `ALIYUN_SMS_ACCESS_KEY_ID`
+- `ALIYUN_SMS_ACCESS_KEY_SECRET`
+- `ALIYUN_SMS_SIGN_NAME`
+- `ALIYUN_SMS_TEMPLATE_CODE`
 
 生产 Docker 缺少任一上述变量都会在 Compose 解析或 Server 启动阶段失败。生产环境不得设置
 `SMS_DEV_CODE`；Compose 会强制覆盖为空。
@@ -72,7 +82,35 @@ Copy-Item .env.example .env
 
 生产环境使用公开读、私有写 COS Bucket，并向 Server 注入仅允许读写
 `public/admin-avatars/` 与 `public/website-media/` 前缀的最小权限子账号凭据。不要将 COS 凭据写入镜像、工作流、客户端或仓库的 `.env`；
-根 `.env` 仅供本地使用且不提交。
+根 `.env` 不提交。
+
+### 3.1 生产 Aliyun SMS
+
+首次部署前，必须在阿里云审批通过短信签名和验证码模板；模板使用 `${code}`。生产环境固定连接
+`dysmsapi.aliyuncs.com`，并要求上面的四个 `ALIYUN_SMS_*` 变量。模板参数名必须严格为 `code`。
+`SMS_DEV_CODE` 在生产环境禁止配置。短信服务商拒绝请求或发生通信失败时，接口只返回经脱敏的
+`503 SMS_DELIVERY_FAILED`，不会暴露厂商错误详情。
+
+为 Server 创建专用 RAM 身份，并附加自定义最小权限策略；只允许发送短信，不要授予
+`AliyunDysmsFullAccess`：
+
+```json
+{
+  "Version": "1",
+  "Statement": [
+    {
+      "Effect": "Allow",
+      "Action": "dysms:SendSms",
+      "Resource": "*"
+    }
+  ]
+}
+```
+
+真实 AccessKey 值只保存在生产服务器根拥有者持有、权限为 `0600` 的根 `.env` 中；不得进入 Git、镜像、
+日志、文档示例或聊天。部署和排障时不得读取、复制或回传 `.env`、证书/私钥内容或真实凭据。官方核验资料：
+[SendSms API](https://help.aliyun.com/zh/sms/developer-reference/api-dysmsapi-2017-05-25-sendsms) 与
+[RAM 身份管理](https://help.aliyun.com/zh/sms/identity-management)。
 
 官网运行时变量中，`WEBSITE_CONTENT_API_BASE_URL` 仅供 Astro SSR 容器走 Docker 内网访问 Nest，绝不作为浏览器
 变量或镜像构建参数。`WEBSITE_PUBLIC_URL`、`WEBSITE_PORT` 和 `WEBSITE_LAST_SUCCESS_TTL_SECONDS` 分别定义公网
@@ -104,14 +142,18 @@ EXPOSE_REDIS_PORT=6379
 
 ### 4.3 初始化数据库
 
-项目处于建表初期，不使用迁移；直接同步 Schema 并执行幂等 seed：
+空数据库初始化，以及之后每次生产 Schema 发布，都使用已提交的 Prisma Migrate 迁移：
 
 ```bash
-pnpm --filter @petcare/server prisma:push
+# 空数据库初始化和每次生产 Schema 发布
+pnpm --filter @petcare/server prisma:migrate:deploy
+# 仅在需要首次基础数据时显式执行
 pnpm --filter @petcare/server prisma:seed
 ```
 
-seed 创建或更新默认管理员、超级管理员角色和权限数据，凭据读取根 `.env`。
+`prisma:push` 仅可用于可丢弃的本地 Schema 实验，绝不属于部署流程。重复种子不会覆盖已有管理员的
+账号、昵称、密码或状态，也会保留官网草稿/已发布版本指针和系统设置的已发布版本指针；平台权限目录及其关联
+允许按当前目录同步。
 
 ### 4.4 启动应用
 
@@ -172,10 +214,11 @@ docker compose build server admin website
 
 ### 5.3 在 Server 镜像中初始化
 
-Server 运行镜像保留 Prisma CLI、Schema 与 seed 所需源码，可执行：
+Server 运行镜像保留 Prisma CLI、Schema 与 seed 所需源码。空数据库初始化和每次生产 Schema 发布执行：
 
 ```bash
-docker compose run --rm server pnpm --filter @petcare/server prisma:push
+docker compose run --rm server pnpm --filter @petcare/server prisma:migrate:deploy
+# 仅在需要首次基础数据时显式执行
 docker compose run --rm server pnpm --filter @petcare/server prisma:seed
 ```
 
@@ -248,10 +291,12 @@ pnpm test:e2e
 - `unit-test`：工具测试与全部工作区单测；
 - ~~`build`：Admin、Server、Taro Miniapp 微信端和共享包；~~
 - `build`：Admin、Website SSR、Server、Miniapp H5 和共享包；
-- `e2e`：PostgreSQL、Redis、Prisma 初始化、Server E2E、Admin Playwright；
+- `e2e`：PostgreSQL、Redis、连续两次 `prisma:migrate:deploy`、`prisma:migrate:status`、首次数据 seed、Server E2E、Admin Playwright；
 - `docker`：仅 `master` push，在前四项通过后校验 Compose 并执行工作流中声明的容器构建；官网镜像的本地验证命令见第 5 节。
 
-CI 只使用隔离测试凭据。真实微信、腾讯云 COS 和生产密钥不得写入工作流。
+初始 migration SQL 已提交，CI 也已配置 `deploy` / `deploy` / `status`；但由于本地没有 Docker，尚未在本地
+实际观察到 CI 或空数据库执行成功，不能据此宣称已经跑通。CI 只使用隔离测试凭据。真实微信、腾讯云 COS、
+Aliyun AccessKey 和生产密钥不得写入工作流。
 
 ## 8. 常用运维命令
 
@@ -306,7 +351,7 @@ docker compose logs server
 
 ### E2E 失败
 
-- 重新执行 `prisma:push` 与 `prisma:seed`；
+- 重新执行 `prisma:migrate:deploy`，并在确实需要首次数据时执行 `prisma:seed`；
 - 检查 `DEFAULT_ADMIN_USERNAME`、`DEFAULT_ADMIN_PASSWORD`；
 - 查看 `apps/admin/playwright-report/` 和 `apps/admin/test-results/`；
 - CI 失败时下载 `playwright-artifacts`。
@@ -318,7 +363,8 @@ docker compose logs server
 - 使用 HTTPS 和明确的 CORS 白名单；
 - DNS、TLS、CDN 和 WAF 在边缘层维护，禁止给官网 HTML 或草稿预览配置共享缓存；
 - 只向 Server 注入腾讯云 COS 凭据，使用 `TENCENT_COS_PUBLIC_BASE_URL` 提供公开素材；
-- 禁用 `SMS_DEV_CODE`；
+- 禁用 `SMS_DEV_CODE`；生产 Aliyun SMS 使用专用 RAM 身份和仅含 `dysms:SendSms` 的自定义策略，不使用 `AliyunDysmsFullAccess`；
+- Aliyun AccessKey 只保存在 root-owned、`0600` 的生产根 `.env`，不进入 Git、镜像、日志、文档示例或聊天；
 - 定期轮换数据库、Redis、JWT 和管理员密码；
 - 启动前执行 `docker compose config --quiet`；
 - 只部署通过完整 CI 的已保存版本或提交。
