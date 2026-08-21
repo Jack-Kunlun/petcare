@@ -21,6 +21,19 @@ function lastPosition(script, fragment) {
   return index;
 }
 
+function workflowJobBlock(workflow, name) {
+  const start = new RegExp(`^  ${name}:\\r?$`, "m").exec(workflow)?.index;
+
+  assert.notEqual(start, undefined, `Expected deploy workflow to contain ${name} job`);
+
+  const nextJob = /\r?\n {2}[a-z][\w-]*:\r?\n/g;
+
+  nextJob.lastIndex = start + `  ${name}:`.length;
+  const end = nextJob.exec(workflow)?.index;
+
+  return workflow.slice(start, end);
+}
+
 test("生产发布只在完整验证后原子保存可回退的镜像状态", async () => {
   const [script, packageJsonText] = await Promise.all([
     readFile(resolve(root, "scripts/release-production.sh"), "utf8"),
@@ -68,6 +81,10 @@ test("生产发布只在完整验证后原子保存可回退的镜像状态", as
     'CANDIDATE_STATE="$(mktemp "$INSTALL_DIR/.deploy-images.XXXXXX")"',
   );
   const candidateMode = position(script, 'chmod 600 "$CANDIDATE_STATE"');
+  const initializeGuard = position(
+    script,
+    'if [[ "$INITIALIZE_DATA" == true && ( "$HAD_STATE" != false || "$APPLICATION_TABLES" != 0 ) ]]; then',
+  );
   const backup = position(script, "scripts/database-backup.sh");
   const migrate = position(script, "prisma:migrate:deploy");
   const wait = lastPosition(script, "--wait-timeout 180");
@@ -77,7 +94,8 @@ test("生产发布只在完整验证后原子保存可回退的镜像状态", as
 
   assert.ok(cleanup < candidate && candidate < candidateMode);
   assert.ok(
-    backup < migrate &&
+    initializeGuard < backup &&
+      backup < migrate &&
       migrate < wait &&
       wait < httpSmoke &&
       httpSmoke < httpsSmoke &&
@@ -89,6 +107,7 @@ test("生产发布只在完整验证后原子保存可回退的镜像状态", as
     script,
     /HAD_STATE.*false[\s\S]*APPLICATION_TABLES.*== 0[\s\S]*跳过无历史意义的备份/,
   );
+  assert.match(script, /initialize_data=true 仅允许首次空库部署/);
   assert.match(
     script,
     /BACKUP_RUNNER_IMAGE="\$IMAGE_REGISTRY\/server:\$SERVER_IMAGE_TAG" scripts\/database-backup\.sh/,
@@ -106,7 +125,7 @@ test("生产发布只在完整验证后原子保存可回退的镜像状态", as
   );
   assert.match(
     script,
-    /redirect="\$\(curl --silent --show-error --head --max-redirs 0 --proto '=http' --output \/dev\/null --write-out '%\{http_code\} %\{redirect_url\}' "http:\/\/\$host\/"\)"/,
+    /redirect="\$\(curl --silent --show-error --head --max-redirs 0 --proto '=http' --connect-timeout 10 --max-time 30 --output \/dev\/null --write-out '%\{http_code\} %\{redirect_url\}' "http:\/\/\$host\/"\)"/,
   );
   assert.match(script, /\[\[ "\$redirect" == "301 https:\/\/\$host\/" \]\]/);
   assert.doesNotMatch(script, /headers="\$\(curl/);
@@ -120,7 +139,7 @@ test("生产发布只在完整验证后原子保存可回退的镜像状态", as
   ]) {
     assert.ok(script.includes(url));
   }
-  assert.match(script, /--proto '=https' --tlsv1\.2/);
+  assert.match(script, /--proto '=https' --tlsv1\.2[\s\S]*--connect-timeout 10 --max-time 30/);
   assert.match(packageJson.scripts["test:tooling"], /\bscripts\/deploy-policy\.test\.mjs\b/);
 });
 
@@ -146,6 +165,19 @@ test("手动部署只发布已通过 CI 的不可变所选镜像", async () => {
   assert.match(workflow, /image_tag=sha-\$sha/);
   assert.doesNotMatch(workflow, /ref: \$\{\{ github\.sha \}\}/);
   assert.doesNotMatch(workflow, /sha-\$\{SHA::7\}/);
+});
+
+test("部署工作流将 GitHub token 权限收敛到各 job", async () => {
+  const workflow = await readFile(resolve(root, ".github/workflows/deploy.yml"), "utf8");
+  const resolveJob = workflowJobBlock(workflow, "resolve");
+  const buildJob = workflowJobBlock(workflow, "build");
+  const deployJob = workflowJobBlock(workflow, "deploy");
+
+  assert.match(workflow, /^permissions:\r?\n {2}contents: read\r?\n\r?\nconcurrency:/m);
+  assert.match(resolveJob, /^ {4}permissions:\r?\n {6}actions: read\r?\n {6}contents: read\r?$/m);
+  assert.match(buildJob, /^ {4}permissions:\r?\n {6}contents: read\r?\n {6}packages: write\r?$/m);
+  assert.match(deployJob, /^ {4}permissions: \{\}\r?$/m);
+  assert.doesNotMatch(deployJob, /github\.token/);
 });
 
 test("部署工作流先在受保护 runner 临时目录验证 SSH 与 TLS", async () => {
@@ -249,4 +281,36 @@ test("远端发布以 root 仓库和临时凭据完成 TLS 与 release 事务", 
   assert.doesNotMatch(preReleaseReload, /docker compose/);
   assert.doesNotMatch(preReleaseReload, /\|\s*grep -q/);
   assert.ok(release < enableTimer);
+});
+
+test("初始化持久化 root Git SSH 契约，并记录可信 SSH 运维前提", async () => {
+  const [initScript, docs] = await Promise.all([
+    readFile(resolve(root, "scripts/server-init.sh"), "utf8"),
+    readFile(resolve(root, "docs/08-deployment/github-actions-deploy.md"), "utf8"),
+  ]);
+
+  assert.match(initScript, /^ROOT_DEPLOY_KEY="\/root\/.ssh\/petcare-readonly"$/m);
+  assert.match(initScript, /^ROOT_KNOWN_HOSTS="\/root\/.ssh\/known_hosts"$/m);
+  assert.match(
+    initScript,
+    /^ROOT_GIT_SSH_COMMAND="ssh -i \$ROOT_DEPLOY_KEY -o IdentitiesOnly=yes -o StrictHostKeyChecking=yes -o UserKnownHostsFile=\$ROOT_KNOWN_HOSTS"$/m,
+  );
+  assert.match(initScript, /ssh-keygen -F github\.com -f "\$ROOT_KNOWN_HOSTS"/);
+  assert.match(initScript, /GIT_SSH_COMMAND="\$ROOT_GIT_SSH_COMMAND" git clone/);
+  assert.match(
+    initScript,
+    /git -C "\$INSTALL_DIR" config core\.sshCommand "\$ROOT_GIT_SSH_COMMAND"/,
+  );
+  assert.match(
+    initScript,
+    /git -C "\$INSTALL_DIR" ls-remote --exit-code origin HEAD > \/dev\/null/,
+  );
+
+  assert.match(docs, /不要只信任 `ssh-keyscan`/);
+  assert.match(docs, /ssh-keygen -F github\.com -f \/root\/.ssh\/known_hosts/);
+  assert.match(docs, /authorized_keys/);
+  assert.match(docs, /NOPASSWD: ALL/);
+  assert.match(docs, /root 等价/);
+  assert.match(docs, /DEPLOY_HOST_FINGERPRINT/);
+  assert.match(docs, /带外/);
 });

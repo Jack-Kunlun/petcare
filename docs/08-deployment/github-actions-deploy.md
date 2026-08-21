@@ -19,14 +19,31 @@
 
 ## 2. 初始化 Ubuntu 服务器（仅一次）
 
-以 root 配置仓库只读 deploy key，并把公钥作为 GitHub repository deploy key（不要授予写权限）。该密钥属于 root，
-因为 `/opt/petcare` 和其 Git checkout 始终由 root 持有：
+### root 仓库 deploy key 与 GitHub known_hosts
+
+以 root 配置仓库只读 deploy key，并把**公钥**作为 GitHub repository deploy key（不要授予写权限）。该密钥属于 root，
+因为 `/opt/petcare` 和其 Git checkout 始终由 root 持有。下列 `cat` 只输出公钥，绝不复制或打印私钥：
 
 ```bash
 sudo -i
+umask 077
 install -d -m 700 /root/.ssh
 ssh-keygen -t ed25519 -f /root/.ssh/petcare-readonly -N ""
+chmod 600 /root/.ssh/petcare-readonly
 cat /root/.ssh/petcare-readonly.pub
+
+# 这只是候选主机键；先在独立可信渠道核对指纹，不能直接信任 ssh-keyscan 的结果。
+ssh-keyscan -t ed25519 github.com > /tmp/petcare-github-known_hosts
+ssh-keygen -lf /tmp/petcare-github-known_hosts -E sha256
+```
+
+将上一条命令的 SHA256 指纹与 GitHub 官方文档中当前的 SSH host key fingerprints 逐项核对；不要只信任 `ssh-keyscan`。
+不匹配时立即停止。核对一致后才安装：
+
+```bash
+install -o root -g root -m 600 /tmp/petcare-github-known_hosts /root/.ssh/known_hosts
+rm -f /tmp/petcare-github-known_hosts
+ssh-keygen -F github.com -f /root/.ssh/known_hosts
 ```
 
 从可信的本地 checkout 只上传这个公开脚本（不要上传 `.env`、证书或任何私钥），然后以 root 运行它。它生成
@@ -44,6 +61,9 @@ sudo REPO_URL=git@github.com:<owner>/petcare.git \
 unset DEFAULT_ADMIN_PHONE
 ```
 
+脚本会在首次 clone 和每次重跑时，把 root 仓库的 `core.sshCommand` 固定为该 key、`IdentitiesOnly=yes`、
+`StrictHostKeyChecking=yes` 和上述 `known_hosts`，并静默验证 `origin` 可读；后续 `sudo -H git fetch` 不会回退到其他 SSH 身份。
+
 首次发布前，root 必须通过安全终端编辑 `/opt/petcare/.env`，填写并安全轮换初始管理员密码、
 `WECHAT_APP_SECRET` 和四个 `ALIYUN_SMS_*` 值。不要使用 `cat`、日志、聊天或工单回传该文件或其内容。
 生产值固定为：
@@ -60,10 +80,40 @@ WECHAT_APP_ID=wx3bdad4ab652f0d1d
 
 ### 部署 SSH 账号
 
-`DEPLOY_USER` 是专用、仅密钥登录、非交互的自动化账号，不加入 Docker 组，也不能写 `/opt/petcare`。当前工作流必须用
-无密码 `sudo` 执行 Docker、root-owned Git、证书、systemd 和 root-run release；这些能力本身已等同 root。
-因此应明确把该账号视为受 `production` Environment 审批保护的特权账号，定期轮换 SSH 密钥；不要用脆弱的
-命令级 sudo 白名单伪装为最小权限。
+创建专用、仅密钥登录、非交互的 `DEPLOY_USER`，不加入 Docker 组，也不能写 `/opt/petcare`。在 root 终端执行：
+
+```bash
+DEPLOY_USER=petcare-deploy
+adduser --disabled-password --gecos "" "$DEPLOY_USER"
+install -d -o "$DEPLOY_USER" -g "$DEPLOY_USER" -m 700 "/home/$DEPLOY_USER/.ssh"
+sudoedit "/home/$DEPLOY_USER/.ssh/authorized_keys"
+chown "$DEPLOY_USER:$DEPLOY_USER" "/home/$DEPLOY_USER/.ssh/authorized_keys"
+chmod 600 "/home/$DEPLOY_USER/.ssh/authorized_keys"
+cat > /etc/ssh/sshd_config.d/70-petcare-deploy.conf <<EOF
+Match User $DEPLOY_USER
+    PubkeyAuthentication yes
+    PasswordAuthentication no
+    KbdInteractiveAuthentication no
+    AuthenticationMethods publickey
+EOF
+sshd -t && systemctl reload ssh
+printf '%s\n' "$DEPLOY_USER ALL=(root) NOPASSWD: ALL" > "/etc/sudoers.d/$DEPLOY_USER"
+chmod 440 "/etc/sudoers.d/$DEPLOY_USER"
+visudo -cf "/etc/sudoers.d/$DEPLOY_USER"
+```
+
+`authorized_keys` 中只能放与 `DEPLOY_SSH_KEY` 配对的**公钥**；不要把 Actions 私钥传到服务器。当前工作流需要 Docker、
+root-owned Git、证书、systemd 和 root-run release，因此该无密码 `sudo` 是 root 等价权限。将此账号、其 authorized_keys
+和 GitHub `production` Environment 审批视作同一特权边界；定期轮换密钥，不要用脆弱的命令级 sudo 白名单伪装为最小权限。
+
+### 获取 `DEPLOY_HOST_FINGERPRINT`
+
+从腾讯云控制台或既有可信控制台会话带外获取服务器的 SSH host key 指纹；不要从 Actions runner 或未校验的
+`ssh-keyscan` 输出获取。可以在已验证的服务器控制台运行下列只读取公钥的命令，并把完整 `SHA256:...` 值保存为 Environment Secret：
+
+```bash
+ssh-keygen -lf /etc/ssh/ssh_host_ed25519_key.pub -E sha256
+```
 
 ## 3. 配置 GitHub `production` Environment
 

@@ -205,6 +205,10 @@ if [[ "$TARGET" == all || "$TARGET" == server ]]; then
     echo "无法确认数据库表数量" >&2
     exit 1
   }
+  if [[ "$INITIALIZE_DATA" == true && ( "$HAD_STATE" != false || "$APPLICATION_TABLES" != 0 ) ]]; then
+    echo "initialize_data=true 仅允许首次空库部署" >&2
+    exit 1
+  fi
   if [[ "$HAD_STATE" == false && "$APPLICATION_TABLES" == 0 ]]; then
     echo "首次部署确认数据库为空，跳过无历史意义的备份"
   else
@@ -225,7 +229,7 @@ docker compose --env-file .env restart "${RESTART_SERVICES[@]}"
 docker compose --env-file .env up -d --no-build --wait --wait-timeout 180 "${CHECK_SERVICES[@]}"
 
 for host in petcare-home.com www.petcare-home.com admin.petcare-home.com; do
-  redirect="$(curl --silent --show-error --head --max-redirs 0 --proto '=http' --output /dev/null --write-out '%{http_code} %{redirect_url}' "http://$host/")"
+  redirect="$(curl --silent --show-error --head --max-redirs 0 --proto '=http' --connect-timeout 10 --max-time 30 --output /dev/null --write-out '%{http_code} %{redirect_url}' "http://$host/")"
   [[ "$redirect" == "301 https://$host/" ]]
 done
 
@@ -237,6 +241,7 @@ for url in \
 do
   curl --fail --silent --show-error --location \
     --proto '=https' --tlsv1.2 \
+    --connect-timeout 10 --max-time 30 \
     --retry 6 --retry-all-errors --retry-delay 5 \
     --output /dev/null "$url"
 done

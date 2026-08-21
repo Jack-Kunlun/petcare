@@ -151,7 +151,16 @@ test("Compose 使用独立应用标签且只有边缘网关暴露公网端口", 
 
 test("边缘网关禁用旧 TLS 并发送安全响应头", async () => {
   const nginx = await readFile(resolve(root, "docker/edge-nginx.conf"), "utf8");
+  const httpServer = nginx.slice(
+    nginx.indexOf("# ---- HTTP"),
+    nginx.indexOf("# ---- 通用 TLS 参数"),
+  );
 
+  assert.doesNotMatch(httpServer, /acme-challenge/);
+  assert.match(
+    httpServer,
+    /listen 80;[\s\S]*server_name petcare-home\.com www\.petcare-home\.com admin\.petcare-home\.com;[\s\S]*location \/ \{[\s\S]*return 301 https:\/\/\$host\$request_uri;/,
+  );
   assert.match(nginx, /ssl_protocols TLSv1\.2 TLSv1\.3/);
   assert.doesNotMatch(nginx, /3DES|DES-CBC/);
   assert.match(nginx, /Strict-Transport-Security "max-age=31536000" always/);

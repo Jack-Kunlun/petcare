@@ -12,6 +12,9 @@ set -euo pipefail
 
 REPO_URL="${REPO_URL:?请通过 REPO_URL 环境变量指定仓库地址}"
 INSTALL_DIR="/opt/petcare"
+ROOT_DEPLOY_KEY="/root/.ssh/petcare-readonly"
+ROOT_KNOWN_HOSTS="/root/.ssh/known_hosts"
+ROOT_GIT_SSH_COMMAND="ssh -i $ROOT_DEPLOY_KEY -o IdentitiesOnly=yes -o StrictHostKeyChecking=yes -o UserKnownHostsFile=$ROOT_KNOWN_HOSTS"
 
 log()  { echo -e "\033[36m[init]\033[0m $*"; }
 ok()   { echo -e "\033[32m[ok]\033[0m $*"; }
@@ -27,6 +30,17 @@ if [[ $EUID -ne 0 ]]; then
 fi
 
 umask 077
+
+if [[ ! -f "$ROOT_DEPLOY_KEY" || ! -f "$ROOT_KNOWN_HOSTS" ]]; then
+  err "root 的 GitHub deploy key 或 known_hosts 缺失；按发布指南配置后重试"
+  exit 1
+fi
+chown root:root "$ROOT_DEPLOY_KEY" "$ROOT_KNOWN_HOSTS"
+chmod 600 "$ROOT_DEPLOY_KEY" "$ROOT_KNOWN_HOSTS"
+ssh-keygen -F github.com -f "$ROOT_KNOWN_HOSTS" > /dev/null || {
+  err "root known_hosts 未包含经验证的 github.com 主机密钥"
+  exit 1
+}
 
 # ---------- 1. 安装基础软件与 Docker ----------
 apt-get update -y
@@ -53,15 +67,18 @@ if [[ -d "$INSTALL_DIR/.git" ]]; then
 else
   log "克隆仓库到 $INSTALL_DIR ..."
   install -d -o root -g root -m 755 "$INSTALL_DIR"
-  if [[ -f /root/.ssh/petcare-readonly ]]; then
-    export GIT_SSH_COMMAND="ssh -i /root/.ssh/petcare-readonly -o IdentitiesOnly=yes"
-  fi
-  git clone "$REPO_URL" "$INSTALL_DIR"
+  GIT_SSH_COMMAND="$ROOT_GIT_SSH_COMMAND" git clone "$REPO_URL" "$INSTALL_DIR"
   ok "代码克隆完成"
 fi
 
 # deploy.yml 使用 sudo -H git 操作本目录；不把 checkout 交给部署 SSH 用户。
 chown -R root:root "$INSTALL_DIR"
+git -C "$INSTALL_DIR" config core.sshCommand "$ROOT_GIT_SSH_COMMAND"
+[[ "$(git -C "$INSTALL_DIR" config --get core.sshCommand)" == "$ROOT_GIT_SSH_COMMAND" ]] || {
+  err "无法持久化 root Git SSH 配置"
+  exit 1
+}
+git -C "$INSTALL_DIR" ls-remote --exit-code origin HEAD > /dev/null
 
 # ---------- 3. 生成生产 .env ----------
 cd "$INSTALL_DIR"
