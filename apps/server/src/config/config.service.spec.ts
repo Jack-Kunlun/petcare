@@ -27,6 +27,12 @@ describe("ConfigService", () => {
     TENCENT_COS_REGION: "",
     TENCENT_COS_PUBLIC_BASE_URL: "",
   };
+  const validProductionSmsEnv = {
+    ALIYUN_SMS_ACCESS_KEY_ID: "test-access-key-id",
+    ALIYUN_SMS_ACCESS_KEY_SECRET: "test-access-key-secret",
+    ALIYUN_SMS_SIGN_NAME: "宠伴",
+    ALIYUN_SMS_TEMPLATE_CODE: "SMS_123456789",
+  };
 
   beforeEach(() => {
     process.env = { ...originalEnv };
@@ -34,6 +40,10 @@ describe("ConfigService", () => {
     delete process.env.JWT_REFRESH_EXPIRES_IN;
     delete process.env.REFRESH_TOKEN_TTL_SECONDS;
     delete process.env.SMS_DEV_CODE;
+    delete process.env.ALIYUN_SMS_ACCESS_KEY_ID;
+    delete process.env.ALIYUN_SMS_ACCESS_KEY_SECRET;
+    delete process.env.ALIYUN_SMS_SIGN_NAME;
+    delete process.env.ALIYUN_SMS_TEMPLATE_CODE;
     delete process.env.SMS_CODE_TTL_SECONDS;
     delete process.env.SMS_SEND_COOLDOWN_SECONDS;
     delete process.env.SMS_HOURLY_LIMIT;
@@ -131,6 +141,24 @@ describe("ConfigService", () => {
 
       expect(() => new ConfigService().validateForStartup()).not.toThrow();
     });
+
+    it.each(Object.keys(validProductionSmsEnv))(
+      "requires %s for production startup",
+      (missingName) => {
+        process.env = {
+          ...originalEnv,
+          ...validStartupEnv,
+          ...validProductionSmsEnv,
+          NODE_ENV: "production",
+          REDIS_PASSWORD: "production-redis-password",
+        };
+        delete process.env[missingName];
+
+        expect(() => new ConfigService().validateForStartup()).toThrow(
+          `${missingName} is required`,
+        );
+      },
+    );
 
     it("keeps COS disabled when all fields are empty", () => {
       process.env = {

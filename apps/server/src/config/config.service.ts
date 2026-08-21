@@ -92,6 +92,10 @@ export class ConfigService {
     if (this.nodeEnv === "production") {
       check("REDIS_PASSWORD", () => this.getRequiredString("REDIS_PASSWORD"));
       check("SMS_DEV_CODE", () => this.smsDevCode);
+      check("ALIYUN_SMS_ACCESS_KEY_ID", () => this.aliyunSmsAccessKeyId);
+      check("ALIYUN_SMS_ACCESS_KEY_SECRET", () => this.aliyunSmsAccessKeySecret);
+      check("ALIYUN_SMS_SIGN_NAME", () => this.aliyunSmsSignName);
+      check("ALIYUN_SMS_TEMPLATE_CODE", () => this.aliyunSmsTemplateCode);
     }
 
     if (errors.length > 0) {
@@ -288,6 +292,22 @@ export class ConfigService {
     }
 
     return code;
+  }
+
+  get aliyunSmsAccessKeyId(): string {
+    return this.getRequiredString("ALIYUN_SMS_ACCESS_KEY_ID");
+  }
+
+  get aliyunSmsAccessKeySecret(): string {
+    return this.getRequiredString("ALIYUN_SMS_ACCESS_KEY_SECRET");
+  }
+
+  get aliyunSmsSignName(): string {
+    return this.getRequiredString("ALIYUN_SMS_SIGN_NAME");
+  }
+
+  get aliyunSmsTemplateCode(): string {
+    return this.getRequiredString("ALIYUN_SMS_TEMPLATE_CODE");
   }
 
   get smsCodeTtlSeconds(): number {

@@ -33,6 +33,8 @@
     "clean": "node ../../scripts/clean.mjs dist coverage .turbo"
   },
   "dependencies": {
+    "@alicloud/dysmsapi20170525": "4.6.0",
+    "@alicloud/openapi-client": "0.4.15",
     "@nestjs/common": "11.1.28",
     "@nestjs/core": "11.1.28",
     "@nestjs/jwt": "11.0.2",

@@ -8,6 +8,7 @@ nodeVersion: "24.19.0"
 saveExact: true
 
 allowBuilds:
+  "@alicloud/openapi-core": false
   "@parcel/watcher": true
   "@prisma/engines": true
   "@scarf/scarf": false

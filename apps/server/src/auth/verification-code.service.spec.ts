@@ -106,6 +106,21 @@ describe("VerificationCodeService", () => {
     expect(redis.values.get("auth:otp:13800138000")).not.toContain("246810");
   });
 
+  it("removes the OTP and cooldown when the provider rejects delivery", async () => {
+    sender.sendCode.mockRejectedValue(
+      Object.assign(new Error("短信发送失败，请稍后重试"), {
+        code: "SMS_DELIVERY_FAILED",
+        status: 503,
+      }),
+    );
+
+    await expect(service.send("13800138000")).rejects.toMatchObject({
+      code: "SMS_DELIVERY_FAILED",
+    });
+    expect(redis.values.has("auth:otp:13800138000")).toBe(false);
+    expect(redis.values.has("auth:otp:cooldown:13800138000")).toBe(false);
+  });
+
   it("consumes a correct code once", async () => {
     await service.send("13800138000");
 

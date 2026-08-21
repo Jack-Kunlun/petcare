@@ -1,9 +1,12 @@
 import { MODULE_METADATA } from "@nestjs/common/constants";
+import { ConfigService } from "../config/config.service";
 import { AdminRbacController } from "../modules/rbac/admin-rbac.controller";
 import { RbacModule } from "../modules/rbac/rbac.module";
-import { AuthModule } from "./auth.module";
+import { AuthModule, createSmsSender } from "./auth.module";
 import { PasswordService } from "./password.service";
 import { SessionValidationService } from "./session-validation.service";
+import { AliyunSmsSender } from "./sms/aliyun-sms.sender";
+import { DevelopmentSmsSender } from "./sms/development-sms.sender";
 import { TokenService } from "./token.service";
 
 describe("AuthModule", () => {
@@ -28,5 +31,19 @@ describe("AuthModule", () => {
     expect(exports).toEqual(
       expect.arrayContaining([PasswordService, TokenService, SessionValidationService]),
     );
+  });
+
+  it("selects Aliyun in production and development sender elsewhere", () => {
+    const production = createSmsSender({
+      nodeEnv: "production",
+      aliyunSmsAccessKeyId: "test-access-key-id",
+      aliyunSmsAccessKeySecret: "test-access-key-secret",
+      aliyunSmsSignName: "宠伴",
+      aliyunSmsTemplateCode: "SMS_123456789",
+    } as unknown as ConfigService);
+    const development = createSmsSender({ nodeEnv: "development" } as unknown as ConfigService);
+
+    expect(production).toBeInstanceOf(AliyunSmsSender);
+    expect(development).toBeInstanceOf(DevelopmentSmsSender);
   });
 });
