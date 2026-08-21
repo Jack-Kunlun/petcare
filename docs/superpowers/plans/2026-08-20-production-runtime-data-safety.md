@@ -384,7 +384,7 @@ it("does not replace an existing operator-owned website pointer", async () => {
 Run:
 
 ```bash
-pnpm --filter @petcare/server test -- seed-initial-data.spec.ts
+pnpm --filter @petcare/server test -- seed-initial-data.spec.ts seed-website-content.spec.ts
 ```
 
 Expected: FAIL because the current `user.upsert()` update branch rewrites administrator fields and the Website seed replaces an existing pointer when its sibling pointer is null.
@@ -503,10 +503,16 @@ describe("ReadinessController", () => {
     expect(redisClient.ping).toHaveBeenCalledTimes(1);
   });
 
-  it("rejects when either dependency is unavailable", async () => {
+  it("rejects when PostgreSQL is unavailable", async () => {
     prisma.$queryRaw.mockRejectedValueOnce(new Error("database unavailable"));
 
     await expect(controller.check()).rejects.toThrow("database unavailable");
+  });
+
+  it("rejects when Redis is unavailable", async () => {
+    redisClient.ping.mockRejectedValueOnce(new Error("redis unavailable"));
+
+    await expect(controller.check()).rejects.toThrow("redis unavailable");
   });
 });
 ```
