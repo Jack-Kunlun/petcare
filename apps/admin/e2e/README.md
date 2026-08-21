@@ -5,7 +5,7 @@
 ## 首次准备
 
 ```bash
-docker compose up -d postgres redis
+docker compose -f docker-compose.yml -f docker-compose.dev.yml --env-file .env up -d postgres redis
 pnpm --filter @petcare/admin exec playwright install chromium
 ```
 

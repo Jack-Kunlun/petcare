@@ -118,6 +118,16 @@ test("README 覆盖首次启动和 pnpm 升级路径", async () => {
   assert.match(readme, /packageManager/);
 });
 
+test("Admin E2E 文档使用开发 Compose 覆盖暴露基础设施端口", async () => {
+  const readme = await readFile(resolve(root, "apps/admin/e2e/README.md"), "utf8");
+
+  assert.match(
+    readme,
+    /docker compose -f docker-compose\.yml -f docker-compose\.dev\.yml --env-file \.env up -d postgres redis/,
+  );
+  assert.doesNotMatch(readme, /^docker compose up -d postgres redis$/m);
+});
+
 test("Server exposes committed Prisma migration lifecycle commands", async () => {
   const server = await readJson("apps/server/package.json");
 
