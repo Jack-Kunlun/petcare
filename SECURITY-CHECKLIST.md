@@ -1,172 +1,47 @@
 # 生产环境安全检查清单
 
-在将PetCare部署到生产环境之前，请逐项检查以下安全配置。
+生产发布只通过 GitHub `production` Environment 的手动 `deploy.yml` 执行。详细步骤见
+[GitHub Actions 手动发布指南](docs/08-deployment/github-actions-deploy.md)。
 
-## 🔴 P0 - 必须修复（高危）
+## P0：首次发布前
 
-### 1. Redis密码认证 ✅ 已修复
+- [ ] `petcare-home.com`、`www.petcare-home.com`、`admin.petcare-home.com` 的 DNS A/AAAA 记录均指向生产服务器。
+- [ ] 两份 TLS 证书分别覆盖官网两个域名与 Admin 域名；私钥仅以 GitHub Environment Secret 临时传递，服务器
+      `/opt/petcare/certs` 为 root-owned `0700`。
+- [ ] 边缘防火墙只放行 `22`、`80`、`443`；数据库、Redis、`8986` 与 `8080` 不对公网开放。
+- [ ] GitHub `production` Environment 已启用 required reviewers，并保存全部部署、TLS、GHCR、COS 和微信上传 Secret。
+- [ ] `DEPLOY_USER` 是专用、仅密钥、非交互账号，不在 Docker 组；它的 passwordless sudo 与 Docker/root-run release
+      实际上是 root-equivalent，必须按特权账号管理并定期轮换 SSH 密钥。
+- [ ] `/opt/petcare` 和仓库只读 deploy key 均由 root 持有；部署账号不能直接写 checkout。
+- [ ] `/opt/petcare/.env` 为 root-owned `0600`，已安全补全并轮换初始管理员密码、`WECHAT_APP_SECRET` 和四个
+      `ALIYUN_SMS_*` 值；生产环境没有 `SMS_DEV_CODE`。
+- [ ] `DEFAULT_ADMIN_PHONE` 是有效的中国大陆手机号，`JWT_SECRET` 至少 32 字符，数据库、Redis 和管理员密码均为独立强随机值。
+- [ ] 阿里云短信签名和模板已审批，模板变量为 `code`；专用 RAM 用户仅有 `dysms:SendSms`，未授予
+      `AliyunDysmsFullAccess`。
+- [ ] GHCR classic PAT 仅有 `read:packages`，且 `GHCR_PULL_USER` 是该 PAT 所属用户名。
 
-- [x] docker-compose.yml中添加了`--requirepass`参数
-- [x] healthcheck使用密码进行认证
-- [ ] **操作**: 在`.env.local`中设置强密码
-  ```bash
-  REDIS_PASSWORD=<使用 openssl rand -base64 24 生成>
-  ```
+## P0：备份与恢复
 
-### 2. 数据库端口保护 ✅ 已优化为环境变量控制
+- [ ] 备份 COS Bucket 独立于公开素材 Bucket，私有读写、只用 HTTPS，且对象启用 SSE-COS/AES256。
+- [ ] 备份 CAM 凭据仅能对该 Bucket 的 `postgresql/*` 执行 `PutObject`、`GetObject`；没有列举、删除、管理、`cos:*` 或资源 `*`。
+- [ ] `BACKUP_COS_*` 只存在 GitHub `production` Environment 和 root-owned `0600` 的 `/etc/petcare-backup.env`。
+- [ ] `petcare-backup.timer` 已在首次成功发布后启用；已验证一次备份对象的时间、非零大小、加密元数据和临时数据库恢复演练。
+- [ ] 为 backup service 失败配置外部告警；COS `postgresql/` 生命周期和非当前版本/delete marker 的 30 天保留策略已配置。
 
-- [x] docker-compose.yml使用`EXPOSE_DB_PORT`变量控制
-- [ ] **开发环境**: `.env.local`中设置 `EXPOSE_DB_PORT=5432`
-- [ ] **生产环境**: `.env.local`中留空 `EXPOSE_DB_PORT=` 或注释掉
+## P1：发布与运行验证
 
-### 3. Redis端口保护 ✅ 已优化为环境变量控制
+- [ ] 首次发布使用 `target=all`、`initialize_data=true`；日常完整发布使用 `all/false`；选择性发布使用
+      `server`、`admin` 或 `website` 和 `false`。
+- [ ] 发布提交已成功通过 `ci.yml`，不使用 `prisma:push`；理解 migration 是 forward-only，而镜像回滚不回滚数据库。
+- [ ] 发布完成后验证三个 HTTP → HTTPS 重定向与以下 HTTPS 端点：官网根域、`www`、Admin、`/api/ready`。
+- [ ] Server、Admin、Website 使用独立不可变 SHA 镜像标签，`/opt/petcare/.deploy-images.env` 只在完整验证后更新。
+- [ ] 日志、工单和聊天中没有 `.env`、证书、私钥、Base64、PAT、COS、Aliyun 或 SSH 私钥内容。
 
-- [x] docker-compose.yml使用`EXPOSE_REDIS_PORT`变量控制
-- [ ] **开发环境**: `.env.local`中设置 `EXPOSE_REDIS_PORT=6379`
-- [ ] **生产环境**: `.env.local`中留空 `EXPOSE_REDIS_PORT=` 或注释掉
+## P2：持续维护
 
-### 4. 强密码配置 ⚠️ 需手动配置
+- [ ] 定期更新基础镜像和依赖；在 CI 中审查安全告警。
+- [ ] 定期轮换部署 SSH key、GHCR PAT、TLS 证书、COS/阿里云凭据、数据库、Redis、JWT 和管理员密码。
+- [ ] CDN 只缓存版本化静态资源与公开 COS 素材，不缓存 SSR HTML 或草稿预览。
+- [ ] 小程序上传前核对 CI runner IP 白名单；上传工作流只创建开发/体验版，审核和正式发布在微信公众平台人工完成。
 
-- [ ] 数据库密码不是`password`或`CHANGE_ME_TO_STRONG_PASSWORD`
-  ```bash
-  DB_PASSWORD=<使用 openssl rand -base64 32 生成>
-  ```
-- [ ] JWT密钥至少32字符
-  ```bash
-  JWT_SECRET=<使用 openssl rand -base64 48 生成>
-  ```
-
-### 数据库异地备份（上线前必须）
-
-- [ ] 专用 COS Bucket 是**私有读写**、仅 HTTPS，上传对象的 COS 元数据确认 SSE-COS/AES256。
-- [ ] 专用 CAM 子账号/密钥仅有 `name/cos:PutObject` 与 `name/cos:GetObject`，资源仅为所选 Bucket 的
-      `postgresql/*`；没有 `cos:*`、资源 `*`、列举、删除或管理权限。
-- [ ] `postgresql/` 生命周期在 30 天后删除对象；若启用版本控制，同时配置 noncurrent versions 与
-      delete markers。
-- [ ] `BACKUP_COS_*` 真实值仅在 GitHub `production` Environment Secrets 和服务器 `root` 所有、
-      `0600` 的 `/etc/petcare-backup.env` 中；不进入 Git、GitHub Variables、根 `.env`、镜像、日志或聊天。
-- [ ] `petcare-backup.service` 失败有外部告警；journal 不是通知机制。
-- [ ] 已按运行手册完成一次手动备份的 COS 元数据核验和显式 object key 的临时数据库恢复演练；生产库恢复另行
-      人工授权并在维护窗口执行。
-- [ ] 密钥轮换后，先通过部署重写服务器文件并验证新备份，再禁用旧 key；失败时保留旧 key 以回滚。
-
-详见[数据库异地备份运行手册](docs/08-deployment/deployment.md)。
-
----
-
-## 🟡 P1 - 强烈建议（中危）
-
-### 5. CORS配置 ✅ 已优化
-
-- [x] 已从硬编码改为环境变量`ALLOWED_ORIGINS`
-- [ ] **操作**: 在`.env.local`中配置实际域名
-  ```bash
-  ALLOWED_ORIGINS=https://yourdomain.com,https://www.yourdomain.com
-  ```
-
-### 6. Swagger UI保护 ✅ 已实现
-
-- [x] 生产环境自动禁用Swagger UI
-- [x] 通过`NODE_ENV=production`控制
-
-### 7. Docker资源限制 ✅ 已配置
-
-- [x] 所有服务都设置了CPU和内存限制
-- [x] Server服务设置了内存预留
-
----
-
-## 🟢 P2 - 建议优化（低危）
-
-### 8. 日志脱敏
-
-- [ ] 配置winston过滤器，避免记录敏感信息
-- [ ] 不在日志中输出完整的JWT token
-- [ ] 对密码字段进行脱敏处理
-
-### 9. 错误处理
-
-- [ ] 生产环境不返回详细堆栈跟踪
-- [ ] 实现全局异常过滤器
-
-### 10. HTTPS配置
-
-- [ ] 生产环境使用HTTPS
-- [ ] 配置SSL证书
-- [ ] Nginx配置HTTP到HTTPS重定向
-
-### 11. 定期更新
-
-- [ ] 定期更新Docker镜像基础版本
-- [ ] 监控依赖包的安全漏洞
-- [ ] 使用`npm audit`或`snyk`检查依赖安全性
-
----
-
-## 🔧 快速生成强密码/密钥
-
-```bash
-# 生成32字节Base64字符串（适合JWT密钥）
-openssl rand -base64 48
-
-# 生成24字节Base64字符串（适合Redis密码）
-openssl rand -base64 24
-
-# 生成16进制字符串（适合数据库密码）
-openssl rand -hex 32
-```
-
----
-
-## 📋 部署前最终检查
-
-```bash
-# 1. 确认.env.local文件存在且配置正确
-ls -la .env.local
-
-# 2. 检查是否使用了默认密码
-grep -E "(password|CHANGE_ME)" .env.local
-
-# 3. 验证JWT密钥长度
-node -e "console.log(process.env.JWT_SECRET?.length >= 32 ? '✅ JWT密钥长度合格' : '❌ JWT密钥太短')"
-
-# 4. 测试Docker Compose配置
-docker-compose config
-
-# 5. 启动服务并检查日志
-docker-compose up -d
-docker-compose logs -f
-```
-
----
-
-## 🚨 紧急响应
-
-如果发现安全漏洞：
-
-1. **立即轮换凭证**
-
-   ```bash
-   # 更改数据库密码
-   docker-compose exec postgres psql -U postgres -c "ALTER USER petcare WITH PASSWORD 'new-password';"
-
-   # 更改Redis密码
-   # 修改docker-compose.yml和.env.local后重启
-   docker-compose restart redis
-   ```
-
-2. **检查访问日志**
-
-   ```bash
-   docker-compose logs server | grep -i "unauthorized\|forbidden"
-   ```
-
-3. **审查网络连接**
-   ```bash
-   docker network inspect petcare-network
-   ```
-
----
-
-**最后更新**: 2026-07-16  
-**维护者**: PetCare安全团队
+本地 HTTP 地址和 `docker-compose.dev.yml` 仅用于可丢弃的开发诊断，不能通过它们代替生产 HTTPS 发布。

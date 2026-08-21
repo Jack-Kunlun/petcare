@@ -108,14 +108,36 @@ Aliyun 短信发送器，并禁止配置该变量。生产环境固定使用端�
 真实 Aliyun AccessKey 值只保存在生产服务器 `root-owned`、权限为 `0600` 的根 `.env` 中；不得进入 Git、
 镜像、日志、文档示例或聊天。不得读取、复制或回传 `.env`、证书/私钥内容或真实凭据。
 
+### 生产初始化值
+
+`scripts/server-init.sh` 只在生产服务器生成 `/opt/petcare/.env`，并将其设置为 root-owned `0600`。它不生成
+`SERVER_IP`，也不会写入 `EXPOSE_DB_PORT` 或 `EXPOSE_REDIS_PORT`；这两个变量只属于本地
+`docker-compose.dev.yml` 覆盖。初始值为：
+
+```dotenv
+API_BASE_URL=https://admin.petcare-home.com/api
+ALLOWED_ORIGINS=https://admin.petcare-home.com
+WEBSITE_PUBLIC_URL=https://petcare-home.com
+WEBSITE_CONTENT_API_BASE_URL=http://server:3000
+WECHAT_APP_ID=wx3bdad4ab652f0d1d
+WECHAT_APP_SECRET=
+ALIYUN_SMS_ACCESS_KEY_ID=
+ALIYUN_SMS_ACCESS_KEY_SECRET=
+ALIYUN_SMS_SIGN_NAME=
+ALIYUN_SMS_TEMPLATE_CODE=
+```
+
+`DEFAULT_ADMIN_PHONE` 由初始化命令显式提供并按中国大陆手机号校验；随机初始管理员密码绝不输出。root 必须通过安全
+终端补全上述空值并轮换初始管理员密码，然后才可进行第一次生产发布。
+
 发送短信验证码之前必须先通过图形验证码。图形验证码由 Server 生成无文本节点的 SVG，Redis 只保存 HMAC 摘要；校验成功后立即消费，同一个挑战不能重复使用。
 
 ### API配置
 
-| 变量名                      | 必填 | 说明                                              |
-| --------------------------- | ---- | ------------------------------------------------- |
-| `API_BASE_URL`              | 否   | Admin API基础URL，默认`http://localhost:8986/api` |
-| ~~`TARO_APP_API_BASE_URL`~~ | -    | ~~Taro Miniapp 请求地址；已随项目删除~~           |
+| 变量名                      | 必填 | 说明                                                                 |
+| --------------------------- | ---- | -------------------------------------------------------------------- |
+| `API_BASE_URL`              | 否   | Admin API 基础 URL；默认值仅用于本地诊断 `http://localhost:8986/api` |
+| ~~`TARO_APP_API_BASE_URL`~~ | -    | ~~Taro Miniapp 请求地址；已随项目删除~~                              |
 
 ### 第三方服务（可选）
 
@@ -132,6 +154,10 @@ Aliyun 短信发送器，并禁止配置该变量。生产环境固定使用端�
 微信配置必须同时留空或同时提供。启用时，`WECHAT_APP_ID` 必须符合 `wx` 加 16 位字符的格式，
 `WECHAT_APP_SECRET` 必须为 32 位十六进制字符串。
 
+`scripts/server-init.sh` 生成生产 `.env` 时会预写正式 AppID `wx3bdad4ab652f0d1d`，并故意将
+`WECHAT_APP_SECRET` 留空；这是未完成的初始化状态。root 必须在第一次 `deploy.yml` 前安全填写它，否则 Server 会按
+成组配置规则拒绝启动。
+
 ~~Miniapp 只读取 `TARO_APP_API_BASE_URL`，并从 `apps/miniapp/project.config.json` 取得公开 AppID。~~
 
 `WECHAT_APP_ID` 和 `WECHAT_APP_SECRET` 只由 Server 使用，任何客户端都不得包含或读取 AppSecret。Miniapp 的业务请求边界尚未迁移，相关客户端变量将在实际接入时另行确定。
@@ -146,7 +172,7 @@ Aliyun 短信发送器，并禁止配置该变量。生产环境固定使用端�
 
 生产环境应使用公开读、私有写素材 Bucket，并为 Server 配置仅能操作该 Bucket 中
 `public/admin-avatars/` 和 `public/website-media/` 前缀的最小权限子账号凭据。不要将 SecretId、SecretKey 或根账号凭据写入客户端、仓库或
-文档示例；根目录 `.env` 仅供本地使用，已被 Git 忽略。
+文档示例；任何根 `.env` 均不提交，生产文件仅由 root 在服务器上持有。
 
 ### 数据库异地备份（仅生产 Linux/systemd）
 
@@ -160,7 +186,7 @@ BACKUP_COS_BUCKET=
 BACKUP_COS_REGION=
 ```
 
-真实值仅保存在 GitHub `production` Environment 的同名 Secrets，并由后续主生产部署原子写入
+真实值仅保存在 GitHub `production` Environment 的同名 Secrets，并由主生产部署原子写入
 `/etc/petcare-backup.env`。该文件必须由 `root` 持有、权限为 `0600`。不得将任一值存入 Git、GitHub
 Variables、根 `.env`、镜像、日志或聊天；也不得为备份向应用 `TENCENT_COS_*` 变量复用公开素材 Bucket。
 
@@ -199,7 +225,7 @@ JavaScript、构建参数或 CDN 配置中。Astro 通过它在 Docker 内网调
 3. 启动基础设施并初始化：
 
    ```bash
-   docker compose up -d postgres redis
+   docker compose -f docker-compose.yml -f docker-compose.dev.yml --env-file .env up -d postgres redis
    # 空数据库初始化，以及之后每次生产 Schema 发布
    pnpm --filter @petcare/server prisma:migrate:deploy
    # 仅在需要首次基础数据时显式执行

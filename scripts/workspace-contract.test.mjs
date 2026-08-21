@@ -101,7 +101,7 @@ test("README 覆盖首次启动和 pnpm 升级路径", async () => {
     "corepack enable",
     "corepack install",
     "pnpm install --frozen-lockfile",
-    "docker compose --env-file .env up -d postgres redis",
+    "docker compose -f docker-compose.yml -f docker-compose.dev.yml --env-file .env up -d postgres redis",
     "pnpm --filter @petcare/server prisma:migrate:deploy",
     "pnpm --filter @petcare/server prisma:seed",
     "pnpm dev",

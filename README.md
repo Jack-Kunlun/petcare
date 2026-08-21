@@ -84,7 +84,7 @@ Copy-Item .env.example .env
 4. 启动 PostgreSQL 和 Redis，然后初始化数据库：
 
 ```bash
-docker compose --env-file .env up -d postgres redis
+docker compose -f docker-compose.yml -f docker-compose.dev.yml --env-file .env up -d postgres redis
 # 空数据库初始化，以及之后每次生产 Schema 发布
 pnpm --filter @petcare/server prisma:migrate:deploy
 # 仅在需要首次基础数据时显式执行
@@ -118,7 +118,7 @@ pnpm dev:miniapp:mp-weixin
 完成首次初始化后，日常开发只需：
 
 ```bash
-docker compose --env-file .env up -d postgres redis
+docker compose -f docker-compose.yml -f docker-compose.dev.yml --env-file .env up -d postgres redis
 pnpm dev
 ```
 
@@ -310,9 +310,13 @@ const jwtSecret = this.configService.jwtSecret;
 - [安全审计](./SECURITY-AUDIT.md)
 - [安全检查清单](./SECURITY-CHECKLIST.md)
 
-## 🚀 Docker 部署
+## 🚀 Docker 本地诊断
 
-项目提供完整的容器化部署方案：
+生产环境只有一个受支持的发布入口：先在 Linux 服务器执行 `scripts/server-init.sh`，之后由 GitHub Actions 手动
+触发 `deploy.yml`。完整步骤见[手动部署指南](./docs/08-deployment/github-actions-deploy.md)。不要在服务器上
+执行本地构建、`docker compose build` 或旧的 tarball 部署脚本。
+
+以下命令只用于可丢弃的本地 Docker 诊断；本地 HTTP 地址不能作为生产访问方式。
 
 **配置文件：**
 
@@ -329,37 +333,13 @@ const jwtSecret = this.configService.jwtSecret;
 # Docker Compose 读取项目根目录的 .env 文件
 cp .env.example .env
 
-# 将示例敏感值替换为当前环境的独立强密钥后先校验配置
-docker compose config --quiet
-
-# 使用 Docker Compose 启动所有服务
-docker compose up -d
-
-# 查看服务状态
-docker compose ps
-
-# 查看日志
-docker compose logs -f server
-
-# 停止所有服务
-docker compose down
-
-# 停止并删除数据卷
-docker compose down -v
+# 只启动本地开发需要的基础设施
+docker compose -f docker-compose.yml -f docker-compose.dev.yml --env-file .env up -d postgres redis
+pnpm dev
 ```
 
-**访问地址：**
-
-- 后台管理系统: http://localhost:8986
-- 官网: http://localhost:8080
-- API服务: 本地混合开发为 http://localhost:3000；全容器模式仅 Docker 内网可达
-- API文档: 仅宿主机开发模式提供 http://localhost:3000/api-docs
-- 进程存活检查: 本地混合开发为 http://localhost:3000/health；容器内为 http://server:3000/health
-- 流量就绪检查: 本地混合开发为 http://localhost:3000/ready；容器内为 http://server:3000/ready
-
-官网 HTML 由独立网关代理 Astro SSR，不缓存 HTML，因此显式发布在下一次请求可见。腾讯云 COS 凭据只注入
-Server；Astro 仅从 Docker 内网读取公开内容 API。完整的 DNS、TLS、CDN、回退与回滚约定见
-[部署指南](./docs/08-deployment/deployment.md)。
+本地诊断地址仅限开发：Admin <http://localhost:8986>、官网 <http://localhost:4321>、Server
+<http://localhost:3000>。生产 HTTPS 地址、备份、回滚与外部前置条件见[部署指南](./docs/08-deployment/deployment.md)。
 
 ## License
 

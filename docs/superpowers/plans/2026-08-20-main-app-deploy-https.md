@@ -1037,6 +1037,7 @@ git commit -m "ci: 覆盖全部生产发布产物"
 - Modify: `SECURITY-CHECKLIST.md`
 - Modify: `README.md`
 - Modify: `scripts/workspace-contract.test.mjs`
+- Modify: `docs/superpowers/plans/2026-08-20-main-app-deploy-https.md`
 
 **Interfaces:**
 
@@ -1053,6 +1054,7 @@ ALLOWED_ORIGINS=https://admin.petcare-home.com
 WEBSITE_PUBLIC_URL=https://petcare-home.com
 WEBSITE_CONTENT_API_BASE_URL=http://server:3000
 WECHAT_APP_ID=wx3bdad4ab652f0d1d
+WECHAT_APP_SECRET=
 ALIYUN_SMS_ACCESS_KEY_ID=
 ALIYUN_SMS_ACCESS_KEY_SECRET=
 ALIYUN_SMS_SIGN_NAME=
@@ -1082,6 +1084,7 @@ DEPLOY_HOST
 DEPLOY_USER
 DEPLOY_SSH_KEY
 DEPLOY_HOST_FINGERPRINT
+GHCR_PULL_USER
 GHCR_PULL_TOKEN
 TLS_WEBSITE_CERT_B64
 TLS_WEBSITE_KEY_B64
@@ -1091,6 +1094,7 @@ BACKUP_COS_SECRET_ID
 BACKUP_COS_SECRET_KEY
 BACKUP_COS_BUCKET
 BACKUP_COS_REGION
+MP_UPLOAD_PRIVATE_KEY_B64
 ```
 
 Document variable `DEPLOY_PORT=22`. Include these safe PowerShell commands, running and pasting one value at a time into the named GitHub secret:
@@ -1100,6 +1104,7 @@ Document variable `DEPLOY_PORT=22`. Include these safe PowerShell commands, runn
 [Convert]::ToBase64String([IO.File]::ReadAllBytes("D:\projects\petcare\certs\petcare-home.com.key")) | Set-Clipboard
 [Convert]::ToBase64String([IO.File]::ReadAllBytes("D:\projects\petcare\certs\admin.petcare-home.com_bundle.crt")) | Set-Clipboard
 [Convert]::ToBase64String([IO.File]::ReadAllBytes("D:\projects\petcare\certs\admin.petcare-home.com.key")) | Set-Clipboard
+[Convert]::ToBase64String([IO.File]::ReadAllBytes("D:\projects\petcare\.secrets\wechat\private.wx3bdad4ab652f0d1d.key")) | Set-Clipboard
 ```
 
 Warn users never to paste Base64 values into shell history, issues, logs, commits, or documentation and to clear the clipboard after each GitHub secret is saved.
@@ -1123,7 +1128,7 @@ Require:
 - DNS A/AAAA records for `petcare-home.com`, `www.petcare-home.com`, and `admin.petcare-home.com` to resolve to the server.
 - Tencent Lighthouse firewall ingress only on 22, 80, and 443; SSH source restrictions when operationally possible.
 - GitHub `production` Environment protection/required reviewers.
-- A GHCR token restricted to `read:packages` and a deployment account with only the required passwordless `sudo` commands.
+- A GHCR token restricted to `read:packages` and a dedicated, key-only deployment automation account with passwordless `sudo`. The current Docker and root-run release operations are root-equivalent; document that privilege honestly instead of presenting a brittle binary allowlist as least privilege. Keep the account out of the Docker group, protect the `production` Environment with required reviewers, and rotate the SSH key.
 - Valid certificate bundles covering both Website hosts and the Admin host.
 
 - [ ] **Step 6: Run documentation and repository hygiene checks**
@@ -1143,6 +1148,6 @@ Expected: all checks pass. Any remaining local-only HTTP or `prisma:push` refere
 - [ ] **Step 7: Commit the operator handoff**
 
 ```bash
-git add scripts/server-init.sh scripts/deploy-to-server.sh README.md docker/README.md docs/08-deployment/github-actions-deploy.md docs/08-deployment/deployment.md docs/environment-variables.md SECURITY-CHECKLIST.md scripts/workspace-contract.test.mjs
+git add scripts/server-init.sh scripts/deploy-to-server.sh README.md docker/README.md docs/08-deployment/github-actions-deploy.md docs/08-deployment/deployment.md docs/environment-variables.md SECURITY-CHECKLIST.md scripts/workspace-contract.test.mjs docs/superpowers/plans/2026-08-20-main-app-deploy-https.md
 git commit -m "docs(deploy): 统一生产发布与 HTTPS 运维流程"
 ```
