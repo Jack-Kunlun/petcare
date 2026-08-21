@@ -5,6 +5,27 @@ import test from "node:test";
 
 const root = resolve(import.meta.dirname, "..");
 
+const assertMiniappUploadBoundary = (workflow) => {
+  const topLevelPermissions = workflow.slice(
+    workflow.indexOf("\npermissions:"),
+    workflow.indexOf("\nconcurrency:"),
+  );
+  const uploadJob = workflow.slice(workflow.indexOf("\n  upload:"));
+  const cleanupMarker = "      - name: 清理临时密钥";
+  const cleanupStep = uploadJob.slice(uploadJob.indexOf(cleanupMarker));
+
+  assert.equal(topLevelPermissions, "\npermissions:\n  contents: read\n");
+  assert.doesNotMatch(uploadJob, /^\s+permissions\s*:/m);
+  assert.match(
+    uploadJob,
+    /^ {10}printf '%s' "\$MP_UPLOAD_PRIVATE_KEY_B64" \| base64 --decode > "\$MINIAPP_TMP\/private\.key"$/m,
+  );
+  assert.equal(
+    cleanupStep.trimEnd(),
+    `${cleanupMarker}\n        if: always()\n        shell: bash\n        run: rm -rf -- "$MINIAPP_TMP"`,
+  );
+};
+
 test("CI 提供分层质量门禁并使用当前稳定 Actions 主版本", async () => {
   const workflow = await readFile(resolve(root, ".github/workflows/ci.yml"), "utf8");
 
@@ -117,4 +138,71 @@ test("CI 可手动触发并覆盖全部发布产物", async () => {
     assert.match(dockerJob, new RegExp(`^ {6}${name}: https://`, "m"));
   }
   assert.doesNotMatch(workflow, /WECHAT_APP_SECRET|MP_UPLOAD_PRIVATE_KEY/);
+});
+
+test("手动小程序上传受 CI、环境和临时密钥策略保护", async () => {
+  const [workflow, miniappPackageSource] = await Promise.all([
+    readFile(resolve(root, ".github/workflows/miniapp-release.yml"), "utf8"),
+    readFile(resolve(root, "apps/miniapp/package.json"), "utf8"),
+  ]);
+  const miniappPackage = JSON.parse(miniappPackageSource);
+  const resolveJob = workflow.slice(
+    workflow.indexOf("\n  resolve:"),
+    workflow.indexOf("\n  upload:"),
+  );
+  const uploadJob = workflow.slice(workflow.indexOf("\n  upload:"));
+
+  assert.equal(miniappPackage.devDependencies["miniprogram-ci"], "2.1.31");
+  assertMiniappUploadBoundary(workflow);
+  assert.match(workflow, /^ {6}ref:$/m);
+  assert.match(workflow, /^ {6}version:$/m);
+  assert.match(workflow, /^ {6}desc:$/m);
+  assert.match(workflow, /ref: \$\{\{ inputs\.ref \}\}/);
+  assert.match(workflow, /fetch-depth: 0/);
+  assert.match(workflow, /git rev-parse HEAD/);
+  assert.match(workflow, /\^\[0-9a-f\]\{40\}\$/);
+  assert.match(resolveJob, /permissions:\n {6}contents: read\n {6}actions: read/);
+  assert.match(resolveJob, /actions\/workflows\/ci\.yml\/runs\?head_sha=\$sha&status=completed/);
+  assert.match(resolveJob, /select\(\.conclusion == "success"\)/);
+  assert.match(uploadJob, /environment: production/);
+  assert.match(workflow, /group: petcare-miniapp-production/);
+  assert.match(workflow, /cancel-in-progress: false/);
+  assert.match(uploadJob, /ref: \$\{\{ needs\.resolve\.outputs\.sha \}\}/);
+  assert.match(
+    uploadJob,
+    /MP_UPLOAD_PRIVATE_KEY_B64: \$\{\{ secrets\.MP_UPLOAD_PRIVATE_KEY_B64 \}\}/,
+  );
+  assert.equal(workflow.match(/secrets\.MP_UPLOAD_PRIVATE_KEY_B64/g)?.length, 1);
+  assert.match(
+    uploadJob,
+    /petcare-miniapp-\$\{\{ github\.run_id \}\}-\$\{\{ github\.run_attempt \}\}/,
+  );
+  assert.match(uploadJob, /install -d -m 700 "\$MINIAPP_TMP"/);
+  assert.match(uploadJob, /chmod 600 "\$MINIAPP_TMP\/private\.key"/);
+  assert.match(uploadJob, /test -s apps\/miniapp\/dist\/build\/mp-weixin\/app\.json/);
+  assert.match(uploadJob, /test -s apps\/miniapp\/dist\/build\/mp-weixin\/project\.config\.json/);
+  assert.match(uploadJob, /pnpm --dir apps\/miniapp exec miniprogram-ci upload/);
+  assert.match(uploadJob, /--pp dist\/build\/mp-weixin/);
+  assert.match(uploadJob, /--use-project-config true/);
+  assert.doesNotMatch(workflow, /npx|@latest|MP_UPLOAD_PRIVATE_KEY(?!_B64)|WECHAT_APP_SECRET/);
+});
+
+test("小程序上传策略拒绝权限扩张、密钥跨 Job 和宽泛清理", async () => {
+  const workflow = await readFile(resolve(root, ".github/workflows/miniapp-release.yml"), "utf8");
+  const decodeLine =
+    '          printf \'%s\' "$MP_UPLOAD_PRIVATE_KEY_B64" | base64 --decode > "$MINIAPP_TMP/private.key"';
+  const mutations = [
+    workflow.replace("permissions:\n  contents: read", "permissions: read-all"),
+    workflow
+      .replace(decodeLine, "          echo decode-moved")
+      .replace("\n  upload:", `\n${decodeLine}\n  upload:`),
+    workflow.replace(
+      'run: rm -rf -- "$MINIAPP_TMP"',
+      'run: rm -rf -- "$MINIAPP_TMP" /tmp/also-delete',
+    ),
+  ];
+
+  for (const mutation of mutations) {
+    assert.throws(() => assertMiniappUploadBoundary(mutation));
+  }
 });

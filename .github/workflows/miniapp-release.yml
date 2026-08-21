@@ -1,35 +1,87 @@
-# 手动触发：构建微信小程序并上传到微信公众平台（体验版/开发版）
-# 前置条件：
-#   1. 仓库 Secret：MP_UPLOAD_PRIVATE_KEY（微信公众平台生成的上传密钥完整内容）
-#   2. 微信后台「开发设置 → IP 白名单」已关闭，或已放行 GitHub Actions 出口 IP
-#   3. AppID 与 apps/miniapp/src/manifest.json 保持一致（当前 wx3bdad4ab652f0d1d）
+# 手动触发：上传已通过 CI 的微信小程序代码（开发版/体验版）
 name: 小程序上传
 
 on:
   workflow_dispatch:
     inputs:
+      ref:
+        description: "已通过 CI 的分支、标签或完整提交 SHA"
+        required: true
+        default: master
       version:
         description: "上传版本号（如 2.0.0）"
         required: true
         default: "2.0.0"
       desc:
-        description: "版本备注（会显示在微信后台版本记录）"
-        required: false
+        description: "微信后台版本备注"
+        required: true
         default: "GitHub Actions 手动上传"
 
 permissions:
   contents: read
 
-env:
-  NODE_VERSION: "24.19.0"
-  MP_APPID: wx3bdad4ab652f0d1d
+concurrency:
+  group: petcare-miniapp-production
+  cancel-in-progress: false
 
 jobs:
-  upload:
-    name: 构建并上传微信小程序
+  resolve:
+    name: 解析并校验提交
     runs-on: ubuntu-latest
+    permissions:
+      contents: read
+      actions: read
+    outputs:
+      sha: ${{ steps.meta.outputs.sha }}
     steps:
       - uses: actions/checkout@v7
+        with:
+          ref: ${{ inputs.ref }}
+          fetch-depth: 0
+
+      - id: meta
+        name: 固定完整提交 SHA
+        shell: bash
+        run: |
+          set -Eeuo pipefail
+          sha="$(git rev-parse HEAD)"
+          [[ "$sha" =~ ^[0-9a-f]{40}$ ]] || {
+            echo "无法解析完整提交 SHA" >&2
+            exit 1
+          }
+          printf 'sha=%s\n' "$sha" >> "$GITHUB_OUTPUT"
+
+      - name: 要求该提交的持续集成已成功
+        shell: bash
+        env:
+          GH_TOKEN: ${{ github.token }}
+          SHA: ${{ steps.meta.outputs.sha }}
+        run: |
+          set -Eeuo pipefail
+          sha="$SHA"
+          count="$(gh api \
+            "repos/$GITHUB_REPOSITORY/actions/workflows/ci.yml/runs?head_sha=$sha&status=completed&per_page=50" \
+            --jq '[.workflow_runs[] | select(.conclusion == "success")] | length')"
+          [[ "$count" -gt 0 ]] || {
+            echo "所选提交没有成功的持续集成记录" >&2
+            exit 1
+          }
+
+  upload:
+    name: 构建并上传微信小程序
+    needs: resolve
+    environment: production
+    runs-on: ubuntu-latest
+    env:
+      NODE_VERSION: "24.19.0"
+      WECHAT_APP_ID: wx3bdad4ab652f0d1d
+      MINIAPP_TMP: ${{ runner.temp }}/petcare-miniapp-${{ github.run_id }}-${{ github.run_attempt }}
+      MP_VERSION: ${{ inputs.version }}
+      MP_DESC: ${{ inputs.desc }}
+    steps:
+      - uses: actions/checkout@v7
+        with:
+          ref: ${{ needs.resolve.outputs.sha }}
 
       - uses: pnpm/action-setup@v6
 
@@ -40,28 +92,55 @@ jobs:
 
       - run: pnpm install --frozen-lockfile
 
-      - name: 构建小程序（mp-weixin）
-        run: pnpm --filter @petcare/miniapp build:mp-weixin
-
-      - name: 写入上传密钥
+      - name: 校验上传参数
+        shell: bash
         run: |
+          set -Eeuo pipefail
+          [[ "$MP_VERSION" =~ ^[0-9]+\.[0-9]+\.[0-9]+([-+][0-9A-Za-z.-]+)?$ ]] || {
+            echo "版本号格式无效" >&2
+            exit 1
+          }
+          [[ -n "$MP_DESC" && "$MP_DESC" != *$'\r'* && "$MP_DESC" != *$'\n'* ]] || {
+            echo "版本备注不能为空或包含换行" >&2
+            exit 1
+          }
+
+      - name: 构建小程序（mp-weixin）
+        run: pnpm build:miniapp:mp-weixin
+
+      - name: 校验构建产物
+        shell: bash
+        run: |
+          set -Eeuo pipefail
+          test -s apps/miniapp/dist/build/mp-weixin/app.json
+          test -s apps/miniapp/dist/build/mp-weixin/project.config.json
+
+      - name: 解码临时上传密钥
+        shell: bash
+        env:
+          MP_UPLOAD_PRIVATE_KEY_B64: ${{ secrets.MP_UPLOAD_PRIVATE_KEY_B64 }}
+        run: |
+          set -Eeuo pipefail
           umask 077
-          printf '%s\n' '${{ secrets.MP_UPLOAD_PRIVATE_KEY }}' > private.key
+          install -d -m 700 "$MINIAPP_TMP"
+          printf '%s' "$MP_UPLOAD_PRIVATE_KEY_B64" | base64 --decode > "$MINIAPP_TMP/private.key"
+          chmod 600 "$MINIAPP_TMP/private.key"
+          test -s "$MINIAPP_TMP/private.key"
 
       - name: 上传到微信公众平台
-        env:
-          MP_VERSION: ${{ inputs.version }}
-          MP_DESC: ${{ inputs.desc }}
+        shell: bash
         run: |
-          npx --yes miniprogram-ci@latest upload \
-            --pp apps/miniapp/dist/build/mp-weixin \
-            --pkp private.key \
-            --appid "$MP_APPID" \
+          set -Eeuo pipefail
+          pnpm --dir apps/miniapp exec miniprogram-ci upload \
+            --pp dist/build/mp-weixin \
+            --pkp "$MINIAPP_TMP/private.key" \
+            --appid "$WECHAT_APP_ID" \
             --uv "$MP_VERSION" \
             --desc "$MP_DESC" \
-            --enable-es6 true \
-            --enable-minify true
+            -r 1 \
+            --use-project-config true
 
-      - name: 清理密钥
+      - name: 清理临时密钥
         if: always()
-        run: rm -f private.key
+        shell: bash
+        run: rm -rf -- "$MINIAPP_TMP"
