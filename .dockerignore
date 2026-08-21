@@ -2,6 +2,19 @@
 .env
 .env.*
 !.env.example
+# Deployment certificates and local credentials
+certs/
+.secrets/
+.deploy-images.env
+*.crt
+*.csr
+*.cer
+*.p7b
+*.p7c
+*.pem
+*.key
+*.p12
+*.pfx
 **/node_modules
 **/dist
 **/coverage

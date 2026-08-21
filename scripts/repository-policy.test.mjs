@@ -160,6 +160,43 @@ test("local secrets and generated mobile artifacts stay out of Git", () => {
   assert.equal(trackedIgnored.stdout.trim(), "");
 });
 
+test("部署证书、CSR 与上传密钥永远不进入 Git 或 Docker 上下文", async () => {
+  const probes = [
+    "certs/petcare-home.com_bundle.crt",
+    "certs/petcare-home.com_bundle.pem",
+    "certs/petcare-home.com.csr",
+    "certs/petcare-home.com.key",
+    "certs/admin.petcare-home.com_bundle.crt",
+    "certs/admin.petcare-home.com_bundle.pem",
+    "certs/admin.petcare-home.com.csr",
+    "certs/admin.petcare-home.com.key",
+    ".secrets/wechat/private.wx3bdad4ab652f0d1d.key",
+    ".deploy-images.env",
+  ];
+  const ignored = runGit(["check-ignore", "--verbose", "--stdin"], `${probes.join("\n")}\n`);
+  const dockerignore = await readFile(resolve(root, ".dockerignore"), "utf8");
+  const dockerRules = dockerignore.split(/\r?\n/);
+
+  assert.equal(ignored.status, 0, ignored.stderr);
+  assert.equal(ignored.stdout.trim().split(/\r?\n/).length, probes.length);
+  for (const rule of [
+    "certs/",
+    ".secrets/",
+    ".deploy-images.env",
+    "*.crt",
+    "*.csr",
+    "*.cer",
+    "*.p7b",
+    "*.p7c",
+    "*.pem",
+    "*.key",
+    "*.p12",
+    "*.pfx",
+  ]) {
+    assert.ok(dockerRules.includes(rule), `Docker context must exclude ${rule}`);
+  }
+});
+
 test("依赖安装只允许使用 pnpm", async () => {
   const manifest = JSON.parse(await readFile(resolve(root, "package.json"), "utf8"));
   const guard = resolve(root, "scripts/enforce-pnpm.mjs");

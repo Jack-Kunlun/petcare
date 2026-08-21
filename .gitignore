@@ -20,6 +20,16 @@ out/
 .npmrc
 !.env.example
 
+# Deployment certificates and local credentials
+certs/
+.secrets/
+.deploy-images.env
+*.crt
+*.csr
+*.cer
+*.p7b
+*.p7c
+
 # Mobile build outputs and signing material
 unpackage/
 *.apk
