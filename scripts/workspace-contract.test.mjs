@@ -102,7 +102,7 @@ test("README 覆盖首次启动和 pnpm 升级路径", async () => {
     "corepack install",
     "pnpm install --frozen-lockfile",
     "docker compose --env-file .env up -d postgres redis",
-    "pnpm --filter @petcare/server prisma:push",
+    "pnpm --filter @petcare/server prisma:migrate:deploy",
     "pnpm --filter @petcare/server prisma:seed",
     "pnpm dev",
   ];
@@ -116,6 +116,23 @@ test("README 覆盖首次启动和 pnpm 升级路径", async () => {
 
   assert.match(readme, /corepack use pnpm@<目标版本>/);
   assert.match(readme, /packageManager/);
+});
+
+test("Server exposes committed Prisma migration lifecycle commands", async () => {
+  const server = await readJson("apps/server/package.json");
+
+  assert.equal(
+    server.scripts["prisma:migrate:create"],
+    "node --env-file-if-exists=../../.env node_modules/prisma/build/index.js migrate dev",
+  );
+  assert.equal(
+    server.scripts["prisma:migrate:deploy"],
+    "node --env-file-if-exists=../../.env node_modules/prisma/build/index.js migrate deploy",
+  );
+  assert.equal(
+    server.scripts["prisma:migrate:status"],
+    "node --env-file-if-exists=../../.env node_modules/prisma/build/index.js migrate status",
+  );
 });
 
 async function readJson(path) {

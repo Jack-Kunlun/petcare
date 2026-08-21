@@ -85,7 +85,7 @@ Copy-Item .env.example .env
 
 ```bash
 docker compose --env-file .env up -d postgres redis
-pnpm --filter @petcare/server prisma:push
+pnpm --filter @petcare/server prisma:migrate:deploy
 pnpm --filter @petcare/server prisma:seed
 ```
 

@@ -35,6 +35,24 @@ test("CI 在执行数据库 seed 前构建共享类型", async () => {
   assert.ok(sharedTypesBuild < serverSeed, "共享类型必须在数据库 seed 前完成构建");
 });
 
+test("CI initializes PostgreSQL through committed migrations", async () => {
+  const workflow = await readFile(resolve(root, ".github/workflows/ci.yml"), "utf8");
+  const e2eJob = workflow.slice(workflow.indexOf("\n  e2e:"), workflow.indexOf("\n  docker:"));
+  const deployCommand = "pnpm --filter @petcare/server prisma:migrate:deploy";
+  const firstDeploy = e2eJob.indexOf(deployCommand);
+  const secondDeploy = e2eJob.indexOf(deployCommand, firstDeploy + deployCommand.length);
+  const migrationStatus = e2eJob.indexOf("pnpm --filter @petcare/server prisma:migrate:status");
+  const serverSeed = e2eJob.indexOf("pnpm --filter @petcare/server prisma:seed");
+
+  assert.notEqual(firstDeploy, -1, "E2E Job 缺少首次迁移部署步骤");
+  assert.notEqual(secondDeploy, -1, "E2E Job 必须重复执行迁移部署步骤");
+  assert.notEqual(migrationStatus, -1, "E2E Job 缺少迁移状态检查步骤");
+  assert.ok(firstDeploy < secondDeploy, "迁移部署必须重复执行");
+  assert.ok(secondDeploy < migrationStatus, "迁移状态检查必须在重复部署后执行");
+  assert.ok(migrationStatus < serverSeed, "迁移状态检查必须在数据库 seed 前执行");
+  assert.doesNotMatch(e2eJob, /prisma:push|prisma db push/);
+});
+
 test("CI 拒绝主线和 PR 分支中的 merge commit", async () => {
   const workflow = await readFile(resolve(root, ".github/workflows/ci.yml"), "utf8");
 

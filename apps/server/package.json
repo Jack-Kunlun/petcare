@@ -29,6 +29,9 @@
     "test:e2e": "node --env-file-if-exists=../../.env node_modules/jest/bin/jest.js --config ./test/jest-e2e.json --runInBand",
     "prisma:generate": "prisma generate",
     "prisma:push": "node --env-file-if-exists=../../.env node_modules/prisma/build/index.js db push",
+    "prisma:migrate:create": "node --env-file-if-exists=../../.env node_modules/prisma/build/index.js migrate dev",
+    "prisma:migrate:deploy": "node --env-file-if-exists=../../.env node_modules/prisma/build/index.js migrate deploy",
+    "prisma:migrate:status": "node --env-file-if-exists=../../.env node_modules/prisma/build/index.js migrate status",
     "prisma:seed": "node --env-file-if-exists=../../.env node_modules/tsx/dist/cli.mjs prisma/seed.ts",
     "clean": "node ../../scripts/clean.mjs dist coverage .turbo"
   },

@@ -64,7 +64,6 @@ playwright/.cache/
 .turbo/
 
 # Prisma
-prisma/migrations/
 apps/server/src/generated/
 
 # Temporary files

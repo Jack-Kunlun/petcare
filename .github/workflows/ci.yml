@@ -157,7 +157,9 @@ jobs:
       - run: pnpm install --frozen-lockfile
       - run: pnpm --filter @petcare/shared-types build
       - run: pnpm --filter @petcare/server prisma:generate
-      - run: pnpm --filter @petcare/server prisma:push
+      - run: pnpm --filter @petcare/server prisma:migrate:deploy
+      - run: pnpm --filter @petcare/server prisma:migrate:deploy
+      - run: pnpm --filter @petcare/server prisma:migrate:status
       - run: pnpm --filter @petcare/server prisma:seed
       - run: pnpm --filter @petcare/admin exec playwright install --with-deps chromium
       - run: pnpm test:e2e
