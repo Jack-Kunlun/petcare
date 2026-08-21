@@ -115,6 +115,20 @@ jobs:
           test -s apps/miniapp/dist/build/mp-weixin/app.json
           test -s apps/miniapp/dist/build/mp-weixin/project.config.json
 
+      - name: 校验构建产物 AppID
+        shell: bash
+        run: |
+          set -Eeuo pipefail
+          node --input-type=module <<'NODE'
+          import { readFile } from "node:fs/promises";
+          const config = JSON.parse(
+            await readFile("apps/miniapp/dist/build/mp-weixin/project.config.json", "utf8"),
+          );
+          if (config.appid !== process.env.WECHAT_APP_ID) {
+            throw new Error("构建产物 AppID 与上传 AppID 不一致");
+          }
+          NODE
+
       - name: 解码临时上传密钥
         shell: bash
         env:

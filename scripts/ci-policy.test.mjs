@@ -26,6 +26,33 @@ const assertMiniappUploadBoundary = (workflow) => {
   );
 };
 
+const assertMiniappArtifactIdentity = (uploadJob) => {
+  const buildMarker = "      - name: 构建小程序（mp-weixin）";
+  const identityMarker = "      - name: 校验构建产物 AppID";
+  const secretDecodeMarker = "      - name: 解码临时上传密钥";
+  const identityStart = uploadJob.indexOf(identityMarker);
+  const identityEnd = uploadJob.indexOf("\n      - name:", identityStart + identityMarker.length);
+  const identityStep = uploadJob.slice(identityStart, identityEnd === -1 ? undefined : identityEnd);
+
+  assert.ok(
+    uploadJob.indexOf(buildMarker) < identityStart,
+    "构建产物 AppID 校验必须在 mp-weixin 构建后执行",
+  );
+  assert.ok(
+    identityStart < uploadJob.indexOf(secretDecodeMarker),
+    "构建产物 AppID 校验必须在解码上传密钥前执行",
+  );
+  assert.match(uploadJob, /^ {6}WECHAT_APP_ID: wx3bdad4ab652f0d1d$/m);
+  assert.match(identityStep, /node --input-type=module <<'NODE'/);
+  assert.match(
+    identityStep,
+    /readFile\("apps\/miniapp\/dist\/build\/mp-weixin\/project\.config\.json", "utf8"\)/,
+  );
+  assert.match(identityStep, /JSON\.parse/);
+  assert.match(identityStep, /config\.appid !== process\.env\.WECHAT_APP_ID/);
+  assert.match(identityStep, /throw new Error/);
+};
+
 test("CI 提供分层质量门禁并使用当前稳定 Actions 主版本", async () => {
   const workflow = await readFile(resolve(root, ".github/workflows/ci.yml"), "utf8");
 
@@ -154,6 +181,7 @@ test("手动小程序上传受 CI、环境和临时密钥策略保护", async ()
 
   assert.equal(miniappPackage.devDependencies["miniprogram-ci"], "2.1.31");
   assertMiniappUploadBoundary(workflow);
+  assertMiniappArtifactIdentity(uploadJob);
   assert.match(workflow, /^ {6}ref:$/m);
   assert.match(workflow, /^ {6}version:$/m);
   assert.match(workflow, /^ {6}desc:$/m);
@@ -205,4 +233,15 @@ test("小程序上传策略拒绝权限扩张、密钥跨 Job 和宽泛清理", 
   for (const mutation of mutations) {
     assert.throws(() => assertMiniappUploadBoundary(mutation));
   }
+});
+
+test("小程序上传策略拒绝缺失构建产物 AppID 身份校验", async () => {
+  const workflow = await readFile(resolve(root, ".github/workflows/miniapp-release.yml"), "utf8");
+  const uploadJob = workflow.slice(workflow.indexOf("\n  upload:"));
+  const withoutIdentityCheck = uploadJob.replace(
+    "      - name: 校验构建产物 AppID",
+    "      - name: 已移除构建产物 AppID 校验",
+  );
+
+  assert.throws(() => assertMiniappArtifactIdentity(withoutIdentityCheck));
 });

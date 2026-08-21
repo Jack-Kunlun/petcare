@@ -28,7 +28,8 @@
 - 生产 PostgreSQL 是全新空库，可以直接生成并应用初始 migration。
 - 生产短信验证码使用阿里云国内短信 `SendSms`，模板变量固定为 `code`，不允许使用固定开发验证码兜底。
 - TLS 证书和私钥保存为 GitHub `production` Environment 的 Base64 Secrets，由工作流自动安装到服务器。
-- 小程序使用 GitHub 托管 runner，微信后台关闭代码上传 IP 白名单。
+- Docker 应用和小程序上传共用受保护的 `production` Environment；小程序公开 AppID 固定为 `wx3bdad4ab652f0d1d`，不是 Environment Variable。
+- 微信代码上传 IP 白名单保持启用。只有出口 IP 已获准时才能使用 GitHub 托管 runner；否则使用固定出口 IP 的自托管 runner。
 - 主应用保留 `all`、`server`、`admin`、`website` 四种选择性发布目标。
 - Miniapp 使用独立手动工作流，不与 Docker 应用共享发布入口或密钥。
 - 小程序发布终点是微信开发版/体验版上传成功；审核与正式发布由人工在微信后台完成。
@@ -107,33 +108,36 @@ CI 必须覆盖：
 
 ## 4. Miniapp 编译与上传
 
-`.github/workflows/miniapp-release.yml` 保持独立 `workflow_dispatch`。发布 ref 由 GitHub 的 Run workflow 分支选择器决定，输入如下：
+`.github/workflows/miniapp-release.yml` 保持独立 `workflow_dispatch`，输入如下：
 
-| 输入      | 类型   | 说明                     |
-| --------- | ------ | ------------------------ |
-| `version` | string | 上传版本号，例如 `2.0.0` |
-| `desc`    | string | 微信后台显示的版本备注   |
+| 输入      | 类型   | 说明                                    |
+| --------- | ------ | --------------------------------------- |
+| `ref`     | string | 已通过 CI 的分支、标签或完整 commit SHA |
+| `version` | string | 上传版本号，例如 `2.0.0`                |
+| `desc`    | string | 微信后台显示的版本备注                  |
 
-`wechat-release` Environment 保存：
+工作流使用同一个受保护的 `production` Environment，只保存：
 
-- Variable `MP_APPID=wx3bdad4ab652f0d1d`。
 - Secret `MP_UPLOAD_PRIVATE_KEY_B64`。
+
+公开 AppID 固定为 `wx3bdad4ab652f0d1d`，以 Job 级 `WECHAT_APP_ID` 提供给构建和上传 CLI；不得使用额外的 AppID Variable。`WECHAT_APP_SECRET` 只保存在 Server 生产环境，不得进入 Miniapp 构建或上传工作流。
 
 工作流执行顺序：
 
-1. checkout 用户在 GitHub UI 选择的 ref。
-2. 验证 `MP_APPID`、上传私钥 Secret、版本号和备注均可用。
-3. 将同一个 `MP_APPID` 同时注入 `WECHAT_APP_ID` 构建环境和上传 CLI，避免产物 AppID 与上传 AppID 不一致。
-4. 使用 pnpm lockfile 中固定的 `miniprogram-ci@2.1.31`，不得运行 `@latest`。
-5. 执行 `pnpm --filter @petcare/miniapp build:mp-weixin`。
-6. 验证 `apps/miniapp/dist/build/mp-weixin` 存在且生成配置中的 AppID 正确。
-7. 在 runner 临时目录以 `600` 权限解码上传密钥。
-8. 使用 `miniprogram-ci upload` 上传开发版/体验版。
-9. 无论成功或失败，始终删除临时密钥。
+1. checkout `inputs.ref` 并解析为完整的 40 位 commit SHA。
+2. 要求该精确 SHA 至少有一次成功完成的 `ci.yml`；未通过不得进入上传 Job。
+3. 使用该 SHA checkout 并构建，固定 `WECHAT_APP_ID=wx3bdad4ab652f0d1d`。
+4. 使用 pnpm lockfile 中固定的官方 `miniprogram-ci@2.1.31`，通过 `pnpm --dir apps/miniapp exec` 调用；不得运行 `npx`、`@latest` 或运行时下载。
+5. 执行 `pnpm build:miniapp:mp-weixin`，验证 `app.json` 和 `project.config.json` 存在且非空，再用 Node 标准库解析 `project.config.json`，要求其 `appid` 精确等于 Job 级 `WECHAT_APP_ID`。
+6. 版本号必须为 SemVer 形状，备注非空且不含换行；私钥仅在解码步骤暴露，并在 runner 临时目录以目录 `700`、文件 `600` 权限解码。
+7. 使用 `miniprogram-ci upload`、robot `1` 和 `--use-project-config true` 上传开发版/体验版。
+8. 无论成功或失败，始终删除且只删除该次运行的临时密钥目录。
+
+微信代码上传 IP 白名单必须保持启用。GitHub 托管 runner 仅在其出口 IP 已加入白名单时可运行；否则此工作流必须改由固定出口 IP 的自托管 runner 执行，不能以关闭白名单作为替代。
 
 上传成功只表示代码已到达微信公众平台，不表示审核通过或正式版上线。正式审核与发布继续由人工操作。
 
-Miniapp 未来访问 API 时使用 `https://admin.petcare-home.com/api`。微信后台登记的 request 合法域名为 `https://admin.petcare-home.com`，不得包含 `/api` 路径。`WECHAT_APP_SECRET` 只保存在 Server 生产环境，不得进入 Miniapp 构建或上传工作流。
+Miniapp 未来访问 API 时使用 `https://admin.petcare-home.com/api`。微信后台登记的 request 合法域名为 `https://admin.petcare-home.com`，不得包含 `/api` 路径。
 
 ## 5. HTTPS 与密钥生命周期
 
@@ -318,7 +322,7 @@ Server 发布前备份失败必须阻止 migration 和应用替换。每日 time
 
 - 使用 actionlint 校验所有 workflow 的 YAML、表达式和 job 依赖。
 - 部署策略测试覆盖 ref 解析、JSON matrix、镜像命名、独立标签、Environment、并发锁、TLS Secret、migration 顺序和 `--wait`。
-- Miniapp 发布策略测试覆盖 AppID 一致性、固定 `miniprogram-ci` 版本、Secret 非空检查和临时密钥清理。
+- Miniapp 发布策略测试覆盖构建产物 AppID 与上传 AppID 的精确一致性、固定 `miniprogram-ci` 版本、Secret 非空检查和临时密钥清理。
 - Server 单元测试覆盖阿里云请求映射、生产/开发发送器选择、配置缺失、供应商失败清理、readiness 和 seed 不覆盖管理员。
 - Compose 策略测试覆盖生产 DB/Redis 无宿主机端口、唯一公网 80/443、证书只读挂载和独立镜像标签。
 - CI 构建三个 Docker 镜像和 Miniapp 微信产物。
@@ -351,6 +355,7 @@ BACKUP_COS_SECRET_ID
 BACKUP_COS_SECRET_KEY
 BACKUP_COS_BUCKET
 BACKUP_COS_REGION
+MP_UPLOAD_PRIVATE_KEY_B64
 ```
 
 Environment Variable：
@@ -359,14 +364,7 @@ Environment Variable：
 DEPLOY_PORT=22
 ```
 
-### 11.2 GitHub `wechat-release` Environment
-
-```text
-Secret: MP_UPLOAD_PRIVATE_KEY_B64
-Variable: MP_APPID=wx3bdad4ab652f0d1d
-```
-
-### 11.3 服务器生产环境
+### 11.2 服务器生产环境
 
 服务器 `.env` 使用最终 HTTPS 值：
 
@@ -384,14 +382,14 @@ ALIYUN_SMS_TEMPLATE_CODE=<已审核验证码模板 Code>
 
 `WECHAT_APP_SECRET`、阿里云短信 AccessKey、数据库密码、Redis 密码、JWT Secret 和初始管理员凭据由用户安全录入或由服务器初始化脚本生成，不进入 Git。阿里云 AccessKey 必须属于专用 RAM 用户，权限限定为发送短信所需操作。
 
-### 11.4 控制台配置
+### 11.3 控制台配置
 
 - DNS：`petcare-home.com`、`www.petcare-home.com`、`admin.petcare-home.com` 指向 Edge 服务器。
 - 腾讯云防火墙：只开放 22、80、443。
-- 微信公众平台：关闭代码上传 IP 白名单；登记 `https://admin.petcare-home.com` 为 request 合法域名。
+- 微信公众平台：保持代码上传 IP 白名单启用；仅允许获准的 GitHub 托管 runner 出口 IP，或固定出口 IP 的自托管 runner；登记 `https://admin.petcare-home.com` 为 request 合法域名。
 - 阿里云短信：签名和验证码模板均已审核通过，模板变量名为 `code`，专用 RAM 用户具备 `dysms:SendSms` 权限。
 - COS：创建独立私有备份 Bucket，启用服务端加密和 30 天生命周期。
-- GitHub：为 `production` 和 `wechat-release` 配置 Environment Secrets、Variables 和适用的审批规则。
+- GitHub：为唯一的 `production` Environment 配置全部 Environment Secrets、`DEPLOY_PORT=22` Variable 和适用的审批规则。
 
 ## 12. 文档与维护
 
