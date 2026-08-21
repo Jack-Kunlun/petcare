@@ -62,6 +62,11 @@ fi
 # ---------- 3. 生成生产 .env ----------
 cd "$INSTALL_DIR"
 
+chmod 0755 scripts/database-backup.sh scripts/database-restore.sh
+install -m 0644 deploy/systemd/petcare-backup.service /etc/systemd/system/petcare-backup.service
+install -m 0644 deploy/systemd/petcare-backup.timer /etc/systemd/system/petcare-backup.timer
+systemctl daemon-reload
+
 if [[ -f .env ]]; then
   ok ".env 已存在，跳过生成（如需重置请先手动备份删除）"
 else

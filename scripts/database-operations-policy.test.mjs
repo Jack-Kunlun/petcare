@@ -282,3 +282,53 @@ test("恢复流程要求显式对象并只写入临时数据库", async () => {
   assert.equal((script.match(/\bDB_NAME\b/g) ?? []).length, 1);
   assert.doesNotMatch(script, /(?:createdb|dropdb|pg_restore)[^\n]*\$\{?DB_NAME/);
 });
+
+test("systemd 每日调度只从 root 环境文件读取备份凭据", async () => {
+  const [service, timer, init] = await Promise.all([
+    readFile(resolve(root, "deploy/systemd/petcare-backup.service"), "utf8"),
+    readFile(resolve(root, "deploy/systemd/petcare-backup.timer"), "utf8"),
+    readFile(resolve(root, "scripts/server-init.sh"), "utf8"),
+  ]);
+
+  assert.deepEqual(service.match(/^Requires=.*$/gm), ["Requires=docker.service"]);
+  assert.deepEqual(service.match(/^After=.*$/gm), ["After=docker.service"]);
+  assert.deepEqual(service.match(/^Type=.*$/gm), ["Type=oneshot"]);
+  assert.deepEqual(service.match(/^User=.*$/gm), ["User=root"]);
+  assert.deepEqual(service.match(/^Environment(?:File)?=.*$/gm), [
+    "EnvironmentFile=/etc/petcare-backup.env",
+  ]);
+  assert.deepEqual(service.match(/^ExecStart=.*$/gm), [
+    "ExecStart=/opt/petcare/scripts/database-backup.sh",
+  ]);
+  assert.doesNotMatch(`${service}\n${timer}`, /BACKUP_COS_SECRET/);
+
+  assert.deepEqual(timer.match(/^OnCalendar=.*$/gm), ["OnCalendar=*-*-* 03:17:00 Asia/Shanghai"]);
+  assert.deepEqual(timer.match(/^RandomizedDelaySec=.*$/gm), ["RandomizedDelaySec=1800"]);
+  assert.deepEqual(timer.match(/^Persistent=.*$/gm), ["Persistent=true"]);
+  assert.deepEqual(timer.match(/^Unit=.*$/gm), ["Unit=petcare-backup.service"]);
+  assert.deepEqual(timer.match(/^WantedBy=.*$/gm), ["WantedBy=timers.target"]);
+
+  const clone = position(init, 'git clone "$REPO_URL" "$INSTALL_DIR"');
+  const changeDirectory = position(init, 'cd "$INSTALL_DIR"');
+  const scriptsMode = position(
+    init,
+    "chmod 0755 scripts/database-backup.sh scripts/database-restore.sh",
+  );
+  const serviceInstall = position(
+    init,
+    "install -m 0644 deploy/systemd/petcare-backup.service /etc/systemd/system/petcare-backup.service",
+  );
+  const timerInstall = position(
+    init,
+    "install -m 0644 deploy/systemd/petcare-backup.timer /etc/systemd/system/petcare-backup.timer",
+  );
+  const reload = position(init, "systemctl daemon-reload");
+  assert.ok(
+    clone < changeDirectory &&
+      changeDirectory < scriptsMode &&
+      scriptsMode < serviceInstall &&
+      serviceInstall < timerInstall &&
+      timerInstall < reload,
+  );
+  assert.doesNotMatch(init, /systemctl\b[^\n]*\bpetcare-backup\.(?:service|timer)\b/);
+});

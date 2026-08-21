@@ -1,0 +1,10 @@
+[Unit]
+Description=PetCare PostgreSQL backup to private Tencent COS
+Requires=docker.service
+After=docker.service
+
+[Service]
+Type=oneshot
+User=root
+EnvironmentFile=/etc/petcare-backup.env
+ExecStart=/opt/petcare/scripts/database-backup.sh

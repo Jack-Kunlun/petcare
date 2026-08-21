@@ -1,0 +1,11 @@
+[Unit]
+Description=Run PetCare PostgreSQL backup daily
+
+[Timer]
+OnCalendar=*-*-* 03:17:00 Asia/Shanghai
+RandomizedDelaySec=1800
+Persistent=true
+Unit=petcare-backup.service
+
+[Install]
+WantedBy=timers.target
