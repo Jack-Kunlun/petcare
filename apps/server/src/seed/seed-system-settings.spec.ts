@@ -219,6 +219,16 @@ describe("seedSystemSettings", () => {
     expect(state.auditEvents).toHaveLength(5);
   });
 
+  it("does not repoint an operator-managed published configuration", async () => {
+    const state = createFakePrisma();
+
+    await seedSystemSettings(state.prisma, "admin-1");
+    state.pointers[0].publishedVersionId = "operator-published-version";
+    await seedSystemSettings(state.prisma, "admin-1");
+
+    expect(state.pointers[0].publishedVersionId).toBe("operator-published-version");
+  });
+
   it("已有后续发布版本及指针时不会回退到初始版本", async () => {
     const state = createFakePrisma();
 

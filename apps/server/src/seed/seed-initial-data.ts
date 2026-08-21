@@ -65,19 +65,16 @@ export async function seedInitialData(
   );
 
   const passwordHash = await passwordService.hash(options.password);
-  const userData = {
-    username: options.username,
-    nickname: options.nickname,
-    passwordHash,
-    userType: "pet_owner",
-    status: "active",
-  };
   const user = await prisma.user.upsert({
     where: { phone: options.phone },
-    update: userData,
+    update: {},
     create: {
-      ...userData,
       phone: options.phone,
+      username: options.username,
+      nickname: options.nickname,
+      passwordHash,
+      userType: "pet_owner",
+      status: "active",
     },
   });
 

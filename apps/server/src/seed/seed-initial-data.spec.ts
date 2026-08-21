@@ -203,4 +203,34 @@ describe("seedInitialData", () => {
     expect(state.userRoles).toHaveLength(1);
     expect(state.rolePermissions).toHaveLength(state.permissions.length);
   });
+
+  it("does not reset an existing administrator's profile, password, or status", async () => {
+    const state = createFakePrisma();
+
+    await seedInitialData(state.prisma, options, passwordService);
+    Object.assign(state.users[0], {
+      username: "operator-renamed",
+      nickname: "人工维护昵称",
+      passwordHash: "$argon2id$v=19$operator-password",
+      status: "disabled",
+    });
+
+    await seedInitialData(
+      state.prisma,
+      {
+        ...options,
+        username: "admin-reset",
+        nickname: "系统管理员",
+        password: "New-Seed-Password!42",
+      },
+      passwordService,
+    );
+
+    expect(state.users[0]).toMatchObject({
+      username: "operator-renamed",
+      nickname: "人工维护昵称",
+      passwordHash: "$argon2id$v=19$operator-password",
+      status: "disabled",
+    });
+  });
 });

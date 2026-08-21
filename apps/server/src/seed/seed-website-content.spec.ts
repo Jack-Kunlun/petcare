@@ -228,4 +228,20 @@ describe("seedWebsiteContent", () => {
     ]);
     expect(state.sections).toHaveLength(50);
   });
+
+  it("does not replace an existing operator-owned website pointer", async () => {
+    const state = createFakePrisma();
+
+    await seedWebsiteContent(state.prisma, "admin-1");
+    Object.assign(state.contents[0], {
+      currentDraftVersionId: null,
+      publishedVersionId: "operator-published",
+    });
+    await seedWebsiteContent(state.prisma, "admin-1");
+
+    expect(state.contents[0]).toMatchObject({
+      currentDraftVersionId: null,
+      publishedVersionId: "operator-published",
+    });
+  });
 });

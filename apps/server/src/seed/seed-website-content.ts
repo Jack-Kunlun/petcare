@@ -591,7 +591,7 @@ async function seedTemplate(
     },
   });
 
-  if (content.currentDraftVersionId !== null && content.publishedVersionId !== null) {
+  if (content.currentDraftVersionId !== null || content.publishedVersionId !== null) {
     return;
   }
 
