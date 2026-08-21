@@ -17,13 +17,19 @@
 # 校验最终 Compose 配置
 docker compose --env-file .env config
 
-# 构建并启动全部容器
-docker compose --env-file .env up -d --build
+# 构建应用镜像，但暂不启动 Server
+docker compose --env-file .env build server admin website
+
+# 只启动迁移所需的 PostgreSQL 和 Redis
+docker compose --env-file .env up -d postgres redis
 
 # 空数据库初始化，以及之后每次生产 Schema 发布
 docker compose --env-file .env run --rm server pnpm --filter @petcare/server prisma:migrate:deploy
 # 仅在需要首次基础数据时显式执行
 docker compose --env-file .env run --rm server pnpm --filter @petcare/server prisma:seed
+
+# 迁移完成后启动应用容器
+docker compose --env-file .env up -d server admin website website-gateway
 
 # 查看状态和日志
 docker compose --env-file .env ps

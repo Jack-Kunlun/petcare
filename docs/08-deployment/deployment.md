@@ -358,7 +358,7 @@ docker compose logs server
 
 ## 10. 生产安全清单
 
-- 使用部署平台或 Secret Manager 注入敏感值；
+- 使用部署平台或 Secret Manager 注入敏感值；Aliyun AccessKey 除外，必须遵守下方的专用根 `.env` 规则；
 - 数据库与 Redis 不暴露到公网；
 - 使用 HTTPS 和明确的 CORS 白名单；
 - DNS、TLS、CDN 和 WAF 在边缘层维护，禁止给官网 HTML 或草稿预览配置共享缓存；
