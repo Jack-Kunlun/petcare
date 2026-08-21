@@ -18,7 +18,7 @@
 本轮不包含：
 
 - 自动提交微信审核或自动发布小程序正式版。
-- 接入真实短信供应商；生产短信验证码登录明确禁用。
+- 自动提交阿里云短信签名、模板或 RAM 授权申请；这些控制台资源由用户预先创建并审核通过。
 - 自动回滚数据库 migration。
 - 引入 Kubernetes、自建 Prometheus/Grafana/ELK 或其他新部署平台。
 - 引入腾讯云 CDN、负载均衡或 WAF；TLS 由当前服务器上的 edge Nginx 终结。
@@ -26,7 +26,7 @@
 ## 2. 已确认决策
 
 - 生产 PostgreSQL 是全新空库，可以直接生成并应用初始 migration。
-- 生产短信验证码登录暂时禁用，不允许使用固定开发验证码兜底。
+- 生产短信验证码使用阿里云国内短信 `SendSms`，模板变量固定为 `code`，不允许使用固定开发验证码兜底。
 - TLS 证书和私钥保存为 GitHub `production` Environment 的 Base64 Secrets，由工作流自动安装到服务器。
 - 小程序使用 GitHub 托管 runner，微信后台关闭代码上传 IP 白名单。
 - 主应用保留 `all`、`server`、`admin`、`website` 四种选择性发布目标。
@@ -227,13 +227,15 @@ Server 发布顺序固定为：
 
 ### 7.1 短信验证码
 
-生产环境注册明确的禁用短信发送器，不再在依赖注入阶段抛错。发送短信验证码的接口返回稳定、可识别的不可用响应，且不得：
+生产环境注册阿里云短信发送器，继续复用现有 `SmsSender` 接口；开发环境保留本地发送器。阿里云客户端在 Nest 生命周期内只创建一次，固定使用中国站 `dysmsapi.aliyuncs.com` Endpoint，并通过已审核的签名和模板调用 `SendSms`。
 
-- 返回开发固定验证码。
-- 记录伪造的发送成功。
-- 将验证码写入生产日志。
+- 生产启动必须同时具备 `ALIYUN_SMS_ACCESS_KEY_ID`、`ALIYUN_SMS_ACCESS_KEY_SECRET`、`ALIYUN_SMS_SIGN_NAME` 和 `ALIYUN_SMS_TEMPLATE_CODE`；缺少任一项都使 Server 启动和发布健康检查失败。
+- 模板参数只发送 `{"code":"<六位验证码>"}`；只有响应 `Code=OK` 才视为发送成功。
+- `SendSms` 不具备幂等能力，应用层不得自动重试，避免网络结果不明时重复发送和计费。
+- SDK 异常或非 `OK` 响应统一转换为 `503 SMS_DELIVERY_FAILED`；客户端、日志和异常堆栈不得包含手机号、验证码、AccessKey 或完整供应商请求。
+- 发送失败后清除刚生成的 OTP 和发送冷却状态；不得记录伪造成功，也不得使用 `SMS_DEV_CODE` 兜底。
 
-管理员密码登录和微信登录不受该策略影响。未来接入真实短信供应商时替换禁用实现，不改变调用方接口。
+现有图形验证码、账号存在性响应、OTP 摘要存储、发送冷却和小时限额保持不变。管理员密码登录和微信登录不受该策略影响。
 
 ### 7.2 健康检查
 
@@ -317,7 +319,7 @@ Server 发布前备份失败必须阻止 migration 和应用替换。每日 time
 - 使用 actionlint 校验所有 workflow 的 YAML、表达式和 job 依赖。
 - 部署策略测试覆盖 ref 解析、JSON matrix、镜像命名、独立标签、Environment、并发锁、TLS Secret、migration 顺序和 `--wait`。
 - Miniapp 发布策略测试覆盖 AppID 一致性、固定 `miniprogram-ci` 版本、Secret 非空检查和临时密钥清理。
-- Server 单元测试覆盖禁用短信发送器、readiness 和 seed 不覆盖管理员。
+- Server 单元测试覆盖阿里云请求映射、生产/开发发送器选择、配置缺失、供应商失败清理、readiness 和 seed 不覆盖管理员。
 - Compose 策略测试覆盖生产 DB/Redis 无宿主机端口、唯一公网 80/443、证书只读挂载和独立镜像标签。
 - CI 构建三个 Docker 镜像和 Miniapp 微信产物。
 
@@ -374,15 +376,20 @@ ALLOWED_ORIGINS=https://admin.petcare-home.com
 WEBSITE_PUBLIC_URL=https://petcare-home.com
 WEBSITE_CONTENT_API_BASE_URL=http://server:3000
 WECHAT_APP_ID=wx3bdad4ab652f0d1d
+ALIYUN_SMS_ACCESS_KEY_ID=<RAM AccessKey ID>
+ALIYUN_SMS_ACCESS_KEY_SECRET=<RAM AccessKey Secret>
+ALIYUN_SMS_SIGN_NAME=<已审核短信签名>
+ALIYUN_SMS_TEMPLATE_CODE=<已审核验证码模板 Code>
 ```
 
-`WECHAT_APP_SECRET`、数据库密码、Redis 密码、JWT Secret 和初始管理员凭据由用户安全录入或由服务器初始化脚本生成，不进入 Git。
+`WECHAT_APP_SECRET`、阿里云短信 AccessKey、数据库密码、Redis 密码、JWT Secret 和初始管理员凭据由用户安全录入或由服务器初始化脚本生成，不进入 Git。阿里云 AccessKey 必须属于专用 RAM 用户，权限限定为发送短信所需操作。
 
 ### 11.4 控制台配置
 
 - DNS：`petcare-home.com`、`www.petcare-home.com`、`admin.petcare-home.com` 指向 Edge 服务器。
 - 腾讯云防火墙：只开放 22、80、443。
 - 微信公众平台：关闭代码上传 IP 白名单；登记 `https://admin.petcare-home.com` 为 request 合法域名。
+- 阿里云短信：签名和验证码模板均已审核通过，模板变量名为 `code`，专用 RAM 用户具备 `dysms:SendSms` 权限。
 - COS：创建独立私有备份 Bucket，启用服务端加密和 30 天生命周期。
 - GitHub：为 `production` 和 `wechat-release` 配置 Environment Secrets、Variables 和适用的审批规则。
 
