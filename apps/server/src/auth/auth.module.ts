@@ -4,7 +4,6 @@ import { Module } from "@nestjs/common";
 import { JwtModule } from "@nestjs/jwt";
 import { PassportModule } from "@nestjs/passport";
 import { ConfigService } from "../config/config.service";
-import { RedisService } from "../config/redis.service";
 import { AccessTokenGuard } from "./access-token.guard";
 import { AdminGuard } from "./admin.guard";
 import { AuthController } from "./auth.controller";
@@ -47,7 +46,6 @@ export function createSmsSender(configService: ConfigService): SmsSender {
   imports: [PassportModule, JwtModule.register({})],
   controllers: [AuthController, WechatAuthController],
   providers: [
-    RedisService,
     CaptchaService,
     PasswordService,
     VerificationCodeService,

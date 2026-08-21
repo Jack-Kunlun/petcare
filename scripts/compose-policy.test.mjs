@@ -24,6 +24,14 @@ test("生产 Compose 要求显式敏感值且禁用开发短信码", async () =>
   assert.doesNotMatch(compose, /change-this-to-a-random-secret/);
 });
 
+test("Server 容器使用依赖就绪探针", async () => {
+  const compose = await readFile(resolve(root, "docker-compose.yml"), "utf8");
+  const server = serviceBlock(compose, "server");
+
+  assert.match(server, /http:\/\/localhost:3000\/ready/);
+  assert.doesNotMatch(server, /http:\/\/localhost:3000\/health/);
+});
+
 test("环境模板指向根目录 .env", async () => {
   const example = await readFile(resolve(root, ".env.example"), "utf8");
 
