@@ -9,8 +9,6 @@ services:
       POSTGRES_USER: ${DB_USERNAME:-user}
       POSTGRES_PASSWORD: ${DB_PASSWORD:?DB_PASSWORD is required}
       POSTGRES_INITDB_ARGS: "--encoding=UTF8 --lc-collate=C --lc-ctype=C"
-    ports:
-      - "${EXPOSE_DB_PORT:-}:5432"
     volumes:
       - postgres-data:/var/lib/postgresql/data
       - ./docker/init-db:/docker-entrypoint-initdb.d
@@ -45,8 +43,6 @@ services:
       - ${REDIS_PASSWORD:?REDIS_PASSWORD is required}
     environment:
       REDIS_PASSWORD: ${REDIS_PASSWORD:?REDIS_PASSWORD is required}
-    ports:
-      - "${EXPOSE_REDIS_PORT:-}:6379"
     volumes:
       - redis-data:/data
     healthcheck:
@@ -64,10 +60,9 @@ services:
           cpus: "0.25"
 
   # 后端服务
-  # 镜像名：本地构建默认 petcare/server:local；GitHub Actions 部署时通过
-  # IMAGE_REGISTRY / IMAGE_TAG 环境变量指向 ghcr.io 镜像（见 .github/workflows/deploy.yml）
+  # 镜像名：本地构建默认 petcare/server:local；生产发布为每个应用写入独立不可变标签。
   server:
-    image: ${IMAGE_REGISTRY:-petcare}/server:${IMAGE_TAG:-local}
+    image: ${IMAGE_REGISTRY:-petcare}/server:${SERVER_IMAGE_TAG:-local}
     build:
       context: .
       dockerfile: Dockerfile.server
@@ -123,9 +118,8 @@ services:
       LOG_LEVEL: ${LOG_LEVEL:-info}
       LOG_DIR: /app/logs
       # API配置
-      API_BASE_URL: http://localhost:8986/api
-      # Docker 管理端与本地 Vite 开发服务器的跨域来源
-      ALLOWED_ORIGINS: ${ALLOWED_ORIGINS:-http://localhost:8986,http://127.0.0.1:8986}
+      API_BASE_URL: ${API_BASE_URL:?API_BASE_URL is required}
+      ALLOWED_ORIGINS: ${ALLOWED_ORIGINS:?ALLOWED_ORIGINS is required}
       # 微信小程序配置
       WECHAT_APP_ID: ${WECHAT_APP_ID:-}
       WECHAT_APP_SECRET: ${WECHAT_APP_SECRET:-}
@@ -134,7 +128,7 @@ services:
       TENCENT_COS_BUCKET: ${TENCENT_COS_BUCKET:-}
       TENCENT_COS_REGION: ${TENCENT_COS_REGION:-}
       TENCENT_COS_PUBLIC_BASE_URL: ${TENCENT_COS_PUBLIC_BASE_URL:-}
-      WEBSITE_PUBLIC_URL: ${WEBSITE_PUBLIC_URL:-http://localhost:8080}
+      WEBSITE_PUBLIC_URL: ${WEBSITE_PUBLIC_URL:?WEBSITE_PUBLIC_URL is required}
       WEBSITE_PREVIEW_TTL_SECONDS: ${WEBSITE_PREVIEW_TTL_SECONDS:-600}
       WEBSITE_CONTENT_CACHE_TTL_SECONDS: ${WEBSITE_CONTENT_CACHE_TTL_SECONDS:-86400}
     volumes:
@@ -161,7 +155,7 @@ services:
 
   # 后台管理系统（镜像名规则同 server）
   admin:
-    image: ${IMAGE_REGISTRY:-petcare}/admin:${IMAGE_TAG:-local}
+    image: ${IMAGE_REGISTRY:-petcare}/admin:${ADMIN_IMAGE_TAG:-local}
     build:
       context: .
       dockerfile: Dockerfile.admin
@@ -192,7 +186,7 @@ services:
 
   # 独立官网 SSR；仅在 Docker 内网监听，读取 Nest 已发布内容接口。（镜像名规则同 server）
   website:
-    image: ${IMAGE_REGISTRY:-petcare}/website:${IMAGE_TAG:-local}
+    image: ${IMAGE_REGISTRY:-petcare}/website:${WEBSITE_IMAGE_TAG:-local}
     build:
       context: .
       dockerfile: Dockerfile.website
@@ -202,7 +196,7 @@ services:
       server:
         condition: service_healthy
     environment:
-      WEBSITE_PUBLIC_URL: ${WEBSITE_PUBLIC_URL:-http://localhost:8080}
+      WEBSITE_PUBLIC_URL: ${WEBSITE_PUBLIC_URL:?WEBSITE_PUBLIC_URL is required}
       WEBSITE_CONTENT_API_BASE_URL: ${WEBSITE_CONTENT_API_BASE_URL:-http://server:3000}
       WEBSITE_LAST_SUCCESS_TTL_SECONDS: ${WEBSITE_LAST_SUCCESS_TTL_SECONDS:-300}
     healthcheck:

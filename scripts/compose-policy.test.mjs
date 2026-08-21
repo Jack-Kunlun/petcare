@@ -98,6 +98,90 @@ test("Compose 包含独立的 Website SSR 与公网网关", async () => {
   assert.match(compose, /website-nginx\.conf/);
 });
 
+test("Compose 使用独立应用标签且只有边缘网关暴露公网端口", async () => {
+  const [compose, environment] = await Promise.all([
+    readFile(resolve(root, "docker-compose.yml"), "utf8"),
+    readFile(resolve(root, ".env.example"), "utf8"),
+  ]);
+
+  assert.match(serviceBlock(compose, "server"), /server:\$\{SERVER_IMAGE_TAG:-local\}/);
+  assert.match(serviceBlock(compose, "admin"), /admin:\$\{ADMIN_IMAGE_TAG:-local\}/);
+  assert.match(serviceBlock(compose, "website"), /website:\$\{WEBSITE_IMAGE_TAG:-local\}/);
+  assert.doesNotMatch(compose, /\$\{IMAGE_TAG/);
+
+  const server = serviceBlock(compose, "server");
+  const website = serviceBlock(compose, "website");
+  assert.match(server, /API_BASE_URL: \$\{API_BASE_URL:\?API_BASE_URL is required\}/);
+  assert.match(server, /ALLOWED_ORIGINS: \$\{ALLOWED_ORIGINS:\?ALLOWED_ORIGINS is required\}/);
+  assert.match(
+    server,
+    /WEBSITE_PUBLIC_URL: \$\{WEBSITE_PUBLIC_URL:\?WEBSITE_PUBLIC_URL is required\}/,
+  );
+  assert.match(
+    website,
+    /WEBSITE_PUBLIC_URL: \$\{WEBSITE_PUBLIC_URL:\?WEBSITE_PUBLIC_URL is required\}/,
+  );
+  assert.match(
+    website,
+    /WEBSITE_CONTENT_API_BASE_URL: \$\{WEBSITE_CONTENT_API_BASE_URL:-http:\/\/server:3000\}/,
+  );
+
+  for (const service of ["postgres", "redis", "server", "website"]) {
+    assert.doesNotMatch(
+      serviceBlock(compose, service),
+      /^ {4}ports:/m,
+      `${service} 不得映射宿主机端口`,
+    );
+  }
+
+  assert.match(serviceBlock(compose, "admin"), /127\.0\.0\.1:8986:80/);
+  assert.match(
+    serviceBlock(compose, "website-gateway"),
+    /127\.0\.0\.1:\$\{WEBSITE_PORT:-8080\}:80/,
+  );
+  const edge = serviceBlock(compose, "edge-gateway");
+  assert.match(edge, /- "80:80"/);
+  assert.match(edge, /- "443:443"/);
+
+  for (const name of ["SERVER_IMAGE_TAG", "ADMIN_IMAGE_TAG", "WEBSITE_IMAGE_TAG"]) {
+    assert.match(environment, new RegExp(`^${name}=local$`, "m"));
+  }
+  assert.doesNotMatch(environment, /^IMAGE_TAG=/m);
+});
+
+test("边缘网关禁用旧 TLS 并发送安全响应头", async () => {
+  const nginx = await readFile(resolve(root, "docker/edge-nginx.conf"), "utf8");
+
+  assert.match(nginx, /ssl_protocols TLSv1\.2 TLSv1\.3/);
+  assert.doesNotMatch(nginx, /3DES|DES-CBC/);
+  assert.match(nginx, /Strict-Transport-Security "max-age=31536000" always/);
+  assert.doesNotMatch(nginx, /includeSubDomains/);
+  assert.match(nginx, /proxy_set_header X-Forwarded-Proto \$scheme/);
+});
+
+test("内部网关保留边缘传入的 HTTPS 协议", async () => {
+  for (const path of ["docker/nginx.conf", "docker/website-nginx.conf"]) {
+    const nginx = await readFile(resolve(root, path), "utf8");
+
+    assert.match(nginx, /map \$http_x_forwarded_proto \$upstream_forwarded_proto/);
+    assert.match(nginx, /proxy_set_header X-Forwarded-Proto \$upstream_forwarded_proto/);
+    assert.doesNotMatch(nginx, /proxy_set_header X-Forwarded-Proto \$scheme/);
+    assert.equal(
+      (nginx.match(/proxy_set_header X-Forwarded-Proto \$upstream_forwarded_proto/g) ?? []).length,
+      (nginx.match(/proxy_pass /g) ?? []).length,
+      `${path} 的每个反向代理都必须传递协议`,
+    );
+  }
+});
+
+test("开发覆盖只把数据库和 Redis 绑定到本机回环", async () => {
+  const override = await readFile(resolve(root, "docker-compose.dev.yml"), "utf8");
+
+  assert.match(override, /127\.0\.0\.1:\$\{EXPOSE_DB_PORT:-5432\}:5432/);
+  assert.match(override, /127\.0\.0\.1:\$\{EXPOSE_REDIS_PORT:-6379\}:6379/);
+  assert.doesNotMatch(override, /(?:^|["'])0\.0\.0\.0:/m);
+});
+
 test("Website 镜像以非 root 身份运行独立 SSR 并提供健康检查", async () => {
   const dockerfile = await readFile(resolve(root, "Dockerfile.website"), "utf8");
 
