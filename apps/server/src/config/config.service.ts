@@ -103,6 +103,35 @@ export class ConfigService {
     }
   }
 
+  validateForBackup(): void {
+    const errors: string[] = [];
+
+    for (const name of [
+      "BACKUP_COS_SECRET_ID",
+      "BACKUP_COS_SECRET_KEY",
+      "BACKUP_COS_BUCKET",
+      "BACKUP_COS_REGION",
+    ]) {
+      try {
+        this.getRequiredString(name);
+      } catch (error) {
+        errors.push(error instanceof Error ? error.message : `${name} is invalid`);
+      }
+    }
+
+    if (errors.length > 0) {
+      throw new Error(`Invalid backup configuration:\n- ${errors.join("\n- ")}`);
+    }
+
+    if (!/^[a-z0-9][a-z0-9-]*-\d{10,}$/.test(this.backupCosBucket)) {
+      throw new Error("BACKUP_COS_BUCKET must use the BucketName-APPID format");
+    }
+
+    if (!/^[a-z0-9]+(?:-[a-z0-9]+)+$/.test(this.backupCosRegion)) {
+      throw new Error("BACKUP_COS_REGION has an invalid format");
+    }
+  }
+
   private validateNodeEnv(): void {
     if (!["development", "test", "production"].includes(this.nodeEnv)) {
       throw new Error("NODE_ENV must be development, test, or production");
@@ -213,12 +242,16 @@ export class ConfigService {
     return process.env.DB_SCHEMA || "public";
   }
 
+  get databaseName(): string {
+    return process.env.DB_NAME?.trim() || "petcare";
+  }
+
   get databaseUrl(): string {
     const host = process.env.DB_HOST || "localhost";
     const port = process.env.DB_PORT || "5432";
     const username = process.env.DB_USERNAME || "user";
     const password = process.env.DB_PASSWORD || "password";
-    const name = process.env.DB_NAME || "petcare";
+    const name = this.databaseName;
     const schema = this.databaseSchema;
 
     return `postgresql://${username}:${password}@${host}:${port}/${name}?schema=${schema}`;
@@ -452,6 +485,22 @@ export class ConfigService {
 
   get tencentCosPublicBaseUrl(): string {
     return process.env.TENCENT_COS_PUBLIC_BASE_URL?.trim() || "";
+  }
+
+  get backupCosSecretId(): string {
+    return this.getRequiredString("BACKUP_COS_SECRET_ID");
+  }
+
+  get backupCosSecretKey(): string {
+    return this.getRequiredString("BACKUP_COS_SECRET_KEY");
+  }
+
+  get backupCosBucket(): string {
+    return this.getRequiredString("BACKUP_COS_BUCKET");
+  }
+
+  get backupCosRegion(): string {
+    return this.getRequiredString("BACKUP_COS_REGION");
   }
 
   get tencentCosEnabled(): boolean {

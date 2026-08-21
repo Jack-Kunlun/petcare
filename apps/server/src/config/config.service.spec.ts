@@ -61,6 +61,10 @@ describe("ConfigService", () => {
     delete process.env.TENCENT_COS_BUCKET;
     delete process.env.TENCENT_COS_REGION;
     delete process.env.TENCENT_COS_PUBLIC_BASE_URL;
+    delete process.env.BACKUP_COS_SECRET_ID;
+    delete process.env.BACKUP_COS_SECRET_KEY;
+    delete process.env.BACKUP_COS_BUCKET;
+    delete process.env.BACKUP_COS_REGION;
     delete process.env.WEBSITE_PUBLIC_URL;
     delete process.env.WEBSITE_PREVIEW_TTL_SECONDS;
     delete process.env.WEBSITE_CONTENT_CACHE_TTL_SECONDS;
@@ -293,6 +297,75 @@ describe("ConfigService", () => {
       expect(() => new ConfigService().validateForStartup()).toThrow(
         /REDIS_PASSWORD.*SMS_DEV_CODE/s,
       );
+    });
+  });
+
+  describe("backup COS configuration", () => {
+    it("requires the complete private backup group only when backup validation is requested", () => {
+      process.env = { ...originalEnv, ...validStartupEnv };
+      delete process.env.BACKUP_COS_SECRET_ID;
+      delete process.env.BACKUP_COS_SECRET_KEY;
+      delete process.env.BACKUP_COS_BUCKET;
+      delete process.env.BACKUP_COS_REGION;
+      const config = new ConfigService();
+
+      expect(() => config.validateForStartup()).not.toThrow();
+      expect(() => config.validateForBackup()).toThrow(
+        /BACKUP_COS_SECRET_ID.*BACKUP_COS_SECRET_KEY.*BACKUP_COS_BUCKET.*BACKUP_COS_REGION/s,
+      );
+    });
+
+    it("accepts a complete private backup group", () => {
+      process.env = {
+        ...originalEnv,
+        ...validStartupEnv,
+        BACKUP_COS_SECRET_ID: "backup-secret-id",
+        BACKUP_COS_SECRET_KEY: "backup-secret-key",
+        BACKUP_COS_BUCKET: "petcare-backup-1250000000",
+        BACKUP_COS_REGION: "ap-guangzhou",
+      };
+      const config = new ConfigService();
+
+      expect(() => config.validateForBackup()).not.toThrow();
+      expect(config.databaseName).toBe("petcare");
+      expect(config.backupCosSecretId).toBe("backup-secret-id");
+      expect(config.backupCosSecretKey).toBe("backup-secret-key");
+      expect(config.backupCosBucket).toBe("petcare-backup-1250000000");
+      expect(config.backupCosRegion).toBe("ap-guangzhou");
+    });
+
+    it.each([
+      ["bucket", { BACKUP_COS_BUCKET: "Invalid_Bucket" }, "BACKUP_COS_BUCKET"],
+      ["region", { BACKUP_COS_REGION: "guangzhou" }, "BACKUP_COS_REGION"],
+    ])("rejects a malformed backup COS %s", (_name, overrides, errorName) => {
+      process.env = {
+        ...originalEnv,
+        ...validStartupEnv,
+        BACKUP_COS_SECRET_ID: "backup-secret-id",
+        BACKUP_COS_SECRET_KEY: "backup-secret-key",
+        BACKUP_COS_BUCKET: "petcare-backup-1250000000",
+        BACKUP_COS_REGION: "ap-guangzhou",
+        ...overrides,
+      };
+
+      expect(() => new ConfigService().validateForBackup()).toThrow(errorName);
+    });
+
+    it("reports incomplete backup configuration by variable names without values", () => {
+      process.env = {
+        ...originalEnv,
+        ...validStartupEnv,
+        BACKUP_COS_SECRET_ID: "backup-secret-id",
+        BACKUP_COS_SECRET_KEY: "backup-secret-key",
+        BACKUP_COS_BUCKET: "",
+        BACKUP_COS_REGION: "",
+      };
+
+      expect(() => new ConfigService().validateForBackup()).toThrow(
+        /BACKUP_COS_BUCKET.*BACKUP_COS_REGION/s,
+      );
+      expect(() => new ConfigService().validateForBackup()).not.toThrow("backup-secret-id");
+      expect(() => new ConfigService().validateForBackup()).not.toThrow("backup-secret-key");
     });
   });
 
