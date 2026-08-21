@@ -28,8 +28,8 @@ docker compose --env-file .env run --rm server pnpm --filter @petcare/server pri
 # 仅在需要首次基础数据时显式执行
 docker compose --env-file .env run --rm server pnpm --filter @petcare/server prisma:seed
 
-# 迁移完成后启动应用容器
-docker compose --env-file .env up -d server admin website website-gateway
+# 迁移完成后启动全部应用及网关容器
+docker compose --env-file .env up -d
 
 # 查看状态和日志
 docker compose --env-file .env ps
