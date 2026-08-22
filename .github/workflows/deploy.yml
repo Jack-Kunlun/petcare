@@ -192,7 +192,6 @@ jobs:
       contents: read
     environment: production
     env:
-      DEPLOY_TMP: ${{ runner.temp }}/petcare-deploy-${{ github.run_id }}-${{ github.run_attempt }}
       DEPLOY_PORT: ${{ vars.DEPLOY_PORT || 22 }}
       DEPLOY_HOST: ${{ secrets.DEPLOY_HOST }}
       DEPLOY_USER: ${{ secrets.DEPLOY_USER }}
@@ -215,6 +214,10 @@ jobs:
       NEW_IMAGE_TAG: ${{ needs.resolve.outputs.image_tag }}
       RELEASE_SHA: ${{ needs.resolve.outputs.sha }}
     steps:
+      - name: 初始化 runner 临时目录
+        shell: bash
+        run: printf 'DEPLOY_TMP=%s\n' "$RUNNER_TEMP/petcare-deploy-$GITHUB_RUN_ID-$GITHUB_RUN_ATTEMPT" >> "$GITHUB_ENV"
+
       - uses: actions/checkout@v7
         with:
           fetch-depth: 0

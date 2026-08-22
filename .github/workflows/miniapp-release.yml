@@ -75,10 +75,13 @@ jobs:
     env:
       NODE_VERSION: "24.19.0"
       WECHAT_APP_ID: wx3bdad4ab652f0d1d
-      MINIAPP_TMP: ${{ runner.temp }}/petcare-miniapp-${{ github.run_id }}-${{ github.run_attempt }}
       MP_VERSION: ${{ inputs.version }}
       MP_DESC: ${{ inputs.desc }}
     steps:
+      - name: 初始化 runner 临时目录
+        shell: bash
+        run: printf 'MINIAPP_TMP=%s\n' "$RUNNER_TEMP/petcare-miniapp-$GITHUB_RUN_ID-$GITHUB_RUN_ATTEMPT" >> "$GITHUB_ENV"
+
       - uses: actions/checkout@v7
         with:
           ref: ${{ needs.resolve.outputs.sha }}

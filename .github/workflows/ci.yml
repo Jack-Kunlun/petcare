@@ -33,7 +33,7 @@ jobs:
           merge_commits="$(git rev-list --min-parents=2 "$target")"
           if [[ -n "$merge_commits" ]]; then
             echo "master 及 PR 分支禁止 merge commit："
-            git show --no-patch --oneline $merge_commits
+            printf '%s\n' "$merge_commits"
             exit 1
           fi
       - uses: pnpm/action-setup@v6

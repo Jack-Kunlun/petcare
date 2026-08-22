@@ -107,6 +107,7 @@ test("CI 拒绝主线和 PR 分支中的 merge commit", async () => {
   assert.match(workflow, /name: 校验线性历史/u);
   assert.match(workflow, /github\.event\.pull_request\.head\.sha/u);
   assert.match(workflow, /git rev-list --min-parents=2/u);
+  assert.match(workflow, /printf '%s\\n' "\$merge_commits"/u);
 });
 
 test("CI 串行执行各工作区测试以适配 GitHub runner 资源限制", async () => {
@@ -201,9 +202,10 @@ test("手动小程序上传受 CI、环境和临时密钥策略保护", async ()
     /MP_UPLOAD_PRIVATE_KEY_B64: \$\{\{ secrets\.MP_UPLOAD_PRIVATE_KEY_B64 \}\}/,
   );
   assert.equal(workflow.match(/secrets\.MP_UPLOAD_PRIVATE_KEY_B64/g)?.length, 1);
+  assert.doesNotMatch(uploadJob, /^ {6}MINIAPP_TMP:/m);
   assert.match(
     uploadJob,
-    /petcare-miniapp-\$\{\{ github\.run_id \}\}-\$\{\{ github\.run_attempt \}\}/,
+    /printf 'MINIAPP_TMP=%s\\n' "\$RUNNER_TEMP\/petcare-miniapp-\$GITHUB_RUN_ID-\$GITHUB_RUN_ATTEMPT" >> "\$GITHUB_ENV"/,
   );
   assert.match(uploadJob, /install -d -m 700 "\$MINIAPP_TMP"/);
   assert.match(uploadJob, /chmod 600 "\$MINIAPP_TMP\/private\.key"/);

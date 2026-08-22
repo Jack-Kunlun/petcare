@@ -254,9 +254,10 @@ test("部署工作流先在受保护 runner 临时目录验证 SSH 与 TLS", asy
   assert.match(workflow, /environment: production/);
   assert.match(workflow, /group: petcare-production/);
   assert.match(workflow, /cancel-in-progress: false/);
+  assert.doesNotMatch(workflow, /^ {6}DEPLOY_TMP:/m);
   assert.match(
     workflow,
-    /DEPLOY_TMP: \$\{\{ runner\.temp \}\}\/petcare-deploy-\$\{\{ github\.run_id \}\}-\$\{\{ github\.run_attempt \}\}/,
+    /printf 'DEPLOY_TMP=%s\\n' "\$RUNNER_TEMP\/petcare-deploy-\$GITHUB_RUN_ID-\$GITHUB_RUN_ATTEMPT" >> "\$GITHUB_ENV"/,
   );
   for (const secret of [
     "DEPLOY_HOST",
