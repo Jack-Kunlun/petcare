@@ -4,6 +4,9 @@
 先运行 `scripts/server-init.sh`，再从 GitHub Actions 手动触发 `deploy.yml`；完整操作见
 [GitHub Actions 手动发布指南](./github-actions-deploy.md)。
 
+生产服务器是无源码运行节点：Compose 项目名固定为 `petcare`，全部六个镜像族都从同一私有 TCR 命名空间拉取，
+不会在服务器构建镜像或获取仓库。
+
 ## 1. 运行模式
 
 | 模式         | Admin           | 官网                | Server         | PostgreSQL / Redis | 适用场景            |
@@ -266,13 +269,28 @@ Admin 的静态 Nginx 容器。网关仅代理官网页面、`/website-content/*
 
 ### 5.7 生产手动发布
 
-`deploy.yml` 仅接受已通过 `ci.yml` 的完整提交 SHA。首次发布使用 `target=all`、`initialize_data=true`；日常完整发布使用
-`target=all`、`initialize_data=false`；只发布一个应用时选择 `server`、`admin` 或 `website` 且保持 `false`。每个应用有独立
-不可变镜像标签，并在完整验证后原子更新 `/opt/petcare/.deploy-images.env`。
+`deploy.yml` 仅接受已通过 `ci.yml` 的完整提交 SHA。GitHub `production` Environment 使用
+`TCR_REGISTRY=ccr.ccs.tencentyun.com` 和已选的 `TCR_NAMESPACE`；`TCR_PUSH_*` 只供构建使用，`TCR_PULL_*` 只供部署使用。
+这些 Registry 用户名和密码不是 CAM `SecretId`/`SecretKey`，真实值不能写入文档、命令示例或日志。
+
+TCR 命名空间必须预先拥有六个私有仓库：`server`、`admin`、`website`、`postgres`、`redis`、`nginx`。应用使用不可变完整 SHA
+标签；每仓库保留最新 30 个标签，低于个人版每仓库 100 个标签的限制。固定运行时镜像先由 Actions 同步到 TCR，生产服务器
+不从公共镜像仓库拉取。
+
+首次发布使用 `target=all`、`initialize_data=true`；日常完整发布使用 `target=all`、`initialize_data=false`；只发布一个应用时选择
+`server`、`admin` 或 `website` 且保持 `false`。每个应用有独立不可变镜像标签，并在完整验证后原子更新
+`/opt/petcare/.deploy-images.env`。
+
+`/opt/petcare/current` 指向不可变 release；`.env`、`.deploy-images.env`、`certs`、`logs` 和 PostgreSQL/Redis named volumes 都在
+release 之外持久保存。发布归档顶层白名单只有 `docker-compose.yml`、`docker/`、`scripts/`、`deploy/`，不会覆盖这些持久数据。
+TCR 密码只在 runner 和远端本次临时目录使用，并仅通过 `--password-stdin` 写入临时 Docker config；无论成败都立即清理。
+首次初始化只传输并运行 `scripts/server-init.sh`：它使用服务器已配置的 Ubuntu APT 源，要求 `docker compose version` 成功，
+创建持久目录和 `.env`，不获取仓库也不启动应用。
 
 Server 发布先运行备份，随后执行 forward-only `prisma:migrate:deploy`；应用镜像可尝试回滚，但数据库 migration 不会自动
 回滚。发布会用 `docker compose --wait --wait-timeout 180` 等待服务，并验证三个域名的 HTTP → HTTPS 重定向及四个公开
-HTTPS smoke check：官网根域、`www`、Admin 和 `/api/ready`。完整的 Environment Secret、证书上传和部署账号约束见
+HTTPS smoke check：官网根域、`www`、Admin 和 `/api/ready`。Miniapp 始终由独立的 GitHub Actions 工作流上传微信，
+不进入 Docker、TCR 或生产服务器。完整的 Environment Secret、证书上传和部署账号约束见
 [GitHub Actions 手动发布指南](./github-actions-deploy.md)。
 
 ## 6. 质量与端到端测试
@@ -342,10 +360,10 @@ docker compose down -v
 
 ### 8.1 数据库异地备份（仅 Linux 生产服务器）
 
-备份 unit 与脚本已随仓库安装：`petcare-backup.service` 每次调用 `/opt/petcare/scripts/database-backup.sh`，
-timer 每日 `03:17 Asia/Shanghai`、随机延迟最多 30 分钟。`scripts/server-init.sh` 只安装 unit 并执行
-`daemon-reload`，**不**启用或启动 timer；首次成功的主生产发布会先原子写入 `/etc/petcare-backup.env`（`root` 所有、
-`0600`），再启用 timer。
+首次成功的主生产发布从当前不可变 release 安装备份 unit：`petcare-backup.service` 每次调用
+`/opt/petcare/current/scripts/database-backup.sh`，timer 每日 `03:17 Asia/Shanghai`、随机延迟最多 30 分钟。
+`scripts/server-init.sh` 不安装 unit，也不启用或启动 timer；首次成功发布会先原子写入
+`/etc/petcare-backup.env`（`root` 所有、`0600`），再启用 timer。
 
 以下步骤只能在 Linux/systemd 生产服务器执行。本地尚未实际运行 Bash、systemd、Docker、PostgreSQL 或 COS
 备份/恢复，不能把静态脚本和 unit 安装当作真实运行验证。
@@ -391,7 +409,7 @@ journal 本身不会通知操作员。
 
 ```bash
 # Restore one selected object into a temporary database
-/opt/petcare/scripts/database-restore.sh postgresql/petcare-public/2026/08/petcare-public-20260820T010203Z.dump
+/opt/petcare/current/scripts/database-restore.sh postgresql/petcare-public/2026/08/petcare-public-20260820T010203Z.dump
 ```
 
 脚本只创建并验证 `petcare_restore_<UTC timestamp>` 临时数据库，完成后删除它；不会修改生产数据库。恢复生产库是
@@ -451,6 +469,9 @@ docker compose logs server
 - 只向 Server 注入腾讯云 COS 凭据，使用 `TENCENT_COS_PUBLIC_BASE_URL` 提供公开素材；
 - 禁用 `SMS_DEV_CODE`；生产 Aliyun SMS 使用专用 RAM 身份和仅含 `dysms:SendSms` 的自定义策略，不使用 `AliyunDysmsFullAccess`；
 - Aliyun AccessKey 只保存在 root-owned、`0600` 的生产根 `.env`，不进入 Git、镜像、日志、文档示例或聊天；
+- TCR pull 密码只存在本次 runner/远端临时目录和临时 Docker config；在首次发布、第二次发布、回退演练和备份/恢复演练
+  均验收前，保留旧 `GHCR_PULL_USER`、`GHCR_PULL_TOKEN` 与服务器 GitHub Deploy Key，验收后删除 `GHCR_PULL_USER`、
+  `GHCR_PULL_TOKEN` 与服务器 GitHub Deploy Key；
 - 定期轮换数据库、Redis、JWT 和管理员密码；
 - 启动前执行 `docker compose config --quiet`；
 - 只部署通过完整 CI 的已保存版本或提交。

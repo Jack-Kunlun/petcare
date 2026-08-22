@@ -397,3 +397,33 @@ test("部署 SSH 仍要求可信主机身份和受限 sudo", async () => {
   assert.match(docs, /DEPLOY_HOST_FINGERPRINT/);
   assert.match(docs, /带外/);
 });
+
+test("部署文档完整记录 TCR 配置和迁移后清理顺序", async () => {
+  const paths = [
+    "docs/08-deployment/deployment.md",
+    "docs/08-deployment/github-actions-deploy.md",
+    "docker/README.md",
+    "SECURITY-CHECKLIST.md",
+  ];
+  const documents = (
+    await Promise.all(paths.map((path) => readFile(resolve(root, path), "utf8")))
+  ).join("\n");
+
+  for (const name of [
+    "TCR_REGISTRY",
+    "TCR_NAMESPACE",
+    "TCR_PUSH_USERNAME",
+    "TCR_PUSH_PASSWORD",
+    "TCR_PULL_USERNAME",
+    "TCR_PULL_PASSWORD",
+  ]) {
+    assert.match(documents, new RegExp(name));
+  }
+  for (const repository of ["server", "admin", "website", "postgres", "redis", "nginx"]) {
+    assert.match(documents, new RegExp(`\\b${repository}\\b`));
+  }
+  assert.match(documents, /保留[^\n]*30/);
+  assert.match(documents, /回退演练/);
+  assert.match(documents, /删除[^\n]*GHCR_PULL_USER/);
+  assert.match(documents, /删除[^\n]*GitHub Deploy Key/);
+});

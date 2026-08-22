@@ -2,85 +2,112 @@
 
 生产环境只有两个受支持的手动工作流：
 
-- `deploy.yml`：构建并发布 Server、Admin、Website 的 HTTPS 生产镜像；
+- `deploy.yml`：构建并发布 Server、Admin、Website 及其固定运行时镜像；
 - `miniapp-release.yml`：构建并上传微信小程序代码到开发版或体验版。
 
-不要在服务器本地构建镜像、执行 `docker compose build`，也不要使用已删除的 tarball 发布脚本。
+生产服务器是无源码运行节点：不在服务器本地构建镜像，也不执行 `docker compose build`，只从私有 TCR 拉取已通过 CI 的镜像。
 
-## 1. 上线前外部条件
+## 生产前提
 
 - DNS 为 `petcare-home.com`、`www.petcare-home.com` 和 `admin.petcare-home.com` 配置指向服务器的 A/AAAA 记录。
-- TLS 证书的 SAN 必须覆盖前两个官网域名，Admin 证书必须覆盖 `admin.petcare-home.com`。
-- 腾讯云轻量服务器防火墙只放行 `22`、`80`、`443`；可运维时进一步限制 SSH 来源。
-- 为 GitHub `production` Environment 启用 required reviewers。所有生产 Secret 都只放在这个 Environment。
-- 为 GHCR 创建只带 `read:packages` 的 classic PAT。`GHCR_PULL_USER` 必须是该 PAT 的 GitHub 用户名，可能与仓库组织名不同。
-- 为 Aliyun SMS 创建专用 RAM 用户，只授予 `dysms:SendSms`；短信签名和模板需已审批，模板变量名必须为 `code`。
-- 为备份创建独立、私有、HTTPS 的 COS Bucket 和最小权限 CAM 凭据；不要复用官网素材 Bucket。
+- TLS 证书的 SAN 覆盖两个官网域名，Admin 证书覆盖 `admin.petcare-home.com`；公网只放行 `22`、`80`、`443`，数据库、Redis、`8986` 与 `8080` 不对公网开放。
+- GitHub `production` Environment 启用 required reviewers；所有生产 Environment Variables 和 Secrets 只保存在这里。
+- Aliyun SMS 使用专用 RAM 身份，仅允许 `dysms:SendSms`，不使用 `AliyunDysmsFullAccess`；签名、模板和变量 `code` 已审批。
+- 备份使用独立、私有、HTTPS 的 COS Bucket 和最小权限 CAM 凭据，不复用官网素材 Bucket。
 
-## 2. 初始化 Ubuntu 服务器（仅一次）
+## 1. 创建私有 TCR 命名空间
 
-### root 仓库 deploy key 与 GitHub known_hosts
+在 TCR 个人版创建一个全局唯一的**私有**命名空间。记录选择的名称，稍后作为 GitHub Environment Variable 的
+`TCR_NAMESPACE`；文档、命令示例和日志都不填写真实账号或密码。
 
-以 root 配置仓库只读 deploy key，并把**公钥**作为 GitHub repository deploy key（不要授予写权限）。该密钥属于 root，
-因为 `/opt/petcare` 和其 Git checkout 始终由 root 持有。下列 `cat` 只输出公钥，绝不复制或打印私钥：
+## 2. 创建六个私有仓库
+
+在该命名空间中只创建以下六个私有仓库：
+
+```text
+server
+admin
+website
+postgres
+redis
+nginx
+```
+
+Compose 项目名固定为 `petcare`。所有六个镜像族均来自同一私有 TCR 命名空间：应用镜像使用不可变完整 SHA 标签，
+`postgres`、`redis` 和 `nginx` 使用已验证的固定运行时标签；生产服务器不从公共镜像仓库拉取。
+
+## 3. 配置标签清理
+
+为每个仓库配置标签清理，保留最新 30 个标签，低于个人版每仓库 100 个标签的上限。固定运行时标签不能被普通应用发布
+静默覆盖；升级它们必须先经过单独验证。
+
+## 4. 配置最小权限 TCR 子用户
+
+创建两个不供人员日常使用的 CAM 子用户，权限资源限定到该命名空间及其六个仓库：
+
+| 子用户             | 用途                          | 允许能力             | 不允许能力           |
+| ------------------ | ----------------------------- | -------------------- | -------------------- |
+| `petcare-tcr-push` | GitHub Actions 构建与镜像同步 | describe、pull、push | 删除或管理仓库       |
+| `petcare-tcr-pull` | 生产服务器运行时拉取          | describe、pull       | push、删除或管理仓库 |
+
+不要猜测或复制未核验的策略 ARN；以这些能力边界配置权限即可。
+
+## 5. 初始化 Registry 登录身份
+
+分别为两个子用户初始化 TCR Registry 登录密码，记录各自的 UIN 作为 Registry 用户名。初始化时如必须临时授予
+密码管理能力，完成后立即移除；随后关闭两个子用户的控制台登录，但不要禁用子用户本身。
+
+TCR Registry 的用户名和密码不是 CAM API `SecretId`/`SecretKey`。绝不在示例、终端历史、Issue、日志或文档中放入真实凭据。
+
+## 6. 在保存凭据前验证权限
+
+先以临时测试镜像验证：`petcare-tcr-push` 可以 push 和 pull、不能删除；`petcare-tcr-pull` 可以 pull、不能 push。
+任一验证失败都不得将凭据保存到 GitHub `production` Environment。
+
+## 7. 配置 GitHub Environment Variables
+
+在 GitHub `production` Environment 添加：
+
+```text
+TCR_REGISTRY=ccr.ccs.tencentyun.com
+TCR_NAMESPACE=<所选全局唯一私有命名空间>
+```
+
+保留 `DEPLOY_PORT=22` 和 production required reviewers。`deploy.yml` 只接受已通过 `ci.yml` 的完整提交 SHA，并用
+不可变 `sha-<40 位 SHA>` 标签发布应用镜像。
+
+## 8. 配置 GitHub Environment Secrets
+
+添加以下四个 TCR Secrets：
+
+```text
+TCR_PUSH_USERNAME
+TCR_PUSH_PASSWORD
+TCR_PULL_USERNAME
+TCR_PULL_PASSWORD
+```
+
+同时保留既有的 `DEPLOY_HOST`、`DEPLOY_USER`、`DEPLOY_SSH_KEY`、`DEPLOY_HOST_FINGERPRINT`、TLS、`BACKUP_COS_*`、
+Aliyun SMS 与 `MP_UPLOAD_PRIVATE_KEY_B64` 配置。Aliyun SMS 生产值仍只在 root-owned、`0600` 的服务器 `.env` 中保存，
+不进入镜像或工作流。
+
+构建 job 只使用 `TCR_PUSH_*`，部署 job 只使用 `TCR_PULL_*`。TCR 密码只可出现在 runner 和远端的本次临时目录，
+并只通过 `--password-stdin` 写入临时 Docker config；发布结束或失败时立即清理，绝不写入 `.env`、镜像、发布归档、日志或缓存。
+TLS Base64、SSH 私钥和小程序上传 key 同样只在受保护临时位置解码，不能粘贴进 shell history、Issue 或聊天。
+
+## 9. 初始化 Ubuntu 与部署 SSH
+
+先通过带外可信渠道取得服务器 SSH host key 指纹；不要只信任 `ssh-keyscan`。在已验证的服务器控制台读取公钥指纹，
+并将完整 `SHA256:...` 值保存为 `DEPLOY_HOST_FINGERPRINT`：
 
 ```bash
-sudo -i
-umask 077
-install -d -m 700 /root/.ssh
-ssh-keygen -t ed25519 -f /root/.ssh/petcare-readonly -N ""
-chmod 600 /root/.ssh/petcare-readonly
-cat /root/.ssh/petcare-readonly.pub
-
-# 这只是候选主机键；先在独立可信渠道核对指纹，不能直接信任 ssh-keyscan 的结果。
-ssh-keyscan -t ed25519 github.com > /tmp/petcare-github-known_hosts
-ssh-keygen -lf /tmp/petcare-github-known_hosts -E sha256
+ssh-keygen -lf /etc/ssh/ssh_host_ed25519_key.pub -E sha256
 ```
 
-将上一条命令的 SHA256 指纹与 GitHub 官方文档中当前的 SSH host key fingerprints 逐项核对；不要只信任 `ssh-keyscan`。
-不匹配时立即停止。核对一致后才安装：
-
-```bash
-install -o root -g root -m 600 /tmp/petcare-github-known_hosts /root/.ssh/known_hosts
-rm -f /tmp/petcare-github-known_hosts
-ssh-keygen -F github.com -f /root/.ssh/known_hosts
-```
-
-从可信的本地 checkout 只上传这个公开脚本（不要上传 `.env`、证书或任何私钥），然后以 root 运行它。它生成
-root-owned、`0600` 的 `/opt/petcare/.env`，但不会输出其中任何值，不会启动应用，也不会启用备份 timer：
-
-```bash
-scp scripts/server-init.sh root@<服务器>:/root/server-init.sh
-```
-
-```bash
-read -r -p "初始管理员手机号：" DEFAULT_ADMIN_PHONE
-sudo REPO_URL=git@github.com:<owner>/petcare.git \
-  DEFAULT_ADMIN_PHONE="$DEFAULT_ADMIN_PHONE" \
-  bash /root/server-init.sh
-unset DEFAULT_ADMIN_PHONE
-```
-
-脚本会在首次 clone 和每次重跑时，把 root 仓库的 `core.sshCommand` 固定为该 key、`IdentitiesOnly=yes`、
-`StrictHostKeyChecking=yes` 和上述 `known_hosts`，并静默验证 `origin` 可读；后续 `sudo -H git fetch` 不会回退到其他 SSH 身份。
-
-首次发布前，root 必须通过安全终端编辑 `/opt/petcare/.env`，填写并安全轮换初始管理员密码、
-`WECHAT_APP_SECRET` 和四个 `ALIYUN_SMS_*` 值。不要使用 `cat`、日志、聊天或工单回传该文件或其内容。
-生产值固定为：
-
-```dotenv
-API_BASE_URL=https://admin.petcare-home.com/api
-ALLOWED_ORIGINS=https://admin.petcare-home.com
-WEBSITE_PUBLIC_URL=https://petcare-home.com
-WEBSITE_CONTENT_API_BASE_URL=http://server:3000
-WECHAT_APP_ID=wx3bdad4ab652f0d1d
-```
-
-`WEBSITE_PORT=8080` 只供服务器本机诊断；生产不会公开数据库、Redis、`8986` 或 `8080`。
-
-### 部署 SSH 账号
-
-创建专用、仅密钥登录、非交互的 `DEPLOY_USER`，不加入 Docker 组，也不能写 `/opt/petcare`。在 root 终端执行：
+创建仅供工作流使用的非交互 `DEPLOY_USER`，不加入 Docker 组，也不能直接写 `/opt/petcare`。`authorized_keys` 只放与
+`DEPLOY_SSH_KEY` 配对的公钥；不要将 Actions 私钥传到服务器。实际发布需要 Docker、root-owned release、证书和 systemd，
+因此下列无密码 sudo 是 root 等价权限：将该账号、其 `authorized_keys` 和 production Environment 审批视作同一特权边界，
+而不是用脆弱的命令白名单伪装最小权限。
 
 ```bash
 DEPLOY_USER=petcare-deploy
@@ -102,99 +129,39 @@ chmod 440 "/etc/sudoers.d/$DEPLOY_USER"
 visudo -cf "/etc/sudoers.d/$DEPLOY_USER"
 ```
 
-`authorized_keys` 中只能放与 `DEPLOY_SSH_KEY` 配对的**公钥**；不要把 Actions 私钥传到服务器。当前工作流需要 Docker、
-root-owned Git、证书、systemd 和 root-run release，因此该无密码 `sudo` 是 root 等价权限。将此账号、其 authorized_keys
-和 GitHub `production` Environment 审批视作同一特权边界；定期轮换密钥，不要用脆弱的命令级 sudo 白名单伪装为最小权限。
-
-### 获取 `DEPLOY_HOST_FINGERPRINT`
-
-从腾讯云控制台或既有可信控制台会话带外获取服务器的 SSH host key 指纹；不要从 Actions runner 或未校验的
-`ssh-keyscan` 输出获取。可以在已验证的服务器控制台运行下列只读取公钥的命令，并把完整 `SHA256:...` 值保存为 Environment Secret：
-
-```bash
-ssh-keygen -lf /etc/ssh/ssh_host_ed25519_key.pub -E sha256
-```
-
-## 3. 配置 GitHub `production` Environment
-
-在 **Settings → Environments → production → Environment secrets** 创建下列精确名称：
-
-| Secret                      | 用途                                     |
-| --------------------------- | ---------------------------------------- |
-| `DEPLOY_HOST`               | 服务器公网主机名或 IP                    |
-| `DEPLOY_USER`               | 上述专用特权 SSH 账号                    |
-| `DEPLOY_SSH_KEY`            | 该账号的 Actions 私钥完整内容            |
-| `DEPLOY_HOST_FINGERPRINT`   | 服务器 SSH host key 的 SHA256 指纹       |
-| `GHCR_PULL_USER`            | classic PAT 所属 GitHub 用户名           |
-| `GHCR_PULL_TOKEN`           | 仅 `read:packages` 的 classic PAT        |
-| `TLS_WEBSITE_CERT_B64`      | `petcare-home.com` 证书 bundle 的 Base64 |
-| `TLS_WEBSITE_KEY_B64`       | `petcare-home.com` 私钥的 Base64         |
-| `TLS_ADMIN_CERT_B64`        | Admin 证书 bundle 的 Base64              |
-| `TLS_ADMIN_KEY_B64`         | Admin 私钥的 Base64                      |
-| `BACKUP_COS_SECRET_ID`      | 专用备份 COS 凭据                        |
-| `BACKUP_COS_SECRET_KEY`     | 专用备份 COS 凭据                        |
-| `BACKUP_COS_BUCKET`         | 私有备份 Bucket                          |
-| `BACKUP_COS_REGION`         | 备份 Bucket 区域                         |
-| `MP_UPLOAD_PRIVATE_KEY_B64` | 微信小程序代码上传私钥的 Base64          |
-
-在同一 Environment 的 **Variables** 创建 `DEPLOY_PORT=22`。
-
-每次只执行一条 PowerShell 命令，将剪贴板内容保存到对应 Secret 后立刻继续下一条：
-
-```powershell
-[Convert]::ToBase64String([IO.File]::ReadAllBytes("D:\projects\petcare\certs\petcare-home.com_bundle.crt")) | Set-Clipboard
-[Convert]::ToBase64String([IO.File]::ReadAllBytes("D:\projects\petcare\certs\petcare-home.com.key")) | Set-Clipboard
-[Convert]::ToBase64String([IO.File]::ReadAllBytes("D:\projects\petcare\certs\admin.petcare-home.com_bundle.crt")) | Set-Clipboard
-[Convert]::ToBase64String([IO.File]::ReadAllBytes("D:\projects\petcare\certs\admin.petcare-home.com.key")) | Set-Clipboard
-[Convert]::ToBase64String([IO.File]::ReadAllBytes("D:\projects\petcare\.secrets\wechat\private.wx3bdad4ab652f0d1d.key")) | Set-Clipboard
-```
-
-不要把 Base64 值粘贴进 shell history、issue、日志、commit 或文档。每保存一个 Secret 后清空剪贴板：
-
-```powershell
-Set-Clipboard -Value ""
-```
-
-## 4. 发布主应用
-
-在 **Actions → 手动部署 → Run workflow** 选择已通过 `ci.yml` 的 ref。工作流会解析完整 SHA 并拒绝未成功 CI 的提交。
-
-| 场景         | `target`                       | `initialize_data` |
-| ------------ | ------------------------------ | ----------------- |
-| 首次发布     | `all`                          | `true`            |
-| 日常完整发布 | `all`                          | `false`           |
-| 选择性发布   | `server`、`admin` 或 `website` | `false`           |
+使用已有的、由 `DEPLOY_HOST_FINGERPRINT` 固定的 SSH 连接传输 `scripts/server-init.sh`，然后以 root 运行它。初始化脚本
+仅使用已配置的 Ubuntu APT 源安装 Docker 与 Compose v2，并要求 `docker compose version` 成功；它创建持久目录和根 `.env`，
+不会获取仓库、不克隆代码、不会启动应用。服务器布局为：
 
 ```text
-First deploy: target=all, initialize_data=true
-Daily full deploy: target=all, initialize_data=false
-Selective deploy: target=server|admin|website, initialize_data=false
+/opt/petcare/
+├─ current -> releases/<SHA>
+├─ releases/<SHA>/              # 只含发布归档白名单内容
+├─ .env
+├─ .deploy-images.env
+├─ certs/
+└─ logs/
 ```
 
-每个服务使用独立、不可变的 SHA 镜像标签；当前状态原子写入 `/opt/petcare/.deploy-images.env`。Server 变更会在
-migration 前执行可恢复的备份，然后使用 forward-only `prisma:migrate:deploy`；应用镜像失败会尝试回滚，数据库 migration
-不会自动回滚。工作流使用 `docker compose --wait --wait-timeout 180`，并验证以下 HTTPS 终点：
+`/opt/petcare/current` 始终指向不可变 release；`.env`、`.deploy-images.env`、`certs`、`logs` 和 PostgreSQL/Redis named volumes
+都在 release 之外持久保存。发布归档允许的顶层内容只有 `docker-compose.yml`、`docker/`、`scripts/`、`deploy/`。
 
-- `https://petcare-home.com`
-- `https://www.petcare-home.com`
-- `https://admin.petcare-home.com`
-- `https://admin.petcare-home.com/api/ready`
+## 10. 首次发布、演练与迁移收尾
 
-它同时验证三个 HTTP → HTTPS 重定向。发布成功后才持久化镜像状态，并安装备份凭据、启用 `petcare-backup.timer`。
+按以下顺序运行：
 
-## 5. 上传微信小程序代码
+1. 触发首次发布：`target=all`、`initialize_data=true`，确认三个 HTTP → HTTPS 跳转和官网、`www`、Admin、`/api/ready` 的 HTTPS。
+2. 触发第二次成功发布：`target=all`、`initialize_data=false`，确认不可变镜像状态和 `current` release 已更新。
+3. 选择此前成功 SHA 执行回退演练，确认应用镜像和 `current` release 恢复；数据库 migration 保持 forward-only，绝不自动回退。
+4. 执行备份与仅临时数据库的恢复演练，核对 COS 对象、加密与非零大小；不得以删除数据库 volume 代替恢复。
+5. 在以上项均成功并获得迁移验收前，保留旧 `GHCR_PULL_USER`、`GHCR_PULL_TOKEN` 和服务器 GitHub Deploy Key；验收后删除
+   `GHCR_PULL_USER`、`GHCR_PULL_TOKEN` 和服务器 GitHub Deploy Key，再运行一次不涉及数据库的选择性发布，证明旧访问已不再需要。
 
-在 **Actions → 小程序上传 → Run workflow** 输入一个已通过 `ci.yml` 的 ref、三段式版本号和备注。该工作流只上传到
-微信公众平台的开发版或体验版；提交审核和面向用户的正式发布仍须在微信公众平台人工完成。
+迁移验收后删除 GHCR_PULL_USER、GHCR_PULL_TOKEN 和服务器 GitHub Deploy Key。
 
-小程序后台必须允许 CI runner 的出口 IP。GitHub-hosted runner 的 IP 不稳定；如不能维护白名单，请改用具有固定出口 IP 的
-self-hosted runner 后再执行上传。不要关闭该限制而不评估风险。
+Miniapp 始终单独使用 `miniapp-release.yml` 上传微信开发版或体验版，不构建 Docker 镜像、不进入 TCR，也不部署到 Ubuntu。
+提交审核和正式发布仍由人工在微信公众平台完成。小程序后台必须允许 CI runner 的出口 IP；GitHub-hosted runner 的 IP
+不稳定，如不能维护白名单，应使用固定出口 IP 的 self-hosted runner，而不是关闭该限制。
 
-## 6. 验收与故障边界
-
-发布后访问上述四个 HTTPS 地址，并确认浏览器证书链和域名匹配。服务器上的证书位于 root-owned
-`/opt/petcare/certs`（目录 `0700`）；`.env` 与 `/etc/petcare-backup.env` 均为 root-owned `0600`。备份与恢复演练、
-COS 生命周期和更细的本地诊断说明见[部署指南](./deployment.md)与[环境变量配置指南](../environment-variables.md)。
-
-Linux Bash、Docker、systemd、真实 DNS/TLS、GitHub Environment、GHCR、COS、Aliyun 和微信上传都是外部运行门槛；
-在真实账户和服务器上通过前，不应把静态配置当作已上线验证。
+备份、数据库边界、TLS 证书和故障处理的细节见[部署指南](./deployment.md)与
+[生产环境安全检查清单](../../SECURITY-CHECKLIST.md)。
