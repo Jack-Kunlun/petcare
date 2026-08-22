@@ -208,6 +208,12 @@ jobs:
       NEW_IMAGE_TAG: ${{ needs.resolve.outputs.image_tag }}
       RELEASE_SHA: ${{ needs.resolve.outputs.sha }}
     steps:
+      - uses: actions/checkout@v7
+        with:
+          fetch-depth: 0
+          persist-credentials: false
+          ref: ${{ needs.resolve.outputs.sha }}
+
       - name: 验证并准备临时部署材料
         shell: bash
         run: |
@@ -240,6 +246,30 @@ jobs:
           [[ "$TCR_PULL_USERNAME" =~ ^[a-zA-Z0-9][a-zA-Z0-9-]*$ ]]
 
           install -d -m 700 "$DEPLOY_TMP"
+          [[ "$(git rev-parse HEAD)" == "$RELEASE_SHA" ]]
+          git archive --format=tar --output="$DEPLOY_TMP/release.tar" "$RELEASE_SHA" -- docker-compose.yml docker scripts deploy
+          python3 - "$DEPLOY_TMP/release.tar" <<'PY'
+          from pathlib import PurePosixPath
+          import sys, tarfile
+
+          allowed = {"docker-compose.yml", "docker", "scripts", "deploy"}
+          with tarfile.open(sys.argv[1], "r:") as archive:
+              members = archive.getmembers()
+              if not members:
+                  raise SystemExit("release archive is empty")
+              for member in members:
+                  path = PurePosixPath(member.name)
+                  if path.is_absolute() or ".." in path.parts or not path.parts:
+                      raise SystemExit(f"unsafe archive path: {member.name!r}")
+                  if path.parts[0] not in allowed:
+                      raise SystemExit(f"archive path is not allowed: {member.name!r}")
+                  if path.parts[0] == "docker-compose.yml" and len(path.parts) != 1:
+                      raise SystemExit(f"invalid compose path: {member.name!r}")
+                  if any(character in member.name for character in "\r\n"):
+                      raise SystemExit("archive path contains a control character")
+                  if not (member.isfile() or member.isdir()):
+                      raise SystemExit(f"archive member type is not allowed: {member.name!r}")
+          PY
           printf '%s\n' "$DEPLOY_SSH_KEY" > "$DEPLOY_TMP/deploy_key"
           printf '%s' "$TLS_WEBSITE_CERT_B64" | base64 --decode > "$DEPLOY_TMP/petcare-home.com_bundle.crt"
           printf '%s' "$TLS_WEBSITE_KEY_B64" | base64 --decode > "$DEPLOY_TMP/petcare-home.com.key"
@@ -324,6 +354,7 @@ jobs:
           scp -o StrictHostKeyChecking=yes \
             -o UserKnownHostsFile="$DEPLOY_TMP/known_hosts" \
             -i "$DEPLOY_TMP/deploy_key" -P "$DEPLOY_PORT" \
+            "$DEPLOY_TMP/release.tar" \
             "$DEPLOY_TMP/petcare-home.com_bundle.crt" \
             "$DEPLOY_TMP/petcare-home.com.key" \
             "$DEPLOY_TMP/admin.petcare-home.com_bundle.crt" \
@@ -349,16 +380,10 @@ jobs:
           NEW_IMAGE_TAG="$6"
           INITIALIZE_DATA="$7"
           TCR_PULL_USERNAME="$8"
-          DOCKER_CONFIG="$REMOTE_TMP/docker-config"
-
-          cleanup() {
-            local status=$?
-            sudo rm -rf -- "$REMOTE_TMP" || [[ "$status" -ne 0 ]] || status=1
-            return "$status"
-          }
-          trap cleanup EXIT
 
           [[ "$REMOTE_TMP" =~ ^/tmp/petcare-release-[0-9]+-[0-9]+$ ]]
+          RUN_TOKEN="${REMOTE_TMP#/tmp/petcare-release-}"
+          [[ "$RUN_TOKEN" =~ ^[0-9]+-[0-9]+$ ]]
           [[ "$TARGET" =~ ^(all|server|admin|website)$ ]]
           [[ "$TCR_REGISTRY" == "ccr.ccs.tencentyun.com" ]]
           [[ "$IMAGE_REGISTRY" =~ ^ccr\.ccs\.tencentyun\.com/[a-z0-9]+([._-][a-z0-9]+)*$ ]]
@@ -367,16 +392,114 @@ jobs:
           [[ "$INITIALIZE_DATA" =~ ^(true|false)$ ]]
           [[ "$TCR_PULL_USERNAME" =~ ^[a-zA-Z0-9][a-zA-Z0-9-]*$ ]]
 
+          INSTALL_DIR="/opt/petcare"
+          RELEASES_DIR="$INSTALL_DIR/releases"
+          RELEASE_DIR="$RELEASES_DIR/$RELEASE_SHA"
+          STAGING_DIR="$RELEASES_DIR/.incoming-$RELEASE_SHA-$RUN_TOKEN"
+          NEXT_CURRENT="$INSTALL_DIR/.current-$RUN_TOKEN"
+          ROLLBACK_CURRENT="$INSTALL_DIR/.rollback-$RUN_TOKEN"
+          OLD_CURRENT=""
+          CURRENT_SWITCHED=false
+          RELEASE_SUCCEEDED=false
+          DOCKER_CONFIG="$REMOTE_TMP/docker-config"
+
+          cleanup() {
+            local status=$?
+            local old_sha=""
+
+            if [[ "$status" -ne 0 && "$CURRENT_SWITCHED" == true && "$RELEASE_SUCCEEDED" != true && -n "$OLD_CURRENT" ]]; then
+              old_sha="${OLD_CURRENT##*/}"
+              if sudo ln -s "releases/$old_sha" "$ROLLBACK_CURRENT" \
+                && sudo mv -Tf -- "$ROLLBACK_CURRENT" "$INSTALL_DIR/current"
+              then
+                echo "恢复上一 release: $old_sha" >&2
+              else
+                echo "恢复上一 release 失败: $old_sha" >&2
+                status=1
+              fi
+            fi
+
+            sudo rm -f -- "$NEXT_CURRENT" "$ROLLBACK_CURRENT" \
+              || [[ "$status" -ne 0 ]] || status=1
+            sudo rm -rf -- "$STAGING_DIR" \
+              || [[ "$status" -ne 0 ]] || status=1
+            sudo rm -rf -- "$DOCKER_CONFIG" \
+              || [[ "$status" -ne 0 ]] || status=1
+            sudo rm -rf -- "$REMOTE_TMP" \
+              || [[ "$status" -ne 0 ]] || status=1
+            return "$status"
+          }
+          trap cleanup EXIT
+
+          python3 - "$REMOTE_TMP/release.tar" <<'PY'
+          from pathlib import PurePosixPath
+          import sys, tarfile
+
+          allowed = {"docker-compose.yml", "docker", "scripts", "deploy"}
+          with tarfile.open(sys.argv[1], "r:") as archive:
+              members = archive.getmembers()
+              if not members:
+                  raise SystemExit("release archive is empty")
+              for member in members:
+                  path = PurePosixPath(member.name)
+                  if path.is_absolute() or ".." in path.parts or not path.parts:
+                      raise SystemExit(f"unsafe archive path: {member.name!r}")
+                  if path.parts[0] not in allowed:
+                      raise SystemExit(f"archive path is not allowed: {member.name!r}")
+                  if path.parts[0] == "docker-compose.yml" and len(path.parts) != 1:
+                      raise SystemExit(f"invalid compose path: {member.name!r}")
+                  if any(character in member.name for character in "\r\n"):
+                      raise SystemExit("archive path contains a control character")
+                  if not (member.isfile() or member.isdir()):
+                      raise SystemExit(f"archive member type is not allowed: {member.name!r}")
+          PY
+
           sudo install -d -o root -g root -m 700 "$DOCKER_CONFIG"
           sudo env DOCKER_CONFIG="$DOCKER_CONFIG" docker login "$TCR_REGISTRY" \
             -u "$TCR_PULL_USERNAME" --password-stdin < "$REMOTE_TMP/tcr-pull.password"
           sudo rm -f -- "$REMOTE_TMP/tcr-pull.password"
 
-          sudo -H git -C /opt/petcare fetch --prune --tags origin
-          sudo -H git -C /opt/petcare cat-file -e "$RELEASE_SHA^{commit}"
-          sudo -H git -C /opt/petcare checkout --detach --force "$RELEASE_SHA"
-          checked_out="$(sudo -H git -C /opt/petcare rev-parse HEAD)"
-          [[ "$checked_out" == "$RELEASE_SHA" ]]
+          sudo install -d -o root -g root -m 755 "$RELEASES_DIR"
+          if sudo test -e "$STAGING_DIR" || sudo test -L "$STAGING_DIR"; then
+            echo "staging release path already exists" >&2
+            exit 1
+          fi
+          sudo install -d -o root -g root -m 755 "$STAGING_DIR"
+          sudo tar -xf "$REMOTE_TMP/release.tar" -C "$STAGING_DIR" \
+            --no-same-owner --no-same-permissions
+          sudo chown -R root:root "$STAGING_DIR"
+          sudo ln -s "$INSTALL_DIR/.env" "$STAGING_DIR/.env"
+          sudo ln -s "$INSTALL_DIR/certs" "$STAGING_DIR/certs"
+          sudo ln -s "$INSTALL_DIR/logs" "$STAGING_DIR/logs"
+          sudo chmod 0755 \
+            "$STAGING_DIR/scripts/release-production.sh" \
+            "$STAGING_DIR/scripts/database-backup.sh" \
+            "$STAGING_DIR/scripts/database-restore.sh"
+
+          if sudo test -e "$RELEASE_DIR" || sudo test -L "$RELEASE_DIR"; then
+            sudo test -d "$RELEASE_DIR"
+            sudo test ! -L "$RELEASE_DIR"
+            [[ "$(sudo stat -c '%U:%G' -- "$RELEASE_DIR")" == "root:root" ]]
+            sudo diff -qr --no-dereference "$STAGING_DIR" "$RELEASE_DIR"
+            sudo rm -rf -- "$STAGING_DIR"
+          else
+            sudo mv -- "$STAGING_DIR" "$RELEASE_DIR"
+          fi
+
+          cd "$RELEASE_DIR"
+          sudo docker compose --env-file "$INSTALL_DIR/.env" config --quiet
+
+          if sudo test -e "$INSTALL_DIR/current" || sudo test -L "$INSTALL_DIR/current"; then
+            sudo test -L "$INSTALL_DIR/current"
+            OLD_CURRENT="$(sudo readlink -f -- "$INSTALL_DIR/current")"
+            [[ "$OLD_CURRENT" =~ ^/opt/petcare/releases/[0-9a-f]{40}$ ]]
+            sudo test -d "$OLD_CURRENT"
+            sudo test ! -L "$OLD_CURRENT"
+          fi
+
+          sudo ln -s "releases/$RELEASE_SHA" "$NEXT_CURRENT"
+          sudo mv -Tf -- "$NEXT_CURRENT" "$INSTALL_DIR/current"
+          CURRENT_SWITCHED=true
 
           sudo install -d -o root -g root -m 700 /opt/petcare/certs
           sudo install -o root -g root -m 644 \
@@ -433,15 +556,11 @@ jobs:
           sudo install -o root -g root -m 600 "$REMOTE_TMP/petcare-backup.env" \
             /etc/petcare-backup.env.new
           sudo mv -f -- /etc/petcare-backup.env.new /etc/petcare-backup.env
-          sudo chmod 0755 \
-            /opt/petcare/scripts/release-production.sh \
-            /opt/petcare/scripts/database-backup.sh \
-            /opt/petcare/scripts/database-restore.sh
           sudo install -m 0644 \
-            /opt/petcare/deploy/systemd/petcare-backup.service \
+            /opt/petcare/current/deploy/systemd/petcare-backup.service \
             /etc/systemd/system/petcare-backup.service
           sudo install -m 0644 \
-            /opt/petcare/deploy/systemd/petcare-backup.timer \
+            /opt/petcare/current/deploy/systemd/petcare-backup.timer \
             /etc/systemd/system/petcare-backup.timer
           sudo systemctl daemon-reload
 
@@ -459,8 +578,29 @@ jobs:
             RELEASE_SHA="$RELEASE_SHA" \
             NEW_IMAGE_TAG="$NEW_IMAGE_TAG" \
             INITIALIZE_DATA="$INITIALIZE_DATA" \
-            bash /opt/petcare/scripts/release-production.sh
+            bash /opt/petcare/current/scripts/release-production.sh
+          RELEASE_SUCCEEDED=true
           sudo systemctl enable --now petcare-backup.timer
+
+          if ! sudo find "$RELEASES_DIR" -mindepth 1 -maxdepth 1 -type d -print0 \
+            > "$REMOTE_TMP/release-directories"
+          then
+            echo "warning: 无法列出旧 release，跳过清理" >&2
+          else
+            while IFS= read -r -d '' candidate; do
+              release_name="${candidate##*/}"
+              [[ "$release_name" =~ ^[0-9a-f]{40}$ ]] || continue
+              if ! resolved="$(sudo readlink -f -- "$candidate")"; then
+                echo "warning: 无法解析旧 release: $candidate" >&2
+                continue
+              fi
+              if [[ "$resolved" == "$RELEASE_DIR" || "$resolved" == "$OLD_CURRENT" ]]; then
+                continue
+              fi
+              sudo rm -rf -- "$candidate" \
+                || echo "warning: 无法清理旧 release: $candidate" >&2
+            done < "$REMOTE_TMP/release-directories"
+          fi
           REMOTE
 
       - name: 清理 runner 临时凭据

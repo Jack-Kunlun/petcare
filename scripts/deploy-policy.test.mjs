@@ -273,7 +273,7 @@ test("部署工作流先在受保护 runner 临时目录验证 SSH 与 TLS", asy
   assert.doesNotMatch(workflow, /prisma:push|sync_schema/);
 });
 
-test("远端发布以 root 仓库和临时凭据完成 TLS 与 release 事务", async () => {
+test("远端发布以 root 不可变 release 和临时凭据完成 TLS 与事务", async () => {
   const workflow = await readFile(resolve(root, ".github/workflows/deploy.yml"), "utf8");
 
   assert.match(
@@ -283,10 +283,33 @@ test("远端发布以 root 仓库和临时凭据完成 TLS 与 release 事务", 
   assert.match(workflow, /scp[\s\S]*StrictHostKeyChecking=yes[\s\S]*-P "\$DEPLOY_PORT"/);
   assert.match(workflow, /local status=\$\?/);
   assert.match(workflow, /sudo rm -rf -- "\$REMOTE_TMP"/);
-  assert.match(workflow, /sudo -H git -C \/opt\/petcare fetch --prune --tags origin/);
-  assert.match(workflow, /sudo -H git -C \/opt\/petcare checkout --detach --force "\$RELEASE_SHA"/);
-  assert.match(workflow, /checked_out=.*sudo -H git -C \/opt\/petcare rev-parse HEAD/);
-  assert.match(workflow, /\[\[ "\$checked_out" == "\$RELEASE_SHA" \]\]/);
+  assert.doesNotMatch(workflow, /git fetch|git checkout|git clone|sudo -H git/);
+  assert.match(
+    workflow,
+    /git archive --format=tar --output="\$DEPLOY_TMP\/release\.tar" "\$RELEASE_SHA" -- docker-compose\.yml docker scripts deploy/,
+  );
+  assert.match(workflow, /from pathlib import PurePosixPath/);
+  assert.match(workflow, /import sys, tarfile/);
+  assert.match(workflow, /"docker-compose\.yml", "docker", "scripts", "deploy"/);
+  assert.match(workflow, /path\.is_absolute\(\) or "\.\." in path\.parts/);
+  assert.match(workflow, /member\.isfile\(\) or member\.isdir\(\)/);
+  assert.doesNotMatch(workflow, /git archive[^\n]*(?:\.env|certs|logs|node_modules|apps\/)/);
+
+  assert.match(workflow, /RELEASES_DIR="\$INSTALL_DIR\/releases"/);
+  assert.match(workflow, /RELEASE_DIR="\$RELEASES_DIR\/\$RELEASE_SHA"/);
+  assert.match(workflow, /ln -s "\$INSTALL_DIR\/\.env" "\$STAGING_DIR\/\.env"/);
+  assert.match(workflow, /ln -s "\$INSTALL_DIR\/certs" "\$STAGING_DIR\/certs"/);
+  assert.match(workflow, /ln -s "\$INSTALL_DIR\/logs" "\$STAGING_DIR\/logs"/);
+  assert.match(workflow, /docker compose --env-file "\$INSTALL_DIR\/\.env" config --quiet/);
+  assert.match(workflow, /ln -s "releases\/\$RELEASE_SHA" "\$NEXT_CURRENT"/);
+  assert.match(workflow, /mv -Tf -- "\$NEXT_CURRENT" "\$INSTALL_DIR\/current"/);
+  assert.match(workflow, /CURRENT_SWITCHED=true/);
+  assert.match(workflow, /RELEASE_SUCCEEDED=true/);
+  assert.match(workflow, /恢复上一 release/);
+
+  assert.match(workflow, /\/opt\/petcare\/current\/scripts\/release-production\.sh/);
+  assert.match(workflow, /\/opt\/petcare\/current\/deploy\/systemd\/petcare-backup\.service/);
+  assert.doesNotMatch(workflow, /\/opt\/petcare\/scripts\/release-production\.sh/);
 
   const remoteValidate = position(
     workflow,
@@ -311,14 +334,15 @@ test("远端发布以 root 仓库和临时凭据完成 TLS 与 release 事务", 
   assert.match(workflow, /sudo rm -f -- "\$REMOTE_TMP\/tcr-pull\.password"/);
   assert.match(
     workflow,
-    /DOCKER_CONFIG="\$DOCKER_CONFIG"[\s\S]*bash \/opt\/petcare\/scripts\/release-production\.sh/,
+    /DOCKER_CONFIG="\$DOCKER_CONFIG"[\s\S]*bash \/opt\/petcare\/current\/scripts\/release-production\.sh/,
   );
   assert.match(
     workflow,
     /install -m 0644[\s\S]*petcare-backup\.service[\s\S]*petcare-backup\.timer/,
   );
   assert.match(workflow, /systemctl daemon-reload/);
-  const release = position(workflow, "bash /opt/petcare/scripts/release-production.sh");
+  const release = position(workflow, "bash /opt/petcare/current/scripts/release-production.sh");
+  const releaseSucceeded = position(workflow, "RELEASE_SUCCEEDED=true");
   const enableTimer = position(workflow, "systemctl enable --now petcare-backup.timer");
   const preReleaseReload = workflow.slice(finalCert, release);
   assert.match(
@@ -329,7 +353,7 @@ test("远端发布以 root 仓库和临时凭据完成 TLS 与 release 事务", 
   assert.match(preReleaseReload, /docker exec petcare-edge-gateway nginx -s reload/);
   assert.doesNotMatch(preReleaseReload, /docker compose/);
   assert.doesNotMatch(preReleaseReload, /\|\s*grep -q/);
-  assert.ok(release < enableTimer);
+  assert.ok(release < releaseSucceeded && releaseSucceeded < enableTimer);
 });
 
 test("服务器初始化不依赖 GitHub、Git 或外部 Docker APT 源", async () => {
