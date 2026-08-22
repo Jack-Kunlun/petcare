@@ -38,12 +38,16 @@ describe("AuthModule", () => {
       nodeEnv: "production",
       aliyunSmsAccessKeyId: "test-access-key-id",
       aliyunSmsAccessKeySecret: "test-access-key-secret",
-      aliyunSmsSignName: "宠伴",
-      aliyunSmsTemplateCode: "SMS_123456789",
+      aliyunSmsSignName: "系统赠送签名",
+      aliyunSmsTemplateCode: "100001",
+      smsCodeTtlSeconds: 300,
     } as unknown as ConfigService);
     const development = createSmsSender({ nodeEnv: "development" } as unknown as ConfigService);
 
     expect(production).toBeInstanceOf(AliyunSmsSender);
+    expect((production as unknown as { client: { _endpoint: string } }).client._endpoint).toBe(
+      "dypnsapi.aliyuncs.com",
+    );
     expect(development).toBeInstanceOf(DevelopmentSmsSender);
   });
 });

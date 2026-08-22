@@ -1,9 +1,9 @@
-import Dysmsapi20170525, * as $Dysmsapi20170525 from "@alicloud/dysmsapi20170525";
+import Dypnsapi20170525, * as $Dypnsapi20170525 from "@alicloud/dypnsapi20170525";
 import { HttpStatus, Injectable } from "@nestjs/common";
 import { ApiException } from "../../common/http/api-exception";
 import { SmsSender } from "./sms-sender";
 
-type AliyunSmsClient = Pick<Dysmsapi20170525, "sendSms">;
+type AliyunSmsClient = Pick<Dypnsapi20170525, "sendSmsVerifyCode">;
 
 @Injectable()
 export class AliyunSmsSender implements SmsSender {
@@ -11,16 +11,22 @@ export class AliyunSmsSender implements SmsSender {
     private readonly client: AliyunSmsClient,
     private readonly signName: string,
     private readonly templateCode: string,
+    private readonly codeTtlSeconds: number,
   ) {}
 
   async sendCode(phone: string, code: string): Promise<void> {
     try {
-      const response = await this.client.sendSms(
-        new $Dysmsapi20170525.SendSmsRequest({
-          phoneNumbers: phone,
+      const response = await this.client.sendSmsVerifyCode(
+        new $Dypnsapi20170525.SendSmsVerifyCodeRequest({
+          autoRetry: 0,
+          phoneNumber: phone,
           signName: this.signName,
           templateCode: this.templateCode,
-          templateParam: JSON.stringify({ code }),
+          templateParam: JSON.stringify({
+            code,
+            min: String(Math.ceil(this.codeTtlSeconds / 60)),
+          }),
+          validTime: this.codeTtlSeconds,
         }),
       );
 

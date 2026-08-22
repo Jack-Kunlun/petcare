@@ -1,5 +1,5 @@
-import Dysmsapi20170525 from "@alicloud/dysmsapi20170525";
-import * as $OpenApi from "@alicloud/openapi-client";
+import Dypnsapi20170525 from "@alicloud/dypnsapi20170525";
+import { $OpenApiUtil } from "@alicloud/openapi-core";
 import { Module } from "@nestjs/common";
 import { JwtModule } from "@nestjs/jwt";
 import { PassportModule } from "@nestjs/passport";
@@ -28,17 +28,18 @@ export function createSmsSender(configService: ConfigService): SmsSender {
     return new DevelopmentSmsSender();
   }
 
-  const clientConfig = new $OpenApi.Config({
+  const clientConfig = new $OpenApiUtil.Config({
     accessKeyId: configService.aliyunSmsAccessKeyId,
     accessKeySecret: configService.aliyunSmsAccessKeySecret,
   });
 
-  clientConfig.endpoint = "dysmsapi.aliyuncs.com";
+  clientConfig.endpoint = "dypnsapi.aliyuncs.com";
 
   return new AliyunSmsSender(
-    new Dysmsapi20170525(clientConfig),
+    new Dypnsapi20170525(clientConfig),
     configService.aliyunSmsSignName,
     configService.aliyunSmsTemplateCode,
+    configService.smsCodeTtlSeconds,
   );
 }
 

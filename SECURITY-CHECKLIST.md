@@ -9,7 +9,8 @@
 - [ ] 两份 TLS 证书分别覆盖官网两个域名与 Admin 域名；私钥仅以 GitHub Environment Secret 临时传递，服务器
       `/opt/petcare/certs` 为 root-owned `0700`。
 - [ ] 边缘防火墙只放行 `22`、`80`、`443`；数据库、Redis、`8986` 与 `8080` 不对公网开放。
-- [ ] GitHub `production` Environment 已启用 required reviewers，并保存全部部署、TLS、TCR、COS、Aliyun SMS 和微信上传配置。
+- [ ] GitHub `production` Environment 已启用 required reviewers，并保存全部部署、TLS、TCR、备份 COS 和微信上传配置；
+      阿里云短信认证凭据只在服务器 root-owned `0600` 的 `.env` 中保存。
 - [ ] `DEPLOY_USER` 是专用、仅密钥、非交互账号，不在 Docker 组；它的 passwordless sudo 与 Docker/root-run release
       实际上是 root-equivalent，必须按特权账号管理并定期轮换 SSH 密钥。
 - [ ] `/opt/petcare/current` 只指向不可变 release；`.env`、`.deploy-images.env`、`certs`、`logs` 和 PostgreSQL/Redis named volumes
@@ -19,8 +20,8 @@
 - [ ] `/opt/petcare/.env` 为 root-owned `0600`，已安全补全并轮换初始管理员密码、`WECHAT_APP_SECRET` 和四个
       `ALIYUN_SMS_*` 值；生产环境没有 `SMS_DEV_CODE`。
 - [ ] `DEFAULT_ADMIN_PHONE` 是有效的中国大陆手机号，`JWT_SECRET` 至少 32 字符，数据库、Redis 和管理员密码均为独立强随机值。
-- [ ] 阿里云短信签名和模板已审批，模板变量为 `code`；专用 RAM 用户仅有 `dysms:SendSms`，未授予
-      `AliyunDysmsFullAccess`。
+- [ ] 阿里云短信认证使用当前可用且相互配套的系统赠送签名和模板；专用 RAM 用户仅有
+      `dypns:SendSmsVerifyCode`，未授予 `AliyunDypnsFullAccess`。
 - [ ] 已创建一个全局唯一私有 `TCR_NAMESPACE`，其下恰有 `server`、`admin`、`website`、`postgres`、`redis`、`nginx` 六个私有仓库；
       Compose 项目名为 `petcare`，所有镜像族来自该命名空间。
 - [ ] 每仓库保留最新 30 个标签，低于个人版每仓库 100 个标签的限制；应用标签是不可变完整 SHA，固定运行时标签不能由常规发布覆盖。

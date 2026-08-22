@@ -31,7 +31,7 @@ describe("ConfigService", () => {
     ALIYUN_SMS_ACCESS_KEY_ID: "test-access-key-id",
     ALIYUN_SMS_ACCESS_KEY_SECRET: "test-access-key-secret",
     ALIYUN_SMS_SIGN_NAME: "宠伴",
-    ALIYUN_SMS_TEMPLATE_CODE: "SMS_123456789",
+    ALIYUN_SMS_TEMPLATE_CODE: "100001",
   };
 
   beforeEach(() => {

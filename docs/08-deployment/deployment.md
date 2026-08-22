@@ -89,15 +89,17 @@ Copy-Item .env.example .env
 `public/admin-avatars/` 与 `public/website-media/` 前缀的最小权限子账号凭据。不要将 COS 凭据写入镜像、工作流、客户端或仓库的 `.env`；
 根 `.env` 不提交。
 
-### 3.1 生产 Aliyun SMS
+### 3.1 生产 Aliyun 短信认证
 
-首次部署前，必须在阿里云审批通过短信签名和验证码模板；模板使用 `${code}`。生产环境固定连接
-`dysmsapi.aliyuncs.com`，并要求上面的四个 `ALIYUN_SMS_*` 变量。模板参数名必须严格为 `code`。
-`SMS_DEV_CODE` 在生产环境禁止配置。短信服务商拒绝请求或发生通信失败时，接口只返回经脱敏的
+首次部署前，必须开通号码认证服务的短信认证功能，并在短信认证参数配置中选择当前可用的系统赠送签名及与其配套的
+系统赠送模板；登录/注册模板 Code 为 `100001`。生产环境固定调用 `SendSmsVerifyCode` 并连接
+`dypnsapi.aliyuncs.com`，同时要求上面的四个 `ALIYUN_SMS_*` 变量。Server 直接传入业务侧生成的验证码，
+模板参数为 `code`、`min`，有效期使用 `SMS_CODE_TTL_SECONDS`。`SMS_DEV_CODE` 在生产环境禁止配置。
+服务商拒绝请求或发生通信失败时，接口只返回经脱敏的
 `503 SMS_DELIVERY_FAILED`，不会暴露厂商错误详情。
 
 为 Server 创建专用 RAM 身份，并附加自定义最小权限策略；只允许发送短信，不要授予
-`AliyunDysmsFullAccess`：
+`AliyunDypnsFullAccess`：
 
 ```json
 {
@@ -105,7 +107,7 @@ Copy-Item .env.example .env
   "Statement": [
     {
       "Effect": "Allow",
-      "Action": "dysms:SendSms",
+      "Action": "dypns:SendSmsVerifyCode",
       "Resource": "*"
     }
   ]
@@ -114,8 +116,8 @@ Copy-Item .env.example .env
 
 真实 AccessKey 值只保存在生产服务器根拥有者持有、权限为 `0600` 的根 `.env` 中；不得进入 Git、镜像、
 日志、文档示例或聊天。部署和排障时不得读取、复制或回传 `.env`、证书/私钥内容或真实凭据。官方核验资料：
-[SendSms API](https://help.aliyun.com/zh/sms/developer-reference/api-dysmsapi-2017-05-25-sendsms) 与
-[RAM 身份管理](https://help.aliyun.com/zh/sms/identity-management)。
+[SendSmsVerifyCode API](https://help.aliyun.com/zh/pnvs/developer-reference/api-dypnsapi-2017-05-25-sendsmsverifycode) 与
+[短信认证服务](https://help.aliyun.com/zh/pnvs/user-guide/sms-authentication-service)。
 
 官网运行时变量中，`WEBSITE_CONTENT_API_BASE_URL` 仅供 Astro SSR 容器走 Docker 内网访问 Nest，绝不作为浏览器
 变量或镜像构建参数。`WEBSITE_PUBLIC_URL`、`WEBSITE_PORT` 和 `WEBSITE_LAST_SUCCESS_TTL_SECONDS` 分别定义公网
@@ -469,7 +471,7 @@ docker compose logs server
 - 使用 HTTPS 和明确的 CORS 白名单；
 - DNS、TLS、CDN 和 WAF 在边缘层维护，禁止给官网 HTML 或草稿预览配置共享缓存；
 - 只向 Server 注入腾讯云 COS 凭据，使用 `TENCENT_COS_PUBLIC_BASE_URL` 提供公开素材；
-- 禁用 `SMS_DEV_CODE`；生产 Aliyun SMS 使用专用 RAM 身份和仅含 `dysms:SendSms` 的自定义策略，不使用 `AliyunDysmsFullAccess`；
+- 禁用 `SMS_DEV_CODE`；生产短信认证使用专用 RAM 身份和仅含 `dypns:SendSmsVerifyCode` 的自定义策略，不使用 `AliyunDypnsFullAccess`；
 - Aliyun AccessKey 只保存在 root-owned、`0600` 的生产根 `.env`，不进入 Git、镜像、日志、文档示例或聊天；
 - TCR pull 密码只存在本次 runner/远端临时目录和临时 Docker config；在首次发布、第二次发布、回退演练和备份/恢复演练
   均验收前，保留旧 `GHCR_PULL_USER`、`GHCR_PULL_TOKEN` 与服务器 GitHub Deploy Key；

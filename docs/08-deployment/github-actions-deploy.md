@@ -11,8 +11,8 @@
 
 - DNS 为 `petcare-home.com`、`www.petcare-home.com` 和 `admin.petcare-home.com` 配置指向服务器的 A/AAAA 记录。
 - TLS 证书的 SAN 覆盖两个官网域名，Admin 证书覆盖 `admin.petcare-home.com`；公网只放行 `22`、`80`、`443`，数据库、Redis、`8986` 与 `8080` 不对公网开放。
-- GitHub `production` Environment 启用 required reviewers；所有生产 Environment Variables 和 Secrets 只保存在这里。
-- Aliyun SMS 使用专用 RAM 身份，仅允许 `dysms:SendSms`，不使用 `AliyunDysmsFullAccess`；签名、模板和变量 `code` 已审批。
+- GitHub `production` Environment 启用 required reviewers；部署、TLS、TCR、备份 COS 和小程序上传配置只保存在这里。
+- 阿里云短信认证使用专用 RAM 身份，仅允许 `dypns:SendSmsVerifyCode`，不使用 `AliyunDypnsFullAccess`；使用当前可用且相互配套的系统赠送签名和模板。
 - 备份使用独立、私有、HTTPS 的 COS Bucket 和最小权限 CAM 凭据，不复用官网素材 Bucket。
 
 ## 1. 创建私有 TCR 命名空间
@@ -89,8 +89,8 @@ TCR_PULL_USERNAME
 TCR_PULL_PASSWORD
 ```
 
-同时保留既有的 `DEPLOY_HOST`、`DEPLOY_USER`、`DEPLOY_SSH_KEY`、`DEPLOY_HOST_FINGERPRINT`、TLS、`BACKUP_COS_*`、
-Aliyun SMS 与 `MP_UPLOAD_PRIVATE_KEY_B64` 配置。Aliyun SMS 生产值仍只在 root-owned、`0600` 的服务器 `.env` 中保存，
+同时保留既有的 `DEPLOY_HOST`、`DEPLOY_USER`、`DEPLOY_SSH_KEY`、`DEPLOY_HOST_FINGERPRINT`、TLS、`BACKUP_COS_*`
+与 `MP_UPLOAD_PRIVATE_KEY_B64` 配置。阿里云短信认证生产值只在 root-owned、`0600` 的服务器 `.env` 中保存，
 不进入镜像或工作流。
 
 构建 job 只使用 `TCR_PUSH_*`，部署 job 只使用 `TCR_PULL_*`。TCR 密码只可出现在 runner 和远端的本次临时目录，

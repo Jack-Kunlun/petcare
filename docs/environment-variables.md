@@ -83,26 +83,27 @@ API 和独立 Worker 必须使用相同的 `QUEUE_PREFIX`；生产、预发和�
 
 ### 管理员认证配置
 
-| 变量名                         | 必填     | 默认值  | 说明                                                    |
-| ------------------------------ | -------- | ------- | ------------------------------------------------------- |
-| `DEFAULT_ADMIN_USERNAME`       | ✅       | `admin` | 初始管理员账号                                          |
-| `DEFAULT_ADMIN_PHONE`          | ✅       | -       | 初始管理员手机号                                        |
-| `DEFAULT_ADMIN_PASSWORD`       | ✅       | -       | 初始管理员密码，至少 12 位                              |
-| `SMS_DEV_CODE`                 | 否       | -       | 仅限本地固定 6 位验证码；生产环境禁止配置               |
-| `ALIYUN_SMS_ACCESS_KEY_ID`     | 生产必填 | -       | Aliyun SMS AccessKey ID；仅生产根 `.env` 保存真实值     |
-| `ALIYUN_SMS_ACCESS_KEY_SECRET` | 生产必填 | -       | Aliyun SMS AccessKey Secret；仅生产根 `.env` 保存真实值 |
-| `ALIYUN_SMS_SIGN_NAME`         | 生产必填 | -       | 已审批的 Aliyun 短信签名                                |
-| `ALIYUN_SMS_TEMPLATE_CODE`     | 生产必填 | -       | 已审批的验证码模板 Code                                 |
-| `SMS_CODE_TTL_SECONDS`         | 否       | `300`   | 验证码有效期                                            |
-| `SMS_SEND_COOLDOWN_SECONDS`    | 否       | `60`    | 同一手机号发送冷却时间                                  |
-| `SMS_HOURLY_LIMIT`             | 否       | `5`     | 同一手机号每小时发送上限                                |
-| `SMS_MAX_ATTEMPTS`             | 否       | `5`     | 单个验证码最大校验失败次数                              |
-| `CAPTCHA_TTL_SECONDS`          | 否       | `300`   | 图形验证码有效期，必须为正整数                          |
-| `CAPTCHA_MAX_ATTEMPTS`         | 否       | `5`     | 图形验证码最大校验失败次数                              |
+| 变量名                         | 必填     | 默认值  | 说明                                                          |
+| ------------------------------ | -------- | ------- | ------------------------------------------------------------- |
+| `DEFAULT_ADMIN_USERNAME`       | ✅       | `admin` | 初始管理员账号                                                |
+| `DEFAULT_ADMIN_PHONE`          | ✅       | -       | 初始管理员手机号                                              |
+| `DEFAULT_ADMIN_PASSWORD`       | ✅       | -       | 初始管理员密码，至少 12 位                                    |
+| `SMS_DEV_CODE`                 | 否       | -       | 仅限本地固定 6 位验证码；生产环境禁止配置                     |
+| `ALIYUN_SMS_ACCESS_KEY_ID`     | 生产必填 | -       | 短信认证专用 RAM AccessKey ID；仅生产根 `.env` 保存真实值     |
+| `ALIYUN_SMS_ACCESS_KEY_SECRET` | 生产必填 | -       | 短信认证专用 RAM AccessKey Secret；仅生产根 `.env` 保存真实值 |
+| `ALIYUN_SMS_SIGN_NAME`         | 生产必填 | -       | 号码认证控制台当前可用的系统赠送签名                          |
+| `ALIYUN_SMS_TEMPLATE_CODE`     | 生产必填 | -       | 与赠送签名配套的系统赠送模板 Code（登录/注册为 `100001`）     |
+| `SMS_CODE_TTL_SECONDS`         | 否       | `300`   | 验证码有效期                                                  |
+| `SMS_SEND_COOLDOWN_SECONDS`    | 否       | `60`    | 同一手机号发送冷却时间                                        |
+| `SMS_HOURLY_LIMIT`             | 否       | `5`     | 同一手机号每小时发送上限                                      |
+| `SMS_MAX_ATTEMPTS`             | 否       | `5`     | 单个验证码最大校验失败次数                                    |
+| `CAPTCHA_TTL_SECONDS`          | 否       | `300`   | 图形验证码有效期，必须为正整数                                |
+| `CAPTCHA_MAX_ATTEMPTS`         | 否       | `5`     | 图形验证码最大校验失败次数                                    |
 
 开发环境可设置 `SMS_DEV_CODE=246810` 进行本地联调。接口不会把验证码返回给前端；生产环境必须接入
-Aliyun 短信发送器，并禁止配置该变量。生产环境固定使用端点 `dysmsapi.aliyuncs.com`，四个
-`ALIYUN_SMS_*` 变量缺一不可；验证码模板使用 `${code}`，调用时模板参数名必须严格为 `code`。
+阿里云号码认证服务，并禁止配置该变量。生产环境固定使用 `SendSmsVerifyCode` 和端点
+`dypnsapi.aliyuncs.com`，四个 `ALIYUN_SMS_*` 变量缺一不可。Server 将业务侧生成的验证码和现有
+`SMS_CODE_TTL_SECONDS` 映射为模板参数 `code`、`min` 及接口 `ValidTime`。
 服务商拒绝请求或通信失败时，接口只返回经脱敏的 `503 SMS_DELIVERY_FAILED`，不会暴露厂商详情。
 
 真实 Aliyun AccessKey 值只保存在生产服务器 `root-owned`、权限为 `0600` 的根 `.env` 中；不得进入 Git、
