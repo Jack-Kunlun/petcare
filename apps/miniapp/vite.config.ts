@@ -18,14 +18,14 @@ export default defineConfig({
       resolvers: [WotResolver()],
       dts: "src/components.d.ts",
     }),
+    UnoCSS({
+      mode: "per-module",
+    }),
     Uni(),
     AutoImport({
       imports: ["vue", "uni-app"],
       dts: "src/auto-imports.d.ts",
       vueTemplate: true,
-    }),
-    UnoCSS({
-      mode: "dist-chunk",
     }),
   ],
   css: {

@@ -10,6 +10,7 @@
       "@dcloudio/types",
       "miniprogram-api-typings",
       "@uni-helper/uni-types",
+      "@uni-helper/vite-plugin-uni-pages/client",
       "@wot-ui/ui/global"
     ],
     "sourceMap": true

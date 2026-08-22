@@ -1,0 +1,51 @@
+/** Miniapp shared visual tokens. Keep reusable values here instead of page class literals. */
+export const miniappDesignTokens = {
+  colors: {
+    canvas: "#f8fafc",
+    surface: "#ffffff",
+    ink: "#1f2937",
+    muted: "#667085",
+    brand: "#4a6cf7",
+    "brand-active": "#3552c8",
+    soft: "#eef2ff",
+  },
+  spacing: {
+    caption: "4px",
+    "surface-overlap": "8px",
+    copy: "12px",
+    action: "16px",
+    screen: "24px",
+    section: "32px",
+    actions: "64px",
+    statement: "68px",
+    "hero-bleed": "-15px",
+  },
+  sizes: {
+    hero: "240px",
+    "hero-image": "530px",
+    "logo-width": "99px",
+    "logo-height": "78px",
+    commitments: "72px",
+    icon: "40px",
+    glyph: "24px",
+    agreement: "280px",
+    button: "52px",
+  },
+  radii: {
+    surface: "24px",
+    control: "12px",
+  },
+  fontSizes: {
+    title: "24px",
+    body: "14px",
+    caption: "12px",
+    button: "16px",
+  },
+  lineHeights: {
+    title: "32px",
+    body: "22px",
+    label: "20px",
+    caption: "18px",
+    button: "24px",
+  },
+} as const;

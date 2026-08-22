@@ -10,15 +10,26 @@
 import { presetUni } from "@uni-helper/unocss-preset-uni";
 import { presetWot } from "@wot-ui/unocss-preset";
 import { defineConfig, transformerDirectives, transformerVariantGroup } from "unocss";
+import { miniappDesignTokens } from "./src/config/design-tokens";
 
 export default defineConfig({
   presets: [
     presetUni({
       attributify: false,
+      remRpx: false,
     }),
     presetWot({
       preflight: false,
     }),
   ],
+  theme: {
+    colors: miniappDesignTokens.colors,
+    spacing: miniappDesignTokens.spacing,
+    width: miniappDesignTokens.sizes,
+    height: miniappDesignTokens.sizes,
+    borderRadius: miniappDesignTokens.radii,
+    fontSize: miniappDesignTokens.fontSizes,
+    lineHeight: miniappDesignTokens.lineHeights,
+  },
   transformers: [transformerDirectives(), transformerVariantGroup()],
 });
