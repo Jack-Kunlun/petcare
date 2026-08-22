@@ -18,11 +18,15 @@ test("数据库备份使用容器工具、校验转储并通过 Server 镜像上
 
   assert.match(script, /^set -Eeuo pipefail$/m);
   assert.match(script, /^umask 077$/m);
-  assert.match(script, /^INSTALL_DIR="\/opt\/petcare"$/m);
-  assert.deepEqual(script.match(/^cd .+$/gm), ['cd "$INSTALL_DIR"']);
+  assert.match(script, /^ROOT_DIR="\/opt\/petcare"$/m);
+  assert.match(script, /^RELEASE_DIR="\$ROOT_DIR\/current"$/m);
+  assert.match(script, /^ENV_FILE="\$ROOT_DIR\/\.env"$/m);
+  assert.match(script, /^STATE_FILE="\$ROOT_DIR\/\.deploy-images\.env"$/m);
+  assert.deepEqual(script.match(/^cd .+$/gm), ['cd "$RELEASE_DIR"']);
+  assert.match(script, /docker compose --env-file "\$ENV_FILE"/);
 
   assert.match(script, /^BACKUP_ENV="\/etc\/petcare-backup\.env"$/m);
-  assert.match(script, /^test -r \.env$/m);
+  assert.match(script, /^test -r "\$ENV_FILE"$/m);
   assert.match(script, /^test -r "\$BACKUP_ENV"$/m);
   assert.doesNotMatch(script, /^(?:source|\.) \.env$/m);
   assert.doesNotMatch(script, /^(?:source|\.) "\$BACKUP_ENV"$/m);
@@ -31,7 +35,7 @@ test("数据库备份使用容器工具、校验转储并通过 Server 镜像上
   const deployValidation = position(
     script,
     [
-      "if grep -Ev '^$|^(IMAGE_REGISTRY|SERVER_IMAGE_TAG|ADMIN_IMAGE_TAG|WEBSITE_IMAGE_TAG)=[a-zA-Z0-9./:_-]+$' .deploy-images.env > /dev/null; then",
+      "if grep -Ev '^$|^(IMAGE_REGISTRY|SERVER_IMAGE_TAG|ADMIN_IMAGE_TAG|WEBSITE_IMAGE_TAG)=[a-zA-Z0-9./:_-]+$' \"$STATE_FILE\" > /dev/null; then",
       '    echo "Invalid .deploy-images.env" >&2',
       "    exit 1",
       "  else",
@@ -40,20 +44,20 @@ test("数据库备份使用容器工具、校验转储并通过 Server 镜像上
       "  fi",
     ].join("\n"),
   );
-  const deploySource = position(script, "source .deploy-images.env");
-  assert.match(script, /^if \[\[ -r \.deploy-images\.env \]\]; then$/m);
-  assert.equal((script.match(/^[ \t]*source \.deploy-images\.env$/gm) ?? []).length, 1);
+  const deploySource = position(script, 'source "$STATE_FILE"');
+  assert.match(script, /^if \[\[ -r "\$STATE_FILE" \]\]; then$/m);
+  assert.equal((script.match(/^[ \t]*source "\$STATE_FILE"$/gm) ?? []).length, 1);
   assert.doesNotMatch(script, /grep -Ev [^\n]*\|\s*grep\b/);
   assert.doesNotMatch(script, /if ! grep -Ev/);
   assert.ok(deployValidation < deploySource);
 
   assert.match(
     script,
-    /^SERVER_IMAGE="\$\{BACKUP_RUNNER_IMAGE:-\$\(docker compose --env-file \.env images -q server\)\}"$/m,
+    /^SERVER_IMAGE="\$\{BACKUP_RUNNER_IMAGE:-\$\(docker compose --env-file "\$ENV_FILE" images -q server\)\}"$/m,
   );
   assert.match(
     script,
-    /DATABASE_ID="\$\(docker run --rm --env-file \.env "\$SERVER_IMAGE" node -e '/,
+    /DATABASE_ID="\$\(docker run --rm --env-file "\$ENV_FILE" "\$SERVER_IMAGE" node -e '/,
   );
   assert.match(script, /require\("\.\/apps\/server\/dist\/config\/config\.service\.js"\)/);
   assert.match(script, /config\.databaseName/);
@@ -80,14 +84,14 @@ test("数据库备份使用容器工具、校验转储并通过 Server 镜像上
   const dump = position(
     script,
     [
-      "docker compose --env-file .env exec -T postgres sh -lc \\",
+      "docker compose --env-file \"$ENV_FILE\" exec -T postgres sh -lc \\",
       '  \'exec pg_dump -U "$POSTGRES_USER" -d "$POSTGRES_DB" --format=custom\' > "$DUMP_PATH"',
     ].join("\n"),
   );
   const nonEmpty = position(script, 'test -s "$DUMP_PATH"');
   const restorable = position(
     script,
-    'docker compose --env-file .env exec -T postgres pg_restore --list < "$DUMP_PATH" > /dev/null',
+    'docker compose --env-file "$ENV_FILE" exec -T postgres pg_restore --list < "$DUMP_PATH" > /dev/null',
   );
   assert.ok(dump < nonEmpty && nonEmpty < restorable);
 
@@ -134,11 +138,18 @@ test("恢复流程要求显式对象并只写入临时数据库", async () => {
   );
   assert.match(script, /BASH_REMATCH\[1\].*BASH_REMATCH\[2\]/);
   assert.doesNotMatch(script, /\b(?:latest|listObjects(?:V2)?)\b/i);
+  assert.match(script, /^ROOT_DIR="\/opt\/petcare"$/m);
+  assert.match(script, /^RELEASE_DIR="\$ROOT_DIR\/current"$/m);
+  assert.match(script, /^ENV_FILE="\$ROOT_DIR\/\.env"$/m);
+  assert.match(script, /^STATE_FILE="\$ROOT_DIR\/\.deploy-images\.env"$/m);
+  assert.deepEqual(script.match(/^cd .+$/gm), ['cd "$RELEASE_DIR"']);
+  assert.match(script, /docker compose --env-file "\$ENV_FILE"/);
+  assert.match(script, /^test -r "\$ENV_FILE"$/m);
 
   const deployValidation = position(
     script,
     [
-      "if grep -Ev '^$|^(IMAGE_REGISTRY|SERVER_IMAGE_TAG|ADMIN_IMAGE_TAG|WEBSITE_IMAGE_TAG)=[a-zA-Z0-9./:_-]+$' .deploy-images.env > /dev/null; then",
+      "if grep -Ev '^$|^(IMAGE_REGISTRY|SERVER_IMAGE_TAG|ADMIN_IMAGE_TAG|WEBSITE_IMAGE_TAG)=[a-zA-Z0-9./:_-]+$' \"$STATE_FILE\" > /dev/null; then",
       '  echo "Invalid .deploy-images.env" >&2',
       "  exit 1",
       "else",
@@ -147,9 +158,9 @@ test("恢复流程要求显式对象并只写入临时数据库", async () => {
       "fi",
     ].join("\n"),
   );
-  const deploySource = position(script, "source .deploy-images.env");
-  assert.match(script, /^test -r \.deploy-images\.env$/m);
-  assert.equal((script.match(/^[ \t]*source \.deploy-images\.env$/gm) ?? []).length, 1);
+  const deploySource = position(script, 'source "$STATE_FILE"');
+  assert.match(script, /^test -r "\$STATE_FILE"$/m);
+  assert.equal((script.match(/^[ \t]*source "\$STATE_FILE"$/gm) ?? []).length, 1);
   assert.doesNotMatch(script, /grep -Ev [^\n]*\|\s*grep\b/);
   assert.doesNotMatch(script, /\bgrep\b[^\n]*\|\s*grep\s+-q\b/);
   assert.doesNotMatch(script, /if ! grep -Ev/);
@@ -177,7 +188,7 @@ test("恢复流程要求显式对象并只写入临时数据库", async () => {
   const dumpAssignment = position(script, 'DUMP_PATH="$WORK_DIR/$STAMP.dump"');
   const dumpListed = position(
     script,
-    'docker compose --env-file .env exec -T postgres pg_restore --list < "$DUMP_PATH" > /dev/null',
+    'docker compose --env-file "$ENV_FILE" exec -T postgres pg_restore --list < "$DUMP_PATH" > /dev/null',
   );
   assert.ok(
     workDirInitialization < createWorkDir &&
@@ -194,7 +205,7 @@ test("恢复流程要求显式对象并只写入临时数据库", async () => {
   const createDatabase = position(
     script,
     [
-      "docker compose --env-file .env exec -T postgres sh -lc \\",
+      "docker compose --env-file \"$ENV_FILE\" exec -T postgres sh -lc \\",
       '  \'createdb -U "$POSTGRES_USER" "$1"\' sh "$RESTORE_DB"',
     ].join("\n"),
   );
@@ -202,7 +213,7 @@ test("恢复流程要求显式对象并只写入临时数据库", async () => {
   const restoreDatabase = position(
     script,
     [
-      "docker compose --env-file .env exec -T postgres sh -lc \\",
+      "docker compose --env-file \"$ENV_FILE\" exec -T postgres sh -lc \\",
       '  \'pg_restore -U "$POSTGRES_USER" -d "$1" --no-owner --exit-on-error\' sh "$RESTORE_DB" < "$DUMP_PATH"',
     ].join("\n"),
   );
@@ -212,7 +223,7 @@ test("恢复流程要求显式对象并只写入临时数据库", async () => {
     script,
     [
       '  if [[ "$CREATED_DB" == true ]]; then',
-      "    docker compose --env-file .env exec -T postgres sh -lc \\",
+      "    docker compose --env-file \"$ENV_FILE\" exec -T postgres sh -lc \\",
       '      \'dropdb -U "$POSTGRES_USER" --if-exists "$1"\' sh "$RESTORE_DB" || [[ "$status" -ne 0 ]] || status=1',
       "  fi",
     ].join("\n"),
@@ -248,7 +259,7 @@ test("恢复流程要求显式对象并只写入临时数据库", async () => {
     cleanupDump < cleanupWorkDir && cleanupWorkDir < cleanupDrop && cleanupDrop < createDatabase,
   );
   assert.ok(
-    cleanupTrap < position(script, 'cd "$INSTALL_DIR"') &&
+    cleanupTrap < position(script, 'cd "$RELEASE_DIR"') &&
       cleanupTrap < installRestoreDirectory &&
       cleanupTrap < createWorkDir &&
       cleanupTrap < download &&
@@ -260,12 +271,12 @@ test("恢复流程要求显式对象并只写入临时数据库", async () => {
   assert.ok(cleanupDrop < cleanupReturn);
   assert.throws(() => position(script.replace("trap cleanup EXIT", ""), "trap cleanup EXIT"));
   const movedTrap = script.replace(
-    'trap cleanup EXIT\n\ncd "$INSTALL_DIR"',
-    'cd "$INSTALL_DIR"\ntrap cleanup EXIT',
+    'trap cleanup EXIT\n\ncd "$RELEASE_DIR"',
+    'cd "$RELEASE_DIR"\ntrap cleanup EXIT',
   );
   assert.notEqual(movedTrap, script);
   assert.throws(() =>
-    assert.ok(position(movedTrap, "trap cleanup EXIT") < position(movedTrap, 'cd "$INSTALL_DIR"')),
+    assert.ok(position(movedTrap, "trap cleanup EXIT") < position(movedTrap, 'cd "$RELEASE_DIR"')),
   );
   assert.throws(() => position(script.replace("  local status=$?", ""), "  local status=$?"));
   assert.throws(() => position(script.replace('  return "$status"', ""), '  return "$status"\n}'));
@@ -278,7 +289,10 @@ test("恢复流程要求显式对象并只写入临时数据库", async () => {
   );
   assert.match(script, /rm -f -- "\$DUMP_PATH"/);
   assert.doesNotMatch(script, /\brm\s+-[A-Za-z]*r/);
-  assert.match(script, /run --rm --no-deps -e DB_NAME="\$RESTORE_DB" server/);
+  assert.match(
+    script,
+    /docker compose --env-file "\$ENV_FILE" run --rm --no-deps -e DB_NAME="\$RESTORE_DB" server/,
+  );
   assert.equal((script.match(/\bDB_NAME\b/g) ?? []).length, 1);
   assert.doesNotMatch(script, /(?:createdb|dropdb|pg_restore)[^\n]*\$\{?DB_NAME/);
 });
@@ -298,7 +312,7 @@ test("systemd 每日调度只从 root 环境文件读取备份凭据", async () 
     "EnvironmentFile=/etc/petcare-backup.env",
   ]);
   assert.deepEqual(service.match(/^ExecStart=.*$/gm), [
-    "ExecStart=/opt/petcare/scripts/database-backup.sh",
+    "ExecStart=/opt/petcare/current/scripts/database-backup.sh",
   ]);
   assert.doesNotMatch(`${service}\n${timer}`, /BACKUP_COS_SECRET/);
 

@@ -7,4 +7,4 @@ After=docker.service
 Type=oneshot
 User=root
 EnvironmentFile=/etc/petcare-backup.env
-ExecStart=/opt/petcare/scripts/database-backup.sh
+ExecStart=/opt/petcare/current/scripts/database-backup.sh

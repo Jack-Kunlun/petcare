@@ -10,7 +10,10 @@ else
   exit 1
 fi
 
-INSTALL_DIR="/opt/petcare"
+ROOT_DIR="/opt/petcare"
+RELEASE_DIR="$ROOT_DIR/current"
+ENV_FILE="$ROOT_DIR/.env"
+STATE_FILE="$ROOT_DIR/.deploy-images.env"
 RESTORE_DIR="/var/lib/petcare-restores"
 BACKUP_ENV="/etc/petcare-backup.env"
 STAMP="$(date -u +%Y%m%dT%H%M%SZ)"
@@ -29,7 +32,7 @@ cleanup() {
     rmdir -- "$WORK_DIR" || [[ "$status" -ne 0 ]] || status=1
   fi
   if [[ "$CREATED_DB" == true ]]; then
-    docker compose --env-file .env exec -T postgres sh -lc \
+    docker compose --env-file "$ENV_FILE" exec -T postgres sh -lc \
       'dropdb -U "$POSTGRES_USER" --if-exists "$1"' sh "$RESTORE_DB" || [[ "$status" -ne 0 ]] || status=1
   fi
 
@@ -37,23 +40,23 @@ cleanup() {
 }
 trap cleanup EXIT
 
-cd "$INSTALL_DIR"
-test -r .env
+cd "$RELEASE_DIR"
+test -r "$ENV_FILE"
 test -r "$BACKUP_ENV"
-test -r .deploy-images.env
+test -r "$STATE_FILE"
 install -d -m 700 "$RESTORE_DIR"
 
-if grep -Ev '^$|^(IMAGE_REGISTRY|SERVER_IMAGE_TAG|ADMIN_IMAGE_TAG|WEBSITE_IMAGE_TAG)=[a-zA-Z0-9./:_-]+$' .deploy-images.env > /dev/null; then
+if grep -Ev '^$|^(IMAGE_REGISTRY|SERVER_IMAGE_TAG|ADMIN_IMAGE_TAG|WEBSITE_IMAGE_TAG)=[a-zA-Z0-9./:_-]+$' "$STATE_FILE" > /dev/null; then
   echo "Invalid .deploy-images.env" >&2
   exit 1
 else
   status=$?
   [[ "$status" -eq 1 ]] || exit 1
 fi
-source .deploy-images.env
+source "$STATE_FILE"
 export IMAGE_REGISTRY SERVER_IMAGE_TAG ADMIN_IMAGE_TAG WEBSITE_IMAGE_TAG
 
-SERVER_IMAGE="$(docker compose --env-file .env images -q server)"
+SERVER_IMAGE="$(docker compose --env-file "$ENV_FILE" images -q server)"
 test -n "$SERVER_IMAGE"
 mkdir -m 700 "$RESTORE_DIR/$STAMP"
 WORK_DIR="$RESTORE_DIR/$STAMP"
@@ -66,17 +69,17 @@ docker run --rm \
   download "$OBJECT_KEY" "/restore/$STAMP.dump"
 
 test -s "$DUMP_PATH"
-docker compose --env-file .env exec -T postgres pg_restore --list < "$DUMP_PATH" > /dev/null
-docker compose --env-file .env exec -T postgres sh -lc \
+docker compose --env-file "$ENV_FILE" exec -T postgres pg_restore --list < "$DUMP_PATH" > /dev/null
+docker compose --env-file "$ENV_FILE" exec -T postgres sh -lc \
   'createdb -U "$POSTGRES_USER" "$1"' sh "$RESTORE_DB"
 CREATED_DB=true
-docker compose --env-file .env exec -T postgres sh -lc \
+docker compose --env-file "$ENV_FILE" exec -T postgres sh -lc \
   'pg_restore -U "$POSTGRES_USER" -d "$1" --no-owner --exit-on-error' sh "$RESTORE_DB" < "$DUMP_PATH"
-APPLICATION_TABLES="$(docker compose --env-file .env exec -T postgres sh -lc \
+APPLICATION_TABLES="$(docker compose --env-file "$ENV_FILE" exec -T postgres sh -lc \
   'psql -U "$POSTGRES_USER" -d "$1" -v ON_ERROR_STOP=1 -Atc "SELECT COUNT(*) FROM information_schema.tables WHERE table_type = '\''BASE TABLE'\'' AND table_schema NOT IN ('\''pg_catalog'\'', '\''information_schema'\'');"' \
   sh "$RESTORE_DB")"
 test "$APPLICATION_TABLES" -gt 0
-docker compose --env-file .env run --rm --no-deps -e DB_NAME="$RESTORE_DB" server \
+docker compose --env-file "$ENV_FILE" run --rm --no-deps -e DB_NAME="$RESTORE_DB" server \
   pnpm --filter @petcare/server prisma:migrate:status
 
 printf '恢复验证完成，临时数据库将删除：%s\n' "$RESTORE_DB"
