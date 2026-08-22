@@ -1,7 +1,9 @@
+name: petcare
+
 services:
   # PostgreSQL 数据库
   postgres:
-    image: postgres:15-alpine
+    image: ${IMAGE_REGISTRY:-docker.io/library}/postgres:15-alpine
     container_name: petcare-postgres
     restart: unless-stopped
     environment:
@@ -28,7 +30,7 @@ services:
 
   # Redis 缓存
   redis:
-    image: redis:7-alpine
+    image: ${IMAGE_REGISTRY:-docker.io/library}/redis:7-alpine
     container_name: petcare-redis
     restart: unless-stopped
     command:
@@ -219,7 +221,7 @@ services:
 
   # 官网专用公网网关；Admin 静态站点继续使用自己的 Nginx 容器与端口。
   website-gateway:
-    image: nginx:alpine
+    image: ${IMAGE_REGISTRY:-docker.io/library}/nginx:alpine
     container_name: petcare-website-gateway
     restart: unless-stopped
     depends_on:
@@ -249,7 +251,7 @@ services:
   # HTTPS 边缘网关：统一 80/443 入口，双域名 TLS 终结后转发到官网网关与 Admin。
   # 证书挂载自宿主机 ./certs（不入库），文件名约定见 docker/edge-nginx.conf。
   edge-gateway:
-    image: nginx:alpine
+    image: ${IMAGE_REGISTRY:-docker.io/library}/nginx:alpine
     container_name: petcare-edge-gateway
     restart: unless-stopped
     depends_on:

@@ -149,6 +149,27 @@ test("Compose 使用独立应用标签且只有边缘网关暴露公网端口", 
   assert.doesNotMatch(environment, /^IMAGE_TAG=/m);
 });
 
+test("生产 Compose 固定项目名并从同一仓库读取运行时镜像", async () => {
+  const compose = await readFile(resolve(root, "docker-compose.yml"), "utf8");
+
+  assert.match(compose, /^name: petcare$/m);
+  assert.match(
+    serviceBlock(compose, "postgres"),
+    /image: \$\{IMAGE_REGISTRY:-docker\.io\/library\}\/postgres:15-alpine/,
+  );
+  assert.match(
+    serviceBlock(compose, "redis"),
+    /image: \$\{IMAGE_REGISTRY:-docker\.io\/library\}\/redis:7-alpine/,
+  );
+
+  for (const service of ["website-gateway", "edge-gateway"]) {
+    assert.match(
+      serviceBlock(compose, service),
+      /image: \$\{IMAGE_REGISTRY:-docker\.io\/library\}\/nginx:alpine/,
+    );
+  }
+});
+
 test("边缘网关禁用旧 TLS 并发送安全响应头", async () => {
   const nginx = await readFile(resolve(root, "docker/edge-nginx.conf"), "utf8");
   const httpServer = nginx.slice(
