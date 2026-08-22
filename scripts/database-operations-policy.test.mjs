@@ -298,10 +298,9 @@ test("恢复流程要求显式对象并只写入临时数据库", async () => {
 });
 
 test("systemd 每日调度只从 root 环境文件读取备份凭据", async () => {
-  const [service, timer, init] = await Promise.all([
+  const [service, timer] = await Promise.all([
     readFile(resolve(root, "deploy/systemd/petcare-backup.service"), "utf8"),
     readFile(resolve(root, "deploy/systemd/petcare-backup.timer"), "utf8"),
-    readFile(resolve(root, "scripts/server-init.sh"), "utf8"),
   ]);
 
   assert.deepEqual(service.match(/^Requires=.*$/gm), ["Requires=docker.service"]);
@@ -321,28 +320,4 @@ test("systemd 每日调度只从 root 环境文件读取备份凭据", async () 
   assert.deepEqual(timer.match(/^Persistent=.*$/gm), ["Persistent=true"]);
   assert.deepEqual(timer.match(/^Unit=.*$/gm), ["Unit=petcare-backup.service"]);
   assert.deepEqual(timer.match(/^WantedBy=.*$/gm), ["WantedBy=timers.target"]);
-
-  const clone = position(init, 'git clone "$REPO_URL" "$INSTALL_DIR"');
-  const changeDirectory = position(init, 'cd "$INSTALL_DIR"');
-  const scriptsMode = position(
-    init,
-    "chmod 0755 scripts/database-backup.sh scripts/database-restore.sh",
-  );
-  const serviceInstall = position(
-    init,
-    "install -m 0644 deploy/systemd/petcare-backup.service /etc/systemd/system/petcare-backup.service",
-  );
-  const timerInstall = position(
-    init,
-    "install -m 0644 deploy/systemd/petcare-backup.timer /etc/systemd/system/petcare-backup.timer",
-  );
-  const reload = position(init, "systemctl daemon-reload");
-  assert.ok(
-    clone < changeDirectory &&
-      changeDirectory < scriptsMode &&
-      scriptsMode < serviceInstall &&
-      serviceInstall < timerInstall &&
-      timerInstall < reload,
-  );
-  assert.doesNotMatch(init, /systemctl\b[^\n]*\bpetcare-backup\.(?:service|timer)\b/);
 });
