@@ -1,101 +1,52 @@
 #!/usr/bin/env bash
 # PetCare Ubuntu 生产服务器首次初始化脚本
-# 用途：为 GitHub Actions 的 deploy.yml 准备服务器；生产发布只由该工作流执行。
-# 注意：本脚本不启动应用或备份 timer；首次发布前必须由 root 安全补全 .env。
+# 用途：准备 Docker、生产持久化目录和初始 .env。
+# 注意：本脚本不获取代码、不启动应用；首次发布前必须由 root 安全补全 .env。
 #
 # 用法（在服务器上以 root 执行）：
-#   read -r -p "初始管理员手机号：" DEFAULT_ADMIN_PHONE
-#   sudo REPO_URL=git@github.com:your-name/petcare.git \
-#     DEFAULT_ADMIN_PHONE="$DEFAULT_ADMIN_PHONE" bash server-init.sh
-#   # 私有仓库的只读 deploy key 必须属于 root（见 docs/08-deployment/github-actions-deploy.md）。
-set -euo pipefail
+#   sudo bash server-init.sh
+set -Eeuo pipefail
 
-REPO_URL="${REPO_URL:?请通过 REPO_URL 环境变量指定仓库地址}"
 INSTALL_DIR="/opt/petcare"
-ROOT_DEPLOY_KEY="/root/.ssh/petcare-readonly"
-ROOT_KNOWN_HOSTS="/root/.ssh/known_hosts"
-ROOT_GIT_SSH_COMMAND="ssh -i $ROOT_DEPLOY_KEY -o IdentitiesOnly=yes -o StrictHostKeyChecking=yes -o UserKnownHostsFile=$ROOT_KNOWN_HOSTS"
 
-log()  { echo -e "\033[36m[init]\033[0m $*"; }
-ok()   { echo -e "\033[32m[ok]\033[0m $*"; }
-err()  { echo -e "\033[31m[err]\033[0m $*" >&2; }
+log() { echo -e "\033[36m[init]\033[0m $*"; }
+ok() { echo -e "\033[32m[ok]\033[0m $*"; }
+err() { echo -e "\033[31m[err]\033[0m $*" >&2; }
 
 if [[ $EUID -ne 0 ]]; then
   if sudo -n true 2>/dev/null; then
     exec sudo bash "$0" "$@"
-  else
-    err "请用 sudo 执行：sudo REPO_URL=... bash $0"
-    exit 1
   fi
+  err "请用 sudo 执行：sudo bash $0"
+  exit 1
 fi
 
 umask 077
-
-if [[ ! -f "$ROOT_DEPLOY_KEY" || ! -f "$ROOT_KNOWN_HOSTS" ]]; then
-  err "root 的 GitHub deploy key 或 known_hosts 缺失；按发布指南配置后重试"
-  exit 1
-fi
-chown root:root "$ROOT_DEPLOY_KEY" "$ROOT_KNOWN_HOSTS"
-chmod 600 "$ROOT_DEPLOY_KEY" "$ROOT_KNOWN_HOSTS"
-ssh-keygen -F github.com -f "$ROOT_KNOWN_HOSTS" > /dev/null || {
-  err "root known_hosts 未包含经验证的 github.com 主机密钥"
-  exit 1
-}
-
-# ---------- 1. 安装基础软件与 Docker ----------
 apt-get update -y
-apt-get install -y ca-certificates curl gnupg lsb-release git openssl
-
-if ! command -v docker &>/dev/null; then
-  log "安装 Docker..."
-  install -m 0755 -d /etc/apt/keyrings
-  curl -fsSL https://download.docker.com/linux/ubuntu/gpg | gpg --dearmor -o /etc/apt/keyrings/docker.gpg
-  chmod a+r /etc/apt/keyrings/docker.gpg
-  echo "deb [arch=$(dpkg --print-architecture) signed-by=/etc/apt/keyrings/docker.gpg] https://download.docker.com/linux/ubuntu $(lsb_release -cs) stable" \
-    > /etc/apt/sources.list.d/docker.list
-  apt-get update -y
-  apt-get install -y docker-ce docker-ce-cli containerd.io docker-buildx-plugin docker-compose-plugin
-  systemctl enable --now docker
-  ok "Docker 安装完成：$(docker --version)"
-else
-  ok "Docker 已存在：$(docker --version)"
-fi
-
-# ---------- 2. 克隆代码 ----------
-if [[ -d "$INSTALL_DIR/.git" ]]; then
-  ok "代码已存在：$INSTALL_DIR"
-else
-  log "克隆仓库到 $INSTALL_DIR ..."
-  install -d -o root -g root -m 755 "$INSTALL_DIR"
-  GIT_SSH_COMMAND="$ROOT_GIT_SSH_COMMAND" git clone "$REPO_URL" "$INSTALL_DIR"
-  ok "代码克隆完成"
-fi
-
-# deploy.yml 使用 sudo -H git 操作本目录；不把 checkout 交给部署 SSH 用户。
-chown -R root:root "$INSTALL_DIR"
-git -C "$INSTALL_DIR" config core.sshCommand "$ROOT_GIT_SSH_COMMAND"
-[[ "$(git -C "$INSTALL_DIR" config --get core.sshCommand)" == "$ROOT_GIT_SSH_COMMAND" ]] || {
-  err "无法持久化 root Git SSH 配置"
+if ! apt-get install -y ca-certificates curl openssl python3 docker.io docker-compose-v2; then
+  err "当前 Ubuntu APT 源无法提供 Docker Engine 与 Compose v2；请先修复系统软件源"
   exit 1
-}
-git -C "$INSTALL_DIR" ls-remote --exit-code origin HEAD > /dev/null
+fi
+systemctl enable --now docker
+docker --version
+docker compose version
 
-# ---------- 3. 生成生产 .env ----------
-cd "$INSTALL_DIR"
-
+install -d -o root -g root -m 755 "$INSTALL_DIR"
+install -d -o root -g root -m 755 "$INSTALL_DIR/releases"
 install -d -o root -g root -m 700 "$INSTALL_DIR/certs"
-chmod 0755 scripts/release-production.sh
-chmod 0755 scripts/database-backup.sh scripts/database-restore.sh
-install -m 0644 deploy/systemd/petcare-backup.service /etc/systemd/system/petcare-backup.service
-install -m 0644 deploy/systemd/petcare-backup.timer /etc/systemd/system/petcare-backup.timer
-systemctl daemon-reload
+install -d -o root -g root -m 755 "$INSTALL_DIR/logs"
+cd "$INSTALL_DIR"
 
 if [[ -f .env ]]; then
   chown root:root .env
   chmod 600 .env
   ok ".env 已存在，跳过生成（如需重置请先手动备份删除）"
 else
-  DEFAULT_ADMIN_PHONE="${DEFAULT_ADMIN_PHONE:?请通过 DEFAULT_ADMIN_PHONE 提供初始管理员中国大陆手机号}"
+  DEFAULT_ADMIN_PHONE="${DEFAULT_ADMIN_PHONE:-}"
+  if [[ -z "$DEFAULT_ADMIN_PHONE" && -t 0 ]]; then
+    read -r -p "初始管理员手机号：" DEFAULT_ADMIN_PHONE
+  fi
+  : "${DEFAULT_ADMIN_PHONE:?请提供初始管理员中国大陆手机号}"
   if [[ ! "$DEFAULT_ADMIN_PHONE" =~ ^1[3-9][0-9]{9}$ ]]; then
     err "DEFAULT_ADMIN_PHONE 必须是有效的中国大陆手机号"
     exit 1
@@ -187,13 +138,15 @@ echo
 echo "================================================"
 echo "  服务器初始化完成"
 echo "================================================"
-echo "代码目录：   $INSTALL_DIR"
-echo "配置文件：   $INSTALL_DIR/.env（chmod 600）"
-echo "证书目录：   $INSTALL_DIR/certs（chmod 700）"
+echo "持久化根目录：$INSTALL_DIR"
+echo "配置文件：    $INSTALL_DIR/.env（root:root，chmod 600）"
+echo "发布目录：    $INSTALL_DIR/releases"
+echo "证书目录：    $INSTALL_DIR/certs（root:root，chmod 700）"
+echo "日志目录：    $INSTALL_DIR/logs"
 echo
 echo "下一步："
 echo "  1. root 安全补全并轮换 .env 中管理员、微信和 Aliyun SMS 配置；不要打印或回传其值"
 echo "  2. 在轻量云控制台只放行端口：22、80、443"
 echo "  3. 配置 GitHub production Environment（见 docs/08-deployment/github-actions-deploy.md）"
-echo "  4. GitHub → Actions → 手动部署 → Run workflow"
+echo "  4. 通过受控发布流程上传并部署代码"
 echo "================================================"

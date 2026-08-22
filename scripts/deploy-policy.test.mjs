@@ -283,31 +283,31 @@ test("远端发布以 root 仓库和临时凭据完成 TLS 与 release 事务", 
   assert.ok(release < enableTimer);
 });
 
-test("初始化持久化 root Git SSH 契约，并记录可信 SSH 运维前提", async () => {
-  const [initScript, docs] = await Promise.all([
-    readFile(resolve(root, "scripts/server-init.sh"), "utf8"),
-    readFile(resolve(root, "docs/08-deployment/github-actions-deploy.md"), "utf8"),
-  ]);
+test("服务器初始化不依赖 GitHub、Git 或外部 Docker APT 源", async () => {
+  const init = await readFile(resolve(root, "scripts/server-init.sh"), "utf8");
 
-  assert.match(initScript, /^ROOT_DEPLOY_KEY="\/root\/.ssh\/petcare-readonly"$/m);
-  assert.match(initScript, /^ROOT_KNOWN_HOSTS="\/root\/.ssh\/known_hosts"$/m);
-  assert.match(
-    initScript,
-    /^ROOT_GIT_SSH_COMMAND="ssh -i \$ROOT_DEPLOY_KEY -o IdentitiesOnly=yes -o StrictHostKeyChecking=yes -o UserKnownHostsFile=\$ROOT_KNOWN_HOSTS"$/m,
-  );
-  assert.match(initScript, /ssh-keygen -F github\.com -f "\$ROOT_KNOWN_HOSTS"/);
-  assert.match(initScript, /GIT_SSH_COMMAND="\$ROOT_GIT_SSH_COMMAND" git clone/);
-  assert.match(
-    initScript,
-    /git -C "\$INSTALL_DIR" config core\.sshCommand "\$ROOT_GIT_SSH_COMMAND"/,
-  );
-  assert.match(
-    initScript,
-    /git -C "\$INSTALL_DIR" ls-remote --exit-code origin HEAD > \/dev\/null/,
-  );
+  assert.doesNotMatch(init, /REPO_URL|ROOT_DEPLOY_KEY|ROOT_KNOWN_HOSTS|github\.com/);
+  assert.doesNotMatch(init, /(?:^|\n)\s*(?:git|ssh-keygen)\b/m);
+  assert.doesNotMatch(init, /download\.docker\.com|docker-ce|docker-compose-plugin/);
+  assert.match(init, /apt-get install -y[\s\S]*docker\.io[\s\S]*docker-compose-v2/);
+  assert.match(init, /apt-get install -y[\s\S]*python3/);
+  assert.match(init, /docker compose version/);
+
+  const composeCheck = position(init, "docker compose version");
+  const createRoot = position(init, 'install -d -o root -g root -m 755 "$INSTALL_DIR"');
+  assert.ok(composeCheck < createRoot);
+
+  for (const path of ["releases", "certs", "logs"]) {
+    assert.match(init, new RegExp(`\\$INSTALL_DIR/${path}`));
+  }
+  assert.doesNotMatch(init, /petcare-backup\.(?:service|timer)/);
+  assert.doesNotMatch(init, /docker compose[^\n]*(?:up|start)/);
+});
+
+test("部署 SSH 仍要求可信主机身份和受限 sudo", async () => {
+  const docs = await readFile(resolve(root, "docs/08-deployment/github-actions-deploy.md"), "utf8");
 
   assert.match(docs, /不要只信任 `ssh-keyscan`/);
-  assert.match(docs, /ssh-keygen -F github\.com -f \/root\/.ssh\/known_hosts/);
   assert.match(docs, /authorized_keys/);
   assert.match(docs, /NOPASSWD: ALL/);
   assert.match(docs, /root 等价/);
