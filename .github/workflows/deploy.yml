@@ -30,12 +30,17 @@ jobs:
   resolve:
     name: 解析并校验部署提交
     runs-on: ubuntu-latest
+    environment: production
     permissions:
       actions: read
       contents: read
+    env:
+      TCR_REGISTRY: ${{ vars.TCR_REGISTRY }}
+      TCR_NAMESPACE: ${{ vars.TCR_NAMESPACE }}
     outputs:
       image_tag: ${{ steps.meta.outputs.image_tag }}
       registry: ${{ steps.meta.outputs.registry }}
+      registry_host: ${{ steps.meta.outputs.registry_host }}
       services: ${{ steps.meta.outputs.services }}
       sha: ${{ steps.meta.outputs.sha }}
     steps:
@@ -53,6 +58,9 @@ jobs:
           set -Eeuo pipefail
           sha="$(git rev-parse HEAD)"
           [[ "$sha" =~ ^[0-9a-f]{40}$ ]]
+          [[ "$TCR_REGISTRY" == "ccr.ccs.tencentyun.com" ]]
+          [[ ${#TCR_NAMESPACE} -ge 2 && ${#TCR_NAMESPACE} -le 30 ]]
+          [[ "$TCR_NAMESPACE" =~ ^[a-z0-9]+([._-][a-z0-9]+)*$ ]]
           case "$TARGET" in
             all) services='["server","admin","website"]' ;;
             server) services='["server"]' ;;
@@ -64,7 +72,8 @@ jobs:
             echo "sha=$sha"
             echo "image_tag=sha-$sha"
             echo "services=$services"
-            echo "registry=ghcr.io/${GITHUB_REPOSITORY_OWNER,,}"
+            echo "registry_host=$TCR_REGISTRY"
+            echo "registry=$TCR_REGISTRY/$TCR_NAMESPACE"
           } >> "$GITHUB_OUTPUT"
 
       - name: 要求该提交的持续集成已成功
@@ -87,9 +96,12 @@ jobs:
     name: 构建并推送 ${{ matrix.service }}
     needs: resolve
     runs-on: ubuntu-latest
+    environment: production
     permissions:
       contents: read
-      packages: write
+    env:
+      TCR_PUSH_USERNAME: ${{ secrets.TCR_PUSH_USERNAME }}
+      TCR_PUSH_PASSWORD: ${{ secrets.TCR_PUSH_PASSWORD }}
     strategy:
       fail-fast: false
       matrix:
@@ -103,9 +115,9 @@ jobs:
 
       - uses: docker/login-action@v3
         with:
-          registry: ghcr.io
-          username: ${{ github.actor }}
-          password: ${{ github.token }}
+          registry: ${{ needs.resolve.outputs.registry_host }}
+          username: ${{ env.TCR_PUSH_USERNAME }}
+          password: ${{ env.TCR_PUSH_PASSWORD }}
 
       - name: 构建并推送 ${{ matrix.service }}
         uses: docker/build-push-action@v6
@@ -117,9 +129,58 @@ jobs:
           cache-from: type=gha,scope=${{ matrix.service }}
           cache-to: type=gha,mode=max,scope=${{ matrix.service }}
 
+  runtime-images:
+    name: 准备运行时镜像 ${{ matrix.repository }}
+    needs: resolve
+    runs-on: ubuntu-latest
+    environment: production
+    permissions:
+      contents: read
+    env:
+      TCR_PUSH_USERNAME: ${{ secrets.TCR_PUSH_USERNAME }}
+      TCR_PUSH_PASSWORD: ${{ secrets.TCR_PUSH_PASSWORD }}
+    strategy:
+      fail-fast: false
+      matrix:
+        include:
+          - source: postgres:15-alpine
+            repository: postgres
+            tag: 15-alpine
+          - source: redis:7-alpine
+            repository: redis
+            tag: 7-alpine
+          - source: nginx:alpine
+            repository: nginx
+            tag: alpine
+    steps:
+      - uses: docker/login-action@v3
+        with:
+          registry: ${{ needs.resolve.outputs.registry_host }}
+          username: ${{ env.TCR_PUSH_USERNAME }}
+          password: ${{ env.TCR_PUSH_PASSWORD }}
+      - name: 仅在 TCR 缺少标签时同步
+        shell: bash
+        env:
+          SOURCE_IMAGE: ${{ matrix.source }}
+          DESTINATION_IMAGE: ${{ needs.resolve.outputs.registry }}/${{ matrix.repository }}:${{ matrix.tag }}
+        run: |
+          set -Eeuo pipefail
+          probe_error="$(mktemp)"
+          trap 'rm -f -- "$probe_error"' EXIT
+          if docker manifest inspect "$DESTINATION_IMAGE" > /dev/null 2> "$probe_error"; then
+            echo "TCR runtime image already exists; skip overwrite"
+          elif grep -Eiq 'manifest unknown|no such manifest|not found' "$probe_error"; then
+            docker pull "$SOURCE_IMAGE"
+            docker tag "$SOURCE_IMAGE" "$DESTINATION_IMAGE"
+            docker push "$DESTINATION_IMAGE"
+          else
+            sed 's/[^[:print:]]//g' "$probe_error" >&2
+            exit 1
+          fi
+
   deploy:
     name: 发布到生产环境
-    needs: [resolve, build]
+    needs: [resolve, build, runtime-images]
     runs-on: ubuntu-latest
     permissions: {}
     environment: production
@@ -130,8 +191,8 @@ jobs:
       DEPLOY_USER: ${{ secrets.DEPLOY_USER }}
       DEPLOY_SSH_KEY: ${{ secrets.DEPLOY_SSH_KEY }}
       DEPLOY_HOST_FINGERPRINT: ${{ secrets.DEPLOY_HOST_FINGERPRINT }}
-      GHCR_PULL_USER: ${{ secrets.GHCR_PULL_USER }}
-      GHCR_PULL_TOKEN: ${{ secrets.GHCR_PULL_TOKEN }}
+      TCR_PULL_USERNAME: ${{ secrets.TCR_PULL_USERNAME }}
+      TCR_PULL_PASSWORD: ${{ secrets.TCR_PULL_PASSWORD }}
       TLS_WEBSITE_CERT_B64: ${{ secrets.TLS_WEBSITE_CERT_B64 }}
       TLS_WEBSITE_KEY_B64: ${{ secrets.TLS_WEBSITE_KEY_B64 }}
       TLS_ADMIN_CERT_B64: ${{ secrets.TLS_ADMIN_CERT_B64 }}
@@ -142,6 +203,7 @@ jobs:
       BACKUP_COS_REGION: ${{ secrets.BACKUP_COS_REGION }}
       TARGET: ${{ inputs.target }}
       INITIALIZE_DATA: ${{ inputs.initialize_data }}
+      TCR_REGISTRY: ${{ needs.resolve.outputs.registry_host }}
       IMAGE_REGISTRY: ${{ needs.resolve.outputs.registry }}
       NEW_IMAGE_TAG: ${{ needs.resolve.outputs.image_tag }}
       RELEASE_SHA: ${{ needs.resolve.outputs.sha }}
@@ -153,7 +215,7 @@ jobs:
           umask 077
 
           for name in \
-            DEPLOY_HOST DEPLOY_USER DEPLOY_SSH_KEY DEPLOY_HOST_FINGERPRINT GHCR_PULL_USER GHCR_PULL_TOKEN \
+            DEPLOY_HOST DEPLOY_USER DEPLOY_SSH_KEY DEPLOY_HOST_FINGERPRINT TCR_PULL_USERNAME TCR_PULL_PASSWORD \
             TLS_WEBSITE_CERT_B64 TLS_WEBSITE_KEY_B64 TLS_ADMIN_CERT_B64 TLS_ADMIN_KEY_B64 \
             BACKUP_COS_SECRET_ID BACKUP_COS_SECRET_KEY BACKUP_COS_BUCKET BACKUP_COS_REGION
           do
@@ -173,8 +235,9 @@ jobs:
           [[ "$INITIALIZE_DATA" =~ ^(true|false)$ ]]
           [[ "$RELEASE_SHA" =~ ^[0-9a-f]{40}$ ]]
           [[ "$NEW_IMAGE_TAG" == "sha-$RELEASE_SHA" ]]
-          [[ "$IMAGE_REGISTRY" =~ ^ghcr\.io/[a-z0-9][a-z0-9._-]*$ ]]
-          [[ "$GHCR_PULL_USER" =~ ^[a-zA-Z0-9][a-zA-Z0-9-]*$ ]]
+          [[ "$TCR_REGISTRY" == "ccr.ccs.tencentyun.com" ]]
+          [[ "$IMAGE_REGISTRY" =~ ^ccr\.ccs\.tencentyun\.com/[a-z0-9]+([._-][a-z0-9]+)*$ ]]
+          [[ "$TCR_PULL_USERNAME" =~ ^[a-zA-Z0-9][a-zA-Z0-9-]*$ ]]
 
           install -d -m 700 "$DEPLOY_TMP"
           printf '%s\n' "$DEPLOY_SSH_KEY" > "$DEPLOY_TMP/deploy_key"
@@ -182,7 +245,7 @@ jobs:
           printf '%s' "$TLS_WEBSITE_KEY_B64" | base64 --decode > "$DEPLOY_TMP/petcare-home.com.key"
           printf '%s' "$TLS_ADMIN_CERT_B64" | base64 --decode > "$DEPLOY_TMP/admin.petcare-home.com_bundle.crt"
           printf '%s' "$TLS_ADMIN_KEY_B64" | base64 --decode > "$DEPLOY_TMP/admin.petcare-home.com.key"
-          printf '%s' "$GHCR_PULL_TOKEN" > "$DEPLOY_TMP/ghcr.token"
+          printf '%s' "$TCR_PULL_PASSWORD" > "$DEPLOY_TMP/tcr-pull.password"
           {
             printf 'BACKUP_COS_SECRET_ID=%s\n' "$BACKUP_COS_SECRET_ID"
             printf 'BACKUP_COS_SECRET_KEY=%s\n' "$BACKUP_COS_SECRET_KEY"
@@ -265,7 +328,7 @@ jobs:
             "$DEPLOY_TMP/petcare-home.com.key" \
             "$DEPLOY_TMP/admin.petcare-home.com_bundle.crt" \
             "$DEPLOY_TMP/admin.petcare-home.com.key" \
-            "$DEPLOY_TMP/ghcr.token" \
+            "$DEPLOY_TMP/tcr-pull.password" \
             "$DEPLOY_TMP/petcare-backup.env" \
             "$destination:$REMOTE_TMP/"
 
@@ -273,18 +336,19 @@ jobs:
             -o UserKnownHostsFile="$DEPLOY_TMP/known_hosts" \
             -i "$DEPLOY_TMP/deploy_key" -p "$DEPLOY_PORT" \
             "$destination" bash -s -- \
-            "$REMOTE_TMP" "$TARGET" "$IMAGE_REGISTRY" "$RELEASE_SHA" \
-            "$NEW_IMAGE_TAG" "$INITIALIZE_DATA" "$GHCR_PULL_USER" <<'REMOTE'
+            "$REMOTE_TMP" "$TARGET" "$TCR_REGISTRY" "$IMAGE_REGISTRY" "$RELEASE_SHA" \
+            "$NEW_IMAGE_TAG" "$INITIALIZE_DATA" "$TCR_PULL_USERNAME" <<'REMOTE'
           set -Eeuo pipefail
           umask 077
 
           REMOTE_TMP="$1"
           TARGET="$2"
-          IMAGE_REGISTRY="$3"
-          RELEASE_SHA="$4"
-          NEW_IMAGE_TAG="$5"
-          INITIALIZE_DATA="$6"
-          GHCR_PULL_USER="$7"
+          TCR_REGISTRY="$3"
+          IMAGE_REGISTRY="$4"
+          RELEASE_SHA="$5"
+          NEW_IMAGE_TAG="$6"
+          INITIALIZE_DATA="$7"
+          TCR_PULL_USERNAME="$8"
           DOCKER_CONFIG="$REMOTE_TMP/docker-config"
 
           cleanup() {
@@ -296,16 +360,17 @@ jobs:
 
           [[ "$REMOTE_TMP" =~ ^/tmp/petcare-release-[0-9]+-[0-9]+$ ]]
           [[ "$TARGET" =~ ^(all|server|admin|website)$ ]]
-          [[ "$IMAGE_REGISTRY" =~ ^ghcr\.io/[a-z0-9][a-z0-9._-]*$ ]]
+          [[ "$TCR_REGISTRY" == "ccr.ccs.tencentyun.com" ]]
+          [[ "$IMAGE_REGISTRY" =~ ^ccr\.ccs\.tencentyun\.com/[a-z0-9]+([._-][a-z0-9]+)*$ ]]
           [[ "$RELEASE_SHA" =~ ^[0-9a-f]{40}$ ]]
           [[ "$NEW_IMAGE_TAG" == "sha-$RELEASE_SHA" ]]
           [[ "$INITIALIZE_DATA" =~ ^(true|false)$ ]]
-          [[ "$GHCR_PULL_USER" =~ ^[a-zA-Z0-9][a-zA-Z0-9-]*$ ]]
+          [[ "$TCR_PULL_USERNAME" =~ ^[a-zA-Z0-9][a-zA-Z0-9-]*$ ]]
 
           sudo install -d -o root -g root -m 700 "$DOCKER_CONFIG"
-          sudo env DOCKER_CONFIG="$DOCKER_CONFIG" docker login ghcr.io \
-            -u "$GHCR_PULL_USER" --password-stdin < "$REMOTE_TMP/ghcr.token"
-          sudo rm -f -- "$REMOTE_TMP/ghcr.token"
+          sudo env DOCKER_CONFIG="$DOCKER_CONFIG" docker login "$TCR_REGISTRY" \
+            -u "$TCR_PULL_USERNAME" --password-stdin < "$REMOTE_TMP/tcr-pull.password"
+          sudo rm -f -- "$REMOTE_TMP/tcr-pull.password"
 
           sudo -H git -C /opt/petcare fetch --prune --tags origin
           sudo -H git -C /opt/petcare cat-file -e "$RELEASE_SHA^{commit}"

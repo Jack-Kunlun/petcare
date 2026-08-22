@@ -186,9 +186,44 @@ test("部署工作流将 GitHub token 权限收敛到各 job", async () => {
 
   assert.match(workflow, /^permissions:\r?\n {2}contents: read\r?\n\r?\nconcurrency:/m);
   assert.match(resolveJob, /^ {4}permissions:\r?\n {6}actions: read\r?\n {6}contents: read\r?$/m);
-  assert.match(buildJob, /^ {4}permissions:\r?\n {6}contents: read\r?\n {6}packages: write\r?$/m);
+  assert.match(buildJob, /^ {4}permissions:\r?\n {6}contents: read\r?$/m);
+  assert.doesNotMatch(buildJob, /packages: write/);
   assert.match(deployJob, /^ {4}permissions: \{\}\r?$/m);
   assert.doesNotMatch(deployJob, /github\.token/);
+});
+
+test("TCR 推送与拉取凭据严格分离", async () => {
+  const workflow = await readFile(resolve(root, ".github/workflows/deploy.yml"), "utf8");
+  const build = workflowJobBlock(workflow, "build");
+  const runtime = workflowJobBlock(workflow, "runtime-images");
+  const deploy = workflowJobBlock(workflow, "deploy");
+
+  for (const job of [build, runtime]) {
+    assert.match(job, /environment: production/);
+    assert.match(job, /secrets\.TCR_PUSH_USERNAME/);
+    assert.match(job, /secrets\.TCR_PUSH_PASSWORD/);
+    assert.doesNotMatch(job, /TCR_PULL_/);
+  }
+  assert.match(deploy, /secrets\.TCR_PULL_USERNAME/);
+  assert.match(deploy, /secrets\.TCR_PULL_PASSWORD/);
+  assert.doesNotMatch(deploy, /TCR_PUSH_/);
+
+  assert.doesNotMatch(workflow, /ghcr\.io|GHCR_PULL_|packages: write/);
+  assert.match(workflow, /TCR_REGISTRY: \$\{\{ vars\.TCR_REGISTRY \}\}/);
+  assert.match(workflow, /TCR_NAMESPACE: \$\{\{ vars\.TCR_NAMESPACE \}\}/);
+  assert.match(workflow, /ccr\.ccs\.tencentyun\.com/);
+  assert.match(workflow, /\^\[a-z0-9\]\+\(\[\._-\]\[a-z0-9\]\+\)\*\$/);
+});
+
+test("生产部署先准备缺失的固定运行时镜像", async () => {
+  const workflow = await readFile(resolve(root, ".github/workflows/deploy.yml"), "utf8");
+
+  for (const image of ["postgres:15-alpine", "redis:7-alpine", "nginx:alpine"]) {
+    assert.ok(workflow.includes(image));
+  }
+  assert.match(workflow, /docker manifest inspect/);
+  assert.match(workflow, /manifest unknown\|no such manifest\|not found/);
+  assert.match(workflow, /needs: \[resolve, build, runtime-images\]/);
 });
 
 test("部署工作流先在受保护 runner 临时目录验证 SSH 与 TLS", async () => {
@@ -206,8 +241,8 @@ test("部署工作流先在受保护 runner 临时目录验证 SSH 与 TLS", asy
     "DEPLOY_USER",
     "DEPLOY_SSH_KEY",
     "DEPLOY_HOST_FINGERPRINT",
-    "GHCR_PULL_USER",
-    "GHCR_PULL_TOKEN",
+    "TCR_PULL_USERNAME",
+    "TCR_PULL_PASSWORD",
     "TLS_WEBSITE_CERT_B64",
     "TLS_WEBSITE_KEY_B64",
     "TLS_ADMIN_CERT_B64",
@@ -230,8 +265,8 @@ test("部署工作流先在受保护 runner 临时目录验证 SSH 与 TLS", asy
   assert.match(workflow, /ssh-keygen -lf - -E sha256/);
   assert.match(workflow, /StrictHostKeyChecking=yes/);
   assert.match(workflow, /UserKnownHostsFile="\$DEPLOY_TMP\/known_hosts"/);
-  assert.match(workflow, /GHCR_PULL_USER GHCR_PULL_TOKEN/);
-  assert.match(workflow, /\[\[ "\$GHCR_PULL_USER" =~ \^\[a-zA-Z0-9\]/);
+  assert.match(workflow, /TCR_PULL_USERNAME TCR_PULL_PASSWORD/);
+  assert.match(workflow, /\[\[ "\$TCR_PULL_USERNAME" =~ \^\[a-zA-Z0-9\]/);
   assert.doesNotMatch(workflow, /REGISTRY_USER: \$\{\{ github\.repository_owner \}\}/);
   assert.match(workflow, /if: always\(\)/);
   assert.doesNotMatch(workflow, /appleboy\/ssh-action/);
@@ -269,8 +304,11 @@ test("远端发布以 root 仓库和临时凭据完成 TLS 与 release 事务", 
 
   assert.match(workflow, /DOCKER_CONFIG="\$REMOTE_TMP\/docker-config"/);
   assert.match(workflow, /sudo env DOCKER_CONFIG="\$DOCKER_CONFIG" docker login/);
-  assert.match(workflow, /docker login ghcr\.io[\s\S]*-u "\$GHCR_PULL_USER"/);
-  assert.match(workflow, /sudo rm -f -- "\$REMOTE_TMP\/ghcr\.token"/);
+  assert.match(
+    workflow,
+    /docker login "\$TCR_REGISTRY"[\s\S]*-u "\$TCR_PULL_USERNAME" --password-stdin < "\$REMOTE_TMP\/tcr-pull\.password"/,
+  );
+  assert.match(workflow, /sudo rm -f -- "\$REMOTE_TMP\/tcr-pull\.password"/);
   assert.match(
     workflow,
     /DOCKER_CONFIG="\$DOCKER_CONFIG"[\s\S]*bash \/opt\/petcare\/scripts\/release-production\.sh/,
@@ -313,6 +351,16 @@ test("服务器初始化不依赖 GitHub、Git 或外部 Docker APT 源", async 
   }
   assert.doesNotMatch(init, /petcare-backup\.(?:service|timer)/);
   assert.doesNotMatch(init, /docker compose[^\n]*(?:up|start)/);
+});
+
+test("Miniapp 发布仍独立于 Docker、TCR 与生产服务器", async () => {
+  const workflow = await readFile(resolve(root, ".github/workflows/miniapp-release.yml"), "utf8");
+
+  assert.match(workflow, /workflow_dispatch/);
+  assert.match(workflow, /MP_UPLOAD_PRIVATE_KEY_B64/);
+  assert.match(workflow, /build:miniapp:mp-weixin/);
+  assert.match(workflow, /miniprogram-ci upload/);
+  assert.doesNotMatch(workflow, /TCR_|ccr\.ccs\.tencentyun\.com|docker|ssh|scp/);
 });
 
 test("部署 SSH 仍要求可信主机身份和受限 sudo", async () => {
