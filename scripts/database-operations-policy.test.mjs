@@ -84,7 +84,7 @@ test("数据库备份使用容器工具、校验转储并通过 Server 镜像上
   const dump = position(
     script,
     [
-      "docker compose --env-file \"$ENV_FILE\" exec -T postgres sh -lc \\",
+      'docker compose --env-file "$ENV_FILE" exec -T postgres sh -lc \\',
       '  \'exec pg_dump -U "$POSTGRES_USER" -d "$POSTGRES_DB" --format=custom\' > "$DUMP_PATH"',
     ].join("\n"),
   );
@@ -205,7 +205,7 @@ test("恢复流程要求显式对象并只写入临时数据库", async () => {
   const createDatabase = position(
     script,
     [
-      "docker compose --env-file \"$ENV_FILE\" exec -T postgres sh -lc \\",
+      'docker compose --env-file "$ENV_FILE" exec -T postgres sh -lc \\',
       '  \'createdb -U "$POSTGRES_USER" "$1"\' sh "$RESTORE_DB"',
     ].join("\n"),
   );
@@ -213,7 +213,7 @@ test("恢复流程要求显式对象并只写入临时数据库", async () => {
   const restoreDatabase = position(
     script,
     [
-      "docker compose --env-file \"$ENV_FILE\" exec -T postgres sh -lc \\",
+      'docker compose --env-file "$ENV_FILE" exec -T postgres sh -lc \\',
       '  \'pg_restore -U "$POSTGRES_USER" -d "$1" --no-owner --exit-on-error\' sh "$RESTORE_DB" < "$DUMP_PATH"',
     ].join("\n"),
   );
@@ -223,7 +223,7 @@ test("恢复流程要求显式对象并只写入临时数据库", async () => {
     script,
     [
       '  if [[ "$CREATED_DB" == true ]]; then',
-      "    docker compose --env-file \"$ENV_FILE\" exec -T postgres sh -lc \\",
+      '    docker compose --env-file "$ENV_FILE" exec -T postgres sh -lc \\',
       '      \'dropdb -U "$POSTGRES_USER" --if-exists "$1"\' sh "$RESTORE_DB" || [[ "$status" -ne 0 ]] || status=1',
       "  fi",
     ].join("\n"),
