@@ -53,8 +53,7 @@ jobs:
         shell: bash
         run: |
           set -Eeuo pipefail
-          test "$(wc -l < deploy/production-release-contract)" -eq 1
-          grep -Fxq "tcr-source-free-v1" deploy/production-release-contract
+          cmp -s <(printf '%s\n' 'tcr-source-free-v1') deploy/production-release-contract
 
       - name: 解析不可变部署参数
         id: meta

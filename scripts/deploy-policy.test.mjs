@@ -185,18 +185,19 @@ test("所选提交必须包含当前生产发布契约", async () => {
   ]);
   const resolveJob = workflowJobBlock(workflow, "resolve");
   const checkout = position(resolveJob, "ref: ${{ inputs.ref }}");
-  const lineCountGate = position(
-    resolveJob,
-    'test "$(wc -l < deploy/production-release-contract)" -eq 1',
-  );
   const markerGate = position(
     resolveJob,
-    'grep -Fxq "tcr-source-free-v1" deploy/production-release-contract',
+    "cmp -s <(printf '%s\\n' 'tcr-source-free-v1') deploy/production-release-contract",
   );
   const ciGate = position(resolveJob, "要求该提交的持续集成已成功");
 
   assert.equal(releaseContract, "tcr-source-free-v1\n");
-  assert.ok(checkout < lineCountGate && lineCountGate < markerGate && markerGate < ciGate);
+  assert.doesNotMatch(resolveJob, /test "\$\(wc -l < deploy\/production-release-contract\)" -eq 1/);
+  assert.doesNotMatch(
+    resolveJob,
+    /grep -Fxq "tcr-source-free-v1" deploy\/production-release-contract/,
+  );
+  assert.ok(checkout < markerGate && markerGate < ciGate);
 });
 
 test("部署工作流将 GitHub token 权限收敛到各 job", async () => {
