@@ -74,7 +74,9 @@ TCR_NAMESPACE=<所选全局唯一私有命名空间>
 ```
 
 保留 `DEPLOY_PORT=22` 和 production required reviewers。`deploy.yml` 接受分支、标签或 commit SHA/ref，并在构建/发布前将其
-解析为通过 `ci.yml` 验证的不可变 40 字符完整 SHA；应用镜像使用不可变 `sha-<40 位 SHA>` 标签发布。
+解析为不可变 40 字符完整 SHA。所选提交必须既通过 `ci.yml`，又包含内容严格为单行 `tcr-source-free-v1` 的
+`deploy/production-release-contract`；缺失或不匹配会在任何镜像工作前被 `resolve` 拒绝。应用镜像使用不可变
+`sha-<40 位 SHA>` 标签发布。
 
 ## 8. 配置 GitHub Environment Secrets
 
@@ -171,7 +173,46 @@ sudo rm -- /tmp/petcare-server-init.sh
 3. 选择此前成功 SHA 执行回退演练，确认应用镜像和 `current` release 恢复；数据库 migration 保持 forward-only，绝不自动回退。
 4. 执行备份与仅临时数据库的恢复演练，核对 COS 对象、加密与非零大小；不得以删除数据库 volume 代替恢复。
 5. 在以上项均成功并获得迁移验收前，保留旧 `GHCR_PULL_USER`、`GHCR_PULL_TOKEN` 和服务器 GitHub Deploy Key。
-   验收后删除服务器 GitHub Deploy Key、`GHCR_PULL_USER` 和 `GHCR_PULL_TOKEN`，再运行一次不涉及数据库的选择性发布，证明旧访问已不再需要。
+6. 只有验收后才执行以下破坏性清理；不得提前执行，不得打印私钥或凭据，也不得删除整个 `/root/.ssh` 或 `/opt/petcare`。
+7. 在 GitHub 仓库设置中删除旧 GitHub Deploy Key，并从 `production` Environment 删除旧 `GHCR_PULL_USER`、`GHCR_PULL_TOKEN` Secrets。
+8. 在服务器只删除旧 Deploy Key 的两个明确文件：
+
+   ```bash
+   sudo test ! -e /root/.ssh/petcare-readonly || sudo rm -- /root/.ssh/petcare-readonly
+   sudo test ! -e /root/.ssh/petcare-readonly.pub || sudo rm -- /root/.ssh/petcare-readonly.pub
+   ```
+
+9. `/root/.ssh/known_hosts` 不存在时跳过本步；存在时先检查其非注释行的首字段，确认它是否仍是旧流程创建的 GitHub 专用文件；
+   任何无法确认的条目都按混合文件处理：
+
+   ```bash
+   sudo awk '!/^[[:space:]]*(#|$)/ { print $1 }' /root/.ssh/known_hosts
+   ```
+
+   仅在确认全部条目都属于 `github.com`/`ssh.github.com` 后，才删除整个专用文件：
+
+   ```bash
+   sudo rm -- /root/.ssh/known_hosts
+   ```
+
+   如果文件包含其他主机或无法确认，保留文件及无关条目，只移除 GitHub 条目和 `ssh-keygen` 生成的临时备份：
+
+   ```bash
+   sudo ssh-keygen -R github.com -f /root/.ssh/known_hosts
+   sudo ssh-keygen -R "[github.com]:22" -f /root/.ssh/known_hosts
+   sudo ssh-keygen -R ssh.github.com -f /root/.ssh/known_hosts
+   sudo ssh-keygen -R "[ssh.github.com]:443" -f /root/.ssh/known_hosts
+   sudo rm -f -- /root/.ssh/known_hosts.old
+   ```
+
+10. 只删除旧仓库元数据目录并验证它已不存在：
+
+    ```bash
+    sudo test ! -e /opt/petcare/.git || sudo rm -rf -- /opt/petcare/.git
+    sudo test ! -e /opt/petcare/.git
+    ```
+
+11. 清理后以 `target=admin` 或 `target=website`、`initialize_data=false` 再运行一次不涉及数据库的选择性发布，证明旧访问已不再需要。
 
 Miniapp 始终单独使用 `miniapp-release.yml` 上传微信开发版或体验版，不构建 Docker 镜像、不进入 TCR，也不部署到 Ubuntu。
 提交审核和正式发布仍由人工在微信公众平台完成。小程序后台必须允许 CI runner 的出口 IP；GitHub-hosted runner 的 IP

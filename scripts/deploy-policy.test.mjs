@@ -178,6 +178,27 @@ test("手动部署只发布已通过 CI 的不可变所选镜像", async () => {
   assert.doesNotMatch(workflow, /sha-\$\{SHA::7\}/);
 });
 
+test("所选提交必须包含当前生产发布契约", async () => {
+  const [workflow, releaseContract] = await Promise.all([
+    readFile(resolve(root, ".github/workflows/deploy.yml"), "utf8"),
+    readFile(resolve(root, "deploy/production-release-contract"), "utf8"),
+  ]);
+  const resolveJob = workflowJobBlock(workflow, "resolve");
+  const checkout = position(resolveJob, "ref: ${{ inputs.ref }}");
+  const lineCountGate = position(
+    resolveJob,
+    'test "$(wc -l < deploy/production-release-contract)" -eq 1',
+  );
+  const markerGate = position(
+    resolveJob,
+    'grep -Fxq "tcr-source-free-v1" deploy/production-release-contract',
+  );
+  const ciGate = position(resolveJob, "要求该提交的持续集成已成功");
+
+  assert.equal(releaseContract, "tcr-source-free-v1\n");
+  assert.ok(checkout < lineCountGate && lineCountGate < markerGate && markerGate < ciGate);
+});
+
 test("部署工作流将 GitHub token 权限收敛到各 job", async () => {
   const workflow = await readFile(resolve(root, ".github/workflows/deploy.yml"), "utf8");
   const resolveJob = workflowJobBlock(workflow, "resolve");
@@ -188,7 +209,7 @@ test("部署工作流将 GitHub token 权限收敛到各 job", async () => {
   assert.match(resolveJob, /^ {4}permissions:\r?\n {6}actions: read\r?\n {6}contents: read\r?$/m);
   assert.match(buildJob, /^ {4}permissions:\r?\n {6}contents: read\r?$/m);
   assert.doesNotMatch(buildJob, /packages: write/);
-  assert.match(deployJob, /^ {4}permissions: \{\}\r?$/m);
+  assert.match(deployJob, /^ {4}permissions:\r?\n {6}contents: read\r?$/m);
   assert.doesNotMatch(deployJob, /github\.token/);
 });
 
@@ -405,9 +426,10 @@ test("部署文档完整记录 TCR 配置和迁移后清理顺序", async () => 
     "docker/README.md",
     "SECURITY-CHECKLIST.md",
   ];
-  const documents = (
-    await Promise.all(paths.map((path) => readFile(resolve(root, path), "utf8")))
-  ).join("\n");
+  const documentContents = await Promise.all(
+    paths.map((path) => readFile(resolve(root, path), "utf8")),
+  );
+  const documents = documentContents.join("\n");
 
   for (const name of [
     "TCR_REGISTRY",
@@ -426,4 +448,10 @@ test("部署文档完整记录 TCR 配置和迁移后清理顺序", async () => 
   assert.match(documents, /回退演练/);
   assert.match(documents, /删除[^\n]*GHCR_PULL_USER/);
   assert.match(documents, /删除[^\n]*GitHub Deploy Key/);
+  for (const document of [documentContents[0], documentContents[1], documentContents[3]]) {
+    assert.match(document, /验收后[\s\S]*\/root\/\.ssh\/petcare-readonly/);
+    assert.match(document, /验收后[\s\S]*\/root\/\.ssh\/petcare-readonly\.pub/);
+    assert.match(document, /验收后[\s\S]*\/root\/\.ssh\/known_hosts/);
+    assert.match(document, /验收后[\s\S]*\/opt\/petcare\/\.git/);
+  }
 });

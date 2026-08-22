@@ -269,7 +269,8 @@ Admin 的静态 Nginx 容器。网关仅代理官网页面、`/website-content/*
 
 ### 5.7 生产手动发布
 
-`deploy.yml` 接受分支、标签或 commit SHA/ref，并在构建/发布前将其解析为通过 `ci.yml` 验证的不可变 40 字符完整 SHA。GitHub
+`deploy.yml` 接受分支、标签或 commit SHA/ref，并在构建/发布前将其解析为不可变 40 字符完整 SHA。所选提交必须既通过
+`ci.yml`，又携带内容严格为单行 `tcr-source-free-v1` 的 `deploy/production-release-contract`；否则 `resolve` 会在镜像工作前拒绝它。GitHub
 `production` Environment 使用 `TCR_REGISTRY=ccr.ccs.tencentyun.com` 和已选的 `TCR_NAMESPACE`；`TCR_PUSH_*` 只供构建使用，
 `TCR_PULL_*` 只供部署使用。
 这些 Registry 用户名和密码不是 CAM `SecretId`/`SecretKey`，真实值不能写入文档、命令示例或日志。
@@ -471,11 +472,15 @@ docker compose logs server
 - 禁用 `SMS_DEV_CODE`；生产 Aliyun SMS 使用专用 RAM 身份和仅含 `dysms:SendSms` 的自定义策略，不使用 `AliyunDysmsFullAccess`；
 - Aliyun AccessKey 只保存在 root-owned、`0600` 的生产根 `.env`，不进入 Git、镜像、日志、文档示例或聊天；
 - TCR pull 密码只存在本次 runner/远端临时目录和临时 Docker config；在首次发布、第二次发布、回退演练和备份/恢复演练
-  均验收前，保留旧 `GHCR_PULL_USER`、`GHCR_PULL_TOKEN` 与服务器 GitHub Deploy Key，验收后删除 `GHCR_PULL_USER`、
-  `GHCR_PULL_TOKEN` 与服务器 GitHub Deploy Key；
+  均验收前，保留旧 `GHCR_PULL_USER`、`GHCR_PULL_TOKEN` 与服务器 GitHub Deploy Key；
+- 只有验收后才执行破坏性迁移清理：从 GitHub 仓库删除旧 Deploy Key 和两个旧 GHCR Environment Secrets；在服务器只删除
+  `/root/.ssh/petcare-readonly`、`/root/.ssh/petcare-readonly.pub`；先确认 `/root/.ssh/known_hosts` 仍为 GitHub 专用文件才可删除整个文件，
+  混合或无法确认时只用 `ssh-keygen -R` 移除 `github.com`/`ssh.github.com` 并保留无关主机；只删除 `/opt/petcare/.git`，随后运行
+  `sudo test ! -e /opt/petcare/.git`；不得打印凭据、提前清理或广泛删除 `/root/.ssh`、`/opt/petcare`；
+- 清理后以 `target=admin` 或 `target=website`、`initialize_data=false` 执行一次不涉及数据库的选择性发布；
 - 定期轮换数据库、Redis、JWT 和管理员密码；
 - 启动前执行 `docker compose config --quiet`；
-- 只部署通过完整 CI 的已保存版本或提交。
+- 只部署通过完整 CI 且携带当前 `deploy/production-release-contract` 标记的已保存版本或提交。
 
 相关文档：
 

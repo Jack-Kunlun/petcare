@@ -43,7 +43,8 @@
       `server`、`admin` 或 `website` 和 `false`。
 - [ ] 发布归档顶层只包含 `docker-compose.yml`、`docker/`、`scripts/`、`deploy/`；TCR 密码只在本次 runner/远端临时目录和临时
       Docker config 中使用，结束时清理。
-- [ ] 发布提交已成功通过 `ci.yml`，不使用 `prisma:push`；理解 migration 是 forward-only，而镜像回滚不回滚数据库。
+- [ ] 发布提交已成功通过 `ci.yml`，且 `deploy/production-release-contract` 严格为单行 `tcr-source-free-v1`；不使用
+      `prisma:push`；理解 migration 是 forward-only，而镜像回滚不回滚数据库。
 - [ ] 发布完成后验证三个 HTTP → HTTPS 重定向与以下 HTTPS 端点：官网根域、`www`、Admin、`/api/ready`。
 - [ ] Server、Admin、Website 使用独立不可变 SHA 镜像标签，`/opt/petcare/.deploy-images.env` 只在完整验证后更新。
 - [ ] 已完成首次发布、第二次成功发布、回退演练和仅临时数据库的备份/恢复演练；数据库 volume 不因故障或演练而删除。
@@ -55,7 +56,12 @@
 - [ ] 定期轮换部署 SSH key、TCR Registry 密码、TLS 证书、COS/阿里云凭据、数据库、Redis、JWT 和管理员密码。
 - [ ] CDN 只缓存版本化静态资源与公开 COS 素材，不缓存 SSR HTML 或草稿预览。
 - [ ] 小程序上传前核对 CI runner IP 白名单；上传工作流独立于 Docker、TCR 和 Ubuntu，只创建开发/体验版，审核和正式发布在微信公众平台人工完成。
-- [ ] 迁移验收前保留旧 `GHCR_PULL_USER`、`GHCR_PULL_TOKEN` 和服务器 GitHub Deploy Key；验收后删除 `GHCR_PULL_USER`、
-      `GHCR_PULL_TOKEN` 与服务器 GitHub Deploy Key，并以一次不涉及数据库的选择性发布证明旧访问已不再需要。
+- [ ] 迁移验收前保留旧 `GHCR_PULL_USER`、`GHCR_PULL_TOKEN` 和服务器 GitHub Deploy Key；只有验收后才执行破坏性清理：从 GitHub
+      仓库删除旧 Deploy Key 和两个旧 GHCR Environment Secrets，在服务器只删除 `/root/.ssh/petcare-readonly`、
+      `/root/.ssh/petcare-readonly.pub`；不得打印凭据、提前清理或删除整个 `/root/.ssh`、`/opt/petcare`。
+- [ ] 清理 `/root/.ssh/known_hosts` 前已确认它是否仍为 GitHub 专用文件；专用文件才整体删除，混合或无法确认时只用
+      `ssh-keygen -R` 删除 `github.com`/`ssh.github.com` 条目并保留无关主机。
+- [ ] 只删除旧仓库元数据 `/opt/petcare/.git`，随后 `sudo test ! -e /opt/petcare/.git` 成功；清理后已以
+      `target=admin` 或 `target=website`、`initialize_data=false` 完成一次不涉及数据库的选择性发布。
 
 本地 HTTP 地址和 `docker-compose.dev.yml` 仅用于可丢弃的开发诊断，不能通过它们代替生产 HTTPS 发布。

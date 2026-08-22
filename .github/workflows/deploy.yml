@@ -49,6 +49,13 @@ jobs:
           fetch-depth: 0
           ref: ${{ inputs.ref }}
 
+      - name: 要求提交包含当前 TCR 发布契约
+        shell: bash
+        run: |
+          set -Eeuo pipefail
+          test "$(wc -l < deploy/production-release-contract)" -eq 1
+          grep -Fxq "tcr-source-free-v1" deploy/production-release-contract
+
       - name: 解析不可变部署参数
         id: meta
         shell: bash
@@ -182,7 +189,8 @@ jobs:
     name: 发布到生产环境
     needs: [resolve, build, runtime-images]
     runs-on: ubuntu-latest
-    permissions: {}
+    permissions:
+      contents: read
     environment: production
     env:
       DEPLOY_TMP: ${{ runner.temp }}/petcare-deploy-${{ github.run_id }}-${{ github.run_attempt }}
