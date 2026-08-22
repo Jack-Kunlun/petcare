@@ -73,8 +73,8 @@ TCR_REGISTRY=ccr.ccs.tencentyun.com
 TCR_NAMESPACE=<所选全局唯一私有命名空间>
 ```
 
-保留 `DEPLOY_PORT=22` 和 production required reviewers。`deploy.yml` 只接受已通过 `ci.yml` 的完整提交 SHA，并用
-不可变 `sha-<40 位 SHA>` 标签发布应用镜像。
+保留 `DEPLOY_PORT=22` 和 production required reviewers。`deploy.yml` 接受分支、标签或 commit SHA/ref，并在构建/发布前将其
+解析为通过 `ci.yml` 验证的不可变 40 字符完整 SHA；应用镜像使用不可变 `sha-<40 位 SHA>` 标签发布。
 
 ## 8. 配置 GitHub Environment Secrets
 
@@ -129,9 +129,9 @@ chmod 440 "/etc/sudoers.d/$DEPLOY_USER"
 visudo -cf "/etc/sudoers.d/$DEPLOY_USER"
 ```
 
-使用已有的、由 `DEPLOY_HOST_FINGERPRINT` 固定的 SSH 连接传输 `scripts/server-init.sh`，然后以 root 运行它。初始化脚本
-仅使用已配置的 Ubuntu APT 源安装 Docker 与 Compose v2，并要求 `docker compose version` 成功；它创建持久目录和根 `.env`，
-不会获取仓库、不克隆代码、不会启动应用。服务器布局为：
+使用已有的、由 `DEPLOY_HOST_FINGERPRINT` 固定的 SSH 连接将 `scripts/server-init.sh` 传输为
+`/tmp/petcare-server-init.sh`，然后以 root 运行它。初始化脚本仅使用已配置的 Ubuntu APT 源安装 Docker 与 Compose v2，
+并要求 `docker compose version` 成功；它创建持久目录和根 `.env`，不会获取仓库、不克隆代码、不会启动应用。服务器布局为：
 
 ```text
 /opt/petcare/
@@ -146,6 +146,22 @@ visudo -cf "/etc/sudoers.d/$DEPLOY_USER"
 `/opt/petcare/current` 始终指向不可变 release；`.env`、`.deploy-images.env`、`certs`、`logs` 和 PostgreSQL/Redis named volumes
 都在 release 之外持久保存。发布归档允许的顶层内容只有 `docker-compose.yml`、`docker/`、`scripts/`、`deploy/`。
 
+### 9.1 首次发布前完成 `.env`
+
+首次 workflow dispatch 前，必须使用 `sudoedit /opt/petcare/.env` 安全补全所有必需生产字段，包括 WeChat 和 Aliyun SMS 值；
+不得打印、回显或粘贴任何凭据。只核验 `.env` 元数据：
+
+```bash
+sudo stat -c '%U:%G %a' /opt/petcare/.env
+# 预期输出：root:root 600
+```
+
+确认初始化成功且 `.env` 已补全后，才删除已传输的初始化脚本：
+
+```bash
+sudo rm -- /tmp/petcare-server-init.sh
+```
+
 ## 10. 首次发布、演练与迁移收尾
 
 按以下顺序运行：
@@ -154,10 +170,8 @@ visudo -cf "/etc/sudoers.d/$DEPLOY_USER"
 2. 触发第二次成功发布：`target=all`、`initialize_data=false`，确认不可变镜像状态和 `current` release 已更新。
 3. 选择此前成功 SHA 执行回退演练，确认应用镜像和 `current` release 恢复；数据库 migration 保持 forward-only，绝不自动回退。
 4. 执行备份与仅临时数据库的恢复演练，核对 COS 对象、加密与非零大小；不得以删除数据库 volume 代替恢复。
-5. 在以上项均成功并获得迁移验收前，保留旧 `GHCR_PULL_USER`、`GHCR_PULL_TOKEN` 和服务器 GitHub Deploy Key；验收后删除
-   `GHCR_PULL_USER`、`GHCR_PULL_TOKEN` 和服务器 GitHub Deploy Key，再运行一次不涉及数据库的选择性发布，证明旧访问已不再需要。
-
-迁移验收后删除 GHCR_PULL_USER、GHCR_PULL_TOKEN 和服务器 GitHub Deploy Key。
+5. 在以上项均成功并获得迁移验收前，保留旧 `GHCR_PULL_USER`、`GHCR_PULL_TOKEN` 和服务器 GitHub Deploy Key。
+   验收后删除服务器 GitHub Deploy Key、`GHCR_PULL_USER` 和 `GHCR_PULL_TOKEN`，再运行一次不涉及数据库的选择性发布，证明旧访问已不再需要。
 
 Miniapp 始终单独使用 `miniapp-release.yml` 上传微信开发版或体验版，不构建 Docker 镜像、不进入 TCR，也不部署到 Ubuntu。
 提交审核和正式发布仍由人工在微信公众平台完成。小程序后台必须允许 CI runner 的出口 IP；GitHub-hosted runner 的 IP

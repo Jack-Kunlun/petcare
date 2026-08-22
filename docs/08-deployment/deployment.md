@@ -269,8 +269,9 @@ Admin 的静态 Nginx 容器。网关仅代理官网页面、`/website-content/*
 
 ### 5.7 生产手动发布
 
-`deploy.yml` 仅接受已通过 `ci.yml` 的完整提交 SHA。GitHub `production` Environment 使用
-`TCR_REGISTRY=ccr.ccs.tencentyun.com` 和已选的 `TCR_NAMESPACE`；`TCR_PUSH_*` 只供构建使用，`TCR_PULL_*` 只供部署使用。
+`deploy.yml` 接受分支、标签或 commit SHA/ref，并在构建/发布前将其解析为通过 `ci.yml` 验证的不可变 40 字符完整 SHA。GitHub
+`production` Environment 使用 `TCR_REGISTRY=ccr.ccs.tencentyun.com` 和已选的 `TCR_NAMESPACE`；`TCR_PUSH_*` 只供构建使用，
+`TCR_PULL_*` 只供部署使用。
 这些 Registry 用户名和密码不是 CAM `SecretId`/`SecretKey`，真实值不能写入文档、命令示例或日志。
 
 TCR 命名空间必须预先拥有六个私有仓库：`server`、`admin`、`website`、`postgres`、`redis`、`nginx`。应用使用不可变完整 SHA
