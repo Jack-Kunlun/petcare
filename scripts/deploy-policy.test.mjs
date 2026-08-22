@@ -43,10 +43,17 @@ test("生产发布只在完整验证后原子保存可回退的镜像状态", as
 
   assert.match(script, /^set -Eeuo pipefail$/m);
   assert.match(script, /^umask 077$/m);
+  assert.match(script, /^ROOT_DIR="\/opt\/petcare"$/m);
+  assert.match(script, /^RELEASE_DIR="\$ROOT_DIR\/current"$/m);
+  assert.match(script, /^ENV_FILE="\$ROOT_DIR\/\.env"$/m);
+  assert.match(script, /^STATE_FILE="\$ROOT_DIR\/\.deploy-images\.env"$/m);
+  assert.match(script, /^cd "\$RELEASE_DIR"$/m);
+  assert.match(script, /docker compose --env-file "\$ENV_FILE"/);
   assert.match(
     script,
     /^STATE_KEYS=\(IMAGE_REGISTRY SERVER_IMAGE_TAG ADMIN_IMAGE_TAG WEBSITE_IMAGE_TAG\)$/m,
   );
+  assert.match(script, /^INFRA_SERVICES=\(postgres redis website-gateway edge-gateway\)$/m);
   assert.match(script, /parse_state_file\(\) \{/);
   assert.match(script, /local -A seen=\(\)/);
   assert.match(script, /for key in "\$\{STATE_KEYS\[@\]\}"; do/);
@@ -74,18 +81,22 @@ test("生产发布只在完整验证后原子保存可回退的镜像状态", as
     script,
     /website\)[\s\S]*?APP_SERVICES=\(website\)[\s\S]*?RESTART_SERVICES=\(website-gateway\)/,
   );
+  assert.match(
+    script,
+    /HAD_STATE" == false[\s\S]*TARGET" == all[\s\S]*pull "\$\{INFRA_SERVICES\[@\]\}"/,
+  );
 
   const cleanup = position(script, "trap cleanup EXIT");
   const candidate = position(
     script,
-    'CANDIDATE_STATE="$(mktemp "$INSTALL_DIR/.deploy-images.XXXXXX")"',
+    'CANDIDATE_STATE="$(mktemp "$ROOT_DIR/.deploy-images.XXXXXX")"',
   );
   const candidateMode = position(script, 'chmod 600 "$CANDIDATE_STATE"');
   const initializeGuard = position(
     script,
     'if [[ "$INITIALIZE_DATA" == true && ( "$HAD_STATE" != false || "$APPLICATION_TABLES" != 0 ) ]]; then',
   );
-  const backup = position(script, "scripts/database-backup.sh");
+  const backup = position(script, '"$RELEASE_DIR/scripts/database-backup.sh"');
   const migrate = position(script, "prisma:migrate:deploy");
   const wait = lastPosition(script, "--wait-timeout 180");
   const httpSmoke = position(script, "http://$host/");
@@ -110,7 +121,7 @@ test("生产发布只在完整验证后原子保存可回退的镜像状态", as
   assert.match(script, /initialize_data=true 仅允许首次空库部署/);
   assert.match(
     script,
-    /BACKUP_RUNNER_IMAGE="\$IMAGE_REGISTRY\/server:\$SERVER_IMAGE_TAG" scripts\/database-backup\.sh/,
+    /BACKUP_RUNNER_IMAGE="\$IMAGE_REGISTRY\/server:\$SERVER_IMAGE_TAG" \\\n\s+"\$RELEASE_DIR\/scripts\/database-backup\.sh"/,
   );
   assert.match(script, /INITIALIZE_DATA.*true[\s\S]*TARGET.*all[\s\S]*prisma:seed/);
   assert.doesNotMatch(script, /prisma:push|prisma db push/);

@@ -7,9 +7,12 @@ IMAGE_REGISTRY="${IMAGE_REGISTRY:?IMAGE_REGISTRY is required}"
 RELEASE_SHA="${RELEASE_SHA:?RELEASE_SHA is required}"
 NEW_IMAGE_TAG="${NEW_IMAGE_TAG:?NEW_IMAGE_TAG is required}"
 INITIALIZE_DATA="${INITIALIZE_DATA:-false}"
-INSTALL_DIR="/opt/petcare"
-STATE_FILE="$INSTALL_DIR/.deploy-images.env"
+ROOT_DIR="/opt/petcare"
+RELEASE_DIR="$ROOT_DIR/current"
+ENV_FILE="$ROOT_DIR/.env"
+STATE_FILE="$ROOT_DIR/.deploy-images.env"
 STATE_KEYS=(IMAGE_REGISTRY SERVER_IMAGE_TAG ADMIN_IMAGE_TAG WEBSITE_IMAGE_TAG)
+INFRA_SERVICES=(postgres redis website-gateway edge-gateway)
 HAD_STATE=false
 DEPLOYMENT_STARTED=false
 STATE_PERSISTED=false
@@ -43,8 +46,8 @@ on_error() {
     ADMIN_IMAGE_TAG="$OLD_ADMIN_IMAGE_TAG"
     WEBSITE_IMAGE_TAG="$OLD_WEBSITE_IMAGE_TAG"
     export IMAGE_REGISTRY SERVER_IMAGE_TAG ADMIN_IMAGE_TAG WEBSITE_IMAGE_TAG
-    docker compose --env-file .env up -d --no-build "${APP_SERVICES[@]}" "${RESTART_SERVICES[@]}"
-    docker compose --env-file .env restart "${RESTART_SERVICES[@]}"
+    docker compose --env-file "$ENV_FILE" up -d --no-build "${APP_SERVICES[@]}" "${RESTART_SERVICES[@]}"
+    docker compose --env-file "$ENV_FILE" restart "${RESTART_SERVICES[@]}"
     printf '%s\n' "应用镜像回滚已尝试；数据库 migration 未回滚（forward-only）。" >&2
   fi
 
@@ -127,8 +130,8 @@ if [[ "$INITIALIZE_DATA" == true && "$TARGET" != all ]]; then
   exit 1
 fi
 
-cd "$INSTALL_DIR"
-test -r .env
+cd "$RELEASE_DIR"
+test -r "$ENV_FILE"
 
 if [[ -e "$STATE_FILE" ]]; then
   [[ -f "$STATE_FILE" && -r "$STATE_FILE" ]] || {
@@ -184,7 +187,7 @@ case "$TARGET" in
     ;;
 esac
 
-CANDIDATE_STATE="$(mktemp "$INSTALL_DIR/.deploy-images.XXXXXX")"
+CANDIDATE_STATE="$(mktemp "$ROOT_DIR/.deploy-images.XXXXXX")"
 chmod 600 "$CANDIDATE_STATE"
 printf '%s\n' \
   "IMAGE_REGISTRY=$IMAGE_REGISTRY" \
@@ -193,13 +196,16 @@ printf '%s\n' \
   "WEBSITE_IMAGE_TAG=$WEBSITE_IMAGE_TAG" > "$CANDIDATE_STATE"
 export IMAGE_REGISTRY SERVER_IMAGE_TAG ADMIN_IMAGE_TAG WEBSITE_IMAGE_TAG
 
-docker compose --env-file .env config --quiet
+docker compose --env-file "$ENV_FILE" config --quiet
 DEPLOYMENT_STARTED=true
-docker compose --env-file .env pull "${APP_SERVICES[@]}"
-docker compose --env-file .env up -d --no-build --wait --wait-timeout 180 postgres redis
+docker compose --env-file "$ENV_FILE" pull "${APP_SERVICES[@]}"
+if [[ "$HAD_STATE" == false && "$TARGET" == all ]]; then
+  docker compose --env-file "$ENV_FILE" pull "${INFRA_SERVICES[@]}"
+fi
+docker compose --env-file "$ENV_FILE" up -d --no-build --wait --wait-timeout 180 postgres redis
 
 if [[ "$TARGET" == all || "$TARGET" == server ]]; then
-  APPLICATION_TABLES="$(docker compose --env-file .env exec -T postgres sh -lc \
+  APPLICATION_TABLES="$(docker compose --env-file "$ENV_FILE" exec -T postgres sh -lc \
     'psql -U "$POSTGRES_USER" -d "$POSTGRES_DB" -Atc "SELECT COUNT(*) FROM information_schema.tables WHERE table_schema NOT IN ('\''pg_catalog'\'', '\''information_schema'\'');"')"
   [[ "$APPLICATION_TABLES" =~ ^[0-9]+$ ]] || {
     echo "无法确认数据库表数量" >&2
@@ -212,21 +218,22 @@ if [[ "$TARGET" == all || "$TARGET" == server ]]; then
   if [[ "$HAD_STATE" == false && "$APPLICATION_TABLES" == 0 ]]; then
     echo "首次部署确认数据库为空，跳过无历史意义的备份"
   else
-    BACKUP_RUNNER_IMAGE="$IMAGE_REGISTRY/server:$SERVER_IMAGE_TAG" scripts/database-backup.sh
+    BACKUP_RUNNER_IMAGE="$IMAGE_REGISTRY/server:$SERVER_IMAGE_TAG" \
+      "$RELEASE_DIR/scripts/database-backup.sh"
   fi
 
   echo "数据库 migration 为 forward-only，失败时不会自动回滚。"
-  docker compose --env-file .env run --rm --no-deps server \
+  docker compose --env-file "$ENV_FILE" run --rm --no-deps server \
     pnpm --filter @petcare/server prisma:migrate:deploy
   if [[ "$INITIALIZE_DATA" == true ]]; then
-    docker compose --env-file .env run --rm --no-deps server \
+    docker compose --env-file "$ENV_FILE" run --rm --no-deps server \
       pnpm --filter @petcare/server prisma:seed
   fi
 fi
 
-docker compose --env-file .env up -d --no-build "${APP_SERVICES[@]}" "${RESTART_SERVICES[@]}"
-docker compose --env-file .env restart "${RESTART_SERVICES[@]}"
-docker compose --env-file .env up -d --no-build --wait --wait-timeout 180 "${CHECK_SERVICES[@]}"
+docker compose --env-file "$ENV_FILE" up -d --no-build "${APP_SERVICES[@]}" "${RESTART_SERVICES[@]}"
+docker compose --env-file "$ENV_FILE" restart "${RESTART_SERVICES[@]}"
+docker compose --env-file "$ENV_FILE" up -d --no-build --wait --wait-timeout 180 "${CHECK_SERVICES[@]}"
 
 for host in petcare-home.com www.petcare-home.com admin.petcare-home.com; do
   redirect="$(curl --silent --show-error --head --max-redirs 0 --proto '=http' --connect-timeout 10 --max-time 30 --output /dev/null --write-out '%{http_code} %{redirect_url}' "http://$host/")"
