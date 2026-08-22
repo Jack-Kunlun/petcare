@@ -66,6 +66,7 @@ test("Miniapp contains only the minimal PetCare UniApp shell", async () => {
     "@vue/tsconfig",
     "eslint",
     "miniprogram-api-typings",
+    "miniprogram-ci",
     "sass",
     "typescript",
     "unocss",
