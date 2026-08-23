@@ -16,9 +16,24 @@ const profileStats: { value: string; label: string; route?: string }[] = [
 ];
 
 const contentItems = [
-  { icon: "/static/main/favorite.svg", label: "我的收藏", detail: "文章、动态与服务" },
-  { icon: "/static/main/follow.svg", label: "我的关注", detail: "8 位养宠伙伴" },
-  { icon: "/static/main/review.svg", label: "我的评价", detail: "信用评价与服务反馈" },
+  {
+    icon: "/static/main/favorite.svg",
+    label: "我的收藏",
+    detail: "文章、动态与服务",
+    route: "/pages-account/favorites/index",
+  },
+  {
+    icon: "/static/main/follow.svg",
+    label: "我的关注",
+    detail: "8 位养宠伙伴",
+    route: "/pages-account/follows/index",
+  },
+  {
+    icon: "/static/main/review.svg",
+    label: "我的评价",
+    detail: "信用评价与服务反馈",
+    route: "/pages-account/reviews/index",
+  },
 ] as const;
 
 const supportItems = [
@@ -162,6 +177,8 @@ function openPage(route: string) {
           :key="item.label"
           class="flex items-center gap-copy px-action py-action"
           :class="index < contentItems.length - 1 ? 'border-b border-divider' : ''"
+          hover-class="opacity-80"
+          @click="openPage(item.route)"
         >
           <view
             class="h-icon w-icon flex shrink-0 items-center justify-center rounded-control bg-soft"
@@ -172,6 +189,7 @@ function openPage(route: string) {
             <text class="text-body text-ink font-medium leading-label">{{ item.label }}</text>
             <text class="mt-caption quiet-text">{{ item.detail }}</text>
           </view>
+          <image class="h-icon-xs w-icon-xs" src="/static/main/chevron.svg" mode="aspectFit" />
         </view>
       </view>
 

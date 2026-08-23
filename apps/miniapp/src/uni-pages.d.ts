@@ -22,6 +22,13 @@ type _LocationUrl =
   "/pages-account/pets/index" |
   "/pages-account/pets/form" |
   "/pages-account/pets/detail" |
+  "/pages-account/favorites/index" |
+  "/pages-account/follows/index" |
+  "/pages-account/reviews/index" |
+  "/pages-account/services/detail" |
+  "/pages-account/caregivers/detail" |
+  "/pages-account/stores/detail" |
+  "/pages-account/creators/detail" |
   "/pages-account/profile/info" |
   "/pages-account/profile/edit";
 

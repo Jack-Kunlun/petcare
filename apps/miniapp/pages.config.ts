@@ -28,9 +28,20 @@ export default defineUniPages({
     },
     {
       root: "pages-account",
-      pages: ["pets/index", "pets/form", "pets/detail", "profile/info", "profile/edit"].map(
-        createPage,
-      ),
+      pages: [
+        "pets/index",
+        "pets/form",
+        "pets/detail",
+        "favorites/index",
+        "follows/index",
+        "reviews/index",
+        "services/detail",
+        "caregivers/detail",
+        "stores/detail",
+        "creators/detail",
+        "profile/info",
+        "profile/edit",
+      ].map(createPage),
     },
   ],
   globalStyle: {

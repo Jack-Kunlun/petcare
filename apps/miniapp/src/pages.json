@@ -156,6 +156,55 @@
           }
         },
         {
+          "path": "favorites/index",
+          "style": {
+            "navigationBarTextStyle": "black",
+            "navigationStyle": "custom"
+          }
+        },
+        {
+          "path": "follows/index",
+          "style": {
+            "navigationBarTextStyle": "black",
+            "navigationStyle": "custom"
+          }
+        },
+        {
+          "path": "reviews/index",
+          "style": {
+            "navigationBarTextStyle": "black",
+            "navigationStyle": "custom"
+          }
+        },
+        {
+          "path": "services/detail",
+          "style": {
+            "navigationBarTextStyle": "black",
+            "navigationStyle": "custom"
+          }
+        },
+        {
+          "path": "caregivers/detail",
+          "style": {
+            "navigationBarTextStyle": "black",
+            "navigationStyle": "custom"
+          }
+        },
+        {
+          "path": "stores/detail",
+          "style": {
+            "navigationBarTextStyle": "black",
+            "navigationStyle": "custom"
+          }
+        },
+        {
+          "path": "creators/detail",
+          "style": {
+            "navigationBarTextStyle": "black",
+            "navigationStyle": "custom"
+          }
+        },
+        {
           "path": "profile/info",
           "style": {
             "navigationBarTextStyle": "black",
