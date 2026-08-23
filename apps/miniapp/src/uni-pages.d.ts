@@ -30,7 +30,13 @@ type _LocationUrl =
   "/pages-account/stores/detail" |
   "/pages-account/creators/detail" |
   "/pages-account/profile/info" |
-  "/pages-account/profile/edit";
+  "/pages-account/profile/edit" |
+  "/pages-content/classroom/article" |
+  "/pages-content/community/article" |
+  "/pages-content/coupons/index" |
+  "/pages-content/wallet/index" |
+  "/pages-content/help/index" |
+  "/pages-content/contact/index";
 
 interface NavigateToOptions {
   url: _LocationUrl;

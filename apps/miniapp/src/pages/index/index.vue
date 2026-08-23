@@ -51,14 +51,28 @@ function openReward(id: string) {
   uni.navigateTo({ url: `/pages-bounty/reward/detail?id=${encodeURIComponent(id)}` });
 }
 
+function openClassroomArticle(id: string) {
+  uni.navigateTo({ url: `/pages-content/classroom/article?id=${encodeURIComponent(id)}` });
+}
+
+function openCommunityArticle(id: string) {
+  uni.navigateTo({ url: `/pages-content/community/article?id=${encodeURIComponent(id)}` });
+}
+
+function openBountyTab() {
+  uni.switchTab({ url: "/pages/bounty/index" });
+}
+
 const classroomArticles = [
   {
+    id: "article-1",
     image: "/static/main/community-pet-4.jpg",
     tag: "日常护理",
     title: "换季掉毛别焦虑，做好这 4 件事就够了",
     reads: "2.4k 阅读",
   },
   {
+    id: "article-2",
     image: "/static/main/community-pet-5.jpg",
     tag: "科学喂养",
     title: "幼犬第一次换粮，如何平稳度过适应期？",
@@ -99,12 +113,16 @@ const classroomArticles = [
           src="/static/main/home-hero-trusted.png"
           mode="aspectFill"
         />
-        <view class="absolute left-action top-card flex flex-col gap-sm" style="width: 54%">
+        <view class="absolute left-action top-card w-hero-copy flex flex-col gap-sm">
           <text class="text-amount text-ink font-semibold leading-section">专业照护，就在身边</text>
           <text class="text-caption text-muted leading-caption"
             >实名认证照护者，让每次托付更安心</text
           >
-          <view class="mt-caption self-start rounded-pill bg-brand px-copy py-compact">
+          <view
+            class="mt-caption self-start rounded-pill bg-brand px-copy py-compact"
+            hover-class="opacity-80"
+            @click="openBountyTab"
+          >
             <text class="text-caption text-surface font-medium leading-caption">立即发现</text>
           </view>
         </view>
@@ -173,7 +191,13 @@ const classroomArticles = [
 
       <view class="mt-section flex items-center justify-between px-action">
         <text class="section-heading">附近热门悬赏</text>
-        <text class="text-caption text-brand leading-caption">更多</text>
+        <text
+          class="text-caption text-brand leading-caption"
+          hover-class="opacity-80"
+          @click="openBountyTab"
+        >
+          更多
+        </text>
       </view>
 
       <scroll-view class="mt-copy w-full" scroll-x :show-scrollbar="false">
@@ -209,7 +233,13 @@ const classroomArticles = [
 
       <view class="mt-section flex items-center justify-between px-action">
         <text class="section-heading">养宠小课堂</text>
-        <text class="text-caption text-brand leading-caption">全部文章</text>
+        <text
+          class="text-caption text-brand leading-caption"
+          hover-class="opacity-80"
+          @click="openClassroomArticle('article-1')"
+        >
+          全部文章
+        </text>
       </view>
 
       <view class="mx-action mt-copy flex flex-col gap-copy">
@@ -217,6 +247,8 @@ const classroomArticles = [
           v-for="article in classroomArticles"
           :key="article.title"
           class="flex gap-copy main-card p-copy"
+          hover-class="opacity-80"
+          @click="openClassroomArticle(article.id)"
         >
           <image
             class="h-card-cover w-card-cover shrink-0 rounded-control"
@@ -236,7 +268,11 @@ const classroomArticles = [
       <view class="mt-section px-action">
         <text class="section-heading">社区精选</text>
       </view>
-      <view class="mx-action mt-copy overflow-hidden main-card">
+      <view
+        class="mx-action mt-copy overflow-hidden main-card"
+        hover-class="opacity-80"
+        @click="openCommunityArticle('post-1')"
+      >
         <image
           class="h-hero-main w-full"
           src="/static/main/community-pet-2.jpg"

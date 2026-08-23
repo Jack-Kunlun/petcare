@@ -17,12 +17,14 @@ const items: FavoriteItem[] = [
     title: "换季掉毛别焦虑，做好这 4 件事就够了",
     detail: "日常护理 · 2.4k 阅读",
     image: "/static/main/community-pet-4.jpg",
+    route: "/pages-content/classroom/article?id=article-1",
   },
   {
     kind: "动态",
     title: "第一次带旺财参加宠物友好市集",
     detail: "小林与旺财 · 286 赞",
     image: "/static/main/community-pet-2.jpg",
+    route: "/pages-content/community/article?id=post-1",
   },
   {
     kind: "服务",

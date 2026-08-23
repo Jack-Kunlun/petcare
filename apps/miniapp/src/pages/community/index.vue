@@ -12,6 +12,7 @@ const channelTabs = ["社区精选", "养宠小课堂", "附近动态"] as const
 
 const posts = [
   {
+    id: "post-1",
     avatar: "/static/main/owner-1.jpg",
     author: "小林与旺财",
     detail: "静安区 · 12分钟前",
@@ -22,6 +23,7 @@ const posts = [
     comments: "42",
   },
   {
+    id: "post-2",
     avatar: "/static/main/owner-5.jpg",
     author: "栗子妈妈",
     detail: "长宁区 · 35分钟前",
@@ -32,6 +34,7 @@ const posts = [
     comments: "31",
   },
   {
+    id: "post-3",
     avatar: "/static/main/owner-4.jpg",
     author: "阿哲和团子",
     detail: "普陀区 · 1小时前",
@@ -42,6 +45,10 @@ const posts = [
     comments: "18",
   },
 ] as const;
+
+function openCommunityArticle(id: string) {
+  uni.navigateTo({ url: `/pages-content/community/article?id=${encodeURIComponent(id)}` });
+}
 </script>
 
 <template>
@@ -106,24 +113,38 @@ const posts = [
                 <text class="quiet-text">{{ post.detail }}</text>
               </view>
             </view>
-            <view class="border border-brand rounded-pill px-copy py-caption">
+            <view
+              class="border border-brand rounded-pill px-copy py-caption opacity-50"
+              aria-disabled="true"
+            >
               <text class="text-caption text-brand font-medium leading-caption">关注</text>
             </view>
           </view>
 
-          <view class="px-action pb-copy">
+          <view
+            class="px-action pb-copy"
+            hover-class="opacity-80"
+            @click="openCommunityArticle(post.id)"
+          >
             <text class="text-body text-ink leading-body">{{ post.text }}</text>
           </view>
 
-          <view class="relative mx-action h-hero-main overflow-hidden rounded-control">
+          <view
+            class="relative mx-action h-hero-main overflow-hidden rounded-control"
+            hover-class="opacity-80"
+            @click="openCommunityArticle(post.id)"
+          >
             <image class="h-full w-full" :src="post.image" mode="aspectFill" />
             <view class="absolute bottom-sm left-sm rounded-pill bg-ink px-sm py-caption">
               <text class="text-caption text-surface leading-caption">{{ post.tag }}</text>
             </view>
           </view>
 
-          <view class="mt-copy flex items-center border-t border-divider px-action py-copy">
-            <view class="flex flex-1 items-center gap-sm">
+          <view
+            class="mt-copy flex items-center border-t border-divider px-action py-copy opacity-50"
+            aria-disabled="true"
+          >
+            <view class="h-control flex flex-1 items-center gap-sm">
               <image
                 class="h-icon-sm w-icon-sm"
                 src="/static/main/community-like.svg"
@@ -131,7 +152,7 @@ const posts = [
               />
               <text class="text-caption text-muted leading-caption">{{ post.likes }}</text>
             </view>
-            <view class="flex flex-1 items-center justify-center gap-sm">
+            <view class="h-control flex flex-1 items-center justify-center gap-sm">
               <image
                 class="h-icon-sm w-icon-sm"
                 src="/static/main/community-comment.svg"
@@ -139,7 +160,7 @@ const posts = [
               />
               <text class="text-caption text-muted leading-caption">{{ post.comments }}</text>
             </view>
-            <view class="flex flex-1 items-center justify-end gap-sm">
+            <view class="h-control flex flex-1 items-center justify-end gap-sm">
               <image
                 class="h-icon-sm w-icon-sm"
                 src="/static/main/community-share.svg"
@@ -154,8 +175,9 @@ const posts = [
 
     <template #floating>
       <view
-        class="pointer-events-auto h-fab w-fab flex items-center justify-center rounded-full bg-brand shadow-float"
+        class="h-fab w-fab flex items-center justify-center rounded-full bg-brand opacity-50 shadow-float"
         aria-label="发布动态"
+        aria-disabled="true"
       >
         <image class="h-glyph w-glyph" src="/static/main/plus.svg" mode="aspectFit" />
       </view>

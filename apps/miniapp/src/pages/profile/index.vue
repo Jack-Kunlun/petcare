@@ -11,8 +11,8 @@ definePage({
 const profileStats: { value: string; label: string; route?: string }[] = [
   { value: "12笔", label: "我的订单", route: "/pages-care/orders/index" },
   { value: "2只", label: "我的宠物", route: "/pages-account/pets/index" },
-  { value: "3张", label: "优惠券" },
-  { value: "856元", label: "余额收入" },
+  { value: "3张", label: "优惠券", route: "/pages-content/coupons/index" },
+  { value: "856元", label: "余额收入", route: "/pages-content/wallet/index" },
 ];
 
 const contentItems = [
@@ -37,8 +37,18 @@ const contentItems = [
 ] as const;
 
 const supportItems = [
-  { icon: "/static/main/help.svg", label: "帮助中心", detail: "常见问题与使用指南" },
-  { icon: "/static/main/customer.svg", label: "联系客服", detail: "工作日 09:00–20:00" },
+  {
+    icon: "/static/main/help.svg",
+    label: "帮助中心",
+    detail: "常见问题与使用指南",
+    route: "/pages-content/help/index",
+  },
+  {
+    icon: "/static/main/customer.svg",
+    label: "联系客服",
+    detail: "工作日 09:00–20:00",
+    route: "/pages-content/contact/index",
+  },
 ] as const;
 
 function openStat(route?: string) {
@@ -202,6 +212,8 @@ function openPage(route: string) {
           :key="item.label"
           class="flex items-center gap-copy px-action py-action"
           :class="index < supportItems.length - 1 ? 'border-b border-divider' : ''"
+          hover-class="opacity-80"
+          @click="openPage(item.route)"
         >
           <view
             class="h-icon w-icon flex shrink-0 items-center justify-center rounded-control bg-divider"
@@ -212,6 +224,7 @@ function openPage(route: string) {
             <text class="text-body text-ink font-medium leading-label">{{ item.label }}</text>
             <text class="mt-caption quiet-text">{{ item.detail }}</text>
           </view>
+          <image class="h-icon-xs w-icon-xs" src="/static/main/chevron.svg" mode="aspectFit" />
         </view>
       </view>
 

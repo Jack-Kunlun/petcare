@@ -2,6 +2,7 @@
 import { useSlots } from "vue";
 import { getMainLayoutTop } from "./main-tab-layout";
 import { getSubPageBottom } from "./sub-page-layout";
+import { miniappDesignTokens } from "@/config/design-tokens";
 
 defineProps<{ title: string }>();
 
@@ -17,6 +18,7 @@ menuButton = uni.getMenuButtonBoundingClientRect();
 
 const safeAreaTop = getMainLayoutTop(windowInfo, menuButton);
 const safeAreaBottom = getSubPageBottom(windowInfo);
+const actionPadding = Number.parseFloat(miniappDesignTokens.spacing.copy);
 
 function goBack() {
   uni.navigateBack();
@@ -52,7 +54,7 @@ function goBack() {
     <view
       v-if="slots.actions"
       class="shrink-0 border-t border-divider bg-surface px-action pt-copy"
-      :style="{ paddingBottom: `${safeAreaBottom + 12}px` }"
+      :style="{ paddingBottom: `${safeAreaBottom + actionPadding}px` }"
     >
       <slot name="actions" />
     </view>

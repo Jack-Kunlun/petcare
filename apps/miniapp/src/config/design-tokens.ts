@@ -56,6 +56,7 @@ export const miniappDesignTokens = {
     "hero-main": "176px",
     hero: "240px",
     "hero-image": "530px",
+    "hero-copy": "54%",
     "logo-width": "99px",
     "logo-height": "78px",
     commitments: "72px",

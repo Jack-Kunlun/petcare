@@ -5,9 +5,9 @@ import SubPageLayout from "@/components/SubPageLayout.vue";
 
 const creatorId = ref("creator-1");
 const articles = [
-  "换季梳毛的四个关键动作",
-  "猫咪第一次寄养前要准备什么",
-  "如何观察宠物的饮水变化",
+  { id: "article-1", title: "换季梳毛的四个关键动作" },
+  { id: "article-2", title: "猫咪第一次寄养前要准备什么" },
+  { id: "article-3", title: "如何观察宠物的饮水变化" },
 ] as const;
 
 onLoad((query = {}) => {
@@ -15,6 +15,10 @@ onLoad((query = {}) => {
     creatorId.value = query.id;
   }
 });
+
+function openArticle(id: string) {
+  uni.navigateTo({ url: `/pages-content/classroom/article?id=${encodeURIComponent(id)}` });
+}
 </script>
 
 <template>
@@ -69,9 +73,10 @@ onLoad((query = {}) => {
         <view class="mt-copy flex flex-col gap-sm">
           <view
             v-for="article in articles"
-            :key="article"
-            class="flex items-center gap-copy rounded-control bg-divider p-copy opacity-50"
-            aria-disabled="true"
+            :key="article.id"
+            class="flex items-center gap-copy rounded-control bg-divider p-copy"
+            hover-class="opacity-80"
+            @click="openArticle(article.id)"
           >
             <image
               class="h-mini-cover w-mini-cover rounded-control"
@@ -79,8 +84,8 @@ onLoad((query = {}) => {
               mode="aspectFill"
             />
             <view class="min-w-0 flex flex-1 flex-col">
-              <text class="text-body text-ink font-medium leading-label">{{ article }}</text>
-              <text class="mt-caption quiet-text">文章详情将在内容页完成后开放</text>
+              <text class="text-body text-ink font-medium leading-label">{{ article.title }}</text>
+              <text class="mt-caption quiet-text">查看文章详情</text>
             </view>
           </view>
         </view>

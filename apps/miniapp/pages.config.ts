@@ -43,6 +43,17 @@ export default defineUniPages({
         "profile/edit",
       ].map(createPage),
     },
+    {
+      root: "pages-content",
+      pages: [
+        "classroom/article",
+        "community/article",
+        "coupons/index",
+        "wallet/index",
+        "help/index",
+        "contact/index",
+      ].map(createPage),
+    },
   ],
   globalStyle: {
     navigationBarTitleText: "PetCare",
