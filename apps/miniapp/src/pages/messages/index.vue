@@ -1,4 +1,5 @@
 <script setup lang="ts">
+import { getMessageTarget } from "./message-route";
 import MainTabLayout from "@/components/MainTabLayout.vue";
 
 definePage({
@@ -9,6 +10,8 @@ definePage({
 });
 
 interface MessageItem {
+  id: string;
+  kind: "system" | "order" | "interaction";
   title: string;
   preview: string;
   time: string;
@@ -23,6 +26,8 @@ const categoryTabs = ["全部", "系统通知", "订单消息", "互动消息"] 
 
 const messages: MessageItem[] = [
   {
+    id: "user-1",
+    kind: "interaction",
     title: "小林",
     preview: "好的，我大概 14:00 到达，到时先联系你。",
     time: "10:32",
@@ -30,6 +35,8 @@ const messages: MessageItem[] = [
     badge: 2,
   },
   {
+    id: "order-1",
+    kind: "order",
     title: "订单已被接单",
     preview: "照护者小林已接下咪咪的上门喂养服务。",
     time: "09:48",
@@ -38,6 +45,8 @@ const messages: MessageItem[] = [
     unread: true,
   },
   {
+    id: "order-1",
+    kind: "order",
     title: "照护者已到达",
     preview: "服务进行中，照护记录会实时同步给你。",
     time: "进行中",
@@ -46,12 +55,16 @@ const messages: MessageItem[] = [
     unread: true,
   },
   {
+    id: "user-3",
+    kind: "interaction",
     title: "小萌评论了你的动态",
     preview: "“旺财也太可爱了，下次一起去呀！”",
     time: "08:16",
     avatar: "/static/main/owner-3.jpg",
   },
   {
+    id: "notice-1",
+    kind: "system",
     title: "服务提醒",
     preview: "你预约的遛狗服务将在明天 09:00 开始。",
     time: "昨天",
@@ -59,6 +72,8 @@ const messages: MessageItem[] = [
     tone: "bg-warning-soft",
   },
   {
+    id: "notice-2",
+    kind: "system",
     title: "收到新的赞",
     preview: "栗子妈妈等 8 人赞了你的社区动态。",
     time: "昨天",
@@ -66,6 +81,14 @@ const messages: MessageItem[] = [
     tone: "bg-danger-soft",
   },
 ];
+
+function openMessage(item: MessageItem) {
+  const target = getMessageTarget(item.kind, item.id);
+
+  if (target) {
+    uni.navigateTo({ url: target });
+  }
+}
 </script>
 
 <template>
@@ -102,6 +125,8 @@ const messages: MessageItem[] = [
           :key="item.title"
           class="relative flex gap-copy px-action py-action"
           :class="index < messages.length - 1 ? 'border-b border-divider' : ''"
+          :hover-class="item.kind === 'system' ? 'none' : 'opacity-80'"
+          @click="openMessage(item)"
         >
           <image
             v-if="item.avatar"

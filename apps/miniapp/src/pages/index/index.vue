@@ -10,6 +10,7 @@ definePage({
 
 const bountyCards = [
   {
+    id: "reward-2",
     image: "/static/main/community-pet-2.jpg",
     pet: "旺财 · 金毛",
     service: "周末遛狗 · 2次",
@@ -17,6 +18,7 @@ const bountyCards = [
     price: "¥68/次",
   },
   {
+    id: "reward-1",
     image: "/static/main/community-pet-1.jpg",
     pet: "咪咪 · 英短",
     service: "上门喂养 · 今天",
@@ -24,6 +26,7 @@ const bountyCards = [
     price: "¥58/次",
   },
   {
+    id: "reward-3",
     image: "/static/main/community-pet-3.jpg",
     pet: "团团 · 布偶",
     service: "上门梳毛 · 明天",
@@ -31,6 +34,22 @@ const bountyCards = [
     price: "¥80/次",
   },
 ] as const;
+
+function openOrders() {
+  uni.navigateTo({ url: "/pages-care/orders/index" });
+}
+
+function openOrder() {
+  uni.navigateTo({ url: "/pages-care/order/detail?id=order-1" });
+}
+
+function openChat() {
+  uni.navigateTo({ url: "/pages-care/chat/index?userId=caregiver-1" });
+}
+
+function openReward(id: string) {
+  uni.navigateTo({ url: `/pages-bounty/reward/detail?id=${encodeURIComponent(id)}` });
+}
 
 const classroomArticles = [
   {
@@ -98,7 +117,7 @@ const classroomArticles = [
 
       <view class="mt-card flex items-center justify-between px-action">
         <text class="section-heading">我的服务</text>
-        <view class="flex items-center gap-caption">
+        <view class="flex items-center gap-caption" hover-class="opacity-80" @click="openOrders">
           <text class="text-caption text-brand leading-caption">查看全部</text>
           <image
             class="h-icon-xs w-icon-xs"
@@ -137,10 +156,16 @@ const classroomArticles = [
         <view class="mt-action flex gap-copy">
           <view
             class="h-segment flex flex-1 items-center justify-center border border-border rounded-control bg-surface"
+            hover-class="opacity-80"
+            @click="openChat"
           >
             <text class="text-body text-muted font-medium leading-label">联系照护者</text>
           </view>
-          <view class="h-segment flex flex-1 items-center justify-center rounded-control bg-brand">
+          <view
+            class="h-segment flex flex-1 items-center justify-center rounded-control bg-brand"
+            hover-class="opacity-80"
+            @click="openOrder"
+          >
             <text class="text-body text-surface font-medium leading-label">查看服务记录</text>
           </view>
         </view>
@@ -157,6 +182,8 @@ const classroomArticles = [
             v-for="item in bountyCards"
             :key="item.pet"
             class="w-feed-card shrink-0 main-card p-copy"
+            hover-class="opacity-80"
+            @click="openReward(item.id)"
           >
             <view class="flex gap-copy">
               <image

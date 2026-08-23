@@ -12,6 +12,10 @@ onLoad((query = {}) => {
     rewardId.value = query.id;
   }
 });
+
+function openOwnerChat() {
+  uni.navigateTo({ url: "/pages-care/chat/index?userId=owner-1" });
+}
 </script>
 
 <template>
@@ -89,10 +93,11 @@ onLoad((query = {}) => {
     <template #actions>
       <view class="flex gap-copy">
         <view
-          class="h-button flex flex-1 items-center justify-center border border-border rounded-control bg-divider opacity-50"
-          aria-disabled="true"
+          class="h-button flex flex-1 items-center justify-center border border-brand rounded-control bg-surface"
+          hover-class="opacity-80"
+          @click="openOwnerChat"
         >
-          <text class="text-body text-muted font-medium leading-label">联系发布者</text>
+          <text class="text-body text-brand font-medium leading-label">联系发布者</text>
         </view>
         <view
           class="h-button flex flex-1 items-center justify-center rounded-control bg-brand opacity-50"

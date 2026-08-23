@@ -8,12 +8,12 @@ definePage({
   },
 });
 
-const profileStats = [
-  { value: "12笔", label: "我的订单" },
+const profileStats: { value: string; label: string; route?: string }[] = [
+  { value: "12笔", label: "我的订单", route: "/pages-care/orders/index" },
   { value: "2只", label: "我的宠物" },
   { value: "3张", label: "优惠券" },
   { value: "856元", label: "余额收入" },
-] as const;
+];
 
 const contentItems = [
   { icon: "/static/main/favorite.svg", label: "我的收藏", detail: "文章、动态与服务" },
@@ -26,6 +26,12 @@ const supportItems = [
   { icon: "/static/main/customer.svg", label: "联系客服", detail: "工作日 09:00–20:00" },
   { icon: "/static/main/about.svg", label: "关于我们", detail: "PetCare v2.0.0" },
 ] as const;
+
+function openStat(route?: string) {
+  if (route) {
+    uni.navigateTo({ url: route });
+  }
+}
 </script>
 
 <template>
@@ -75,6 +81,8 @@ const supportItems = [
           :key="stat.label"
           class="flex flex-1 flex-col items-center gap-caption"
           :class="index < profileStats.length - 1 ? 'border-r border-divider' : ''"
+          :hover-class="stat.route ? 'opacity-80' : 'none'"
+          @click="openStat(stat.route)"
         >
           <text class="text-card text-ink font-semibold leading-card">{{ stat.value }}</text>
           <text class="quiet-text">{{ stat.label }}</text>
