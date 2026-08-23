@@ -30,6 +30,15 @@ export default defineConfig({
     borderRadius: miniappDesignTokens.radii,
     fontSize: miniappDesignTokens.fontSizes,
     lineHeight: miniappDesignTokens.lineHeights,
+    boxShadow: miniappDesignTokens.shadows,
+  },
+  shortcuts: {
+    "main-card": "rounded-card bg-surface shadow-card",
+    "page-heading": "text-page text-ink font-semibold leading-page",
+    "section-heading": "text-section text-ink font-semibold leading-section",
+    "card-heading": "text-card text-ink font-semibold leading-card",
+    "meta-text": "text-small text-muted leading-small",
+    "quiet-text": "text-caption text-subtle leading-caption",
   },
   transformers: [transformerDirectives(), transformerVariantGroup()],
 });
