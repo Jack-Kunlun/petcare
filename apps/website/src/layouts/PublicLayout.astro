@@ -1,5 +1,6 @@
 ---
 import type { WebsitePublicContent, WebsitePublicContentSection } from "@petcare/shared-types";
+import PageSections from "../components/PageSections.astro";
 import SectionRenderer from "../components/sections/SectionRenderer.astro";
 import { isRenderablePublicSection } from "./layout-section";
 import "../styles/global.css";
@@ -20,9 +21,6 @@ const shellSections: WebsitePublicContentSection[] = (shell.sections as unknown[
 const pageSections = page.sections.filter(isRenderablePublicSection);
 const header = shellSections.find((section) => section.sectionType === "site_header");
 const footer = shellSections.find((section) => section.sectionType === "site_footer");
-const pageHeadingSectionKey = pageSections.find(
-  (section) => section.sectionType === "hero" || section.sectionType === "rich_text",
-)?.sectionKey;
 const canonical = new URL(page.seo.canonicalPath, publicUrl).toString();
 const ogImage = page.seo.image?.asset?.url;
 ---
@@ -38,7 +36,10 @@ const ogImage = page.seo.image?.asset?.url;
     <meta property="og:title" content={page.seo.title} />
     <meta property="og:description" content={page.seo.description} />
     <meta property="og:url" content={canonical} />
+    <meta property="og:type" content="website" />
+    <meta property="og:locale" content="zh_CN" />
     {ogImage ? <meta property="og:image" content={ogImage} /> : null}
+    <meta name="theme-color" content="#ffffff" />
     <title>{page.seo.title}</title>
   </head>
   <body>
@@ -55,14 +56,7 @@ const ogImage = page.seo.image?.asset?.url;
       )
     }
     <main id="main-content">
-      {
-        pageSections.map((section) => (
-          <SectionRenderer
-            section={section}
-            isPageHeading={section.sectionKey === pageHeadingSectionKey}
-          />
-        ))
-      }
+      <PageSections contentKey={page.contentKey} sections={pageSections} />
     </main>
     {
       footer ? (

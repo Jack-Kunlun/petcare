@@ -1,5 +1,9 @@
 ---
-import { WEBSITE_SECTION_TYPE, type WebsitePublicContentSection } from "@petcare/shared-types";
+import {
+  WEBSITE_SECTION_TYPE,
+  type WebsiteContentKey,
+  type WebsitePublicContentSection,
+} from "@petcare/shared-types";
 import SiteFooter from "../SiteFooter.astro";
 import SiteHeader from "../SiteHeader.astro";
 import ContactPanelSection from "./ContactPanelSection.astro";
@@ -21,9 +25,11 @@ interface Props {
   isPageHeading?: boolean;
   /** Marks site-shell rendering on preview pages. */
   preview?: boolean;
+  /** Fixed page identity used only for code-owned presentation variants. */
+  pageKey?: WebsiteContentKey;
 }
 
-const { section, isPageHeading = false, preview = false } = Astro.props;
+const { section, isPageHeading = false, preview = false, pageKey } = Astro.props;
 assertRenderableSection(section);
 ---
 
@@ -35,7 +41,13 @@ assertRenderableSection(section);
       case WEBSITE_SECTION_TYPE.SITE_FOOTER:
         return <SiteFooter section={section as WebsitePublicSiteFooterSection} />;
       case WEBSITE_SECTION_TYPE.HERO:
-        return <HeroSection section={section} isPageHeading={isPageHeading} />;
+        return (
+          <HeroSection
+            section={section}
+            isPageHeading={isPageHeading}
+            showProductPreview={pageKey === "home"}
+          />
+        );
       case WEBSITE_SECTION_TYPE.TRUST_GRID:
         return <TrustGridSection section={section} />;
       case WEBSITE_SECTION_TYPE.FEATURE_SPLIT:

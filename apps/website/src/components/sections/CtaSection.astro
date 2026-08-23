@@ -20,6 +20,7 @@ const secondaryHref = section.content.secondaryAction
     `cta-section--${section.settings.tone}`,
     section.settings.alignment === "center" && "section--centered",
   ]}
+  data-section-key={section.sectionKey}
 >
   <div class="content-container">
     <h2>{section.content.title}</h2>

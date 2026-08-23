@@ -12,28 +12,32 @@ interface Props {
 const { section, preview = false } = Astro.props;
 const { action, brandLabel, navigation } = section.content;
 const headerClass = section.settings.sticky ? "site-header site-header--sticky" : "site-header";
+const currentPath = Astro.url.pathname;
+const isCurrent = (href: string) =>
+  href === "/" ? currentPath === href : currentPath === href || currentPath.startsWith(`${href}/`);
 ---
 
-<header class={headerClass} data-preview={preview ? "true" : undefined}>
+<header class={headerClass} data-preview={preview ? "true" : undefined} data-site-header>
   <div class="site-header__inner">
     <a class="site-header__brand" href="/" aria-label={brandLabel}>
-      <img src="/brand/petcare-symbol-color.svg" width="36" height="36" alt="" />
+      <img src="/brand/petcare-symbol-color.svg" width="32" height="32" alt="" />
       <span>{brandLabel}</span>
     </a>
     <button
       class="site-header__menu-button"
       type="button"
+      aria-label="打开导航"
       aria-expanded="false"
       aria-controls="site-navigation"
       data-site-menu-button
     >
-      <span class="sr-only">Open navigation</span>
-      <span aria-hidden="true">Menu</span>
+      <span class="sr-only" data-site-menu-label>打开导航</span>
+      <span class="site-header__menu-icon" aria-hidden="true"><i></i><i></i><i></i></span>
     </button>
     <nav
       id="site-navigation"
       class="site-header__navigation"
-      aria-label="Primary navigation"
+      aria-label="主导航"
       data-site-navigation
     >
       <ul>
@@ -43,7 +47,9 @@ const headerClass = section.settings.sticky ? "site-header site-header--sticky" 
 
             return href ? (
               <li>
-                <a href={href}>{item.label}</a>
+                <a href={href} aria-current={isCurrent(href) ? "page" : undefined}>
+                  {item.label}
+                </a>
               </li>
             ) : null;
           })
@@ -55,7 +61,11 @@ const headerClass = section.settings.sticky ? "site-header site-header--sticky" 
               const href = getSafeWebsiteHref(action.href);
 
               return href ? (
-                <a class="button button--compact" href={href}>
+                <a
+                  class="button button--compact"
+                  href={href}
+                  aria-current={isCurrent(href) ? "page" : undefined}
+                >
                   {action.label}
                 </a>
               ) : null;
@@ -69,11 +79,33 @@ const headerClass = section.settings.sticky ? "site-header site-header--sticky" 
 <script>
   const button = document.querySelector<HTMLButtonElement>("[data-site-menu-button]");
   const navigation = document.querySelector<HTMLElement>("[data-site-navigation]");
+  const label = button?.querySelector<HTMLElement>("[data-site-menu-label]");
+
+  const setOpen = (open: boolean) => {
+    button?.setAttribute("aria-expanded", String(open));
+    button?.setAttribute("aria-label", open ? "关闭导航" : "打开导航");
+
+    if (label) {
+      label.textContent = open ? "关闭导航" : "打开导航";
+    }
+
+    navigation?.toggleAttribute("data-open", open);
+  };
 
   button?.addEventListener("click", () => {
-    const expanded = button.getAttribute("aria-expanded") === "true";
+    setOpen(button.getAttribute("aria-expanded") !== "true");
+  });
 
-    button.setAttribute("aria-expanded", String(!expanded));
-    navigation?.toggleAttribute("data-open", !expanded);
+  navigation?.querySelectorAll("a").forEach((link) => {
+    link.addEventListener("click", () => setOpen(false));
+  });
+
+  document.addEventListener("keydown", (event) => {
+    if (event.key !== "Escape" || button?.getAttribute("aria-expanded") !== "true") {
+      return;
+    }
+
+    setOpen(false);
+    button?.focus();
   });
 </script>

@@ -1,5 +1,5 @@
 ---
-import SectionRenderer from "../components/sections/SectionRenderer.astro";
+import PageSections from "../components/PageSections.astro";
 import type { WebsitePreviewContent } from "../lib/api";
 import { isRenderablePublicSection } from "./layout-section";
 import "../styles/global.css";
@@ -11,9 +11,6 @@ interface Props {
 
 const { page } = Astro.props;
 const sections = page.sections.filter(isRenderablePublicSection);
-const pageHeadingSectionKey = sections.find(
-  (section) => section.sectionType === "hero" || section.sectionType === "rich_text",
-)?.sectionKey;
 ---
 
 <!doctype html>
@@ -30,15 +27,7 @@ const pageHeadingSectionKey = sections.find(
       Draft preview: this version is not published.
     </aside>
     <main id="main-content">
-      {
-        sections.map((section) => (
-          <SectionRenderer
-            section={section}
-            isPageHeading={section.sectionKey === pageHeadingSectionKey}
-            preview
-          />
-        ))
-      }
+      <PageSections contentKey={page.contentKey} sections={sections} preview />
     </main>
   </body>
 </html>

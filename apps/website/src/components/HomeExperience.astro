@@ -1,0 +1,248 @@
+---
+const services = [
+  {
+    number: "01",
+    title: "上门喂养",
+    description: "按约定完成喂食、换水与环境整理，让熟悉的家仍是它最安心的地方。",
+    image: "/brand/pet-life-feeding.jpg",
+    alt: "猫咪在家中进食",
+  },
+  {
+    number: "02",
+    title: "上门遛狗",
+    description: "根据宠物习惯完成外出活动，并把关键过程清楚记录下来。",
+    image: "/brand/pet-life-walking.jpg",
+    alt: "照护者在社区内遛狗",
+  },
+  {
+    number: "03",
+    title: "陪伴玩耍",
+    description: "用合适的互动与观察，认真回应宠物独处时的陪伴需要。",
+    image: "/brand/pet-life-playing.jpg",
+    alt: "两只狗在户外轻松玩耍",
+  },
+] as const;
+
+const serviceJourney = [
+  ["01", "发布需求", "说明时间、地点与照护要求"],
+  ["02", "匹配宠托师", "查看资料、能力与评价记录"],
+  ["03", "上门服务", "按订单约定与 SOP 完成照护"],
+  ["04", "查看记录", "了解时间、步骤与服务媒体"],
+  ["05", "完成评价", "留下真实反馈，沉淀长期信任"],
+] as const;
+
+const sopRecords = [
+  ["14:02", "进门消毒"],
+  ["14:06", "拍照打卡"],
+  ["14:12", "执行服务"],
+  ["14:36", "清理现场"],
+  ["14:42", "离开拍照"],
+] as const;
+
+const trustDetails = [
+  ["身份与资料", "查看宠托师身份认证、服务资料与历史评价。"],
+  ["标准与记录", "服务步骤、时间、图片与视频共同形成照护证据。"],
+  ["沟通与状态", "围绕订单持续沟通，并清楚了解当前服务进度。"],
+  ["评价与申诉", "服务完成后可以评价；发生争议时有明确处理路径。"],
+] as const;
+
+const communityStories = [
+  {
+    category: "宠物日常",
+    title: "那些让普通一天变得柔软的小事",
+    image: "/brand/pet-life-resting.jpg",
+    alt: "小狗安静地躺在沙发上休息",
+  },
+  {
+    category: "养宠经验",
+    title: "从状态观察开始，读懂它今天的需要",
+    image: "/brand/pet-life-grooming.jpg",
+    alt: "主人在家中为猫咪梳理毛发",
+  },
+  {
+    category: "陪伴故事",
+    title: "认真相处，是服务之外更长久的连接",
+    image: "/brand/pet-life-playing.jpg",
+    alt: "两只狗在户外自在互动",
+  },
+] as const;
+---
+
+<section class="home-services" aria-labelledby="home-services-title">
+  <div class="content-container">
+    <header class="section-heading section-heading--split">
+      <div>
+        <p class="eyebrow">日常照护服务</p>
+        <h2 id="home-services-title">从一顿饭，到一段认真陪伴</h2>
+      </div>
+      <div>
+        <p>
+          PetCare
+          围绕真实养宠场景提供上门喂养、遛狗与陪玩服务，让熟悉的环境、清楚的要求和可查看的过程一起降低托付的不确定。
+        </p>
+        <a class="text-link" href="/services">了解服务模式 <span aria-hidden="true">→</span></a>
+      </div>
+    </header>
+    <div class="home-services__grid">
+      {
+        services.map((service) => (
+          <article class="service-story">
+            <img src={service.image} width="512" height="512" alt={service.alt} loading="lazy" />
+            <div class="service-story__copy">
+              <span aria-hidden="true">{service.number}</span>
+              <h3>{service.title}</h3>
+              <p>{service.description}</p>
+            </div>
+          </article>
+        ))
+      }
+    </div>
+  </div>
+</section>
+
+<section class="service-journey-section" aria-labelledby="service-journey-title">
+  <div class="content-container">
+    <header class="section-heading">
+      <p class="eyebrow">标准服务流程</p>
+      <h2 id="service-journey-title">每一步都清楚，托付才更安心</h2>
+      <p>从提出需要到留下评价，关键动作有明确顺序，也有可以回看的服务记录。</p>
+    </header>
+    <ol class="service-journey">
+      {
+        serviceJourney.map(([number, title, description]) => (
+          <li>
+            <span class="service-journey__number">{number}</span>
+            <h3>{title}</h3>
+            <p>{description}</p>
+          </li>
+        ))
+      }
+    </ol>
+  </div>
+</section>
+
+<section class="service-record-section" aria-labelledby="service-record-title">
+  <div class="content-container service-record-section__inner">
+    <figure class="service-record-demo" aria-labelledby="service-record-demo-title">
+      <div class="service-record-demo__topbar">
+        <img src="/brand/petcare-symbol-color.svg" width="28" height="28" alt="" />
+        <div>
+          <p id="service-record-demo-title">今日上门喂养</p>
+          <span>服务进行中</span>
+        </div>
+        <span class="service-record-demo__progress">3 / 5</span>
+      </div>
+      <ol class="service-record-demo__timeline">
+        {
+          sopRecords.map(([time, label], index) => (
+            <li class:list={[index < 3 && "is-complete", index === 2 && "is-current"]}>
+              <span class="service-record-demo__dot" aria-hidden="true" />
+              <time>{time}</time>
+              <strong>{label}</strong>
+              <span>{index < 3 ? "已记录" : "待完成"}</span>
+            </li>
+          ))
+        }
+      </ol>
+      <div class="service-record-demo__media" aria-label="已上传的服务照片">
+        <img
+          src="/brand/pet-life-feeding.jpg"
+          width="512"
+          height="512"
+          alt="猫咪进食记录"
+          loading="lazy"
+        />
+        <img
+          src="/brand/pet-life-grooming.jpg"
+          width="512"
+          height="512"
+          alt="猫咪状态记录"
+          loading="lazy"
+        />
+        <div aria-hidden="true">+3</div>
+      </div>
+    </figure>
+    <div class="service-record-section__copy">
+      <p class="eyebrow">照护记录</p>
+      <h2 id="service-record-title">不在家，也知道它今天过得怎么样</h2>
+      <p class="section-description">
+        服务不是一句「已经照顾好了」。PetCare
+        用标准步骤串起时间、图片、视频与服务反馈，让主人看见每一次认真完成的照护。
+      </p>
+      <ul class="evidence-list">
+        <li><strong>过程可见</strong><span>关键步骤按顺序留下记录</span></li>
+        <li><strong>信息可查</strong><span>时间与服务媒体共同说明结果</span></li>
+        <li><strong>异常可反馈</strong><span>发现问题时进入清楚的沟通与处理路径</span></li>
+      </ul>
+      <a class="text-link" href="/trust">了解信任保障 <span aria-hidden="true">→</span></a>
+    </div>
+  </div>
+</section>
+
+<section class="safety-section" aria-labelledby="safety-title">
+  <div class="content-container safety-section__inner">
+    <header class="section-heading">
+      <p class="eyebrow">信任体系</p>
+      <h2 id="safety-title">真正的安心，来自可以验证的细节</h2>
+      <p>不使用空泛口号。把身份、标准、过程和反馈放在用户需要判断的位置。</p>
+      <a class="text-link" href="/trust">查看完整保障说明 <span aria-hidden="true">→</span></a>
+    </header>
+    <ol class="safety-details">
+      {
+        trustDetails.map(([title, description], index) => (
+          <li>
+            <span aria-hidden="true">{String(index + 1).padStart(2, "0")}</span>
+            <div>
+              <h3>{title}</h3>
+              <p>{description}</p>
+            </div>
+          </li>
+        ))
+      }
+    </ol>
+  </div>
+</section>
+
+<section class="community-preview" aria-labelledby="community-preview-title">
+  <div class="content-container">
+    <header class="section-heading section-heading--split">
+      <div>
+        <p class="eyebrow">宠物生活</p>
+        <h2 id="community-preview-title">这里不只有服务，还有认真爱宠物的人</h2>
+      </div>
+      <div>
+        <p>从日常相处到照护经验，让真实内容帮助更多宠物家庭做出更安心的选择。</p>
+        <a class="text-link" href="/articles">阅读宠物课堂 <span aria-hidden="true">→</span></a>
+      </div>
+    </header>
+    <div class="community-preview__grid">
+      {
+        communityStories.map((story) => (
+          <article class="community-story">
+            <img src={story.image} width="512" height="512" alt={story.alt} loading="lazy" />
+            <p>{story.category}</p>
+            <h3>{story.title}</h3>
+          </article>
+        ))
+      }
+    </div>
+  </div>
+</section>
+
+<section class="brand-story-section" aria-labelledby="brand-story-title">
+  <img
+    class="brand-story-section__image"
+    src="/brand/hero-community-companion-desktop-v1.webp"
+    width="1920"
+    height="720"
+    alt="猫和狗在自然光下安心相伴"
+    loading="lazy"
+  />
+  <div class="content-container brand-story-section__inner">
+    <div>
+      <p class="eyebrow">陪伴每一次托付</p>
+      <h2 id="brand-story-title">因为它是家人，所以每一次托付都值得被认真对待。</h2>
+      <p>专业不是冰冷的流程，而是把关心变成清楚、稳定、可以被验证的行动。</p>
+    </div>
+  </div>
+</section>

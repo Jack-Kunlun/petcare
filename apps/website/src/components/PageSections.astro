@@ -1,0 +1,43 @@
+---
+import {
+  WEBSITE_CONTENT_KEY,
+  type WebsiteContentKey,
+  type WebsitePublicContentSection,
+} from "@petcare/shared-types";
+import HomeExperience from "./HomeExperience.astro";
+import SectionRenderer from "./sections/SectionRenderer.astro";
+
+interface Props {
+  /** Fixed content identity that owns this ordered section snapshot. */
+  contentKey: WebsiteContentKey;
+  /** Server-validated public sections in published template order. */
+  sections: WebsitePublicContentSection[];
+  /** Marks capability-scoped draft rendering. */
+  preview?: boolean;
+}
+
+const { contentKey, sections, preview = false } = Astro.props;
+const pageHeadingSectionKey = sections.find(
+  (section) => section.sectionType === "hero" || section.sectionType === "rich_text",
+)?.sectionKey;
+const isHomePage = contentKey === WEBSITE_CONTENT_KEY.HOME;
+const homeCta = isHomePage
+  ? sections.find((section) => section.sectionKey === "home_cta")
+  : undefined;
+const leadingSections = homeCta
+  ? sections.filter((section) => section.sectionKey !== homeCta.sectionKey)
+  : sections;
+---
+
+{
+  leadingSections.map((section) => (
+    <SectionRenderer
+      section={section}
+      pageKey={contentKey}
+      isPageHeading={section.sectionKey === pageHeadingSectionKey}
+      preview={preview}
+    />
+  ))
+}
+{isHomePage ? <HomeExperience /> : null}
+{homeCta ? <SectionRenderer section={homeCta} pageKey={contentKey} preview={preview} /> : null}

@@ -7,40 +7,40 @@ interface Props {
   section: WebsitePublicHeroSection;
   /** Renders the sole page heading when true. */
   isPageHeading?: boolean;
+  /** Adds the homepage-only product proof without changing persisted content. */
+  showProductPreview?: boolean;
 }
 
-const { section, isPageHeading = false } = Astro.props;
+const { section, isPageHeading = false, showProductPreview = false } = Astro.props;
 const image = getPublicImage(section.content.image.asset, "hero");
 const usesFallbackImage = !hasPublicImage(section.content.image.asset);
 const Heading = isPageHeading ? "h1" : "h2";
 const hasBackgroundImage = section.settings.imagePosition === "background";
 const alignment = section.settings.alignment === "center" ? "section--centered" : "";
+const positionClass = `hero-section--image-${section.settings.imagePosition}`;
+const actions = [section.content.primaryAction, section.content.secondaryAction];
 ---
 
-<section class:list={["hero-section", alignment, hasBackgroundImage && "hero-section--background"]}>
-  <div class="hero-section__inner">
-    <div class="hero-section__content">
-      {section.content.eyebrow ? <p class="eyebrow">{section.content.eyebrow}</p> : null}
-      <Heading>{section.content.title}</Heading>
-      <p class="hero-section__description">{section.content.description}</p>
-      <div class="section-actions">
-        {
-          [section.content.primaryAction, section.content.secondaryAction].map((action, index) => {
-            if (!action) return null;
-            const href = getSafeWebsiteHref(action.href);
-
-            return href ? (
-              <a class:list={["button", index === 1 && "button--secondary"]} href={href}>
-                {action.label}
-              </a>
-            ) : null;
-          })
-        }
-      </div>
-    </div>
-    {
+<section
+  class:list={[
+    "hero-section",
+    alignment,
+    positionClass,
+    hasBackgroundImage && "hero-section--background",
+    showProductPreview && "hero-section--home",
+  ]}
+>
+  {
+    hasBackgroundImage ? (
       usesFallbackImage ? (
-        <picture class="hero-section__media">
+        <picture class="hero-section__background-media">
+          <source
+            media="(max-width: 48rem)"
+            srcset="/brand/hero-trusted-care-miniapp-v1.webp"
+            width="750"
+            height="340"
+            type="image/webp"
+          />
           <source srcset="/brand/hero-trusted-care-desktop-v1.webp" type="image/webp" />
           <img
             src="/brand/hero-trusted-care-desktop-v1.png"
@@ -53,7 +53,7 @@ const alignment = section.settings.alignment === "center" ? "section--centered" 
         </picture>
       ) : (
         <img
-          class="hero-section__media"
+          class="hero-section__background-media"
           src={image.src}
           width={image.width}
           height={image.height}
@@ -62,6 +62,111 @@ const alignment = section.settings.alignment === "center" ? "section--centered" 
           fetchpriority="high"
         />
       )
+    ) : null
+  }
+  <div class="hero-section__inner">
+    <div class="hero-section__content">
+      {section.content.eyebrow ? <p class="eyebrow">{section.content.eyebrow}</p> : null}
+      <Heading>{section.content.title}</Heading>
+      <p class="hero-section__description">{section.content.description}</p>
+      <div class="section-actions">
+        {
+          actions.map((action, index) => {
+            if (!action) return null;
+            const href = getSafeWebsiteHref(action.href);
+
+            return href ? (
+              <a class:list={["button", index === 1 && "button--secondary"]} href={href}>
+                {action.label}
+              </a>
+            ) : null;
+          })
+        }
+      </div>
+      {
+        showProductPreview ? (
+          <p class="hero-section__trust-line">
+            <span>身份认证</span>
+            <span>标准服务流程</span>
+            <span>过程记录</span>
+            <span>评价与申诉</span>
+          </p>
+        ) : null
+      }
+    </div>
+    {
+      !hasBackgroundImage ? (
+        <div class="hero-section__visual">
+          {usesFallbackImage ? (
+            <picture class="hero-section__media">
+              <source
+                media="(max-width: 48rem)"
+                srcset="/brand/hero-trusted-care-miniapp-v1.webp"
+                width="750"
+                height="340"
+                type="image/webp"
+              />
+              <source srcset="/brand/hero-trusted-care-desktop-v1.webp" type="image/webp" />
+              <img
+                src="/brand/hero-trusted-care-desktop-v1.png"
+                width={image.width}
+                height={image.height}
+                alt={section.content.image.altText}
+                loading="eager"
+                fetchpriority="high"
+              />
+            </picture>
+          ) : (
+            <img
+              class="hero-section__media"
+              src={image.src}
+              width={image.width}
+              height={image.height}
+              alt={section.content.image.altText}
+              loading="eager"
+              fetchpriority="high"
+            />
+          )}
+          {showProductPreview ? (
+            <figure class="hero-product-preview" aria-label="PetCare 服务进度界面预览">
+              <figcaption>
+                <img src="/brand/petcare-symbol-color.svg" width="24" height="24" alt="" />
+                <span>PetCare 服务记录</span>
+              </figcaption>
+              <div class="hero-product-preview__status">
+                <div>
+                  <span>服务进行中</span>
+                  <strong>今日上门喂养</strong>
+                </div>
+                <b>3 / 5</b>
+              </div>
+              <ol>
+                <li class="is-complete">
+                  <span>14:02</span>进门消毒
+                </li>
+                <li class="is-complete">
+                  <span>14:06</span>拍照打卡
+                </li>
+                <li class="is-current">
+                  <span>14:12</span>执行服务
+                </li>
+              </ol>
+              <div class="hero-product-preview__proof">
+                <img
+                  src="/brand/pet-life-feeding.jpg"
+                  width="512"
+                  height="512"
+                  alt="猫咪进食服务记录"
+                />
+                <p>
+                  <strong>服务照片已上传</strong>
+                  <span>过程清楚可查看</span>
+                </p>
+              </div>
+            </figure>
+          ) : null}
+        </div>
+      ) : null
     }
   </div>
 </section>

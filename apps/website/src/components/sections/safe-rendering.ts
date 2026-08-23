@@ -12,6 +12,16 @@ const FALLBACK_IMAGES = {
     width: 1600,
     height: 900,
   },
+  professionalCare: {
+    src: "/brand/hero-professional-care-desktop-v1.webp",
+    width: 1920,
+    height: 720,
+  },
+  communityCompanion: {
+    src: "/brand/hero-community-companion-desktop-v1.webp",
+    width: 1920,
+    height: 720,
+  },
 } as const;
 
 /** A safe image source and intrinsic dimensions for layout-stable Astro output. */

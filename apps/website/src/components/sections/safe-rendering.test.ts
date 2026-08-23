@@ -24,5 +24,10 @@ describe("safe Website section rendering values", () => {
       width: 1600,
       height: 900,
     });
+    expect(getPublicImage(null, "professionalCare")).toEqual({
+      src: "/brand/hero-professional-care-desktop-v1.webp",
+      width: 1920,
+      height: 720,
+    });
   });
 });

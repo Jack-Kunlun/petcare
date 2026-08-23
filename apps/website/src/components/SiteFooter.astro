@@ -15,9 +15,16 @@ const { section } = Astro.props;
     <section class="site-footer__brand" aria-label="PetCare">
       {
         section.settings.showLogo ? (
-          <img src="/brand/petcare-symbol-color.svg" width="44" height="44" alt="" loading="lazy" />
+          <img
+            src="/brand/petcare-symbol-reverse.svg"
+            width="40"
+            height="40"
+            alt=""
+            loading="lazy"
+          />
         ) : null
       }
+      <strong>PetCare 宠伴</strong>
       <p>{section.content.description}</p>
     </section>
     {

@@ -8,12 +8,17 @@ interface Props {
 }
 
 const { section } = Astro.props;
-const image = getPublicImage(section.content.image.asset, "placeholder");
+const fallbackImage =
+  section.sectionKey === "brand_story" || section.sectionKey === "companion_growth"
+    ? "communityCompanion"
+    : "professionalCare";
+const image = getPublicImage(section.content.image.asset, fallbackImage);
 const href = section.content.action ? getSafeWebsiteHref(section.content.action.href) : null;
 ---
 
 <section
   class:list={["content-section", "feature-split", `feature-split--${section.settings.tone}`]}
+  data-section-key={section.sectionKey}
 >
   <div
     class:list={[
@@ -41,6 +46,7 @@ const href = section.content.action ? getSafeWebsiteHref(section.content.action.
       height={image.height}
       alt={section.content.image.altText}
       loading="lazy"
+      decoding="async"
     />
   </div>
 </section>

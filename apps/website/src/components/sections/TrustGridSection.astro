@@ -8,22 +8,11 @@ interface Props {
 
 const { section } = Astro.props;
 const columnClass = `trust-grid--columns-${section.settings.columns}`;
-
-function iconLabel(
-  icon: WebsitePublicTrustGridSection["content"]["items"][number]["icon"],
-): string {
-  return {
-    shield: "Security",
-    certificate: "Verified",
-    clipboard: "Recorded",
-    star: "Rated",
-    support: "Support",
-  }[icon];
-}
 ---
 
 <section
   class="content-section trust-grid-section"
+  data-section-key={section.sectionKey}
   aria-labelledby={`section-${section.sectionKey}`}
 >
   <div class="content-container">
@@ -35,10 +24,10 @@ function iconLabel(
     }
     <ul class:list={["trust-grid", columnClass]}>
       {
-        section.content.items.map((item) => (
+        section.content.items.map((item, index) => (
           <li>
             <span class="trust-grid__icon" aria-hidden="true">
-              {iconLabel(item.icon)}
+              {String(index + 1).padStart(2, "0")}
             </span>
             <h3>{item.title}</h3>
             <p>{item.description}</p>
