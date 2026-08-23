@@ -318,7 +318,13 @@ jobs:
           openssl x509 -in "$DEPLOY_TMP/petcare-home.com_bundle.crt" -noout -checkhost www.petcare-home.com
           openssl x509 -in "$DEPLOY_TMP/admin.petcare-home.com_bundle.crt" -noout -checkhost admin.petcare-home.com
 
-          ssh-keyscan -p "$DEPLOY_PORT" "$DEPLOY_HOST" > "$DEPLOY_TMP/scanned_hosts"
+          ssh-keyscan -T 20 -p "$DEPLOY_PORT" "$DEPLOY_HOST" \
+            > "$DEPLOY_TMP/scanned_hosts" 2> "$DEPLOY_TMP/keyscan.err" || true
+          if [[ ! -s "$DEPLOY_TMP/scanned_hosts" ]]; then
+            echo "ssh-keyscan 未获取到任何主机公钥 (目标: $DEPLOY_HOST:$DEPLOY_PORT)" >&2
+            sed 's/[^[:print:]]//g' "$DEPLOY_TMP/keyscan.err" >&2 || true
+            exit 1
+          fi
           : > "$DEPLOY_TMP/known_hosts"
           while IFS= read -r host_key; do
             fingerprint="$(printf '%s\n' "$host_key" | ssh-keygen -lf - -E sha256 | awk '{print $2}')"
@@ -326,7 +332,15 @@ jobs:
               printf '%s\n' "$host_key" >> "$DEPLOY_TMP/known_hosts"
             fi
           done < "$DEPLOY_TMP/scanned_hosts"
-          test -s "$DEPLOY_TMP/known_hosts"
+          if [[ ! -s "$DEPLOY_TMP/known_hosts" ]]; then
+            echo "主机指纹与 DEPLOY_HOST_FINGERPRINT 不匹配 (目标: $DEPLOY_HOST:$DEPLOY_PORT)" >&2
+            echo "secret 中的指纹: $DEPLOY_HOST_FINGERPRINT" >&2
+            echo "实际扫描到的指纹:" >&2
+            while IFS= read -r scanned_key; do
+              printf '%s\n' "$scanned_key" | ssh-keygen -lf - -E sha256 2>/dev/null >&2 || true
+            done < "$DEPLOY_TMP/scanned_hosts"
+            exit 1
+          fi
           chmod 600 "$DEPLOY_TMP/known_hosts"
 
           ssh -o StrictHostKeyChecking=yes \
