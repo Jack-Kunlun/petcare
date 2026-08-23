@@ -9,7 +9,12 @@ type _LocationUrl =
   "/pages/bounty/index" |
   "/pages/community/index" |
   "/pages/messages/index" |
-  "/pages/profile/index";
+  "/pages/profile/index" |
+  "/pages-bounty/publish/step1" |
+  "/pages-bounty/publish/step2" |
+  "/pages-bounty/publish/step3" |
+  "/pages-bounty/publish/success" |
+  "/pages-bounty/reward/detail";
 
 interface NavigateToOptions {
   url: _LocationUrl;

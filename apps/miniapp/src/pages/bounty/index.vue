@@ -1,4 +1,7 @@
 <script setup lang="ts">
+import { onLoad } from "@dcloudio/uni-app";
+import { ref } from "vue";
+import { getBountyMode } from "./bounty-mode";
 import MainTabLayout from "@/components/MainTabLayout.vue";
 
 definePage({
@@ -12,6 +15,7 @@ const filters = ["全部服务", "上门喂养", "遛狗", "洗护美容", "寄�
 
 const bounties = [
   {
+    id: "reward-1",
     image: "/static/main/community-pet-1.jpg",
     pet: "咪咪 · 英国蓝猫",
     service: "上门喂养 · 2次",
@@ -25,6 +29,7 @@ const bounties = [
     urgent: true,
   },
   {
+    id: "reward-2",
     image: "/static/main/community-pet-2.jpg",
     pet: "旺财 · 金毛",
     service: "遛狗 · 60分钟",
@@ -38,6 +43,7 @@ const bounties = [
     urgent: false,
   },
   {
+    id: "reward-3",
     image: "/static/main/community-pet-3.jpg",
     pet: "团团 · 布偶猫",
     service: "上门洗护 · 基础护理",
@@ -51,6 +57,7 @@ const bounties = [
     urgent: false,
   },
   {
+    id: "reward-4",
     image: "/static/main/community-pet-4.jpg",
     pet: "糯米 · 西施犬",
     service: "洗澡美容 · 小型犬",
@@ -64,6 +71,20 @@ const bounties = [
     urgent: false,
   },
 ] as const;
+
+const mode = ref<"list" | "map">("list");
+
+onLoad((query = {}) => {
+  mode.value = getBountyMode(query);
+});
+
+function openPublish() {
+  uni.navigateTo({ url: "/pages-bounty/publish/step1" });
+}
+
+function openReward(id: string) {
+  uni.navigateTo({ url: `/pages-bounty/reward/detail?id=${encodeURIComponent(id)}` });
+}
 </script>
 
 <template>
@@ -80,11 +101,29 @@ const bounties = [
         </view>
 
         <view class="h-segment flex rounded-control bg-divider p-caption">
-          <view class="flex flex-1 items-center justify-center rounded-chip bg-surface shadow-card">
-            <text class="text-body text-brand font-medium leading-label">列表</text>
+          <view
+            class="flex flex-1 items-center justify-center rounded-chip"
+            :class="mode === 'list' ? 'bg-surface shadow-card' : ''"
+            @click="mode = 'list'"
+          >
+            <text
+              class="text-body font-medium leading-label"
+              :class="mode === 'list' ? 'text-brand' : 'text-muted'"
+            >
+              列表
+            </text>
           </view>
-          <view class="flex flex-1 items-center justify-center">
-            <text class="text-body text-muted leading-label">地图</text>
+          <view
+            class="flex flex-1 items-center justify-center rounded-chip"
+            :class="mode === 'map' ? 'bg-surface shadow-card' : ''"
+            @click="mode = 'map'"
+          >
+            <text
+              class="text-body font-medium leading-label"
+              :class="mode === 'map' ? 'text-brand' : 'text-muted'"
+            >
+              地图
+            </text>
           </view>
         </view>
 
@@ -110,13 +149,23 @@ const bounties = [
           <text class="text-caption text-muted leading-caption">附近 42 个悬赏</text>
           <view class="flex items-center gap-caption">
             <text class="text-caption text-ink leading-caption">距离优先</text>
-            <text class="text-caption text-subtle leading-caption">⌄</text>
+            <image
+              class="h-icon-xs w-icon-xs rotate-90"
+              src="/static/main/chevron.svg"
+              mode="aspectFit"
+            />
           </view>
         </view>
       </view>
 
-      <view class="mx-action mt-copy flex flex-col gap-copy">
-        <view v-for="item in bounties" :key="item.pet" class="main-card p-copy">
+      <view v-if="mode === 'list'" class="mx-action mt-copy flex flex-col gap-copy">
+        <view
+          v-for="item in bounties"
+          :key="item.pet"
+          class="main-card p-copy"
+          hover-class="opacity-80"
+          @click="openReward(item.id)"
+        >
           <view class="flex gap-copy">
             <view
               class="relative h-card-cover w-card-cover shrink-0 overflow-hidden rounded-control"
@@ -172,12 +221,66 @@ const bounties = [
           </view>
         </view>
       </view>
+
+      <view v-else class="mx-action mt-copy flex flex-col gap-copy">
+        <view
+          class="h-hero flex flex-col justify-between rounded-card from-soft to-divider bg-gradient-to-br p-action shadow-card"
+        >
+          <view class="flex justify-between">
+            <view class="rounded-pill bg-surface px-copy py-sm shadow-card">
+              <text class="text-caption text-brand font-semibold leading-caption">¥58</text>
+            </view>
+            <view class="rounded-pill bg-brand px-copy py-sm shadow-card">
+              <text class="text-caption text-surface font-semibold leading-caption">¥68</text>
+            </view>
+          </view>
+          <view class="flex justify-center">
+            <view class="rounded-pill bg-surface px-copy py-sm shadow-card">
+              <text class="text-caption text-danger font-semibold leading-caption">¥76</text>
+            </view>
+          </view>
+          <view class="flex items-center gap-sm rounded-control bg-surface p-copy shadow-card">
+            <image
+              class="h-icon-sm w-icon-sm"
+              src="/static/main/bounty-location.svg"
+              mode="aspectFit"
+            />
+            <text class="text-caption text-muted leading-caption">
+              当前为静态地图预览，未请求定位权限
+            </text>
+          </view>
+        </view>
+
+        <view class="main-card p-copy" hover-class="opacity-80" @click="openReward('reward-1')">
+          <view class="flex gap-copy">
+            <image
+              class="h-card-cover w-card-cover shrink-0 rounded-control"
+              src="/static/main/community-pet-1.jpg"
+              mode="aspectFill"
+            />
+            <view class="min-w-0 flex flex-1 flex-col justify-between">
+              <view>
+                <view class="flex items-start justify-between gap-sm">
+                  <text class="truncate card-heading">咪咪 · 英国蓝猫</text>
+                  <text class="shrink-0 text-amount text-danger font-semibold leading-card">
+                    ¥68/次
+                  </text>
+                </view>
+                <text class="mt-caption meta-text">上门喂养 · 2次</text>
+                <text class="mt-sm block quiet-text">静安区悦庭花园 · 1.2km</text>
+              </view>
+              <text class="text-caption text-brand font-medium leading-caption">查看悬赏详情</text>
+            </view>
+          </view>
+        </view>
+      </view>
     </view>
 
     <template #floating>
       <view
         class="pointer-events-auto h-fab w-fab flex items-center justify-center rounded-full bg-brand shadow-float"
         aria-label="发布悬赏"
+        @click="openPublish"
       >
         <image class="h-glyph w-glyph" src="/static/main/plus.svg" mode="aspectFit" />
       </view>
