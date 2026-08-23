@@ -284,7 +284,7 @@ test("部署工作流先在受保护 runner 临时目录验证 SSH 与 TLS", asy
   assert.match(workflow, /openssl x509 .* -checkhost www\.petcare-home\.com/);
   assert.match(workflow, /openssl x509 .* -checkhost admin\.petcare-home\.com/);
   assert.match(workflow, /cert_pub=.*openssl x509[\s\S]*key_pub=.*openssl pkey/);
-  assert.match(workflow, /ssh-keyscan -p "\$DEPLOY_PORT" "\$DEPLOY_HOST"/);
+  assert.match(workflow, /ssh-keyscan -T 20 -p "\$DEPLOY_PORT" "\$DEPLOY_HOST"/);
   assert.match(workflow, /ssh-keygen -lf - -E sha256/);
   assert.match(workflow, /StrictHostKeyChecking=yes/);
   assert.match(workflow, /UserKnownHostsFile="\$DEPLOY_TMP\/known_hosts"/);
