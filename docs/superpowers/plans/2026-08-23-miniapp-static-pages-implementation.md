@@ -166,13 +166,13 @@ pnpm --filter @petcare/miniapp lint
 git diff --check
 ```
 
-Expected: route test, typecheck, lint, build, and diff check all PASS.
+Expected: focused tests, typecheck, lint, build, and diff check all PASS.
 
 - [ ] **Step 6: 提交基础层**
 
 ```powershell
 git add apps/miniapp
-git commit -m "feat(miniapp): 建立静态子页面路由与布局"
+git commit -m "feat(miniapp): 建立静态子页面布局"
 ```
 
 ### Task 2: 完成悬赏列表、地图、发布流程与详情
@@ -281,7 +281,7 @@ Each step shows `步骤 1/3`, `步骤 2/3`, or `步骤 3/3`, a shared progress b
 
 - [ ] **Step 4: 创建悬赏详情**
 
-Use fallback ID `reward-1` when `onLoad` receives no usable `id`. Render: pet/service summary, owner identity, time/address, budget, care requirements, 3 nearby suggestions, and fixed actions `联系发布者`/`申请接单`. The contact action opens `/pages-care/chat/index?userId=owner-1`; the apply action is visually disabled with `aria-disabled="true"` and no click handler because submitting is out of scope.
+Use fallback ID `reward-1` when `onLoad` receives no usable `id`. Render: pet/service summary, owner identity, time/address, budget, care requirements, 3 nearby suggestions, and fixed actions `联系发布者`/`申请接单`. In this batch both actions are visibly disabled with `aria-disabled="true"` and no click handlers because chat is registered in Task 3 and submitting is out of scope.
 
 - [ ] **Step 5: 验证并提交悬赏批次**
 
@@ -313,6 +313,8 @@ git commit -m "feat(miniapp): 完成悬赏静态流程"
 - Create: `apps/miniapp/src/pages/messages/message-route.spec.ts`
 - Modify: `apps/miniapp/src/pages/index/index.vue`
 - Modify: `apps/miniapp/src/pages/messages/index.vue`
+- Modify: `apps/miniapp/src/pages/profile/index.vue`
+- Modify: `apps/miniapp/src/pages-bounty/reward/detail.vue`
 - Create: `apps/miniapp/src/pages-care/orders/index.vue`
 - Create: `apps/miniapp/src/pages-care/order/detail.vue`
 - Create: `apps/miniapp/src/pages-care/monitor/index.vue`
@@ -362,6 +364,8 @@ Append the complete care package to `subPackages` in `pages.config.ts`:
 ```
 
 Only add `@click` when the mapper returns a target. System notices must have no chevron, click handler, or pointer styling. Keep all 4 message category labels centered with `flex-1 items-center justify-center`; center unread badges inside fixed square containers.
+
+Now that the care package is registered, wire the profile order statistic to `/pages-care/orders/index` and enable only the reward-detail `联系发布者` action to open `/pages-care/chat/index?userId=owner-1`. Keep `申请接单` disabled.
 
 - [ ] **Step 3: 创建订单列表与详情**
 
@@ -499,7 +503,7 @@ Render avatar, name, species, breed, sex, birthday, weight, neuter status, and n
 
 - [ ] **Step 4: 创建个人信息查看与编辑页并连接“我的”**
 
-Info renders avatar, nickname, phone mask, location, bio, and credit. Edit renders the same values as static field shells; its save action only navigates back. Update profile header, stats, pet cards, and add button to their registered routes. Remove the clickable-looking `关于我们` row because no such route is in scope.
+Info renders avatar, nickname, phone mask, location, bio, and credit. Edit renders the same values as static field shells; its save action only navigates back. Update the profile header, pet statistic, pet cards, and add button to their registered routes. Keep coupon/wallet statistics non-clickable until Task 6 registers those pages. Remove the clickable-looking `关于我们` row because no such route is in scope.
 
 - [ ] **Step 5: 验证并提交宠物个人基础批次**
 
@@ -556,7 +560,7 @@ pages: [
 
 - [ ] **Step 2: 创建收藏、关注和评价列表**
 
-Favorites uses centered segments `文章/动态/服务/照护者` and renders one card per category with fixed registered targets. Follows uses `照护者/店铺/创作者` and cards target `/pages-account/caregivers/detail?id=caregiver-1`, `/pages-account/stores/detail?id=store-1`, and `/pages-account/creators/detail?id=creator-1`. Reviews shows received/given summary and three static review cards; no reply or delete controls.
+Favorites uses centered segments `文章/动态/服务/照护者` and renders one card per category. Service and caregiver cards use registered targets; article and dynamic cards remain visibly disabled until Task 6 registers content pages. Follows uses `照护者/店铺/创作者` and cards target `/pages-account/caregivers/detail?id=caregiver-1`, `/pages-account/stores/detail?id=store-1`, and `/pages-account/creators/detail?id=creator-1`. Reviews shows received/given summary and three static review cards; no reply or delete controls.
 
 - [ ] **Step 3: 创建四类详情页面**
 
@@ -566,7 +570,7 @@ Caregiver detail: identity, verification, rating, introduction, service tags, av
 
 Store detail: store identity, address/hours, qualification tags, services, staff, and reviews; phone/navigation controls are disabled.
 
-Creator detail: identity, stats, introduction, expertise tags, and three content cards linking only to registered article pages; follow action is disabled.
+Creator detail: identity, stats, introduction, expertise tags, and three visually disabled content cards; Task 6 enables their article links after registering content pages. The follow action is disabled.
 
 Each dynamic page reads `id` on load and uses its documented fixture when the query is missing or unknown.
 
@@ -590,6 +594,8 @@ git commit -m "feat(miniapp): 完成账户内容与业务详情页"
 - Modify: `apps/miniapp/src/pages/index/index.vue`
 - Modify: `apps/miniapp/src/pages/community/index.vue`
 - Modify: `apps/miniapp/src/pages/profile/index.vue`
+- Modify: `apps/miniapp/src/pages-account/favorites/index.vue`
+- Modify: `apps/miniapp/src/pages-account/creators/detail.vue`
 - Create: `apps/miniapp/src/pages-content/classroom/article.vue`
 - Create: `apps/miniapp/src/pages-content/community/article.vue`
 - Create: `apps/miniapp/src/pages-content/coupons/index.vue`
@@ -681,6 +687,8 @@ const openCommunityArticle = (id: string) =>
 ```
 
 Add routes to the coupon/wallet profile stats and to the help/contact rows. Only rows with registered targets receive chevrons and click handlers.
+
+Enable the previously disabled article cards in Favorites and Creator Detail using the same classroom/community routes now that `pages-content` is registered.
 
 - [ ] **Step 3: 创建两类文章详情**
 
