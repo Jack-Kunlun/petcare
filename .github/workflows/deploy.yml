@@ -618,7 +618,7 @@ jobs:
             RELEASE_SHA="$RELEASE_SHA" \
             NEW_IMAGE_TAG="$NEW_IMAGE_TAG" \
             INITIALIZE_DATA="$INITIALIZE_DATA" \
-            bash /opt/petcare/current/scripts/release-production.sh
+            bash /opt/petcare/current/scripts/release-production.sh < /dev/null
           RELEASE_SUCCEEDED=true
           sudo systemctl enable --now petcare-backup.timer
 

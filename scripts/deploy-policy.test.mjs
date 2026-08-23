@@ -396,6 +396,10 @@ test("远端发布以 root 不可变 release 和临时凭据完成 TLS 与事务
   );
   assert.match(
     workflow,
+    /bash \/opt\/petcare\/current\/scripts\/release-production\.sh < \/dev\/null/,
+  );
+  assert.match(
+    workflow,
     /install -m 0644[\s\S]*petcare-backup\.service[\s\S]*petcare-backup\.timer/,
   );
   assert.match(workflow, /systemctl daemon-reload/);
