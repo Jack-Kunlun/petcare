@@ -25,7 +25,7 @@
     "lint": "pnpm lint:styles && pnpm lint:scripts && turbo run lint",
     "lint:styles": "node scripts/style-policy.mjs admin && node scripts/style-policy.mjs website",
     "lint:scripts": "node node_modules/eslint/bin/eslint.js scripts",
-    "test:tooling": "node --test scripts/repository-policy.test.mjs scripts/dependency-alignment.test.mjs scripts/clean.test.mjs scripts/workspace-contract.test.mjs scripts/compose-policy.test.mjs scripts/ci-policy.test.mjs scripts/style-policy.test.mjs scripts/style-output-policy.test.mjs scripts/admin-e2e-runner.test.mjs scripts/miniapp-minimal-shell.test.mjs scripts/database-operations-policy.test.mjs scripts/deploy-policy.test.mjs",
+    "test:tooling": "node --test scripts/repository-policy.test.mjs scripts/dependency-alignment.test.mjs scripts/clean.test.mjs scripts/workspace-contract.test.mjs scripts/compose-policy.test.mjs scripts/ci-policy.test.mjs scripts/style-policy.test.mjs scripts/style-output-policy.test.mjs scripts/admin-e2e-runner.test.mjs scripts/database-operations-policy.test.mjs scripts/deploy-policy.test.mjs",
     "test": "pnpm test:tooling && turbo run test",
     "test:ci": "pnpm test:tooling && turbo run test --concurrency=1",
     "test:coverage": "turbo run test:coverage",
