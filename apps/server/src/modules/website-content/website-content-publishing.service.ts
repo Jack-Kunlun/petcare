@@ -2,6 +2,7 @@ import { Injectable, Logger } from "@nestjs/common";
 import {
   type PublishWebsiteContentResponse,
   type WebsiteContentVersion,
+  type WebsitePublicMediaAsset,
 } from "@petcare/shared-types";
 import { WebsiteContentCacheService } from "./website-content-cache.service";
 import { toWebsitePublicContent } from "./website-content-public.service";
@@ -18,7 +19,10 @@ import { WebsiteSectionTypeRegistry } from "./website-section-type.registry";
 
 /** Narrow preflight boundary for Task 7 COS object checks outside the transaction. */
 export interface WebsiteContentPublishPreflight {
-  verify(version: WebsiteContentVersion, assetIds: readonly string[]): Promise<void>;
+  verify(
+    version: WebsiteContentVersion,
+    assetIds: readonly string[],
+  ): Promise<ReadonlyMap<string, WebsitePublicMediaAsset>>;
 }
 
 /** Minimal logger surface used to report non-fatal post-commit cache failures. */
@@ -61,11 +65,11 @@ export class WebsiteContentPublishingService {
     this.pageTemplateRegistry.validateSnapshot(command.contentKey, draft.sections);
     const assetIds = this.assetIds(draft);
 
-    await this.preflight.verify(draft, assetIds);
+    const assets = await this.preflight.verify(draft, assetIds);
 
     const result = await this.repository.publishDraft(command, assetIds);
 
-    await this.prewarm(result.published);
+    await this.prewarm(result.published, assets);
 
     return result;
   }
@@ -82,9 +86,12 @@ export class WebsiteContentPublishingService {
     return [...new Set(ids)];
   }
 
-  private async prewarm(version: WebsiteContentVersion): Promise<void> {
+  private async prewarm(
+    version: WebsiteContentVersion,
+    assets: ReadonlyMap<string, WebsitePublicMediaAsset>,
+  ): Promise<void> {
     try {
-      const stored = await this.cache.set(version.id, toWebsitePublicContent(version));
+      const stored = await this.cache.set(version.id, toWebsitePublicContent(version, assets));
 
       if (!stored) {
         this.logger.warn("Website Content cache prewarm failed after a committed publish.");

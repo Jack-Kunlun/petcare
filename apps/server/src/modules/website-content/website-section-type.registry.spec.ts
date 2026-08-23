@@ -72,9 +72,24 @@ describe("WebsiteSectionTypeRegistry", () => {
 
     hero.content.image.assetId = "hero-asset";
     feature.content.image.assetId = "feature-asset";
+    const homeExperience = sectionOfType(
+      defaultSections(WEBSITE_CONTENT_KEY.HOME),
+      WEBSITE_SECTION_TYPE.HOME_EXPERIENCE,
+    );
+
+    homeExperience.content.services.items[0].image.assetId = "service-asset";
+    homeExperience.content.record.images[0].assetId = "record-asset";
+    homeExperience.content.community.items[0].image.assetId = "community-asset";
+    homeExperience.content.brand.image.assetId = "brand-asset";
 
     expect(registry.resolveAssetIds(hero)).toEqual(["hero-asset"]);
     expect(registry.resolveAssetIds(feature)).toEqual(["feature-asset"]);
+    expect(registry.resolveAssetIds(homeExperience)).toEqual([
+      "service-asset",
+      "record-asset",
+      "community-asset",
+      "brand-asset",
+    ]);
     expect(
       registry.resolveAssetIds(
         sectionOfType(defaultSections(WEBSITE_CONTENT_KEY.HOME), WEBSITE_SECTION_TYPE.CTA),
@@ -186,6 +201,25 @@ describe("WebsiteSectionTypeRegistry", () => {
     );
     expect(registry.validate(contactPanel)).toEqual(
       expect.arrayContaining([expect.objectContaining({ path: "settings.columns" })]),
+    );
+  });
+
+  it("rejects ambiguous homepage record state and duplicate nested item keys", () => {
+    const section = sectionOfType(
+      defaultSections(WEBSITE_CONTENT_KEY.HOME),
+      WEBSITE_SECTION_TYPE.HOME_EXPERIENCE,
+    );
+
+    section.content.record.steps[0].state = "current";
+    section.content.services.items[1].itemKey = section.content.services.items[0].itemKey;
+    section.content.community.items.pop();
+
+    expect(registry.validate(section)).toEqual(
+      expect.arrayContaining([
+        expect.objectContaining({ path: "content.record.steps" }),
+        expect.objectContaining({ path: "content.services.items[1].itemKey" }),
+        expect.objectContaining({ path: "content.community.items" }),
+      ]),
     );
   });
 });

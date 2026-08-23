@@ -43,6 +43,8 @@ export const WEBSITE_SECTION_TYPE = {
   RICH_TEXT: "rich_text",
   /** Structured contact channels. */
   CONTACT_PANEL: "contact_panel",
+  /** Complete managed homepage experience below the introductory sections. */
+  HOME_EXPERIENCE: "home_experience",
 } as const;
 
 /** Discriminator of a supported Website Content section. */
@@ -425,6 +427,126 @@ export type WebsiteContactPanelSection = WebsiteContentSectionBase<
   WebsiteContactPanelSettings
 >;
 
+/** Stable text item used by homepage process, evidence, and trust groups. */
+export interface WebsiteHomeExperienceTextItem {
+  /** Stable item key owned by the homepage template. */
+  itemKey: string;
+  /** Visible item heading. */
+  title: string;
+  /** Visible item explanation. */
+  description: string;
+}
+
+/** Image-backed homepage card used by service and community groups. */
+export interface WebsiteHomeExperienceMediaItem extends WebsiteHomeExperienceTextItem {
+  /** Short number or category label displayed above the card title. */
+  label: string;
+  /** Managed card image reference. */
+  image: WebsiteImageReference;
+}
+
+/** Editable homepage group containing fixed image-backed cards. */
+export interface WebsiteHomeExperienceMediaGroup {
+  /** Short label above the group heading. */
+  eyebrow: string;
+  /** Group heading. */
+  title: string;
+  /** Group introduction. */
+  description: string;
+  /** Optional group action. */
+  action: WebsiteActionLink | null;
+  /** Fixed ordered image-backed cards. */
+  items: WebsiteHomeExperienceMediaItem[];
+}
+
+/** Editable homepage group containing fixed text items. */
+export interface WebsiteHomeExperienceTextGroup {
+  /** Short label above the group heading. */
+  eyebrow: string;
+  /** Group heading. */
+  title: string;
+  /** Group introduction. */
+  description: string;
+  /** Optional group action. */
+  action: WebsiteActionLink | null;
+  /** Fixed ordered text items. */
+  items: WebsiteHomeExperienceTextItem[];
+}
+
+/** One step in the homepage service-record demonstration. */
+export interface WebsiteHomeExperienceRecordStep {
+  /** Stable step key owned by the homepage template. */
+  itemKey: string;
+  /** Demonstration timestamp. */
+  time: string;
+  /** Visible step label. */
+  label: string;
+  /** Bounded demonstration state. */
+  state: "complete" | "current" | "pending";
+}
+
+/** Editable homepage service-record demonstration and explanation. */
+export interface WebsiteHomeExperienceRecord {
+  /** Short label above the section heading. */
+  eyebrow: string;
+  /** Section heading. */
+  title: string;
+  /** Section explanation. */
+  description: string;
+  /** Optional section action. */
+  action: WebsiteActionLink | null;
+  /** Demonstration card title. */
+  demoTitle: string;
+  /** Demonstration card status label. */
+  statusLabel: string;
+  /** Fixed ordered demonstration steps. */
+  steps: WebsiteHomeExperienceRecordStep[];
+  /** Fixed ordered demonstration images. */
+  images: WebsiteImageReference[];
+  /** Additional media count shown after the configured images. */
+  extraImageCount: number;
+  /** Fixed evidence statements beside the demonstration. */
+  evidence: WebsiteHomeExperienceTextItem[];
+}
+
+/** Editable closing brand-story content. */
+export interface WebsiteHomeExperienceBrandStory {
+  /** Short label above the brand statement. */
+  eyebrow: string;
+  /** Brand statement heading. */
+  title: string;
+  /** Supporting brand statement. */
+  description: string;
+  /** Managed background image reference. */
+  image: WebsiteImageReference;
+}
+
+/** Editable content for the complete homepage experience. */
+export interface WebsiteHomeExperienceContent {
+  /** Daily-care service cards. */
+  services: WebsiteHomeExperienceMediaGroup;
+  /** Standard service journey. */
+  journey: WebsiteHomeExperienceTextGroup;
+  /** Service-record product demonstration. */
+  record: WebsiteHomeExperienceRecord;
+  /** Verifiable trust details. */
+  trust: WebsiteHomeExperienceTextGroup;
+  /** Pet-life community cards. */
+  community: WebsiteHomeExperienceMediaGroup;
+  /** Closing brand story. */
+  brand: WebsiteHomeExperienceBrandStory;
+}
+
+/** Homepage experience has no operator-selectable presentation settings. */
+export type WebsiteHomeExperienceSettings = Record<string, never>;
+
+/** Complete managed homepage experience section. */
+export type WebsiteHomeExperienceSection = WebsiteContentSectionBase<
+  typeof WEBSITE_SECTION_TYPE.HOME_EXPERIENCE,
+  WebsiteHomeExperienceContent,
+  WebsiteHomeExperienceSettings
+>;
+
 /** Exhaustive union of editable preset section snapshots. */
 export type WebsiteContentSection =
   | WebsiteSiteHeaderSection
@@ -434,7 +556,8 @@ export type WebsiteContentSection =
   | WebsiteFeatureSplitSection
   | WebsiteCtaSection
   | WebsiteRichTextSection
-  | WebsiteContactPanelSection;
+  | WebsiteContactPanelSection
+  | WebsiteHomeExperienceSection;
 
 type ResolveWebsiteImages<T> = T extends WebsiteImageReference
   ? T & { asset: WebsitePublicMediaAsset | null }

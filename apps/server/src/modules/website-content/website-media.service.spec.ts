@@ -46,18 +46,73 @@ describe("WebsiteMediaService", () => {
       put: jest.fn(),
       delete: jest.fn(),
       head: jest.fn(async () => undefined),
-      resolvePublicUrl: jest.fn(),
+      resolvePublicUrl: jest.fn(() => "https://cdn/1.png"),
     };
     const prisma = {
       websiteMediaAsset: {
         findMany: jest.fn(async () => [
-          { id: "asset-1", storageKey: "public/website-media/1.png", status: "active" },
+          {
+            id: "asset-1",
+            storageKey: "public/website-media/1.png",
+            status: "active",
+            width: 640,
+            height: 480,
+            mimeType: "image/png",
+          },
         ]),
       },
     };
     const service = new WebsiteMediaService(prisma as never, storage as never);
 
-    await service.verify({} as never, ["asset-1"]);
+    await expect(service.verify({} as never, ["asset-1"])).resolves.toEqual(
+      new Map([
+        [
+          "asset-1",
+          {
+            id: "asset-1",
+            url: "https://cdn/1.png",
+            width: 640,
+            height: 480,
+            mimeType: "image/png",
+          },
+        ],
+      ]),
+    );
     expect(storage.head).toHaveBeenCalledWith("public/website-media/1.png");
+  });
+
+  it("batch resolves active managed assets without exposing storage keys", async () => {
+    const storage = {
+      resolvePublicUrl: jest.fn(() => "https://cdn/1.png"),
+    };
+    const prisma = {
+      websiteMediaAsset: {
+        findMany: jest.fn(async () => [
+          {
+            id: "asset-1",
+            storageKey: "public/website-media/1.png",
+            width: 640,
+            height: 480,
+            mimeType: "image/png",
+          },
+        ]),
+      },
+    };
+    const service = new WebsiteMediaService(prisma as never, storage as never);
+
+    await expect(service.resolvePublicAssets(["asset-1", "missing"])).resolves.toEqual(
+      new Map([
+        [
+          "asset-1",
+          {
+            id: "asset-1",
+            url: "https://cdn/1.png",
+            width: 640,
+            height: 480,
+            mimeType: "image/png",
+          },
+        ],
+      ]),
+    );
   });
 });

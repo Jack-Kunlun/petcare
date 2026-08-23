@@ -11,10 +11,7 @@ import {
   WebsitePreviewContentResponseDto,
   WebsitePublicContentResponseDto,
 } from "./dto/public-website-content.dto";
-import {
-  toWebsitePreviewContent,
-  WebsiteContentPublicService,
-} from "./website-content-public.service";
+import { WebsiteContentPublicService } from "./website-content-public.service";
 import { WebsitePreviewService } from "./website-preview.service";
 
 /** Exposes published and capability-scoped Website Content to the SSR website only. */
@@ -42,12 +39,16 @@ export class PublicWebsiteContentController {
     @Headers("x-website-preview-token") token: string,
     @Req() request: RequestWithId,
     @Res({ passthrough: true }) response: Response,
-  ): Promise<ReturnType<typeof toWebsitePreviewContent>> {
+  ): ReturnType<WebsiteContentPublicService["getPreview"]> {
     response.setHeader("Cache-Control", "private, no-store");
 
-    return toWebsitePreviewContent(
-      await this.previews.readPreview(contentKey, token, request.requestId ?? "unknown"),
+    const version = await this.previews.readPreview(
+      contentKey,
+      token,
+      request.requestId ?? "unknown",
     );
+
+    return this.published.getPreview(version);
   }
 
   /** Reads the current published snapshot for one independently published content key. */

@@ -1,4 +1,4 @@
-import type { WebsiteContentVersion } from "@petcare/shared-types";
+import type { WebsiteContentVersion, WebsiteHomeExperienceSection } from "@petcare/shared-types";
 import { QueryClient, QueryClientProvider } from "@tanstack/react-query";
 import { fireEvent, render, screen, waitFor } from "@testing-library/react";
 import userEvent from "@testing-library/user-event";
@@ -26,6 +26,82 @@ vi.mock("../../api/website-content", async () => {
     archiveWebsiteMediaAsset: vi.fn(),
   };
 });
+
+const homeExperienceSection: WebsiteHomeExperienceSection = {
+  sectionKey: "home_experience",
+  sectionType: "home_experience",
+  sortOrder: 3,
+  isEnabled: true,
+  schemaVersion: 1,
+  content: {
+    services: {
+      eyebrow: "服务眉题",
+      title: "服务标题",
+      description: "服务说明",
+      action: null,
+      items: [
+        {
+          itemKey: "feeding",
+          label: "01",
+          title: "上门喂养",
+          description: "服务项目说明",
+          image: { assetId: null, altText: "喂养场景" },
+        },
+      ],
+    },
+    journey: {
+      eyebrow: "流程眉题",
+      title: "流程标题",
+      description: "流程说明",
+      action: null,
+      items: [{ itemKey: "publish", title: "发布需求", description: "流程项目说明" }],
+    },
+    record: {
+      eyebrow: "记录眉题",
+      title: "记录标题",
+      description: "记录说明",
+      action: null,
+      demoTitle: "照护记录",
+      statusLabel: "服务进行中",
+      steps: [
+        { itemKey: "sanitize", time: "14:02", label: "进门消毒", state: "complete" },
+        { itemKey: "service", time: "14:12", label: "执行服务", state: "current" },
+      ],
+      images: [{ assetId: null, altText: "照护记录" }],
+      extraImageCount: 0,
+      evidence: [{ itemKey: "visible", title: "过程可见", description: "记录证据" }],
+    },
+    trust: {
+      eyebrow: "信任眉题",
+      title: "信任标题",
+      description: "信任说明",
+      action: null,
+      items: [{ itemKey: "identity", title: "身份与资料", description: "信任细节" }],
+    },
+    community: {
+      eyebrow: "社区眉题",
+      title: "社区标题",
+      description: "社区说明",
+      action: null,
+      items: [
+        {
+          itemKey: "story",
+          label: "宠物日常",
+          title: "社区故事",
+          description: "社区故事说明",
+          image: { assetId: null, altText: "社区故事" },
+        },
+      ],
+    },
+    brand: {
+      eyebrow: "品牌眉题",
+      title: "品牌标题",
+      description: "品牌说明",
+      image: { assetId: null, altText: "品牌故事" },
+    },
+  },
+  settings: {},
+};
 
 const draft: WebsiteContentVersion = {
   id: "draft-home-r2",
@@ -72,6 +148,7 @@ const draft: WebsiteContentVersion = {
       },
       settings: { columns: 3 },
     },
+    homeExperienceSection,
   ],
   sourceVersionId: null,
   createdBy: { id: "admin-1", displayName: "运营主管" },
@@ -160,6 +237,7 @@ describe("WebsiteContentEdit", () => {
     expect(screen.getAllByText(/区块 \d/).map((element) => element.textContent)).toEqual([
       "区块 1",
       "区块 2",
+      "区块 3",
     ]);
     expect(
       screen.getByText("区块已隐藏，保存草稿后不会在官网中渲染；其预设顺序和类型仍保持不变。"),
@@ -196,6 +274,46 @@ describe("WebsiteContentEdit", () => {
       }),
     );
     expect(await screen.findByText("草稿已保存，当前修订版为 r3。")).toBeInTheDocument();
+  });
+
+  it("saves homepage experience fields as part of complete sections", async () => {
+    const user = userEvent.setup();
+
+    vi.mocked(websiteContentApi.fetchWebsiteContentDraft).mockResolvedValue(draft);
+    vi.mocked(websiteContentApi.saveWebsiteContentDraft).mockResolvedValue({
+      ...draft,
+      id: "draft-home-r3",
+      revision: 3,
+      changeSummary: "更新首页体验服务",
+    });
+
+    renderEditor();
+
+    const serviceTitle = await screen.findByRole("textbox", { name: "服务标题" });
+
+    await user.clear(serviceTitle);
+    await user.type(serviceTitle, "更新后的服务标题");
+    await user.clear(screen.getByRole("textbox", { name: "变更摘要" }));
+    await user.type(screen.getByRole("textbox", { name: "变更摘要" }), "更新首页体验服务");
+    await user.click(screen.getByRole("button", { name: "保存草稿" }));
+
+    await waitFor(() =>
+      expect(websiteContentApi.saveWebsiteContentDraft).toHaveBeenCalledWith(
+        "home",
+        expect.objectContaining({
+          sections: expect.arrayContaining([
+            expect.objectContaining({
+              sectionKey: "home_experience",
+              sectionType: "home_experience",
+              sortOrder: 3,
+              content: expect.objectContaining({
+                services: expect.objectContaining({ title: "更新后的服务标题" }),
+              }),
+            }),
+          ]),
+        }),
+      ),
+    );
   });
 
   it("blocks save until required SEO and change-summary fields are present", async () => {
@@ -249,8 +367,9 @@ describe("WebsiteContentEdit", () => {
     renderEditor();
 
     await screen.findByRole("textbox", { name: "主标题" });
-    expect(screen.getByText("此区块为页面必需区块")).toBeInTheDocument();
+    expect(screen.getAllByText("此区块为页面必需区块")).toHaveLength(2);
     expect(screen.queryByRole("checkbox", { name: "显示 首屏介绍" })).toBeNull();
+    expect(screen.queryByRole("checkbox", { name: "显示 首页体验内容" })).toBeNull();
 
     expect(screen.queryByRole("textbox", { name: "区块标题" })).toBeNull();
     await user.click(screen.getByRole("checkbox", { name: "显示 信任说明网格" }));

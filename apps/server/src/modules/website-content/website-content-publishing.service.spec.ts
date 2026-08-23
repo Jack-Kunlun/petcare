@@ -47,7 +47,7 @@ function createSubject() {
     getDraftAndPublished: jest.fn(async () => ({ draft, published: null })),
     publishDraft: jest.fn(async () => result),
   };
-  const preflight = { verify: jest.fn(async () => undefined) };
+  const preflight = { verify: jest.fn(async () => new Map()) };
   const cache = { set: jest.fn(async () => true) };
   const logger = { warn: jest.fn() };
   const service = new WebsiteContentPublishingService(

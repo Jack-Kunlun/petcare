@@ -5,6 +5,43 @@ import { WebsitePageTemplateRegistry } from "./website-page-template.registry";
 import { WebsiteSectionTypeRegistry } from "./website-section-type.registry";
 
 describe("WebsiteContentDraftService", () => {
+  it("returns a current-template editing projection for a legacy home draft", async () => {
+    const template = WEBSITE_CONTENT_SEED_TEMPLATES.find(
+      ({ contentKey }) => contentKey === WEBSITE_CONTENT_KEY.HOME,
+    )!;
+    const legacySections = structuredClone(template.sections).filter(
+      (section) => section.sectionKey !== "home_experience",
+    );
+    const legacyCta = legacySections.find((section) => section.sectionKey === "home_cta");
+
+    if (!legacyCta) {
+      throw new Error("Home CTA seed section is required for this test");
+    }
+
+    legacyCta.sortOrder = 4;
+
+    const repository = {
+      getCurrentDraft: jest.fn(async () => ({
+        id: "draft-home-2",
+        contentKey: WEBSITE_CONTENT_KEY.HOME,
+        sections: legacySections,
+      })),
+    };
+    const service = new WebsiteContentDraftService(
+      repository as never,
+      new WebsitePageTemplateRegistry(new WebsiteSectionTypeRegistry()),
+      new WebsiteSectionTypeRegistry(),
+    );
+
+    await expect(service.getDraft(WEBSITE_CONTENT_KEY.HOME)).resolves.toMatchObject({
+      id: "draft-home-2",
+      sections: expect.arrayContaining([
+        expect.objectContaining({ sectionKey: "home_experience", sortOrder: 4 }),
+        expect.objectContaining({ sectionKey: "home_cta", sortOrder: 5 }),
+      ]),
+    });
+  });
+
   it("creates a new immutable draft and never changes the published pointer", async () => {
     const sections = structuredClone(
       WEBSITE_CONTENT_SEED_TEMPLATES.find(
@@ -38,6 +75,49 @@ describe("WebsiteContentDraftService", () => {
     ).resolves.toMatchObject({ id: "draft-3", revision: 3 });
     expect(repository.saveDraft).toHaveBeenCalledWith(
       expect.objectContaining({ revision: 2, contentKey: WEBSITE_CONTENT_KEY.HOME }),
+      expect.any(Array),
+    );
+  });
+
+  it("persists the current template when a legacy client saves an old home snapshot", async () => {
+    const template = WEBSITE_CONTENT_SEED_TEMPLATES.find(
+      ({ contentKey }) => contentKey === WEBSITE_CONTENT_KEY.HOME,
+    )!;
+    const sections = structuredClone(template.sections).filter(
+      (section) => section.sectionKey !== "home_experience",
+    );
+    const homeCta = sections.find((section) => section.sectionKey === "home_cta");
+
+    if (!homeCta) {
+      throw new Error("Home CTA seed section is required for this test");
+    }
+
+    homeCta.sortOrder = 4;
+
+    const repository = { saveDraft: jest.fn(async () => ({ id: "draft-3", revision: 3 })) };
+    const service = new WebsiteContentDraftService(
+      repository as never,
+      new WebsitePageTemplateRegistry(new WebsiteSectionTypeRegistry()),
+      new WebsiteSectionTypeRegistry(),
+    );
+
+    await service.saveDraft({
+      contentKey: WEBSITE_CONTENT_KEY.HOME,
+      revision: 2,
+      changeSummary: "更新旧版首页",
+      seo: structuredClone(template.seo),
+      sections,
+      operatorId: "admin-1",
+      requestId: "request-legacy",
+    });
+
+    expect(repository.saveDraft).toHaveBeenCalledWith(
+      expect.objectContaining({
+        sections: expect.arrayContaining([
+          expect.objectContaining({ sectionKey: "home_experience", sortOrder: 4 }),
+          expect.objectContaining({ sectionKey: "home_cta", sortOrder: 5 }),
+        ]),
+      }),
       expect.any(Array),
     );
   });

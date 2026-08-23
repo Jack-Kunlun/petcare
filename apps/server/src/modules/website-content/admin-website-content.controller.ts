@@ -112,7 +112,7 @@ export class AdminWebsiteContentController {
   getDraft(
     @Param("contentKey") contentKey: WebsiteContentKey,
   ): Promise<WebsiteContentDraftResponse> {
-    return this.repository.getCurrentDraft(contentKey);
+    return this.drafts.getDraft(contentKey);
   }
 
   /** Saves a full new immutable draft snapshot. */

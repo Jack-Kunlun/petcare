@@ -22,7 +22,7 @@ interface TemplateSectionDefinition {
 
 const REQUIRED_SECTION_KEYS = {
   [WEBSITE_CONTENT_KEY.SITE_SHELL]: ["site_header", "site_footer"],
-  [WEBSITE_CONTENT_KEY.HOME]: ["hero"],
+  [WEBSITE_CONTENT_KEY.HOME]: ["hero", "home_experience"],
   [WEBSITE_CONTENT_KEY.SERVICES]: ["hero"],
   [WEBSITE_CONTENT_KEY.TRUST]: ["hero"],
   [WEBSITE_CONTENT_KEY.COMPANIONS]: ["hero"],
@@ -31,6 +31,10 @@ const REQUIRED_SECTION_KEYS = {
   [WEBSITE_CONTENT_KEY.PRIVACY]: ["legal_content"],
   [WEBSITE_CONTENT_KEY.TERMS]: ["legal_content"],
 } satisfies Record<WebsiteContentKey, readonly string[]>;
+
+const LEGACY_OPTIONAL_SECTION_KEYS: Partial<Record<WebsiteContentKey, readonly string[]>> = {
+  [WEBSITE_CONTENT_KEY.HOME]: ["home_experience"],
+};
 
 function isObject(value: unknown): value is Record<string, unknown> {
   return typeof value === "object" && value !== null && !Array.isArray(value);
@@ -130,10 +134,6 @@ export class WebsitePageTemplateRegistry {
           issues.push({ path: `${sectionPath}.sectionType`, message: "不能修改预设区块类型" });
         }
 
-        if (section.sortOrder !== expected.sortOrder) {
-          issues.push({ path: `${sectionPath}.sortOrder`, message: "不能修改预设区块顺序" });
-        }
-
         if (expected.isRequired && section.isEnabled !== true) {
           issues.push({ path: `${sectionPath}.isEnabled`, message: "必填区块不能停用" });
         }
@@ -148,14 +148,39 @@ export class WebsitePageTemplateRegistry {
       }
     });
 
-    for (const templateSection of templateSections) {
-      if (!sectionKeys.has(templateSection.sectionKey)) {
+    const missingSections = templateSections.filter(
+      (templateSection) => !sectionKeys.has(templateSection.sectionKey),
+    );
+    const legacyOptionalKeys = LEGACY_OPTIONAL_SECTION_KEYS[contentKey] ?? [];
+    const isLegacySnapshot =
+      missingSections.length > 0 &&
+      missingSections.every((section) => legacyOptionalKeys.includes(section.sectionKey));
+
+    for (const templateSection of missingSections) {
+      if (!legacyOptionalKeys.includes(templateSection.sectionKey)) {
         issues.push({
           path: "sections",
           message: `缺少预设区块：${templateSection.sectionKey}`,
         });
       }
     }
+
+    const expectedOrder = templateSections.filter((section) => sectionKeys.has(section.sectionKey));
+
+    expectedOrder.forEach((expected, index) => {
+      const actualIndex = snapshot.findIndex(
+        (section) => isObject(section) && section.sectionKey === expected.sectionKey,
+      );
+      const actual = actualIndex >= 0 ? snapshot[actualIndex] : undefined;
+      const expectedSortOrder = isLegacySnapshot ? index + 1 : expected.sortOrder;
+
+      if (isObject(actual) && actual.sortOrder !== expectedSortOrder) {
+        issues.push({
+          path: `sections[${actualIndex}].sortOrder`,
+          message: "不能修改预设区块顺序",
+        });
+      }
+    });
 
     if (issues.length > 0) {
       throw websiteContentValidationFailed(formatIssues(issues));
@@ -165,5 +190,23 @@ export class WebsitePageTemplateRegistry {
   /** Returns a deep-cloned editable default snapshot without mutating Task 2 seed data. */
   createDefaultSections(contentKey: WebsiteContentKey): WebsiteContentSection[] {
     return structuredClone(templateFor(contentKey).sections);
+  }
+
+  /** Projects a legacy draft onto the current fixed template without mutating its version row. */
+  createEditableSections(
+    contentKey: WebsiteContentKey,
+    sections: WebsiteContentSection[],
+  ): WebsiteContentSection[] {
+    this.validateSnapshot(contentKey, sections);
+
+    const currentByKey = new Map(sections.map((section) => [section.sectionKey, section]));
+
+    return templateFor(contentKey).sections.map((templateSection) => {
+      const current = currentByKey.get(templateSection.sectionKey);
+
+      return current
+        ? { ...structuredClone(current), sortOrder: templateSection.sortOrder }
+        : structuredClone(templateSection);
+    });
   }
 }

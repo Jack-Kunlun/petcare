@@ -42,7 +42,12 @@ describe("WebsiteContentPublicService", () => {
       get: jest.fn(async () => null),
       set: jest.fn(async () => false),
     };
-    const service = new WebsiteContentPublicService(repository as never, cache as never);
+    const media = { resolvePublicAssets: jest.fn(async () => new Map()) };
+    const service = new WebsiteContentPublicService(
+      repository as never,
+      cache as never,
+      media as never,
+    );
 
     const result = await service.getPublished(WEBSITE_CONTENT_KEY.HOME);
 
@@ -80,7 +85,12 @@ describe("WebsiteContentPublicService", () => {
       getPublishedVersion: jest.fn(),
     };
     const cache = { get: jest.fn(async () => cached), set: jest.fn() };
-    const service = new WebsiteContentPublicService(repository as never, cache as never);
+    const media = { resolvePublicAssets: jest.fn(async () => new Map()) };
+    const service = new WebsiteContentPublicService(
+      repository as never,
+      cache as never,
+      media as never,
+    );
 
     await expect(service.getPublished(WEBSITE_CONTENT_KEY.HOME)).resolves.toEqual(cached);
     expect(repository.getPublishedVersion).not.toHaveBeenCalled();
@@ -104,10 +114,59 @@ describe("WebsiteContentPublicService", () => {
         throw new Error("redis unavailable");
       }),
     };
-    const service = new WebsiteContentPublicService(repository as never, cache as never);
+    const media = { resolvePublicAssets: jest.fn(async () => new Map()) };
+    const service = new WebsiteContentPublicService(
+      repository as never,
+      cache as never,
+      media as never,
+    );
 
     await expect(service.getPublished(WEBSITE_CONTENT_KEY.HOME)).resolves.toMatchObject({
       contentKey: WEBSITE_CONTENT_KEY.HOME,
     });
+  });
+
+  it("resolves managed images for published and preview snapshots", async () => {
+    const version = publishedVersion();
+    const hero = version.sections.find((section) => section.sectionType === "hero");
+
+    if (!hero || hero.sectionType !== "hero") {
+      throw new Error("Home hero is required for this test");
+    }
+
+    hero.content.image.assetId = "asset-1";
+
+    const repository = {
+      getPublishedPointer: jest.fn(async () => ({
+        contentId: "content-home",
+        publishedVersionId: version.id,
+      })),
+      getPublishedVersion: jest.fn(async () => version),
+    };
+    const cache = { get: jest.fn(async () => null), set: jest.fn(async () => true) };
+    const asset = {
+      id: "asset-1",
+      url: "https://cdn.example.com/asset-1.webp",
+      width: 1200,
+      height: 800,
+      mimeType: "image/webp" as const,
+    };
+    const media = {
+      resolvePublicAssets: jest.fn(async () => new Map([[asset.id, asset]])),
+    };
+    const service = new WebsiteContentPublicService(
+      repository as never,
+      cache as never,
+      media as never,
+    );
+
+    const published = await service.getPublished(WEBSITE_CONTENT_KEY.HOME);
+    const preview = await service.getPreview(version);
+    const publishedHero = published.sections.find((section) => section.sectionType === "hero");
+    const previewHero = preview.sections.find((section) => section.sectionType === "hero");
+
+    expect(publishedHero?.content.image.asset).toEqual(asset);
+    expect(previewHero?.content.image.asset).toEqual(asset);
+    expect(media.resolvePublicAssets).toHaveBeenCalledWith(["asset-1"]);
   });
 });

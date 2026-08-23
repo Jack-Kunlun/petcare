@@ -154,9 +154,156 @@ export const WEBSITE_CONTENT_SEED_TEMPLATES: readonly WebsiteSeedTemplate[] = [
         settings: { imagePosition: "left", tone: "soft" },
       },
       {
+        sectionKey: "home_experience",
+        sectionType: WEBSITE_SECTION_TYPE.HOME_EXPERIENCE,
+        sortOrder: 4,
+        isEnabled: true,
+        schemaVersion: 1,
+        content: {
+          services: {
+            eyebrow: "日常照护服务",
+            title: "从一顿饭，到一段认真陪伴",
+            description:
+              "PetCare 围绕真实养宠场景提供上门喂养、遛狗与陪玩服务，让熟悉的环境、清楚的要求和可查看的过程一起降低托付的不确定。",
+            action: action("了解服务模式", "/services"),
+            items: [
+              {
+                itemKey: "feeding",
+                label: "01",
+                title: "上门喂养",
+                description: "按约定完成喂食、换水与环境整理，让熟悉的家仍是它最安心的地方。",
+                image: image("猫咪在家中进食"),
+              },
+              {
+                itemKey: "walking",
+                label: "02",
+                title: "上门遛狗",
+                description: "根据宠物习惯完成外出活动，并把关键过程清楚记录下来。",
+                image: image("照护者在社区内遛狗"),
+              },
+              {
+                itemKey: "playing",
+                label: "03",
+                title: "陪伴玩耍",
+                description: "用合适的互动与观察，认真回应宠物独处时的陪伴需要。",
+                image: image("两只狗在户外轻松玩耍"),
+              },
+            ],
+          },
+          journey: {
+            eyebrow: "标准服务流程",
+            title: "每一步都清楚，托付才更安心",
+            description: "从提出需要到留下评价，关键动作有明确顺序，也有可以回看的服务记录。",
+            action: null,
+            items: [
+              { itemKey: "request", title: "发布需求", description: "说明时间、地点与照护要求" },
+              { itemKey: "match", title: "匹配宠托师", description: "查看资料、能力与评价记录" },
+              { itemKey: "service", title: "上门服务", description: "按订单约定与 SOP 完成照护" },
+              { itemKey: "records", title: "查看记录", description: "了解时间、步骤与服务媒体" },
+              { itemKey: "review", title: "完成评价", description: "留下真实反馈，沉淀长期信任" },
+            ],
+          },
+          record: {
+            eyebrow: "照护记录",
+            title: "不在家，也知道它今天过得怎么样",
+            description:
+              "服务不是一句「已经照顾好了」。PetCare 用标准步骤串起时间、图片、视频与服务反馈，让主人看见每一次认真完成的照护。",
+            action: action("了解信任保障", "/trust"),
+            demoTitle: "今日上门喂养",
+            statusLabel: "服务进行中",
+            steps: [
+              { itemKey: "sanitize", time: "14:02", label: "进门消毒", state: "complete" },
+              { itemKey: "check_in", time: "14:06", label: "拍照打卡", state: "complete" },
+              { itemKey: "service", time: "14:12", label: "执行服务", state: "current" },
+              { itemKey: "clean", time: "14:36", label: "清理现场", state: "pending" },
+              { itemKey: "check_out", time: "14:42", label: "离开拍照", state: "pending" },
+            ],
+            images: [image("猫咪进食记录"), image("猫咪状态记录")],
+            extraImageCount: 3,
+            evidence: [
+              { itemKey: "visible", title: "过程可见", description: "关键步骤按顺序留下记录" },
+              {
+                itemKey: "traceable",
+                title: "信息可查",
+                description: "时间与服务媒体共同说明结果",
+              },
+              {
+                itemKey: "feedback",
+                title: "异常可反馈",
+                description: "发现问题时进入清楚的沟通与处理路径",
+              },
+            ],
+          },
+          trust: {
+            eyebrow: "信任体系",
+            title: "真正的安心，来自可以验证的细节",
+            description: "不使用空泛口号。把身份、标准、过程和反馈放在用户需要判断的位置。",
+            action: action("查看完整保障说明", "/trust"),
+            items: [
+              {
+                itemKey: "identity",
+                title: "身份与资料",
+                description: "查看宠托师身份认证、服务资料与历史评价。",
+              },
+              {
+                itemKey: "records",
+                title: "标准与记录",
+                description: "服务步骤、时间、图片与视频共同形成照护证据。",
+              },
+              {
+                itemKey: "communication",
+                title: "沟通与状态",
+                description: "围绕订单持续沟通，并清楚了解当前服务进度。",
+              },
+              {
+                itemKey: "appeal",
+                title: "评价与申诉",
+                description: "服务完成后可以评价；发生争议时有明确处理路径。",
+              },
+            ],
+          },
+          community: {
+            eyebrow: "宠物生活",
+            title: "这里不只有服务，还有认真爱宠物的人",
+            description: "从日常相处到照护经验，让真实内容帮助更多宠物家庭做出更安心的选择。",
+            action: action("阅读宠物课堂", "/articles"),
+            items: [
+              {
+                itemKey: "daily_life",
+                label: "宠物日常",
+                title: "那些让普通一天变得柔软的小事",
+                description: "",
+                image: image("小狗安静地躺在沙发上休息"),
+              },
+              {
+                itemKey: "care_guide",
+                label: "养宠经验",
+                title: "从状态观察开始，读懂它今天的需要",
+                description: "",
+                image: image("主人在家中为猫咪梳理毛发"),
+              },
+              {
+                itemKey: "companionship",
+                label: "陪伴故事",
+                title: "认真相处，是服务之外更长久的连接",
+                description: "",
+                image: image("两只狗在户外自在互动"),
+              },
+            ],
+          },
+          brand: {
+            eyebrow: "陪伴每一次托付",
+            title: "因为它是家人，所以每一次托付都值得被认真对待。",
+            description: "专业不是冰冷的流程，而是把关心变成清楚、稳定、可以被验证的行动。",
+            image: image("猫和狗在自然光下安心相伴"),
+          },
+        },
+        settings: {},
+      },
+      {
         sectionKey: "home_cta",
         sectionType: WEBSITE_SECTION_TYPE.CTA,
-        sortOrder: 4,
+        sortOrder: 5,
         isEnabled: true,
         schemaVersion: 1,
         content: {

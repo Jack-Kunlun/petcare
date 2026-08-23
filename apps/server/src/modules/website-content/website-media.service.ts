@@ -5,6 +5,7 @@ import {
   type WebsiteMediaAsset,
   type WebsiteMediaListQuery,
   type WebsiteMediaListResponse,
+  type WebsitePublicMediaAsset,
 } from "@petcare/shared-types";
 import { PrismaService } from "../../prisma/prisma.service";
 import type { ValidatedWebsiteMediaFile } from "./media/website-media-file";
@@ -59,16 +60,26 @@ export class WebsiteMediaService {
   }
 
   /** Verifies the exact active managed objects referenced by a pending publish. */
-  async verify(_version: WebsiteContentVersion, assetIds: readonly string[]): Promise<void> {
+  async verify(
+    _version: WebsiteContentVersion,
+    assetIds: readonly string[],
+  ): Promise<ReadonlyMap<string, WebsitePublicMediaAsset>> {
     const ids = [...new Set(assetIds)];
 
     if (ids.length === 0) {
-      return;
+      return new Map();
     }
 
     const assets = await this.prisma.websiteMediaAsset.findMany({
       where: { id: { in: ids }, status: WEBSITE_MEDIA_STATUS.ACTIVE },
-      select: { id: true, storageKey: true, status: true },
+      select: {
+        id: true,
+        storageKey: true,
+        status: true,
+        width: true,
+        height: true,
+        mimeType: true,
+      },
     });
 
     if (assets.length !== ids.length) {
@@ -76,6 +87,8 @@ export class WebsiteMediaService {
     }
 
     await Promise.all(assets.map((asset) => this.storage.head(asset.storageKey)));
+
+    return new Map(assets.map((asset) => [asset.id, this.toPublicAsset(asset)]));
   }
 
   /** Lists managed images without leaking provider object keys. */
@@ -123,21 +136,31 @@ export class WebsiteMediaService {
 
   /** Resolves a provider URL from a managed asset id. */
   async resolvePublicAsset(assetId: string): Promise<WebsiteMediaAsset["publicAsset"]> {
-    const asset = await this.prisma.websiteMediaAsset.findFirst({
-      where: { id: assetId, status: WEBSITE_MEDIA_STATUS.ACTIVE },
-    });
+    const asset = (await this.resolvePublicAssets([assetId])).get(assetId);
 
     if (!asset) {
       throw websiteContentInvalidMedia();
     }
 
-    return {
-      id: asset.id,
-      url: this.storage.resolvePublicUrl(asset.storageKey),
-      width: asset.width,
-      height: asset.height,
-      mimeType: asset.mimeType as WebsiteMediaAsset["mimeType"],
-    };
+    return asset;
+  }
+
+  /** Batch resolves active managed assets for public and preview snapshots. */
+  async resolvePublicAssets(
+    assetIds: readonly string[],
+  ): Promise<ReadonlyMap<string, WebsitePublicMediaAsset>> {
+    const ids = [...new Set(assetIds)];
+
+    if (ids.length === 0) {
+      return new Map();
+    }
+
+    const assets = await this.prisma.websiteMediaAsset.findMany({
+      where: { id: { in: ids }, status: WEBSITE_MEDIA_STATUS.ACTIVE },
+      select: { id: true, storageKey: true, width: true, height: true, mimeType: true },
+    });
+
+    return new Map(assets.map((asset) => [asset.id, this.toPublicAsset(asset)]));
   }
 
   private async findReferences(assetId: string): Promise<string[]> {
@@ -190,6 +213,22 @@ export class WebsiteMediaService {
       },
       createdAt: record.createdAt.toISOString(),
       references: [],
+    };
+  }
+
+  private toPublicAsset(record: {
+    id: string;
+    storageKey: string;
+    width: number;
+    height: number;
+    mimeType: string;
+  }): WebsitePublicMediaAsset {
+    return {
+      id: record.id,
+      url: this.storage.resolvePublicUrl(record.storageKey),
+      width: record.width,
+      height: record.height,
+      mimeType: record.mimeType as WebsitePublicMediaAsset["mimeType"],
     };
   }
 }

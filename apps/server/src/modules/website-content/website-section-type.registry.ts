@@ -12,6 +12,7 @@ import {
   type WebsiteCtaSection,
   type WebsiteRichTextSection,
   type WebsiteContactPanelSection,
+  type WebsiteHomeExperienceSection,
 } from "@petcare/shared-types";
 
 const SAFE_HTML_PATTERN = /<\/?[a-z][^>]*>/iu;
@@ -274,6 +275,177 @@ function validateContactChannel(value: unknown, path: string, issues: Validation
   validateActionLinkFields(value, path, issues);
 }
 
+function validateHomeTextItem(value: unknown, path: string, issues: ValidationIssue[]): void {
+  if (!hasOnlyKeys(value, path, ["itemKey", "title", "description"], issues)) {
+    return;
+  }
+
+  validateIdentifier(value.itemKey, `${path}.itemKey`, issues);
+  validateText(value.title, `${path}.title`, issues);
+  validateText(value.description, `${path}.description`, issues);
+}
+
+function validateHomeMediaItem(value: unknown, path: string, issues: ValidationIssue[]): void {
+  if (!hasOnlyKeys(value, path, ["itemKey", "label", "title", "description", "image"], issues)) {
+    return;
+  }
+
+  validateIdentifier(value.itemKey, `${path}.itemKey`, issues);
+  validateText(value.label, `${path}.label`, issues);
+  validateText(value.title, `${path}.title`, issues);
+  validateOptionalText(value.description, `${path}.description`, issues);
+  validateImageReference(value.image, `${path}.image`, issues);
+}
+
+function validateHomeTextGroup(
+  value: unknown,
+  path: string,
+  expectedItemCount: number,
+  issues: ValidationIssue[],
+): void {
+  if (!hasOnlyKeys(value, path, ["eyebrow", "title", "description", "action", "items"], issues)) {
+    return;
+  }
+
+  validateOptionalText(value.eyebrow, `${path}.eyebrow`, issues);
+  validateText(value.title, `${path}.title`, issues);
+  validateText(value.description, `${path}.description`, issues);
+  validateOptionalActionLink(value.action, `${path}.action`, issues);
+
+  if (!Array.isArray(value.items) || value.items.length !== expectedItemCount) {
+    issues.push(issue(`${path}.items`, `必须包含 ${expectedItemCount} 项`));
+
+    return;
+  }
+
+  value.items.forEach((item, index) =>
+    validateHomeTextItem(item, `${path}.items[${index}]`, issues),
+  );
+  validateUniqueKeys(value.items, "itemKey", `${path}.items`, issues);
+}
+
+function validateHomeMediaGroup(
+  value: unknown,
+  path: string,
+  expectedItemCount: number,
+  issues: ValidationIssue[],
+): void {
+  if (!hasOnlyKeys(value, path, ["eyebrow", "title", "description", "action", "items"], issues)) {
+    return;
+  }
+
+  validateOptionalText(value.eyebrow, `${path}.eyebrow`, issues);
+  validateText(value.title, `${path}.title`, issues);
+  validateText(value.description, `${path}.description`, issues);
+  validateOptionalActionLink(value.action, `${path}.action`, issues);
+
+  if (!Array.isArray(value.items) || value.items.length !== expectedItemCount) {
+    issues.push(issue(`${path}.items`, `必须包含 ${expectedItemCount} 张卡片`));
+
+    return;
+  }
+
+  value.items.forEach((item, index) =>
+    validateHomeMediaItem(item, `${path}.items[${index}]`, issues),
+  );
+  validateUniqueKeys(value.items, "itemKey", `${path}.items`, issues);
+}
+
+function validateHomeRecordStep(value: unknown, path: string, issues: ValidationIssue[]): void {
+  if (!hasOnlyKeys(value, path, ["itemKey", "time", "label", "state"], issues)) {
+    return;
+  }
+
+  validateIdentifier(value.itemKey, `${path}.itemKey`, issues);
+  validateText(value.time, `${path}.time`, issues);
+  validateText(value.label, `${path}.label`, issues);
+
+  if (!["complete", "current", "pending"].includes(value.state as string)) {
+    issues.push(issue(`${path}.state`, "必须是已完成、当前或待完成"));
+  }
+}
+
+function validateHomeRecord(value: unknown, path: string, issues: ValidationIssue[]): void {
+  if (
+    !hasOnlyKeys(
+      value,
+      path,
+      [
+        "eyebrow",
+        "title",
+        "description",
+        "action",
+        "demoTitle",
+        "statusLabel",
+        "steps",
+        "images",
+        "extraImageCount",
+        "evidence",
+      ],
+      issues,
+    )
+  ) {
+    return;
+  }
+
+  validateOptionalText(value.eyebrow, `${path}.eyebrow`, issues);
+  validateText(value.title, `${path}.title`, issues);
+  validateText(value.description, `${path}.description`, issues);
+  validateOptionalActionLink(value.action, `${path}.action`, issues);
+  validateText(value.demoTitle, `${path}.demoTitle`, issues);
+  validateText(value.statusLabel, `${path}.statusLabel`, issues);
+
+  if (!Array.isArray(value.steps) || value.steps.length !== 5) {
+    issues.push(issue(`${path}.steps`, "必须包含 5 个演示步骤"));
+  } else {
+    value.steps.forEach((step, index) =>
+      validateHomeRecordStep(step, `${path}.steps[${index}]`, issues),
+    );
+    validateUniqueKeys(value.steps, "itemKey", `${path}.steps`, issues);
+
+    if (value.steps.filter((step) => isObject(step) && step.state === "current").length !== 1) {
+      issues.push(issue(`${path}.steps`, "必须且只能包含一个当前步骤"));
+    }
+  }
+
+  if (!Array.isArray(value.images) || value.images.length !== 2) {
+    issues.push(issue(`${path}.images`, "必须包含 2 张演示图片"));
+  } else {
+    value.images.forEach((image, index) =>
+      validateImageReference(image, `${path}.images[${index}]`, issues),
+    );
+  }
+
+  if (
+    typeof value.extraImageCount !== "number" ||
+    !Number.isInteger(value.extraImageCount) ||
+    value.extraImageCount < 0 ||
+    value.extraImageCount > 99
+  ) {
+    issues.push(issue(`${path}.extraImageCount`, "必须是 0 到 99 的整数"));
+  }
+
+  if (!Array.isArray(value.evidence) || value.evidence.length !== 3) {
+    issues.push(issue(`${path}.evidence`, "必须包含 3 项照护证据"));
+  } else {
+    value.evidence.forEach((item, index) =>
+      validateHomeTextItem(item, `${path}.evidence[${index}]`, issues),
+    );
+    validateUniqueKeys(value.evidence, "itemKey", `${path}.evidence`, issues);
+  }
+}
+
+function validateHomeBrand(value: unknown, path: string, issues: ValidationIssue[]): void {
+  if (!hasOnlyKeys(value, path, ["eyebrow", "title", "description", "image"], issues)) {
+    return;
+  }
+
+  validateOptionalText(value.eyebrow, `${path}.eyebrow`, issues);
+  validateText(value.title, `${path}.title`, issues);
+  validateText(value.description, `${path}.description`, issues);
+  validateImageReference(value.image, `${path}.image`, issues);
+}
+
 function validateSettingsObject(
   value: unknown,
   path: string,
@@ -528,6 +700,31 @@ function validateContactPanel(section: WebsiteContactPanelSection): ValidationIs
   return issues;
 }
 
+function validateHomeExperience(section: WebsiteHomeExperienceSection): ValidationIssue[] {
+  const issues: ValidationIssue[] = [];
+
+  if (
+    !hasOnlyKeys(
+      section.content,
+      "content",
+      ["services", "journey", "record", "trust", "community", "brand"],
+      issues,
+    )
+  ) {
+    return issues;
+  }
+
+  validateHomeMediaGroup(section.content.services, "content.services", 3, issues);
+  validateHomeTextGroup(section.content.journey, "content.journey", 5, issues);
+  validateHomeRecord(section.content.record, "content.record", issues);
+  validateHomeTextGroup(section.content.trust, "content.trust", 4, issues);
+  validateHomeMediaGroup(section.content.community, "content.community", 3, issues);
+  validateHomeBrand(section.content.brand, "content.brand", issues);
+  hasOnlyKeys(section.settings, "settings", [], issues);
+
+  return issues;
+}
+
 function resolveImageAssetIds(images: readonly WebsiteImageReference[]): string[] {
   return images.flatMap((image) => (typeof image.assetId === "string" ? [image.assetId] : []));
 }
@@ -580,6 +777,18 @@ const contactPanelDefinition: SectionDefinition<WebsiteContactPanelSection> = {
   resolveAssetIds: () => [],
 };
 
+const homeExperienceDefinition: SectionDefinition<WebsiteHomeExperienceSection> = {
+  schemaVersion: 1,
+  validate: validateHomeExperience,
+  resolveAssetIds: (section) =>
+    resolveImageAssetIds([
+      ...section.content.services.items.map((item) => item.image),
+      ...section.content.record.images,
+      ...section.content.community.items.map((item) => item.image),
+      section.content.brand.image,
+    ]),
+};
+
 const definitions = {
   [WEBSITE_SECTION_TYPE.SITE_HEADER]: siteHeaderDefinition,
   [WEBSITE_SECTION_TYPE.SITE_FOOTER]: siteFooterDefinition,
@@ -589,6 +798,7 @@ const definitions = {
   [WEBSITE_SECTION_TYPE.CTA]: ctaDefinition,
   [WEBSITE_SECTION_TYPE.RICH_TEXT]: richTextDefinition,
   [WEBSITE_SECTION_TYPE.CONTACT_PANEL]: contactPanelDefinition,
+  [WEBSITE_SECTION_TYPE.HOME_EXPERIENCE]: homeExperienceDefinition,
 } satisfies SectionDefinitionMap;
 
 /** Validates the code-registered schemas for Website Content section snapshots. */

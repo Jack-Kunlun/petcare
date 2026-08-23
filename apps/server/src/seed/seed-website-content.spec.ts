@@ -224,9 +224,14 @@ describe("seedWebsiteContent", () => {
         sectionType: "feature_split",
         sortOrder: 3,
       }),
-      expect.objectContaining({ sectionKey: "home_cta", sectionType: "cta", sortOrder: 4 }),
+      expect.objectContaining({
+        sectionKey: "home_experience",
+        sectionType: "home_experience",
+        sortOrder: 4,
+      }),
+      expect.objectContaining({ sectionKey: "home_cta", sectionType: "cta", sortOrder: 5 }),
     ]);
-    expect(state.sections).toHaveLength(50);
+    expect(state.sections).toHaveLength(52);
   });
 
   it("does not replace an existing operator-owned website pointer", async () => {

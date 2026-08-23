@@ -46,7 +46,7 @@ const WEBSITE_CONTENT_KEYS = new Set<WebsiteContentKey>([
 
 const REQUIRED_SECTION_KEYS: Record<WebsiteContentKey, readonly string[]> = {
   site_shell: ["site_header", "site_footer"],
-  home: ["hero"],
+  home: ["hero", "home_experience"],
   services: ["hero"],
   trust: ["hero"],
   companions: ["hero"],

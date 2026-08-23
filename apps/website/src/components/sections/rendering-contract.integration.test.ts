@@ -33,6 +33,7 @@ describe("Website section renderer resolution", () => {
       "CtaSection",
       "RichTextSection",
       "ContactPanelSection",
+      "HomeExperience",
     ]);
   });
 

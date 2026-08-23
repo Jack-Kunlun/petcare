@@ -41,7 +41,7 @@ interface WebsiteContentRedisOptions {
 
 /** Returns the immutable Redis key for one published Website Content version. */
 export function websiteContentCacheKey(versionId: string): string {
-  return `website_content:version:${versionId}`;
+  return `website_content:v2:version:${versionId}`;
 }
 
 function isPublicContent(value: unknown): value is WebsitePublicContent {

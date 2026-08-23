@@ -40,6 +40,16 @@ export class WebsiteContentDraftService {
     private readonly sectionTypeRegistry: WebsiteSectionTypeRegistry,
   ) {}
 
+  /** Reads the current draft projected onto the latest compatible fixed template. */
+  async getDraft(contentKey: WebsiteContentKey): Promise<WebsiteContentVersion> {
+    const draft = await this.repository.getCurrentDraft(contentKey);
+
+    return {
+      ...draft,
+      sections: this.pageTemplateRegistry.createEditableSections(contentKey, draft.sections),
+    };
+  }
+
   /** Saves a new revision after validating its fixed template and media references. */
   async saveDraft(command: SaveWebsiteContentDraftCommand): Promise<WebsiteContentVersion> {
     if (command.changeSummary.trim().length === 0 || command.requestId.trim().length === 0) {
@@ -47,9 +57,12 @@ export class WebsiteContentDraftService {
     }
 
     validateSeo(command.contentKey, command.seo);
-    this.pageTemplateRegistry.validateSnapshot(command.contentKey, command.sections);
+    const sections = this.pageTemplateRegistry.createEditableSections(
+      command.contentKey,
+      command.sections,
+    );
 
-    const assetIds = command.sections.flatMap((section) =>
+    const assetIds = sections.flatMap((section) =>
       this.sectionTypeRegistry.resolveAssetIds(section),
     );
 
@@ -57,6 +70,6 @@ export class WebsiteContentDraftService {
       assetIds.unshift(command.seo.image.assetId);
     }
 
-    return this.repository.saveDraft(command, [...new Set(assetIds)]);
+    return this.repository.saveDraft({ ...command, sections }, [...new Set(assetIds)]);
   }
 }

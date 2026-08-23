@@ -6,6 +6,7 @@ import {
 } from "@petcare/shared-types";
 import SiteFooter from "../SiteFooter.astro";
 import SiteHeader from "../SiteHeader.astro";
+import HomeExperience from "../HomeExperience.astro";
 import ContactPanelSection from "./ContactPanelSection.astro";
 import CtaSection from "./CtaSection.astro";
 import FeatureSplitSection from "./FeatureSplitSection.astro";
@@ -14,6 +15,7 @@ import RichTextSection from "./RichTextSection.astro";
 import TrustGridSection from "./TrustGridSection.astro";
 import { assertRenderableSection } from "./rendering-contract";
 import type {
+  WebsitePublicHomeExperienceSection,
   WebsitePublicSiteFooterSection,
   WebsitePublicSiteHeaderSection,
 } from "./public-section-types";
@@ -58,6 +60,8 @@ assertRenderableSection(section);
         return <RichTextSection section={section} isPageHeading={isPageHeading} />;
       case WEBSITE_SECTION_TYPE.CONTACT_PANEL:
         return <ContactPanelSection section={section} />;
+      case WEBSITE_SECTION_TYPE.HOME_EXPERIENCE:
+        return <HomeExperience section={section as WebsitePublicHomeExperienceSection} />;
       default:
         return null;
     }

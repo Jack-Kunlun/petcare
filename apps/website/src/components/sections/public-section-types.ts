@@ -38,3 +38,7 @@ export type WebsitePublicRichTextSection = WebsitePublicSectionOf<
 export type WebsitePublicContactPanelSection = WebsitePublicSectionOf<
   typeof WEBSITE_SECTION_TYPE.CONTACT_PANEL
 >;
+/** Resolved public homepage experience section. */
+export type WebsitePublicHomeExperienceSection = WebsitePublicSectionOf<
+  typeof WEBSITE_SECTION_TYPE.HOME_EXPERIENCE
+>;

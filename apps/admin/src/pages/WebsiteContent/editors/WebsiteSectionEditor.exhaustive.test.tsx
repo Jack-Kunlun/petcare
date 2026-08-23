@@ -89,6 +89,76 @@ function sectionFor(sectionType: WebsiteContentSection["sectionType"]): WebsiteC
         content: { title: "联系", description: "说明", channels: [] },
         settings: { columns: 2 },
       };
+    case "home_experience":
+      return {
+        ...base,
+        sectionType: "home_experience",
+        content: {
+          services: {
+            eyebrow: "服务眉题",
+            title: "服务标题",
+            description: "服务说明",
+            action: null,
+            items: [
+              {
+                itemKey: "feeding",
+                label: "01",
+                title: "上门喂养",
+                description: "服务卡片说明",
+                image: { assetId: null, altText: "喂养场景" },
+              },
+            ],
+          },
+          community: {
+            eyebrow: "社区眉题",
+            title: "社区标题",
+            description: "社区说明",
+            action: null,
+            items: [
+              {
+                itemKey: "story",
+                label: "宠物日常",
+                title: "社区故事",
+                description: "社区卡片说明",
+                image: { assetId: null, altText: "社区故事" },
+              },
+            ],
+          },
+          journey: {
+            eyebrow: "流程眉题",
+            title: "流程标题",
+            description: "流程说明",
+            action: null,
+            items: [{ itemKey: "publish", title: "发布需求", description: "流程说明" }],
+          },
+          trust: {
+            eyebrow: "信任眉题",
+            title: "信任标题",
+            description: "信任说明",
+            action: null,
+            items: [{ itemKey: "identity", title: "身份与资料", description: "信任细节" }],
+          },
+          record: {
+            eyebrow: "记录眉题",
+            title: "记录标题",
+            description: "记录说明",
+            action: null,
+            demoTitle: "照护记录",
+            statusLabel: "进行中",
+            steps: [{ itemKey: "check-in", time: "14:02", label: "进门消毒", state: "complete" }],
+            images: [{ assetId: null, altText: "照护记录" }],
+            extraImageCount: 0,
+            evidence: [{ itemKey: "photo", title: "服务照片", description: "记录证据" }],
+          },
+          brand: {
+            eyebrow: "品牌眉题",
+            title: "品牌标题",
+            description: "品牌说明",
+            image: { assetId: null, altText: "品牌故事" },
+          },
+        },
+        settings: {},
+      };
   }
 }
 
@@ -101,11 +171,31 @@ const fieldLabelByType: Record<WebsiteContentSection["sectionType"], string> = {
   cta: "行动标题",
   rich_text: "正文标题",
   contact_panel: "联系区标题",
+  home_experience: "服务眉题",
 };
 
 describe("WebsiteSectionEditor exhaustive section support", () => {
   it("maps every shared section discriminator to a dedicated editor", () => {
     expect(Object.keys(editorByType).sort()).toEqual(Object.values(WEBSITE_SECTION_TYPE).sort());
+  });
+
+  it("renders the fixed homepage experience editor with its first group field", () => {
+    const queryClient = new QueryClient({ defaultOptions: { queries: { retry: false } } });
+
+    render(
+      <QueryClientProvider client={queryClient}>
+        <WebsiteSectionEditor
+          section={sectionFor("home_experience" as WebsiteContentSection["sectionType"])}
+          onChange={vi.fn()}
+          disabled
+        />
+      </QueryClientProvider>,
+    );
+
+    expect(screen.getByRole("textbox", { name: "服务眉题" })).toBeInTheDocument();
+    expect(
+      screen.queryByRole("button", { name: /新增区块|删除区块|更换区块类型|拖拽排序/ }),
+    ).toBeNull();
   });
 
   it.each(Object.values(WEBSITE_SECTION_TYPE))(

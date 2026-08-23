@@ -14,6 +14,7 @@ export const SECTION_RENDERER_NAMES = {
   [WEBSITE_SECTION_TYPE.CTA]: "CtaSection",
   [WEBSITE_SECTION_TYPE.RICH_TEXT]: "RichTextSection",
   [WEBSITE_SECTION_TYPE.CONTACT_PANEL]: "ContactPanelSection",
+  [WEBSITE_SECTION_TYPE.HOME_EXPERIENCE]: "HomeExperience",
 } as const satisfies Record<WebsiteSectionType, string>;
 
 /** Rejects unknown discriminators and future schemas before they reach an Astro template. */

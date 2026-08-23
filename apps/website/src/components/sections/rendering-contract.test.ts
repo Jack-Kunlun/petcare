@@ -1,7 +1,11 @@
 import { readFile } from "node:fs/promises";
 import { WEBSITE_SECTION_TYPE } from "@petcare/shared-types";
 import { describe, expect, it } from "vitest";
-import { assertRenderableSection, SECTION_RENDERER_NAMES } from "./rendering-contract";
+import {
+  assertRenderableSection,
+  resolveSectionRendererName,
+  SECTION_RENDERER_NAMES,
+} from "./rendering-contract";
 
 describe("Website section rendering contract", () => {
   it("maps every shared section type to one renderer", () => {
@@ -19,6 +23,12 @@ describe("Website section rendering contract", () => {
     ).toThrow("Unsupported website section schema version");
   });
 
+  it("resolves the CMS-managed homepage experience section", () => {
+    expect(resolveSectionRendererName({ sectionType: "home_experience", schemaVersion: 1 })).toBe(
+      "HomeExperience",
+    );
+  });
+
   it("keeps the homepage experience shared by published and preview rendering", async () => {
     const [pageSections, publicLayout, previewLayout] = await Promise.all([
       readFile(new URL("../PageSections.astro", import.meta.url), "utf8"),
@@ -29,6 +39,7 @@ describe("Website section rendering contract", () => {
     expect(pageSections.indexOf("<HomeExperience />")).toBeLessThan(
       pageSections.indexOf("section={homeCta}"),
     );
+    expect(pageSections).toContain("WEBSITE_SECTION_TYPE.HOME_EXPERIENCE");
     expect(publicLayout).toContain("<PageSections");
     expect(previewLayout).toContain("<PageSections");
   });

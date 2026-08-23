@@ -19,6 +19,7 @@ function renderSectionName(section: WebsiteContentSection): WebsiteSectionType {
     case WEBSITE_SECTION_TYPE.CTA:
     case WEBSITE_SECTION_TYPE.RICH_TEXT:
     case WEBSITE_SECTION_TYPE.CONTACT_PANEL:
+    case WEBSITE_SECTION_TYPE.HOME_EXPERIENCE:
       return section.sectionType;
 
     default: {
@@ -63,6 +64,7 @@ describe("website content contract", () => {
       CTA: "cta",
       RICH_TEXT: "rich_text",
       CONTACT_PANEL: "contact_panel",
+      HOME_EXPERIENCE: "home_experience",
     });
 
     const section = {

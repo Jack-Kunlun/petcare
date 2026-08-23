@@ -3,6 +3,7 @@ import type {
   WebsiteContactPanelSection,
   WebsiteCtaSection,
   WebsiteFeatureSplitSection,
+  WebsiteHomeExperienceSection,
   WebsiteHeroSection,
   WebsiteRichTextSection,
   WebsiteSectionType,
@@ -15,6 +16,7 @@ import { ContactPanelEditor } from "./ContactPanelEditor";
 import { CtaEditor } from "./CtaEditor";
 import { FeatureSplitEditor } from "./FeatureSplitEditor";
 import { HeroEditor } from "./HeroEditor";
+import { HomeExperienceEditor } from "./HomeExperienceEditor";
 import { RichTextEditor } from "./RichTextEditor";
 import { SiteFooterEditor } from "./SiteFooterEditor";
 import { SiteHeaderEditor } from "./SiteHeaderEditor";
@@ -40,6 +42,7 @@ const sectionTitle: Record<WebsiteSectionType, string> = {
   hero: "首屏介绍",
   trust_grid: "信任说明网格",
   feature_split: "图文特性介绍",
+  home_experience: "首页体验内容",
   cta: "行动号召",
   rich_text: "结构化正文",
   contact_panel: "联系渠道",
@@ -81,6 +84,13 @@ export const editorByType = {
       {...props}
       section={props.section as WebsiteFeatureSplitSection}
       onChange={props.onChange as (section: WebsiteFeatureSplitSection) => void}
+    />
+  ),
+  home_experience: (props) => (
+    <HomeExperienceEditor
+      {...props}
+      section={props.section as WebsiteHomeExperienceSection}
+      onChange={props.onChange as (section: WebsiteHomeExperienceSection) => void}
     />
   ),
   cta: (props) => (

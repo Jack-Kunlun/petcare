@@ -106,6 +106,31 @@ describe("WebsitePageTemplateRegistry", () => {
     });
   });
 
+  it("upgrades only the legacy home snapshot that predates home_experience", () => {
+    const legacyHome = defaultSections(WEBSITE_CONTENT_KEY.HOME).filter(
+      (section) => section.sectionKey !== "home_experience",
+    );
+    const legacyCta = legacyHome.find((section) => section.sectionKey === "home_cta");
+
+    if (!legacyCta) {
+      throw new Error("Home CTA seed section is required for this test");
+    }
+
+    legacyCta.sortOrder = 4;
+
+    expect(() => registry.validateSnapshot(WEBSITE_CONTENT_KEY.HOME, legacyHome)).not.toThrow();
+
+    const upgraded = registry.createEditableSections(WEBSITE_CONTENT_KEY.HOME, legacyHome);
+
+    expect(upgraded.map(({ sectionKey, sortOrder }) => ({ sectionKey, sortOrder }))).toEqual([
+      { sectionKey: "hero", sortOrder: 1 },
+      { sectionKey: "trust_evidence", sortOrder: 2 },
+      { sectionKey: "service_modes", sortOrder: 3 },
+      { sectionKey: "home_experience", sortOrder: 4 },
+      { sectionKey: "home_cta", sortOrder: 5 },
+    ]);
+  });
+
   it("rejects changing a preset type or its display order", () => {
     const changedType = defaultSections(WEBSITE_CONTENT_KEY.HOME);
 
@@ -132,8 +157,15 @@ describe("WebsitePageTemplateRegistry", () => {
 
   it("rejects disabling required sections but permits template-approved optional sections", () => {
     const requiredDisabled = defaultSections(WEBSITE_CONTENT_KEY.HOME);
+    const homeExperience = requiredDisabled.find(
+      (section) => section.sectionKey === "home_experience",
+    );
 
-    requiredDisabled[0].isEnabled = false;
+    if (!homeExperience) {
+      throw new Error("Home experience seed section is required for this test");
+    }
+
+    homeExperience.isEnabled = false;
 
     const optionalDisabled = defaultSections(WEBSITE_CONTENT_KEY.HOME);
     const homeCta = optionalDisabled.find((section) => section.sectionKey === "home_cta");

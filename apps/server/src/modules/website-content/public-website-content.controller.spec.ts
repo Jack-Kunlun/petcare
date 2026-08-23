@@ -27,7 +27,10 @@ describe("PublicWebsiteContentController", () => {
 
   it("reads a preview only from the dedicated request header and prevents caching", async () => {
     const version = { contentKey: "home", revision: 2, sections: [], seo: {} };
-    const published = { getPublished: jest.fn() };
+    const published = {
+      getPublished: jest.fn(),
+      getPreview: jest.fn(async (value) => ({ ...value, resolved: true })),
+    };
     const previews = { readPreview: jest.fn().mockResolvedValue(version) };
     const response = { setHeader: jest.fn() };
     const controller = new PublicWebsiteContentController(published as never, previews as never);
@@ -39,9 +42,10 @@ describe("PublicWebsiteContentController", () => {
         { requestId: "request-1" } as never,
         response as never,
       ),
-    ).resolves.toMatchObject({ contentKey: "home", revision: 2 });
+    ).resolves.toMatchObject({ contentKey: "home", revision: 2, resolved: true });
 
     expect(previews.readPreview).toHaveBeenCalledWith("home", "preview-token", "request-1");
+    expect(published.getPreview).toHaveBeenCalledWith(version);
     expect(response.setHeader).toHaveBeenCalledWith("Cache-Control", "private, no-store");
   });
 

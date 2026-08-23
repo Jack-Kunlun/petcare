@@ -62,7 +62,7 @@ describe("WebsiteContentCacheService", () => {
 
     await expect(service.get("published-home-1")).resolves.toEqual(publicContent);
     expect(clientFactory).toHaveBeenCalledTimes(1);
-    expect(client.get).toHaveBeenCalledWith("website_content:version:published-home-1");
+    expect(client.get).toHaveBeenCalledWith("website_content:v2:version:published-home-1");
   });
 
   it("writes immutable version entries with the fixed twenty-four-hour TTL", async () => {
@@ -78,7 +78,7 @@ describe("WebsiteContentCacheService", () => {
 
     await expect(service.set("published-home-1", publicContent)).resolves.toBe(true);
     expect(client.setEx).toHaveBeenCalledWith(
-      "website_content:version:published-home-1",
+      "website_content:v2:version:published-home-1",
       WEBSITE_CONTENT_CACHE_TTL_SECONDS,
       JSON.stringify(publicContent),
     );

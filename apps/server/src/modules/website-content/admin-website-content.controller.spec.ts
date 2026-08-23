@@ -27,9 +27,11 @@ jest.mock("./media/website-media-file", () => ({
 function createController() {
   const repository = {
     getOverview: jest.fn().mockResolvedValue([]),
-    getCurrentDraft: jest.fn().mockResolvedValue({ id: "draft-1" }),
   };
-  const drafts = { saveDraft: jest.fn().mockResolvedValue({ id: "draft-2" }) };
+  const drafts = {
+    getDraft: jest.fn().mockResolvedValue({ id: "draft-1" }),
+    saveDraft: jest.fn().mockResolvedValue({ id: "draft-2" }),
+  };
   const diffs = { diffDraftFromPublished: jest.fn().mockResolvedValue([]) };
   const history = {
     listHistory: jest.fn().mockResolvedValue({ list: [], total: 0, page: 1, pageSize: 20 }),
@@ -137,7 +139,7 @@ describe("AdminWebsiteContentController", () => {
     await controller.archiveMedia("asset-1", request);
 
     expect(repository.getOverview).toHaveBeenCalledWith();
-    expect(repository.getCurrentDraft).toHaveBeenCalledWith("home");
+    expect(drafts.getDraft).toHaveBeenCalledWith("home");
     expect(drafts.saveDraft).toHaveBeenCalledWith({
       ...save,
       contentKey: "home",

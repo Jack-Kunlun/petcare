@@ -1,6 +1,7 @@
 ---
 import {
   WEBSITE_CONTENT_KEY,
+  WEBSITE_SECTION_TYPE,
   type WebsiteContentKey,
   type WebsitePublicContentSection,
 } from "@petcare/shared-types";
@@ -21,6 +22,9 @@ const pageHeadingSectionKey = sections.find(
   (section) => section.sectionType === "hero" || section.sectionType === "rich_text",
 )?.sectionKey;
 const isHomePage = contentKey === WEBSITE_CONTENT_KEY.HOME;
+const homeExperience = isHomePage
+  ? sections.find((section) => section.sectionType === WEBSITE_SECTION_TYPE.HOME_EXPERIENCE)
+  : undefined;
 const homeCta = isHomePage
   ? sections.find((section) => section.sectionKey === "home_cta")
   : undefined;
@@ -39,5 +43,5 @@ const leadingSections = homeCta
     />
   ))
 }
-{isHomePage ? <HomeExperience /> : null}
+{isHomePage && !homeExperience ? <HomeExperience /> : null}
 {homeCta ? <SectionRenderer section={homeCta} pageKey={contentKey} preview={preview} /> : null}
