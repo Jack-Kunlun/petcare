@@ -201,6 +201,18 @@ test("手动部署只发布已通过 CI 的不可变所选镜像", async () => {
   assert.doesNotMatch(workflow, /sha-\$\{SHA::7\}/);
 });
 
+test("部署工作流使用 Node.js 24 Docker Actions", async () => {
+  const workflow = await readFile(resolve(root, ".github/workflows/deploy.yml"), "utf8");
+
+  assert.match(workflow, /docker\/setup-buildx-action@v4/);
+  assert.match(workflow, /docker\/login-action@v4/);
+  assert.match(workflow, /docker\/build-push-action@v7/);
+  assert.doesNotMatch(
+    workflow,
+    /docker\/(?:setup-buildx-action@v3|login-action@v3|build-push-action@v6)/,
+  );
+});
+
 test("所选提交必须包含当前生产发布契约", async () => {
   const [workflow, releaseContract] = await Promise.all([
     readFile(resolve(root, ".github/workflows/deploy.yml"), "utf8"),
