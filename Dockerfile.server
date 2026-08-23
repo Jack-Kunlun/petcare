@@ -35,7 +35,8 @@ WORKDIR /app
 COPY --from=server-builder /app/pnpm-workspace.yaml ./
 COPY --from=server-builder /app/pnpm-lock.yaml ./
 COPY --from=server-builder /app/package.json ./
-RUN corepack enable
+# 生产服务器无法访问 npm，构建镜像时预热仓库锁定的 pnpm。
+RUN corepack enable && pnpm --version
 
 COPY --from=server-builder /app/apps/server/package.json ./apps/server/
 COPY --from=server-builder /app/apps/server/prisma.config.ts ./apps/server/
