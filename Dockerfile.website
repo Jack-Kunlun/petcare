@@ -32,6 +32,8 @@ ENV PORT=4321
 RUN mkdir -p /app/apps/website && chown -R node:node /app
 
 COPY --from=website-builder --chown=node:node /app/apps/website/dist ./apps/website/dist
+COPY --from=website-builder --chown=node:node /app/packages/shared-types/package.json ./node_modules/@petcare/shared-types/
+COPY --from=website-builder --chown=node:node /app/packages/shared-types/dist ./node_modules/@petcare/shared-types/dist
 
 EXPOSE 4321
 

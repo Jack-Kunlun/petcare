@@ -219,6 +219,14 @@ test("Website 镜像以非 root 身份运行独立 SSR 并提供健康检查", a
   assert.match(dockerfile, /^FROM node:24\.19-alpine AS website-runner$/m);
   assert.match(dockerfile, /RUN pnpm --filter @petcare\/shared-types build/);
   assert.match(dockerfile, /RUN pnpm --filter @petcare\/website build/);
+  assert.match(
+    dockerfile,
+    /COPY --from=website-builder --chown=node:node \/app\/packages\/shared-types\/package\.json \.\/node_modules\/@petcare\/shared-types\//,
+  );
+  assert.match(
+    dockerfile,
+    /COPY --from=website-builder --chown=node:node \/app\/packages\/shared-types\/dist \.\/node_modules\/@petcare\/shared-types\/dist/,
+  );
   assert.match(dockerfile, /^EXPOSE 4321$/m);
   assert.match(dockerfile, /^USER node$/m);
   assert.match(dockerfile, /^HEALTHCHECK .*\/healthz/m);
