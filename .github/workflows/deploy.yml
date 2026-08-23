@@ -187,7 +187,7 @@ jobs:
   deploy:
     name: 发布到生产环境
     needs: [resolve, build, runtime-images]
-    runs-on: ubuntu-latest
+    runs-on: [self-hosted, linux, x64, petcare-deploy]
     permissions:
       contents: read
     environment: production

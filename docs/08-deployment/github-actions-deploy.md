@@ -15,6 +15,22 @@
 - 阿里云短信认证使用专用 RAM 身份，仅允许 `dypns:SendSmsVerifyCode`，不使用 `AliyunDypnsFullAccess`；使用当前可用且相互配套的系统赠送签名和模板。
 - 备份使用独立、私有、HTTPS 的 COS Bucket 和最小权限 CAM 凭据，不复用官网素材 Bucket。
 
+### 专用生产部署 runner
+
+`resolve`、应用镜像构建和固定运行时镜像同步继续使用 GitHub-hosted runner；只有 `deploy` job 使用标签
+`self-hosted`、`linux`、`x64`、`petcare-deploy` 的仓库级专用 runner。当前 runner 名为 `petcare-wsl-deploy`，运行在隔离的
+Ubuntu WSL 中，不挂载 Windows 磁盘、不安装 Docker，也不以 root 或常驻服务运行。
+
+每次手动发布前，在 Ubuntu 中按需启动 runner 并保持终端开启，直到 `deploy` job 完成：
+
+```bash
+cd ~/actions-runner
+./run.sh
+```
+
+看到 `Listening for Jobs` 后再触发工作流；发布结束后使用 `Ctrl+C` 停止 runner。runner 离线时，`deploy` job 会等待而不是回退到
+GitHub-hosted runner。
+
 ## 1. 创建私有 TCR 命名空间
 
 在 TCR 个人版创建一个全局唯一的**私有**命名空间。记录选择的名称，稍后作为 GitHub Environment Variable 的

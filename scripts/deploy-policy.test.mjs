@@ -214,6 +214,18 @@ test("部署工作流将 GitHub token 权限收敛到各 job", async () => {
   assert.doesNotMatch(deployJob, /github\.token/);
 });
 
+test("生产部署由专用 Linux runner 发起，构建仍使用 GitHub runner", async () => {
+  const workflow = await readFile(resolve(root, ".github/workflows/deploy.yml"), "utf8");
+
+  for (const jobName of ["resolve", "build", "runtime-images"]) {
+    assert.match(workflowJobBlock(workflow, jobName), /^ {4}runs-on: ubuntu-latest\r?$/m);
+  }
+  assert.match(
+    workflowJobBlock(workflow, "deploy"),
+    /^ {4}runs-on: \[self-hosted, linux, x64, petcare-deploy\]\r?$/m,
+  );
+});
+
 test("TCR 推送与拉取凭据严格分离", async () => {
   const workflow = await readFile(resolve(root, ".github/workflows/deploy.yml"), "utf8");
   const build = workflowJobBlock(workflow, "build");
