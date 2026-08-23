@@ -18,7 +18,12 @@ type _LocationUrl =
   "/pages-care/orders/index" |
   "/pages-care/order/detail" |
   "/pages-care/monitor/index" |
-  "/pages-care/chat/index";
+  "/pages-care/chat/index" |
+  "/pages-account/pets/index" |
+  "/pages-account/pets/form" |
+  "/pages-account/pets/detail" |
+  "/pages-account/profile/info" |
+  "/pages-account/profile/edit";
 
 interface NavigateToOptions {
   url: _LocationUrl;

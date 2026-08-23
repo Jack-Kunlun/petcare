@@ -26,6 +26,12 @@ export default defineUniPages({
       root: "pages-care",
       pages: ["orders/index", "order/detail", "monitor/index", "chat/index"].map(createPage),
     },
+    {
+      root: "pages-account",
+      pages: ["pets/index", "pets/form", "pets/detail", "profile/info", "profile/edit"].map(
+        createPage,
+      ),
+    },
   ],
   globalStyle: {
     navigationBarTitleText: "PetCare",

@@ -10,7 +10,7 @@ definePage({
 
 const profileStats: { value: string; label: string; route?: string }[] = [
   { value: "12笔", label: "我的订单", route: "/pages-care/orders/index" },
-  { value: "2只", label: "我的宠物" },
+  { value: "2只", label: "我的宠物", route: "/pages-account/pets/index" },
   { value: "3张", label: "优惠券" },
   { value: "856元", label: "余额收入" },
 ];
@@ -24,13 +24,16 @@ const contentItems = [
 const supportItems = [
   { icon: "/static/main/help.svg", label: "帮助中心", detail: "常见问题与使用指南" },
   { icon: "/static/main/customer.svg", label: "联系客服", detail: "工作日 09:00–20:00" },
-  { icon: "/static/main/about.svg", label: "关于我们", detail: "PetCare v2.0.0" },
 ] as const;
 
 function openStat(route?: string) {
   if (route) {
     uni.navigateTo({ url: route });
   }
+}
+
+function openPage(route: string) {
+  uni.navigateTo({ url: route });
 }
 </script>
 
@@ -43,7 +46,11 @@ function openStat(route?: string) {
       </view>
 
       <view class="mx-action overflow-hidden main-card p-action">
-        <view class="flex items-center gap-copy">
+        <view
+          class="flex items-center gap-copy"
+          hover-class="opacity-80"
+          @click="openPage('/pages-account/profile/info')"
+        >
           <view
             class="h-avatar-lg w-avatar-lg flex shrink-0 items-center justify-center rounded-full bg-brand text-card text-surface font-semibold"
           >
@@ -91,7 +98,11 @@ function openStat(route?: string) {
 
       <view class="mt-card flex items-center justify-between px-action">
         <text class="section-heading">我的宠物</text>
-        <view class="flex items-center gap-caption">
+        <view
+          class="flex items-center gap-caption"
+          hover-class="opacity-80"
+          @click="openPage('/pages-account/pets/index')"
+        >
           <text class="text-caption text-brand leading-caption">宠物档案</text>
           <image
             class="h-icon-xs w-icon-xs"
@@ -102,7 +113,11 @@ function openStat(route?: string) {
       </view>
 
       <view class="mt-copy flex items-stretch gap-sm px-action pb-sm">
-        <view class="min-w-0 flex flex-1 flex-col items-center gap-caption main-card p-sm">
+        <view
+          class="min-w-0 flex flex-1 flex-col items-center gap-caption main-card p-sm"
+          hover-class="opacity-80"
+          @click="openPage('/pages-account/pets/detail?id=mimi')"
+        >
           <image
             class="h-avatar-lg w-avatar-lg shrink-0 rounded-control"
             src="/static/main/profile-cat.png"
@@ -113,7 +128,11 @@ function openStat(route?: string) {
             <text class="w-full truncate text-center meta-text">英国短毛猫 · 3岁</text>
           </view>
         </view>
-        <view class="min-w-0 flex flex-1 flex-col items-center gap-caption main-card p-sm">
+        <view
+          class="min-w-0 flex flex-1 flex-col items-center gap-caption main-card p-sm"
+          hover-class="opacity-80"
+          @click="openPage('/pages-account/pets/detail?id=wangcai')"
+        >
           <image
             class="h-avatar-lg w-avatar-lg shrink-0 rounded-control"
             src="/static/main/profile-dog.png"
@@ -126,6 +145,8 @@ function openStat(route?: string) {
         </view>
         <view
           class="w-pet flex shrink-0 flex-col items-center justify-center gap-caption border border-border rounded-card border-dashed bg-surface"
+          hover-class="opacity-80"
+          @click="openPage('/pages-account/pets/form')"
         >
           <text class="text-page text-brand font-medium leading-page">+</text>
           <text class="text-caption text-muted leading-caption">添加</text>
@@ -151,7 +172,6 @@ function openStat(route?: string) {
             <text class="text-body text-ink font-medium leading-label">{{ item.label }}</text>
             <text class="mt-caption quiet-text">{{ item.detail }}</text>
           </view>
-          <image class="h-icon-xs w-icon-xs" src="/static/main/chevron.svg" mode="aspectFit" />
         </view>
       </view>
 
@@ -174,12 +194,12 @@ function openStat(route?: string) {
             <text class="text-body text-ink font-medium leading-label">{{ item.label }}</text>
             <text class="mt-caption quiet-text">{{ item.detail }}</text>
           </view>
-          <image class="h-icon-xs w-icon-xs" src="/static/main/chevron.svg" mode="aspectFit" />
         </view>
       </view>
 
       <view
-        class="mx-action mt-card h-control flex items-center justify-center rounded-control bg-danger-soft"
+        class="mx-action mt-card h-control flex items-center justify-center rounded-control bg-danger-soft opacity-50"
+        aria-disabled="true"
       >
         <text class="text-body text-danger font-medium leading-label">退出登录</text>
       </view>
