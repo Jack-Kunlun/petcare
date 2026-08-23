@@ -165,6 +165,18 @@ test("后端运行镜像在构建时预热 pnpm，生产 migration 不依赖 npm
   assert.ok(packageJson < pnpmWarmup);
 });
 
+test("后端运行镜像包含 seed 所需的 shared-types 构建产物", async () => {
+  const dockerfile = await readFile(resolve(root, "Dockerfile.server"), "utf8");
+  const runnerStage = dockerfile.slice(
+    position(dockerfile, "FROM node:24.19-alpine AS server-runner"),
+  );
+
+  assert.match(
+    runnerStage,
+    /COPY --from=server-builder \/app\/packages\/shared-types\/dist \.\/packages\/shared-types\/dist/,
+  );
+});
+
 test("手动部署只发布已通过 CI 的不可变所选镜像", async () => {
   const [workflow, ciWorkflow] = await Promise.all([
     readFile(resolve(root, ".github/workflows/deploy.yml"), "utf8"),

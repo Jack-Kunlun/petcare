@@ -51,6 +51,7 @@ COPY --from=server-builder /app/apps/server/node_modules ./apps/server/node_modu
 COPY --from=server-builder /app/packages/shared-types/node_modules ./packages/shared-types/node_modules
 COPY --from=server-builder /app/packages/shared-utils/node_modules ./packages/shared-utils/node_modules
 COPY --from=server-builder /app/apps/server/dist ./apps/server/dist
+COPY --from=server-builder /app/packages/shared-types/dist ./packages/shared-types/dist
 
 # Prisma 在没有 schema enum 时只生成 enums.d.ts；CJS 客户端仍会加载该模块。
 RUN test -f apps/server/dist/generated/prisma/enums.js || printf '"use strict";\nObject.defineProperty(exports, "__esModule", { value: true });\n' > apps/server/dist/generated/prisma/enums.js
