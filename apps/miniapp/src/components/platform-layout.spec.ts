@@ -116,6 +116,41 @@ describe("calculatePlatformLayout", () => {
     expect(getBottomSafeAreaStyle(layout, 12)).toBe("12px");
   });
 
+  it("rejects an unreasonable native safe bottom", () => {
+    const layout = calculatePlatformLayout({
+      ...baseInput,
+      platform: "mp-weixin",
+      deviceType: "phone",
+      windowInfo: {
+        windowWidth: 390,
+        windowHeight: 720,
+        screenHeight: 844,
+        statusBarHeight: 44,
+        safeAreaInsets: { top: 44, right: 0, bottom: 84, left: 0 },
+      },
+    });
+
+    expect(layout.safeAreaBottom).toBe(0);
+    expect(layout.tabBarTotalHeight).toBe(60);
+  });
+
+  it("rejects an unreasonable safe area fallback", () => {
+    const layout = calculatePlatformLayout({
+      ...baseInput,
+      platform: "mp-weixin",
+      deviceType: "phone",
+      windowInfo: {
+        windowWidth: 390,
+        windowHeight: 720,
+        screenHeight: 844,
+        statusBarHeight: 44,
+        safeArea: { top: 44, bottom: 760 },
+      },
+    });
+
+    expect(layout.safeAreaBottom).toBe(0);
+  });
+
   it("uses CSS safe area only on mobile H5", () => {
     const layout = calculatePlatformLayout({
       ...baseInput,

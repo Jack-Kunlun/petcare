@@ -60,7 +60,7 @@ function openCommunityArticle(id: string) {
 }
 
 function openBountyTab() {
-  uni.switchTab({ url: "/pages/bounty/index" });
+  uni.redirectTo({ url: "/pages/bounty/index" });
 }
 
 const classroomArticles = [
@@ -83,8 +83,8 @@ const classroomArticles = [
 
 <template>
   <MainTabLayout active="home">
-    <view class="box-border flex flex-col pb-screen">
-      <view class="h-header flex items-center justify-between px-action">
+    <template #header>
+      <view class="min-w-0 flex items-center justify-between">
         <view class="min-w-0 flex flex-1 items-center gap-copy">
           <view
             class="h-avatar w-avatar flex shrink-0 items-center justify-center rounded-full bg-brand text-body text-surface font-semibold"
@@ -104,7 +104,9 @@ const classroomArticles = [
           <text class="truncate text-caption text-muted leading-caption">上海市 · 静安区</text>
         </view>
       </view>
+    </template>
 
+    <view class="box-border flex flex-col pb-screen">
       <view
         class="relative mx-action mt-action h-hero-main overflow-hidden rounded-card bg-surface shadow-card"
       >

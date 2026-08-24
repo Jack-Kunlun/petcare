@@ -35,12 +35,12 @@ function goBack() {
     "
   >
     <view
-      class="shrink-0"
+      class="shrink-0 bg-page-bg"
       :style="{ height: `${layout.navigationTotalHeight - layout.navigationContentHeight}px` }"
     />
 
     <view
-      class="relative flex shrink-0 items-center border-b border-divider bg-surface"
+      class="relative flex shrink-0 items-center bg-page-bg"
       :style="{ height: `${layout.navigationContentHeight}px` }"
     >
       <view

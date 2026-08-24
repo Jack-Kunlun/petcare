@@ -2,7 +2,7 @@
 import SubPageLayout from "@/components/SubPageLayout.vue";
 
 function finish() {
-  uni.switchTab({ url: "/pages/bounty/index" });
+  uni.reLaunch({ url: "/pages/bounty/index" });
 }
 </script>
 

@@ -53,11 +53,11 @@ function openCommunityArticle(id: string) {
 
 <template>
   <MainTabLayout active="community">
-    <view class="box-border flex flex-col pb-screen">
-      <view class="h-header flex items-center px-action">
-        <text class="page-heading">社区</text>
-      </view>
+    <template #header>
+      <text class="page-heading">社区</text>
+    </template>
 
+    <view class="box-border flex flex-col pb-screen">
       <view class="mx-action h-segment flex rounded-control bg-divider p-caption">
         <view
           v-for="(tab, index) in channelTabs"

@@ -32,6 +32,10 @@ const expectedSubPages = [
 ] as const;
 
 describe("miniapp page contract", () => {
+  it("does not reserve a native tab bar behind the custom root layout", () => {
+    expect(pagesConfig.tabBar).toBeUndefined();
+  });
+
   it("registers all subpackage pages exactly once", () => {
     const actual = (pagesConfig.subPackages ?? []).flatMap(({ root, pages }) =>
       pages.map(({ path }) => `${root}/${path}`),

@@ -43,9 +43,7 @@ interface NavigateToOptions {
 }
 interface RedirectToOptions extends NavigateToOptions {}
 
-interface SwitchTabOptions {
-  url: "/pages/index/index" | "/pages/bounty/index" | "/pages/community/index" | "/pages/messages/index" | "/pages/profile/index"
-}
+interface SwitchTabOptions {}
 
 type ReLaunchOptions = NavigateToOptions | SwitchTabOptions;
 

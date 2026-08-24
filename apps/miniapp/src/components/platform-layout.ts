@@ -37,6 +37,8 @@ interface PlatformLayoutInput {
   tabBarTopPadding: number;
 }
 
+const maxSafeAreaBottom = Number.parseFloat(miniappDesignTokens.sizes["safe-area-max"]);
+
 export interface PlatformLayout {
   platform: string;
   windowWidth: number;
@@ -97,15 +99,21 @@ function getSafeAreaBottom(
     return 0;
   }
 
-  if (safeAreaInsets?.bottom !== undefined && Number.isFinite(safeAreaInsets.bottom)) {
-    return nonNegative(safeAreaInsets.bottom);
+  if (safeAreaInsets?.bottom !== undefined) {
+    return isReasonableSafeAreaBottom(safeAreaInsets.bottom) ? safeAreaInsets.bottom : 0;
   }
 
   if (safeArea?.bottom !== undefined && Number.isFinite(safeArea.bottom)) {
-    return Math.max(0, nonNegative(screenHeight) - safeArea.bottom);
+    const fallbackBottom = Math.max(0, nonNegative(screenHeight) - safeArea.bottom);
+
+    return isReasonableSafeAreaBottom(fallbackBottom) ? fallbackBottom : 0;
   }
 
   return 0;
+}
+
+function isReasonableSafeAreaBottom(value: number) {
+  return Number.isFinite(value) && value >= 0 && value <= maxSafeAreaBottom;
 }
 
 function getSafeAreaRight(

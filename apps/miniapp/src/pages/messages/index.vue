@@ -93,12 +93,14 @@ function openMessage(item: MessageItem) {
 
 <template>
   <MainTabLayout active="messages">
-    <view class="box-border flex flex-col pb-screen">
-      <view class="h-header flex items-center justify-between px-action">
+    <template #header>
+      <view class="flex items-center justify-between">
         <text class="page-heading">消息</text>
         <text class="text-caption text-brand leading-caption">全部已读</text>
       </view>
+    </template>
 
+    <view class="box-border flex flex-col pb-screen">
       <view class="mx-action h-control flex rounded-pill bg-surface p-caption">
         <view
           v-for="(tab, index) in categoryTabs"

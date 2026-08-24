@@ -1,5 +1,5 @@
 <script setup lang="ts">
-import { onMounted } from "vue";
+import { computed } from "vue";
 import { getBottomSafeAreaStyle, usePlatformLayout } from "./platform-layout";
 import { miniappDesignTokens } from "@/config/design-tokens";
 
@@ -10,8 +10,11 @@ defineProps<{
 }>();
 
 const { colors, spacing, sizes, fontSizes, lineHeights } = miniappDesignTokens;
-const { layout, refresh: refreshLayout } = usePlatformLayout();
+const { layout } = usePlatformLayout();
 const floatingGap = Number.parseFloat(spacing.action);
+const rootHeaderRightInset = computed(() =>
+  Math.max(floatingGap, layout.value.capsuleReservedWidth),
+);
 const tabbarStyle = [
   `--wot-tabbar-height: ${sizes.tabbar}`,
   `--wot-tabbar-bg: ${colors.surface}`,
@@ -62,15 +65,11 @@ const tabs = [
   },
 ] as const;
 
-onMounted(() => {
-  uni.hideTabBar({ animation: false, complete: refreshLayout });
-});
-
 function handleTabChange(event: { value: string | number }) {
   const tab = tabs.find((item) => item.key === event.value);
 
   if (tab) {
-    uni.switchTab({ url: tab.route });
+    uni.redirectTo({ url: tab.route });
   }
 }
 </script>
@@ -84,7 +83,22 @@ function handleTabChange(event: { value: string | number }) {
         : { height: layout.windowHeight ? `${layout.windowHeight}px` : '100vh' }
     "
   >
-    <view class="shrink-0 bg-page-bg" :style="{ height: `${layout.pageTopInset}px` }" />
+    <view
+      class="shrink-0 bg-page-bg"
+      :style="{ height: `${layout.navigationTotalHeight - layout.navigationContentHeight}px` }"
+    />
+
+    <view
+      class="box-border flex shrink-0 items-center bg-page-bg pl-action"
+      :style="{
+        height: `${layout.navigationContentHeight}px`,
+        paddingRight: `${rootHeaderRightInset}px`,
+      }"
+    >
+      <view class="min-w-0 w-full">
+        <slot name="header" />
+      </view>
+    </view>
 
     <scroll-view class="h-0 min-h-0 flex-1" scroll-y :show-scrollbar="false">
       <slot />

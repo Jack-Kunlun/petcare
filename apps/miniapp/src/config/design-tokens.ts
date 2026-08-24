@@ -51,6 +51,7 @@ export const miniappDesignTokens = {
     control: "44px",
     header: "48px",
     tabbar: "52px",
+    "safe-area-max": "48px",
     fab: "52px",
     segment: "36px",
     "hero-main": "176px",

@@ -64,12 +64,14 @@ function openPage(route: string) {
 
 <template>
   <MainTabLayout active="profile">
-    <view class="box-border flex flex-col pb-screen">
-      <view class="h-header flex items-center justify-between px-action">
+    <template #header>
+      <view class="flex items-center justify-between">
         <text class="page-heading">我的</text>
         <text class="text-amount text-muted leading-card">···</text>
       </view>
+    </template>
 
+    <view class="box-border flex flex-col pb-screen">
       <view class="mx-action overflow-hidden main-card p-action">
         <view
           class="flex items-center gap-copy"
