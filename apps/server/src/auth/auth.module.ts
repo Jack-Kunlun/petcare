@@ -70,6 +70,7 @@ export function createSmsSender(configService: ConfigService): SmsSender {
   ],
   exports: [
     AuthService,
+    VerificationCodeService,
     AccessTokenGuard,
     AdminGuard,
     PermissionGuard,

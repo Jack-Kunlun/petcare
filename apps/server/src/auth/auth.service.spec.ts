@@ -237,7 +237,11 @@ describe("AuthService", () => {
   it("logs in with a consumed SMS verification code", async () => {
     const result = await service.loginWithSms("13800138000", "246810");
 
-    expect(verificationCodeService.verifyAndConsume).toHaveBeenCalledWith("13800138000", "246810");
+    expect(verificationCodeService.verifyAndConsume).toHaveBeenCalledWith({
+      phone: "13800138000",
+      code: "246810",
+      purpose: "admin_login",
+    });
     expect(result.accessToken).toBe("access");
   });
 
@@ -276,7 +280,10 @@ describe("AuthService", () => {
       },
       select: { id: true },
     });
-    expect(verificationCodeService.send).toHaveBeenCalledWith("13800138000");
+    expect(verificationCodeService.send).toHaveBeenCalledWith({
+      phone: "13800138000",
+      purpose: "admin_login",
+    });
     expect(captchaService.verifyAndConsume.mock.invocationCallOrder[0]).toBeLessThan(
       prisma.user.findFirst.mock.invocationCallOrder[0],
     );

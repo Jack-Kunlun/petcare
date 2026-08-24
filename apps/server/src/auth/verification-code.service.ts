@@ -5,6 +5,20 @@ import { ConfigService } from "../config/config.service";
 import { RedisService } from "../config/redis.service";
 import { SMS_SENDER, SmsSender } from "./sms/sms-sender";
 
+export type VerificationPurpose = "admin_login" | "miniapp_bind_phone" | "miniapp_cancel_account";
+
+interface SendVerificationCodeInput {
+  phone: string;
+  purpose: VerificationPurpose;
+  subject?: string;
+}
+
+interface VerifyVerificationCodeInput {
+  phone: string;
+  code: string;
+  purpose: VerificationPurpose;
+}
+
 @Injectable()
 export class VerificationCodeService {
   constructor(
@@ -13,8 +27,8 @@ export class VerificationCodeService {
     @Inject(SMS_SENDER) private readonly smsSender: SmsSender,
   ) {}
 
-  async send(phone: string): Promise<void> {
-    const cooldownKey = this.cooldownKey(phone);
+  async send({ phone, purpose, subject }: SendVerificationCodeInput): Promise<void> {
+    const cooldownKey = this.cooldownKey(phone, purpose);
     const cooldownCreated = await this.redisService.setIfAbsent(
       cooldownKey,
       "1",
@@ -25,7 +39,7 @@ export class VerificationCodeService {
       this.throwTooManyRequests();
     }
 
-    const hourlyKey = this.hourlyKey(phone);
+    const hourlyKey = this.hourlyKey(phone, purpose);
     const hourlyCount = await this.redisService.increment(hourlyKey);
 
     if (hourlyCount === 1) {
@@ -37,13 +51,25 @@ export class VerificationCodeService {
       this.throwTooManyRequests();
     }
 
+    if (
+      subject &&
+      !(await this.redisService.consumeFixedWindow(
+        this.subjectHourlyKey(subject, purpose),
+        this.configService.smsHourlyLimit,
+        3600,
+      ))
+    ) {
+      await this.redisService.del(cooldownKey);
+      this.throwTooManyRequests();
+    }
+
     const code = this.configService.smsDevCode ?? String(randomInt(0, 1_000_000)).padStart(6, "0");
-    const otpKey = this.otpKey(phone);
-    const attemptsKey = this.attemptsKey(phone);
+    const otpKey = this.otpKey(phone, purpose);
+    const attemptsKey = this.attemptsKey(phone, purpose);
 
     await this.redisService.set(
       otpKey,
-      this.digest(phone, code),
+      this.digest(phone, code, purpose),
       this.configService.smsCodeTtlSeconds,
     );
     await this.redisService.del(attemptsKey);
@@ -56,35 +82,39 @@ export class VerificationCodeService {
     }
   }
 
-  async verifyAndConsume(phone: string, code: string): Promise<boolean> {
+  async verifyAndConsume({ phone, code, purpose }: VerifyVerificationCodeInput): Promise<boolean> {
     return this.redisService.verifyAndConsumeOtp(
-      this.otpKey(phone),
-      this.attemptsKey(phone),
-      this.digest(phone, code),
+      this.otpKey(phone, purpose),
+      this.attemptsKey(phone, purpose),
+      this.digest(phone, code, purpose),
       this.configService.smsMaxAttempts,
     );
   }
 
-  private digest(phone: string, code: string): string {
+  private digest(phone: string, code: string, purpose: VerificationPurpose): string {
     return createHmac("sha256", this.configService.jwtSecret)
-      .update(`${phone}:${code}`)
+      .update(`${purpose}:${phone}:${code}`)
       .digest("hex");
   }
 
-  private otpKey(phone: string): string {
-    return `auth:otp:${phone}`;
+  private otpKey(phone: string, purpose: VerificationPurpose): string {
+    return `auth:otp:${purpose}:${phone}`;
   }
 
-  private attemptsKey(phone: string): string {
-    return `auth:otp:attempts:${phone}`;
+  private attemptsKey(phone: string, purpose: VerificationPurpose): string {
+    return `auth:otp:attempts:${purpose}:${phone}`;
   }
 
-  private cooldownKey(phone: string): string {
-    return `auth:otp:cooldown:${phone}`;
+  private cooldownKey(phone: string, purpose: VerificationPurpose): string {
+    return `auth:otp:cooldown:${purpose}:${phone}`;
   }
 
-  private hourlyKey(phone: string): string {
-    return `auth:otp:hour:${phone}`;
+  private hourlyKey(phone: string, purpose: VerificationPurpose): string {
+    return `auth:otp:hour:${purpose}:${phone}`;
+  }
+
+  private subjectHourlyKey(subject: string, purpose: VerificationPurpose): string {
+    return `auth:otp:subject-hour:${purpose}:${subject}`;
   }
 
   private throwTooManyRequests(): never {

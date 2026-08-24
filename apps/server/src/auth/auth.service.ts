@@ -117,7 +117,7 @@ export class AuthService {
     });
 
     if (user) {
-      await this.verificationCodeService.send(phone);
+      await this.verificationCodeService.send({ phone, purpose: "admin_login" });
     }
 
     return { message: "如果该手机号可用于后台登录，验证码将会发送" };
@@ -149,7 +149,11 @@ export class AuthService {
   }
 
   async loginWithSms(phone: string, code: string): Promise<LoginResult> {
-    const codeMatches = await this.verificationCodeService.verifyAndConsume(phone, code);
+    const codeMatches = await this.verificationCodeService.verifyAndConsume({
+      phone,
+      code,
+      purpose: "admin_login",
+    });
 
     if (!codeMatches) {
       throw this.invalidCredentials();

@@ -3,6 +3,8 @@ import { RedisService } from "../config/redis.service";
 import { SmsSender } from "./sms/sms-sender";
 import { VerificationCodeService } from "./verification-code.service";
 
+const smsHourlyLimit = 5;
+
 class InMemoryRedis {
   readonly values = new Map<string, string>();
 
@@ -30,6 +32,10 @@ class InMemoryRedis {
 
   expire(): Promise<void> {
     return Promise.resolve();
+  }
+
+  async consumeFixedWindow(key: string, maxAttempts: number): Promise<boolean> {
+    return (await this.increment(key)) <= maxAttempts;
   }
 
   async del(...keys: string[]): Promise<void> {
@@ -87,7 +93,7 @@ describe("VerificationCodeService", () => {
       smsDevCode: "246810",
       smsCodeTtlSeconds: 300,
       smsSendCooldownSeconds: 60,
-      smsHourlyLimit: 5,
+      smsHourlyLimit,
       smsMaxAttempts: 5,
     } as ConfigService;
 
@@ -99,11 +105,11 @@ describe("VerificationCodeService", () => {
   });
 
   it("stores only a digest and sends the configured six-digit code", async () => {
-    await service.send("13800138000");
+    await service.send({ phone: "13800138000", purpose: "admin_login" });
 
     expect(sender.sendCode).toHaveBeenCalledWith("13800138000", "246810");
-    expect(redis.values.get("auth:otp:13800138000")).toBeDefined();
-    expect(redis.values.get("auth:otp:13800138000")).not.toContain("246810");
+    expect(redis.values.get("auth:otp:admin_login:13800138000")).toBeDefined();
+    expect(redis.values.get("auth:otp:admin_login:13800138000")).not.toContain("246810");
   });
 
   it("removes the OTP and cooldown when the provider rejects delivery", async () => {
@@ -114,50 +120,105 @@ describe("VerificationCodeService", () => {
       }),
     );
 
-    await expect(service.send("13800138000")).rejects.toMatchObject({
+    await expect(
+      service.send({ phone: "13800138000", purpose: "admin_login" }),
+    ).rejects.toMatchObject({
       code: "SMS_DELIVERY_FAILED",
     });
-    expect(redis.values.has("auth:otp:13800138000")).toBe(false);
-    expect(redis.values.has("auth:otp:cooldown:13800138000")).toBe(false);
+    expect(redis.values.has("auth:otp:admin_login:13800138000")).toBe(false);
+    expect(redis.values.has("auth:otp:cooldown:admin_login:13800138000")).toBe(false);
   });
 
   it("consumes a correct code once", async () => {
-    await service.send("13800138000");
+    await service.send({ phone: "13800138000", purpose: "admin_login" });
 
-    await expect(service.verifyAndConsume("13800138000", "246810")).resolves.toBe(true);
-    await expect(service.verifyAndConsume("13800138000", "246810")).resolves.toBe(false);
+    await expect(
+      service.verifyAndConsume({
+        phone: "13800138000",
+        code: "246810",
+        purpose: "admin_login",
+      }),
+    ).resolves.toBe(true);
+    await expect(
+      service.verifyAndConsume({
+        phone: "13800138000",
+        code: "246810",
+        purpose: "admin_login",
+      }),
+    ).resolves.toBe(false);
   });
 
   it("blocks the correct code after five failed attempts", async () => {
-    await service.send("13800138000");
+    await service.send({ phone: "13800138000", purpose: "admin_login" });
 
     await Array.from({ length: 5 }).reduce(async (previousAttempt) => {
       await previousAttempt;
-      await expect(service.verifyAndConsume("13800138000", "000000")).resolves.toBe(false);
+      await expect(
+        service.verifyAndConsume({
+          phone: "13800138000",
+          code: "000000",
+          purpose: "admin_login",
+        }),
+      ).resolves.toBe(false);
     }, Promise.resolve());
 
-    await expect(service.verifyAndConsume("13800138000", "246810")).resolves.toBe(false);
+    await expect(
+      service.verifyAndConsume({
+        phone: "13800138000",
+        code: "246810",
+        purpose: "admin_login",
+      }),
+    ).resolves.toBe(false);
   });
 
   it("enforces the send cooldown", async () => {
-    await service.send("13800138000");
+    await service.send({ phone: "13800138000", purpose: "admin_login" });
 
-    await expect(service.send("13800138000")).rejects.toMatchObject({
-      code: "RATE_LIMIT_EXCEEDED",
-      status: 429,
-    });
+    await expect(
+      service.send({ phone: "13800138000", purpose: "admin_login" }),
+    ).rejects.toMatchObject({ code: "RATE_LIMIT_EXCEEDED", status: 429 });
   });
 
   it("enforces the hourly send limit", async () => {
-    await Array.from({ length: 5 }).reduce(async (previousSend) => {
+    await Array.from({ length: smsHourlyLimit }).reduce(async (previousSend) => {
       await previousSend;
-      await service.send("13800138000");
-      redis.values.delete("auth:otp:cooldown:13800138000");
+      await service.send({ phone: "13800138000", purpose: "admin_login" });
+      redis.values.delete("auth:otp:cooldown:admin_login:13800138000");
     }, Promise.resolve());
 
-    await expect(service.send("13800138000")).rejects.toMatchObject({
-      code: "RATE_LIMIT_EXCEEDED",
-      status: 429,
-    });
+    await expect(
+      service.send({ phone: "13800138000", purpose: "admin_login" }),
+    ).rejects.toMatchObject({ code: "RATE_LIMIT_EXCEEDED", status: 429 });
+  });
+
+  it("does not consume a code issued for another purpose", async () => {
+    await service.send({ phone: "13800138000", purpose: "admin_login" });
+
+    await expect(
+      service.verifyAndConsume({
+        phone: "13800138000",
+        code: "246810",
+        purpose: "miniapp_bind_phone",
+      }),
+    ).resolves.toBe(false);
+  });
+
+  it("limits one Miniapp subject across different destination phones", async () => {
+    await Array.from({ length: smsHourlyLimit }).reduce(async (previousSend, _, index) => {
+      await previousSend;
+      await service.send({
+        phone: `1760000000${index}`,
+        purpose: "miniapp_bind_phone",
+        subject: "user-1",
+      });
+    }, Promise.resolve());
+
+    await expect(
+      service.send({
+        phone: "17600000009",
+        purpose: "miniapp_bind_phone",
+        subject: "user-1",
+      }),
+    ).rejects.toMatchObject({ code: "RATE_LIMIT_EXCEEDED" });
   });
 });
