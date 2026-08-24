@@ -148,7 +148,7 @@ export default function ContentArticleEdit() {
   const isLocked = saveMutation.isPending || mediaUploading;
 
   return (
-    <section className="mx-auto w-full max-w-4xl">
+    <section className="mx-auto w-full max-w-[896px]">
       <Link
         to="/content/articles"
         className="inline-flex min-h-10 items-center rounded-md px-2 font-medium text-blue-800 hover:bg-blue-50 focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-blue-800"
