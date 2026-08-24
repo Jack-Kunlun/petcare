@@ -22,9 +22,23 @@ vi.mock("axios", () => ({
   },
 }));
 
-beforeEach(() => {
+function createExpiredSessionError(config: Record<string, unknown>) {
+  return {
+    config,
+    response: {
+      status: 401,
+      data: { code: "AUTH_SESSION_EXPIRED", message: "登录状态已失效" },
+    },
+  };
+}
+
+beforeEach(async () => {
   axiosMocks.client.mockClear();
   axiosMocks.client.post.mockClear();
+
+  const authModule = await import("./auth");
+
+  authModule.setAccessToken("test-access-token");
 });
 
 describe("Admin Axios response boundary", () => {
@@ -200,6 +214,53 @@ describe("Admin Axios response boundary", () => {
     await expect(onRejected(error)).rejects.toBe(error);
 
     expect(axiosMocks.client.post).not.toHaveBeenCalledWith("/auth/refresh");
+    expect(listener).toHaveBeenCalledWith("登录状态已失效");
+    unsubscribe();
+  });
+
+  it("emits one session event when concurrent retried requests expire after a shared refresh", async () => {
+    const authModule = await import("./auth");
+    const onRejected = axiosMocks.responseUse.mock.calls[0]?.[1] as (
+      error: Record<string, unknown>,
+    ) => Promise<unknown>;
+    const listener = vi.fn();
+    const unsubscribe = onSessionExpired(listener);
+    const retryRejecters: Array<(reason?: unknown) => void> = [];
+    const createRequest = () => ({
+      headers: { has: vi.fn(() => true), set: vi.fn() },
+      url: "/admin/account/profile",
+    });
+
+    authModule.setAccessToken("active-access");
+    axiosMocks.client.post.mockResolvedValue({ data: { accessToken: "refreshed-access" } });
+    axiosMocks.client.mockImplementation(
+      () => new Promise((_, reject: (reason?: unknown) => void) => retryRejecters.push(reject)),
+    );
+
+    const firstRequest = createRequest();
+    const secondRequest = createRequest();
+    const firstInitialAttempt = onRejected(createExpiredSessionError(firstRequest));
+    const secondInitialAttempt = onRejected(createExpiredSessionError(secondRequest));
+
+    await vi.waitFor(() => {
+      expect(axiosMocks.client.post).toHaveBeenCalledTimes(1);
+      expect(axiosMocks.client).toHaveBeenCalledTimes(2);
+      expect(retryRejecters).toHaveLength(2);
+    });
+
+    const firstRetryError = createExpiredSessionError(firstRequest);
+    const secondRetryError = createExpiredSessionError(secondRequest);
+    const firstRetryAttempt = onRejected(firstRetryError);
+    const secondRetryAttempt = onRejected(secondRetryError);
+
+    await expect(firstRetryAttempt).rejects.toBe(firstRetryError);
+    await expect(secondRetryAttempt).rejects.toBe(secondRetryError);
+    retryRejecters[0]?.(firstRetryError);
+    retryRejecters[1]?.(secondRetryError);
+    await expect(firstInitialAttempt).rejects.toBe(firstRetryError);
+    await expect(secondInitialAttempt).rejects.toBe(secondRetryError);
+
+    expect(listener).toHaveBeenCalledTimes(1);
     expect(listener).toHaveBeenCalledWith("登录状态已失效");
     unsubscribe();
   });

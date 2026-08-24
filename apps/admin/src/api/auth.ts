@@ -22,10 +22,12 @@ export const apiClient = axios.create({
 
 let accessToken: string | null = null;
 let refreshPromise: Promise<string> | null = null;
+let hasHandledExpiredSession = false;
 
 /** 设置仅保存在内存中的访问令牌。 */
 export function setAccessToken(token: string): void {
   accessToken = token;
+  hasHandledExpiredSession = false;
 }
 
 /** 清除内存中的访问令牌。 */
@@ -37,6 +39,12 @@ function handleExpiredSession(error: AxiosError<ApiErrorResponse>): void {
   const message = readApiErrorMessage(error);
 
   clearAccessToken();
+
+  if (hasHandledExpiredSession) {
+    return;
+  }
+
+  hasHandledExpiredSession = true;
   emitSessionExpired(message);
 }
 
