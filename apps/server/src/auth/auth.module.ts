@@ -14,6 +14,7 @@ import { JwtStrategy } from "./jwt.strategy";
 import { PasswordLoginAttemptService } from "./password-login-attempt.service";
 import { PasswordService } from "./password.service";
 import { PermissionGuard } from "./permission.guard";
+import { ProfileCompleteGuard } from "./profile-complete.guard";
 import { SessionValidationService } from "./session-validation.service";
 import { AliyunSmsSender } from "./sms/aliyun-sms.sender";
 import { DevelopmentSmsSender } from "./sms/development-sms.sender";
@@ -61,6 +62,7 @@ export function createSmsSender(configService: ConfigService): SmsSender {
     AccessTokenGuard,
     AdminGuard,
     PermissionGuard,
+    ProfileCompleteGuard,
     DisputeResolverGuard,
     {
       provide: SMS_SENDER,
@@ -74,6 +76,7 @@ export function createSmsSender(configService: ConfigService): SmsSender {
     AccessTokenGuard,
     AdminGuard,
     PermissionGuard,
+    ProfileCompleteGuard,
     DisputeResolverGuard,
     PasswordService,
     TokenService,

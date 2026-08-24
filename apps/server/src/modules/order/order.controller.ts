@@ -1,5 +1,9 @@
-import { Body, Controller, Get, Param, Post, Query } from "@nestjs/common";
-import { ApiOperation, ApiTags } from "@nestjs/swagger";
+import { Body, Controller, Get, Param, Post, Query, Req, UseGuards } from "@nestjs/common";
+import { ApiBearerAuth, ApiOperation, ApiTags } from "@nestjs/swagger";
+import type { Request } from "express";
+import { AccessTokenGuard } from "../../auth/access-token.guard";
+import type { AccessTokenPayload } from "../../auth/auth.types";
+import { ProfileCompleteGuard } from "../../auth/profile-complete.guard";
 import {
   ApiStandardErrors,
   ApiSuccessResponse,
@@ -13,20 +17,21 @@ import {
 } from "./dto/order-response.dto";
 import { OrderService } from "./order.service";
 
+type AuthRequest = Request & { user: AccessTokenPayload };
+
 @ApiTags("orders")
 @Controller("orders")
 export class OrderController {
   constructor(private readonly orderService: OrderService) {}
 
   @Post("reward")
+  @UseGuards(AccessTokenGuard, ProfileCompleteGuard)
+  @ApiBearerAuth()
   @ApiOperation({ summary: "创建悬赏订单" })
   @ApiSuccessResponse(CreateOrderResponseDto, { status: 201 })
-  @ApiStandardErrors(400, 404, 500)
-  createRewardOrder(@Body() dto: CreateRewardOrderDto) {
-    // TODO: 从 JWT 中获取 ownerId。
-    const ownerId = "mock-owner-id";
-
-    return this.orderService.createRewardOrder(dto, ownerId);
+  @ApiStandardErrors(400, 401, 403, 404, 500)
+  createRewardOrder(@Req() request: AuthRequest, @Body() dto: CreateRewardOrderDto) {
+    return this.orderService.createRewardOrder(dto, request.user.sub);
   }
 
   @Get()

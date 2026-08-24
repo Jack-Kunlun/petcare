@@ -1,6 +1,7 @@
 import { HttpStatus, RequestMethod } from "@nestjs/common";
 import { GUARDS_METADATA, HTTP_CODE_METADATA, METHOD_METADATA } from "@nestjs/common/constants";
 import { AccessTokenGuard } from "../../auth/access-token.guard";
+import { ProfileCompleteGuard } from "../../auth/profile-complete.guard";
 import { ComplaintCommandService } from "./complaint-command.service";
 import { ComplaintQueryService } from "./complaint-query.service";
 import { ComplaintController } from "./complaint.controller";
@@ -53,6 +54,27 @@ describe("ComplaintController", () => {
 
     expect(guards).toContain(AccessTokenGuard);
   });
+
+  it.each(["create", "respond", "appeal", "withdraw"] as const)(
+    "requires a complete profile for %s",
+    (methodName) => {
+      const guards = Reflect.getMetadata(
+        GUARDS_METADATA,
+        ComplaintController.prototype[methodName],
+      ) as unknown[];
+
+      expect(guards).toEqual([ProfileCompleteGuard]);
+    },
+  );
+
+  it.each(["findMine", "findOne"] as const)(
+    "does not require a complete profile for %s",
+    (methodName) => {
+      expect(
+        Reflect.getMetadata(GUARDS_METADATA, ComplaintController.prototype[methodName]),
+      ).toBeUndefined();
+    },
+  );
 
   it("passes the authenticated actor and DTO when creating a complaint", async () => {
     const dto = {

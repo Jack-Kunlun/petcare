@@ -17,6 +17,7 @@ import { ApiBearerAuth, ApiOperation, ApiTags } from "@nestjs/swagger";
 import type { Request } from "express";
 import { AccessTokenGuard } from "../../auth/access-token.guard";
 import type { AccessTokenPayload } from "../../auth/auth.types";
+import { ProfileCompleteGuard } from "../../auth/profile-complete.guard";
 import {
   ApiStandardErrors,
   ApiSuccessResponse,
@@ -45,6 +46,7 @@ export class ComplaintController {
 
   /** 创建当前用户作为订单一方的投诉。 */
   @Post()
+  @UseGuards(ProfileCompleteGuard)
   @ApiOperation({ summary: "创建订单投诉" })
   @ApiSuccessResponse(ComplaintResponseDto, { status: 201 })
   @ApiStandardErrors(400, 401, 403, 404, 409, 500)
@@ -78,6 +80,7 @@ export class ComplaintController {
 
   /** 提交被投诉方的首次回应。 */
   @Post(":id/respond")
+  @UseGuards(ProfileCompleteGuard)
   @HttpCode(HttpStatus.OK)
   @ApiOperation({ summary: "提交首次投诉回应" })
   @ApiSuccessResponse(ComplaintResponseDto)
@@ -94,6 +97,7 @@ export class ComplaintController {
 
   /** 提交当前订单当事方的二次申诉。 */
   @Post(":id/appeals")
+  @UseGuards(ProfileCompleteGuard)
   @HttpCode(HttpStatus.OK)
   @ApiOperation({ summary: "提交二次申诉" })
   @ApiSuccessResponse(ComplaintResponseDto)
@@ -110,6 +114,7 @@ export class ComplaintController {
 
   /** 由投诉方在初裁前撤回投诉。 */
   @Post(":id/withdraw")
+  @UseGuards(ProfileCompleteGuard)
   @HttpCode(HttpStatus.OK)
   @ApiOperation({ summary: "撤回投诉" })
   @ApiSuccessResponse(ComplaintResponseDto)
