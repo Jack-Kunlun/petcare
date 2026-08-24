@@ -140,7 +140,11 @@ ALIYUN_SMS_TEMPLATE_CODE=
 | 变量名                      | 必填 | 说明                                                                 |
 | --------------------------- | ---- | -------------------------------------------------------------------- |
 | `API_BASE_URL`              | 否   | Admin API 基础 URL；默认值仅用于本地诊断 `http://localhost:8986/api` |
+| `VITE_MINIAPP_API_BASE_URL` | ✅   | UniApp Miniapp API 基础 URL；本地默认 `http://localhost:3000`        |
 | ~~`TARO_APP_API_BASE_URL`~~ | -    | ~~Taro Miniapp 请求地址；已随项目删除~~                              |
+
+`VITE_MINIAPP_API_BASE_URL` 会进入客户端构建产物，只能配置公开网关地址，不能包含凭据。生产构建必须使用
+HTTPS API 网关，不能使用本地 HTTP 示例或 Docker 内网服务名。
 
 ### 第三方服务（可选）
 
@@ -161,9 +165,8 @@ ALIYUN_SMS_TEMPLATE_CODE=
 `WECHAT_APP_SECRET` 留空；这是未完成的初始化状态。root 必须在第一次 `deploy.yml` 前安全填写它，否则 Server 会按
 成组配置规则拒绝启动。
 
-~~Miniapp 只读取 `TARO_APP_API_BASE_URL`，并从 `apps/miniapp/project.config.json` 取得公开 AppID。~~
-
-`WECHAT_APP_ID` 和 `WECHAT_APP_SECRET` 只由 Server 使用，任何客户端都不得包含或读取 AppSecret。Miniapp 的业务请求边界尚未迁移，相关客户端变量将在实际接入时另行确定。
+`WECHAT_APP_ID` 和 `WECHAT_APP_SECRET` 只由 Server 使用，任何客户端都不得包含或读取 AppSecret。Miniapp
+业务请求只读取公开的 `VITE_MINIAPP_API_BASE_URL`，不会读取微信或 Server 凭据。
 
 腾讯云 COS 采用三态配置：
 
@@ -244,9 +247,8 @@ JavaScript、构建参数或 CDN 配置中。Astro 通过它在 Docker 内网调
    # pnpm dev:miniapp（已删除）
    ```
 
-5. ~~在微信开发者工具中导入 `apps/miniapp`，并通过 `TARO_APP_API_BASE_URL` 配置请求地址。~~
-
-   原 Taro 联调流程已弃用；Miniapp 业务请求尚未迁移，不沿用旧变量和旧项目配置。
+5. 在根 `.env` 中配置 `VITE_MINIAPP_API_BASE_URL` 后启动 UniApp 微信端构建；不再使用旧的
+   `TARO_APP_API_BASE_URL`。
 
 ## 注意事项
 

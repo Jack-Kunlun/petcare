@@ -31,6 +31,7 @@
     "@dcloudio/uni-components": "3.0.0-4080520251106001",
     "@dcloudio/uni-h5": "3.0.0-4080520251106001",
     "@dcloudio/uni-mp-weixin": "3.0.0-4080520251106001",
+    "@petcare/shared-types": "workspace:*",
     "@wot-ui/ui": "2.3.1",
     "@wot-ui/unocss-preset": "0.0.1-beta.4",
     "tslib": "2.8.1",

@@ -1,6 +1,8 @@
 <script setup lang="ts">
+import { ref } from "vue";
 import { usePlatformLayout } from "@/components/platform-layout";
 import { miniappDesignTokens } from "@/config/design-tokens";
+import { loginInteractively } from "@/state/session";
 
 definePage({
   style: {
@@ -10,6 +12,7 @@ definePage({
 });
 
 const { layout } = usePlatformLayout();
+const loginPending = ref(false);
 const { colors, radii, sizes, fontSizes, lineHeights } = miniappDesignTokens;
 const loginButtonStyle = [
   `--wot-button-primary-bg: ${colors.brand}`,
@@ -30,6 +33,23 @@ const trustItems = [
   { icon: "/static/auth/heart.svg", label: "平台保障" },
   { icon: "/static/auth/camera.svg", label: "全程记录" },
 ] as const;
+
+async function handleLogin(): Promise<void> {
+  if (loginPending.value) {
+    return;
+  }
+
+  loginPending.value = true;
+
+  try {
+    await loginInteractively();
+    await uni.reLaunch({ url: "/pages/index/index" });
+  } catch {
+    await uni.showToast({ title: "登录失败，请稍后重试", icon: "none" });
+  } finally {
+    loginPending.value = false;
+  }
+}
 </script>
 
 <template>
@@ -108,12 +128,16 @@ const trustItems = [
       <view class="mt-actions flex flex-col items-center gap-action">
         <wd-button
           block
-          :custom-style="loginButtonStyle"
+          :aria-disabled="loginPending"
+          :custom-style="loginPending ? `${loginButtonStyle}; opacity: 0.6` : loginButtonStyle"
+          :disabled="loginPending"
+          :loading="loginPending"
           :round="false"
           size="large"
           type="primary"
+          @click="handleLogin"
         >
-          微信一键登录
+          {{ loginPending ? "登录中…" : "微信一键登录" }}
         </wd-button>
 
         <view

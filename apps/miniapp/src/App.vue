@@ -1,5 +1,9 @@
 <script setup lang="ts">
-onLaunch(() => undefined);
+import { bootstrapSession } from "@/state/session";
+
+onLaunch(() => {
+  void bootstrapSession();
+});
 </script>
 
 <style lang="scss">
