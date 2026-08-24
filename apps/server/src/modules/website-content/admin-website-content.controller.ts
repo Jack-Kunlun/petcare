@@ -277,7 +277,7 @@ export class AdminWebsiteContentController {
         operatorId: this.operatorId(request),
       },
       valid,
-    ) as Promise<WebsiteMediaAsset>;
+    );
   }
 
   /** Archives an unreferenced managed media asset. */

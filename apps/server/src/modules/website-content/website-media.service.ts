@@ -31,8 +31,11 @@ export class WebsiteMediaService {
     @Inject(WEBSITE_MEDIA_STORAGE) private readonly storage: WebsiteMediaStorage,
   ) {}
 
-  /** Registers a validated object and compensates COS if database persistence fails. */
-  async upload(file: WebsiteMediaUploadFile, valid: ValidatedWebsiteMediaFile): Promise<unknown> {
+  /** Registers a validated object, returns its public contract, and compensates COS on failure. */
+  async upload(
+    file: WebsiteMediaUploadFile,
+    valid: ValidatedWebsiteMediaFile,
+  ): Promise<WebsiteMediaAsset> {
     const stored = await this.storage.put({
       body: file.buffer,
       mimeType: valid.mimeType,
@@ -40,7 +43,7 @@ export class WebsiteMediaService {
     });
 
     try {
-      return await this.prisma.websiteMediaAsset.create({
+      const record = await this.prisma.websiteMediaAsset.create({
         data: {
           storageKey: stored.storageKey,
           originalName: file.originalName,
@@ -52,7 +55,10 @@ export class WebsiteMediaService {
           status: WEBSITE_MEDIA_STATUS.ACTIVE,
           createdById: file.operatorId,
         },
+        include: { createdBy: { select: { id: true, nickname: true, username: true } } },
       });
+
+      return this.toAsset(record);
     } catch (error) {
       await this.storage.delete(stored.storageKey).catch(() => undefined);
       throw error;
@@ -122,7 +128,7 @@ export class WebsiteMediaService {
     const references = await this.findReferences(assetId);
 
     if (references.length > 0) {
-      throw websiteContentInvalidMedia("仍被当前草稿或已发布内容引用的素材不能归档");
+      throw websiteContentInvalidMedia("仍被内容引用的素材不能归档");
     }
 
     const record = await this.prisma.websiteMediaAsset.update({
@@ -164,18 +170,34 @@ export class WebsiteMediaService {
   }
 
   private async findReferences(assetId: string): Promise<string[]> {
-    const sections = await this.prisma.websiteContentSection.findMany({
-      where: {
-        version: {
-          OR: [{ currentDraftFor: { isNot: null } }, { publishedFor: { isNot: null } }],
+    const [asset, sections] = await Promise.all([
+      this.prisma.websiteMediaAsset.findUnique({
+        where: { id: assetId },
+        select: { storageKey: true },
+      }),
+      this.prisma.websiteContentSection.findMany({
+        where: {
+          version: {
+            OR: [{ currentDraftFor: { isNot: null } }, { publishedFor: { isNot: null } }],
+          },
         },
+        select: { versionId: true, content: true },
+      }),
+    ]);
+    const publicUrl = asset ? this.storage.resolvePublicUrl(asset.storageKey) : "";
+    const articles = await this.prisma.classroomArticle.findMany({
+      where: {
+        OR: [{ coverUrl: publicUrl }, { content: { contains: `data-asset-id="${assetId}"` } }],
       },
-      select: { versionId: true, content: true },
+      select: { id: true },
     });
 
-    return sections
-      .filter((section) => JSON.stringify(section.content).includes(assetId))
-      .map((section) => section.versionId);
+    return [
+      ...sections
+        .filter((section) => JSON.stringify(section.content).includes(assetId))
+        .map((section) => section.versionId),
+      ...articles.map((article) => `article:${article.id}`),
+    ];
   }
 
   private toAsset(record: {

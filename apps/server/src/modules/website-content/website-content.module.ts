@@ -97,5 +97,6 @@ function createWebsiteMediaStorage(config: ConfigService): WebsiteMediaStorage {
       useFactory: createWebsiteMediaStorage,
     },
   ],
+  exports: [WebsiteMediaService],
 })
 export class WebsiteContentModule {}
