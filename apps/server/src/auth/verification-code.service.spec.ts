@@ -221,4 +221,34 @@ describe("VerificationCodeService", () => {
       }),
     ).rejects.toMatchObject({ code: "RATE_LIMIT_EXCEEDED" });
   });
+
+  it("does not charge a destination phone for subject-limited requests", async () => {
+    await Array.from({ length: smsHourlyLimit }).reduce(async (previousSend, _, index) => {
+      await previousSend;
+      await service.send({
+        phone: `1750000000${index}`,
+        purpose: "miniapp_bind_phone",
+        subject: "user-1",
+      });
+    }, Promise.resolve());
+
+    await Array.from({ length: smsHourlyLimit }).reduce(async (previousSend) => {
+      await previousSend;
+      await expect(
+        service.send({
+          phone: "17500000009",
+          purpose: "miniapp_bind_phone",
+          subject: "user-1",
+        }),
+      ).rejects.toMatchObject({ code: "RATE_LIMIT_EXCEEDED" });
+    }, Promise.resolve());
+
+    await expect(
+      service.send({
+        phone: "17500000009",
+        purpose: "miniapp_bind_phone",
+        subject: "user-2",
+      }),
+    ).resolves.toBeUndefined();
+  });
 });

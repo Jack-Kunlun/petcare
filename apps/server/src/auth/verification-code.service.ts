@@ -39,18 +39,6 @@ export class VerificationCodeService {
       this.throwTooManyRequests();
     }
 
-    const hourlyKey = this.hourlyKey(phone, purpose);
-    const hourlyCount = await this.redisService.increment(hourlyKey);
-
-    if (hourlyCount === 1) {
-      await this.redisService.expire(hourlyKey, 3600);
-    }
-
-    if (hourlyCount > this.configService.smsHourlyLimit) {
-      await this.redisService.del(cooldownKey);
-      this.throwTooManyRequests();
-    }
-
     if (
       subject &&
       !(await this.redisService.consumeFixedWindow(
@@ -59,6 +47,18 @@ export class VerificationCodeService {
         3600,
       ))
     ) {
+      await this.redisService.del(cooldownKey);
+      this.throwTooManyRequests();
+    }
+
+    const hourlyKey = this.hourlyKey(phone, purpose);
+    const hourlyCount = await this.redisService.increment(hourlyKey);
+
+    if (hourlyCount === 1) {
+      await this.redisService.expire(hourlyKey, 3600);
+    }
+
+    if (hourlyCount > this.configService.smsHourlyLimit) {
       await this.redisService.del(cooldownKey);
       this.throwTooManyRequests();
     }
