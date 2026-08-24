@@ -1,4 +1,5 @@
 import type { WebsitePublicMediaAsset } from "@petcare/shared-types";
+import type { SanitizedArticleBodyHtml } from "./classroom-article-content";
 import {
   ARTICLE_RICH_TEXT_PREFIX,
   decodeArticleBody,
@@ -42,13 +43,25 @@ describe("classroom article rich text", () => {
     ).resolves.toBe("<p>&lt;img src=x onerror=&quot;alert(1)&quot;&gt;</p><p>第二行</p>");
   });
 
-  it("does not consider blank or dangerous HTML publishable", () => {
-    expect(isPublishableArticleBody(" \n&nbsp;")).toBe(false);
-    expect(isPublishableArticleBody("<script>alert(1)</script>")).toBe(false);
-    expect(
-      isPublishableArticleBody('<img src="javascript:alert(1)" data-asset-id="asset-1">'),
-    ).toBe(false);
-    expect(isPublishableArticleBody("<p>可发布正文</p>")).toBe(true);
+  it("rejects legacy content that exceeds the raw or escaped storage limit", async () => {
+    await expect(decodeArticleBody("x".repeat(200_001), jest.fn())).rejects.toMatchObject({
+      code: "CONTENT_ARTICLE_INVALID_CONTENT",
+      status: 400,
+    });
+    await expect(decodeArticleBody("<".repeat(200_000), jest.fn())).rejects.toMatchObject({
+      code: "CONTENT_ARTICLE_INVALID_CONTENT",
+      status: 400,
+    });
+  });
+
+  it("only considers codec-produced safe HTML publishable", async () => {
+    const blank = await encodeArticleBody(" \n&nbsp;", jest.fn());
+    const dangerous = await encodeArticleBody("<script>alert(1)</script>", jest.fn());
+    const visible: SanitizedArticleBodyHtml = await decodeArticleBody("可发布正文", jest.fn());
+
+    expect(isPublishableArticleBody(blank.bodyHtml)).toBe(false);
+    expect(isPublishableArticleBody(dangerous.bodyHtml)).toBe(false);
+    expect(isPublishableArticleBody(visible)).toBe(true);
   });
 
   it("enforces the body and image-count limits before publication", async () => {
@@ -66,7 +79,6 @@ describe("classroom article rich text", () => {
       code: "CONTENT_ARTICLE_INVALID_CONTENT",
       status: 400,
     });
-    expect(isPublishableArticleBody(images)).toBe(false);
   });
 
   it("accepts exactly 200000 characters and 50 managed images", async () => {
@@ -90,14 +102,13 @@ describe("classroom article rich text", () => {
       (asset) => `<img src="${asset.url}" data-asset-id="${asset.id}">`,
     ).join("");
 
-    await expect(
-      encodeArticleBody(
-        images,
-        jest.fn(async () => assets),
-      ),
-    ).resolves.toMatchObject({
-      bodyHtml: expect.stringContaining('data-asset-id="asset-49"'),
-    });
+    const encoded = await encodeArticleBody(
+      images,
+      jest.fn(async () => assets),
+    );
+
+    expect(encoded.bodyHtml).toContain('data-asset-id="asset-49"');
+    expect(isPublishableArticleBody(encoded.bodyHtml)).toBe(true);
   });
 
   it("rejects missing, mismatched, and non-HTTP managed image references", async () => {

@@ -8,10 +8,22 @@ export const ARTICLE_RICH_TEXT_PREFIX = "PETCARE_CLASSROOM_RICH_TEXT_V1\n";
 const MAX_BODY_LENGTH = 200_000;
 const MAX_IMAGES = 50;
 
+declare const sanitizedArticleBodyHtmlBrand: unique symbol;
+
+/**
+ * Safe HTML emitted after this codec sanitizes rich text or escapes legacy plain text.
+ * Any image in it has matched a managed asset, and the opaque brand blocks normal request strings
+ * from reaching publishing checks.
+ */
+export type SanitizedArticleBodyHtml = string & {
+  /** Compile-time marker that is created only by the private codec helper. */
+  readonly [sanitizedArticleBodyHtmlBrand]: true;
+};
+
 /** Normalized article HTML and its version-prefixed storage representation. */
 export interface EncodedArticleBody {
   /** Sanitized rich-text HTML safe for the website renderer. */
-  bodyHtml: string;
+  bodyHtml: SanitizedArticleBodyHtml;
   /** Version-prefixed content persisted in the existing classroom article column. */
   storedContent: string;
 }
@@ -21,6 +33,11 @@ type ResolveAssets = (
 ) => Promise<ReadonlyMap<string, WebsitePublicMediaAsset>>;
 
 type ArticleImage = { assetId: string; src: string };
+
+/** Brands HTML only after a codec path has completed its safety checks. */
+function toSanitizedArticleBodyHtml(bodyHtml: string): SanitizedArticleBodyHtml {
+  return bodyHtml as SanitizedArticleBodyHtml;
+}
 
 function isHttpUrl(value: string): boolean {
   try {
@@ -126,7 +143,7 @@ export async function encodeArticleBody(
   }
 
   return {
-    bodyHtml: cleaned,
+    bodyHtml: toSanitizedArticleBodyHtml(cleaned),
     storedContent: `${ARTICLE_RICH_TEXT_PREFIX}${cleaned}`,
   };
 }
@@ -135,38 +152,35 @@ export async function encodeArticleBody(
 export async function decodeArticleBody(
   content: string,
   resolveAssets: ResolveAssets,
-): Promise<string> {
+): Promise<SanitizedArticleBodyHtml> {
   if (content.startsWith(ARTICLE_RICH_TEXT_PREFIX)) {
     return (await encodeArticleBody(content.slice(ARTICLE_RICH_TEXT_PREFIX.length), resolveAssets))
       .bodyHtml;
   }
 
-  return content
+  if (content.length > MAX_BODY_LENGTH) {
+    throw classroomArticleInvalidContent("文章正文过长");
+  }
+
+  const legacyBodyHtml = content
     .split(/\r?\n/u)
     .map((line) => (line.length > 0 ? `<p>${escapeHtml(line)}</p>` : "<p><br /></p>"))
     .join("");
+
+  if (legacyBodyHtml.length > MAX_BODY_LENGTH) {
+    throw classroomArticleInvalidContent("文章正文过长");
+  }
+
+  return toSanitizedArticleBodyHtml(legacyBodyHtml);
 }
 
-/** Returns whether HTML contains safe visible text or a syntactically valid managed-image reference. */
-export function isPublishableArticleBody(bodyHtml: string): boolean {
-  if (bodyHtml.length > MAX_BODY_LENGTH) {
-    return false;
-  }
-
-  const images: ArticleImage[] = [];
-  const cleaned = sanitizeArticleHtml(bodyHtml, images);
-
-  if (cleaned.length > MAX_BODY_LENGTH || images.length > MAX_IMAGES) {
-    return false;
-  }
-
-  const visibleText = sanitizeHtml(cleaned, { allowedTags: [], allowedAttributes: {} })
+/** Returns whether codec-produced safe HTML contains visible text or a verified managed image. */
+export function isPublishableArticleBody(bodyHtml: SanitizedArticleBodyHtml): boolean {
+  const visibleText = sanitizeHtml(bodyHtml, { allowedTags: [], allowedAttributes: {} })
     .replace(/(?:&nbsp;|&#160;|\u00a0)/giu, "")
     .trim();
 
-  return (
-    visibleText.length > 0 || images.some((image) => Boolean(image.assetId) && isHttpUrl(image.src))
-  );
+  return visibleText.length > 0 || /<img\b/iu.test(bodyHtml);
 }
 
 function escapeHtml(value: string): string {
