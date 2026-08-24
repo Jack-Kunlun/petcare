@@ -4,6 +4,7 @@ import { createElement, lazy, Suspense } from "react";
 import { LazyRouteBoundary } from "../components/LazyRouteBoundary";
 import ContentManagement from "../pages/ContentManagement";
 import ContentArticles from "../pages/ContentManagement/Articles";
+import ContentArticleEdit from "../pages/ContentManagement/Articles/Edit";
 import ContentPosts from "../pages/ContentManagement/Posts";
 import Dashboard from "../pages/Dashboard";
 import OrderManagement from "../pages/OrderManagement";
@@ -170,6 +171,28 @@ export const ADMIN_ROUTE_REGISTRY: readonly AdminRouteDefinition[] = [
   catalogMenuRoute("content", "content.view", createElement(ContentManagement), "悬赏管理"),
   catalogMenuRoute("content-posts", "content.post.view", createElement(ContentPosts)),
   catalogMenuRoute("content-articles", "content.article.view", createElement(ContentArticles)),
+  {
+    id: "content-articles-new",
+    path: "/content/articles/new",
+    element: createElement(ContentArticleEdit),
+    menuPermission: null,
+    requiredPermissions: ["content.article.write"],
+    parentPath: "/content/articles",
+    order: 0,
+    icon: null,
+    menuLabel: null,
+  },
+  {
+    id: "content-articles-edit",
+    path: "/content/articles/:id/edit",
+    element: createElement(ContentArticleEdit),
+    menuPermission: null,
+    requiredPermissions: ["content.article.write"],
+    parentPath: "/content/articles",
+    order: 0,
+    icon: null,
+    menuLabel: null,
+  },
   catalogMenuRoute("website-content", "website.view", settingsRoute(createElement(WebsiteContent))),
   {
     id: "website-content-edit",

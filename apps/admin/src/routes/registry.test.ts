@@ -129,7 +129,9 @@ describe("ADMIN_ROUTE_REGISTRY", () => {
 
   it("registers content management with three child pages", () => {
     expect(
-      ADMIN_ROUTE_REGISTRY.filter((route) => route.path.startsWith("/content")).map((route) => ({
+      ADMIN_ROUTE_REGISTRY.filter(
+        (route) => route.path.startsWith("/content") && route.menuPermission !== null,
+      ).map((route) => ({
         path: route.path,
         menuPermission: route.menuPermission,
         parentPath: route.parentPath,
@@ -163,6 +165,25 @@ describe("ADMIN_ROUTE_REGISTRY", () => {
       "/content/posts",
       "/content/articles",
     ]);
+  });
+
+  it("registers article create and edit routes with write permission", () => {
+    expect(ADMIN_ROUTE_REGISTRY).toEqual(
+      expect.arrayContaining([
+        expect.objectContaining({
+          path: "/content/articles/new",
+          requiredPermissions: ["content.article.write"],
+          parentPath: "/content/articles",
+          menuPermission: null,
+        }),
+        expect.objectContaining({
+          path: "/content/articles/:id/edit",
+          requiredPermissions: ["content.article.write"],
+          parentPath: "/content/articles",
+          menuPermission: null,
+        }),
+      ]),
+    );
   });
 
   it("registers the RBAC list, create, edit, and detail views behind the single menu entry", () => {

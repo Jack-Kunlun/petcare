@@ -42,6 +42,9 @@ vi.mock("./pages/Settings", () => ({ default: () => "系统设置概览路由" }
 vi.mock("./pages/Settings/Edit", () => ({ default: () => "系统设置编辑路由" }));
 vi.mock("./pages/Settings/Detail", () => ({ default: () => "系统设置历史详情路由" }));
 vi.mock("./pages/Account", () => ({ default: () => "个人中心路由" }));
+vi.mock("./pages/ContentManagement/Articles/Edit", () => ({
+  default: () => "课堂文章编辑路由",
+}));
 
 describe("App complaint routes", () => {
   beforeEach(() => {
@@ -81,6 +84,18 @@ describe("App account route", () => {
 
     expect(await screen.findByText("个人中心路由")).toBeInTheDocument();
   });
+});
+
+describe("App classroom article editor routes", () => {
+  it.each(["/content/articles/new", "/content/articles/article-1/edit"])(
+    "registers the article editor route %s",
+    async (path) => {
+      window.history.replaceState({}, "", path);
+      render(<App />);
+
+      expect(await screen.findByText("课堂文章编辑路由")).toBeInTheDocument();
+    },
+  );
 });
 
 it("keeps the global message root mounted across a redirect to login", async () => {
