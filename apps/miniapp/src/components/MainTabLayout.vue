@@ -1,6 +1,6 @@
 <script setup lang="ts">
 import { onMounted } from "vue";
-import { getMainLayoutTop } from "./main-tab-layout";
+import { getBottomSafeAreaStyle, usePlatformLayout } from "./platform-layout";
 import { miniappDesignTokens } from "@/config/design-tokens";
 
 type MainTabKey = "home" | "bounty" | "community" | "messages" | "profile";
@@ -9,20 +9,9 @@ defineProps<{
   active: MainTabKey;
 }>();
 
-const windowInfo = uni.getWindowInfo();
-/* eslint-disable prefer-const -- UniApp assigns this only in WeChat builds. */
-let menuButton: { bottom: number } | undefined;
-
-// #ifdef MP-WEIXIN
-menuButton = uni.getMenuButtonBoundingClientRect();
-// #endif
-/* eslint-enable prefer-const */
-
 const { colors, spacing, sizes, fontSizes, lineHeights } = miniappDesignTokens;
-const safeAreaTop = getMainLayoutTop(windowInfo, menuButton);
-const safeAreaBottom = windowInfo.safeAreaInsets?.bottom ?? 0;
-const floatingBottom =
-  Number.parseFloat(sizes.tabbar) + safeAreaBottom + Number.parseFloat(spacing.action);
+const { layout, refresh: refreshLayout } = usePlatformLayout();
+const floatingGap = Number.parseFloat(spacing.action);
 const tabbarStyle = [
   `--wot-tabbar-height: ${sizes.tabbar}`,
   `--wot-tabbar-bg: ${colors.surface}`,
@@ -74,7 +63,7 @@ const tabs = [
 ] as const;
 
 onMounted(() => {
-  uni.hideTabBar({ animation: false });
+  uni.hideTabBar({ animation: false, complete: refreshLayout });
 });
 
 function handleTabChange(event: { value: string | number }) {
@@ -87,8 +76,15 @@ function handleTabChange(event: { value: string | number }) {
 </script>
 
 <template>
-  <view class="relative h-screen min-h-screen flex flex-col overflow-hidden bg-page-bg text-ink">
-    <view class="shrink-0 bg-page-bg" :style="{ height: `${safeAreaTop}px` }" />
+  <view
+    class="pc-platform-viewport relative flex flex-col overflow-hidden bg-page-bg text-ink"
+    :style="
+      layout.platform === 'h5'
+        ? undefined
+        : { height: layout.windowHeight ? `${layout.windowHeight}px` : '100vh' }
+    "
+  >
+    <view class="shrink-0 bg-page-bg" :style="{ height: `${layout.pageTopInset}px` }" />
 
     <scroll-view class="h-0 min-h-0 flex-1" scroll-y :show-scrollbar="false">
       <slot />
@@ -97,14 +93,16 @@ function handleTabChange(event: { value: string | number }) {
     <view
       v-if="$slots.floating"
       class="pointer-events-none absolute right-action z-10"
-      :style="{ bottom: `${floatingBottom}px` }"
+      :style="{
+        bottom: getBottomSafeAreaStyle(layout, layout.tabBarContentHeight + floatingGap),
+      }"
     >
       <slot name="floating" />
     </view>
 
     <view
-      class="shrink-0 border-t border-border bg-surface"
-      :style="{ paddingBottom: `${safeAreaBottom}px` }"
+      class="shrink-0 border-t border-border bg-surface pt-sm"
+      :style="{ paddingBottom: getBottomSafeAreaStyle(layout, 0) }"
     >
       <wd-tabbar
         :active-color="colors.brand"

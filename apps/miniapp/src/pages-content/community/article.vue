@@ -9,6 +9,11 @@ const comments = [
   { name: "阿哲和团子", text: "这个市集对小型犬也友好吗？" },
   { name: "郑先生", text: "照片拍得真有活力，下次也想去看看。" },
 ] as const;
+const postActions = [
+  { label: "286 赞", icon: "/static/main/community-like.svg" },
+  { label: "42 评论", icon: "/static/main/community-comment.svg" },
+  { label: "分享", icon: "/static/main/community-share.svg" },
+] as const;
 const related = [
   { id: "post-2", title: "换季梳毛第三天，栗子终于主动趴好了" },
   { id: "post-3", title: "清晨散步路线收藏：树荫多、人也少" },
@@ -68,12 +73,13 @@ function openPost(id: string) {
 
         <view class="mt-action flex border-t border-divider pt-copy opacity-50">
           <view
-            v-for="action in ['286 赞', '42 评论', '分享']"
-            :key="action"
-            class="h-control flex flex-1 items-center justify-center"
+            v-for="action in postActions"
+            :key="action.label"
+            class="h-control flex flex-1 items-center justify-center gap-sm"
             aria-disabled="true"
           >
-            <text class="text-caption text-muted leading-caption">{{ action }}</text>
+            <image class="h-icon-sm w-icon-sm" :src="action.icon" mode="aspectFit" />
+            <text class="text-caption text-muted leading-caption">{{ action.label }}</text>
           </view>
         </view>
       </view>

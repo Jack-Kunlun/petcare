@@ -23,6 +23,11 @@ const checklist = [
   "每次控制在宠物可接受的时长",
   "记录皮肤异常并及时处理",
 ] as const;
+const articleActions = [
+  { label: "评论", icon: "/static/main/community-comment.svg" },
+  { label: "收藏", icon: "/static/main/favorite.svg" },
+  { label: "分享", icon: "/static/main/community-share.svg" },
+] as const;
 const related = [
   { id: "article-2", title: "幼犬第一次换粮，如何平稳度过适应期？" },
   { id: "article-3", title: "猫咪饮水变少时，可以先检查这三件事" },
@@ -88,5 +93,18 @@ function openArticle(id: string) {
         </view>
       </view>
     </view>
+
+    <template #actions>
+      <view class="flex opacity-50" aria-disabled="true">
+        <view
+          v-for="action in articleActions"
+          :key="action.label"
+          class="h-control flex flex-1 items-center justify-center gap-sm"
+        >
+          <image class="h-icon-sm w-icon-sm" :src="action.icon" mode="aspectFit" />
+          <text class="text-caption text-muted leading-caption">{{ action.label }}</text>
+        </view>
+      </view>
+    </template>
   </SubPageLayout>
 </template>

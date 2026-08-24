@@ -85,7 +85,7 @@ const classroomArticles = [
   <MainTabLayout active="home">
     <view class="box-border flex flex-col pb-screen">
       <view class="h-header flex items-center justify-between px-action">
-        <view class="min-w-0 flex items-center gap-copy">
+        <view class="min-w-0 flex flex-1 items-center gap-copy">
           <view
             class="h-avatar w-avatar flex shrink-0 items-center justify-center rounded-full bg-brand text-body text-surface font-semibold"
           >
@@ -93,20 +93,20 @@ const classroomArticles = [
           </view>
           <view class="min-w-0 flex flex-col">
             <text class="text-caption text-muted leading-caption">早上好</text>
-            <text class="text-card text-ink font-semibold leading-card">郑先生</text>
+            <text class="truncate text-card text-ink font-semibold leading-card">郑先生</text>
           </view>
         </view>
 
         <view
-          class="flex items-center gap-caption rounded-pill bg-surface px-copy py-sm shadow-card"
+          class="ml-copy min-w-0 flex shrink items-center gap-caption rounded-pill bg-surface px-copy py-sm shadow-card"
         >
           <image class="h-icon-xs w-icon-xs" src="/static/main/location.svg" mode="aspectFit" />
-          <text class="text-caption text-muted leading-caption">上海市 · 静安区</text>
+          <text class="truncate text-caption text-muted leading-caption">上海市 · 静安区</text>
         </view>
       </view>
 
       <view
-        class="relative mx-action h-hero-main overflow-hidden rounded-card bg-surface shadow-card"
+        class="relative mx-action mt-action h-hero-main overflow-hidden rounded-card bg-surface shadow-card"
       >
         <image
           class="absolute inset-0 h-full w-full"

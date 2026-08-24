@@ -1,6 +1,11 @@
 {
   "globalStyle": {
-    "navigationBarTitleText": "PetCare"
+    "navigationBarTextStyle": "black",
+    "navigationBarTitleText": "PetCare",
+    "navigationStyle": "custom",
+    "app-plus": {
+      "titleNView": false
+    }
   },
   "pages": [
     // #ifdef APP || H5 || MP-WEIXIN

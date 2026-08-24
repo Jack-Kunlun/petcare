@@ -56,7 +56,12 @@ export default defineUniPages({
     },
   ],
   globalStyle: {
+    navigationBarTextStyle: "black",
     navigationBarTitleText: "PetCare",
+    navigationStyle: "custom",
+    "app-plus": {
+      titleNView: false,
+    },
   },
   tabBar: {
     color: colors.subtle,

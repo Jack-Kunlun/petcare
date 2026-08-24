@@ -1,4 +1,5 @@
 <script setup lang="ts">
+import { usePlatformLayout } from "@/components/platform-layout";
 import { miniappDesignTokens } from "@/config/design-tokens";
 
 definePage({
@@ -8,9 +9,7 @@ definePage({
   },
 });
 
-const windowInfo = uni.getWindowInfo();
-const safeAreaTop = Math.max(windowInfo.statusBarHeight ?? 0, windowInfo.safeAreaInsets?.top ?? 0);
-
+const { layout } = usePlatformLayout();
 const { colors, radii, sizes, fontSizes, lineHeights } = miniappDesignTokens;
 const loginButtonStyle = [
   `--wot-button-primary-bg: ${colors.brand}`,
@@ -34,10 +33,17 @@ const trustItems = [
 </script>
 
 <template>
-  <view class="min-h-screen flex flex-col overflow-hidden bg-canvas text-ink">
+  <view
+    class="pc-platform-viewport flex flex-col overflow-hidden bg-canvas text-ink"
+    :style="
+      layout.platform === 'h5'
+        ? undefined
+        : { height: layout.windowHeight ? `${layout.windowHeight}px` : '100vh' }
+    "
+  >
     <view
       class="relative box-border h-hero flex shrink-0 overflow-hidden"
-      :style="{ paddingTop: `${safeAreaTop}px` }"
+      :style="{ paddingTop: `${layout.pageTopInset}px` }"
     >
       <image
         class="absolute right-hero-bleed top-0 h-full w-hero-image"
