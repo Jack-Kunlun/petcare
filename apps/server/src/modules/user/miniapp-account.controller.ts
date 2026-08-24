@@ -70,7 +70,7 @@ export class MiniappAccountController {
     return this.miniappAccountService.updateProfile(this.requireUserId(request), dto);
   }
 
-  @Put("avatar")
+  @Post("avatar")
   @UseInterceptors(
     FileInterceptor("file", {
       storage: memoryStorage(),

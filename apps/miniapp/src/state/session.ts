@@ -353,6 +353,18 @@ export function authorizedUpload<T>(
   );
 }
 
+export function updateSessionUser(user: MiniappUserProfile): void {
+  session.user = user;
+
+  if (session.accessToken && session.refreshToken) {
+    try {
+      uni.setStorageSync(STORAGE_KEY.user, user);
+    } catch {
+      // The next refresh restores the server-authoritative profile.
+    }
+  }
+}
+
 export function safeReturnUrl(value: string): string {
   return value.startsWith("/") && !value.startsWith("//") ? value : "/pages/profile/index";
 }

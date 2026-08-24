@@ -2,8 +2,8 @@ import type { ApiResponse } from "@petcare/shared-types";
 
 export type RawRequestOptions = Omit<
   UniNamespace.RequestOptions,
-  "url" | "success" | "fail" | "complete"
->;
+  "url" | "method" | "success" | "fail" | "complete"
+> & { method?: UniNamespace.RequestOptions["method"] | "PATCH" };
 
 export class MiniappApiError extends Error {
   constructor(
@@ -96,7 +96,7 @@ export function rawRequest<T>(path: string, options: RawRequestOptions = {}): Pr
       fail(error) {
         reject(networkError(error.errMsg));
       },
-    });
+    } as UniNamespace.RequestOptions);
   });
 }
 

@@ -1,12 +1,3 @@
-export const profileFixture = {
-  id: "owner-1",
-  name: "郑先生",
-  city: "上海市 · 静安区",
-  phone: "138****8621",
-  bio: "认真记录每一次托付，也愿意分享真实养宠经验。",
-  credit: 720,
-} as const;
-
 export const petFixtures = [
   {
     id: "mimi",

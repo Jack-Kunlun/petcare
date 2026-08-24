@@ -9,6 +9,7 @@ import {
   requireProfile,
   session,
   STORAGE_KEY,
+  updateSessionUser,
 } from "./session";
 
 vi.mock("../api/auth", () => ({
@@ -433,5 +434,20 @@ describe("miniapp session", () => {
 
     session.user = { ...storedSession.user, profileComplete: true };
     await expect(requireProfile("/pages-bounty/publish/step1")).resolves.toBe(true);
+  });
+
+  it("keeps a server-updated profile in the active and stored session", () => {
+    seedStoredSession();
+    const updatedUser = {
+      ...storedSession.user,
+      nickname: "微信昵称",
+      phoneMasked: "138****8000",
+      profileComplete: true,
+    };
+
+    updateSessionUser(updatedUser);
+
+    expect(session.user).toEqual(updatedUser);
+    expect(storage.get(STORAGE_KEY.user)).toEqual(updatedUser);
   });
 });

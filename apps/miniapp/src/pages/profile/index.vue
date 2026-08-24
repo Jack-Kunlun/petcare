@@ -1,5 +1,10 @@
 <script setup lang="ts">
+import { onShow } from "@dcloudio/uni-app";
+import { computed, ref } from "vue";
+import { getProfile } from "@/api/user";
 import MainTabLayout from "@/components/MainTabLayout.vue";
+import { getDefaultAvatar } from "@/state/default-avatar";
+import { session, updateSessionUser } from "@/state/session";
 
 definePage({
   style: {
@@ -51,6 +56,34 @@ const supportItems = [
   },
 ] as const;
 
+const loadingProfile = ref(false);
+const profileError = ref("");
+const profile = computed(() => session.user);
+const avatarUrl = computed(() => {
+  const user = profile.value;
+
+  return user ? (user.avatar ?? getDefaultAvatar(user.id)) : "/static/main/profile-cat.png";
+});
+
+async function refreshProfile() {
+  if (!session.user || loadingProfile.value) {
+    return;
+  }
+
+  loadingProfile.value = true;
+  profileError.value = "";
+
+  try {
+    updateSessionUser(await getProfile());
+  } catch {
+    profileError.value = "个人资料加载失败";
+  } finally {
+    loadingProfile.value = false;
+  }
+}
+
+onShow(() => void refreshProfile());
+
 function openStat(route?: string) {
   if (route) {
     uni.navigateTo({ url: route });
@@ -74,38 +107,54 @@ function openPage(route: string) {
     <view class="box-border flex flex-col pb-screen">
       <view class="mx-page-horizontal overflow-hidden main-card p-card-padding">
         <view
+          v-if="profile"
           class="flex items-center gap-copy"
           hover-class="opacity-80"
           @click="openPage('/pages-account/profile/info')"
         >
-          <view
-            class="h-avatar-lg w-avatar-lg flex shrink-0 items-center justify-center rounded-full bg-brand text-card text-surface font-semibold"
-          >
-            郑
-          </view>
+          <image
+            class="h-avatar-lg w-avatar-lg shrink-0 rounded-full"
+            :src="avatarUrl"
+            mode="aspectFill"
+          />
           <view class="min-w-0 flex flex-1 flex-col">
             <view class="flex items-center gap-sm">
-              <text class="text-section text-ink font-semibold leading-section">郑先生</text>
-              <view class="rounded-pill bg-warning-soft px-sm py-caption">
-                <text class="text-micro text-warning font-medium leading-micro">普通会员</text>
-              </view>
+              <text class="text-section text-ink font-semibold leading-section">
+                {{ profile.nickname }}
+              </text>
             </view>
-            <text class="mt-caption meta-text">上海市 · 静安区</text>
+            <text class="mt-caption meta-text">{{ profile.region || "未填写所在地区" }}</text>
+            <text
+              class="mt-caption text-caption leading-caption"
+              :class="profile.profileComplete ? 'text-success' : 'text-warning'"
+            >
+              {{ profile.profileComplete ? profile.phoneMasked : "请完善手机号后使用发布等功能" }}
+            </text>
           </view>
           <image class="h-icon-sm w-icon-sm" src="/static/main/chevron.svg" mode="aspectFit" />
         </view>
 
-        <view class="mt-action rounded-control bg-soft p-copy">
-          <view class="flex items-center justify-between">
-            <view class="flex items-baseline gap-sm">
-              <text class="text-caption text-muted leading-caption">PetCare 信用</text>
-              <text class="text-amount text-brand font-semibold leading-card">720</text>
-            </view>
-            <text class="text-caption text-success font-medium leading-caption">信用良好</text>
-          </view>
-          <view class="mt-sm h-progress overflow-hidden rounded-pill bg-surface">
-            <view class="h-full rounded-pill bg-brand" style="width: 72%" />
-          </view>
+        <view v-else class="flex flex-col items-center gap-sm py-action">
+          <text class="text-body text-muted leading-body">
+            {{
+              !session.bootstrapped || loadingProfile ? "正在加载个人资料…" : "登录后查看个人资料"
+            }}
+          </text>
+        </view>
+
+        <view
+          v-if="profileError"
+          class="mt-copy flex items-center justify-between bg-danger-soft p-sm"
+        >
+          <text class="text-caption text-danger leading-caption">{{ profileError }}</text>
+          <button
+            class="text-caption text-brand leading-caption"
+            :class="loadingProfile ? 'opacity-50' : ''"
+            :disabled="loadingProfile"
+            @click.stop="refreshProfile"
+          >
+            重试
+          </button>
         </view>
       </view>
 

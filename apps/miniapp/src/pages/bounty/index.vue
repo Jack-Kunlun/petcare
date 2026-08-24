@@ -3,6 +3,7 @@ import { onLoad } from "@dcloudio/uni-app";
 import { ref } from "vue";
 import { getBountyMode } from "./bounty-mode";
 import MainTabLayout from "@/components/MainTabLayout.vue";
+import { requireProfile } from "@/state/session";
 
 definePage({
   style: {
@@ -78,8 +79,12 @@ onLoad((query = {}) => {
   mode.value = getBountyMode(query);
 });
 
-function openPublish() {
-  uni.navigateTo({ url: "/pages-bounty/publish/step1" });
+async function openPublish() {
+  if (!(await requireProfile("/pages-bounty/publish/step1"))) {
+    return;
+  }
+
+  await uni.navigateTo({ url: "/pages-bounty/publish/step1" });
 }
 
 function openReward(id: string) {
