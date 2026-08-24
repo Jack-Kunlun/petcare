@@ -11,6 +11,7 @@ import { AuthService } from "./auth.service";
 import { CaptchaService } from "./captcha.service";
 import { DisputeResolverGuard } from "./dispute-resolver.guard";
 import { JwtStrategy } from "./jwt.strategy";
+import { PasswordLoginAttemptService } from "./password-login-attempt.service";
 import { PasswordService } from "./password.service";
 import { PermissionGuard } from "./permission.guard";
 import { SessionValidationService } from "./session-validation.service";
@@ -49,6 +50,7 @@ export function createSmsSender(configService: ConfigService): SmsSender {
   providers: [
     CaptchaService,
     PasswordService,
+    PasswordLoginAttemptService,
     VerificationCodeService,
     SessionValidationService,
     TokenService,

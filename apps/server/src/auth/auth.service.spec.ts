@@ -1,7 +1,10 @@
+import { HttpStatus } from "@nestjs/common";
 import { RBAC_PERMISSION_CATALOG } from "@petcare/shared-types";
+import { ApiException } from "../common/http/api-exception";
 import { PrismaService } from "../prisma/prisma.service";
 import { AuthService } from "./auth.service";
 import { CaptchaService } from "./captcha.service";
+import { PasswordLoginAttemptService } from "./password-login-attempt.service";
 import { PasswordService } from "./password.service";
 import { TokenService } from "./token.service";
 import { VerificationCodeService } from "./verification-code.service";
@@ -47,6 +50,7 @@ describe("AuthService", () => {
   let verificationCodeService: { send: jest.Mock; verifyAndConsume: jest.Mock };
   let tokenService: { issue: jest.Mock; consumeRefresh: jest.Mock; revoke: jest.Mock };
   let captchaService: { verifyAndConsume: jest.Mock };
+  let passwordAttempts: { assertAllowed: jest.Mock; clear: jest.Mock };
   let service: AuthService;
 
   beforeEach(() => {
@@ -67,12 +71,17 @@ describe("AuthService", () => {
       revoke: jest.fn().mockResolvedValue(undefined),
     };
     captchaService = { verifyAndConsume: jest.fn().mockResolvedValue(true) };
+    passwordAttempts = {
+      assertAllowed: jest.fn().mockResolvedValue(undefined),
+      clear: jest.fn().mockResolvedValue(undefined),
+    };
     service = new AuthService(
       prisma as unknown as PrismaService,
       passwordService as unknown as PasswordService,
       verificationCodeService as unknown as VerificationCodeService,
       tokenService as unknown as TokenService,
       captchaService as unknown as CaptchaService,
+      passwordAttempts as unknown as PasswordLoginAttemptService,
     );
   });
 
@@ -102,6 +111,43 @@ describe("AuthService", () => {
       },
     });
     expect(tokenService.issue).toHaveBeenCalledWith(expect.objectContaining({ sessionVersion: 0 }));
+  });
+
+  it("consumes a password attempt before looking up the account", async () => {
+    await service.loginWithPassword("admin", "Correct-Horse-Battery-Staple!42");
+
+    expect(passwordAttempts.assertAllowed).toHaveBeenCalledWith("admin");
+    expect(passwordAttempts.assertAllowed.mock.invocationCallOrder[0]).toBeLessThan(
+      prisma.user.findFirst.mock.invocationCallOrder[0],
+    );
+  });
+
+  it("does no account lookup or password work after the limiter blocks", async () => {
+    passwordAttempts.assertAllowed.mockRejectedValue(
+      new ApiException(
+        "RATE_LIMIT_EXCEEDED",
+        "登录尝试过于频繁，请稍后重试",
+        HttpStatus.TOO_MANY_REQUESTS,
+      ),
+    );
+
+    await expect(
+      service.loginWithPassword("unknown-account", "wrong-password-value"),
+    ).rejects.toMatchObject({ code: "RATE_LIMIT_EXCEEDED", status: 429 });
+    expect(prisma.user.findFirst).not.toHaveBeenCalled();
+    expect(passwordService.verify).not.toHaveBeenCalled();
+  });
+
+  it("clears the attempt window only after valid credentials", async () => {
+    await service.loginWithPassword("admin", "Correct-Horse-Battery-Staple!42");
+    expect(passwordAttempts.clear).toHaveBeenCalledWith("admin");
+    expect(tokenService.issue.mock.invocationCallOrder[0]).toBeLessThan(
+      passwordAttempts.clear.mock.invocationCallOrder[0],
+    );
+
+    passwordService.verify.mockResolvedValue(false);
+    await expect(service.loginWithPassword("admin", "wrong-password-value")).rejects.toBeDefined();
+    expect(passwordAttempts.clear).toHaveBeenCalledTimes(1);
   });
 
   it("allows an active ordinary RBAC administrator to log in", async () => {

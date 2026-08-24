@@ -72,7 +72,7 @@ export class AuthController {
   @HttpCode(200)
   @ApiOperation({ summary: "使用手机号或账号加密码登录" })
   @ApiSuccessResponse(AdminLoginResponseDto)
-  @ApiStandardErrors(400, 401, 500)
+  @ApiStandardErrors(400, 401, 429, 500)
   async loginWithPassword(
     @Body() dto: PasswordLoginDto,
     @Res({ passthrough: true }) response: Response,

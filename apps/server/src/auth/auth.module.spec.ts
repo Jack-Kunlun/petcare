@@ -3,6 +3,7 @@ import { ConfigService } from "../config/config.service";
 import { AdminRbacController } from "../modules/rbac/admin-rbac.controller";
 import { RbacModule } from "../modules/rbac/rbac.module";
 import { AuthModule, createSmsSender } from "./auth.module";
+import { PasswordLoginAttemptService } from "./password-login-attempt.service";
 import { PasswordService } from "./password.service";
 import { SessionValidationService } from "./session-validation.service";
 import { AliyunSmsSender } from "./sms/aliyun-sms.sender";
@@ -26,7 +27,12 @@ describe("AuthModule", () => {
     const exports = Reflect.getMetadata(MODULE_METADATA.EXPORTS, AuthModule) as unknown[];
 
     expect(providers).toEqual(
-      expect.arrayContaining([PasswordService, TokenService, SessionValidationService]),
+      expect.arrayContaining([
+        PasswordService,
+        PasswordLoginAttemptService,
+        TokenService,
+        SessionValidationService,
+      ]),
     );
     expect(exports).toEqual(
       expect.arrayContaining([PasswordService, TokenService, SessionValidationService]),

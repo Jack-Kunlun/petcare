@@ -4,6 +4,7 @@ import { ApiException } from "../common/http/api-exception";
 import { PrismaService } from "../prisma/prisma.service";
 import { AuthTokens } from "./auth.types";
 import { CaptchaService } from "./captcha.service";
+import { PasswordLoginAttemptService } from "./password-login-attempt.service";
 import { PasswordService } from "./password.service";
 import { TokenService } from "./token.service";
 import { VerificationCodeService } from "./verification-code.service";
@@ -82,6 +83,7 @@ export class AuthService {
     private readonly verificationCodeService: VerificationCodeService,
     private readonly tokenService: TokenService,
     private readonly captchaService: CaptchaService,
+    private readonly passwordLoginAttempts: PasswordLoginAttemptService,
   ) {}
 
   async sendSmsCode(
@@ -120,6 +122,8 @@ export class AuthService {
   }
 
   async loginWithPassword(identifier: string, password: string): Promise<LoginResult> {
+    await this.passwordLoginAttempts.assertAllowed(identifier);
+
     const user = await this.prismaService.user.findFirst({
       where: { OR: [{ phone: identifier }, { username: identifier }] },
       select: adminUserSelect,
@@ -135,7 +139,11 @@ export class AuthService {
       throw this.invalidCredentials();
     }
 
-    return this.issueSession(user);
+    const result = await this.issueSession(user);
+
+    await this.passwordLoginAttempts.clear(identifier);
+
+    return result;
   }
 
   async loginWithSms(phone: string, code: string): Promise<LoginResult> {
