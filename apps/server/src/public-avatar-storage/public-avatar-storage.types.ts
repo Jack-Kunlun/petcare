@@ -3,6 +3,8 @@ export const PUBLIC_AVATAR_STORAGE = Symbol("PUBLIC_AVATAR_STORAGE");
 
 /** Server-validated avatar data to persist in public object storage. */
 export interface PublicAvatarUpload {
+  /** Server-selected object namespace. */
+  scope: "admin-avatars" | "user-avatars";
   /** Authenticated user identifier used in the server-owned object path. */
   userId: string;
   /** Validated image bytes. */

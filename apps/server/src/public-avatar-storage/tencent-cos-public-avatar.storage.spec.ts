@@ -23,28 +23,32 @@ describe("TencentCosPublicAvatarStorage", () => {
     storage = new TencentCosPublicAvatarStorage(cos as never, config, logger);
   });
 
-  it("uploads to the server-owned public admin avatar key and returns the COS public URL", async () => {
-    const result = await storage.upload({
-      userId: "user-1",
-      body: pngBuffer,
-      contentType: "image/png",
-      extension: "png",
-    });
+  it.each(["admin-avatars", "user-avatars"] as const)(
+    "uploads to the server-owned public %s key and returns the COS public URL",
+    async (scope) => {
+      const result = await storage.upload({
+        scope,
+        userId: "user-1",
+        body: pngBuffer,
+        contentType: "image/png",
+        extension: "png",
+      });
 
-    expect(cos.putObject).toHaveBeenCalledWith(
-      expect.objectContaining({
-        Bucket: "petcare-avatar-1250000000",
-        Region: "ap-guangzhou",
-        Key: expect.stringMatching(/^public\/admin-avatars\/user-1\/[0-9a-f-]+\.png$/),
-        Body: pngBuffer,
-        ContentType: "image/png",
-      }),
-      expect.any(Function),
-    );
-    expect(result.publicUrl).toBe(
-      `https://petcare-avatar-1250000000.cos.ap-guangzhou.myqcloud.com/${result.objectKey}`,
-    );
-  });
+      expect(cos.putObject).toHaveBeenCalledWith(
+        expect.objectContaining({
+          Bucket: "petcare-avatar-1250000000",
+          Region: "ap-guangzhou",
+          Key: expect.stringMatching(new RegExp(`^public/${scope}/user-1/[0-9a-f-]+\\.png$`)),
+          Body: pngBuffer,
+          ContentType: "image/png",
+        }),
+        expect.any(Function),
+      );
+      expect(result.publicUrl).toBe(
+        `https://petcare-avatar-1250000000.cos.ap-guangzhou.myqcloud.com/${result.objectKey}`,
+      );
+    },
+  );
 
   it("uses a configured public base URL without duplicate slashes", async () => {
     const customConfig = {
@@ -54,6 +58,7 @@ describe("TencentCosPublicAvatarStorage", () => {
     const customStorage = new TencentCosPublicAvatarStorage(cos as never, customConfig, logger);
 
     const result = await customStorage.upload({
+      scope: "admin-avatars",
       userId: "user-1",
       body: pngBuffer,
       contentType: "image/png",
@@ -83,6 +88,7 @@ describe("TencentCosPublicAvatarStorage", () => {
 
     await expect(
       storage.upload({
+        scope: "admin-avatars",
         userId: "user-1",
         body: pngBuffer,
         contentType: "image/png",

@@ -6,7 +6,57 @@ import type {
   AdminUserType,
 } from "@petcare/shared-types";
 
+export class PublicUserProfileDto {
+  @ApiProperty({ nullable: true, example: "上海市" })
+  address: string | null;
+
+  @ApiProperty({ nullable: true, example: "喜欢猫咪" })
+  bio: string | null;
+}
+
 export class UserResponseDto {
+  @ApiProperty({ format: "uuid" })
+  id: string;
+
+  @ApiProperty({ example: "小宠家长" })
+  nickname: string;
+
+  @ApiProperty({ nullable: true })
+  avatar: string | null;
+
+  @ApiProperty({ example: "pet_owner" })
+  userType: AdminUserType;
+
+  @ApiProperty({ example: "active" })
+  status: AdminUserStatus;
+
+  @ApiProperty({ type: () => PublicUserProfileDto, nullable: true })
+  profile: PublicUserProfileDto | null;
+}
+
+export class UserRegisterResponseDto {
+  @ApiProperty({ type: UserResponseDto })
+  user: UserResponseDto;
+
+  @ApiProperty()
+  token: string;
+
+  @ApiProperty()
+  refreshToken: string;
+}
+
+export class AdminProviderSummaryDto implements AdminProviderSummary {
+  @ApiProperty()
+  idCardVerified: boolean;
+
+  @ApiProperty()
+  trainingPassed: boolean;
+
+  @ApiProperty()
+  certifiedSitter: boolean;
+}
+
+export class AdminUserListItemDto implements AdminUserListItem {
   @ApiProperty({ format: "uuid" })
   id: string;
 
@@ -33,31 +83,7 @@ export class UserResponseDto {
 
   @ApiProperty({ format: "date-time" })
   updatedAt: string;
-}
 
-export class UserRegisterResponseDto {
-  @ApiProperty({ type: UserResponseDto })
-  user: UserResponseDto;
-
-  @ApiProperty()
-  token: string;
-
-  @ApiProperty()
-  refreshToken: string;
-}
-
-export class AdminProviderSummaryDto implements AdminProviderSummary {
-  @ApiProperty()
-  idCardVerified: boolean;
-
-  @ApiProperty()
-  trainingPassed: boolean;
-
-  @ApiProperty()
-  certifiedSitter: boolean;
-}
-
-export class AdminUserListItemDto extends UserResponseDto implements AdminUserListItem {
   @ApiProperty({ type: AdminProviderSummaryDto, nullable: true })
   provider: AdminProviderSummaryDto | null;
 }

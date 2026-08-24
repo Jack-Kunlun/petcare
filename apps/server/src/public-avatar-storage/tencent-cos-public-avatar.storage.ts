@@ -6,7 +6,7 @@ import { ConfigService } from "../config/config.service";
 import { AppLogger } from "../logging/app-logger.service";
 import { PublicAvatarStorage, PublicAvatarUpload } from "./public-avatar-storage.types";
 
-/** Tencent COS implementation for server-owned public admin avatar objects. */
+/** Tencent COS implementation for server-owned public avatar objects. */
 export class TencentCosPublicAvatarStorage implements PublicAvatarStorage {
   constructor(
     private readonly cos: Pick<COS, "putObject" | "deleteObject">,
@@ -15,7 +15,7 @@ export class TencentCosPublicAvatarStorage implements PublicAvatarStorage {
   ) {}
 
   async upload(input: PublicAvatarUpload): Promise<{ objectKey: string; publicUrl: string }> {
-    const objectKey = `public/admin-avatars/${input.userId}/${randomUUID()}.${input.extension}`;
+    const objectKey = `public/${input.scope}/${input.userId}/${randomUUID()}.${input.extension}`;
 
     try {
       await new Promise<void>((resolve, reject) => {

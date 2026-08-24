@@ -7,6 +7,15 @@ import { RegisterDto } from "./dto/register.dto";
 
 const publicUserSelect = {
   id: true,
+  nickname: true,
+  avatar: true,
+  userType: true,
+  status: true,
+  profile: { select: { address: true, bio: true } },
+} as const;
+
+const adminUserListSelect = {
+  id: true,
   phone: true,
   username: true,
   nickname: true,
@@ -15,10 +24,6 @@ const publicUserSelect = {
   status: true,
   createdAt: true,
   updatedAt: true,
-} as const;
-
-const adminUserListSelect = {
-  ...publicUserSelect,
   provider: {
     select: {
       idCardVerified: true,
@@ -62,7 +67,14 @@ export class UserService {
       throw new ApiException("RESOURCE_NOT_FOUND", "用户不存在", HttpStatus.NOT_FOUND);
     }
 
-    return user;
+    return {
+      id: user.id,
+      nickname: user.nickname,
+      avatar: user.avatar,
+      userType: user.userType,
+      status: user.status,
+      profile: user.profile,
+    };
   }
 
   /** 根据后台筛选条件查询用户和宠托师认证摘要。 */

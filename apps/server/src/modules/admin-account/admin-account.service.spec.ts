@@ -250,7 +250,11 @@ describe("AdminAccountService", () => {
       avatar: "https://cdn.example.com/new.png",
     });
 
-    expect(avatarStorage.upload).toHaveBeenCalledWith({ userId: "user-1", ...file });
+    expect(avatarStorage.upload).toHaveBeenCalledWith({
+      scope: "admin-avatars",
+      userId: "user-1",
+      ...file,
+    });
     expect(transaction.user.update).toHaveBeenCalledWith({
       where: { id: "user-1" },
       data: {

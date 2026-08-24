@@ -17,14 +17,37 @@ describe("UserService public responses", () => {
 
   beforeEach(() => jest.clearAllMocks());
 
-  it("queries only public user fields", async () => {
-    prisma.user.findUnique.mockResolvedValue({ id: "user-1" });
+  it("returns only explicitly public user and profile fields", async () => {
+    prisma.user.findUnique.mockResolvedValue({
+      id: "user-1",
+      nickname: "小白家长",
+      avatar: null,
+      userType: "pet_owner",
+      status: "active",
+      profile: { address: "上海市", bio: "喜欢猫咪" },
+      phone: "13800138000",
+      passwordHash: "must-not-leak",
+    });
 
-    await service.findOne("user-1");
+    await expect(service.findOne("user-1")).resolves.toEqual({
+      id: "user-1",
+      nickname: "小白家长",
+      avatar: null,
+      userType: "pet_owner",
+      status: "active",
+      profile: { address: "上海市", bio: "喜欢猫咪" },
+    });
 
     expect(prisma.user.findUnique).toHaveBeenCalledWith({
       where: { id: "user-1" },
-      select: expect.not.objectContaining({ passwordHash: true }),
+      select: {
+        id: true,
+        nickname: true,
+        avatar: true,
+        userType: true,
+        status: true,
+        profile: { select: { address: true, bio: true } },
+      },
     });
   });
 

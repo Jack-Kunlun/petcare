@@ -16,6 +16,7 @@ describe("PublicAvatarStorageModule", () => {
 
     await expect(
       storage.upload({
+        scope: "admin-avatars",
         userId: "user-1",
         body: Buffer.from("png-avatar"),
         contentType: "image/png",

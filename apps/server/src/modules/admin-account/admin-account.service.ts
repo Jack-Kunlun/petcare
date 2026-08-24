@@ -161,7 +161,7 @@ export class AdminAccountService {
     file: DetectedAvatarFile,
   ): Promise<AdminAvatarResponse> {
     const { requestId, userId } = context;
-    const uploaded = await this.avatarStorage.upload({ userId, ...file });
+    const uploaded = await this.avatarStorage.upload({ scope: "admin-avatars", userId, ...file });
 
     try {
       const oldObjectKey = await this.withAvatarTransaction(async (transaction) => {
