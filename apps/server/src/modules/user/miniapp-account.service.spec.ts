@@ -80,7 +80,7 @@ describe("MiniappAccountService", () => {
     });
   });
 
-  it("normalizes editable profile text before persisting it", async () => {
+  it("normalizes and persists editable profile text through one atomic user write", async () => {
     prisma.user.update.mockResolvedValue(undefined);
     prisma.userProfile.upsert.mockResolvedValue(undefined);
     prisma.user.findUnique.mockResolvedValue({
@@ -99,13 +99,18 @@ describe("MiniappAccountService", () => {
 
     expect(prisma.user.update).toHaveBeenCalledWith({
       where: { id: "user-1" },
-      data: { nickname: "小白家长" },
+      data: {
+        nickname: "小白家长",
+        profile: {
+          upsert: {
+            create: { address: null, bio: "喜欢猫咪" },
+            update: { address: null, bio: "喜欢猫咪" },
+          },
+        },
+      },
     });
-    expect(prisma.userProfile.upsert).toHaveBeenCalledWith({
-      where: { userId: "user-1" },
-      create: { userId: "user-1", address: null, bio: "喜欢猫咪" },
-      update: { address: null, bio: "喜欢猫咪" },
-    });
+    expect(prisma.user.update).toHaveBeenCalledTimes(1);
+    expect(prisma.userProfile.upsert).not.toHaveBeenCalled();
   });
 
   it.each([

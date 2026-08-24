@@ -14,7 +14,7 @@ const publicUserSelect = {
   profile: { select: { address: true, bio: true } },
 } as const;
 
-const adminUserListSelect = {
+const registerUserSelect = {
   id: true,
   phone: true,
   username: true,
@@ -24,6 +24,10 @@ const adminUserListSelect = {
   status: true,
   createdAt: true,
   updatedAt: true,
+} as const;
+
+const adminUserListSelect = {
+  ...registerUserSelect,
   provider: {
     select: {
       idCardVerified: true,
@@ -47,7 +51,7 @@ export class UserService {
         nickname: dto.nickname,
         avatar: dto.avatar,
       },
-      select: publicUserSelect,
+      select: registerUserSelect,
     });
 
     return {

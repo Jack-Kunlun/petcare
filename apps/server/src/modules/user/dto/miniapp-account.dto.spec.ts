@@ -27,7 +27,19 @@ describe("Miniapp account DTOs", () => {
       validate(plainToInstance(SendMiniappPhoneCodeDto, { phone: "12345" })),
     ).resolves.not.toHaveLength(0);
     await expect(
+      validate(plainToInstance(BindMiniappPhoneDto, { phone: "13800138000", code: "123456" })),
+    ).resolves.toHaveLength(0);
+    await expect(
       validate(plainToInstance(BindMiniappPhoneDto, { phone: "13800138000", code: "12345x" })),
     ).resolves.not.toHaveLength(0);
+  });
+
+  it.each([
+    [SendMiniappPhoneCodeDto, { phone: "13800138000" }],
+    [SendMiniappPhoneCodeDto, { phone: "13800138000" }],
+    [BindMiniappPhoneDto, { phone: "13800138000", code: "123456" }],
+    [BindMiniappPhoneDto, { phone: "13800138000", code: "123456" }],
+  ])("rejects non-canonical phone representation %#", async (Dto, input) => {
+    await expect(validate(plainToInstance(Dto, input))).resolves.not.toHaveLength(0);
   });
 });

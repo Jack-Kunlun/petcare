@@ -34,29 +34,7 @@ export class UserResponseDto {
   profile: PublicUserProfileDto | null;
 }
 
-export class UserRegisterResponseDto {
-  @ApiProperty({ type: UserResponseDto })
-  user: UserResponseDto;
-
-  @ApiProperty()
-  token: string;
-
-  @ApiProperty()
-  refreshToken: string;
-}
-
-export class AdminProviderSummaryDto implements AdminProviderSummary {
-  @ApiProperty()
-  idCardVerified: boolean;
-
-  @ApiProperty()
-  trainingPassed: boolean;
-
-  @ApiProperty()
-  certifiedSitter: boolean;
-}
-
-export class AdminUserListItemDto implements AdminUserListItem {
+export class RegisteredUserResponseDto {
   @ApiProperty({ format: "uuid" })
   id: string;
 
@@ -83,7 +61,31 @@ export class AdminUserListItemDto implements AdminUserListItem {
 
   @ApiProperty({ format: "date-time" })
   updatedAt: string;
+}
 
+export class UserRegisterResponseDto {
+  @ApiProperty({ type: RegisteredUserResponseDto })
+  user: RegisteredUserResponseDto;
+
+  @ApiProperty()
+  token: string;
+
+  @ApiProperty()
+  refreshToken: string;
+}
+
+export class AdminProviderSummaryDto implements AdminProviderSummary {
+  @ApiProperty()
+  idCardVerified: boolean;
+
+  @ApiProperty()
+  trainingPassed: boolean;
+
+  @ApiProperty()
+  certifiedSitter: boolean;
+}
+
+export class AdminUserListItemDto extends RegisteredUserResponseDto implements AdminUserListItem {
   @ApiProperty({ type: AdminProviderSummaryDto, nullable: true })
   provider: AdminProviderSummaryDto | null;
 }

@@ -17,6 +17,45 @@ describe("UserService public responses", () => {
 
   beforeEach(() => jest.clearAllMocks());
 
+  it("preserves the legacy registration user shape without public profile fields", async () => {
+    const registeredUser = {
+      id: "user-1",
+      phone: "13800138000",
+      username: null,
+      nickname: "小白家长",
+      avatar: null,
+      userType: "pet_owner",
+      status: "active",
+      createdAt: new Date("2026-08-24T00:00:00.000Z"),
+      updatedAt: new Date("2026-08-24T00:00:00.000Z"),
+    };
+
+    prisma.user.create.mockResolvedValue(registeredUser);
+
+    await expect(
+      service.register({ phone: "13800138000", code: "123456", nickname: "小白家长" }),
+    ).resolves.toEqual({
+      user: registeredUser,
+      token: "mock-token",
+      refreshToken: "mock-refresh-token",
+    });
+    expect(prisma.user.create).toHaveBeenCalledWith({
+      data: { phone: "13800138000", nickname: "小白家长", avatar: undefined },
+      select: {
+        id: true,
+        phone: true,
+        username: true,
+        nickname: true,
+        avatar: true,
+        userType: true,
+        status: true,
+        createdAt: true,
+        updatedAt: true,
+      },
+    });
+    expect(registeredUser).not.toHaveProperty("profile");
+  });
+
   it("returns only explicitly public user and profile fields", async () => {
     prisma.user.findUnique.mockResolvedValue({
       id: "user-1",

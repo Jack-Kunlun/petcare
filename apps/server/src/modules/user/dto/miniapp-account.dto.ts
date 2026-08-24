@@ -5,7 +5,7 @@ import type {
   SendMiniappPhoneCodeRequest,
   UpdateMiniappProfileRequest,
 } from "@petcare/shared-types";
-import { IsMobilePhone, IsString, Matches, ValidateIf } from "class-validator";
+import { IsString, Matches, ValidateIf } from "class-validator";
 
 /** Validates editable Miniapp profile fields; exact normalized lengths are enforced by the service. */
 export class UpdateMiniappProfileDto implements UpdateMiniappProfileRequest {
@@ -26,15 +26,15 @@ export class UpdateMiniappProfileDto implements UpdateMiniappProfileRequest {
 
 /** Validates a destination for a Miniapp phone-binding code. */
 export class SendMiniappPhoneCodeDto implements SendMiniappPhoneCodeRequest {
-  @ApiProperty({ example: "13800138000" })
-  @IsMobilePhone("zh-CN")
+  @ApiProperty({ pattern: "^1[3-9][0-9]{9}$", example: "13800138000" })
+  @Matches(/^1[3-9]\d{9}$/u)
   phone: string;
 }
 
 /** Validates the destination and code consumed by phone binding. */
 export class BindMiniappPhoneDto implements BindMiniappPhoneRequest {
-  @ApiProperty({ example: "13800138000" })
-  @IsMobilePhone("zh-CN")
+  @ApiProperty({ pattern: "^1[3-9][0-9]{9}$", example: "13800138000" })
+  @Matches(/^1[3-9]\d{9}$/u)
   phone: string;
 
   @ApiProperty({ pattern: "^[0-9]{6}$", example: "123456" })

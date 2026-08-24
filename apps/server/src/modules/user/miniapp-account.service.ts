@@ -67,12 +67,15 @@ export class MiniappAccountService {
 
     await this.prisma.user.update({
       where: { id: userId },
-      data: { nickname },
-    });
-    await this.prisma.userProfile.upsert({
-      where: { userId },
-      create: { userId, address: region, bio },
-      update: { address: region, bio },
+      data: {
+        nickname,
+        profile: {
+          upsert: {
+            create: { address: region, bio },
+            update: { address: region, bio },
+          },
+        },
+      },
     });
 
     return this.getProfile(userId);
