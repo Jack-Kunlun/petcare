@@ -8,6 +8,7 @@ import {
   loginInteractively,
   requireProfile,
   session,
+  STORAGE_KEY,
 } from "./session";
 
 vi.mock("../api/auth", () => ({
@@ -70,8 +71,12 @@ const rawRequestMock = vi.mocked(rawRequest);
 const loginWithWechatMock = vi.mocked(loginWithWechat);
 const refreshWechatSessionMock = vi.mocked(refreshWechatSession);
 
-function seedStoredSession(): void {
-  Object.assign(session, storedSession);
+function seedStoredSession(publish = true): void {
+  if (publish) {
+    Object.assign(session, storedSession);
+  }
+
+  storage.set("petcare.sessionCommitted", true);
   storage.set("petcare.accessToken", storedSession.accessToken);
   storage.set("petcare.refreshToken", storedSession.refreshToken);
   storage.set("petcare.user", storedSession.user);
@@ -167,7 +172,7 @@ describe("miniapp session", () => {
   });
 
   it("restores a persisted refresh token before trying silent login", async () => {
-    storage.set("petcare.refreshToken", storedSession.refreshToken);
+    seedStoredSession(false);
     refreshWechatSessionMock.mockResolvedValue(refreshedSession);
 
     await bootstrapSession();
@@ -252,6 +257,41 @@ describe("miniapp session", () => {
     expect(storage.get("petcare.manualLogout")).toBe(true);
   });
 
+  it("keeps partial storage inert when rollback cleanup fails", async () => {
+    seedStoredSession();
+    rawRequestMock.mockRejectedValueOnce(accessError());
+    refreshWechatSessionMock.mockResolvedValueOnce(refreshedSession);
+    setStorageSync.mockImplementation((key, value) => {
+      storage.set(key, value);
+
+      if (key === STORAGE_KEY.user) {
+        throw new Error("storage full");
+      }
+
+      return storage;
+    });
+    removeStorageSync.mockImplementation(() => {
+      throw new Error("cleanup failed");
+    });
+
+    await expect(authorizedRequest("/users/me")).rejects.toThrow("storage full");
+
+    expect(storage.get("petcare.sessionCommitted")).toBe(false);
+    expect(session).toMatchObject({ accessToken: null, refreshToken: null, user: null });
+
+    setStorageSync.mockImplementation((key, value) => storage.set(key, value));
+    removeStorageSync.mockImplementation((key) => storage.delete(key));
+    refreshWechatSessionMock.mockReset();
+    resolveUniLogin();
+    loginWithWechatMock.mockResolvedValueOnce(interactiveSession);
+
+    await bootstrapSession();
+
+    expect(refreshWechatSessionMock).not.toHaveBeenCalled();
+    expect(loginWithWechatMock).toHaveBeenCalledWith("wechat-code");
+    expect(session).toMatchObject(interactiveSession);
+  });
+
   it("keeps manualLogout when interactive login fails", async () => {
     storage.set("petcare.manualLogout", true);
     login.mockImplementationOnce((options: LoginOptions) =>
@@ -262,6 +302,47 @@ describe("miniapp session", () => {
 
     expect(storage.get("petcare.manualLogout")).toBe(true);
     expect(removeStorageSync).not.toHaveBeenCalledWith("petcare.manualLogout");
+  });
+
+  it("does not claim manual logout when persisting its intent fails", () => {
+    seedStoredSession();
+    setStorageSync.mockImplementation((key, value) => {
+      if (key === STORAGE_KEY.manualLogout) {
+        throw new Error("logout intent failed");
+      }
+
+      return storage.set(key, value);
+    });
+
+    expect(() => clearSession(true)).toThrow("logout intent failed");
+
+    expect(removeStorageSync).not.toHaveBeenCalled();
+    expect(storage.get(STORAGE_KEY.sessionCommitted)).toBe(true);
+    expect(storage.has(STORAGE_KEY.manualLogout)).toBe(false);
+    expect(session).toMatchObject(storedSession);
+  });
+
+  it("records manual logout before invalidation and tolerates cleanup failures", async () => {
+    seedStoredSession();
+    removeStorageSync.mockImplementation(() => {
+      throw new Error("cleanup failed");
+    });
+
+    expect(() => clearSession(true)).not.toThrow();
+
+    expect(setStorageSync.mock.calls.slice(0, 2)).toEqual([
+      [STORAGE_KEY.manualLogout, true],
+      [STORAGE_KEY.sessionCommitted, false],
+    ]);
+    expect(storage.get(STORAGE_KEY.manualLogout)).toBe(true);
+    expect(storage.get(STORAGE_KEY.sessionCommitted)).toBe(false);
+    expect(storage.get(STORAGE_KEY.accessToken)).toBe(storedSession.accessToken);
+    expect(session).toMatchObject({ accessToken: null, refreshToken: null, user: null });
+
+    await bootstrapSession();
+
+    expect(refreshWechatSessionMock).not.toHaveBeenCalled();
+    expect(login).not.toHaveBeenCalled();
   });
 
   it("ignores a stale refresh success after manual logout", async () => {
@@ -282,6 +363,26 @@ describe("miniapp session", () => {
     await expect(pending).resolves.toEqual({ id: "ignored" });
     expect(session).toMatchObject({ accessToken: null, refreshToken: null, user: null });
     expect(storage.get("petcare.manualLogout")).toBe(true);
+  });
+
+  it("does not refresh when a request receives its 401 after manual logout", async () => {
+    seedStoredSession();
+
+    const request = deferred<never>();
+
+    rawRequestMock.mockReturnValueOnce(request.promise);
+    refreshWechatSessionMock.mockRejectedValueOnce(new Error("unexpected refresh"));
+
+    const pending = authorizedRequest("/users/me");
+
+    clearSession(true);
+    request.reject(accessError());
+
+    await expect(pending).rejects.toMatchObject({ statusCode: 401 });
+    expect(refreshWechatSessionMock).not.toHaveBeenCalled();
+    expect(session).toMatchObject({ accessToken: null, refreshToken: null, user: null });
+    expect(storage.get(STORAGE_KEY.manualLogout)).toBe(true);
+    expect(storage.get(STORAGE_KEY.sessionCommitted)).toBe(false);
   });
 
   it("keeps a newer interactive login when a stale refresh fails", async () => {

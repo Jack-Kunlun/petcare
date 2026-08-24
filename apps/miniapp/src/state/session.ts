@@ -5,6 +5,7 @@ import { MiniappApiError, rawRequest, rawUpload } from "../api/request";
 import type { RawRequestOptions } from "../api/request";
 
 export const STORAGE_KEY = {
+  sessionCommitted: "petcare.sessionCommitted",
   accessToken: "petcare.accessToken",
   refreshToken: "petcare.refreshToken",
   user: "petcare.user",
@@ -34,6 +35,44 @@ function readStoredString(key: string): string | null {
   return typeof value === "string" && value.length > 0 ? value : null;
 }
 
+function isNullableString(value: unknown): value is string | null {
+  return value === null || typeof value === "string";
+}
+
+function isStoredUser(value: unknown): value is MiniappUserProfile {
+  if (typeof value !== "object" || value === null) {
+    return false;
+  }
+
+  const user = value as Partial<MiniappUserProfile>;
+
+  return (
+    typeof user.id === "string" &&
+    user.id.length > 0 &&
+    typeof user.nickname === "string" &&
+    isNullableString(user.avatar) &&
+    isNullableString(user.phoneMasked) &&
+    typeof user.profileComplete === "boolean" &&
+    typeof user.userType === "string" &&
+    isNullableString(user.region) &&
+    isNullableString(user.bio)
+  );
+}
+
+function readStoredSession(): WechatSession | null {
+  if (uni.getStorageSync(STORAGE_KEY.sessionCommitted) !== true) {
+    return null;
+  }
+
+  const accessToken = readStoredString(STORAGE_KEY.accessToken);
+  const refreshToken = readStoredString(STORAGE_KEY.refreshToken);
+  const user = uni.getStorageSync(STORAGE_KEY.user);
+
+  return accessToken && refreshToken && isStoredUser(user)
+    ? { accessToken, refreshToken, user }
+    : null;
+}
+
 function setAnonymousSession(): void {
   session.accessToken = null;
   session.refreshToken = null;
@@ -50,13 +89,23 @@ function clearStoredSession(): void {
   }
 }
 
+function invalidateStoredSession(): void {
+  try {
+    uni.setStorageSync(STORAGE_KEY.sessionCommitted, false);
+  } catch {
+    // Cleanup can still make a previously committed session incomplete.
+  }
+
+  clearStoredSession();
+}
+
 function resetSessionAtRevision(revision: number): void {
   if (revision !== sessionRevision) {
     return;
   }
 
   setAnonymousSession();
-  clearStoredSession();
+  invalidateStoredSession();
 }
 
 function rollbackSessionCommit(revision: number, restoreManualLogout: boolean): void {
@@ -66,7 +115,7 @@ function rollbackSessionCommit(revision: number, restoreManualLogout: boolean): 
 
   sessionRevision += 1;
   setAnonymousSession();
-  clearStoredSession();
+  invalidateStoredSession();
 
   if (restoreManualLogout) {
     try {
@@ -93,6 +142,7 @@ function persistSession(
       restoreManualLogout = uni.getStorageSync(STORAGE_KEY.manualLogout) === true;
     }
 
+    uni.setStorageSync(STORAGE_KEY.sessionCommitted, false);
     uni.setStorageSync(STORAGE_KEY.accessToken, nextSession.accessToken);
     uni.setStorageSync(STORAGE_KEY.refreshToken, nextSession.refreshToken);
     uni.setStorageSync(STORAGE_KEY.user, nextSession.user);
@@ -100,6 +150,8 @@ function persistSession(
     if (clearManualLogout) {
       uni.removeStorageSync(STORAGE_KEY.manualLogout);
     }
+
+    uni.setStorageSync(STORAGE_KEY.sessionCommitted, true);
   } catch (error) {
     rollbackSessionCommit(revision, restoreManualLogout);
     throw error;
@@ -113,13 +165,13 @@ function persistSession(
 }
 
 export function clearSession(manualLogout = false): void {
-  sessionRevision += 1;
-  setAnonymousSession();
-  clearStoredSession();
-
   if (manualLogout) {
     uni.setStorageSync(STORAGE_KEY.manualLogout, true);
   }
+
+  sessionRevision += 1;
+  setAnonymousSession();
+  invalidateStoredSession();
 }
 
 function refreshSession(refreshToken: string): Promise<void> {
@@ -180,7 +232,7 @@ export async function bootstrapSession(): Promise<void> {
       return;
     }
 
-    const refreshToken = readStoredString(STORAGE_KEY.refreshToken);
+    const refreshToken = readStoredSession()?.refreshToken ?? null;
 
     if (refreshToken) {
       try {
@@ -234,7 +286,7 @@ function isUnauthorized(error: unknown): error is MiniappApiError {
 async function authorizedOperation<T>(
   operation: (accessToken: string | null) => Promise<T>,
 ): Promise<T> {
-  const attemptedToken = session.accessToken ?? readStoredString(STORAGE_KEY.accessToken);
+  const attemptedToken = session.accessToken ?? readStoredSession()?.accessToken ?? null;
 
   try {
     return await operation(attemptedToken);
@@ -244,7 +296,7 @@ async function authorizedOperation<T>(
     }
 
     if (!session.accessToken || session.accessToken === attemptedToken) {
-      const refreshToken = session.refreshToken ?? readStoredString(STORAGE_KEY.refreshToken);
+      const refreshToken = session.refreshToken ?? readStoredSession()?.refreshToken ?? null;
 
       if (!refreshToken) {
         clearSession(false);
