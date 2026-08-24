@@ -1,5 +1,6 @@
 import { ReactNode, useCallback, useEffect, useMemo, useState } from "react";
 import * as authApi from "../api/auth";
+import { showGlobalError } from "../lib/global-error";
 import { AuthContext, AuthContextValue } from "./auth.context";
 import { AdminUser, AuthStatus } from "./auth.types";
 
@@ -37,6 +38,19 @@ export function AuthProvider({ children }: { children: ReactNode }) {
       active = false;
     };
   }, []);
+
+  useEffect(() => {
+    if (status !== "authenticated") {
+      return;
+    }
+
+    return authApi.onSessionExpired((message) => {
+      authApi.clearAccessToken();
+      setUser(null);
+      setStatus("anonymous");
+      showGlobalError(message, "session");
+    });
+  }, [status]);
 
   const loginWithPassword = useCallback(async (identifier: string, password: string) => {
     const result = await authApi.loginWithPassword(identifier, password);

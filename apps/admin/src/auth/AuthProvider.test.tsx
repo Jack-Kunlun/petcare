@@ -1,9 +1,17 @@
-import { fireEvent, render, screen, waitFor } from "@testing-library/react";
+import { act, fireEvent, render, screen, waitFor } from "@testing-library/react";
 import { useState } from "react";
 import { beforeEach, describe, expect, it, vi } from "vitest";
 import * as authApi from "../api/auth";
 import { useAuth } from "./auth.context";
 import { AuthProvider } from "./AuthProvider";
+
+const authEvents = vi.hoisted(() => ({
+  sessionExpiredListener: undefined as ((message: string) => void) | undefined,
+}));
+const globalErrors = vi.hoisted(() => ({
+  showApiError: vi.fn(),
+  showGlobalError: vi.fn(),
+}));
 
 vi.mock("../api/auth", () => ({
   clearAccessToken: vi.fn(),
@@ -12,10 +20,19 @@ vi.mock("../api/auth", () => ({
   loginWithPassword: vi.fn(),
   loginWithSms: vi.fn(),
   logout: vi.fn(),
+  onSessionExpired: vi.fn((listener: (message: string) => void) => {
+    authEvents.sessionExpiredListener = listener;
+
+    return () => {
+      authEvents.sessionExpiredListener = undefined;
+    };
+  }),
   refreshSession: vi.fn(),
   sendSmsCode: vi.fn(),
   setAccessToken: vi.fn(),
 }));
+
+vi.mock("../lib/global-error", () => globalErrors);
 
 const adminUser = {
   id: "user-1",
@@ -124,6 +141,22 @@ describe("AuthProvider", () => {
 
     await waitFor(() => expect(screen.getByText("anonymous")).toBeInTheDocument());
     expect(authApi.clearAccessToken).toHaveBeenCalled();
+  });
+
+  it("invalidates an authenticated session and emits a priority message", async () => {
+    vi.mocked(authApi.refreshSession).mockResolvedValue({ accessToken: "access" });
+    vi.mocked(authApi.getCurrentUser).mockResolvedValue(adminUser);
+    render(
+      <AuthProvider>
+        <StateProbe />
+      </AuthProvider>,
+    );
+    await screen.findByText("系统管理员");
+
+    act(() => authEvents.sessionExpiredListener?.("登录状态已失效"));
+
+    expect(screen.getByText("anonymous")).toBeInTheDocument();
+    expect(globalErrors.showGlobalError).toHaveBeenCalledWith("登录状态已失效", "session");
   });
 
   it("delegates graphical captcha loading and protected SMS sending", async () => {

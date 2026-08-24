@@ -90,6 +90,38 @@ describe("Admin Axios response boundary", () => {
     expect(axiosMocks.client).toHaveBeenCalledWith(request);
   });
 
+  it("emits one session event when refresh cannot recover an authenticated request", async () => {
+    const authModule = await import("./auth");
+    const onRejected = axiosMocks.responseUse.mock.calls[0]?.[1] as (
+      error: Record<string, unknown>,
+    ) => Promise<unknown>;
+    const listener = vi.fn();
+    const unsubscribe = authModule.onSessionExpired(listener);
+    const refreshError = {
+      response: {
+        status: 401,
+        data: { code: "AUTH_SESSION_EXPIRED", message: "登录状态已失效" },
+      },
+    };
+
+    axiosMocks.client.post.mockRejectedValue(refreshError);
+
+    await expect(
+      onRejected({
+        config: {
+          headers: { has: vi.fn(() => true), set: vi.fn() },
+          url: "/admin/account/profile",
+        },
+        response: {
+          status: 401,
+          data: { code: "AUTH_SESSION_EXPIRED", message: "登录状态已失效" },
+        },
+      }),
+    ).rejects.toBe(refreshError);
+    expect(listener).toHaveBeenCalledWith("登录状态已失效");
+    unsubscribe();
+  });
+
   it("does not refresh requests sent without an access token", async () => {
     await import("./auth");
     const onRejected = axiosMocks.responseUse.mock.calls[0]?.[1] as (error: {

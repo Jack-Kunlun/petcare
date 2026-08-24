@@ -9,9 +9,10 @@ import type {
   SmsLoginRequest,
 } from "@petcare/shared-types";
 import axios, { AxiosError, InternalAxiosRequestConfig } from "axios";
-import { unwrapApiResponse } from "./api-response";
+import { readApiErrorMessage, unwrapApiResponse } from "./api-response";
 
 type RetriableRequest = InternalAxiosRequestConfig & { _authRetried?: boolean };
+type SessionExpiredListener = (message: string) => void;
 
 export const apiClient = axios.create({
   baseURL: "/api",
@@ -20,6 +21,7 @@ export const apiClient = axios.create({
 
 let accessToken: string | null = null;
 let refreshPromise: Promise<string> | null = null;
+const sessionExpiredListeners = new Set<SessionExpiredListener>();
 
 /** 设置仅保存在内存中的访问令牌。 */
 export function setAccessToken(token: string): void {
@@ -29,6 +31,23 @@ export function setAccessToken(token: string): void {
 /** 清除内存中的访问令牌。 */
 export function clearAccessToken(): void {
   accessToken = null;
+}
+
+/** Subscribes to unrecoverable authenticated-session failures. */
+export function onSessionExpired(listener: SessionExpiredListener): () => void {
+  sessionExpiredListeners.add(listener);
+
+  return () => sessionExpiredListeners.delete(listener);
+}
+
+function emitSessionExpired(error: AxiosError<ApiErrorResponse>): void {
+  const message = readApiErrorMessage(error);
+
+  clearAccessToken();
+
+  for (const listener of sessionExpiredListeners) {
+    listener(message);
+  }
 }
 
 apiClient.interceptors.request.use((config) => {
@@ -54,10 +73,15 @@ apiClient.interceptors.response.use(
     const isExpiredSession =
       error.response?.status === 401 && error.response.data?.code === "AUTH_SESSION_EXPIRED";
 
+    if (isExpiredSession && request?._authRetried) {
+      emitSessionExpired(error);
+
+      return Promise.reject(error);
+    }
+
     if (
       !isExpiredSession ||
       !request ||
-      request._authRetried ||
       isAuthenticationRequest ||
       !request.headers.has("Authorization")
     ) {
@@ -76,11 +100,17 @@ apiClient.interceptors.response.use(
         refreshPromise = null;
       });
 
-    const token = await refreshPromise;
+    try {
+      const token = await refreshPromise;
 
-    request.headers.set("Authorization", `Bearer ${token}`);
+      request.headers.set("Authorization", `Bearer ${token}`);
 
-    return apiClient(request);
+      return apiClient(request);
+    } catch (refreshError) {
+      emitSessionExpired(refreshError as AxiosError<ApiErrorResponse>);
+
+      return Promise.reject(refreshError);
+    }
   },
 );
 

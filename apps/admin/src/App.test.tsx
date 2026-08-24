@@ -1,10 +1,16 @@
-import { render, screen } from "@testing-library/react";
+import { act, render, screen } from "@testing-library/react";
 import { beforeEach, describe, expect, it, vi } from "vitest";
 import App from "./App";
 
 vi.mock("./auth/AuthProvider", () => ({
   AuthProvider: ({ children }: { children: React.ReactNode }) => children,
 }));
+
+vi.mock("./components/GlobalErrorMessage", () => ({
+  GlobalErrorMessage: () => <div data-testid="global-error-root" />,
+}));
+
+vi.mock("./pages/Login", () => ({ default: () => "登录路由" }));
 
 vi.mock("./auth/ProtectedRoute", async () => {
   const { Outlet } = await vi.importActual<typeof import("react-router-dom")>("react-router-dom");
@@ -75,4 +81,17 @@ describe("App account route", () => {
 
     expect(await screen.findByText("个人中心路由")).toBeInTheDocument();
   });
+});
+
+it("keeps the global message root mounted across a redirect to login", async () => {
+  window.history.replaceState({}, "", "/account");
+  render(<App />);
+  expect(screen.getByTestId("global-error-root")).toBeInTheDocument();
+
+  act(() => {
+    window.history.pushState({}, "", "/login");
+    window.dispatchEvent(new PopStateEvent("popstate"));
+  });
+
+  expect(screen.getByTestId("global-error-root")).toBeInTheDocument();
 });
