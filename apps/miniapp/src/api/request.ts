@@ -44,8 +44,19 @@ function isApiResponse(value: unknown): value is ApiResponse<unknown> {
   }
 
   const response = value as Partial<ApiResponse<unknown>>;
+  const meta = response.meta;
 
-  return typeof response.code === "string" && typeof response.message === "string";
+  return (
+    typeof response.code === "string" &&
+    typeof response.message === "string" &&
+    Object.prototype.hasOwnProperty.call(response, "data") &&
+    typeof meta === "object" &&
+    meta !== null &&
+    typeof meta.requestId === "string" &&
+    meta.requestId.trim().length > 0 &&
+    typeof meta.timestamp === "string" &&
+    Number.isFinite(Date.parse(meta.timestamp))
+  );
 }
 
 function unwrapResponse<T>(statusCode: number, value: unknown): T {

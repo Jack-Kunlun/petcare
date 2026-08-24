@@ -140,11 +140,15 @@ ALIYUN_SMS_TEMPLATE_CODE=
 | 变量名                      | 必填 | 说明                                                                 |
 | --------------------------- | ---- | -------------------------------------------------------------------- |
 | `API_BASE_URL`              | 否   | Admin API 基础 URL；默认值仅用于本地诊断 `http://localhost:8986/api` |
-| `VITE_MINIAPP_API_BASE_URL` | ✅   | UniApp Miniapp API 基础 URL；本地默认 `http://localhost:3000`        |
+| `VITE_MINIAPP_API_BASE_URL` | ✅   | UniApp Miniapp API 基础 URL；按构建模式从 `apps/miniapp/.env.*` 加载 |
 | ~~`TARO_APP_API_BASE_URL`~~ | -    | ~~Taro Miniapp 请求地址；已随项目删除~~                              |
 
 `VITE_MINIAPP_API_BASE_URL` 会进入客户端构建产物，只能配置公开网关地址，不能包含凭据。生产构建必须使用
 HTTPS API 网关，不能使用本地 HTTP 示例或 Docker 内网服务名。
+
+Miniapp 的 Vite 环境根目录是 `apps/miniapp`。仓库内的 `.env.development` 和 `.env.production` 分别提供开发与
+生产构建值；开发者若要覆盖本地地址，应创建不提交的 `apps/miniapp/.env.local`。根 `.env.example` 中的同名项
+仅作配置清单参考，复制得到的根 `.env` 不会被 Miniapp 构建加载。
 
 ### 第三方服务（可选）
 
@@ -247,8 +251,9 @@ JavaScript、构建参数或 CDN 配置中。Astro 通过它在 Docker 内网调
    # pnpm dev:miniapp（已删除）
    ```
 
-5. 在根 `.env` 中配置 `VITE_MINIAPP_API_BASE_URL` 后启动 UniApp 微信端构建；不再使用旧的
-   `TARO_APP_API_BASE_URL`。
+5. Miniapp 默认按模式读取 `apps/miniapp/.env.development` 或 `.env.production`。如需覆盖本地 API 地址，在
+   `apps/miniapp/.env.local` 中配置 `VITE_MINIAPP_API_BASE_URL` 后启动 UniApp 微信端构建；不再使用旧的
+   `VITE_API_BASE_URL` 或 `TARO_APP_API_BASE_URL`。
 
 ## 注意事项
 

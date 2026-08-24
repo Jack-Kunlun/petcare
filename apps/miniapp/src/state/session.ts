@@ -25,7 +25,8 @@ export const session = reactive<SessionState>({
   bootstrapped: false,
 });
 
-let refreshPromise: Promise<void> | null = null;
+let sessionRevision = 0;
+let refreshAttempt: { revision: number; promise: Promise<void> } | null = null;
 
 function readStoredString(key: string): string | null {
   const value = uni.getStorageSync(key);
@@ -33,22 +34,88 @@ function readStoredString(key: string): string | null {
   return typeof value === "string" && value.length > 0 ? value : null;
 }
 
-function persistSession(nextSession: WechatSession): void {
-  session.accessToken = nextSession.accessToken;
-  session.refreshToken = nextSession.refreshToken;
-  session.user = nextSession.user;
-  uni.setStorageSync(STORAGE_KEY.accessToken, nextSession.accessToken);
-  uni.setStorageSync(STORAGE_KEY.refreshToken, nextSession.refreshToken);
-  uni.setStorageSync(STORAGE_KEY.user, nextSession.user);
-}
-
-export function clearSession(manualLogout = false): void {
+function setAnonymousSession(): void {
   session.accessToken = null;
   session.refreshToken = null;
   session.user = null;
-  uni.removeStorageSync(STORAGE_KEY.accessToken);
-  uni.removeStorageSync(STORAGE_KEY.refreshToken);
-  uni.removeStorageSync(STORAGE_KEY.user);
+}
+
+function clearStoredSession(): void {
+  for (const key of [STORAGE_KEY.accessToken, STORAGE_KEY.refreshToken, STORAGE_KEY.user]) {
+    try {
+      uni.removeStorageSync(key);
+    } catch {
+      // Keep clearing the other keys; the in-memory state remains anonymous.
+    }
+  }
+}
+
+function resetSessionAtRevision(revision: number): void {
+  if (revision !== sessionRevision) {
+    return;
+  }
+
+  setAnonymousSession();
+  clearStoredSession();
+}
+
+function rollbackSessionCommit(revision: number, restoreManualLogout: boolean): void {
+  if (revision !== sessionRevision) {
+    return;
+  }
+
+  sessionRevision += 1;
+  setAnonymousSession();
+  clearStoredSession();
+
+  if (restoreManualLogout) {
+    try {
+      uni.setStorageSync(STORAGE_KEY.manualLogout, true);
+    } catch {
+      // The failed commit still leaves the reactive session anonymous.
+    }
+  }
+}
+
+function persistSession(
+  nextSession: WechatSession,
+  revision: number,
+  clearManualLogout = false,
+): boolean {
+  if (revision !== sessionRevision) {
+    return false;
+  }
+
+  let restoreManualLogout = false;
+
+  try {
+    if (clearManualLogout) {
+      restoreManualLogout = uni.getStorageSync(STORAGE_KEY.manualLogout) === true;
+    }
+
+    uni.setStorageSync(STORAGE_KEY.accessToken, nextSession.accessToken);
+    uni.setStorageSync(STORAGE_KEY.refreshToken, nextSession.refreshToken);
+    uni.setStorageSync(STORAGE_KEY.user, nextSession.user);
+
+    if (clearManualLogout) {
+      uni.removeStorageSync(STORAGE_KEY.manualLogout);
+    }
+  } catch (error) {
+    rollbackSessionCommit(revision, restoreManualLogout);
+    throw error;
+  }
+
+  session.accessToken = nextSession.accessToken;
+  session.refreshToken = nextSession.refreshToken;
+  session.user = nextSession.user;
+
+  return true;
+}
+
+export function clearSession(manualLogout = false): void {
+  sessionRevision += 1;
+  setAnonymousSession();
+  clearStoredSession();
 
   if (manualLogout) {
     uni.setStorageSync(STORAGE_KEY.manualLogout, true);
@@ -56,19 +123,27 @@ export function clearSession(manualLogout = false): void {
 }
 
 function refreshSession(refreshToken: string): Promise<void> {
-  if (!refreshPromise) {
-    refreshPromise = refreshWechatSession(refreshToken)
-      .then(persistSession)
+  const revision = sessionRevision;
+
+  if (!refreshAttempt || refreshAttempt.revision !== revision) {
+    const promise = refreshWechatSession(refreshToken)
+      .then((nextSession) => {
+        persistSession(nextSession, revision);
+      })
       .catch((error: unknown) => {
-        clearSession(false);
+        resetSessionAtRevision(revision);
         throw error;
       })
       .finally(() => {
-        refreshPromise = null;
+        if (refreshAttempt?.promise === promise) {
+          refreshAttempt = null;
+        }
       });
+
+    refreshAttempt = { revision, promise };
   }
 
-  return refreshPromise;
+  return refreshAttempt.promise;
 }
 
 function getWechatLoginCode(): Promise<string> {
@@ -89,11 +164,15 @@ function getWechatLoginCode(): Promise<string> {
   });
 }
 
-async function createWechatSession(): Promise<void> {
-  persistSession(await loginWithWechat(await getWechatLoginCode()));
+async function createWechatSession(revision: number, clearManualLogout = false): Promise<boolean> {
+  const nextSession = await loginWithWechat(await getWechatLoginCode());
+
+  return persistSession(nextSession, revision, clearManualLogout);
 }
 
 export async function bootstrapSession(): Promise<void> {
+  const revision = ++sessionRevision;
+
   session.bootstrapped = false;
 
   try {
@@ -109,16 +188,20 @@ export async function bootstrapSession(): Promise<void> {
 
         return;
       } catch {
+        if (revision !== sessionRevision) {
+          return;
+        }
+
         // A failed restore falls through to silent WeChat login.
       }
     } else {
-      clearSession(false);
+      resetSessionAtRevision(revision);
     }
 
     try {
-      await createWechatSession();
+      await createWechatSession(revision);
     } catch {
-      clearSession(false);
+      resetSessionAtRevision(revision);
     }
   } finally {
     session.bootstrapped = true;
@@ -126,9 +209,11 @@ export async function bootstrapSession(): Promise<void> {
 }
 
 export async function loginInteractively(): Promise<void> {
-  await createWechatSession();
-  uni.removeStorageSync(STORAGE_KEY.manualLogout);
-  session.bootstrapped = true;
+  const revision = ++sessionRevision;
+
+  if (await createWechatSession(revision, true)) {
+    session.bootstrapped = true;
+  }
 }
 
 function authorizationHeaders(

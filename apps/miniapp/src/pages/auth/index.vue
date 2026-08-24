@@ -15,11 +15,11 @@ const { layout } = usePlatformLayout();
 const loginPending = ref(false);
 const { colors, radii, sizes, fontSizes, lineHeights } = miniappDesignTokens;
 const loginButtonStyle = [
-  `--wot-button-primary-bg: ${colors.brand}`,
-  `--wot-button-primary-bg-active: ${colors["brand-active"]}`,
-  `--wot-button-radius-main: ${radii.control}`,
   "width: 100%",
   `height: ${sizes.button}`,
+  "margin: 0",
+  "padding: 0",
+  "border: none",
   `border-radius: ${radii.control}`,
   `background: ${colors.brand}`,
   `color: ${colors.surface}`,
@@ -126,19 +126,17 @@ async function handleLogin(): Promise<void> {
       </view>
 
       <view class="mt-actions flex flex-col items-center gap-action">
-        <wd-button
-          block
+        <button
           :aria-disabled="loginPending"
-          :custom-style="loginPending ? `${loginButtonStyle}; opacity: 0.6` : loginButtonStyle"
           :disabled="loginPending"
           :loading="loginPending"
-          :round="false"
-          size="large"
-          type="primary"
+          :style="loginPending ? `${loginButtonStyle}; opacity: 0.6` : loginButtonStyle"
+          class="box-border w-full flex items-center justify-center"
+          hover-class="opacity-80"
           @click="handleLogin"
         >
           {{ loginPending ? "登录中…" : "微信一键登录" }}
-        </wd-button>
+        </button>
 
         <view
           class="w-agreement flex flex-col items-center overflow-hidden whitespace-nowrap text-caption text-muted leading-caption"

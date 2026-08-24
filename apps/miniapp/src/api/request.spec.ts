@@ -57,6 +57,40 @@ describe("native Miniapp request boundary", () => {
     await expect(pending).resolves.toEqual({ id: "user-1" });
   });
 
+  it.each([
+    {
+      label: "missing data",
+      envelope: {
+        code: "SUCCESS",
+        message: "操作成功",
+        meta: { requestId: "request-1", timestamp: "2026-08-24T00:00:00.000Z" },
+      },
+    },
+    {
+      label: "missing meta",
+      envelope: { code: "SUCCESS", message: "操作成功", data: { id: "user-1" } },
+    },
+    {
+      label: "invalid meta",
+      envelope: {
+        code: "SUCCESS",
+        message: "操作成功",
+        data: { id: "user-1" },
+        meta: { requestId: "", timestamp: "not-a-timestamp" },
+      },
+    },
+  ])("rejects a malformed success envelope with $label", async ({ envelope }) => {
+    const pending = rawRequest<{ id: string }>("/users/me");
+
+    completeRequest(200, envelope);
+
+    await expect(pending).rejects.toMatchObject({
+      name: "MiniappApiError",
+      statusCode: 200,
+      code: "INVALID_RESPONSE",
+    });
+  });
+
   it("throws a typed error from a non-success response envelope", async () => {
     const pending = rawRequest("/users/me");
 
