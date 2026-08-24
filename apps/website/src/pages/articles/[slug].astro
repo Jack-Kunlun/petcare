@@ -60,7 +60,7 @@ function formatDate(value: string): string {
         {article.coverUrl ? (
           <img src={article.coverUrl} alt={article.title} loading="lazy" />
         ) : null}
-        <div class="article-detail__body">{article.body}</div>
+        <div class="article-detail__body" set:html={article.bodyHtml} />
       </article>
     </ArticleLayout>
   ) : (

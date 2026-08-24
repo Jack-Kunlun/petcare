@@ -9,7 +9,7 @@ const healthPath = new URL("../pages/healthz.ts", import.meta.url);
 const unavailablePath = new URL("../pages/503.astro", import.meta.url);
 
 describe("public article and operational route contracts", () => {
-  it("renders article text semantically without trusted HTML insertion", async () => {
+  it("renders only the Server-cleaned article HTML as trusted markup", async () => {
     const [listSource, detailSource] = await Promise.all([
       readFile(articleListPath, "utf8"),
       readFile(articleDetailPath, "utf8"),
@@ -19,7 +19,11 @@ describe("public article and operational route contracts", () => {
     expect(detailSource).toContain("getArticle");
     expect(detailSource).toContain("<article");
     expect(detailSource).toContain("<time");
-    expect(`${listSource}\n${detailSource}`).not.toContain("set:html");
+    expect(detailSource).toContain("set:html={article.bodyHtml}");
+    expect(detailSource).not.toContain("set:html={article.body}");
+    expect(detailSource).not.toContain("{article.body}");
+    expect(detailSource.match(/set:html/gu) ?? []).toHaveLength(1);
+    expect(listSource.match(/set:html/gu) ?? []).toHaveLength(0);
   });
 
   it("keeps sitemap dynamic, blocks preview crawling, and exposes a configuration-free health response", async () => {

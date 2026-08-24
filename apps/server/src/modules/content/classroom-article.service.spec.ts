@@ -97,13 +97,13 @@ describe("ClassroomArticleService", () => {
     );
   });
 
-  it("reads a published article by its stable id slug and returns escaped legacy text", async () => {
+  it("reads a published article by its stable id slug and escapes HTML-looking legacy text", async () => {
     prisma.classroomArticle.findFirst.mockResolvedValue({
       id: "article-public-1",
       title: "幼猫喂养课堂",
       summary: "基础喂养知识",
       coverUrl: null,
-      content: "护理正文",
+      content: '<script>alert("x")</script>\n护理正文',
       publishedAt: new Date("2026-08-01T09:00:00.000Z"),
       author: { nickname: "", username: "doctor", avatar: "https://example.com/avatar.jpg" },
     });
@@ -115,7 +115,7 @@ describe("ClassroomArticleService", () => {
       coverUrl: null,
       author: { displayName: "doctor", avatar: "https://example.com/avatar.jpg" },
       publishedAt: "2026-08-01T09:00:00.000Z",
-      bodyHtml: "<p>护理正文</p>",
+      bodyHtml: "<p>&lt;script&gt;alert(&quot;x&quot;)&lt;/script&gt;</p><p>护理正文</p>",
     });
 
     expect(prisma.classroomArticle.findFirst).toHaveBeenCalledWith({

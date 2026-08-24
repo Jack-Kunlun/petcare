@@ -1346,7 +1346,46 @@ img.hero-section__background-media {
   max-width: 52rem;
   margin-top: 3rem;
   color: #475467;
-  white-space: pre-wrap;
+  line-height: 1.8;
+}
+
+.article-detail__body :where(h2, h3) {
+  margin: 2rem 0 0.75rem;
+  color: #101828;
+  line-height: 1.3;
+}
+
+.article-detail__body :where(p, ul, ol, blockquote) {
+  margin: 1rem 0;
+}
+
+.article-detail__body ul {
+  padding-left: 1.5rem;
+  list-style: disc;
+}
+
+.article-detail__body ol {
+  padding-left: 1.5rem;
+  list-style: decimal;
+}
+
+.article-detail__body a {
+  color: var(--brand);
+  text-decoration: underline;
+  text-underline-offset: 0.2em;
+}
+
+.article-detail__body img {
+  display: block;
+  width: min(100%, 52rem);
+  height: auto;
+  margin: 1.5rem auto;
+  border-radius: 1rem;
+}
+
+.article-detail__body blockquote {
+  padding-left: 1rem;
+  border-left: 3px solid var(--brand);
 }
 
 .article-detail > img {

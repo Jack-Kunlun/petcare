@@ -114,8 +114,8 @@ describe("createWebsiteContentApi", () => {
     );
   });
 
-  it("reads one published article by its stable slug without treating it as HTML", async () => {
-    const article = { ...articleList.list[0], body: "<p>Read this as text.</p>" };
+  it("reads one published article with Server-cleaned HTML", async () => {
+    const article = { ...articleList.list[0], bodyHtml: "<p>护理正文</p>" };
     const fetcher = vi.fn().mockResolvedValue(successResponse(article));
     const api = createWebsiteContentApi({ baseUrl: "http://server:3000", fetcher });
 
