@@ -5,6 +5,7 @@ import loginBackgroundUrl from "../../assets/brand/petcare-background-soft.svg";
 import { useAuth } from "../../auth/auth.context";
 import { BrandLogo } from "../../components/BrandLogo";
 import { showApiError } from "../../lib/global-error";
+import { CaptchaDialog } from "./CaptchaDialog";
 
 type LoginMode = "password" | "sms";
 
@@ -36,6 +37,7 @@ export default function Login() {
   const [captchaCode, setCaptchaCode] = useState("");
   const [captchaLoading, setCaptchaLoading] = useState(false);
   const [captchaLoadError, setCaptchaLoadError] = useState(false);
+  const [captchaOpen, setCaptchaOpen] = useState(false);
 
   const loadCaptcha = useCallback(async () => {
     setCaptchaLoading(true);
@@ -54,10 +56,10 @@ export default function Login() {
   }, [getCaptcha]);
 
   useEffect(() => {
-    if (mode === "sms") {
+    if (captchaOpen) {
       void loadCaptcha();
     }
-  }, [loadCaptcha, mode]);
+  }, [captchaOpen, loadCaptcha]);
 
   useEffect(() => {
     if (cooldown <= 0) {
@@ -112,7 +114,7 @@ export default function Login() {
     }
   }
 
-  async function handleSendCode() {
+  function openCaptchaDialog() {
     setError(null);
 
     if (!mobilePattern.test(phone)) {
@@ -121,22 +123,47 @@ export default function Login() {
       return;
     }
 
-    if (!captcha || !/^[2-9]{4}$/.test(captchaCode)) {
-      setError("请输入 4 位图形验证码");
+    if (sendingCode || cooldown > 0) {
+      return;
+    }
 
+    setCaptcha(null);
+    setCaptchaCode("");
+    setCaptchaOpen(true);
+  }
+
+  function changeCaptchaOpen(open: boolean): void {
+    if (sendingCode) {
+      return;
+    }
+
+    setCaptchaOpen(open);
+
+    if (!open) {
+      setCaptcha(null);
+      setCaptchaCode("");
+    }
+  }
+
+  async function confirmSendCode() {
+    if (!captcha || !/^[2-9]{4}$/.test(captchaCode)) {
       return;
     }
 
     setSendingCode(true);
 
     try {
-      await auth.sendSmsCode(phone, captcha.captchaId, captchaCode);
-      setCooldown(60);
+      const result = await auth.sendSmsCode(phone, captcha.captchaId, captchaCode);
+
+      setCooldown(result.cooldownSeconds);
+      setCaptchaOpen(false);
+      setCaptcha(null);
+      setCaptchaCode("");
     } catch (error) {
       showApiError(error);
-    } finally {
       setCaptchaCode("");
       await loadCaptcha();
+    } finally {
       setSendingCode(false);
     }
   }
@@ -303,51 +330,6 @@ export default function Login() {
                     />
                   </label>
                   <label className="block text-sm font-medium text-text-secondary">
-                    图形验证码
-                    <span data-testid="captcha-row" className="mt-2 flex h-12 items-center gap-2">
-                      <input
-                        data-testid="captcha-code-input"
-                        inputMode="numeric"
-                        maxLength={4}
-                        className={inputClassName.replace("w-full", "min-w-0 flex-1")}
-                        autoComplete="off"
-                        value={captchaCode}
-                        onChange={(event) => setCaptchaCode(event.target.value)}
-                      />
-                      {captcha ? (
-                        <button
-                          type="button"
-                          aria-label="图形验证码，点击换一张"
-                          className="h-12 w-36 shrink-0 cursor-pointer overflow-hidden rounded-lg border border-border bg-page-background px-1 transition duration-150 hover:border-brand-primary active:scale-[0.98] focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-brand-primary"
-                          onClick={() => void loadCaptcha()}
-                        >
-                          <img
-                            src={captcha.image}
-                            alt="图形验证码"
-                            className="h-full w-full object-contain"
-                            decoding="sync"
-                          />
-                        </button>
-                      ) : (
-                        <button
-                          type="button"
-                          aria-label={
-                            captchaLoadError ? "重新加载图形验证码" : "正在加载图形验证码"
-                          }
-                          className="h-12 w-36 cursor-pointer rounded-lg border border-slate-300 bg-slate-50 text-xs text-slate-500 transition duration-150 hover:border-brand-primary hover:text-brand-primary active:scale-[0.98] focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-brand-primary disabled:cursor-not-allowed disabled:opacity-70"
-                          disabled={captchaLoading}
-                          onClick={() => void loadCaptcha()}
-                        >
-                          {captchaLoadError ? (
-                            "加载失败，点击重试"
-                          ) : (
-                            <span className="block h-4 w-20 animate-[pc-skeleton-shimmer_220ms_linear_infinite] rounded bg-linear-to-r from-slate-200 via-slate-100 to-slate-200 bg-[length:200%_100%]" />
-                          )}
-                        </button>
-                      )}
-                    </span>
-                  </label>
-                  <label className="block text-sm font-medium text-text-secondary">
                     验证码
                     <span data-testid="sms-code-row" className="mt-2 flex h-12 items-center gap-2">
                       <input
@@ -362,7 +344,7 @@ export default function Login() {
                         type="button"
                         className="h-12 w-32 shrink-0 cursor-pointer whitespace-nowrap rounded-lg border border-brand-primary px-3 text-sm font-medium text-brand-primary transition duration-150 hover:bg-brand-primary hover:text-white active:scale-[0.98] focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-brand-primary disabled:cursor-not-allowed disabled:border-slate-300 disabled:text-slate-400 disabled:hover:bg-transparent"
                         disabled={sendingCode || cooldown > 0}
-                        onClick={handleSendCode}
+                        onClick={openCaptchaDialog}
                       >
                         {getSendCodeLabel(cooldown, sendingCode)}
                       </button>
@@ -390,6 +372,18 @@ export default function Login() {
           </form>
         </div>
       </section>
+      <CaptchaDialog
+        open={captchaOpen}
+        challenge={captcha}
+        code={captchaCode}
+        loading={captchaLoading}
+        loadError={captchaLoadError}
+        sending={sendingCode}
+        onOpenChange={changeCaptchaOpen}
+        onCodeChange={setCaptchaCode}
+        onRefresh={() => void loadCaptcha()}
+        onConfirm={() => void confirmSendCode()}
+      />
     </main>
   );
 }

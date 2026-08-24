@@ -1,6 +1,6 @@
 // @vitest-environment jsdom
 import "@testing-library/jest-dom/vitest";
-import { cleanup, render, screen, waitFor } from "@testing-library/react";
+import { act, cleanup, render, screen, waitFor } from "@testing-library/react";
 import userEvent from "@testing-library/user-event";
 import { type InitialEntry, MemoryRouter, Route, Routes } from "react-router-dom";
 import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
@@ -50,6 +50,7 @@ function renderLogin(initialEntries: InitialEntry[] = ["/login"]) {
 
 describe("Login", () => {
   afterEach(() => {
+    vi.useRealTimers();
     cleanup();
   });
 
@@ -57,7 +58,7 @@ describe("Login", () => {
     vi.clearAllMocks();
     auth.loginWithPassword.mockResolvedValue(undefined);
     auth.loginWithSms.mockResolvedValue(undefined);
-    auth.sendSmsCode.mockResolvedValue(undefined);
+    auth.sendSmsCode.mockResolvedValue({ message: "sent", cooldownSeconds: 60 });
     auth.getCaptcha.mockResolvedValue(firstCaptcha);
   });
 
@@ -74,20 +75,56 @@ describe("Login", () => {
     expect(await screen.findByRole("heading", { name: "仪表盘" })).toBeInTheDocument();
   });
 
-  it("sends a code and logs in by phone", async () => {
+  it("loads captcha only after the send dialog opens", async () => {
     const user = userEvent.setup();
 
     renderLogin();
 
     await user.click(screen.getByRole("tab", { name: "验证码登录" }));
-    await screen.findByRole("button", { name: "图形验证码，点击换一张" });
+
+    expect(auth.getCaptcha).not.toHaveBeenCalled();
+    expect(screen.queryByLabelText("图形验证码")).not.toBeInTheDocument();
+
     await user.type(screen.getByLabelText("手机号"), "13800138000");
-    await user.type(screen.getByLabelText("图形验证码"), "2345");
     await user.click(screen.getByRole("button", { name: "发送验证码" }));
+
+    expect(await screen.findByRole("dialog", { name: "发送短信验证码" })).toBeInTheDocument();
+    expect(auth.getCaptcha).toHaveBeenCalledOnce();
+    expect(await screen.findByRole("img", { name: "图形验证码" })).toHaveAttribute(
+      "src",
+      firstCaptcha.image,
+    );
+  });
+
+  it("starts from the server cooldown and counts down on the send button", async () => {
+    vi.useFakeTimers({ toFake: ["setInterval", "clearInterval"] });
+    const user = userEvent.setup({ advanceTimers: vi.advanceTimersByTime });
+
+    auth.sendSmsCode.mockResolvedValue({ message: "sent", cooldownSeconds: 60 });
+
+    renderLogin();
+
+    await user.click(screen.getByRole("tab", { name: "验证码登录" }));
+    await user.type(screen.getByLabelText("手机号"), "13800138000");
+    await user.click(screen.getByRole("button", { name: "发送验证码" }));
+    await user.type(await screen.findByLabelText("图形验证码"), "2345");
+    await user.click(screen.getByRole("button", { name: "确认发送" }));
 
     expect(auth.sendSmsCode).toHaveBeenCalledWith("13800138000", "0123456789abcdef", "2345");
     expect(screen.getByRole("button", { name: "60秒后重发" })).toBeDisabled();
-    await waitFor(() => expect(auth.getCaptcha).toHaveBeenCalledTimes(2));
+    act(() => vi.advanceTimersByTime(1_000));
+    expect(screen.getByRole("button", { name: "59秒后重发" })).toBeDisabled();
+    act(() => vi.advanceTimersByTime(59_000));
+    expect(screen.getByRole("button", { name: "发送验证码" })).toBeEnabled();
+  });
+
+  it("keeps captcha out of the final SMS login request", async () => {
+    const user = userEvent.setup();
+
+    renderLogin();
+
+    await user.click(screen.getByRole("tab", { name: "验证码登录" }));
+    await user.type(screen.getByLabelText("手机号"), "13800138000");
 
     await user.type(screen.getByLabelText("验证码"), "246810");
     await user.click(screen.getByRole("button", { name: "登录" }));
@@ -134,11 +171,10 @@ describe("Login", () => {
     expect(screen.getByTestId("sms-login-panel")).toHaveClass(
       "animate-[pc-page-enter_220ms_ease-out_both]",
     );
-    expect(screen.getByTestId("captcha-code-input")).toHaveClass("h-12");
     expect(screen.getByTestId("send-code-button")).toHaveClass("h-12");
-    expect(screen.getByTestId("captcha-row")).toHaveClass("h-12", "items-center");
     expect(screen.getByTestId("sms-code-row")).toHaveClass("h-12", "items-center");
-    expect(screen.getByTestId("captcha-code-input")).not.toHaveClass("mt-2");
+    expect(screen.queryByTestId("captcha-row")).not.toBeInTheDocument();
+    expect(screen.getByTestId("send-code-button")).toHaveClass("disabled:cursor-not-allowed");
     expect(screen.getByTestId("sms-code-row").querySelector("input")).not.toHaveClass("mt-2");
   });
 
@@ -155,48 +191,8 @@ describe("Login", () => {
     expect(screen.getByRole("alert")).toHaveTextContent("请输入正确的手机号");
   });
 
-  it("loads a graphical captcha and refreshes it when clicked", async () => {
-    auth.getCaptcha.mockResolvedValueOnce(firstCaptcha).mockResolvedValueOnce(secondCaptcha);
-    const user = userEvent.setup();
-
-    renderLogin();
-
-    await user.click(screen.getByRole("tab", { name: "验证码登录" }));
-    const refreshButton = await screen.findByRole("button", {
-      name: "图形验证码，点击换一张",
-    });
-
-    expect(screen.getByRole("img", { name: "图形验证码" })).toHaveAttribute(
-      "src",
-      firstCaptcha.image,
-    );
-
-    await user.click(refreshButton);
-
-    await waitFor(() =>
-      expect(screen.getByRole("img", { name: "图形验证码" })).toHaveAttribute(
-        "src",
-        secondCaptcha.image,
-      ),
-    );
-  });
-
-  it("does not send an SMS without a graphical captcha answer", async () => {
-    const user = userEvent.setup();
-
-    renderLogin();
-
-    await user.click(screen.getByRole("tab", { name: "验证码登录" }));
-    await screen.findByRole("button", { name: "图形验证码，点击换一张" });
-    await user.type(screen.getByLabelText("手机号"), "13800138000");
-    await user.click(screen.getByRole("button", { name: "发送验证码" }));
-
-    expect(auth.sendSmsCode).not.toHaveBeenCalled();
-    expect(screen.getByRole("alert")).toHaveTextContent("请输入 4 位图形验证码");
-  });
-
-  it("refreshes the graphical captcha after an SMS send failure", async () => {
-    const failure = { response: { data: { message: "图形验证码错误" } } };
+  it("keeps the dialog open and refreshes captcha after an SMS send failure", async () => {
+    const failure = { response: { data: { message: "图形验证码错误或已过期" } } };
 
     auth.getCaptcha.mockResolvedValueOnce(firstCaptcha).mockResolvedValueOnce(secondCaptcha);
     auth.sendSmsCode.mockRejectedValue(failure);
@@ -205,12 +201,13 @@ describe("Login", () => {
     renderLogin();
 
     await user.click(screen.getByRole("tab", { name: "验证码登录" }));
-    await screen.findByRole("button", { name: "图形验证码，点击换一张" });
     await user.type(screen.getByLabelText("手机号"), "13800138000");
-    await user.type(screen.getByLabelText("图形验证码"), "2345");
     await user.click(screen.getByRole("button", { name: "发送验证码" }));
+    await user.type(screen.getByLabelText("图形验证码"), "2345");
+    await user.click(screen.getByRole("button", { name: "确认发送" }));
 
     await waitFor(() => expect(globalErrors.showApiError).toHaveBeenCalledWith(failure));
+    expect(screen.getByRole("dialog", { name: "发送短信验证码" })).toBeInTheDocument();
     expect(screen.queryByText("验证码发送失败，请稍后重试")).not.toBeInTheDocument();
     expect(screen.getByLabelText("图形验证码")).toHaveValue("");
     await waitFor(() => expect(auth.getCaptcha).toHaveBeenCalledTimes(2));
@@ -225,6 +222,8 @@ describe("Login", () => {
     renderLogin();
 
     await user.click(screen.getByRole("tab", { name: "验证码登录" }));
+    await user.type(screen.getByLabelText("手机号"), "13800138000");
+    await user.click(screen.getByRole("button", { name: "发送验证码" }));
     const retryButton = await screen.findByRole("button", { name: "重新加载图形验证码" });
 
     await waitFor(() => expect(globalErrors.showApiError).toHaveBeenCalledWith(failure));
@@ -237,12 +236,13 @@ describe("Login", () => {
     expect(auth.getCaptcha).toHaveBeenCalledTimes(2);
   });
 
-  it("disables the send button while an SMS code is being sent", async () => {
-    let resolveSendCode: (() => void) | undefined;
+  it("disables confirmation while an SMS code is being sent", async () => {
+    let resolveSendCode:
+      ((response: { message: string; cooldownSeconds: number }) => void) | undefined;
 
     auth.sendSmsCode.mockImplementation(
       () =>
-        new Promise<void>((resolve) => {
+        new Promise<{ message: string; cooldownSeconds: number }>((resolve) => {
           resolveSendCode = resolve;
         }),
     );
@@ -251,14 +251,14 @@ describe("Login", () => {
     renderLogin();
 
     await user.click(screen.getByRole("tab", { name: "验证码登录" }));
-    await screen.findByRole("button", { name: "图形验证码，点击换一张" });
     await user.type(screen.getByLabelText("手机号"), "13800138000");
-    await user.type(screen.getByLabelText("图形验证码"), "2345");
     await user.click(screen.getByRole("button", { name: "发送验证码" }));
+    await user.type(screen.getByLabelText("图形验证码"), "2345");
+    await user.click(screen.getByRole("button", { name: "确认发送" }));
 
     expect(screen.getByRole("button", { name: "发送中…" })).toBeDisabled();
 
-    resolveSendCode?.();
+    resolveSendCode?.({ message: "sent", cooldownSeconds: 60 });
 
     expect(await screen.findByRole("button", { name: "60秒后重发" })).toBeDisabled();
   });
