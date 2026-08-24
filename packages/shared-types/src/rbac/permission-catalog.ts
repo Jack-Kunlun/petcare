@@ -371,11 +371,11 @@ export const RBAC_PERMISSION_CATALOG: readonly RbacPermissionDefinition[] = [
     icon: null,
     impliedApiCodes: [],
   },
-  /** 打开课堂文章管理页面。 */
+  /** 打开文章管理页面。 */
   {
     code: "content.article.view",
     type: "menu",
-    label: "课堂文章管理",
+    label: "文章管理",
     module: "content",
     path: "/content/articles",
     parentCode: "content.view",

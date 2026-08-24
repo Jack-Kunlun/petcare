@@ -3,8 +3,18 @@ import type {
   AdminClassroomArticleStatus,
 } from "@petcare/shared-types";
 import * as Dialog from "@radix-ui/react-dialog";
+import * as DropdownMenu from "@radix-ui/react-dropdown-menu";
 import { keepPreviousData, useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
-import { AlertCircle, BookOpen, ChevronLeft, ChevronRight, RotateCcw, Search } from "lucide-react";
+import {
+  AlertCircle,
+  BookOpen,
+  ChevronLeft,
+  ChevronRight,
+  MoreHorizontal,
+  Plus,
+  RotateCcw,
+  Search,
+} from "lucide-react";
 import { useState } from "react";
 import type { FormEvent } from "react";
 import { Link } from "react-router-dom";
@@ -182,25 +192,49 @@ function ArticleRow({ article, canWrite, canPublish, onStateChange }: ArticleRow
             </a>
           ) : null}
           {canPublish ? (
-            article.status === "published" ? (
-              <button
-                type="button"
-                aria-label={`下线 ${article.title}`}
-                onClick={() => onStateChange(article, "offline")}
-                className="cursor-pointer text-amber-700 transition-colors hover:text-amber-900 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-amber-700"
-              >
-                下线
-              </button>
-            ) : (
-              <button
-                type="button"
-                aria-label={`${article.status === "offline" ? "重新发布" : "发布"} ${article.title}`}
-                onClick={() => onStateChange(article, "publish")}
-                className="cursor-pointer text-emerald-700 transition-colors hover:text-emerald-900 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-emerald-700"
-              >
-                {article.status === "offline" ? "重新发布" : "发布"}
-              </button>
-            )
+            <DropdownMenu.Root>
+              <DropdownMenu.Trigger asChild>
+                <button
+                  type="button"
+                  aria-label={`更多 ${article.title}`}
+                  className="inline-flex h-8 cursor-pointer items-center gap-1 rounded-md px-2 text-slate-600 outline-none transition-colors hover:bg-slate-100 hover:text-slate-900 focus-visible:ring-2 focus-visible:ring-blue-700"
+                >
+                  更多
+                  <MoreHorizontal aria-hidden="true" className="h-4 w-4" />
+                </button>
+              </DropdownMenu.Trigger>
+              <DropdownMenu.Portal>
+                <DropdownMenu.Content
+                  align="end"
+                  sideOffset={6}
+                  className="z-30 min-w-32 rounded-lg border border-slate-200 bg-white p-1 shadow-lg outline-none"
+                >
+                  <DropdownMenu.Item
+                    aria-label={`${
+                      article.status === "published"
+                        ? "下线"
+                        : (article.status === "offline"
+                          ? "重新发布"
+                          : "发布")
+                    } ${article.title}`}
+                    onSelect={() =>
+                      onStateChange(article, article.status === "published" ? "offline" : "publish")
+                    }
+                    className={`flex min-h-10 cursor-pointer items-center rounded-md px-3 py-2 text-sm font-medium outline-none ${
+                      article.status === "published"
+                        ? "text-amber-700 hover:bg-amber-50 focus:bg-amber-50"
+                        : "text-emerald-700 hover:bg-emerald-50 focus:bg-emerald-50"
+                    }`}
+                  >
+                    {article.status === "published"
+                      ? "下线"
+                      : (article.status === "offline"
+                        ? "重新发布"
+                        : "发布")}
+                  </DropdownMenu.Item>
+                </DropdownMenu.Content>
+              </DropdownMenu.Portal>
+            </DropdownMenu.Root>
           ) : null}
         </div>
       </td>
@@ -248,6 +282,7 @@ export default function ContentArticles() {
 
   const total = query.data?.total ?? 0;
   const totalPages = Math.max(1, Math.ceil(total / PAGE_SIZE));
+  const filtersActive = Boolean(keyword || status);
   const dialogPending =
     dialog?.action === "publish" ? publishMutation.isPending : offlineMutation.isPending;
 
@@ -287,19 +322,20 @@ export default function ContentArticles() {
       <section className="flex flex-col justify-between gap-4 sm:flex-row sm:items-end">
         <div>
           <p className="mb-1 text-sm font-medium text-blue-700">内容管理</p>
-          <h1 className="text-2xl font-semibold tracking-tight text-slate-950">课堂文章管理</h1>
+          <h1 className="text-2xl font-semibold tracking-tight text-slate-950">文章管理</h1>
           <p className="mt-1 text-sm text-slate-500">维护宠物护理课堂文章的发布状态和基础信息。</p>
         </div>
-        <div className="flex flex-wrap items-center gap-2 self-start sm:self-auto">
-          <div className="flex items-center gap-2 rounded-lg border border-slate-200 bg-white px-3 py-2 shadow-sm">
-            <BookOpen aria-hidden="true" className="h-4 w-4 text-blue-700" />
-            <span className="text-sm font-medium text-slate-700">共 {total} 篇文章</span>
+        <div className="flex flex-wrap items-center gap-3 self-start sm:self-auto">
+          <div className="flex h-10 items-center gap-2 rounded-lg border border-slate-200 bg-white px-4">
+            <BookOpen aria-hidden="true" className="h-4 w-4 text-slate-500" />
+            <span className="text-sm font-medium text-slate-600">共 {total} 篇文章</span>
           </div>
           {canWrite ? (
             <Link
               to="/content/articles/new"
-              className="inline-flex min-h-11 cursor-pointer items-center rounded-lg bg-blue-700 px-4 py-2 text-sm font-semibold text-white transition-colors hover:bg-blue-800 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-blue-700 focus-visible:ring-offset-2"
+              className="inline-flex h-10 cursor-pointer items-center gap-2 rounded-lg bg-blue-700 px-4 text-sm font-semibold text-white transition-colors hover:bg-blue-800 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-blue-700 focus-visible:ring-offset-2"
             >
+              <Plus aria-hidden="true" className="h-4 w-4" />
               新建文章
             </Link>
           ) : null}
@@ -307,26 +343,26 @@ export default function ContentArticles() {
       </section>
 
       <section
-        aria-label="课堂文章筛选"
+        aria-label="文章筛选"
         className="rounded-xl border border-border bg-white p-4 shadow-sm transition-[box-shadow,border-color,background-color] duration-200 hover:border-brand-primary/30 hover:shadow-md"
       >
         <form
-          className="grid gap-3 md:grid-cols-[minmax(260px,1fr)_170px_auto]"
+          className="grid gap-3 md:grid-cols-[minmax(260px,1fr)_180px_80px_40px]"
           onSubmit={submitSearch}
         >
           <label className="relative block">
-            <span className="sr-only">搜索课堂文章</span>
+            <span className="sr-only">搜索文章</span>
             <Search
               aria-hidden="true"
               className="pointer-events-none absolute left-3 top-1/2 h-4 w-4 -translate-y-1/2 text-slate-400"
             />
             <input
               type="search"
-              aria-label="搜索课堂文章"
+              aria-label="搜索文章"
               value={keywordInput}
               onChange={(event) => setKeywordInput(event.target.value)}
               placeholder="搜索标题、摘要或正文"
-              className="h-11 w-full rounded-lg border border-border bg-white pl-9 pr-3 text-sm text-text-primary outline-none transition-colors placeholder:text-text-secondary hover:border-brand-primary/60 focus-visible:border-brand-primary focus-visible:ring-2 focus-visible:ring-brand-primary/20"
+              className="h-10 w-full rounded-lg border border-border bg-white pl-9 pr-3 text-sm text-text-primary outline-none transition-colors placeholder:text-text-secondary hover:border-brand-primary/60 focus-visible:border-brand-primary focus-visible:ring-2 focus-visible:ring-brand-primary/20"
             />
           </label>
           <label>
@@ -340,7 +376,7 @@ export default function ContentArticles() {
                 );
                 setPage(1);
               }}
-              className="h-11 w-full cursor-pointer rounded-lg border border-border bg-white px-3 text-sm text-text-secondary outline-none transition-colors hover:border-brand-primary/60 active:bg-page-background focus-visible:border-brand-primary focus-visible:ring-2 focus-visible:ring-brand-primary/20"
+              className="h-10 w-full cursor-pointer rounded-lg border border-border bg-white px-3 text-sm text-text-secondary outline-none transition-colors hover:border-brand-primary/60 active:bg-page-background focus-visible:border-brand-primary focus-visible:ring-2 focus-visible:ring-brand-primary/20"
             >
               <option value="">全部文章状态</option>
               <option value="draft">草稿</option>
@@ -348,31 +384,39 @@ export default function ContentArticles() {
               <option value="offline">已下线</option>
             </select>
           </label>
-          <div className="flex gap-2">
-            <button
-              type="submit"
-              className="inline-flex h-11 flex-1 cursor-pointer items-center justify-center rounded-lg bg-brand-primary px-4 text-sm font-semibold text-white transition-colors hover:bg-brand-primary-hover active:bg-brand-primary-hover focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-brand-primary focus-visible:ring-offset-2 disabled:cursor-not-allowed disabled:bg-slate-400"
-            >
-              查询
-            </button>
+          <button
+            type="submit"
+            className="inline-flex h-10 cursor-pointer items-center justify-center rounded-lg bg-brand-primary px-4 text-sm font-semibold text-white transition-colors hover:bg-brand-primary-hover active:bg-brand-primary-hover focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-brand-primary focus-visible:ring-offset-2 disabled:cursor-not-allowed disabled:bg-slate-400"
+          >
+            查询
+          </button>
+          <span className="group relative block">
             <button
               type="button"
-              aria-label="重置筛选"
+              aria-label="重置筛选条件"
+              aria-describedby="article-filter-reset-tooltip"
               onClick={resetFilters}
-              className="flex h-11 w-11 cursor-pointer items-center justify-center rounded-lg border border-border text-text-secondary transition-colors hover:border-brand-primary/60 hover:bg-page-background active:bg-slate-100 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-brand-primary disabled:cursor-not-allowed disabled:bg-slate-100 disabled:text-slate-400"
+              className="flex h-10 w-10 cursor-pointer items-center justify-center rounded-lg border border-border text-text-secondary transition-colors hover:border-brand-primary/60 hover:bg-page-background active:bg-slate-100 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-brand-primary disabled:cursor-not-allowed disabled:bg-slate-100 disabled:text-slate-400"
             >
               <RotateCcw aria-hidden="true" className="h-4 w-4" />
             </button>
-          </div>
+            <span
+              id="article-filter-reset-tooltip"
+              role="tooltip"
+              className="pointer-events-none absolute right-0 top-full z-20 mt-2 w-max rounded-md bg-slate-900 px-2 py-1 text-xs text-white opacity-0 transition-opacity group-hover:opacity-100 group-focus-within:opacity-100"
+            >
+              重置筛选条件
+            </span>
+          </span>
         </form>
       </section>
 
       <section
-        aria-label="课堂文章列表"
+        aria-label="文章列表"
         className="overflow-hidden rounded-xl border border-border bg-white shadow-sm transition-[box-shadow,border-color,background-color] duration-200 hover:border-brand-primary/30 hover:shadow-md"
       >
         {query.isPending && (
-          <div aria-label="正在加载课堂文章" className="space-y-3 p-5">
+          <div aria-label="正在加载文章" className="space-y-3 p-5">
             {Array.from({ length: 5 }, (_, index) => (
               <div
                 key={index}
@@ -387,7 +431,7 @@ export default function ContentArticles() {
             className="flex min-h-64 flex-col items-center justify-center px-6 py-12 text-center"
           >
             <AlertCircle aria-hidden="true" className="h-6 w-6 text-red-700" />
-            <h2 className="mt-4 font-semibold text-slate-900">课堂文章加载失败</h2>
+            <h2 className="mt-4 font-semibold text-slate-900">文章加载失败</h2>
             <p className="mt-1 text-sm text-slate-500">请检查服务端连接后重试。</p>
             <button
               type="button"
@@ -399,10 +443,33 @@ export default function ContentArticles() {
           </div>
         )}
         {!query.isPending && !query.isError && query.data?.list.length === 0 && (
-          <div className="flex min-h-64 flex-col items-center justify-center px-6 py-12 text-center">
+          <div className="flex min-h-80 flex-col items-center justify-center px-6 py-12 text-center">
             <BookOpen aria-hidden="true" className="h-8 w-8 text-slate-300" />
-            <h2 className="mt-4 font-semibold text-slate-900">暂无课堂文章</h2>
-            <p className="mt-1 text-sm text-slate-500">调整筛选条件后可以继续查看。</p>
+            <h2 className="mt-4 font-semibold text-slate-900">
+              {filtersActive ? "没有符合条件的文章" : "暂无文章"}
+            </h2>
+            <p className="mt-1 text-sm text-slate-500">
+              {filtersActive
+                ? "尝试调整搜索关键词或筛选条件。"
+                : "还没有创建文章，可以创建第一篇文章。"}
+            </p>
+            {filtersActive ? (
+              <button
+                type="button"
+                onClick={resetFilters}
+                className="mt-5 h-10 cursor-pointer rounded-lg border border-border px-4 font-semibold text-slate-700 outline-none transition-colors hover:bg-slate-50 focus-visible:ring-2 focus-visible:ring-blue-700"
+              >
+                重置筛选
+              </button>
+            ) : (canWrite ? (
+              <Link
+                to="/content/articles/new"
+                className="mt-5 inline-flex h-10 cursor-pointer items-center gap-2 rounded-lg bg-blue-700 px-4 font-semibold text-white outline-none transition-colors hover:bg-blue-800 focus-visible:ring-2 focus-visible:ring-blue-700 focus-visible:ring-offset-2"
+              >
+                <Plus aria-hidden="true" className="h-4 w-4" />
+                创建第一篇文章
+              </Link>
+            ) : null)}
           </div>
         )}
         {!query.isPending && !query.isError && query.data?.list.length !== 0 && (

@@ -76,6 +76,7 @@ function renderEdit(path: string): QueryClient {
     <QueryClientProvider client={queryClient}>
       <MemoryRouter initialEntries={[path]}>
         <Routes>
+          <Route path="/content/articles" element={<p>文章列表占位</p>} />
           <Route path="/content/articles/new" element={<ContentArticleEdit />} />
           <Route path="/content/articles/:id/edit" element={<ContentArticleEdit />} />
         </Routes>
@@ -111,7 +112,8 @@ describe("ContentArticleEdit", () => {
       coverAssetId: undefined,
     });
     expect(apiMocks.publishAdminClassroomArticle).not.toHaveBeenCalled();
-    expect(await screen.findByRole("heading", { name: "编辑课堂文章" })).toBeInTheDocument();
+    expect(await screen.findByRole("heading", { name: "编辑文章" })).toBeInTheDocument();
+    expect(screen.getByText("草稿已保存")).toBeInTheDocument();
   });
 
   it("renders inline required-field errors without sending an invalid draft", async () => {
@@ -223,7 +225,8 @@ describe("ContentArticleEdit", () => {
     const user = userEvent.setup();
 
     renderEdit("/content/articles/new");
-    expect(screen.getByLabelText("上传封面")).toHaveClass("cursor-pointer");
+    expect(screen.getByLabelText("上传封面")).toHaveClass("sr-only");
+    expect(screen.getByRole("button", { name: "上传文章封面" })).toHaveClass("cursor-pointer");
     expect(screen.getByRole("button", { name: "保存草稿" })).toHaveClass("cursor-pointer");
     await user.upload(
       screen.getByLabelText("上传封面"),
@@ -287,6 +290,67 @@ describe("ContentArticleEdit", () => {
 
     resolveSave(articleDetail);
 
-    expect(await screen.findByRole("heading", { name: "编辑课堂文章" })).toBeInTheDocument();
+    expect(await screen.findByRole("heading", { name: "编辑文章" })).toBeInTheDocument();
+  });
+
+  it("uses a wide card layout with a sticky save action and field guidance", () => {
+    renderEdit("/content/articles/new");
+
+    expect(screen.getByRole("heading", { name: "新建文章" })).toBeInTheDocument();
+    expect(screen.getByRole("region", { name: "文章操作" })).toHaveClass("sticky");
+    expect(screen.getByRole("button", { name: "保存草稿" })).toHaveAttribute(
+      "form",
+      "article-form",
+    );
+    expect(screen.getByLabelText("标题")).toHaveAttribute("placeholder", "请输入文章标题");
+    expect(screen.getByText("0 / 120")).toBeInTheDocument();
+    expect(screen.getByLabelText("摘要")).toHaveAttribute(
+      "placeholder",
+      "请输入文章摘要，用于文章列表和分享场景展示",
+    );
+    expect(screen.getByText("0 / 500")).toBeInTheDocument();
+    expect(screen.getByRole("heading", { name: "基础信息" })).toBeInTheDocument();
+    expect(screen.getByRole("heading", { name: "文章正文" })).toBeInTheDocument();
+    expect(screen.getByLabelText("上传封面")).toHaveClass("sr-only");
+  });
+
+  it("uploads a cover dropped onto the custom upload area", async () => {
+    renderEdit("/content/articles/new");
+    const file = new File(["png"], "dropped-cover.png", { type: "image/png" });
+
+    fireEvent.drop(screen.getByRole("button", { name: "上传文章封面" }), {
+      dataTransfer: { files: [file] },
+    });
+
+    await waitFor(() =>
+      expect(apiMocks.uploadAdminClassroomArticleMedia).toHaveBeenCalledWith(file),
+    );
+    expect(await screen.findByRole("img", { name: "文章封面预览" })).toHaveAttribute(
+      "src",
+      publicAsset.url,
+    );
+  });
+
+  it("warns before abandoning dirty content and before closing the browser", async () => {
+    const user = userEvent.setup();
+    const confirmLeave = vi.spyOn(window, "confirm").mockReturnValue(false);
+
+    renderEdit("/content/articles/new");
+    await user.type(screen.getByLabelText("标题"), "未保存标题");
+
+    expect(screen.getByText("有未保存修改")).toBeInTheDocument();
+    const beforeUnload = new Event("beforeunload", { cancelable: true });
+
+    window.dispatchEvent(beforeUnload);
+    expect(beforeUnload.defaultPrevented).toBe(true);
+
+    await user.click(screen.getByRole("link", { name: "取消" }));
+    expect(confirmLeave).toHaveBeenCalledWith("当前内容尚未保存，确定离开吗？");
+    expect(screen.getByRole("heading", { name: "新建文章" })).toBeInTheDocument();
+
+    confirmLeave.mockReturnValue(true);
+    await user.click(screen.getByRole("link", { name: "取消" }));
+    expect(await screen.findByText("文章列表占位")).toBeInTheDocument();
+    confirmLeave.mockRestore();
   });
 });

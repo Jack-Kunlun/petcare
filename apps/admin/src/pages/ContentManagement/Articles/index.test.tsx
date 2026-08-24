@@ -96,9 +96,9 @@ describe("ContentArticles", () => {
     );
     expect(screen.getAllByRole("link", { name: "编辑" })).toHaveLength(2);
     expect(screen.getAllByRole("columnheader", { name: "操作" })).toHaveLength(1);
-    expect(screen.getByRole("button", { name: "发布 幼犬喂养课堂" })).toBeInTheDocument();
-    expect(screen.getByRole("button", { name: "下线 已发布文章" })).toBeInTheDocument();
-    expect(screen.getByRole("button", { name: "重新发布 已下线文章" })).toBeInTheDocument();
+    expect(screen.getByRole("button", { name: "更多 幼犬喂养课堂" })).toBeInTheDocument();
+    expect(screen.getByRole("button", { name: "更多 已发布文章" })).toBeInTheDocument();
+    expect(screen.getByRole("button", { name: "更多 已下线文章" })).toBeInTheDocument();
     expect(screen.getByRole("link", { name: "查看官网 已发布文章" })).toHaveAttribute(
       "href",
       publishedArticle.publicUrl,
@@ -119,7 +119,8 @@ describe("ContentArticles", () => {
     renderPage();
 
     await screen.findByText(draftArticle.title);
-    await user.click(screen.getByRole("button", { name: "发布 幼犬喂养课堂" }));
+    await user.click(screen.getByRole("button", { name: "更多 幼犬喂养课堂" }));
+    await user.click(screen.getByRole("menuitem", { name: "发布 幼犬喂养课堂" }));
 
     expect(screen.getByRole("dialog", { name: "确认发布文章" })).toBeInTheDocument();
     expect(publishAdminClassroomArticle).not.toHaveBeenCalled();
@@ -141,7 +142,8 @@ describe("ContentArticles", () => {
     renderPage();
 
     await screen.findByText(offlineArticle.title);
-    await user.click(screen.getByRole("button", { name: "重新发布 已下线文章" }));
+    await user.click(screen.getByRole("button", { name: "更多 已下线文章" }));
+    await user.click(screen.getByRole("menuitem", { name: "重新发布 已下线文章" }));
     await user.click(screen.getByRole("button", { name: "确认发布" }));
     await waitFor(() =>
       expect(publishAdminClassroomArticle).toHaveBeenCalledWith(offlineArticle.id, {
@@ -149,7 +151,8 @@ describe("ContentArticles", () => {
       }),
     );
 
-    await user.click(screen.getByRole("button", { name: "下线 已发布文章" }));
+    await user.click(screen.getByRole("button", { name: "更多 已发布文章" }));
+    await user.click(screen.getByRole("menuitem", { name: "下线 已发布文章" }));
     expect(screen.getByRole("dialog", { name: "确认下线文章" })).toBeInTheDocument();
     await user.click(screen.getByRole("button", { name: "确认下线" }));
     await waitFor(() =>
@@ -166,7 +169,7 @@ describe("ContentArticles", () => {
     await screen.findByText(draftArticle.title);
     expect(screen.queryByRole("link", { name: "新建文章" })).not.toBeInTheDocument();
     expect(screen.queryByRole("link", { name: "编辑" })).not.toBeInTheDocument();
-    expect(screen.queryByRole("button", { name: /发布|下线/u })).not.toBeInTheDocument();
+    expect(screen.queryByRole("button", { name: /更多/u })).not.toBeInTheDocument();
     expect(screen.getByRole("link", { name: "查看官网 已发布文章" })).toBeInTheDocument();
   });
 
@@ -177,7 +180,7 @@ describe("ContentArticles", () => {
     await screen.findByText(draftArticle.title);
     expect(screen.getByRole("link", { name: "新建文章" })).toBeInTheDocument();
     expect(screen.getAllByRole("link", { name: "编辑" })).toHaveLength(2);
-    expect(screen.queryByRole("button", { name: /发布|下线/u })).not.toBeInTheDocument();
+    expect(screen.queryByRole("button", { name: /更多/u })).not.toBeInTheDocument();
   });
 
   it("keeps a pending state dialog open and disables its native controls", async () => {
@@ -187,7 +190,8 @@ describe("ContentArticles", () => {
     renderPage();
 
     await screen.findByText(draftArticle.title);
-    await user.click(screen.getByRole("button", { name: "发布 幼犬喂养课堂" }));
+    await user.click(screen.getByRole("button", { name: "更多 幼犬喂养课堂" }));
+    await user.click(screen.getByRole("menuitem", { name: "发布 幼犬喂养课堂" }));
     await user.click(screen.getByRole("button", { name: "确认发布" }));
 
     await waitFor(() => expect(publishAdminClassroomArticle).toHaveBeenCalledTimes(1));
@@ -204,11 +208,66 @@ describe("ContentArticles", () => {
     renderPage();
 
     await screen.findByText(draftArticle.title);
-    await user.click(screen.getByRole("button", { name: "发布 幼犬喂养课堂" }));
+    await user.click(screen.getByRole("button", { name: "更多 幼犬喂养课堂" }));
+    await user.click(screen.getByRole("menuitem", { name: "发布 幼犬喂养课堂" }));
     await user.click(screen.getByRole("button", { name: "确认发布" }));
 
     await waitFor(() => expect(publishAdminClassroomArticle).toHaveBeenCalledTimes(1));
     await waitFor(() => expect(screen.getByRole("button", { name: "确认发布" })).toBeEnabled());
     expect(screen.getByRole("dialog", { name: "确认发布文章" })).toBeInTheDocument();
+  });
+
+  it("uses the article management name and aligns all primary controls to 40px", async () => {
+    renderPage();
+
+    await screen.findByText(draftArticle.title);
+
+    expect(screen.getByRole("heading", { name: "文章管理" })).toBeInTheDocument();
+    expect(screen.getByText("共 3 篇文章").parentElement).toHaveClass("h-10");
+    expect(screen.getByRole("link", { name: "新建文章" })).toHaveClass("h-10");
+    expect(screen.getByRole("searchbox", { name: "搜索文章" })).toHaveClass("h-10");
+    expect(screen.getByRole("combobox", { name: "文章状态" })).toHaveClass("h-10");
+    expect(screen.getByRole("button", { name: "查询" })).toHaveClass("h-10");
+    expect(screen.getByRole("button", { name: "重置筛选条件" })).toHaveClass("h-10", "w-10");
+  });
+
+  it("offers the first article action when no articles exist", async () => {
+    vi.mocked(fetchAdminClassroomArticles).mockResolvedValue({
+      ...articleResponse,
+      list: [],
+      total: 0,
+    });
+
+    renderPage();
+
+    expect(await screen.findByRole("heading", { name: "暂无文章" })).toBeInTheDocument();
+    expect(screen.getByText("还没有创建文章，可以创建第一篇文章。")).toBeInTheDocument();
+    expect(screen.getByRole("link", { name: "创建第一篇文章" })).toHaveAttribute(
+      "href",
+      "/content/articles/new",
+    );
+  });
+
+  it("offers to reset applied filters when no article matches", async () => {
+    vi.mocked(fetchAdminClassroomArticles).mockResolvedValue({
+      ...articleResponse,
+      list: [],
+      total: 0,
+    });
+    const user = userEvent.setup();
+
+    renderPage();
+    await user.type(screen.getByRole("searchbox", { name: "搜索文章" }), "犬粮");
+    await user.click(screen.getByRole("button", { name: "查询" }));
+
+    expect(await screen.findByRole("heading", { name: "没有符合条件的文章" })).toBeInTheDocument();
+    expect(screen.getByText("尝试调整搜索关键词或筛选条件。")).toBeInTheDocument();
+
+    await user.click(screen.getByRole("button", { name: "重置筛选" }));
+    await waitFor(() =>
+      expect(fetchAdminClassroomArticles).toHaveBeenLastCalledWith(
+        expect.objectContaining({ keyword: undefined, status: undefined }),
+      ),
+    );
   });
 });

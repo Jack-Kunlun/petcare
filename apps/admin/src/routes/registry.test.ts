@@ -154,7 +154,7 @@ describe("ADMIN_ROUTE_REGISTRY", () => {
         path: "/content/articles",
         menuPermission: "content.article.view",
         parentPath: "/content",
-        menuLabel: "课堂文章管理",
+        menuLabel: "文章管理",
       },
     ]);
 

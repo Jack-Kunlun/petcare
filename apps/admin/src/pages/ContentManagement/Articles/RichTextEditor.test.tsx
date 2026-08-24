@@ -187,4 +187,42 @@ describe("RichTextEditor", () => {
     );
     expect(onChange).not.toHaveBeenCalled();
   });
+
+  it("renders a grouped icon toolbar, accessible tooltips, and a full-height editor", () => {
+    render(<RichTextEditor value="" onChange={vi.fn()} onUpload={vi.fn()} />);
+
+    const textStyle = screen.getByRole("combobox", { name: "文本样式" });
+    const bold = screen.getByRole("button", { name: "粗体" });
+    const image = screen.getByRole("button", { name: "插入图片" });
+    const editor = screen.getByRole("textbox", { name: "文章正文" });
+
+    expect(textStyle).toHaveValue("paragraph");
+    expect(screen.getByRole("option", { name: "正文" })).toBeInTheDocument();
+    expect(screen.getByRole("option", { name: "二级标题" })).toBeInTheDocument();
+    expect(screen.getByRole("option", { name: "三级标题" })).toBeInTheDocument();
+    expect(bold).toHaveClass("h-8", "w-8");
+    expect(bold).not.toHaveTextContent("粗体");
+    expect(image).toHaveClass("h-8", "w-8");
+    expect(document.getElementById(bold.getAttribute("aria-describedby")!)).toHaveTextContent(
+      "粗体",
+    );
+    expect(editor.closest("[data-editor-body]")).toHaveClass("min-h-120");
+    expect(screen.getByText("开始撰写文章正文……")).toBeInTheDocument();
+  });
+
+  it("applies the selected heading style without changing the stored HTML format", async () => {
+    const onChange = vi.fn();
+    const user = userEvent.setup();
+
+    render(<RichTextEditor value="" onChange={onChange} onUpload={vi.fn()} />);
+
+    await user.type(screen.getByRole("textbox", { name: "文章正文" }), "护理重点");
+    await user.keyboard("{Control>}a{/Control}");
+    await user.selectOptions(screen.getByRole("combobox", { name: "文本样式" }), "heading2");
+
+    await waitFor(() =>
+      expect(onChange).toHaveBeenLastCalledWith(expect.stringContaining("<h2>护理重点</h2>")),
+    );
+    expect(screen.queryByText("开始撰写文章正文……")).not.toBeInTheDocument();
+  });
 });

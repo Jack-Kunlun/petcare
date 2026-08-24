@@ -54,6 +54,7 @@ describe("RBAC permission catalog", () => {
     });
     expect(byCode.get("content.article.view")).toMatchObject({
       type: RBAC_PERMISSION_TYPES.MENU,
+      label: "文章管理",
       path: "/content/articles",
       parentCode: "content.view",
       impliedApiCodes: ["content.article.read"],
