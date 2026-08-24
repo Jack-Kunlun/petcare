@@ -122,6 +122,73 @@ describe("Admin Axios response boundary", () => {
     unsubscribe();
   });
 
+  it("emits one session event for concurrent requests sharing a failed refresh", async () => {
+    const authModule = await import("./auth");
+    const onRejected = axiosMocks.responseUse.mock.calls[0]?.[1] as (
+      error: Record<string, unknown>,
+    ) => Promise<unknown>;
+    const listener = vi.fn();
+    const unsubscribe = authModule.onSessionExpired(listener);
+    const refreshError = {
+      response: {
+        status: 401,
+        data: { code: "AUTH_SESSION_EXPIRED", message: "登录状态已失效" },
+      },
+    };
+    const createError = () => ({
+      config: {
+        headers: { has: vi.fn(() => true), set: vi.fn() },
+        url: "/admin/account/profile",
+      },
+      response: {
+        status: 401,
+        data: { code: "AUTH_SESSION_EXPIRED", message: "登录状态已失效" },
+      },
+    });
+
+    axiosMocks.client.post.mockRejectedValue(refreshError);
+    const firstRequest = onRejected(createError());
+    const secondRequest = onRejected(createError());
+
+    await expect(firstRequest).rejects.toBe(refreshError);
+    await expect(secondRequest).rejects.toBe(refreshError);
+    expect(axiosMocks.client.post).toHaveBeenCalledTimes(1);
+    expect(listener).toHaveBeenCalledTimes(1);
+    expect(listener).toHaveBeenCalledWith("登录状态已失效");
+    unsubscribe();
+  });
+
+  it("does not refresh or emit when explicit logout reports an expired session", async () => {
+    const authModule = await import("./auth");
+    const onRejected = axiosMocks.responseUse.mock.calls[0]?.[1] as (error: {
+      config: {
+        headers: { has: ReturnType<typeof vi.fn>; set: ReturnType<typeof vi.fn> };
+        url: string;
+      };
+      response: { data: { code: string; message: string }; status: number };
+    }) => Promise<unknown>;
+    const listener = vi.fn();
+    const unsubscribe = authModule.onSessionExpired(listener);
+    const error = {
+      config: {
+        headers: { has: vi.fn(() => true), set: vi.fn() },
+        url: "/auth/logout",
+        _authRetried: true,
+      },
+      response: {
+        status: 401,
+        data: { code: "AUTH_SESSION_EXPIRED", message: "登录状态已失效" },
+      },
+    };
+
+    axiosMocks.client.post.mockRejectedValue(error);
+
+    await expect(onRejected(error)).rejects.toBe(error);
+    expect(axiosMocks.client.post).not.toHaveBeenCalledWith("/auth/refresh");
+    expect(listener).not.toHaveBeenCalled();
+    unsubscribe();
+  });
+
   it("does not refresh requests sent without an access token", async () => {
     await import("./auth");
     const onRejected = axiosMocks.responseUse.mock.calls[0]?.[1] as (error: {

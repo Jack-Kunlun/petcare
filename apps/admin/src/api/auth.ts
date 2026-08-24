@@ -69,15 +69,11 @@ apiClient.interceptors.response.use(
   async (error: AxiosError<ApiErrorResponse>) => {
     const request = error.config as RetriableRequest | undefined;
     const isAuthenticationRequest =
-      request?.url?.includes("/auth/refresh") || request?.url?.includes("/auth/login/");
+      request?.url?.includes("/auth/refresh") ||
+      request?.url?.includes("/auth/login/") ||
+      request?.url?.includes("/auth/logout");
     const isExpiredSession =
       error.response?.status === 401 && error.response.data?.code === "AUTH_SESSION_EXPIRED";
-
-    if (isExpiredSession && request?._authRetried) {
-      emitSessionExpired(error);
-
-      return Promise.reject(error);
-    }
 
     if (
       !isExpiredSession ||
@@ -88,6 +84,12 @@ apiClient.interceptors.response.use(
       return Promise.reject(error);
     }
 
+    if (request._authRetried) {
+      emitSessionExpired(error);
+
+      return Promise.reject(error);
+    }
+
     request._authRetried = true;
     refreshPromise ??= apiClient
       .post<AdminRefreshResponse>("/auth/refresh")
@@ -95,6 +97,11 @@ apiClient.interceptors.response.use(
         setAccessToken(response.data.accessToken);
 
         return response.data.accessToken;
+      })
+      .catch((refreshError) => {
+        emitSessionExpired(refreshError as AxiosError<ApiErrorResponse>);
+
+        return Promise.reject(refreshError);
       })
       .finally(() => {
         refreshPromise = null;
@@ -107,8 +114,6 @@ apiClient.interceptors.response.use(
 
       return apiClient(request);
     } catch (refreshError) {
-      emitSessionExpired(refreshError as AxiosError<ApiErrorResponse>);
-
       return Promise.reject(refreshError);
     }
   },
