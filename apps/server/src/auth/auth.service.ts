@@ -238,7 +238,6 @@ export class AuthService {
     const tokens = await this.tokenService.issue({
       userId: user.id,
       username: user.username,
-      phone: user.phone,
       roles: safeUser.roles,
       sessionVersion: user.sessionVersion,
     });

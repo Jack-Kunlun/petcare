@@ -127,7 +127,7 @@ describe("Swagger response documentation", () => {
     expect(document.paths["/users/{id}"]?.get?.responses?.["404"]).toBeDefined();
     expect(document.paths["/orders/{id}"]?.get?.responses?.["404"]).toBeDefined();
     expect(document.paths["/auth/login/password"]?.post?.responses?.["401"]).toBeDefined();
-    expect(document.paths["/auth/wechat/bind-phone"]?.post?.responses?.["409"]).toBeDefined();
+    expect(document.paths["/auth/wechat/bind-phone"]).toBeUndefined();
     expect(document.paths["/auth/wechat/login"]?.post?.responses?.["503"]).toBeDefined();
     expect(document.paths["/auth/wechat/logout"]?.post?.responses?.["204"]).toBeDefined();
   });

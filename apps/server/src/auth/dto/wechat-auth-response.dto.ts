@@ -37,36 +37,3 @@ export class WechatSessionResponseDto {
   @ApiProperty({ type: MiniappUserResponseDto })
   user: MiniappUserResponseDto;
 }
-
-export class WechatAuthenticatedResponseDto extends WechatSessionResponseDto {
-  @ApiProperty({ enum: ["authenticated"], example: "authenticated" })
-  status: "authenticated";
-}
-
-export class WechatPhoneRequiredResponseDto {
-  @ApiProperty({ enum: ["phone_required"], example: "phone_required" })
-  status: "phone_required";
-
-  @ApiProperty()
-  bindToken: string;
-}
-
-export class WechatLoginResponseDto {
-  @ApiProperty({
-    enum: ["authenticated", "phone_required"],
-    example: "authenticated",
-  })
-  status: "authenticated" | "phone_required";
-
-  @ApiProperty({ required: false })
-  bindToken?: string;
-
-  @ApiProperty({ required: false })
-  accessToken?: string;
-
-  @ApiProperty({ required: false })
-  refreshToken?: string;
-
-  @ApiProperty({ type: MiniappUserResponseDto, required: false })
-  user?: MiniappUserResponseDto;
-}

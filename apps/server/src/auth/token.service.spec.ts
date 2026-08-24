@@ -36,7 +36,6 @@ describe("TokenService", () => {
   const principal = {
     userId: "user-1",
     username: "admin",
-    phone: "13800138000",
     roles: ["super_admin"],
     sessionVersion: 2,
   };
@@ -76,6 +75,7 @@ describe("TokenService", () => {
       type: "access",
       roles: ["super_admin"],
     });
+    expect(accessPayload).not.toHaveProperty("phone");
     expect(refreshPayload).toMatchObject({
       sub: "user-1",
       sid: accessPayload.sid,

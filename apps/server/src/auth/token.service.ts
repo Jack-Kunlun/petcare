@@ -27,7 +27,6 @@ export class TokenService {
       sid: sessionId,
       sessionVersion: principal.sessionVersion,
       username: principal.username,
-      phone: principal.phone,
       roles: principal.roles,
       type: "access",
     };

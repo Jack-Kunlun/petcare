@@ -22,12 +22,12 @@ describe("JwtStrategy", () => {
       sid: "session-1",
       sessionVersion: 3,
       username: null,
-      phone: "13800138000",
       roles: [],
       type: "access" as const,
     };
 
     await expect(strategy.validate(payload)).resolves.toEqual(payload);
+    expect(payload).not.toHaveProperty("phone");
     expect(sessionValidation.assertActiveVersion).toHaveBeenCalledWith("user-1", 3);
   });
 
@@ -37,7 +37,6 @@ describe("JwtStrategy", () => {
         sub: "user-1",
         sessionVersion: 3,
         username: null,
-        phone: "13800138000",
         roles: [],
         type: "access",
       } as unknown as AccessTokenPayload),
@@ -56,7 +55,6 @@ describe("JwtStrategy", () => {
         sid: "session-1",
         sessionVersion: 2,
         username: null,
-        phone: "13800138000",
         roles: [],
         type: "access",
       }),

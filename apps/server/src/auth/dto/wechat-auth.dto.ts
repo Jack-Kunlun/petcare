@@ -9,20 +9,6 @@ export class WechatLoginDto {
   loginCode: string;
 }
 
-export class WechatBindPhoneDto {
-  @ApiProperty()
-  @IsString()
-  @IsNotEmpty()
-  @MaxLength(128)
-  bindToken: string;
-
-  @ApiProperty()
-  @IsString()
-  @IsNotEmpty()
-  @MaxLength(256)
-  phoneCode: string;
-}
-
 export class WechatRefreshDto {
   @ApiProperty()
   @IsString()

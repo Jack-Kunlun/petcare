@@ -12,10 +12,8 @@ import { AppLogger } from "../src/logging/app-logger.service";
 describe("WechatAuthController (e2e)", () => {
   const wechatAuthService = {
     login: jest.fn(),
-    bindPhone: jest.fn(),
     refresh: jest.fn(),
     logout: jest.fn(),
-    getCurrentUser: jest.fn(),
   };
   let app: INestApplication;
 
@@ -45,8 +43,18 @@ describe("WechatAuthController (e2e)", () => {
   beforeEach(() => {
     jest.clearAllMocks();
     wechatAuthService.login.mockResolvedValue({
-      status: "phone_required",
-      bindToken: "bind-token",
+      accessToken: "access-token",
+      refreshToken: "refresh-token",
+      user: {
+        id: "user-1",
+        nickname: "宠友123456",
+        avatar: null,
+        phoneMasked: null,
+        profileComplete: false,
+        userType: "pet_owner",
+        region: null,
+        bio: null,
+      },
     });
     wechatAuthService.logout.mockResolvedValue(undefined);
   });
@@ -64,7 +72,20 @@ describe("WechatAuthController (e2e)", () => {
     expect(response.body).toEqual({
       code: "SUCCESS",
       message: "操作成功",
-      data: { status: "phone_required", bindToken: "bind-token" },
+      data: {
+        accessToken: "access-token",
+        refreshToken: "refresh-token",
+        user: {
+          id: "user-1",
+          nickname: "宠友123456",
+          avatar: null,
+          phoneMasked: null,
+          profileComplete: false,
+          userType: "pet_owner",
+          region: null,
+          bio: null,
+        },
+      },
       meta: {
         requestId: expect.any(String),
         timestamp: expect.any(String),

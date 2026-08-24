@@ -1,8 +1,5 @@
 import type { MiniappUserProfile } from "./miniapp-account";
 
-/** @deprecated Use MiniappUserProfile; retained while Server migrates its existing type import. */
-export type MiniappUser = MiniappUserProfile;
-
 /** Authenticated Miniapp session. */
 export interface WechatSession {
   /** Short-lived token for authenticated API requests. */
@@ -18,9 +15,6 @@ export interface WechatLoginRequest {
   /** One-time code returned by the WeChat login API. */
   loginCode: string;
 }
-
-/** Authenticated session returned after a WeChat login. */
-export type WechatLoginResult = WechatSession;
 
 /** Supplies the refresh token needed to restore a Miniapp session. */
 export interface WechatRefreshRequest {
