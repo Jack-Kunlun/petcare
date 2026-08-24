@@ -150,6 +150,17 @@ describe("AuthService", () => {
     expect(passwordAttempts.clear).toHaveBeenCalledTimes(1);
   });
 
+  it("does not clear the attempt window when session issuance fails", async () => {
+    const issueError = new Error("session issue failed");
+
+    tokenService.issue.mockRejectedValue(issueError);
+
+    await expect(
+      service.loginWithPassword("admin", "Correct-Horse-Battery-Staple!42"),
+    ).rejects.toBe(issueError);
+    expect(passwordAttempts.clear).not.toHaveBeenCalled();
+  });
+
   it("allows an active ordinary RBAC administrator to log in", async () => {
     prisma.user.findFirst.mockResolvedValue(activeDisputeResolver);
 

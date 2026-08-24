@@ -4,6 +4,7 @@ import { ApiException } from "../common/http/api-exception";
 import { ConfigService } from "../config/config.service";
 import { RedisService } from "../config/redis.service";
 
+/** 限制单个规范化账号标识的密码登录尝试次数。 */
 @Injectable()
 export class PasswordLoginAttemptService {
   constructor(
@@ -11,6 +12,7 @@ export class PasswordLoginAttemptService {
     private readonly config: ConfigService,
   ) {}
 
+  /** 消耗一次密码登录额度，超过固定窗口上限时拒绝请求。 */
   async assertAllowed(identifier: string): Promise<void> {
     const allowed = await this.redis.consumeFixedWindow(
       this.key(identifier),
@@ -27,6 +29,7 @@ export class PasswordLoginAttemptService {
     }
   }
 
+  /** 在成功签发会话后清除该账号标识的登录尝试窗口。 */
   clear(identifier: string): Promise<void> {
     return this.redis.del(this.key(identifier));
   }

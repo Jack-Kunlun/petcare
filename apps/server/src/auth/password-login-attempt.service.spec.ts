@@ -1,3 +1,4 @@
+import { createHmac } from "node:crypto";
 import { ConfigService } from "../config/config.service";
 import { RedisService } from "../config/redis.service";
 import { PasswordLoginAttemptService } from "./password-login-attempt.service";
@@ -32,6 +33,19 @@ describe("PasswordLoginAttemptService", () => {
       900,
     );
     expect(redis.consumeFixedWindow.mock.calls[0][0]).not.toContain("admin");
+  });
+
+  it("uses the HMAC key for a canonically equivalent identifier", async () => {
+    redis.consumeFixedWindow.mockResolvedValue(true);
+    const expected = createHmac("sha256", config.jwtSecret).update("admin").digest("hex");
+
+    await service.assertAllowed("  ＡＤＭＩＮ  ");
+
+    expect(redis.consumeFixedWindow).toHaveBeenCalledWith(
+      `auth:password:attempts:${expected}`,
+      5,
+      900,
+    );
   });
 
   it("returns a stable 429 after the limit", async () => {
