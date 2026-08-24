@@ -8,14 +8,23 @@ export function unwrapApiResponse<T>(payload: unknown): T {
   return payload.data as T;
 }
 
-export function readApiErrorMessage(payload: unknown): string {
-  if (!payload || typeof payload !== "object") {
-    return "请求失败";
+export function readApiErrorMessage(error: unknown): string {
+  let payload = error;
+
+  if (typeof error === "object" && error !== null && "response" in error) {
+    payload = (error as { response?: { data?: unknown } }).response?.data;
+  } else if (error instanceof Error) {
+    payload = undefined;
   }
 
-  const message = (payload as { message?: unknown }).message;
+  const message =
+    typeof payload === "object" && payload !== null
+      ? (payload as { message?: unknown }).message
+      : undefined;
 
-  return typeof message === "string" && message.length > 0 ? message : "请求失败";
+  return typeof message === "string" && message.trim().length > 0
+    ? message
+    : "请求失败，请稍后重试";
 }
 
 function isApiResponse(payload: unknown): payload is ApiResponse<unknown> {

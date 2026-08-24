@@ -20,10 +20,10 @@ describe("Admin API response helpers", () => {
     expect(() => unwrapApiResponse({ accessToken: "legacy-token" })).toThrow("响应格式无效");
   });
 
-  it("reads a safe server error message", () => {
-    expect(readApiErrorMessage({ code: "VALIDATION_FAILED", message: "请求参数校验失败" })).toBe(
-      "请求参数校验失败",
+  it("reads a server message from an Axios-shaped error", () => {
+    expect(readApiErrorMessage({ response: { data: { message: "文章状态已变化" } } })).toBe(
+      "文章状态已变化",
     );
-    expect(readApiErrorMessage(null)).toBe("请求失败");
+    expect(readApiErrorMessage(new Error("internal detail"))).toBe("请求失败，请稍后重试");
   });
 });
