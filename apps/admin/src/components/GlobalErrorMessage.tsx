@@ -6,6 +6,7 @@ import {
   subscribeGlobalError,
 } from "../lib/global-error";
 
+/** Renders the active global error with a close control and a three-second auto-dismiss timer. */
 export function GlobalErrorMessage() {
   const current = useSyncExternalStore(
     subscribeGlobalError,
