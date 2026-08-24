@@ -10,6 +10,7 @@ import {
   UseGuards,
 } from "@nestjs/common";
 import { ApiBearerAuth, ApiNoContentResponse, ApiOperation, ApiTags } from "@nestjs/swagger";
+import type { SendSmsCodeResponse } from "@petcare/shared-types";
 import { Request, Response } from "express";
 import { ApiException } from "../common/http/api-exception";
 import { ApiStandardErrors, ApiSuccessResponse } from "../common/swagger/api-response.decorators";
@@ -22,7 +23,7 @@ import {
   AdminLoginResponseDto,
   AdminUserResponseDto,
   CaptchaResponseDto,
-  MessageResponseDto,
+  SendSmsCodeResponseDto,
 } from "./dto/auth-response.dto";
 import { PasswordLoginDto } from "./dto/password-login.dto";
 import { SendSmsCodeDto } from "./dto/send-sms-code.dto";
@@ -56,10 +57,15 @@ export class AuthController {
   @Post("sms/send")
   @HttpCode(200)
   @ApiOperation({ summary: "发送管理员登录验证码" })
-  @ApiSuccessResponse(MessageResponseDto)
+  @ApiSuccessResponse(SendSmsCodeResponseDto)
   @ApiStandardErrors(400, 429, 500)
-  sendSmsCode(@Body() dto: SendSmsCodeDto): Promise<{ message: string }> {
-    return this.authService.sendSmsCode(dto.phone, dto.captchaId, dto.captchaCode);
+  async sendSmsCode(@Body() dto: SendSmsCodeDto): Promise<SendSmsCodeResponse> {
+    const result = await this.authService.sendSmsCode(dto.phone, dto.captchaId, dto.captchaCode);
+
+    return {
+      ...result,
+      cooldownSeconds: this.configService.smsSendCooldownSeconds,
+    };
   }
 
   @Post("login/password")

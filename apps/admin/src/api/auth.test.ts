@@ -28,6 +28,25 @@ beforeEach(() => {
 });
 
 describe("Admin Axios response boundary", () => {
+  it("returns the SMS cooldown after a protected send", async () => {
+    const sent = {
+      message: "如果该手机号可用于后台登录，验证码将会发送",
+      cooldownSeconds: 60,
+    };
+
+    axiosMocks.client.post.mockResolvedValue({ data: sent });
+    const authModule = await import("./auth");
+
+    await expect(
+      authModule.sendSmsCode("13800138000", "0123456789abcdef", "2345"),
+    ).resolves.toEqual(sent);
+    expect(axiosMocks.client.post).toHaveBeenCalledWith("/auth/sms/send", {
+      phone: "13800138000",
+      captchaId: "0123456789abcdef",
+      captchaCode: "2345",
+    });
+  });
+
   it("unwraps successful envelopes before auth functions consume them", async () => {
     await import("./auth");
     const onFulfilled = axiosMocks.responseUse.mock.calls[0]?.[0] as (response: {

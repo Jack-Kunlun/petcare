@@ -1,3 +1,4 @@
+import type { SendSmsCodeResponse } from "@petcare/shared-types";
 import { createContext, useContext } from "react";
 import { AdminUser, AuthStatus, CaptchaChallenge } from "./auth.types";
 
@@ -7,7 +8,7 @@ export interface AuthContextValue {
   loginWithPassword(identifier: string, password: string): Promise<void>;
   loginWithSms(phone: string, code: string): Promise<void>;
   getCaptcha(): Promise<CaptchaChallenge>;
-  sendSmsCode(phone: string, captchaId: string, captchaCode: string): Promise<void>;
+  sendSmsCode(phone: string, captchaId: string, captchaCode: string): Promise<SendSmsCodeResponse>;
   logout(): Promise<void>;
   updateUserSummary(patch: Pick<AdminUser, "nickname" | "avatar">): void;
   invalidateLocalSession(): void;

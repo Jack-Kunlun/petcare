@@ -51,7 +51,11 @@ describe("AuthController", () => {
         expiresIn: 300,
       }),
     };
-    const config = { nodeEnv: "development", refreshTokenTtlSeconds: 604800 } as ConfigService;
+    const config = {
+      nodeEnv: "development",
+      refreshTokenTtlSeconds: 604800,
+      smsSendCooldownSeconds: 60,
+    } as ConfigService;
 
     controller = new AuthController(
       authService as unknown as AuthService,
@@ -76,6 +80,16 @@ describe("AuthController", () => {
     });
 
     expect(authService.sendSmsCode).toHaveBeenCalledWith("13800138000", "0123456789abcdef", "2345");
+  });
+
+  it("returns the configured cooldown after an accepted SMS request", async () => {
+    await expect(
+      controller.sendSmsCode({
+        phone: "13800138000",
+        captchaId: "0123456789abcdef",
+        captchaCode: "2345",
+      }),
+    ).resolves.toEqual({ message: "sent", cooldownSeconds: 60 });
   });
 
   it("sets a secure-by-default refresh cookie and omits it from the response body", async () => {

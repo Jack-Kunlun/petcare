@@ -6,6 +6,7 @@ import type {
   CaptchaChallenge,
   PasswordLoginRequest,
   SendSmsCodeRequest,
+  SendSmsCodeResponse,
   SmsLoginRequest,
 } from "@petcare/shared-types";
 import axios, { AxiosError, InternalAxiosRequestConfig } from "axios";
@@ -162,10 +163,11 @@ export async function sendSmsCode(
   phone: string,
   captchaId: string,
   captchaCode: string,
-): Promise<void> {
+): Promise<SendSmsCodeResponse> {
   const request: SendSmsCodeRequest = { phone, captchaId, captchaCode };
+  const response = await apiClient.post<SendSmsCodeResponse>("/auth/sms/send", request);
 
-  await apiClient.post("/auth/sms/send", request);
+  return response.data;
 }
 
 /** 注销当前管理员会话并清除本地访问令牌。 */

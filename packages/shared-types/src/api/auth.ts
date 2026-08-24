@@ -73,6 +73,14 @@ export interface SendSmsCodeRequest {
   captchaCode: string;
 }
 
+/** 已接受的后台登录短信发送请求。 */
+export interface SendSmsCodeResponse {
+  /** 防止暴露手机号是否存在的统一安全文案。 */
+  message: string;
+  /** 前端发送按钮必须执行的冷却秒数。 */
+  cooldownSeconds: number;
+}
+
 /** 管理员登录响应。 */
 export interface AdminLoginResponse {
   /** 用于访问受保护接口的短期令牌。 */

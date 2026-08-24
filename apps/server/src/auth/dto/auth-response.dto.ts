@@ -1,5 +1,10 @@
 import { ApiProperty } from "@nestjs/swagger";
-import type { AdminLoginResponse, AdminSessionUser, CaptchaChallenge } from "@petcare/shared-types";
+import type {
+  AdminLoginResponse,
+  AdminSessionUser,
+  CaptchaChallenge,
+  SendSmsCodeResponse,
+} from "@petcare/shared-types";
 
 export class CaptchaResponseDto implements CaptchaChallenge {
   @ApiProperty({ example: "0123456789abcdef0123456789abcdef" })
@@ -12,9 +17,12 @@ export class CaptchaResponseDto implements CaptchaChallenge {
   expiresIn: number;
 }
 
-export class MessageResponseDto {
-  @ApiProperty({ example: "操作成功" })
+export class SendSmsCodeResponseDto implements SendSmsCodeResponse {
+  @ApiProperty({ example: "如果该手机号可用于后台登录，验证码将会发送" })
   message: string;
+
+  @ApiProperty({ example: 60, minimum: 1 })
+  cooldownSeconds: number;
 }
 
 export class AdminUserResponseDto implements AdminSessionUser {

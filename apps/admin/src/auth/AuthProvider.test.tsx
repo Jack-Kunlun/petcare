@@ -70,10 +70,12 @@ function LogoutProbe() {
 function CaptchaActionsProbe() {
   const auth = useAuth();
   const [captchaId, setCaptchaId] = useState("none");
+  const [cooldownSeconds, setCooldownSeconds] = useState<number | null>(null);
 
   return (
     <>
       <span>{captchaId}</span>
+      <span>{cooldownSeconds ?? "not sent"}</span>
       <button
         type="button"
         onClick={() => {
@@ -85,7 +87,9 @@ function CaptchaActionsProbe() {
       <button
         type="button"
         onClick={() => {
-          void auth.sendSmsCode("13800138000", "0123456789abcdef", "2345");
+          void auth
+            .sendSmsCode("13800138000", "0123456789abcdef", "2345")
+            .then((sent) => setCooldownSeconds(sent.cooldownSeconds));
         }}
       >
         send sms
@@ -184,7 +188,10 @@ describe("AuthProvider", () => {
       image: "data:image/svg+xml;base64,PHN2Zy8+",
       expiresIn: 300,
     });
-    vi.mocked(authApi.sendSmsCode).mockResolvedValue(undefined);
+    vi.mocked(authApi.sendSmsCode).mockResolvedValue({
+      message: "如果该手机号可用于后台登录，验证码将会发送",
+      cooldownSeconds: 60,
+    });
 
     render(
       <AuthProvider>
@@ -198,6 +205,7 @@ describe("AuthProvider", () => {
 
     expect(authApi.getCaptcha).toHaveBeenCalledOnce();
     expect(authApi.sendSmsCode).toHaveBeenCalledWith("13800138000", "0123456789abcdef", "2345");
+    expect(await screen.findByText("60")).toBeInTheDocument();
   });
 
   it("reports logout failure and still clears the local session", async () => {
