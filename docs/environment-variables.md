@@ -99,6 +99,8 @@ API 和独立 Worker 必须使用相同的 `QUEUE_PREFIX`；生产、预发和�
 | `SMS_MAX_ATTEMPTS`             | 否       | `5`     | 单个验证码最大校验失败次数                                    |
 | `CAPTCHA_TTL_SECONDS`          | 否       | `300`   | 图形验证码有效期，必须为正整数                                |
 | `CAPTCHA_MAX_ATTEMPTS`         | 否       | `5`     | 图形验证码最大校验失败次数                                    |
+| `AUTH_PASSWORD_MAX_ATTEMPTS`   | 否       | `5`     | 密码登录固定窗口允许次数                                      |
+| `AUTH_PASSWORD_WINDOW_SECONDS` | 否       | `900`   | 密码登录固定窗口秒数                                          |
 
 开发环境可设置 `SMS_DEV_CODE=246810` 进行本地联调。接口不会把验证码返回给前端；生产环境必须接入
 阿里云号码认证服务，并禁止配置该变量。生产环境固定使用 `SendSmsVerifyCode` 和端点

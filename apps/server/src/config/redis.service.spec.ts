@@ -39,4 +39,21 @@ describe("RedisService one-time digest consumption", () => {
       service.verifyAndConsumeDigest("captcha:value", "captcha:attempts", "wrong", 5),
     ).resolves.toBe(false);
   });
+
+  it("consumes a fixed-window attempt with one atomic script", async () => {
+    const { service, evalMock } = createService(1);
+
+    await expect(service.consumeFixedWindow("auth:password:hash", 5, 900)).resolves.toBe(true);
+    expect(evalMock).toHaveBeenCalledTimes(1);
+    expect(evalMock).toHaveBeenCalledWith(expect.any(String), {
+      keys: ["auth:password:hash"],
+      arguments: ["5", "900"],
+    });
+  });
+
+  it("returns false after the fixed-window limit", async () => {
+    const { service } = createService(0);
+
+    await expect(service.consumeFixedWindow("auth:password:hash", 5, 900)).resolves.toBe(false);
+  });
 });

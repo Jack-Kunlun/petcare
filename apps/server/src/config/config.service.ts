@@ -36,7 +36,7 @@ export class ConfigService {
       return fallback;
     }
 
-    const parsed = Number.parseInt(value, 10);
+    const parsed = Number(value);
 
     if (!Number.isInteger(parsed) || parsed <= 0) {
       throw new Error(`${name} must be a positive integer`);
@@ -80,6 +80,8 @@ export class ConfigService {
       this.validateDuration("JWT_REFRESH_EXPIRES_IN", this.jwtRefreshExpiresIn),
     );
     check("REFRESH_TOKEN_TTL_SECONDS", () => this.refreshTokenTtlSeconds);
+    check("AUTH_PASSWORD_MAX_ATTEMPTS", () => this.authPasswordMaxAttempts);
+    check("AUTH_PASSWORD_WINDOW_SECONDS", () => this.authPasswordWindowSeconds);
     check("DEFAULT_ADMIN_PHONE", () => this.defaultAdminPhone);
     check("DEFAULT_ADMIN_PASSWORD", () => this.validateAdminPassword());
     check("ALLOWED_ORIGINS", () => this.validateAllowedOrigins());
@@ -307,6 +309,16 @@ export class ConfigService {
 
   get refreshTokenTtlSeconds(): number {
     return this.getPositiveInteger("REFRESH_TOKEN_TTL_SECONDS", 604800);
+  }
+
+  /** 密码登录固定窗口内允许的最大失败次数。 */
+  get authPasswordMaxAttempts(): number {
+    return this.getPositiveInteger("AUTH_PASSWORD_MAX_ATTEMPTS", 5);
+  }
+
+  /** 密码登录固定窗口的持续时间（秒）。 */
+  get authPasswordWindowSeconds(): number {
+    return this.getPositiveInteger("AUTH_PASSWORD_WINDOW_SECONDS", 900);
   }
 
   get smsDevCode(): string | undefined {

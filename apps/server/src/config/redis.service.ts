@@ -77,6 +77,33 @@ export class RedisService implements OnModuleInit, OnModuleDestroy {
     }
   }
 
+  /** 在固定窗口内原子地消耗一次认证尝试额度。 */
+  async consumeFixedWindow(
+    key: string,
+    maxAttempts: number,
+    windowSeconds: number,
+  ): Promise<boolean> {
+    const result = await this.client.eval(
+      `
+        local count = redis.call("INCR", KEYS[1])
+        local ttl = redis.call("TTL", KEYS[1])
+        if ttl < 0 then
+          redis.call("EXPIRE", KEYS[1], tonumber(ARGV[2]))
+        end
+        if count <= tonumber(ARGV[1]) then
+          return 1
+        end
+        return 0
+      `,
+      {
+        keys: [key],
+        arguments: [String(maxAttempts), String(windowSeconds)],
+      },
+    );
+
+    return Number(result) === 1;
+  }
+
   async verifyAndConsumeOtp(
     otpKey: string,
     attemptsKey: string,

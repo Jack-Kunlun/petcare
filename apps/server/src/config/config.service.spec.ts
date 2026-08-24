@@ -50,6 +50,8 @@ describe("ConfigService", () => {
     delete process.env.SMS_MAX_ATTEMPTS;
     delete process.env.CAPTCHA_TTL_SECONDS;
     delete process.env.CAPTCHA_MAX_ATTEMPTS;
+    delete process.env.AUTH_PASSWORD_MAX_ATTEMPTS;
+    delete process.env.AUTH_PASSWORD_WINDOW_SECONDS;
     delete process.env.DEFAULT_ADMIN_USERNAME;
     delete process.env.DEFAULT_ADMIN_PHONE;
     delete process.env.DEFAULT_ADMIN_PASSWORD;
@@ -86,7 +88,17 @@ describe("ConfigService", () => {
     expect(config.smsMaxAttempts).toBe(5);
     expect(config.captchaTtlSeconds).toBe(300);
     expect(config.captchaMaxAttempts).toBe(5);
+    expect(config.authPasswordMaxAttempts).toBe(5);
+    expect(config.authPasswordWindowSeconds).toBe(900);
     expect(config.defaultAdminUsername).toBe("admin");
+  });
+
+  it("rejects a partially numeric password limiter value", () => {
+    process.env.AUTH_PASSWORD_MAX_ATTEMPTS = "5x";
+
+    expect(() => new ConfigService().authPasswordMaxAttempts).toThrow(
+      "AUTH_PASSWORD_MAX_ATTEMPTS must be a positive integer",
+    );
   });
 
   it("returns documented website runtime defaults", () => {
@@ -267,6 +279,19 @@ describe("ConfigService", () => {
 
       expect(() => new ConfigService().validateForStartup()).toThrow(
         /WEBSITE_PUBLIC_URL.*WEBSITE_PREVIEW_TTL_SECONDS.*WEBSITE_CONTENT_CACHE_TTL_SECONDS/s,
+      );
+    });
+
+    it("validates password login limiter configuration", () => {
+      process.env = {
+        ...originalEnv,
+        ...validStartupEnv,
+        AUTH_PASSWORD_MAX_ATTEMPTS: "5x",
+        AUTH_PASSWORD_WINDOW_SECONDS: "0",
+      };
+
+      expect(() => new ConfigService().validateForStartup()).toThrow(
+        /AUTH_PASSWORD_MAX_ATTEMPTS.*AUTH_PASSWORD_WINDOW_SECONDS/s,
       );
     });
 
