@@ -1,4 +1,5 @@
-import type { ApiResponse } from "@petcare/shared-types";
+import type { ApiErrorResponse, ApiResponse } from "@petcare/shared-types";
+import type { AxiosError } from "axios";
 
 export function unwrapApiResponse<T>(payload: unknown): T {
   if (!isApiResponse(payload) || payload.code !== "SUCCESS") {
@@ -8,18 +9,19 @@ export function unwrapApiResponse<T>(payload: unknown): T {
   return payload.data as T;
 }
 
+/** Extracts a safe display message from an API error or Server error payload. */
 export function readApiErrorMessage(error: unknown): string {
   let payload = error;
 
   if (typeof error === "object" && error !== null && "response" in error) {
-    payload = (error as { response?: { data?: unknown } }).response?.data;
+    payload = (error as AxiosError<ApiErrorResponse>).response?.data;
   } else if (error instanceof Error) {
     payload = undefined;
   }
 
   const message =
     typeof payload === "object" && payload !== null
-      ? (payload as { message?: unknown }).message
+      ? (payload as Partial<ApiErrorResponse>).message
       : undefined;
 
   return typeof message === "string" && message.trim().length > 0

@@ -3,10 +3,17 @@ import * as authApi from "../api/auth";
 import { showApiError, showGlobalError } from "../lib/global-error";
 import { AuthContext, AuthContextValue } from "./auth.context";
 import { AdminUser, AuthStatus } from "./auth.types";
+import { onSessionExpired } from "./session-expired";
 
 export function AuthProvider({ children }: { children: ReactNode }) {
   const [status, setStatus] = useState<AuthStatus>("loading");
   const [user, setUser] = useState<AdminUser | null>(null);
+
+  const invalidateLocalSession = useCallback(() => {
+    authApi.clearAccessToken();
+    setUser(null);
+    setStatus("anonymous");
+  }, []);
 
   useEffect(() => {
     let active = true;
@@ -44,13 +51,11 @@ export function AuthProvider({ children }: { children: ReactNode }) {
       return;
     }
 
-    return authApi.onSessionExpired((message) => {
-      authApi.clearAccessToken();
-      setUser(null);
-      setStatus("anonymous");
+    return onSessionExpired((message) => {
+      invalidateLocalSession();
       showGlobalError(message, "session");
     });
-  }, [status]);
+  }, [invalidateLocalSession, status]);
 
   const loginWithPassword = useCallback(async (identifier: string, password: string) => {
     const result = await authApi.loginWithPassword(identifier, password);
@@ -80,20 +85,12 @@ export function AuthProvider({ children }: { children: ReactNode }) {
     } catch (error) {
       showApiError(error);
     } finally {
-      authApi.clearAccessToken();
-      setUser(null);
-      setStatus("anonymous");
+      invalidateLocalSession();
     }
-  }, []);
+  }, [invalidateLocalSession]);
 
   const updateUserSummary = useCallback((patch: Pick<AdminUser, "nickname" | "avatar">) => {
     setUser((current) => (current ? { ...current, ...patch } : current));
-  }, []);
-
-  const invalidateLocalSession = useCallback(() => {
-    authApi.clearAccessToken();
-    setUser(null);
-    setStatus("anonymous");
   }, []);
 
   const value = useMemo<AuthContextValue>(

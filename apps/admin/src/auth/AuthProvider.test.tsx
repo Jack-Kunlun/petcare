@@ -4,6 +4,7 @@ import { beforeEach, describe, expect, it, vi } from "vitest";
 import * as authApi from "../api/auth";
 import { useAuth } from "./auth.context";
 import { AuthProvider } from "./AuthProvider";
+import { onSessionExpired } from "./session-expired";
 
 const authEvents = vi.hoisted(() => ({
   sessionExpiredListener: undefined as ((message: string) => void) | undefined,
@@ -20,6 +21,12 @@ vi.mock("../api/auth", () => ({
   loginWithPassword: vi.fn(),
   loginWithSms: vi.fn(),
   logout: vi.fn(),
+  refreshSession: vi.fn(),
+  sendSmsCode: vi.fn(),
+  setAccessToken: vi.fn(),
+}));
+
+vi.mock("./session-expired", () => ({
   onSessionExpired: vi.fn((listener: (message: string) => void) => {
     authEvents.sessionExpiredListener = listener;
 
@@ -27,9 +34,6 @@ vi.mock("../api/auth", () => ({
       authEvents.sessionExpiredListener = undefined;
     };
   }),
-  refreshSession: vi.fn(),
-  sendSmsCode: vi.fn(),
-  setAccessToken: vi.fn(),
 }));
 
 vi.mock("../lib/global-error", () => globalErrors);
@@ -165,6 +169,7 @@ describe("AuthProvider", () => {
       </AuthProvider>,
     );
     await screen.findByText("系统管理员");
+    expect(onSessionExpired).toHaveBeenCalledOnce();
 
     act(() => authEvents.sessionExpiredListener?.("登录状态已失效"));
 

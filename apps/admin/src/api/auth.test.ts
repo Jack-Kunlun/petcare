@@ -1,4 +1,5 @@
 import { beforeEach, describe, expect, it, vi } from "vitest";
+import { onSessionExpired } from "../auth/session-expired";
 
 const axiosMocks = vi.hoisted(() => {
   const requestUse = vi.fn();
@@ -91,12 +92,12 @@ describe("Admin Axios response boundary", () => {
   });
 
   it("emits one session event when refresh cannot recover an authenticated request", async () => {
-    const authModule = await import("./auth");
+    await import("./auth");
     const onRejected = axiosMocks.responseUse.mock.calls[0]?.[1] as (
       error: Record<string, unknown>,
     ) => Promise<unknown>;
     const listener = vi.fn();
-    const unsubscribe = authModule.onSessionExpired(listener);
+    const unsubscribe = onSessionExpired(listener);
     const refreshError = {
       response: {
         status: 401,
@@ -123,12 +124,12 @@ describe("Admin Axios response boundary", () => {
   });
 
   it("emits one session event for concurrent requests sharing a failed refresh", async () => {
-    const authModule = await import("./auth");
+    await import("./auth");
     const onRejected = axiosMocks.responseUse.mock.calls[0]?.[1] as (
       error: Record<string, unknown>,
     ) => Promise<unknown>;
     const listener = vi.fn();
-    const unsubscribe = authModule.onSessionExpired(listener);
+    const unsubscribe = onSessionExpired(listener);
     const refreshError = {
       response: {
         status: 401,
@@ -158,8 +159,34 @@ describe("Admin Axios response boundary", () => {
     unsubscribe();
   });
 
+  it("emits a session event when a retried protected request expires again", async () => {
+    await import("./auth");
+    const onRejected = axiosMocks.responseUse.mock.calls[0]?.[1] as (
+      error: Record<string, unknown>,
+    ) => Promise<unknown>;
+    const listener = vi.fn();
+    const unsubscribe = onSessionExpired(listener);
+    const error = {
+      config: {
+        headers: { has: vi.fn(() => true), set: vi.fn() },
+        url: "/admin/account/profile",
+        _authRetried: true,
+      },
+      response: {
+        status: 401,
+        data: { code: "AUTH_SESSION_EXPIRED", message: "登录状态已失效" },
+      },
+    };
+
+    await expect(onRejected(error)).rejects.toBe(error);
+
+    expect(axiosMocks.client.post).not.toHaveBeenCalledWith("/auth/refresh");
+    expect(listener).toHaveBeenCalledWith("登录状态已失效");
+    unsubscribe();
+  });
+
   it("does not refresh or emit when explicit logout reports an expired session", async () => {
-    const authModule = await import("./auth");
+    await import("./auth");
     const onRejected = axiosMocks.responseUse.mock.calls[0]?.[1] as (error: {
       config: {
         headers: { has: ReturnType<typeof vi.fn>; set: ReturnType<typeof vi.fn> };
@@ -168,7 +195,7 @@ describe("Admin Axios response boundary", () => {
       response: { data: { code: string; message: string }; status: number };
     }) => Promise<unknown>;
     const listener = vi.fn();
-    const unsubscribe = authModule.onSessionExpired(listener);
+    const unsubscribe = onSessionExpired(listener);
     const error = {
       config: {
         headers: { has: vi.fn(() => true), set: vi.fn() },
@@ -205,10 +232,14 @@ describe("Admin Axios response boundary", () => {
       },
       response: { data: { code: "AUTH_SESSION_EXPIRED" }, status: 401 },
     };
+    const listener = vi.fn();
+    const unsubscribe = onSessionExpired(listener);
 
     await expect(onRejected(error)).rejects.toBe(error);
 
     expect(axiosMocks.client.post).not.toHaveBeenCalledWith("/auth/refresh");
+    expect(listener).not.toHaveBeenCalled();
+    unsubscribe();
   });
 
   it("rejects business 401 responses without refreshing", async () => {
@@ -221,10 +252,14 @@ describe("Admin Axios response boundary", () => {
       config: { headers: { set: vi.fn() }, url: "/admin/account/password" },
       response: { data: { code: "ACCOUNT_CURRENT_PASSWORD_INVALID" }, status: 401 },
     };
+    const listener = vi.fn();
+    const unsubscribe = onSessionExpired(listener);
 
     await expect(onRejected(error)).rejects.toBe(error);
 
     expect(axiosMocks.client.post).not.toHaveBeenCalledWith("/auth/refresh");
+    expect(listener).not.toHaveBeenCalled();
+    unsubscribe();
   });
 
   it.each(["/auth/login/password", "/auth/login/sms", "/auth/refresh"])(
@@ -239,10 +274,14 @@ describe("Admin Axios response boundary", () => {
         config: { headers: { set: vi.fn() }, url },
         response: { data: { code: "AUTH_SESSION_EXPIRED" }, status: 401 },
       };
+      const listener = vi.fn();
+      const unsubscribe = onSessionExpired(listener);
 
       await expect(onRejected(error)).rejects.toBe(error);
 
       expect(axiosMocks.client.post).not.toHaveBeenCalledWith("/auth/refresh");
+      expect(listener).not.toHaveBeenCalled();
+      unsubscribe();
     },
   );
 });

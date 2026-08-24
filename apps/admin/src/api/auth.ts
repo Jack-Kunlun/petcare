@@ -9,10 +9,10 @@ import type {
   SmsLoginRequest,
 } from "@petcare/shared-types";
 import axios, { AxiosError, InternalAxiosRequestConfig } from "axios";
+import { emitSessionExpired } from "../auth/session-expired";
 import { readApiErrorMessage, unwrapApiResponse } from "./api-response";
 
 type RetriableRequest = InternalAxiosRequestConfig & { _authRetried?: boolean };
-type SessionExpiredListener = (message: string) => void;
 
 export const apiClient = axios.create({
   baseURL: "/api",
@@ -21,7 +21,6 @@ export const apiClient = axios.create({
 
 let accessToken: string | null = null;
 let refreshPromise: Promise<string> | null = null;
-const sessionExpiredListeners = new Set<SessionExpiredListener>();
 
 /** 设置仅保存在内存中的访问令牌。 */
 export function setAccessToken(token: string): void {
@@ -33,21 +32,11 @@ export function clearAccessToken(): void {
   accessToken = null;
 }
 
-/** Subscribes to unrecoverable authenticated-session failures. */
-export function onSessionExpired(listener: SessionExpiredListener): () => void {
-  sessionExpiredListeners.add(listener);
-
-  return () => sessionExpiredListeners.delete(listener);
-}
-
-function emitSessionExpired(error: AxiosError<ApiErrorResponse>): void {
+function handleExpiredSession(error: AxiosError<ApiErrorResponse>): void {
   const message = readApiErrorMessage(error);
 
   clearAccessToken();
-
-  for (const listener of sessionExpiredListeners) {
-    listener(message);
-  }
+  emitSessionExpired(message);
 }
 
 apiClient.interceptors.request.use((config) => {
@@ -85,7 +74,7 @@ apiClient.interceptors.response.use(
     }
 
     if (request._authRetried) {
-      emitSessionExpired(error);
+      handleExpiredSession(error);
 
       return Promise.reject(error);
     }
@@ -99,7 +88,7 @@ apiClient.interceptors.response.use(
         return response.data.accessToken;
       })
       .catch((refreshError) => {
-        emitSessionExpired(refreshError as AxiosError<ApiErrorResponse>);
+        handleExpiredSession(refreshError as AxiosError<ApiErrorResponse>);
 
         return Promise.reject(refreshError);
       })
