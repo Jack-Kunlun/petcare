@@ -1,5 +1,6 @@
 import { ApiProperty } from "@nestjs/swagger";
 import type {
+  AdminClassroomArticleDetail,
   AdminClassroomArticleListItem,
   AdminClassroomArticleListResponse,
   AdminContentAuthorSummary,
@@ -148,6 +149,9 @@ export class AdminClassroomArticleListItemDto implements AdminClassroomArticleLi
   @ApiProperty({ nullable: true })
   coverUrl: string | null;
 
+  @ApiProperty({ format: "uri" })
+  publicUrl: string;
+
   @ApiProperty({ example: "published" })
   status: AdminClassroomArticleListItem["status"];
 
@@ -162,6 +166,15 @@ export class AdminClassroomArticleListItemDto implements AdminClassroomArticleLi
 
   @ApiProperty({ format: "date-time" })
   updatedAt: string;
+}
+
+/** 后台课堂文章完整详情响应。 */
+export class AdminClassroomArticleDetailDto
+  extends AdminClassroomArticleListItemDto
+  implements AdminClassroomArticleDetail
+{
+  @ApiProperty({ description: "Server-cleaned editor HTML." })
+  bodyHtml: string;
 }
 
 /** 后台课堂文章列表响应。 */
@@ -209,13 +222,13 @@ export class PublicClassroomArticleListItemDto implements PublicClassroomArticle
   publishedAt: string | null;
 }
 
-/** Public classroom article detail with an escaped, non-HTML body. */
+/** Public classroom article detail with server-cleaned HTML. */
 export class PublicClassroomArticleDetailDto
   extends PublicClassroomArticleListItemDto
   implements PublicClassroomArticleDetail
 {
-  @ApiProperty({ description: "Escaped text body. Consumers must not render it as trusted HTML." })
-  body: string;
+  @ApiProperty({ description: "Server-cleaned article HTML." })
+  bodyHtml: string;
 }
 
 /** Public paginated classroom article response. */

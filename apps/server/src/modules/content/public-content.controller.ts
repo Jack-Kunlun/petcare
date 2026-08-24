@@ -11,7 +11,7 @@ import {
   ApiStandardErrors,
   ApiSuccessResponse,
 } from "../../common/swagger/api-response.decorators";
-import { ContentService } from "./content.service";
+import { ClassroomArticleService } from "./classroom-article.service";
 import {
   PublicClassroomArticleDetailDto,
   PublicClassroomArticleListResponseDto,
@@ -41,7 +41,7 @@ class PublicClassroomArticleListQueryDto implements PublicClassroomArticleListQu
 @ApiTags("content")
 @Controller("content/articles")
 export class PublicContentController {
-  constructor(private readonly contentService: ContentService) {}
+  constructor(private readonly articleService: ClassroomArticleService) {}
 
   /** Returns the public, published classroom article page. */
   @Get()
@@ -51,7 +51,7 @@ export class PublicContentController {
   findArticles(
     @Query() query: PublicClassroomArticleListQueryDto,
   ): Promise<PublicClassroomArticleListResponse> {
-    return this.contentService.findPublishedArticlePage(query);
+    return this.articleService.findPublishedArticlePage(query);
   }
 
   /** Returns one public, published classroom article by its stable ID route value. */
@@ -60,6 +60,6 @@ export class PublicContentController {
   @ApiSuccessResponse(PublicClassroomArticleDetailDto)
   @ApiStandardErrors(400, 404, 500)
   findArticle(@Param("slug") slug: string): Promise<PublicClassroomArticleDetail> {
-    return this.contentService.findPublishedArticleBySlug(slug);
+    return this.articleService.findPublishedArticleBySlug(slug);
   }
 }

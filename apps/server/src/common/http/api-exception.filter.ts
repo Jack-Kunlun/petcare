@@ -19,7 +19,8 @@ export class ApiExceptionFilter implements ExceptionFilter {
     const request = context.getRequest<RequestWithId>();
     const response = context.getResponse<Response>();
     const status = this.statusFor(exception);
-    const mapped = this.mapException(exception, status);
+    const requestPath = request.path || request.url.split("?", 1)[0];
+    const mapped = this.mapException(exception, status, requestPath);
 
     if (status >= 500) {
       const error =
@@ -30,7 +31,7 @@ export class ApiExceptionFilter implements ExceptionFilter {
       this.logger.write("error", "http.exception", {
         requestId: request.requestId,
         method: request.method,
-        path: request.path || request.url.split("?", 1)[0],
+        path: requestPath,
         statusCode: status,
         code: mapped.code,
         error,
@@ -48,8 +49,12 @@ export class ApiExceptionFilter implements ExceptionFilter {
     });
   }
 
-  private mapException(exception: unknown, status: number): MappedException {
+  private mapException(exception: unknown, status: number, requestPath: string): MappedException {
     if (exception instanceof MulterError && exception.code === "LIMIT_FILE_SIZE") {
+      if (requestPath.includes("/admin/content/articles/media-assets")) {
+        return { code: "CONTENT_ARTICLE_MEDIA_TOO_LARGE", message: "文章图片不能超过 10 MiB" };
+      }
+
       return { code: "AVATAR_FILE_TOO_LARGE", message: "头像文件不能超过 2MB" };
     }
 

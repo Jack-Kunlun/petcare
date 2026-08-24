@@ -5,7 +5,12 @@ import { ApiException } from "./api-exception";
 import { ApiExceptionFilter } from "./api-exception.filter";
 
 const response = { status: jest.fn().mockReturnThis(), json: jest.fn() };
-const request = { requestId: "request-123", method: "GET", url: "/resource" };
+const request: {
+  requestId: string;
+  method: string;
+  url: string;
+  path?: string;
+} = { requestId: "request-123", method: "GET", url: "/resource" };
 const host = {
   switchToHttp: () => ({ getRequest: () => request, getResponse: () => response }),
 } as unknown as ArgumentsHost;
@@ -14,6 +19,8 @@ const filter = new ApiExceptionFilter(logger);
 
 beforeEach(() => {
   jest.clearAllMocks();
+  request.url = "/resource";
+  delete request.path;
 });
 
 describe("ApiExceptionFilter", () => {
@@ -78,7 +85,7 @@ describe("ApiExceptionFilter", () => {
     expect(JSON.stringify(response.json.mock.calls)).not.toContain("postgresql://");
   });
 
-  it("maps only Multer's file-size limit to the public avatar size error", () => {
+  it("maps the avatar file-size limit to its existing public error", () => {
     filter.catch(new MulterError("LIMIT_FILE_SIZE"), host);
 
     expect(response.status).toHaveBeenCalledWith(413);
@@ -93,6 +100,35 @@ describe("ApiExceptionFilter", () => {
     });
     expect(JSON.stringify(response.json.mock.calls)).not.toContain("LIMIT_FILE_SIZE");
     expect(JSON.stringify(response.json.mock.calls)).not.toContain("stack");
+  });
+
+  it("maps the fixed article upload path from request.path to its 10 MiB error", () => {
+    request.path = "/api/admin/content/articles/media-assets";
+    request.url = "/api/avatars/me?source=article";
+
+    filter.catch(new MulterError("LIMIT_FILE_SIZE"), host);
+
+    expect(response.status).toHaveBeenCalledWith(413);
+    expect(response.json).toHaveBeenCalledWith(
+      expect.objectContaining({
+        code: "CONTENT_ARTICLE_MEDIA_TOO_LARGE",
+        message: "文章图片不能超过 10 MiB",
+      }),
+    );
+  });
+
+  it("maps the fixed article upload path from a query-stripped request.url", () => {
+    request.url = "/api/admin/content/articles/media-assets?file=article.png";
+
+    filter.catch(new MulterError("LIMIT_FILE_SIZE"), host);
+
+    expect(response.status).toHaveBeenCalledWith(413);
+    expect(response.json).toHaveBeenCalledWith(
+      expect.objectContaining({
+        code: "CONTENT_ARTICLE_MEDIA_TOO_LARGE",
+        message: "文章图片不能超过 10 MiB",
+      }),
+    );
   });
 
   it("keeps other Multer failures as safe validation errors", () => {
