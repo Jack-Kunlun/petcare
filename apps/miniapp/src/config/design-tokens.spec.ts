@@ -10,4 +10,11 @@ describe("miniappDesignTokens", () => {
 
     expect(conflictingNames).toEqual([]);
   });
+
+  it("defines semantic spacing for page, card, section, and navigation grids", () => {
+    expect(miniappDesignTokens.spacing["page-horizontal"]).toBe("16px");
+    expect(miniappDesignTokens.spacing["navigation-horizontal"]).toBe("16px");
+    expect(miniappDesignTokens.spacing["card-padding"]).toBe("16px");
+    expect(miniappDesignTokens.spacing["section-gap"]).toBe("24px");
+  });
 });

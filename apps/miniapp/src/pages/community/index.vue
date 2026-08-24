@@ -58,7 +58,7 @@ function openCommunityArticle(id: string) {
     </template>
 
     <view class="box-border flex flex-col pb-screen">
-      <view class="mx-action h-segment flex rounded-control bg-divider p-caption">
+      <view class="mx-page-horizontal h-segment flex rounded-control bg-divider p-caption">
         <view
           v-for="(tab, index) in channelTabs"
           :key="tab"
@@ -75,7 +75,7 @@ function openCommunityArticle(id: string) {
       </view>
 
       <view
-        class="mx-action mt-copy flex items-center justify-between rounded-card from-brand to-brand-active bg-gradient-to-r p-action text-surface shadow-card"
+        class="mx-page-horizontal mt-copy flex items-center justify-between rounded-card from-brand to-brand-active bg-gradient-to-r p-card-padding text-surface shadow-card"
       >
         <view class="flex flex-col gap-caption">
           <text class="text-card font-semibold leading-card">今日社区活力</text>
@@ -93,7 +93,7 @@ function openCommunityArticle(id: string) {
         </view>
       </view>
 
-      <view class="mt-card flex items-center justify-between px-action">
+      <view class="mt-card flex items-center justify-between px-page-horizontal">
         <view class="flex items-end gap-sm">
           <text class="section-heading">社区精选</text>
           <text class="quiet-text">1,286 人正在这里</text>
@@ -101,9 +101,9 @@ function openCommunityArticle(id: string) {
         <text class="text-caption text-brand leading-caption">刷新</text>
       </view>
 
-      <view class="mx-action mt-copy flex flex-col gap-copy">
+      <view class="mx-page-horizontal mt-copy flex flex-col gap-copy">
         <view v-for="post in posts" :key="post.author" class="overflow-hidden main-card">
-          <view class="flex items-center justify-between p-action pb-copy">
+          <view class="flex items-center justify-between p-card-padding pb-copy">
             <view class="flex items-center gap-copy">
               <image class="h-avatar w-avatar rounded-full" :src="post.avatar" mode="aspectFill" />
               <view class="flex flex-col">
@@ -122,7 +122,7 @@ function openCommunityArticle(id: string) {
           </view>
 
           <view
-            class="px-action pb-copy"
+            class="px-card-padding pb-copy"
             hover-class="opacity-80"
             @click="openCommunityArticle(post.id)"
           >
@@ -130,7 +130,7 @@ function openCommunityArticle(id: string) {
           </view>
 
           <view
-            class="relative mx-action h-hero-main overflow-hidden rounded-control"
+            class="relative mx-card-padding h-hero-main overflow-hidden rounded-control"
             hover-class="opacity-80"
             @click="openCommunityArticle(post.id)"
           >
@@ -141,7 +141,7 @@ function openCommunityArticle(id: string) {
           </view>
 
           <view
-            class="mt-copy flex items-center border-t border-divider px-action py-copy opacity-50"
+            class="mt-copy flex items-center border-t border-divider px-card-padding py-copy opacity-50"
             aria-disabled="true"
           >
             <view class="h-control flex flex-1 items-center gap-sm">

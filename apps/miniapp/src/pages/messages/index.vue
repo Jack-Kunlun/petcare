@@ -101,7 +101,7 @@ function openMessage(item: MessageItem) {
     </template>
 
     <view class="box-border flex flex-col pb-screen">
-      <view class="mx-action h-control flex rounded-pill bg-surface p-caption">
+      <view class="mx-page-horizontal h-control flex rounded-pill bg-surface p-caption">
         <view
           v-for="(tab, index) in categoryTabs"
           :key="tab"
@@ -117,15 +117,15 @@ function openMessage(item: MessageItem) {
         </view>
       </view>
 
-      <view class="px-action pb-sm pt-caption">
+      <view class="px-page-horizontal pb-sm pt-caption">
         <text class="text-caption text-muted font-medium leading-caption">今天</text>
       </view>
 
-      <view class="mx-action overflow-hidden main-card">
+      <view class="mx-page-horizontal overflow-hidden main-card">
         <view
           v-for="(item, index) in messages"
           :key="item.title"
-          class="relative flex gap-copy px-action py-action"
+          class="relative flex gap-copy px-card-padding py-action"
           :class="index < messages.length - 1 ? 'border-b border-divider' : ''"
           :hover-class="item.kind === 'system' ? 'none' : 'opacity-80'"
           @click="openMessage(item)"

@@ -94,7 +94,7 @@ function openReward(id: string) {
     </template>
 
     <view class="box-border flex flex-col pb-screen">
-      <view class="mx-action flex flex-col gap-copy main-card p-copy">
+      <view class="mx-page-horizontal flex flex-col gap-copy main-card p-copy">
         <view class="h-control flex items-center gap-sm rounded-control bg-divider px-copy">
           <image class="h-icon-sm w-icon-sm" src="/static/main/search.svg" mode="aspectFit" />
           <text class="text-body text-subtle leading-body">搜索服务、宠物或区域</text>
@@ -158,7 +158,7 @@ function openReward(id: string) {
         </view>
       </view>
 
-      <view v-if="mode === 'list'" class="mx-action mt-copy flex flex-col gap-copy">
+      <view v-if="mode === 'list'" class="mx-page-horizontal mt-copy flex flex-col gap-copy">
         <view
           v-for="item in bounties"
           :key="item.pet"
@@ -222,9 +222,9 @@ function openReward(id: string) {
         </view>
       </view>
 
-      <view v-else class="mx-action mt-copy flex flex-col gap-copy">
+      <view v-else class="mx-page-horizontal mt-copy flex flex-col gap-copy">
         <view
-          class="h-hero flex flex-col justify-between rounded-card from-soft to-divider bg-gradient-to-br p-action shadow-card"
+          class="h-hero flex flex-col justify-between rounded-card from-soft to-divider bg-gradient-to-br p-card-padding shadow-card"
         >
           <view class="flex justify-between">
             <view class="rounded-pill bg-surface px-copy py-sm shadow-card">

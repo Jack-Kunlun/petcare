@@ -89,7 +89,7 @@ function handleTabChange(event: { value: string | number }) {
     />
 
     <view
-      class="box-border flex shrink-0 items-center bg-page-bg pl-action"
+      class="box-border flex shrink-0 items-center bg-page-bg pl-page-horizontal"
       :style="{
         height: `${layout.navigationContentHeight}px`,
         paddingRight: `${rootHeaderRightInset}px`,

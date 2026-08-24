@@ -108,14 +108,14 @@ const classroomArticles = [
 
     <view class="box-border flex flex-col pb-screen">
       <view
-        class="relative mx-action mt-action h-hero-main overflow-hidden rounded-card bg-surface shadow-card"
+        class="relative mx-page-horizontal mt-action h-hero-main overflow-hidden rounded-card bg-surface shadow-card"
       >
         <image
           class="absolute inset-0 h-full w-full"
           src="/static/main/home-hero-trusted.png"
           mode="aspectFill"
         />
-        <view class="absolute left-action top-card w-hero-copy flex flex-col gap-sm">
+        <view class="absolute left-card-padding top-card w-hero-copy flex flex-col gap-sm">
           <text class="text-amount text-ink font-semibold leading-section">专业照护，就在身边</text>
           <text class="text-caption text-muted leading-caption"
             >实名认证照护者，让每次托付更安心</text
@@ -135,7 +135,7 @@ const classroomArticles = [
         </view>
       </view>
 
-      <view class="mt-card flex items-center justify-between px-action">
+      <view class="mt-card flex items-center justify-between px-page-horizontal">
         <text class="section-heading">我的服务</text>
         <view class="flex items-center gap-caption" hover-class="opacity-80" @click="openOrders">
           <text class="text-caption text-brand leading-caption">查看全部</text>
@@ -147,7 +147,7 @@ const classroomArticles = [
         </view>
       </view>
 
-      <view class="mx-action mt-copy main-card p-action">
+      <view class="mx-page-horizontal mt-copy main-card p-card-padding">
         <view class="flex items-center justify-between">
           <view class="flex items-center gap-copy">
             <image
@@ -191,7 +191,7 @@ const classroomArticles = [
         </view>
       </view>
 
-      <view class="mt-section flex items-center justify-between px-action">
+      <view class="mt-section flex items-center justify-between px-page-horizontal">
         <text class="section-heading">附近热门悬赏</text>
         <text
           class="text-caption text-brand leading-caption"
@@ -203,7 +203,7 @@ const classroomArticles = [
       </view>
 
       <scroll-view class="mt-copy w-full" scroll-x :show-scrollbar="false">
-        <view class="flex gap-copy px-action pb-sm">
+        <view class="flex gap-copy px-page-horizontal pb-sm">
           <view
             v-for="item in bountyCards"
             :key="item.pet"
@@ -233,7 +233,7 @@ const classroomArticles = [
         </view>
       </scroll-view>
 
-      <view class="mt-section flex items-center justify-between px-action">
+      <view class="mt-section flex items-center justify-between px-page-horizontal">
         <text class="section-heading">养宠小课堂</text>
         <text
           class="text-caption text-brand leading-caption"
@@ -244,7 +244,7 @@ const classroomArticles = [
         </text>
       </view>
 
-      <view class="mx-action mt-copy flex flex-col gap-copy">
+      <view class="mx-page-horizontal mt-copy flex flex-col gap-copy">
         <view
           v-for="article in classroomArticles"
           :key="article.title"
@@ -267,11 +267,11 @@ const classroomArticles = [
         </view>
       </view>
 
-      <view class="mt-section px-action">
+      <view class="mt-section px-page-horizontal">
         <text class="section-heading">社区精选</text>
       </view>
       <view
-        class="mx-action mt-copy overflow-hidden main-card"
+        class="mx-page-horizontal mt-copy overflow-hidden main-card"
         hover-class="opacity-80"
         @click="openCommunityArticle('post-1')"
       >
@@ -280,7 +280,7 @@ const classroomArticles = [
           src="/static/main/community-pet-2.jpg"
           mode="aspectFill"
         />
-        <view class="flex flex-col gap-sm p-action">
+        <view class="flex flex-col gap-sm p-card-padding">
           <text class="card-heading">第一次带旺财参加宠物友好市集，开心到不想回家</text>
           <text class="meta-text">来自 小林与旺财 · 1.2k 人正在讨论</text>
         </view>

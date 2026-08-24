@@ -7,7 +7,9 @@ defineProps<{ title: string }>();
 
 const slots = useSlots();
 const { layout } = usePlatformLayout();
-const navigationHorizontalGap = Number.parseFloat(miniappDesignTokens.spacing.action);
+const navigationHorizontalGap = Number.parseFloat(
+  miniappDesignTokens.spacing["navigation-horizontal"],
+);
 const navigationControlSize = Number.parseFloat(miniappDesignTokens.sizes.control);
 const actionPadding = Number.parseFloat(miniappDesignTokens.spacing.copy);
 const rightControlOffset = computed(() =>
@@ -35,17 +37,16 @@ function goBack() {
     "
   >
     <view
-      class="shrink-0 bg-page-bg"
+      class="shrink-0 bg-surface"
       :style="{ height: `${layout.navigationTotalHeight - layout.navigationContentHeight}px` }"
     />
 
     <view
-      class="relative flex shrink-0 items-center bg-page-bg"
+      class="relative flex shrink-0 items-center bg-surface"
       :style="{ height: `${layout.navigationContentHeight}px` }"
     >
       <view
-        class="absolute h-control w-control flex items-center justify-center"
-        :style="{ left: `${navigationHorizontalGap}px` }"
+        class="absolute left-0 box-border h-control w-control flex items-center justify-start pl-navigation-horizontal"
         aria-label="返回"
         @click="goBack"
       >

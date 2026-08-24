@@ -72,7 +72,7 @@ function openPage(route: string) {
     </template>
 
     <view class="box-border flex flex-col pb-screen">
-      <view class="mx-action overflow-hidden main-card p-action">
+      <view class="mx-page-horizontal overflow-hidden main-card p-card-padding">
         <view
           class="flex items-center gap-copy"
           hover-class="opacity-80"
@@ -109,7 +109,7 @@ function openPage(route: string) {
         </view>
       </view>
 
-      <view class="mx-action mt-copy flex main-card py-action">
+      <view class="mx-page-horizontal mt-copy flex main-card py-action">
         <view
           v-for="(stat, index) in profileStats"
           :key="stat.label"
@@ -123,7 +123,7 @@ function openPage(route: string) {
         </view>
       </view>
 
-      <view class="mt-card flex items-center justify-between px-action">
+      <view class="mt-card flex items-center justify-between px-page-horizontal">
         <text class="section-heading">我的宠物</text>
         <view
           class="flex items-center gap-caption"
@@ -139,7 +139,7 @@ function openPage(route: string) {
         </view>
       </view>
 
-      <view class="mt-copy flex items-stretch gap-sm px-action pb-sm">
+      <view class="mt-copy flex items-stretch gap-sm px-page-horizontal pb-sm">
         <view
           class="min-w-0 flex flex-1 flex-col items-center gap-caption main-card p-sm"
           hover-class="opacity-80"
@@ -180,14 +180,14 @@ function openPage(route: string) {
         </view>
       </view>
 
-      <view class="mt-card px-action">
+      <view class="mt-card px-page-horizontal">
         <text class="section-heading">我的内容</text>
       </view>
-      <view class="mx-action mt-copy overflow-hidden main-card">
+      <view class="mx-page-horizontal mt-copy overflow-hidden main-card">
         <view
           v-for="(item, index) in contentItems"
           :key="item.label"
-          class="flex items-center gap-copy px-action py-action"
+          class="flex items-center gap-copy px-card-padding py-action"
           :class="index < contentItems.length - 1 ? 'border-b border-divider' : ''"
           hover-class="opacity-80"
           @click="openPage(item.route)"
@@ -205,14 +205,14 @@ function openPage(route: string) {
         </view>
       </view>
 
-      <view class="mt-card px-action">
+      <view class="mt-card px-page-horizontal">
         <text class="section-heading">服务与帮助</text>
       </view>
-      <view class="mx-action mt-copy overflow-hidden main-card">
+      <view class="mx-page-horizontal mt-copy overflow-hidden main-card">
         <view
           v-for="(item, index) in supportItems"
           :key="item.label"
-          class="flex items-center gap-copy px-action py-action"
+          class="flex items-center gap-copy px-card-padding py-action"
           :class="index < supportItems.length - 1 ? 'border-b border-divider' : ''"
           hover-class="opacity-80"
           @click="openPage(item.route)"
@@ -231,7 +231,7 @@ function openPage(route: string) {
       </view>
 
       <view
-        class="mx-action mt-card h-control flex items-center justify-center rounded-control bg-danger-soft opacity-50"
+        class="mx-page-horizontal mt-card h-control flex items-center justify-center rounded-control bg-danger-soft opacity-50"
         aria-disabled="true"
       >
         <text class="text-body text-danger font-medium leading-label">退出登录</text>
