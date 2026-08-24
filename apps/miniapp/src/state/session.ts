@@ -59,8 +59,12 @@ function isStoredUser(value: unknown): value is MiniappUserProfile {
   );
 }
 
+function hasManualLogout(): boolean {
+  return uni.getStorageSync(STORAGE_KEY.manualLogout) === true;
+}
+
 function readStoredSession(): WechatSession | null {
-  if (uni.getStorageSync(STORAGE_KEY.sessionCommitted) !== true) {
+  if (hasManualLogout() || uni.getStorageSync(STORAGE_KEY.sessionCommitted) !== true) {
     return null;
   }
 
@@ -228,7 +232,7 @@ export async function bootstrapSession(): Promise<void> {
   session.bootstrapped = false;
 
   try {
-    if (uni.getStorageSync(STORAGE_KEY.manualLogout) === true) {
+    if (hasManualLogout()) {
       return;
     }
 
@@ -286,12 +290,19 @@ function isUnauthorized(error: unknown): error is MiniappApiError {
 async function authorizedOperation<T>(
   operation: (accessToken: string | null) => Promise<T>,
 ): Promise<T> {
-  const attemptedToken = session.accessToken ?? readStoredSession()?.accessToken ?? null;
+  const revision = sessionRevision;
+  const attemptedToken = hasManualLogout()
+    ? null
+    : (session.accessToken ?? readStoredSession()?.accessToken ?? null);
 
   try {
     return await operation(attemptedToken);
   } catch (error) {
     if (!isUnauthorized(error)) {
+      throw error;
+    }
+
+    if (revision !== sessionRevision || hasManualLogout()) {
       throw error;
     }
 
@@ -304,6 +315,10 @@ async function authorizedOperation<T>(
       }
 
       await refreshSession(refreshToken);
+    }
+
+    if (revision !== sessionRevision || hasManualLogout()) {
+      throw error;
     }
 
     try {

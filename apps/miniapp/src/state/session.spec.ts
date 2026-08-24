@@ -183,6 +183,7 @@ describe("miniapp session", () => {
   });
 
   it("suppresses silent login after a manual logout", async () => {
+    seedStoredSession(false);
     storage.set("petcare.manualLogout", true);
 
     await bootstrapSession();
@@ -345,7 +346,7 @@ describe("miniapp session", () => {
     expect(login).not.toHaveBeenCalled();
   });
 
-  it("ignores a stale refresh success after manual logout", async () => {
+  it("does not replay a stale refresh success after manual logout", async () => {
     seedStoredSession();
 
     const refresh = deferred<typeof refreshedSession>();
@@ -360,12 +361,13 @@ describe("miniapp session", () => {
     clearSession(true);
     refresh.resolve(refreshedSession);
 
-    await expect(pending).resolves.toEqual({ id: "ignored" });
+    await expect(pending).rejects.toMatchObject({ statusCode: 401 });
+    expect(rawRequestMock).toHaveBeenCalledTimes(1);
     expect(session).toMatchObject({ accessToken: null, refreshToken: null, user: null });
     expect(storage.get("petcare.manualLogout")).toBe(true);
   });
 
-  it("does not refresh when a request receives its 401 after manual logout", async () => {
+  it("does not refresh a delayed 401 when logout cleanup and invalidation fail", async () => {
     seedStoredSession();
 
     const request = deferred<never>();
@@ -375,6 +377,17 @@ describe("miniapp session", () => {
 
     const pending = authorizedRequest("/users/me");
 
+    setStorageSync.mockImplementation((key, value) => {
+      if (key === STORAGE_KEY.sessionCommitted && value === false) {
+        throw new Error("marker invalidation failed");
+      }
+
+      return storage.set(key, value);
+    });
+    removeStorageSync.mockImplementation(() => {
+      throw new Error("cleanup failed");
+    });
+
     clearSession(true);
     request.reject(accessError());
 
@@ -382,7 +395,7 @@ describe("miniapp session", () => {
     expect(refreshWechatSessionMock).not.toHaveBeenCalled();
     expect(session).toMatchObject({ accessToken: null, refreshToken: null, user: null });
     expect(storage.get(STORAGE_KEY.manualLogout)).toBe(true);
-    expect(storage.get(STORAGE_KEY.sessionCommitted)).toBe(false);
+    expect(storage.get(STORAGE_KEY.sessionCommitted)).toBe(true);
   });
 
   it("keeps a newer interactive login when a stale refresh fails", async () => {
