@@ -1,4 +1,3 @@
-import type { UploadAdminClassroomArticleMediaResponse } from "@petcare/shared-types";
 import { cleanup, fireEvent, render, screen, waitFor } from "@testing-library/react";
 import userEvent from "@testing-library/user-event";
 import { afterEach, beforeAll, describe, expect, it, vi } from "vitest";
@@ -119,24 +118,36 @@ describe("RichTextEditor", () => {
     });
   });
 
+  it("does not emit a value change when editability changes", async () => {
+    const onChange = vi.fn();
+    const { rerender } = render(<RichTextEditor value="" onChange={onChange} onUpload={vi.fn()} />);
+
+    await screen.findByRole("textbox", { name: "文章正文" });
+    vi.clearAllMocks();
+    rerender(<RichTextEditor value="" disabled onChange={onChange} onUpload={vi.fn()} />);
+
+    await waitFor(() => {
+      expect(screen.getByRole("textbox", { name: "文章正文" })).toHaveAttribute(
+        "contenteditable",
+        "false",
+      );
+    });
+    expect(onChange).not.toHaveBeenCalled();
+  });
+
   it("locks the toolbar, file input, and editor while an image uploads", async () => {
-    const asset: UploadAdminClassroomArticleMediaResponse = {
-      id: "asset-2",
-      url: "https://cdn.example/coat.png",
-      width: 800,
-      height: 600,
-      mimeType: "image/png",
-    };
-    let resolveUpload!: (asset: UploadAdminClassroomArticleMediaResponse) => void;
+    const failure = { response: { data: { message: "图片上传失败" } } };
+    const onChange = vi.fn();
+    let rejectUpload!: (reason?: unknown) => void;
     const onUpload = vi.fn(
       () =>
-        new Promise<typeof asset>((resolve) => {
-          resolveUpload = resolve;
+        new Promise<never>((_resolve, reject) => {
+          rejectUpload = reject;
         }),
     );
     const user = userEvent.setup();
 
-    render(<RichTextEditor value="" onChange={vi.fn()} onUpload={onUpload} />);
+    render(<RichTextEditor value="" onChange={onChange} onUpload={onUpload} />);
 
     const editor = screen.getByRole("textbox", { name: "文章正文" });
     const fileInput = screen.getByLabelText("插入正文图片");
@@ -150,8 +161,9 @@ describe("RichTextEditor", () => {
       expect(editor).toHaveAttribute("contenteditable", "false");
       expect(editor).toHaveAttribute("aria-disabled", "true");
     });
+    expect(onChange).not.toHaveBeenCalled();
 
-    resolveUpload(asset);
+    rejectUpload(failure);
 
     await waitFor(() => {
       expect(screen.getByRole("button", { name: "粗体" })).not.toBeDisabled();
@@ -159,6 +171,7 @@ describe("RichTextEditor", () => {
       expect(editor).toHaveAttribute("contenteditable", "true");
       expect(editor).toHaveAttribute("aria-disabled", "false");
     });
+    expect(onChange).not.toHaveBeenCalled();
   });
 
   it("applies external values without emitting an editor update", async () => {

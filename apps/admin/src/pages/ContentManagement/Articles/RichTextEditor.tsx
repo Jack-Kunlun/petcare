@@ -90,7 +90,7 @@ export function RichTextEditor({
   }, [editor, value]);
 
   useEffect(() => {
-    editor.setEditable(!isLocked);
+    editor.setEditable(!isLocked, false);
     editor.view.dom.setAttribute("aria-disabled", String(isLocked));
   }, [editor, isLocked]);
 
