@@ -7,6 +7,7 @@ import {
   uploadAdminAvatar,
 } from "../../api/admin-account";
 import { useAuth } from "../../auth/auth.context";
+import { showApiError } from "../../lib/global-error";
 
 const ACCEPTED_AVATAR_TYPES = new Set(["image/jpeg", "image/png", "image/webp"]);
 const MAX_AVATAR_BYTES = 2 * 1024 * 1024;
@@ -55,8 +56,8 @@ export function ProfileCard({ profile, onProfileChange }: ProfileCardProps) {
       setNickname(updatedProfile.nickname);
       updateSummary(updatedProfile);
       setSuccess("昵称已保存");
-    } catch {
-      setError("昵称保存失败，请稍后重试。");
+    } catch (error) {
+      showApiError(error);
     } finally {
       setNicknamePending(false);
     }
@@ -93,8 +94,8 @@ export function ProfileCard({ profile, onProfileChange }: ProfileCardProps) {
 
       updateSummary({ ...profile, avatar: result.avatar });
       setSuccess("头像已更新");
-    } catch {
-      setError("头像上传失败，请稍后重试。");
+    } catch (error) {
+      showApiError(error);
     } finally {
       setAvatarPending(false);
     }
@@ -113,8 +114,8 @@ export function ProfileCard({ profile, onProfileChange }: ProfileCardProps) {
       await deleteAdminAvatar();
       updateSummary({ ...profile, avatar: null });
       setSuccess("头像已移除");
-    } catch {
-      setError("头像移除失败，请稍后重试。");
+    } catch (error) {
+      showApiError(error);
     } finally {
       setAvatarPending(false);
     }

@@ -50,6 +50,19 @@ function StateProbe() {
   return <div>{auth.status === "authenticated" ? auth.user?.nickname : auth.status}</div>;
 }
 
+function LogoutProbe() {
+  const auth = useAuth();
+
+  return (
+    <>
+      <span>{auth.status}</span>
+      <button type="button" onClick={() => void auth.logout()}>
+        logout
+      </button>
+    </>
+  );
+}
+
 function CaptchaActionsProbe() {
   const auth = useAuth();
   const [captchaId, setCaptchaId] = useState("none");
@@ -180,6 +193,27 @@ describe("AuthProvider", () => {
 
     expect(authApi.getCaptcha).toHaveBeenCalledOnce();
     expect(authApi.sendSmsCode).toHaveBeenCalledWith("13800138000", "0123456789abcdef", "2345");
+  });
+
+  it("reports logout failure and still clears the local session", async () => {
+    const failure = { response: { data: { message: "退出登录失败" } } };
+
+    vi.mocked(authApi.refreshSession).mockResolvedValue({ accessToken: "access" });
+    vi.mocked(authApi.getCurrentUser).mockResolvedValue(adminUser);
+    vi.mocked(authApi.logout).mockRejectedValue(failure);
+    render(
+      <AuthProvider>
+        <LogoutProbe />
+      </AuthProvider>,
+    );
+    await screen.findByText("authenticated");
+
+    fireEvent.click(screen.getByRole("button", { name: "logout" }));
+
+    await waitFor(() => expect(globalErrors.showApiError).toHaveBeenCalledWith(failure));
+    expect(authApi.clearAccessToken).toHaveBeenCalled();
+    expect(screen.getByText("anonymous")).toBeInTheDocument();
+    expect(globalErrors.showGlobalError).not.toHaveBeenCalled();
   });
 
   it("updates only the user summary and invalidates the local session without logout", async () => {

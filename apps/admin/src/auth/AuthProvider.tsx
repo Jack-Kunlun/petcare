@@ -1,6 +1,6 @@
 import { ReactNode, useCallback, useEffect, useMemo, useState } from "react";
 import * as authApi from "../api/auth";
-import { showGlobalError } from "../lib/global-error";
+import { showApiError, showGlobalError } from "../lib/global-error";
 import { AuthContext, AuthContextValue } from "./auth.context";
 import { AdminUser, AuthStatus } from "./auth.types";
 
@@ -77,6 +77,8 @@ export function AuthProvider({ children }: { children: ReactNode }) {
   const logout = useCallback(async () => {
     try {
       await authApi.logout();
+    } catch (error) {
+      showApiError(error);
     } finally {
       authApi.clearAccessToken();
       setUser(null);

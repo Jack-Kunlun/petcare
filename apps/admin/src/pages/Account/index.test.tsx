@@ -16,9 +16,11 @@ const auth = vi.hoisted(() => ({
   invalidateLocalSession: vi.fn(),
   updateUserSummary: vi.fn(),
 }));
+const globalErrors = vi.hoisted(() => ({ showApiError: vi.fn() }));
 
 vi.mock("../../api/admin-account", () => api);
 vi.mock("../../auth/auth.context", () => ({ useAuth: () => auth }));
+vi.mock("../../lib/global-error", () => globalErrors);
 
 const profile = {
   id: "admin-1",
@@ -111,7 +113,7 @@ describe("Account", () => {
     expect(await screen.findByRole("status")).toHaveTextContent("昵称已保存");
   });
 
-  it("validates avatar input locally, keeps the old avatar after failure, and restores default avatar", async () => {
+  it("validates avatar input locally and restores the default avatar", async () => {
     const user = userEvent.setup();
     const { container } = renderAccount();
 
@@ -125,13 +127,6 @@ describe("Account", () => {
       target: { files: [new File(["image"], "avatar.gif", { type: "image/gif" })] },
     });
     expect(screen.getByRole("alert")).toHaveTextContent("仅支持 JPEG、PNG 或 WebP 格式");
-
-    api.uploadAdminAvatar.mockRejectedValueOnce(new Error("network"));
-    fireEvent.change(input, {
-      target: { files: [new File(["image"], "avatar.png", { type: "image/png" })] },
-    });
-    expect(await screen.findByRole("alert")).toHaveTextContent("头像上传失败");
-    expect(screen.getByTestId("default-avatar")).toBeInTheDocument();
 
     api.uploadAdminAvatar.mockResolvedValueOnce({ avatar: "https://cdn.example/avatar.png" });
     fireEvent.change(input, {
@@ -149,6 +144,42 @@ describe("Account", () => {
       nickname: "系统管理员",
       avatar: null,
     });
+  });
+
+  it("routes profile action failures through the global API message", async () => {
+    const nicknameFailure = { response: { data: { message: "昵称已被占用" } } };
+    const uploadFailure = { response: { data: { message: "头像文件无效" } } };
+    const removeFailure = { response: { data: { message: "头像移除失败" } } };
+    const user = userEvent.setup();
+    const { container } = renderAccount();
+
+    await screen.findByDisplayValue("系统管理员");
+
+    api.updateAdminAccountProfile.mockRejectedValueOnce(nicknameFailure);
+    await user.clear(screen.getByLabelText("昵称"));
+    await user.type(screen.getByLabelText("昵称"), "新昵称");
+    await user.click(screen.getByRole("button", { name: "保存昵称" }));
+    await waitFor(() => expect(globalErrors.showApiError).toHaveBeenCalledWith(nicknameFailure));
+    expect(screen.queryByText("昵称保存失败，请稍后重试。")).not.toBeInTheDocument();
+
+    const input = container.querySelector("input[type=file]") as HTMLInputElement;
+
+    api.uploadAdminAvatar.mockRejectedValueOnce(uploadFailure);
+    fireEvent.change(input, {
+      target: { files: [new File(["image"], "avatar.png", { type: "image/png" })] },
+    });
+    await waitFor(() => expect(globalErrors.showApiError).toHaveBeenCalledWith(uploadFailure));
+    expect(screen.queryByText("头像上传失败，请稍后重试。")).not.toBeInTheDocument();
+
+    api.uploadAdminAvatar.mockResolvedValueOnce({ avatar: "https://cdn.example/avatar.png" });
+    fireEvent.change(input, {
+      target: { files: [new File(["image"], "avatar.png", { type: "image/png" })] },
+    });
+    await screen.findByRole("img", { name: "当前头像" });
+    api.deleteAdminAvatar.mockRejectedValueOnce(removeFailure);
+    await user.click(screen.getByRole("button", { name: "移除头像" }));
+    await waitFor(() => expect(globalErrors.showApiError).toHaveBeenCalledWith(removeFailure));
+    expect(screen.queryByText("头像移除失败，请稍后重试。")).not.toBeInTheDocument();
   });
 
   it("keeps password confirmation local and ends the local session after a successful password change", async () => {
@@ -175,6 +206,25 @@ describe("Account", () => {
     });
     expect(auth.invalidateLocalSession).toHaveBeenCalledOnce();
     expect(await screen.findByTestId("location")).toHaveTextContent("/login");
+  });
+
+  it("routes password request failures through the global API message", async () => {
+    const failure = { response: { data: { message: "当前密码错误" } } };
+
+    api.changeAdminPassword.mockRejectedValue(failure);
+    const user = userEvent.setup();
+
+    renderAccount();
+    await screen.findByDisplayValue("系统管理员");
+
+    await user.type(screen.getByLabelText("当前密码"), "Old-password-value!42");
+    await user.type(screen.getByLabelText("新密码"), "New-password-value!42");
+    await user.type(screen.getByLabelText("确认新密码"), "New-password-value!42");
+    await user.click(screen.getByRole("button", { name: "修改密码" }));
+
+    await waitFor(() => expect(globalErrors.showApiError).toHaveBeenCalledWith(failure));
+    expect(auth.invalidateLocalSession).not.toHaveBeenCalled();
+    expect(screen.queryByText("密码修改失败，请检查当前密码后重试。")).not.toBeInTheDocument();
   });
 
   it("scrolls to and focuses the current password field for a password hash", async () => {

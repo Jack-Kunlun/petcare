@@ -4,6 +4,7 @@ import { Navigate, useLocation, useNavigate } from "react-router-dom";
 import loginBackgroundUrl from "../../assets/brand/petcare-background-soft.svg";
 import { useAuth } from "../../auth/auth.context";
 import { BrandLogo } from "../../components/BrandLogo";
+import { showApiError } from "../../lib/global-error";
 
 type LoginMode = "password" | "sms";
 
@@ -43,9 +44,10 @@ export default function Login() {
 
     try {
       setCaptcha(await getCaptcha());
-    } catch {
+    } catch (error) {
       setCaptcha(null);
       setCaptchaLoadError(true);
+      showApiError(error);
     } finally {
       setCaptchaLoading(false);
     }
@@ -103,8 +105,8 @@ export default function Login() {
       }
 
       navigate("/", { replace: true });
-    } catch {
-      setError("登录失败，请检查账号或凭据");
+    } catch (error) {
+      showApiError(error);
     } finally {
       setPending(false);
     }
@@ -130,8 +132,8 @@ export default function Login() {
     try {
       await auth.sendSmsCode(phone, captcha.captchaId, captchaCode);
       setCooldown(60);
-    } catch {
-      setError("验证码发送失败，请稍后重试");
+    } catch (error) {
+      showApiError(error);
     } finally {
       setCaptchaCode("");
       await loadCaptcha();

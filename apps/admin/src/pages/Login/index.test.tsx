@@ -13,6 +13,7 @@ const auth = vi.hoisted(() => ({
   loginWithSms: vi.fn(),
   sendSmsCode: vi.fn(),
 }));
+const globalErrors = vi.hoisted(() => ({ showApiError: vi.fn() }));
 
 const firstCaptcha = {
   captchaId: "0123456789abcdef",
@@ -34,6 +35,7 @@ vi.mock("../../auth/auth.context", () => ({
     ...auth,
   }),
 }));
+vi.mock("../../lib/global-error", () => globalErrors);
 
 function renderLogin(initialEntries: InitialEntry[] = ["/login"]) {
   return render(
@@ -194,8 +196,10 @@ describe("Login", () => {
   });
 
   it("refreshes the graphical captcha after an SMS send failure", async () => {
+    const failure = { response: { data: { message: "图形验证码错误" } } };
+
     auth.getCaptcha.mockResolvedValueOnce(firstCaptcha).mockResolvedValueOnce(secondCaptcha);
-    auth.sendSmsCode.mockRejectedValue(new Error("invalid captcha"));
+    auth.sendSmsCode.mockRejectedValue(failure);
     const user = userEvent.setup();
 
     renderLogin();
@@ -206,21 +210,24 @@ describe("Login", () => {
     await user.type(screen.getByLabelText("图形验证码"), "2345");
     await user.click(screen.getByRole("button", { name: "发送验证码" }));
 
-    expect(await screen.findByRole("alert")).toHaveTextContent("验证码发送失败，请稍后重试");
+    await waitFor(() => expect(globalErrors.showApiError).toHaveBeenCalledWith(failure));
+    expect(screen.queryByText("验证码发送失败，请稍后重试")).not.toBeInTheDocument();
     expect(screen.getByLabelText("图形验证码")).toHaveValue("");
     await waitFor(() => expect(auth.getCaptcha).toHaveBeenCalledTimes(2));
   });
 
   it("offers a retry when graphical captcha loading fails", async () => {
-    auth.getCaptcha
-      .mockRejectedValueOnce(new Error("network error"))
-      .mockResolvedValue(firstCaptcha);
+    const failure = { response: { data: { message: "图形验证码加载失败" } } };
+
+    auth.getCaptcha.mockRejectedValueOnce(failure).mockResolvedValue(firstCaptcha);
     const user = userEvent.setup();
 
     renderLogin();
 
     await user.click(screen.getByRole("tab", { name: "验证码登录" }));
     const retryButton = await screen.findByRole("button", { name: "重新加载图形验证码" });
+
+    await waitFor(() => expect(globalErrors.showApiError).toHaveBeenCalledWith(failure));
 
     await user.click(retryButton);
 
@@ -280,8 +287,10 @@ describe("Login", () => {
     expect(await screen.findByRole("heading", { name: "仪表盘" })).toBeInTheDocument();
   });
 
-  it("shows a safe error when login fails", async () => {
-    auth.loginWithPassword.mockRejectedValue(new Error("request failed"));
+  it("routes a failed login through the global API message", async () => {
+    const failure = { response: { data: { message: "账号或凭据错误" } } };
+
+    auth.loginWithPassword.mockRejectedValue(failure);
     const user = userEvent.setup();
 
     renderLogin();
@@ -290,7 +299,8 @@ describe("Login", () => {
     await user.type(screen.getByLabelText("密码"), "Wrong-Password-Value!42");
     await user.click(screen.getByRole("button", { name: "登录" }));
 
-    expect(await screen.findByRole("alert")).toHaveTextContent("登录失败，请检查账号或凭据");
+    await waitFor(() => expect(globalErrors.showApiError).toHaveBeenCalledWith(failure));
+    expect(screen.queryByText("登录失败，请检查账号或凭据")).not.toBeInTheDocument();
   });
 
   it("shows a safe one-time password-change message from navigation state", () => {

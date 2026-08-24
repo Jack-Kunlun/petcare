@@ -3,6 +3,7 @@ import { type FormEvent, type RefObject, useState } from "react";
 import { useNavigate } from "react-router-dom";
 import { changeAdminPassword } from "../../api/admin-account";
 import { useAuth } from "../../auth/auth.context";
+import { showApiError } from "../../lib/global-error";
 
 interface PasswordCardProps {
   currentPasswordRef: RefObject<HTMLInputElement | null>;
@@ -44,8 +45,8 @@ export function PasswordCard({ currentPasswordRef, sectionRef }: PasswordCardPro
         replace: true,
         state: { message: "密码已修改，请重新登录" },
       });
-    } catch {
-      setError("密码修改失败，请检查当前密码后重试。");
+    } catch (error) {
+      showApiError(error);
     } finally {
       setPending(false);
     }
