@@ -2,11 +2,19 @@ import type {
   AdminClassroomArticleListItem,
   AdminClassroomArticleStatus,
 } from "@petcare/shared-types";
-import { keepPreviousData, useQuery } from "@tanstack/react-query";
+import * as Dialog from "@radix-ui/react-dialog";
+import { keepPreviousData, useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
 import { AlertCircle, BookOpen, ChevronLeft, ChevronRight, RotateCcw, Search } from "lucide-react";
 import { useState } from "react";
 import type { FormEvent } from "react";
-import { fetchAdminClassroomArticles } from "../../../api/content/articles";
+import { Link } from "react-router-dom";
+import {
+  articleQueryKeys,
+  fetchAdminClassroomArticles,
+  offlineAdminClassroomArticle,
+  publishAdminClassroomArticle,
+} from "../../../api/content/articles";
+import { usePermissions } from "../../../auth/permissions";
 
 const PAGE_SIZE = 20;
 
@@ -47,7 +55,83 @@ function StatusBadge({ status }: { status: AdminClassroomArticleStatus }) {
   );
 }
 
-function ArticleRow({ article }: { article: AdminClassroomArticleListItem }) {
+type ArticleStateAction = "publish" | "offline";
+
+interface ArticleStateDialogProps {
+  article: AdminClassroomArticleListItem | null;
+  action: ArticleStateAction;
+  pending: boolean;
+  onConfirm(): void;
+  onOpenChange(open: boolean): void;
+}
+
+function ArticleStateDialog({
+  article,
+  action,
+  pending,
+  onConfirm,
+  onOpenChange,
+}: ArticleStateDialogProps) {
+  const publishing = action === "publish";
+  let confirmationLabel = "确认下线";
+
+  if (publishing) {
+    confirmationLabel = "确认发布";
+  }
+
+  if (pending) {
+    confirmationLabel = "处理中…";
+  }
+
+  return (
+    <Dialog.Root open={article !== null} onOpenChange={(open) => !pending && onOpenChange(open)}>
+      <Dialog.Portal>
+        <Dialog.Overlay className="fixed inset-0 z-40 bg-slate-950/45" />
+        <Dialog.Content
+          onEscapeKeyDown={(event) => pending && event.preventDefault()}
+          onPointerDownOutside={(event) => pending && event.preventDefault()}
+          className="fixed left-1/2 top-1/2 z-50 w-[min(448px,calc(100vw-32px))] -translate-x-1/2 -translate-y-1/2 rounded-xl bg-white p-6 shadow-2xl outline-none focus-visible:ring-2 focus-visible:ring-blue-700"
+        >
+          <Dialog.Title className="text-lg font-semibold text-slate-950">
+            {publishing ? "确认发布文章" : "确认下线文章"}
+          </Dialog.Title>
+          <Dialog.Description className="mt-2 text-sm leading-6 text-slate-600">
+            {publishing
+              ? `发布后官网将立即展示《${article?.title ?? ""}》。`
+              : `下线后官网将不再展示《${article?.title ?? ""}》。`}
+          </Dialog.Description>
+          <div className="mt-6 flex justify-end gap-2">
+            <button
+              type="button"
+              disabled={pending}
+              onClick={() => onOpenChange(false)}
+              className="min-h-11 cursor-pointer rounded-lg border border-slate-300 px-4 py-2 font-semibold text-slate-800 outline-none transition-colors hover:bg-slate-50 focus-visible:ring-2 focus-visible:ring-blue-700 disabled:cursor-not-allowed disabled:opacity-50"
+            >
+              取消
+            </button>
+            <button
+              type="button"
+              disabled={pending}
+              onClick={onConfirm}
+              className="min-h-11 cursor-pointer rounded-lg bg-blue-700 px-4 py-2 font-semibold text-white outline-none transition-colors hover:bg-blue-800 focus-visible:ring-2 focus-visible:ring-blue-700 focus-visible:ring-offset-2 disabled:cursor-not-allowed disabled:bg-slate-400"
+            >
+              {confirmationLabel}
+            </button>
+          </div>
+        </Dialog.Content>
+      </Dialog.Portal>
+    </Dialog.Root>
+  );
+}
+
+interface ArticleRowProps {
+  article: AdminClassroomArticleListItem;
+  canWrite: boolean;
+  canPublish: boolean;
+  onStateChange(article: AdminClassroomArticleListItem, action: ArticleStateAction): void;
+}
+
+function ArticleRow({ article, canWrite, canPublish, onStateChange }: ArticleRowProps) {
   return (
     <tr className="border-t border-border align-top transition-[background-color,border-color] duration-200 hover:bg-page-background hover:border-border">
       <td className="px-5 py-4">
@@ -76,6 +160,50 @@ function ArticleRow({ article }: { article: AdminClassroomArticleListItem }) {
       </td>
       <td className="px-5 py-4 text-sm text-slate-600">{formatDate(article.publishedAt)}</td>
       <td className="px-5 py-4 text-sm text-slate-600">{formatDate(article.updatedAt)}</td>
+      <td className="px-5 py-4">
+        <div className="flex min-w-max items-center gap-3 text-sm font-medium">
+          {canWrite && article.status !== "published" ? (
+            <Link
+              to={`/content/articles/${article.id}/edit`}
+              className="cursor-pointer text-blue-700 transition-colors hover:text-blue-900 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-blue-700"
+            >
+              编辑
+            </Link>
+          ) : null}
+          {article.status === "published" ? (
+            <a
+              href={article.publicUrl}
+              target="_blank"
+              rel="noopener noreferrer"
+              aria-label={`查看官网 ${article.title}`}
+              className="cursor-pointer text-blue-700 transition-colors hover:text-blue-900 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-blue-700"
+            >
+              查看官网
+            </a>
+          ) : null}
+          {canPublish ? (
+            article.status === "published" ? (
+              <button
+                type="button"
+                aria-label={`下线 ${article.title}`}
+                onClick={() => onStateChange(article, "offline")}
+                className="cursor-pointer text-amber-700 transition-colors hover:text-amber-900 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-amber-700"
+              >
+                下线
+              </button>
+            ) : (
+              <button
+                type="button"
+                aria-label={`${article.status === "offline" ? "重新发布" : "发布"} ${article.title}`}
+                onClick={() => onStateChange(article, "publish")}
+                className="cursor-pointer text-emerald-700 transition-colors hover:text-emerald-900 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-emerald-700"
+              >
+                {article.status === "offline" ? "重新发布" : "发布"}
+              </button>
+            )
+          ) : null}
+        </div>
+      </td>
     </tr>
   );
 }
@@ -85,15 +213,43 @@ export default function ContentArticles() {
   const [keywordInput, setKeywordInput] = useState("");
   const [keyword, setKeyword] = useState<string>();
   const [status, setStatus] = useState<AdminClassroomArticleStatus>();
+  const [dialog, setDialog] = useState<{
+    article: AdminClassroomArticleListItem;
+    action: ArticleStateAction;
+  } | null>(null);
+  const permissions = usePermissions();
+  const queryClient = useQueryClient();
+  const canWrite = permissions.has("content.article.write");
+  const canPublish = permissions.has("content.article.publish");
 
   const query = useQuery({
-    queryKey: ["admin-content-articles", { page, keyword, status }],
+    queryKey: [...articleQueryKeys.all, { page, keyword, status }],
     queryFn: () => fetchAdminClassroomArticles({ page, pageSize: PAGE_SIZE, keyword, status }),
     placeholderData: keepPreviousData,
   });
 
+  const publishMutation = useMutation({
+    mutationFn: (article: AdminClassroomArticleListItem) =>
+      publishAdminClassroomArticle(article.id, { expectedUpdatedAt: article.updatedAt }),
+    onSuccess: async () => {
+      await queryClient.invalidateQueries({ queryKey: articleQueryKeys.all });
+      setDialog(null);
+    },
+  });
+
+  const offlineMutation = useMutation({
+    mutationFn: (article: AdminClassroomArticleListItem) =>
+      offlineAdminClassroomArticle(article.id, { expectedUpdatedAt: article.updatedAt }),
+    onSuccess: async () => {
+      await queryClient.invalidateQueries({ queryKey: articleQueryKeys.all });
+      setDialog(null);
+    },
+  });
+
   const total = query.data?.total ?? 0;
   const totalPages = Math.max(1, Math.ceil(total / PAGE_SIZE));
+  const dialogPending =
+    dialog?.action === "publish" ? publishMutation.isPending : offlineMutation.isPending;
 
   function submitSearch(event: FormEvent<HTMLFormElement>) {
     event.preventDefault();
@@ -108,6 +264,24 @@ export default function ContentArticles() {
     setPage(1);
   }
 
+  function handleStateChange(article: AdminClassroomArticleListItem, action: ArticleStateAction) {
+    setDialog({ article, action });
+  }
+
+  function confirmStateChange() {
+    if (!dialog) {
+      return;
+    }
+
+    if (dialog.action === "publish") {
+      publishMutation.mutate(dialog.article);
+
+      return;
+    }
+
+    offlineMutation.mutate(dialog.article);
+  }
+
   return (
     <div className="mx-auto flex w-full max-w-[1600px] flex-col gap-6 text-text-primary">
       <section className="flex flex-col justify-between gap-4 sm:flex-row sm:items-end">
@@ -116,9 +290,19 @@ export default function ContentArticles() {
           <h1 className="text-2xl font-semibold tracking-tight text-slate-950">课堂文章管理</h1>
           <p className="mt-1 text-sm text-slate-500">维护宠物护理课堂文章的发布状态和基础信息。</p>
         </div>
-        <div className="flex items-center gap-2 self-start rounded-lg border border-slate-200 bg-white px-3 py-2 shadow-sm sm:self-auto">
-          <BookOpen aria-hidden="true" className="h-4 w-4 text-blue-700" />
-          <span className="text-sm font-medium text-slate-700">共 {total} 篇文章</span>
+        <div className="flex flex-wrap items-center gap-2 self-start sm:self-auto">
+          <div className="flex items-center gap-2 rounded-lg border border-slate-200 bg-white px-3 py-2 shadow-sm">
+            <BookOpen aria-hidden="true" className="h-4 w-4 text-blue-700" />
+            <span className="text-sm font-medium text-slate-700">共 {total} 篇文章</span>
+          </div>
+          {canWrite ? (
+            <Link
+              to="/content/articles/new"
+              className="inline-flex min-h-11 cursor-pointer items-center rounded-lg bg-blue-700 px-4 py-2 text-sm font-semibold text-white transition-colors hover:bg-blue-800 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-blue-700 focus-visible:ring-offset-2"
+            >
+              新建文章
+            </Link>
+          ) : null}
         </div>
       </section>
 
@@ -208,7 +392,7 @@ export default function ContentArticles() {
             <button
               type="button"
               onClick={() => void query.refetch()}
-              className="mt-4 rounded-lg bg-blue-700 px-4 py-2 text-sm font-semibold text-white hover:bg-blue-800"
+              className="mt-4 cursor-pointer rounded-lg bg-blue-700 px-4 py-2 text-sm font-semibold text-white hover:bg-blue-800"
             >
               重试
             </button>
@@ -224,7 +408,7 @@ export default function ContentArticles() {
         {!query.isPending && !query.isError && query.data?.list.length !== 0 && (
           <>
             <div className="overflow-x-auto">
-              <table className="min-w-[860px] w-full text-left text-sm">
+              <table className="min-w-[980px] w-full text-left text-sm">
                 <thead className="bg-slate-50 text-xs font-semibold uppercase tracking-wide text-slate-500">
                   <tr>
                     <th className="px-5 py-3">文章</th>
@@ -232,11 +416,18 @@ export default function ContentArticles() {
                     <th className="px-5 py-3">状态</th>
                     <th className="px-5 py-3">发布时间</th>
                     <th className="px-5 py-3">更新时间</th>
+                    <th className="px-5 py-3">操作</th>
                   </tr>
                 </thead>
                 <tbody>
                   {query.data?.list.map((article) => (
-                    <ArticleRow key={article.id} article={article} />
+                    <ArticleRow
+                      key={article.id}
+                      article={article}
+                      canWrite={canWrite}
+                      canPublish={canPublish}
+                      onStateChange={handleStateChange}
+                    />
                   ))}
                 </tbody>
               </table>
@@ -269,6 +460,17 @@ export default function ContentArticles() {
           </>
         )}
       </section>
+      <ArticleStateDialog
+        article={dialog?.article ?? null}
+        action={dialog?.action ?? "publish"}
+        pending={dialogPending}
+        onConfirm={confirmStateChange}
+        onOpenChange={(open) => {
+          if (!open) {
+            setDialog(null);
+          }
+        }}
+      />
     </div>
   );
 }
