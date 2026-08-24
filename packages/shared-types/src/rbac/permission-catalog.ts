@@ -395,6 +395,54 @@ export const RBAC_PERMISSION_CATALOG: readonly RbacPermissionDefinition[] = [
     icon: null,
     impliedApiCodes: [],
   },
+  /** 允许编辑课堂文章草稿。 */
+  {
+    code: "content.article.write",
+    type: "button",
+    label: "编辑课堂文章",
+    module: "content",
+    path: null,
+    parentCode: "content.article.view",
+    order: 10,
+    icon: null,
+    impliedApiCodes: ["content.article.read", "content.article.write_action"],
+  },
+  /** 允许通过后台接口编辑课堂文章。 */
+  {
+    code: "content.article.write_action",
+    type: "api",
+    label: "编辑课堂文章接口",
+    module: "content",
+    path: null,
+    parentCode: null,
+    order: 40,
+    icon: null,
+    impliedApiCodes: [],
+  },
+  /** 允许发布、下线或重新发布课堂文章。 */
+  {
+    code: "content.article.publish",
+    type: "button",
+    label: "发布课堂文章",
+    module: "content",
+    path: null,
+    parentCode: "content.article.view",
+    order: 20,
+    icon: null,
+    impliedApiCodes: ["content.article.read", "content.article.publish_action"],
+  },
+  /** 允许通过后台接口修改课堂文章发布状态。 */
+  {
+    code: "content.article.publish_action",
+    type: "api",
+    label: "发布课堂文章接口",
+    module: "content",
+    path: null,
+    parentCode: null,
+    order: 50,
+    icon: null,
+    impliedApiCodes: [],
+  },
   /** Opens Website Content management and its version history. */
   {
     code: "website.view",

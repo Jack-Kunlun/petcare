@@ -1,5 +1,6 @@
 import type { AdminOrderStatus, AdminServiceType, AdminUserListItem } from "./admin";
 import type { PaginatedResponse } from "./response";
+import type { WebsitePublicMediaAsset } from "./website-content";
 
 /** 内容管理帖子状态。 */
 export const ADMIN_CONTENT_POST_STATUS = {
@@ -141,6 +142,8 @@ export interface AdminClassroomArticleListItem {
   createdAt: string;
   /** 最后更新时间，ISO 8601 格式。 */
   updatedAt: string;
+  /** 服务端生成的官网文章地址。 */
+  publicUrl: string;
 }
 
 /** 后台课堂文章列表查询参数。 */
@@ -157,6 +160,44 @@ export interface AdminClassroomArticleListQuery {
 
 /** 后台课堂文章列表响应。 */
 export type AdminClassroomArticleListResponse = PaginatedResponse<AdminClassroomArticleListItem>;
+
+/** 后台课堂文章完整详情。 */
+export interface AdminClassroomArticleDetail extends AdminClassroomArticleListItem {
+  /** 已由服务端清洗、可加载到文章编辑器的 HTML 正文。 */
+  bodyHtml: string;
+}
+
+/** 新建课堂文章的请求内容。 */
+export interface CreateAdminClassroomArticleRequest {
+  /** 去除首尾空白后的文章标题，长度为 1 至 120 个字符。 */
+  title: string;
+  /** 去除首尾空白后的文章摘要，长度为 1 至 500 个字符。 */
+  summary: string;
+  /** 不可信的编辑器 HTML；服务端持久化前会清洗并校验。 */
+  bodyHtml: string;
+  /** 可用的受管理封面素材；为 null 时不设置封面。 */
+  coverAssetId?: string | null;
+}
+
+/** 更新课堂文章的请求内容。 */
+export interface UpdateAdminClassroomArticleRequest extends Omit<
+  CreateAdminClassroomArticleRequest,
+  "coverAssetId"
+> {
+  /** 省略时保留封面，null 时清除封面，传入素材 ID 时替换封面。 */
+  coverAssetId?: string | null;
+  /** 最后一次读取到的文章更新时间，用于乐观并发控制。 */
+  expectedUpdatedAt: string;
+}
+
+/** 修改课堂文章发布状态的请求内容。 */
+export interface AdminClassroomArticleStateRequest {
+  /** 最后一次读取到的文章更新时间，用于乐观并发控制。 */
+  expectedUpdatedAt: string;
+}
+
+/** 上传课堂文章图片后返回的可公开使用受管理素材。 */
+export type UploadAdminClassroomArticleMediaResponse = WebsitePublicMediaAsset;
 
 /** Public article-author display data that is safe for website visitors. */
 export interface PublicClassroomArticleAuthor {
@@ -184,8 +225,8 @@ export interface PublicClassroomArticleListItem {
 
 /** Public classroom article detail for the official website. */
 export interface PublicClassroomArticleDetail extends PublicClassroomArticleListItem {
-  /** Escaped text body that must be rendered as text, never trusted HTML. */
-  body: string;
+  /** Server-cleaned article HTML safe for the official website renderer. */
+  bodyHtml: string;
 }
 
 /** Pagination query accepted by the public classroom article list. */

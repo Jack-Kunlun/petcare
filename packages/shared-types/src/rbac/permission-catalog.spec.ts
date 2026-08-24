@@ -58,6 +58,18 @@ describe("RBAC permission catalog", () => {
       parentCode: "content.view",
       impliedApiCodes: ["content.article.read"],
     });
+    expect(byCode.get("content.article.write")).toMatchObject({
+      type: RBAC_PERMISSION_TYPES.BUTTON,
+      parentCode: "content.article.view",
+      impliedApiCodes: ["content.article.read", "content.article.write_action"],
+    });
+    expect(byCode.get("content.article.publish")).toMatchObject({
+      type: RBAC_PERMISSION_TYPES.BUTTON,
+      parentCode: "content.article.view",
+      impliedApiCodes: ["content.article.read", "content.article.publish_action"],
+    });
+    expect(byCode.get("content.article.write_action")?.type).toBe(RBAC_PERMISSION_TYPES.API);
+    expect(byCode.get("content.article.publish_action")?.type).toBe(RBAC_PERMISSION_TYPES.API);
 
     expect(byCode.get("website.view")).toMatchObject({
       type: RBAC_PERMISSION_TYPES.MENU,
