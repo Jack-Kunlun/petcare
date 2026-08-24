@@ -29,7 +29,7 @@ describe("MiniappAccountController", () => {
     ]);
 
     expect(route("getProfile")).toEqual(["/", RequestMethod.GET]);
-    expect(route("updateProfile")).toEqual(["/", RequestMethod.PATCH]);
+    expect(route("updateProfile")).toEqual(["/", RequestMethod.PUT]);
     expect(route("replaceAvatar")).toEqual(["avatar", RequestMethod.POST]);
     expect(route("sendPhoneCode")).toEqual(["phone/code", RequestMethod.POST]);
     expect(route("bindPhone")).toEqual(["phone", RequestMethod.PUT]);

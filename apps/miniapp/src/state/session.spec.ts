@@ -4,8 +4,10 @@ import { MiniappApiError, rawRequest } from "../api/request";
 import {
   authorizedRequest,
   bootstrapSession,
+  captureSessionUserRevision,
   clearSession,
   loginInteractively,
+  parseReturnUrl,
   requireProfile,
   session,
   STORAGE_KEY,
@@ -436,8 +438,20 @@ describe("miniapp session", () => {
     await expect(requireProfile("/pages-bounty/publish/step1")).resolves.toBe(true);
   });
 
+  it("decodes one safe internal return path and rejects malformed or external values", () => {
+    expect(parseReturnUrl("%2Fpages-bounty%2Fpublish%2Fstep1")).toBe("/pages-bounty/publish/step1");
+    expect(parseReturnUrl("/pages/profile/index")).toBe("/pages/profile/index");
+    expect(parseReturnUrl("javascript:alert(1)")).toBeNull();
+    expect(parseReturnUrl("https://outside.example/path")).toBeNull();
+    expect(parseReturnUrl("//outside.example/path")).toBeNull();
+    expect(parseReturnUrl("%2F%2Foutside.example%2Fpath")).toBeNull();
+    expect(parseReturnUrl("/pages/../outside")).toBeNull();
+    expect(parseReturnUrl("%E0%A4%A")).toBeNull();
+  });
+
   it("keeps a server-updated profile in the active and stored session", () => {
     seedStoredSession();
+    const revision = captureSessionUserRevision();
     const updatedUser = {
       ...storedSession.user,
       nickname: "微信昵称",
@@ -445,9 +459,36 @@ describe("miniapp session", () => {
       profileComplete: true,
     };
 
-    updateSessionUser(updatedUser);
+    expect(updateSessionUser(updatedUser, revision)).toBe(true);
 
     expect(session.user).toEqual(updatedUser);
     expect(storage.get(STORAGE_KEY.user)).toEqual(updatedUser);
+  });
+
+  it("rejects a profile response that finishes after logout", () => {
+    seedStoredSession();
+    const revision = captureSessionUserRevision();
+
+    clearSession(true);
+
+    expect(updateSessionUser({ ...storedSession.user, nickname: "旧响应" }, revision)).toBe(false);
+    expect(session.user).toBeNull();
+  });
+
+  it("rejects an old profile response after switching accounts", async () => {
+    seedStoredSession();
+    const revision = captureSessionUserRevision();
+    const switchedSession = {
+      ...interactiveSession,
+      user: { ...interactiveSession.user, id: "user-2", nickname: "第二个账户" },
+    };
+
+    resolveUniLogin();
+    loginWithWechatMock.mockResolvedValue(switchedSession);
+
+    await loginInteractively();
+
+    expect(updateSessionUser({ ...storedSession.user, nickname: "旧响应" }, revision)).toBe(false);
+    expect(session.user).toEqual(switchedSession.user);
   });
 });

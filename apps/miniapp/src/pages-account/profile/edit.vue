@@ -2,12 +2,17 @@
 import { onLoad, onUnload } from "@dcloudio/uni-app";
 import type { MiniappUserProfile } from "@petcare/shared-types";
 import { computed, reactive, ref } from "vue";
-import { isMainlandChinaMobile } from "./profile-form";
+import { isMainlandChinaMobile, mergeProfileResponse } from "./profile-form";
 import { MiniappApiError } from "@/api/request";
 import { bindPhone, getProfile, sendPhoneCode, updateProfile, uploadAvatar } from "@/api/user";
 import SubPageLayout from "@/components/SubPageLayout.vue";
 import { getDefaultAvatar } from "@/state/default-avatar";
-import { safeReturnUrl, session, updateSessionUser } from "@/state/session";
+import {
+  captureSessionUserRevision,
+  parseReturnUrl,
+  session,
+  updateSessionUser,
+} from "@/state/session";
 
 interface ChooseAvatarEvent {
   detail?: { avatarUrl?: string };
@@ -21,11 +26,8 @@ const form = reactive({
 });
 const phone = ref("");
 const code = ref("");
-const loading = ref(false);
-const saving = ref(false);
-const uploading = ref(false);
-const sendingCode = ref(false);
-const bindingPhone = ref(false);
+const busy = ref<"load" | "avatar" | "save" | "code" | "bind" | null>(null);
+const loadError = ref("");
 const countdown = ref(0);
 const returnUrl = ref<string | null>(null);
 let countdownTimer: ReturnType<typeof setInterval> | undefined;
@@ -36,36 +38,43 @@ const avatarUrl = computed(() => {
   return user ? (user.avatar ?? getDefaultAvatar(user.id)) : "/static/main/profile-cat.png";
 });
 
-function applyProfile(nextProfile: MiniappUserProfile) {
-  profile.value = nextProfile;
-  form.nickname = nextProfile.nickname;
-  form.region = nextProfile.region ?? "";
-  form.bio = nextProfile.bio ?? "";
-  updateSessionUser(nextProfile);
-}
-
 function errorText(error: unknown, fallback: string): string {
   return error instanceof MiniappApiError ? error.message : fallback;
 }
 
 async function loadProfile() {
-  if (loading.value) {
+  if (busy.value !== null) {
     return;
   }
 
-  loading.value = true;
+  busy.value = "load";
+  loadError.value = "";
+  const startedAt = captureSessionUserRevision();
 
   try {
-    applyProfile(await getProfile());
+    const response = await getProfile();
+
+    if (updateSessionUser(response, startedAt)) {
+      profile.value = response;
+      form.nickname = response.nickname;
+      form.region = response.region ?? "";
+      form.bio = response.bio ?? "";
+    } else {
+      profile.value = session.user;
+    }
   } catch (error) {
-    await uni.showToast({ title: errorText(error, "个人资料加载失败"), icon: "none" });
+    if (profile.value) {
+      await uni.showToast({ title: errorText(error, "个人资料加载失败"), icon: "none" });
+    } else {
+      loadError.value = errorText(error, "个人资料加载失败，请重试");
+    }
   } finally {
-    loading.value = false;
+    busy.value = null;
   }
 }
 
 async function save() {
-  if (saving.value) {
+  if (busy.value !== null || !profile.value) {
     return;
   }
 
@@ -85,16 +94,24 @@ async function save() {
     return;
   }
 
-  saving.value = true;
+  busy.value = "save";
+  const startedAt = captureSessionUserRevision();
   let saved = false;
 
   try {
-    applyProfile(await updateProfile({ nickname, region: region || null, bio: bio || null }));
-    saved = true;
+    const response = await updateProfile({ nickname, region: region || null, bio: bio || null });
+
+    if (updateSessionUser(response, startedAt)) {
+      profile.value = mergeProfileResponse(profile.value, response, "save");
+      form.nickname = response.nickname;
+      form.region = response.region ?? "";
+      form.bio = response.bio ?? "";
+      saved = true;
+    }
   } catch (error) {
     await uni.showToast({ title: errorText(error, "保存失败，请重试"), icon: "none" });
   } finally {
-    saving.value = false;
+    busy.value = null;
   }
 
   if (saved) {
@@ -108,20 +125,34 @@ async function save() {
   }
 }
 
-async function uploadChosenAvatar(filePath: string) {
-  if (!filePath || uploading.value) {
+async function uploadChosenAvatar(
+  filePath: string,
+  startedAt = captureSessionUserRevision(),
+  ownsBusy = false,
+) {
+  if (!filePath || (!ownsBusy && busy.value !== null) || !profile.value) {
+    if (ownsBusy) {
+      busy.value = null;
+    }
+
     return;
   }
 
-  uploading.value = true;
+  if (!ownsBusy) {
+    busy.value = "avatar";
+  }
 
   try {
-    applyProfile(await uploadAvatar(filePath));
-    await uni.showToast({ title: "头像已更新", icon: "success" });
+    const response = await uploadAvatar(filePath);
+
+    if (updateSessionUser(response, startedAt)) {
+      profile.value = mergeProfileResponse(profile.value, response, "avatar");
+      await uni.showToast({ title: "头像已更新", icon: "success" });
+    }
   } catch (error) {
     await uni.showToast({ title: errorText(error, "头像上传失败"), icon: "none" });
   } finally {
-    uploading.value = false;
+    busy.value = null;
   }
 }
 
@@ -134,9 +165,12 @@ function handleChooseAvatar(event: unknown) {
 }
 
 function chooseImage() {
-  if (uploading.value) {
+  if (busy.value !== null) {
     return;
   }
+
+  busy.value = "avatar";
+  const startedAt = captureSessionUserRevision();
 
   uni.chooseImage({
     count: 1,
@@ -145,10 +179,14 @@ function chooseImage() {
       const filePath = result.tempFilePaths[0];
 
       if (filePath) {
-        void uploadChosenAvatar(filePath);
+        void uploadChosenAvatar(filePath, startedAt, true);
+      } else {
+        busy.value = null;
       }
     },
     fail(error) {
+      busy.value = null;
+
       if (!error.errMsg.includes("cancel")) {
         void uni.showToast({ title: "头像选择失败", icon: "none" });
       }
@@ -169,7 +207,7 @@ function startCountdown() {
 }
 
 async function requestPhoneCode() {
-  if (sendingCode.value || countdown.value > 0) {
+  if (busy.value !== null || countdown.value > 0) {
     return;
   }
 
@@ -179,7 +217,7 @@ async function requestPhoneCode() {
     return;
   }
 
-  sendingCode.value = true;
+  busy.value = "code";
 
   try {
     await sendPhoneCode(phone.value);
@@ -188,12 +226,12 @@ async function requestPhoneCode() {
   } catch (error) {
     await uni.showToast({ title: errorText(error, "验证码发送失败"), icon: "none" });
   } finally {
-    sendingCode.value = false;
+    busy.value = null;
   }
 }
 
 async function submitPhone() {
-  if (bindingPhone.value) {
+  if (busy.value !== null || !profile.value) {
     return;
   }
 
@@ -203,17 +241,22 @@ async function submitPhone() {
     return;
   }
 
-  bindingPhone.value = true;
+  busy.value = "bind";
+  const startedAt = captureSessionUserRevision();
   let bound = false;
 
   try {
-    applyProfile(await bindPhone(phone.value, code.value));
-    bound = true;
-    await uni.showToast({ title: "手机号绑定成功", icon: "success" });
+    const response = await bindPhone(phone.value, code.value);
+
+    if (updateSessionUser(response, startedAt)) {
+      profile.value = mergeProfileResponse(profile.value, response, "bind");
+      bound = true;
+      await uni.showToast({ title: "手机号绑定成功", icon: "success" });
+    }
   } catch (error) {
     await uni.showToast({ title: errorText(error, "手机号绑定失败"), icon: "none" });
   } finally {
-    bindingPhone.value = false;
+    busy.value = null;
   }
 
   if (bound && returnUrl.value) {
@@ -228,8 +271,8 @@ async function submitPhone() {
 onLoad((query = {}) => {
   const candidate = query.returnUrl;
 
-  if (typeof candidate === "string" && safeReturnUrl(candidate) === candidate) {
-    returnUrl.value = candidate;
+  if (typeof candidate === "string") {
+    returnUrl.value = parseReturnUrl(candidate);
   }
 
   void loadProfile();
@@ -245,13 +288,33 @@ onUnload(() => {
 <template>
   <SubPageLayout title="编辑个人信息">
     <view class="flex flex-col gap-card px-action py-card">
-      <view class="flex flex-col items-center gap-sm">
+      <view
+        v-if="loadError && !profile"
+        class="flex flex-col items-center gap-copy main-card p-card"
+      >
+        <text class="text-caption text-danger leading-caption">{{ loadError }}</text>
+        <button
+          class="h-control rounded-control bg-brand px-action text-surface"
+          :class="busy !== null ? 'opacity-50' : ''"
+          :disabled="busy !== null"
+          :aria-disabled="busy !== null"
+          @click="loadProfile"
+        >
+          重试
+        </button>
+      </view>
+      <view v-else-if="!profile" class="flex items-center justify-center main-card p-card">
+        <text class="text-body text-muted leading-body">正在加载个人资料…</text>
+      </view>
+
+      <view v-if="profile" class="flex flex-col items-center gap-sm">
         <!-- #ifdef MP-WEIXIN -->
         <button
           class="h-avatar-lg w-avatar-lg overflow-hidden rounded-full p-0"
-          :class="uploading ? 'opacity-50' : ''"
+          :class="busy !== null ? 'opacity-50' : ''"
           open-type="chooseAvatar"
-          :disabled="uploading"
+          :disabled="busy !== null"
+          :aria-disabled="busy !== null"
           aria-label="选择微信头像"
           @chooseavatar="handleChooseAvatar"
         >
@@ -263,19 +326,23 @@ onUnload(() => {
           class="h-avatar-lg w-avatar-lg overflow-hidden rounded-full"
           role="button"
           aria-label="选择头像"
-          :aria-disabled="uploading"
-          :class="uploading ? 'opacity-50' : ''"
+          :aria-disabled="busy !== null"
+          :class="busy !== null ? 'opacity-50' : ''"
           @click="chooseImage"
         >
           <image class="h-full w-full" :src="avatarUrl" mode="aspectFill" />
         </view>
         <!-- #endif -->
         <text class="text-caption text-brand leading-caption">
-          {{ uploading ? "正在上传…" : "更换头像" }}
+          {{ busy === "avatar" ? "正在上传…" : "更换头像" }}
         </text>
       </view>
 
-      <view class="overflow-hidden main-card">
+      <view
+        v-if="profile"
+        class="overflow-hidden main-card"
+        :class="busy !== null ? 'opacity-50' : ''"
+      >
         <label class="flex items-center gap-action border-b border-divider px-action py-action">
           <text class="w-pet shrink-0 text-body text-muted leading-label">昵称</text>
           <!-- #ifdef MP-WEIXIN -->
@@ -284,6 +351,7 @@ onUnload(() => {
             class="min-w-0 flex-1 text-right text-body text-ink"
             type="nickname"
             :maxlength="24"
+            :disabled="busy !== null"
             placeholder="请输入昵称"
           />
           <!-- #endif -->
@@ -293,6 +361,7 @@ onUnload(() => {
             class="min-w-0 flex-1 text-right text-body text-ink"
             type="text"
             :maxlength="24"
+            :disabled="busy !== null"
             placeholder="请输入昵称"
           />
           <!-- #endif -->
@@ -304,6 +373,7 @@ onUnload(() => {
             class="min-w-0 flex-1 text-right text-body text-ink"
             type="text"
             :maxlength="80"
+            :disabled="busy !== null"
             placeholder="请输入所在地区"
           />
         </label>
@@ -313,6 +383,7 @@ onUnload(() => {
             v-model="form.bio"
             class="min-h-control min-w-0 flex-1 text-right text-body text-ink"
             :maxlength="200"
+            :disabled="busy !== null"
             placeholder="介绍一下自己"
           />
         </label>
@@ -331,6 +402,8 @@ onUnload(() => {
           class="h-control rounded-control bg-divider px-copy text-body text-ink"
           type="number"
           :maxlength="11"
+          :class="busy !== null || countdown > 0 ? 'opacity-50' : ''"
+          :disabled="busy !== null || countdown > 0"
           placeholder="请输入手机号"
         />
         <view class="flex gap-sm">
@@ -339,24 +412,30 @@ onUnload(() => {
             class="h-control min-w-0 flex-1 rounded-control bg-divider px-copy text-body text-ink"
             type="number"
             :maxlength="6"
+            :class="busy !== null ? 'opacity-50' : ''"
+            :disabled="busy !== null"
             placeholder="请输入验证码"
           />
           <button
             class="h-control shrink-0 border border-brand rounded-control bg-surface px-copy text-caption text-brand"
-            :class="sendingCode || countdown > 0 ? 'opacity-50' : ''"
-            :disabled="sendingCode || countdown > 0"
+            :class="busy !== null || countdown > 0 ? 'opacity-50' : ''"
+            :disabled="busy !== null || countdown > 0"
+            :aria-disabled="busy !== null || countdown > 0"
             @click="requestPhoneCode"
           >
-            {{ countdown > 0 ? `${countdown}s 后重试` : sendingCode ? "发送中…" : "获取验证码" }}
+            {{
+              countdown > 0 ? `${countdown}s 后重试` : busy === "code" ? "发送中…" : "获取验证码"
+            }}
           </button>
         </view>
         <button
           class="h-button rounded-control bg-brand text-button text-surface font-semibold"
-          :class="bindingPhone ? 'opacity-50' : ''"
-          :disabled="bindingPhone"
+          :class="busy !== null ? 'opacity-50' : ''"
+          :disabled="busy !== null"
+          :aria-disabled="busy !== null"
           @click="submitPhone"
         >
-          {{ bindingPhone ? "验证中…" : "验证并绑定" }}
+          {{ busy === "bind" ? "验证中…" : "验证并绑定" }}
         </button>
       </view>
 
@@ -369,12 +448,13 @@ onUnload(() => {
     <template #actions>
       <button
         class="h-button flex items-center justify-center rounded-control bg-brand"
-        :class="saving || loading || !profile ? 'opacity-50' : ''"
-        :disabled="saving || loading || !profile"
+        :class="busy !== null || !profile ? 'opacity-50' : ''"
+        :disabled="busy !== null || !profile"
+        :aria-disabled="busy !== null || !profile"
         @click="save"
       >
         <text class="text-button text-surface font-semibold leading-button">{{
-          saving ? "保存中…" : "保存修改"
+          busy === "save" ? "保存中…" : "保存修改"
         }}</text>
       </button>
     </template>

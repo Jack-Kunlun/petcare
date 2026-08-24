@@ -2,8 +2,8 @@
 import { onLoad } from "@dcloudio/uni-app";
 import { ref } from "vue";
 import { getBountyMode } from "./bounty-mode";
+import { openPublishEntry } from "./publish-entry";
 import MainTabLayout from "@/components/MainTabLayout.vue";
-import { requireProfile } from "@/state/session";
 
 definePage({
   style: {
@@ -74,17 +74,14 @@ const bounties = [
 ] as const;
 
 const mode = ref<"list" | "map">("list");
+const publishPending = ref(false);
 
 onLoad((query = {}) => {
   mode.value = getBountyMode(query);
 });
 
 async function openPublish() {
-  if (!(await requireProfile("/pages-bounty/publish/step1"))) {
-    return;
-  }
-
-  await uni.navigateTo({ url: "/pages-bounty/publish/step1" });
+  await openPublishEntry(publishPending);
 }
 
 function openReward(id: string) {
@@ -282,13 +279,16 @@ function openReward(id: string) {
     </view>
 
     <template #floating>
-      <view
-        class="pointer-events-auto h-fab w-fab flex items-center justify-center rounded-full bg-brand shadow-float"
+      <button
+        class="pointer-events-auto h-fab w-fab flex items-center justify-center rounded-full bg-brand p-0 shadow-float"
+        :class="publishPending ? 'opacity-50' : ''"
+        :disabled="publishPending"
+        :aria-disabled="publishPending"
         aria-label="发布悬赏"
         @click="openPublish"
       >
         <image class="h-glyph w-glyph" src="/static/main/plus.svg" mode="aspectFit" />
-      </view>
+      </button>
     </template>
   </MainTabLayout>
 </template>

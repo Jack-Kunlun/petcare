@@ -160,7 +160,7 @@ H5/App 构建使用普通文本输入与 `uni.chooseImage`，不伪造微信资�
 
 - 昵称去除首尾空白后必须为 1 至 24 个字符，并拒绝控制字符。
 - 所在地区与个人简介执行长度限制和控制字符校验。
-- 文本资料通过 `PATCH /users/me` 保存。
+- 文本资料通过 `PUT /users/me` 保存。
 - 头像通过独立 multipart 接口上传，成功后立即更新当前资料；文本保存失败不回滚已经成功的头像上传。
 - 头像继续使用现有文件头识别、类型和大小限制；对象键使用 Miniapp 用户头像目录，不能删除其他用户或后台管理员的对象。
 
@@ -263,19 +263,19 @@ H5/App 构建使用普通文本输入与 `uni.chooseImage`，不伪造微信资�
 
 ## 九、API 边界
 
-| 方法  | 路径                           | 认证要求           | 用途                       |
-| ----- | ------------------------------ | ------------------ | -------------------------- |
-| POST  | `/auth/wechat/login`           | 无                 | 静默登录或首次自动创建账户 |
-| POST  | `/auth/wechat/refresh`         | 刷新令牌           | 旋转 Miniapp 会话          |
-| POST  | `/auth/wechat/logout`          | 刷新令牌           | 撤销当前刷新会话           |
-| GET   | `/users/me`                    | 登录               | 读取当前个人资料           |
-| PATCH | `/users/me`                    | 登录               | 更新昵称、地区和简介       |
-| PUT   | `/users/me/avatar`             | 登录、multipart    | 上传并替换头像             |
-| POST  | `/users/me/phone/code`         | 登录且手机号未绑定 | 发送绑定手机号验证码       |
-| PUT   | `/users/me/phone`              | 登录且手机号未绑定 | 校验验证码并绑定手机号     |
-| POST  | `/users/me/cancellation/code`  | 登录且手机号已绑定 | 发送注销验证码             |
-| POST  | `/users/me/cancel`             | 登录               | 检查条件并注销账户         |
-| GET   | `/website-content/:contentKey` | 无                 | 读取已发布支持内容         |
+| 方法 | 路径                           | 认证要求           | 用途                       |
+| ---- | ------------------------------ | ------------------ | -------------------------- |
+| POST | `/auth/wechat/login`           | 无                 | 静默登录或首次自动创建账户 |
+| POST | `/auth/wechat/refresh`         | 刷新令牌           | 旋转 Miniapp 会话          |
+| POST | `/auth/wechat/logout`          | 刷新令牌           | 撤销当前刷新会话           |
+| GET  | `/users/me`                    | 登录               | 读取当前个人资料           |
+| PUT  | `/users/me`                    | 登录               | 更新昵称、地区和简介       |
+| POST | `/users/me/avatar`             | 登录、multipart    | 上传并替换头像             |
+| POST | `/users/me/phone/code`         | 登录且手机号未绑定 | 发送绑定手机号验证码       |
+| PUT  | `/users/me/phone`              | 登录且手机号未绑定 | 校验验证码并绑定手机号     |
+| POST | `/users/me/cancellation/code`  | 登录且手机号已绑定 | 发送注销验证码             |
+| POST | `/users/me/cancel`             | 登录               | 检查条件并注销账户         |
+| GET  | `/website-content/:contentKey` | 无                 | 读取已发布支持内容         |
 
 固定 `/users/me` 路由必须注册在现有 `/users/:id` 之前。现有公开用户详情不能继续返回手机号；若业务仍需要公开用户卡片，只返回明确的公开字段。
 

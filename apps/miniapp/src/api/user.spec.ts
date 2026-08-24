@@ -26,7 +26,7 @@ describe("miniapp user API", () => {
 
     expect(authorizedRequestMock.mock.calls).toEqual([
       ["/users/me"],
-      ["/users/me", { method: "PATCH", data: profile }],
+      ["/users/me", { method: "PUT", data: profile }],
       ["/users/me/phone/code", { method: "POST", data: { phone: "13800138000" } }],
       ["/users/me/phone", { method: "PUT", data: { phone: "13800138000", code: "123456" } }],
     ]);

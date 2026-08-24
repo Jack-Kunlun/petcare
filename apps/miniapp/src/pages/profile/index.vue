@@ -4,7 +4,7 @@ import { computed, ref } from "vue";
 import { getProfile } from "@/api/user";
 import MainTabLayout from "@/components/MainTabLayout.vue";
 import { getDefaultAvatar } from "@/state/default-avatar";
-import { session, updateSessionUser } from "@/state/session";
+import { captureSessionUserRevision, session, updateSessionUser } from "@/state/session";
 
 definePage({
   style: {
@@ -72,9 +72,10 @@ async function refreshProfile() {
 
   loadingProfile.value = true;
   profileError.value = "";
+  const startedAt = captureSessionUserRevision();
 
   try {
-    updateSessionUser(await getProfile());
+    updateSessionUser(await getProfile(), startedAt);
   } catch {
     profileError.value = "个人资料加载失败";
   } finally {

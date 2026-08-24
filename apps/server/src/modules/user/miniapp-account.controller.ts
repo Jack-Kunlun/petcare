@@ -4,7 +4,6 @@ import {
   Get,
   HttpCode,
   HttpStatus,
-  Patch,
   Post,
   Put,
   Req,
@@ -59,7 +58,7 @@ export class MiniappAccountController {
     return this.miniappAccountService.getProfile(this.requireUserId(request));
   }
 
-  @Patch()
+  @Put()
   @ApiOperation({ summary: "更新当前小程序用户资料" })
   @ApiSuccessResponse(MiniappUserProfileDto)
   @ApiStandardErrors(400, 401, 404, 500)

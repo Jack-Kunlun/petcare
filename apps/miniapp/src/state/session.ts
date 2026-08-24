@@ -353,7 +353,28 @@ export function authorizedUpload<T>(
   );
 }
 
-export function updateSessionUser(user: MiniappUserProfile): void {
+export interface SessionUserRevision {
+  revision: number;
+  userId: string | null;
+}
+
+export function captureSessionUserRevision(): SessionUserRevision {
+  return { revision: sessionRevision, userId: session.user?.id ?? null };
+}
+
+export function updateSessionUser(
+  user: MiniappUserProfile,
+  startedAt: SessionUserRevision,
+): boolean {
+  if (
+    startedAt.revision !== sessionRevision ||
+    !startedAt.userId ||
+    session.user?.id !== startedAt.userId ||
+    user.id !== startedAt.userId
+  ) {
+    return false;
+  }
+
   session.user = user;
 
   if (session.accessToken && session.refreshToken) {
@@ -363,10 +384,34 @@ export function updateSessionUser(user: MiniappUserProfile): void {
       // The next refresh restores the server-authoritative profile.
     }
   }
+
+  return true;
+}
+
+export function parseReturnUrl(value: string): string | null {
+  let decoded: string;
+
+  try {
+    decoded = decodeURIComponent(value);
+  } catch {
+    return null;
+  }
+
+  const path = decoded.split("?", 1)[0];
+
+  if (
+    !/^\/pages(?:-[a-z\d]+)?\/[\w./-]+(?:\?[^#\s]*)?$/iu.test(decoded) ||
+    path.includes("\\") ||
+    path.split("/").some((segment) => segment === "." || segment === "..")
+  ) {
+    return null;
+  }
+
+  return decoded;
 }
 
 export function safeReturnUrl(value: string): string {
-  return value.startsWith("/") && !value.startsWith("//") ? value : "/pages/profile/index";
+  return parseReturnUrl(value) ?? "/pages/profile/index";
 }
 
 export async function requireProfile(returnUrl: string): Promise<boolean> {

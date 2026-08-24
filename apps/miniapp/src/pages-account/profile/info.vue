@@ -5,7 +5,7 @@ import { computed, ref } from "vue";
 import { getProfile } from "@/api/user";
 import SubPageLayout from "@/components/SubPageLayout.vue";
 import { getDefaultAvatar } from "@/state/default-avatar";
-import { session, updateSessionUser } from "@/state/session";
+import { captureSessionUserRevision, session, updateSessionUser } from "@/state/session";
 
 const profile = ref<MiniappUserProfile | null>(session.user);
 const loading = ref(false);
@@ -35,10 +35,12 @@ async function loadProfile() {
 
   loading.value = true;
   errorMessage.value = "";
+  const startedAt = captureSessionUserRevision();
 
   try {
-    profile.value = await getProfile();
-    updateSessionUser(profile.value);
+    const response = await getProfile();
+
+    profile.value = updateSessionUser(response, startedAt) ? response : session.user;
   } catch {
     errorMessage.value = "个人资料加载失败，请重试";
   } finally {
