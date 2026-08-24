@@ -18,8 +18,8 @@ export type ProviderCertificationStatus =
 export interface ProviderCertificationApplicantSummary {
   /** 用户唯一标识。 */
   id: string;
-  /** 用户手机号。 */
-  phone: string;
+  /** Verified phone number, or null for a Miniapp account that has not completed its profile. */
+  phone: string | null;
   /** 用户登录账号；未设置时为 null。 */
   username: string | null;
   /** 用户展示昵称。 */

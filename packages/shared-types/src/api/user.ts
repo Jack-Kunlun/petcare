@@ -9,7 +9,8 @@ export interface User {
   id: string;
   nickname: string;
   avatar?: string;
-  phone: string;
+  /** Verified phone number, or null for a Miniapp account that has not completed its profile. */
+  phone: string | null;
   role: UserRole;
   status: UserStatus;
   createdAt: string;

@@ -1,33 +1,31 @@
-export interface MiniappUser {
-  id: string;
-  phone: string;
-  nickname: string;
-  avatar: string | null;
-  userType: string;
-}
+import type { MiniappUserProfile } from "./miniapp-account";
 
+/** Authenticated Miniapp session. */
 export interface WechatSession {
+  /** Short-lived token for authenticated API requests. */
   accessToken: string;
+  /** Rotating token used to restore the Miniapp session. */
   refreshToken: string;
-  user: MiniappUser;
+  /** Current Miniapp profile without a raw phone number. */
+  user: MiniappUserProfile;
 }
 
+/** Exchanges a WeChat login code for an authenticated Miniapp session. */
 export interface WechatLoginRequest {
+  /** One-time code returned by the WeChat login API. */
   loginCode: string;
 }
 
-export type WechatLoginResult =
-  ({ status: "authenticated" } & WechatSession) | { status: "phone_required"; bindToken: string };
+/** Authenticated session returned after a WeChat login. */
+export type WechatLoginResult = WechatSession;
 
-export interface WechatBindPhoneRequest {
-  bindToken: string;
-  phoneCode: string;
-}
-
+/** Supplies the refresh token needed to restore a Miniapp session. */
 export interface WechatRefreshRequest {
+  /** Refresh token issued during a prior authenticated session. */
   refreshToken: string;
 }
 
+/** Supplies the refresh token for Miniapp logout. */
 export type WechatLogoutRequest = WechatRefreshRequest;
 /** 后台管理员的登录态用户信息。 */
 export interface AdminSessionUser {

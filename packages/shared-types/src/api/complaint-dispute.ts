@@ -320,8 +320,8 @@ export interface AdminComplaintUserSummary {
   id: string;
   /** 用户在后台列表中显示的昵称。 */
   nickname: string;
-  /** 用户用于后台识别与检索的手机号。 */
-  phone: string;
+  /** Verified phone number, or null for a Miniapp account that has not completed its profile. */
+  phone: string | null;
 }
 
 /** 后台投诉列表中的单条投诉摘要。 */
