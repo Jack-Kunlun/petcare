@@ -20,8 +20,8 @@ export class AdminContentAuthorSummaryDto implements AdminContentAuthorSummary {
   @ApiProperty({ format: "uuid" })
   id: string;
 
-  @ApiProperty()
-  phone: string;
+  @ApiProperty({ nullable: true })
+  phone: string | null;
 
   @ApiProperty({ nullable: true })
   username: string | null;

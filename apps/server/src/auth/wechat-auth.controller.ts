@@ -1,6 +1,6 @@
 import { Body, Controller, Get, HttpCode, HttpStatus, Post, Req, UseGuards } from "@nestjs/common";
 import { ApiBearerAuth, ApiNoContentResponse, ApiOperation, ApiTags } from "@nestjs/swagger";
-import { MiniappUser, WechatLoginResult, WechatSession } from "@petcare/shared-types";
+import { MiniappUser, WechatSession } from "@petcare/shared-types";
 import { Request } from "express";
 import { ApiException } from "../common/http/api-exception";
 import { ApiStandardErrors, ApiSuccessResponse } from "../common/swagger/api-response.decorators";
@@ -32,7 +32,7 @@ export class WechatAuthController {
   @ApiOperation({ summary: "使用微信登录凭证登录小程序" })
   @ApiSuccessResponse(WechatLoginResponseDto)
   @ApiStandardErrors(400, 401, 403, 503)
-  login(@Body() dto: WechatLoginDto): Promise<WechatLoginResult> {
+  login(@Body() dto: WechatLoginDto): ReturnType<WechatAuthService["login"]> {
     return this.wechatAuthService.login(dto.loginCode);
   }
 

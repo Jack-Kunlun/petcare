@@ -32,7 +32,7 @@ enum ProviderRetrainingStatus {
 model User {
   id              String   @id @default(uuid())
   openid          String?  @unique
-  phone           String   @unique
+  phone           String?  @unique
   username        String?  @unique
   passwordHash    String?  @map("password_hash")
   nickname        String
@@ -107,6 +107,7 @@ model UserProfile {
   gender    String? // male / female
   age       Int?
   address   String?
+  bio       String?
   createdAt DateTime @default(now()) @map("created_at")
   updatedAt DateTime @updatedAt @map("updated_at")
 

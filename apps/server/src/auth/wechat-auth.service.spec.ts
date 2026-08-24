@@ -4,18 +4,22 @@ import { TokenService } from "./token.service";
 import { WechatApiClient } from "./wechat-api.client";
 import { WechatAuthService } from "./wechat-auth.service";
 
-const activeUser = {
-  id: "user-1",
-  openid: "openid-1",
-  phone: "13800138000",
-  username: null,
-  nickname: "宠友1878",
-  avatar: null,
-  sessionVersion: 0,
-  userType: "pet_owner",
-  status: "active",
-  roles: [],
-};
+function createActiveUser(phone: string | null = "13800138000") {
+  return {
+    id: "user-1",
+    openid: "openid-1",
+    phone,
+    username: null,
+    nickname: "宠友1878",
+    avatar: null,
+    sessionVersion: 0,
+    userType: "pet_owner",
+    status: "active",
+    roles: [],
+  };
+}
+
+const activeUser = createActiveUser();
 
 describe("WechatAuthService", () => {
   const prisma = {
@@ -99,13 +103,34 @@ describe("WechatAuthService", () => {
       refreshToken: "refresh",
       user: {
         id: "user-1",
-        phone: "13800138000",
+        phoneMasked: "138****8000",
+        profileComplete: true,
         nickname: "宠友1878",
         avatar: null,
         userType: "pet_owner",
+        region: null,
+        bio: null,
       },
     });
     expect(tokenService.issue).toHaveBeenCalledWith(expect.objectContaining({ sessionVersion: 0 }));
+  });
+
+  it("issues an unbound active session without leaking a phone", async () => {
+    usersByOpenid["openid-1"] = createActiveUser(null);
+
+    const result = await service.login("login-code");
+
+    expect(result).toMatchObject({
+      status: "authenticated",
+      accessToken: "access",
+      refreshToken: "refresh",
+      user: {
+        id: "user-1",
+        phoneMasked: null,
+        profileComplete: false,
+      },
+    });
+    expect(result).not.toHaveProperty("user.phone");
   });
 
   it("stores a short-lived binding challenge without creating a user", async () => {
@@ -127,7 +152,7 @@ describe("WechatAuthService", () => {
     await expect(service.bindPhone("bind-token", "phone-code")).resolves.toMatchObject({
       status: "authenticated",
       accessToken: "access",
-      user: { phone: "13800138000", nickname: "宠友1878" },
+      user: { phoneMasked: "138****8000", profileComplete: true, nickname: "宠友1878" },
     });
     expect(prisma.user.create).toHaveBeenCalledWith(
       expect.objectContaining({

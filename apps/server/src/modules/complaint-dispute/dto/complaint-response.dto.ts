@@ -95,8 +95,8 @@ export class AdminComplaintListUserSummaryDto implements AdminComplaintUserSumma
   @ApiProperty()
   nickname: string;
 
-  @ApiProperty()
-  phone: string;
+  @ApiProperty({ nullable: true })
+  phone: string | null;
 }
 
 /** 投诉列表项的 Swagger 模型。 */

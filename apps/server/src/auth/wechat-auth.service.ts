@@ -10,13 +10,17 @@ import { WechatApiClient } from "./wechat-api.client";
 interface MiniappUserRecord {
   id: string;
   openid: string | null;
-  phone: string;
+  phone: string | null;
   username: string | null;
   nickname: string;
   avatar: string | null;
   sessionVersion: number;
   userType: string;
   status: string;
+  profile?: {
+    address: string | null;
+    bio: string | null;
+  } | null;
   roles: Array<{ role: { roleName: string; isActive: boolean } }>;
 }
 
@@ -31,6 +35,12 @@ const miniappUserSelect = {
   sessionVersion: true,
   userType: true,
   status: true,
+  profile: {
+    select: {
+      address: true,
+      bio: true,
+    },
+  },
   roles: {
     select: {
       role: {
@@ -52,7 +62,12 @@ export class WechatAuthService {
     private readonly tokenService: TokenService,
   ) {}
 
-  async login(loginCode: string): Promise<WechatLoginResult> {
+  async login(
+    loginCode: string,
+  ): Promise<
+    | (WechatLoginResult & { status: "authenticated" })
+    | { status: "phone_required"; bindToken: string }
+  > {
     const { openid } = await this.wechatApiClient.exchangeLoginCode(loginCode);
     const user = await this.prismaService.user.findUnique({
       where: { openid },
@@ -234,11 +249,22 @@ export class WechatAuthService {
   private toMiniappUser(user: MiniappUserRecord): MiniappUser {
     return {
       id: user.id,
-      phone: user.phone,
+      phoneMasked: this.maskPhone(user.phone),
+      profileComplete: user.phone !== null,
       nickname: user.nickname,
       avatar: user.avatar,
       userType: user.userType,
+      region: user.profile?.address ?? null,
+      bio: user.profile?.bio ?? null,
     };
+  }
+
+  private maskPhone(phone: string | null): string | null {
+    if (!phone) {
+      return null;
+    }
+
+    return /^\d{11}$/.test(phone) ? `${phone.slice(0, 3)}****${phone.slice(-4)}` : "****";
   }
 
   private bindTokenKey(bindToken: string): string {

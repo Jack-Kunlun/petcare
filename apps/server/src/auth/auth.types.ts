@@ -1,7 +1,7 @@
 export interface SessionPrincipal {
   userId: string;
   username: string | null;
-  phone: string;
+  phone: string | null;
   roles: string[];
   sessionVersion: number;
 }
@@ -16,7 +16,7 @@ export interface AccessTokenPayload {
   sid: string;
   sessionVersion: number;
   username: string | null;
-  phone: string;
+  phone: string | null;
   roles: string[];
   type: "access";
 }

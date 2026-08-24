@@ -75,8 +75,8 @@ export class OrderOwnerResponseDto implements AdminOrderUserSummary {
   @ApiProperty({ format: "uuid" })
   id: string;
 
-  @ApiProperty({ example: "13800138000" })
-  phone: string;
+  @ApiProperty({ nullable: true, example: "13800138000" })
+  phone: string | null;
 
   @ApiProperty({ nullable: true })
   username: string | null;

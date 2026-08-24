@@ -1,11 +1,15 @@
 import { ApiProperty } from "@nestjs/swagger";
+import type { MiniappUserProfile } from "@petcare/shared-types";
 
-export class MiniappUserResponseDto {
+export class MiniappUserResponseDto implements MiniappUserProfile {
   @ApiProperty({ format: "uuid" })
   id: string;
 
-  @ApiProperty({ example: "13800138000" })
-  phone: string;
+  @ApiProperty({ nullable: true, example: "138****8000" })
+  phoneMasked: string | null;
+
+  @ApiProperty()
+  profileComplete: boolean;
 
   @ApiProperty({ example: "宠友1878" })
   nickname: string;
@@ -15,6 +19,12 @@ export class MiniappUserResponseDto {
 
   @ApiProperty({ example: "pet_owner" })
   userType: string;
+
+  @ApiProperty({ nullable: true })
+  region: string | null;
+
+  @ApiProperty({ nullable: true })
+  bio: string | null;
 }
 
 export class WechatSessionResponseDto {

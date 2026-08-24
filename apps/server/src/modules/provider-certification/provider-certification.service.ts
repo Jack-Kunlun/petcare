@@ -54,7 +54,7 @@ type CertificationRecord = {
   updatedAt?: Date;
   applicant: {
     id: string;
-    phone: string;
+    phone: string | null;
     username: string | null;
     nickname: string;
     avatar: string | null;

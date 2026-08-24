@@ -12,7 +12,7 @@ import { VerificationCodeService } from "./verification-code.service";
 interface AdminUserRecord {
   id: string;
   username: string | null;
-  phone: string;
+  phone: string | null;
   nickname: string;
   avatar: string | null;
   status: string;
@@ -26,6 +26,8 @@ interface AdminUserRecord {
     };
   }>;
 }
+
+type ActiveAdministrator = AdminUserRecord & { phone: string };
 
 export interface SafeAdminUser {
   id: string;
@@ -231,7 +233,7 @@ export class AuthService {
     };
   }
 
-  private async issueSession(user: AdminUserRecord): Promise<LoginResult> {
+  private async issueSession(user: ActiveAdministrator): Promise<LoginResult> {
     const safeUser = this.toSafeUser(user);
     const tokens = await this.tokenService.issue({
       userId: user.id,
@@ -244,11 +246,16 @@ export class AuthService {
     return { ...tokens, user: safeUser };
   }
 
-  private isActiveAdministrator(user: AdminUserRecord | null): user is AdminUserRecord {
-    return user?.status === "active" && user.roles.some((assignment) => assignment.role.isActive);
+  private isActiveAdministrator(user: AdminUserRecord | null): user is ActiveAdministrator {
+    return Boolean(
+      user &&
+      user.status === "active" &&
+      user.phone &&
+      user.roles.some((assignment) => assignment.role.isActive),
+    );
   }
 
-  private toSafeUser(user: AdminUserRecord): SafeAdminUser {
+  private toSafeUser(user: ActiveAdministrator): SafeAdminUser {
     return {
       id: user.id,
       username: user.username,

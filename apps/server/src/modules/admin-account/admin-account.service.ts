@@ -230,8 +230,8 @@ export class AdminAccountService {
     }
   }
 
-  private maskPhone(phone: string): string {
-    return /^\d{11}$/.test(phone) ? `${phone.slice(0, 3)}****${phone.slice(-4)}` : "****";
+  private maskPhone(phone: string | null): string {
+    return phone && /^\d{11}$/.test(phone) ? `${phone.slice(0, 3)}****${phone.slice(-4)}` : "****";
   }
 
   private passwordError(code: string, message: string, status: HttpStatus): ApiException {

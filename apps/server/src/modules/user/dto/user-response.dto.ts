@@ -10,8 +10,8 @@ export class UserResponseDto {
   @ApiProperty({ format: "uuid" })
   id: string;
 
-  @ApiProperty({ example: "13800138000" })
-  phone: string;
+  @ApiProperty({ nullable: true, example: "13800138000" })
+  phone: string | null;
 
   @ApiProperty({ nullable: true, example: "pet_owner_1" })
   username: string | null;

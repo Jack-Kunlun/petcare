@@ -31,7 +31,7 @@ function excerpt(value: string): string {
 
 function asAuthor(value: {
   id: string;
-  phone: string;
+  phone: string | null;
   username: string | null;
   nickname: string;
   avatar: string | null;
