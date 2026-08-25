@@ -23,6 +23,44 @@ export interface Order {
   updatedAt: string;
 }
 
+/** Public owner identity shown with a discoverable reward order. */
+export interface PublicOrderOwner {
+  /** Display nickname. */
+  nickname: string;
+  /** Public avatar URL, or null when no avatar is available. */
+  avatar: string | null;
+}
+
+/** Public pet summary shown with a discoverable reward order. */
+export interface PublicOrderPet {
+  /** Pet display name. */
+  name: string;
+  /** Pet breed label. */
+  breed: string;
+  /** First public pet photo, or null when no photo is available. */
+  coverImage: string | null;
+}
+
+/** Anonymous-safe projection of a discoverable reward order. */
+export interface PublicOrder {
+  /** Order identifier used to open the public detail page. */
+  id: string;
+  /** Order business model. */
+  orderType: OrderType;
+  /** Requested service category. */
+  serviceType: ServiceType;
+  /** ISO 8601 service time. */
+  serviceTime: string;
+  /** Order amount in minor currency units. */
+  amount: number;
+  /** Current order state. */
+  status: OrderStatus;
+  /** Anonymous-safe owner display identity. */
+  owner: PublicOrderOwner;
+  /** Anonymous-safe pet display summary. */
+  pet: PublicOrderPet;
+}
+
 /**
  * 创建悬赏订单请求
  */
@@ -65,10 +103,11 @@ export interface OrderListQuery {
   endDate?: string;
 }
 
-/**
- * 订单列表响应
- */
-export type OrderListResponse = PaginatedResponse<Order>;
+/** Paginated anonymous-safe reward-order list. */
+export type PublicOrderListResponse = PaginatedResponse<PublicOrder>;
+
+/** @deprecated Use PublicOrderListResponse. */
+export type OrderListResponse = PublicOrderListResponse;
 
 /**
  * 接单意向

@@ -14,6 +14,7 @@ describe("OrderService public responses", () => {
       findMany: jest.fn(),
       count: jest.fn(),
       findUnique: jest.fn(),
+      findFirst: jest.fn(),
     },
     orderSop: {
       createMany: jest.fn(),
@@ -283,62 +284,152 @@ describe("OrderService public responses", () => {
     expect(prisma.orderFeeSnapshot.create).not.toHaveBeenCalled();
   });
 
-  it("returns the unified list-based pagination shape", async () => {
-    const orders = [{ id: "order-1" }];
+  it("returns only discoverable reward-order display fields", async () => {
+    const orders = [
+      {
+        id: "order-1",
+        orderType: "reward",
+        serviceType: "feeding",
+        serviceTime: new Date("2026-08-01T10:00:00.000Z"),
+        amount: 12500,
+        status: "pending_confirm",
+        owner: {
+          id: "owner-1",
+          nickname: "豆包家长",
+          avatar: null,
+          userType: "pet_owner",
+          status: "active",
+          phone: "17600000000",
+          username: "private-owner",
+        },
+        pet: {
+          id: "pet-1",
+          ownerId: "owner-1",
+          name: "豆包",
+          breed: "英短",
+          age: 3,
+          weight: 4.5,
+          gender: "female",
+          sterilized: true,
+          habits: "怕生",
+          allergies: "海鲜",
+          photos: ["https://cdn.example.com/pet.jpg", "https://cdn.example.com/private.jpg"],
+          createdAt: new Date("2025-01-01T00:00:00.000Z"),
+          updatedAt: new Date("2026-01-01T00:00:00.000Z"),
+        },
+        address: "不应公开的详细地址",
+        remark: "门禁密码不应公开",
+        ownerId: "owner-1",
+        petId: "pet-1",
+        providerId: "provider-1",
+        completedAt: null,
+        createdAt: new Date("2026-07-01T00:00:00.000Z"),
+        updatedAt: new Date("2026-07-02T00:00:00.000Z"),
+        sopConfigVersionId: "sop-v2",
+        feeConfigVersionId: "fee-v2",
+      },
+    ];
 
     prisma.order.findMany.mockResolvedValue(orders);
     prisma.order.count.mockResolvedValue(1);
 
     await expect(service.findAll(2, 10)).resolves.toEqual({
-      list: orders,
+      list: [
+        {
+          id: "order-1",
+          orderType: "reward",
+          serviceType: "feeding",
+          serviceTime: "2026-08-01T10:00:00.000Z",
+          amount: 12500,
+          status: "pending_confirm",
+          owner: { nickname: "豆包家长", avatar: null },
+          pet: {
+            name: "豆包",
+            breed: "英短",
+            coverImage: "https://cdn.example.com/pet.jpg",
+          },
+        },
+      ],
       total: 1,
       page: 2,
       pageSize: 10,
     });
+    expect(prisma.order.findMany).toHaveBeenCalledWith({
+      where: {
+        orderType: "reward",
+        status: "pending_confirm",
+        owner: { is: { status: "active" } },
+      },
+      skip: 10,
+      take: 10,
+      orderBy: { createdAt: "desc" },
+      select: {
+        id: true,
+        orderType: true,
+        serviceType: true,
+        serviceTime: true,
+        amount: true,
+        status: true,
+        owner: { select: { nickname: true, avatar: true } },
+        pet: { select: { name: true, breed: true, photos: true } },
+      },
+    });
+    expect(prisma.order.count).toHaveBeenCalledWith({
+      where: {
+        orderType: "reward",
+        status: "pending_confirm",
+        owner: { is: { status: "active" } },
+      },
+    });
   });
 
-  it("queries order details with a safe owner projection", async () => {
-    prisma.order.findUnique.mockResolvedValue({
+  it("returns only a discoverable order's public display projection", async () => {
+    prisma.order.findFirst.mockResolvedValue({
       id: "order-1",
-      owner: {
-        id: "owner-1",
-        nickname: "豆包家长",
-        avatar: null,
-        userType: "pet_owner",
-        status: "active",
-      },
+      orderType: "reward",
+      serviceType: "feeding",
+      serviceTime: new Date("2026-08-01T10:00:00.000Z"),
+      amount: 12500,
+      status: "pending_confirm",
+      owner: { nickname: "豆包家长", avatar: null },
+      pet: { name: "豆包", breed: "英短", photos: [] },
+      address: "不应公开的详细地址",
+      remark: "门禁密码不应公开",
     });
 
-    const result = await service.findOne("order-1");
+    await expect(service.findOne("order-1")).resolves.toEqual({
+      id: "order-1",
+      orderType: "reward",
+      serviceType: "feeding",
+      serviceTime: "2026-08-01T10:00:00.000Z",
+      amount: 12500,
+      status: "pending_confirm",
+      owner: { nickname: "豆包家长", avatar: null },
+      pet: { name: "豆包", breed: "英短", coverImage: null },
+    });
 
-    expect(prisma.order.findUnique).toHaveBeenCalledWith({
-      where: { id: "order-1" },
-      include: {
-        owner: {
-          select: {
-            id: true,
-            nickname: true,
-            avatar: true,
-            userType: true,
-            status: true,
-          },
-        },
-        pet: true,
+    expect(prisma.order.findFirst).toHaveBeenCalledWith({
+      where: {
+        id: "order-1",
+        orderType: "reward",
+        status: "pending_confirm",
+        owner: { is: { status: "active" } },
+      },
+      select: {
+        id: true,
+        orderType: true,
+        serviceType: true,
+        serviceTime: true,
+        amount: true,
+        status: true,
+        owner: { select: { nickname: true, avatar: true } },
+        pet: { select: { name: true, breed: true, photos: true } },
       },
     });
-    expect(result.owner).toEqual({
-      id: "owner-1",
-      nickname: "豆包家长",
-      avatar: null,
-      userType: "pet_owner",
-      status: "active",
-    });
-    expect(result.owner).not.toHaveProperty("phone");
-    expect(result.owner).not.toHaveProperty("username");
   });
 
   it("throws a stable 404 when the order does not exist", async () => {
-    prisma.order.findUnique.mockResolvedValue(null);
+    prisma.order.findFirst.mockResolvedValue(null);
 
     try {
       await service.findOne("missing");

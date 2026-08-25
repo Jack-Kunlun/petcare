@@ -6,7 +6,8 @@ import {
   CreateRewardOrderResponse,
   CreatePlatformOrderRequest,
   OrderListQuery,
-  OrderListResponse,
+  PublicOrder,
+  PublicOrderListResponse,
   SubmitIntentRequest,
   UploadSopRecordRequest,
 } from "@petcare/shared-types";
@@ -36,8 +37,8 @@ export class OrderAPI {
   /**
    * 获取订单列表
    */
-  async getOrderList(query: OrderListQuery): Promise<OrderListResponse> {
-    const response = await this.http.get<OrderListResponse>("/orders", {
+  async getOrderList(query: OrderListQuery): Promise<PublicOrderListResponse> {
+    const response = await this.http.get<PublicOrderListResponse>("/orders", {
       params: query,
     });
 
@@ -47,8 +48,8 @@ export class OrderAPI {
   /**
    * 获取订单详情
    */
-  async getOrderDetail(orderId: string): Promise<Order> {
-    const response = await this.http.get<Order>(`/orders/${orderId}`);
+  async getOrderDetail(orderId: string): Promise<PublicOrder> {
+    const response = await this.http.get<PublicOrder>(`/orders/${orderId}`);
 
     return response.data;
   }

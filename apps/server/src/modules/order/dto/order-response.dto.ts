@@ -6,6 +6,10 @@ import type {
   AdminOrderType,
   AdminOrderUserSummary,
   AdminServiceType,
+  OrderStatus,
+  OrderType,
+  PublicOrder,
+  ServiceType,
 } from "@petcare/shared-types";
 
 export class OrderResponseDto {
@@ -57,9 +61,54 @@ export class CreateOrderResponseDto {
   order: OrderResponseDto;
 }
 
+export class PublicOrderOwnerResponseDto {
+  @ApiProperty()
+  nickname: string;
+
+  @ApiProperty({ nullable: true })
+  avatar: string | null;
+}
+
+export class PublicOrderPetResponseDto {
+  @ApiProperty()
+  name: string;
+
+  @ApiProperty()
+  breed: string;
+
+  @ApiProperty({ nullable: true })
+  coverImage: string | null;
+}
+
+export class PublicOrderResponseDto implements PublicOrder {
+  @ApiProperty({ format: "uuid" })
+  id: string;
+
+  @ApiProperty({ example: "reward" })
+  orderType: OrderType;
+
+  @ApiProperty({ example: "feeding" })
+  serviceType: ServiceType;
+
+  @ApiProperty({ format: "date-time" })
+  serviceTime: string;
+
+  @ApiProperty({ example: 8000 })
+  amount: number;
+
+  @ApiProperty({ example: "pending_confirm" })
+  status: OrderStatus;
+
+  @ApiProperty({ type: PublicOrderOwnerResponseDto })
+  owner: PublicOrderOwnerResponseDto;
+
+  @ApiProperty({ type: PublicOrderPetResponseDto })
+  pet: PublicOrderPetResponseDto;
+}
+
 export class OrderListResponseDto {
-  @ApiProperty({ type: [OrderResponseDto] })
-  list: OrderResponseDto[];
+  @ApiProperty({ type: [PublicOrderResponseDto] })
+  list: PublicOrderResponseDto[];
 
   @ApiProperty({ example: 1 })
   total: number;
@@ -71,9 +120,17 @@ export class OrderListResponseDto {
   pageSize: number;
 }
 
-export class OrderOwnerResponseDto {
+export class OrderDetailResponseDto extends PublicOrderResponseDto {}
+
+export class AdminOrderUserSummaryDto implements AdminOrderUserSummary {
   @ApiProperty({ format: "uuid" })
   id: string;
+
+  @ApiProperty({ nullable: true, example: "13800138000" })
+  phone: string | null;
+
+  @ApiProperty({ nullable: true })
+  username: string | null;
 
   @ApiProperty()
   nickname: string;
@@ -86,66 +143,6 @@ export class OrderOwnerResponseDto {
 
   @ApiProperty({ example: "active" })
   status: string;
-}
-
-export class AdminOrderUserSummaryDto
-  extends OrderOwnerResponseDto
-  implements AdminOrderUserSummary
-{
-  @ApiProperty({ nullable: true, example: "13800138000" })
-  phone: string | null;
-
-  @ApiProperty({ nullable: true })
-  username: string | null;
-}
-
-export class OrderPetResponseDto {
-  @ApiProperty({ format: "uuid" })
-  id: string;
-
-  @ApiProperty({ format: "uuid" })
-  ownerId: string;
-
-  @ApiProperty()
-  name: string;
-
-  @ApiProperty()
-  breed: string;
-
-  @ApiProperty()
-  age: number;
-
-  @ApiProperty({ nullable: true })
-  weight: number | null;
-
-  @ApiProperty({ example: "male" })
-  gender: string;
-
-  @ApiProperty()
-  sterilized: boolean;
-
-  @ApiProperty({ nullable: true })
-  habits: string | null;
-
-  @ApiProperty({ nullable: true })
-  allergies: string | null;
-
-  @ApiProperty({ type: [String] })
-  photos: string[];
-
-  @ApiProperty({ format: "date-time" })
-  createdAt: Date;
-
-  @ApiProperty({ format: "date-time" })
-  updatedAt: Date;
-}
-
-export class OrderDetailResponseDto extends OrderResponseDto {
-  @ApiProperty({ type: OrderOwnerResponseDto })
-  owner: OrderOwnerResponseDto;
-
-  @ApiProperty({ type: OrderPetResponseDto })
-  pet: OrderPetResponseDto;
 }
 
 export class AdminOrderPetSummaryDto implements AdminOrderPetSummary {

@@ -2,7 +2,12 @@ import { GUARDS_METADATA } from "@nestjs/common/constants";
 import { AccessTokenGuard } from "../../auth/access-token.guard";
 import { ProfileCompleteGuard } from "../../auth/profile-complete.guard";
 import type { CreateRewardOrderDto } from "./dto/create-order.dto";
-import { AdminOrderUserSummaryDto, OrderOwnerResponseDto } from "./dto/order-response.dto";
+import {
+  AdminOrderUserSummaryDto,
+  PublicOrderOwnerResponseDto,
+  PublicOrderPetResponseDto,
+  PublicOrderResponseDto,
+} from "./dto/order-response.dto";
 import { OrderController } from "./order.controller";
 import { OrderService } from "./order.service";
 
@@ -47,17 +52,36 @@ describe("OrderController", () => {
     expect(Reflect.getMetadata(GUARDS_METADATA, OrderController.prototype.findOne)).toBeUndefined();
   });
 
-  it("documents an anonymous owner response without phone or username", () => {
-    const publicProperties = Reflect.getMetadata(
+  it("documents only the anonymous order display projection", () => {
+    const orderProperties = Reflect.getMetadata(
       "swagger/apiModelPropertiesArray",
-      OrderOwnerResponseDto.prototype,
+      PublicOrderResponseDto.prototype,
+    ) as string[];
+    const ownerProperties = Reflect.getMetadata(
+      "swagger/apiModelPropertiesArray",
+      PublicOrderOwnerResponseDto.prototype,
+    ) as string[];
+    const petProperties = Reflect.getMetadata(
+      "swagger/apiModelPropertiesArray",
+      PublicOrderPetResponseDto.prototype,
     ) as string[];
     const adminProperties = Reflect.getMetadata(
       "swagger/apiModelPropertiesArray",
       AdminOrderUserSummaryDto.prototype,
     ) as string[];
 
-    expect(publicProperties).toEqual([":id", ":nickname", ":avatar", ":userType", ":status"]);
+    expect(orderProperties).toEqual([
+      ":id",
+      ":orderType",
+      ":serviceType",
+      ":serviceTime",
+      ":amount",
+      ":status",
+      ":owner",
+      ":pet",
+    ]);
+    expect(ownerProperties).toEqual([":nickname", ":avatar"]);
+    expect(petProperties).toEqual([":name", ":breed", ":coverImage"]);
     expect(adminProperties).toEqual(expect.arrayContaining([":phone", ":username"]));
   });
 });

@@ -1,5 +1,5 @@
 import { HttpStatus, Injectable } from "@nestjs/common";
-import { AdminServiceType } from "@petcare/shared-types";
+import type { AdminServiceType, PublicOrder, PublicOrderListResponse } from "@petcare/shared-types";
 import { ApiException } from "../../common/http/api-exception";
 import { ConfigService } from "../../config/config.service";
 import { Prisma } from "../../generated/prisma/client";
@@ -9,16 +9,29 @@ import { AdminOrderListQueryDto } from "./dto/admin-order-list-query.dto";
 import { CreateRewardOrderDto } from "./dto/create-order.dto";
 import { OrderConfigSnapshotService } from "./order-config-snapshot.service";
 
-const publicOwnerSelect = {
+const publicOrderWhere = {
+  orderType: "reward",
+  status: "pending_confirm",
+  owner: { is: { status: "active" } },
+} as const;
+
+const publicOrderSelect = {
+  id: true,
+  orderType: true,
+  serviceType: true,
+  serviceTime: true,
+  amount: true,
+  status: true,
+  owner: { select: { nickname: true, avatar: true } },
+  pet: { select: { name: true, breed: true, photos: true } },
+} as const;
+
+const adminOwnerSelect = {
   id: true,
   nickname: true,
   avatar: true,
   userType: true,
   status: true,
-} as const;
-
-const adminOwnerSelect = {
-  ...publicOwnerSelect,
   phone: true,
   username: true,
 } as const;
@@ -121,38 +134,37 @@ export class OrderService {
     }
   }
 
-  async findAll(page = 1, pageSize = 20) {
+  async findAll(page = 1, pageSize = 20): Promise<PublicOrderListResponse> {
     const [list, total] = await Promise.all([
       this.prisma.order.findMany({
+        where: publicOrderWhere,
         skip: (page - 1) * pageSize,
         take: pageSize,
         orderBy: { createdAt: "desc" },
+        select: publicOrderSelect,
       }),
-      this.prisma.order.count(),
+      this.prisma.order.count({ where: publicOrderWhere }),
     ]);
 
     return {
-      list,
+      list: list.map((order) => this.toPublicOrder(order)),
       total,
       page,
       pageSize,
     };
   }
 
-  async findOne(id: string) {
-    const order = await this.prisma.order.findUnique({
-      where: { id },
-      include: {
-        owner: { select: publicOwnerSelect },
-        pet: true,
-      },
+  async findOne(id: string): Promise<PublicOrder> {
+    const order = await this.prisma.order.findFirst({
+      where: { id, ...publicOrderWhere },
+      select: publicOrderSelect,
     });
 
     if (!order) {
       throw new ApiException("RESOURCE_NOT_FOUND", "订单不存在", HttpStatus.NOT_FOUND);
     }
 
-    return order;
+    return this.toPublicOrder(order);
   }
 
   /** 根据后台筛选条件查询订单及关联用户、宠物摘要。 */
@@ -205,5 +217,27 @@ export class OrderService {
 
   private isSerializationConflict(error: unknown): boolean {
     return typeof error === "object" && error !== null && "code" in error && error.code === "P2034";
+  }
+
+  private toPublicOrder(
+    order: Prisma.OrderGetPayload<{ select: typeof publicOrderSelect }>,
+  ): PublicOrder {
+    return {
+      id: order.id,
+      orderType: order.orderType as PublicOrder["orderType"],
+      serviceType: order.serviceType as PublicOrder["serviceType"],
+      serviceTime: order.serviceTime.toISOString(),
+      amount: order.amount,
+      status: order.status as PublicOrder["status"],
+      owner: {
+        nickname: order.owner.nickname,
+        avatar: order.owner.avatar,
+      },
+      pet: {
+        name: order.pet.name,
+        breed: order.pet.breed,
+        coverImage: order.pet.photos[0] ?? null,
+      },
+    };
   }
 }

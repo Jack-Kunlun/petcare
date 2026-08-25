@@ -321,13 +321,11 @@ describe("System settings closed loop (e2e)", () => {
       .expect(200);
     const sopUpdatedOrder = (await createRewardOrder()).body.data.order;
     const sopUpdatedSnapshot = await readOrderSnapshot(sopUpdatedOrder.id);
-    const oldOrderAfterSopPublish = await request(app.getHttpServer())
-      .get(`/orders/${oldOrder.id}`)
-      .expect(200);
+    const oldOrderAfterSopPublish = await readOrderSnapshot(oldOrder.id);
 
     expect(sopUpdatedOrder.sopConfigVersionId).toBe(publishedSop.body.data.id);
     expect(sopUpdatedOrder.sopConfigVersionId).not.toBe(oldOrder.sopConfigVersionId);
-    expect(oldOrderAfterSopPublish.body.data.sopConfigVersionId).toBe(oldOrder.sopConfigVersionId);
+    expect(oldOrderAfterSopPublish.sopConfigVersionId).toBe(oldOrder.sopConfigVersionId);
     expectSopSnapshot(sopUpdatedSnapshot, publishedSop.body.data.config, publishedSop.body.data.id);
     expectFeeSnapshot(
       sopUpdatedSnapshot,
@@ -351,13 +349,11 @@ describe("System settings closed loop (e2e)", () => {
       .expect(200);
     const feeUpdatedOrder = (await createRewardOrder()).body.data.order;
     const feeUpdatedSnapshot = await readOrderSnapshot(feeUpdatedOrder.id);
-    const oldOrderAfterFeePublish = await request(app.getHttpServer())
-      .get(`/orders/${oldOrder.id}`)
-      .expect(200);
+    const oldOrderAfterFeePublish = await readOrderSnapshot(oldOrder.id);
 
     expect(feeUpdatedOrder.feeConfigVersionId).toBe(publishedFee.body.data.id);
     expect(feeUpdatedOrder.feeConfigVersionId).not.toBe(oldOrder.feeConfigVersionId);
-    expect(oldOrderAfterFeePublish.body.data.feeConfigVersionId).toBe(oldOrder.feeConfigVersionId);
+    expect(oldOrderAfterFeePublish.feeConfigVersionId).toBe(oldOrder.feeConfigVersionId);
     expectSopSnapshot(feeUpdatedSnapshot, publishedSop.body.data.config, publishedSop.body.data.id);
     expectFeeSnapshot(
       feeUpdatedSnapshot,
