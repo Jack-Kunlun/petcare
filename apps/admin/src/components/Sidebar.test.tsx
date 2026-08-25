@@ -11,6 +11,19 @@ function getNavigationHrefs(root: HTMLElement) {
 }
 
 describe("Sidebar", () => {
+  it("uses the shared shell width and header-height tokens", () => {
+    const { container } = render(
+      <MemoryRouter>
+        <Sidebar />
+      </MemoryRouter>,
+    );
+
+    const sidebar = container.querySelector("aside");
+
+    expect(sidebar).toHaveClass("w-[var(--admin-sidebar-width)]");
+    expect(sidebar?.firstElementChild).toHaveClass("h-[var(--admin-header-height)]");
+  });
+
   it("uses the color PetCare symbol with an accessible label", () => {
     render(
       <MemoryRouter>

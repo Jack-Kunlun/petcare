@@ -177,11 +177,11 @@ export function Sidebar({ open = false, onClose, permissions }: SidebarProps) {
       ) : null}
 
       <aside
-        className={`fixed inset-y-0 left-0 z-40 flex h-screen min-h-0 w-64 flex-col border-r border-slate-200 bg-slate-950 text-slate-300 shadow-xl transition-transform duration-200 lg:static lg:z-auto lg:translate-x-0 lg:shadow-none ${
+        className={`fixed inset-y-0 left-0 z-40 flex h-screen min-h-0 w-[var(--admin-sidebar-width)] flex-col border-r border-slate-200 bg-slate-950 text-slate-300 shadow-xl transition-transform duration-200 lg:static lg:z-auto lg:translate-x-0 lg:shadow-none ${
           open ? "translate-x-0" : "-translate-x-full"
         }`}
       >
-        <div className="flex h-16 shrink-0 items-center justify-between border-b border-white/10 px-5">
+        <div className="flex h-[var(--admin-header-height)] shrink-0 items-center justify-between border-b border-white/10 px-5">
           <div className="flex min-w-0 items-center gap-3">
             <BrandLogo
               variant="color"

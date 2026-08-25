@@ -62,11 +62,9 @@
 @keyframes pc-page-enter {
   from {
     opacity: 0;
-    transform: translateY(8px);
   }
   to {
     opacity: 1;
-    transform: translateY(0);
   }
 }
 
@@ -84,7 +82,6 @@
     from,
     to {
       opacity: 1;
-      transform: none;
     }
   }
 
@@ -98,6 +95,11 @@
 
 @layer base {
   :root {
+    --admin-header-height: 4rem;
+    --admin-sidebar-width: 16rem;
+    --editor-width-narrow: 60rem;
+    --editor-width-default: 75rem;
+    --editor-width-wide: 90rem;
     --background: 0 0% 100%;
     --foreground: 222.2 84% 4.9%;
     --card: 0 0% 100%;

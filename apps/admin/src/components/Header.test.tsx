@@ -61,6 +61,16 @@ describe("Header", () => {
     expect(await screen.findByText("/login")).toBeInTheDocument();
   });
 
+  it("uses the shared shell height token", () => {
+    const { container } = render(
+      <MemoryRouter>
+        <Header onMenuOpen={vi.fn()} />
+      </MemoryRouter>,
+    );
+
+    expect(container.querySelector("header")).toHaveClass("h-[var(--admin-header-height)]");
+  });
+
   it("可从窄屏顶栏打开主导航", async () => {
     const user = userEvent.setup();
     const onMenuOpen = vi.fn();
