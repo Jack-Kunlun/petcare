@@ -58,7 +58,7 @@ export function MediaAssetPicker({
           <button
             type="button"
             onClick={() => void assetsQuery.refetch()}
-            className="ml-2 inline-flex min-h-9 items-center gap-1 rounded-md px-2 font-semibold underline outline-none focus-visible:ring-2 focus-visible:ring-red-700"
+            className="ml-2 inline-flex h-10 cursor-pointer items-center gap-1 rounded-md px-2 font-semibold underline outline-none focus-visible:ring-2 focus-visible:ring-red-700"
           >
             <RefreshCw aria-hidden="true" className="h-3.5 w-3.5" />
             重试

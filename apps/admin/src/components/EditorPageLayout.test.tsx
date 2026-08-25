@@ -49,6 +49,7 @@ describe("EditorPageLayout", () => {
     expect(header).toContainElement(screen.getByRole("button", { name: "保存" }));
     expect(content).toHaveTextContent("编辑内容");
     expect(footer).toContainElement(screen.getByRole("button", { name: "底部保存" }));
+    expect(footer).toHaveClass("border-t", "bg-white", "px-6", "py-4", "gap-3");
   });
 
   it.each([

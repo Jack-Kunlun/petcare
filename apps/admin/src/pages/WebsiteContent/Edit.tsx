@@ -408,7 +408,7 @@ export default function WebsiteContentEdit() {
         <button
           type="button"
           onClick={() => void draftQuery.refetch()}
-          className="mt-4 inline-flex min-h-11 items-center gap-2 rounded-lg border border-red-700 px-4 font-semibold outline-none hover:bg-red-100 focus-visible:ring-2 focus-visible:ring-red-700"
+          className="mt-4 inline-flex h-10 cursor-pointer items-center gap-2 rounded-lg border border-red-700 px-4 font-semibold outline-none hover:bg-red-100 focus-visible:ring-2 focus-visible:ring-red-700"
         >
           <RefreshCw aria-hidden="true" className="h-4 w-4" />
           重新加载
@@ -705,7 +705,7 @@ function PageMessage({ title, message }: { title: string; message: string }) {
       <p className="mt-2 text-slate-600">{message}</p>
       <Link
         to="/website-content"
-        className="mt-5 inline-flex min-h-11 items-center rounded-lg px-3 font-semibold text-blue-800 outline-none hover:bg-blue-50 focus-visible:ring-2 focus-visible:ring-blue-800"
+        className="mt-5 inline-flex h-10 cursor-pointer items-center rounded-lg px-3 font-semibold text-blue-800 outline-none hover:bg-blue-50 focus-visible:ring-2 focus-visible:ring-blue-800"
       >
         返回官网内容
       </Link>

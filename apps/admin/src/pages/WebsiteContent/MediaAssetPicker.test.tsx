@@ -87,4 +87,14 @@ describe("MediaAssetPicker", () => {
     expect(onChange).toHaveBeenLastCalledWith({ assetId: "asset-hero", altText: "宠物与照护者" });
     expect(screen.queryByText(/COS|storageKey|对象路径/i)).toBeNull();
   });
+
+  it("uses the default control height for retry actions", async () => {
+    vi.mocked(websiteContentApi.fetchWebsiteMediaAssets).mockRejectedValue(new Error("offline"));
+    renderPicker();
+
+    expect(await screen.findByRole("button", { name: "重试" })).toHaveClass(
+      "h-10",
+      "cursor-pointer",
+    );
+  });
 });

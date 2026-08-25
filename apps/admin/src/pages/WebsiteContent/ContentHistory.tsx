@@ -44,7 +44,7 @@ export function ContentHistory({
           <button
             type="button"
             onClick={onRetry}
-            className="mt-3 min-h-11 rounded-lg border border-red-700 px-4 py-2 font-semibold outline-none hover:bg-red-100 focus-visible:ring-2 focus-visible:ring-red-800"
+            className="mt-3 inline-flex h-10 cursor-pointer items-center rounded-lg border border-red-700 px-4 font-semibold outline-none hover:bg-red-100 focus-visible:ring-2 focus-visible:ring-red-800"
           >
             重试
           </button>

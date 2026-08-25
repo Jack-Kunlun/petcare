@@ -1,6 +1,6 @@
 import type { WebsiteRichTextSection } from "@petcare/shared-types";
 import type { SectionEditorProps } from "./editor-types";
-import { SelectField, TextField } from "./fields";
+import { inputClassName, SelectField, TextField } from "./fields";
 
 /** Edits plain structured narrative text without any HTML or rich-text control. */
 export function RichTextEditor({
@@ -33,7 +33,7 @@ export function RichTextEditor({
               effectiveDate: event.target.value.trim() ? event.target.value : null,
             })
           }
-          className="mt-2 h-11 w-full rounded-lg border border-slate-300 bg-white px-3 outline-none focus:border-blue-700 focus:ring-2 focus:ring-blue-700/20 disabled:cursor-not-allowed disabled:bg-slate-100"
+          className={inputClassName}
         />
       </label>
       <fieldset className="rounded-lg border border-slate-200 p-4">

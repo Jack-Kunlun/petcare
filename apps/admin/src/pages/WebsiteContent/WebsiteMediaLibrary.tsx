@@ -1,6 +1,7 @@
 import type { WebsiteMediaAsset, WebsiteMediaListQuery } from "@petcare/shared-types";
 import { Archive, Image as ImageIcon, LoaderCircle, Upload } from "lucide-react";
 import { useRef, useState } from "react";
+import { inputClassName } from "./editors/fields";
 
 const MAX_UPLOAD_BYTES = 10 * 1024 * 1024;
 const ACCEPTED_MIME_TYPES = new Set(["image/jpeg", "image/png", "image/webp"]);
@@ -95,7 +96,7 @@ export function WebsiteMediaLibrary({
           <button
             type="button"
             onClick={() => inputRef.current?.click()}
-            className="inline-flex min-h-11 cursor-pointer items-center gap-2 rounded-lg bg-blue-800 px-4 py-2 font-semibold text-white outline-none hover:bg-blue-900 focus-visible:ring-2 focus-visible:ring-blue-800 focus-visible:ring-offset-2"
+            className="inline-flex h-10 cursor-pointer items-center gap-2 rounded-lg bg-blue-800 px-4 font-semibold text-white outline-none hover:bg-blue-900 focus-visible:ring-2 focus-visible:ring-blue-800 focus-visible:ring-offset-2"
           >
             <Upload aria-hidden="true" className="h-4 w-4" />
             上传图片
@@ -129,7 +130,7 @@ export function WebsiteMediaLibrary({
             onChange={(event) =>
               onQueryChange({ ...query, page: 1, keyword: event.target.value || undefined })
             }
-            className="mt-2 h-11 w-full rounded-lg border border-slate-300 px-3 outline-none focus:border-blue-700 focus:ring-2 focus:ring-blue-700/20"
+            className={inputClassName}
           />
         </label>
         <label className="block">
@@ -147,7 +148,7 @@ export function WebsiteMediaLibrary({
                     : (event.target.value as WebsiteMediaListQuery["status"]),
               })
             }
-            className="mt-2 h-11 w-full rounded-lg border border-slate-300 bg-white px-3 outline-none focus:border-blue-700 focus:ring-2 focus:ring-blue-700/20"
+            className={inputClassName}
           >
             <option value="all">全部</option>
             <option value="active">可用</option>
@@ -221,7 +222,7 @@ export function WebsiteMediaLibrary({
                   type="button"
                   disabled={referenced || pending || asset.status === "archived"}
                   onClick={() => void onArchive(asset)}
-                  className="mt-3 inline-flex min-h-10 items-center gap-2 rounded-lg border border-slate-300 px-3 py-2 text-sm font-semibold text-slate-800 outline-none hover:bg-slate-50 focus-visible:ring-2 focus-visible:ring-blue-800 disabled:cursor-not-allowed disabled:opacity-45"
+                  className="mt-3 inline-flex h-10 cursor-pointer items-center gap-2 rounded-lg border border-slate-300 px-3 text-sm font-semibold text-slate-800 outline-none hover:bg-slate-50 focus-visible:ring-2 focus-visible:ring-blue-800 disabled:cursor-not-allowed disabled:opacity-45"
                 >
                   {pending ? (
                     <LoaderCircle aria-hidden="true" className="h-4 w-4 animate-spin" />
@@ -243,7 +244,7 @@ export function WebsiteMediaLibrary({
             type="button"
             disabled={query.page <= 1}
             onClick={() => onQueryChange({ ...query, page: query.page - 1 })}
-            className="min-h-10 rounded-lg border border-slate-300 px-3 font-semibold outline-none hover:bg-slate-50 focus-visible:ring-2 focus-visible:ring-blue-800 disabled:opacity-40"
+            className="h-10 cursor-pointer rounded-lg border border-slate-300 px-3 font-semibold outline-none hover:bg-slate-50 focus-visible:ring-2 focus-visible:ring-blue-800 disabled:cursor-not-allowed disabled:opacity-40"
           >
             上一页
           </button>
@@ -251,7 +252,7 @@ export function WebsiteMediaLibrary({
             type="button"
             disabled={query.page * query.pageSize >= total}
             onClick={() => onQueryChange({ ...query, page: query.page + 1 })}
-            className="min-h-10 rounded-lg border border-slate-300 px-3 font-semibold outline-none hover:bg-slate-50 focus-visible:ring-2 focus-visible:ring-blue-800 disabled:opacity-40"
+            className="h-10 cursor-pointer rounded-lg border border-slate-300 px-3 font-semibold outline-none hover:bg-slate-50 focus-visible:ring-2 focus-visible:ring-blue-800 disabled:cursor-not-allowed disabled:opacity-40"
           >
             下一页
           </button>

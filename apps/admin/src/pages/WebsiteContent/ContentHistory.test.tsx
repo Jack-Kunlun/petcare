@@ -45,6 +45,6 @@ describe("ContentHistory", () => {
 
     rerender(<ContentHistory contentKey="home" items={[]} error onRetry={() => undefined} />);
     expect(screen.getByRole("alert")).toHaveTextContent("历史版本加载失败");
-    expect(screen.getByRole("button", { name: "重试" })).toBeInTheDocument();
+    expect(screen.getByRole("button", { name: "重试" })).toHaveClass("h-10", "cursor-pointer");
   });
 });

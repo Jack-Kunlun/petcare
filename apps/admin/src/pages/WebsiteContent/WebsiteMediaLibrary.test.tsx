@@ -42,6 +42,13 @@ describe("WebsiteMediaLibrary", () => {
 
     const input = document.querySelector('input[type="file"]') as HTMLInputElement;
 
+    expect(screen.getByRole("button", { name: "上传图片" })).toHaveClass("h-10");
+    expect(screen.getByRole("textbox", { name: "搜索文件名" })).toHaveClass("h-10");
+    expect(screen.getByRole("combobox", { name: "素材状态" })).toHaveClass("h-10");
+    expect(screen.getByRole("button", { name: "归档" })).toHaveClass("h-10");
+    expect(screen.getByRole("button", { name: "上一页" })).toHaveClass("h-10");
+    expect(screen.getByRole("button", { name: "下一页" })).toHaveClass("h-10");
+
     fireEvent.change(input, {
       target: { files: [new File(["x"], "note.txt", { type: "text/plain" })] },
     });
