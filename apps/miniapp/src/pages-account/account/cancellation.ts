@@ -174,7 +174,7 @@ export async function runCancellationFlow(
     try {
       await dependencies.cancelAccount(input.requiresCode ? code : undefined);
     } catch (error) {
-      if (dependencies.isActive()) {
+      if (dependencies.isActive() && dependencies.getCurrentUserId() === startedUserId) {
         state.errorMessage = cancellationErrorMessage(error, "注销失败，请重试");
       }
 

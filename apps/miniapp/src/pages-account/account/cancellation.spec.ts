@@ -379,6 +379,30 @@ describe("account cancellation flow", () => {
     expect(failureState.errorMessage).toBe("");
   });
 
+  it("does not expose a cancellation failure to a replacement user", async () => {
+    const state = createState();
+    const request = deferred<void>();
+    const deps = dependencies();
+    let currentUserId = "user-1";
+
+    deps.getCurrentUserId.mockImplementation(() => currentUserId);
+    deps.cancelAccount.mockReturnValue(request.promise);
+
+    const pending = runCancellationFlow(state, { requiresCode: false, code: "" }, deps);
+
+    await vi.waitFor(() => expect(deps.cancelAccount).toHaveBeenCalledTimes(1));
+    currentUserId = "user-2";
+    request.reject(
+      new MiniappApiError(409, MINIAPP_ACCOUNT_ERROR_CODE.ACTIVE_ORDER_EXISTS, "存在进行中的订单"),
+    );
+    await pending;
+
+    expect(state.errorMessage).toBe("");
+    expect(deps.completeCancellation).not.toHaveBeenCalled();
+    expect(deps.showToast).not.toHaveBeenCalled();
+    expect(deps.reLaunch).not.toHaveBeenCalled();
+  });
+
   it("preserves the session and explains server cancellation failures", async () => {
     const state = createState();
     const deps = dependencies();
