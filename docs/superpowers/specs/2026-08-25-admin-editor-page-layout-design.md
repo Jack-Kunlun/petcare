@@ -62,6 +62,7 @@
     --editor-width-default: 1200px;
     --editor-width-wide: 1440px;
 
+- 这些数值是固定 px 目标，不是 rem 的等值换算。Admin 根字号为 14px；使用 rem 会使 Header、Sidebar 和编辑区宽度随根字号缩放，偏离上述壳层几何。
 - main 增加 min-w-0，并阻止页面级横向溢出。
 - PageTransition 只保留不会形成 containing block 的轻量 opacity 动画。
 - Shell 继续统一提供响应式内容 padding。
