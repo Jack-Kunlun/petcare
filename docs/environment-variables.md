@@ -150,6 +150,9 @@ Miniapp 的 Vite 环境根目录是 `apps/miniapp`。仓库内的 `.env.developm
 生产构建值；开发者若要覆盖本地地址，应创建不提交的 `apps/miniapp/.env.local`。根 `.env.example` 中的同名项
 仅作配置清单参考，复制得到的根 `.env` 不会被 Miniapp 构建加载。
 
+本地运行 Miniapp H5 时，Server 的 `ALLOWED_ORIGINS` 必须同时包含 `http://localhost:5173` 和
+`http://127.0.0.1:5173`；仓库默认配置已包含这两个开发源。生产环境仍只配置实际 HTTPS 域名，不得沿用本地源。
+
 ### 第三方服务（可选）
 
 | 变量名                        | 说明                                                  |

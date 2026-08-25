@@ -165,6 +165,15 @@ async function logoutCurrentDevice(): Promise<void> {
               !session.bootstrapped || loadingProfile ? "正在加载个人资料…" : "登录后查看个人资料"
             }}
           </text>
+          <button
+            v-if="session.bootstrapped"
+            class="m-0 h-control flex items-center justify-center border-0 rounded-control bg-brand px-action"
+            aria-label="微信登录"
+            hover-class="opacity-80"
+            @click="openPage('/pages/auth/index')"
+          >
+            <text class="text-body text-white font-medium leading-label">微信登录</text>
+          </button>
         </view>
 
         <view

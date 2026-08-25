@@ -129,12 +129,12 @@ describe("Sidebar", () => {
     );
 
     const tree = within(screen.getByTestId("desktop-menu-tree"));
-    const websiteSettings = tree.getByRole("link", { name: "官网设置" });
+    const websiteSettings = tree.getByRole("link", { name: "内容配置" });
 
     expect(websiteSettings).toHaveAttribute("href", "/website-content");
     expect(websiteSettings.querySelector(".lucide-earth")).toBeInTheDocument();
     expect(websiteSettings.querySelector(".lucide-chevron-right")).toBeNull();
-    expect(tree.queryByRole("button", { name: "官网设置菜单" })).not.toBeInTheDocument();
+    expect(tree.queryByRole("button", { name: "内容配置菜单" })).not.toBeInTheDocument();
   });
 
   it("keeps mobile navigation flat while the desktop menu uses the tree", () => {

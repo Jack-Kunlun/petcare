@@ -756,23 +756,15 @@ export const WEBSITE_CONTENT_SEED_TEMPLATES: readonly WebsiteSeedTemplate[] = [
       ]),
     ],
   },
-  ...[
-    {
-      contentKey: WEBSITE_CONTENT_KEY.PRIVACY,
-      title: "隐私政策",
-      description: "PetCare 隐私政策。",
-      canonicalPath: "/privacy" as const,
-    },
-    {
-      contentKey: WEBSITE_CONTENT_KEY.TERMS,
-      title: "服务条款",
-      description: "PetCare 服务条款。",
-      canonicalPath: "/terms" as const,
-    },
-  ].map(({ contentKey, title, description, canonicalPath }): WebsiteSeedTemplate => ({
-    contentKey,
+  {
+    contentKey: WEBSITE_CONTENT_KEY.PRIVACY,
     contentType: "page",
-    seo: { title: `${title}｜PetCare 宠伴`, description, canonicalPath, image: null },
+    seo: {
+      title: "隐私政策｜PetCare 宠伴",
+      description: "PetCare 隐私政策。",
+      canonicalPath: "/privacy",
+      image: null,
+    },
     sections: [
       {
         sectionKey: "legal_content",
@@ -781,7 +773,91 @@ export const WEBSITE_CONTENT_SEED_TEMPLATES: readonly WebsiteSeedTemplate[] = [
         isEnabled: true,
         schemaVersion: 1,
         content: {
-          title,
+          title: "隐私政策",
+          effectiveDate: "2026-08-25",
+          parts: [
+            {
+              partKey: "scope",
+              heading: "一、适用范围",
+              paragraphs: [
+                "本政策适用于 PetCare 宠伴小程序及其提供的账号、宠物照护和客户支持服务。我们遵循合法、正当、必要和诚信原则处理个人信息，并尽量将处理范围限制在实现功能所必需的最小范围。",
+              ],
+            },
+            {
+              partKey: "information_collected",
+              heading: "二、我们处理的信息",
+              paragraphs: [
+                "为完成微信登录，我们会处理微信登录临时凭证并保存用于识别账号的微信 OpenID；首次登录后会分配随机昵称和默认头像。",
+                "当你主动完善资料时，我们会处理经短信验证的手机号码，以及你选择提交的头像、昵称、所在地区和个人简介。",
+                "当你使用宠物档案、悬赏、订单、照护记录、评价或客服功能时，我们会处理你主动提交的相应业务内容和操作记录。",
+              ],
+            },
+            {
+              partKey: "information_use",
+              heading: "三、信息使用目的",
+              paragraphs: [
+                "我们使用上述信息完成账号识别和安全校验、提供和履行宠物照护服务、展示订单与服务进度、处理咨询和争议，并维护系统安全与服务质量。",
+              ],
+            },
+            {
+              partKey: "service_providers",
+              heading: "四、第三方服务",
+              paragraphs: [
+                "为提供必要功能，我们会使用微信登录、阿里云短信验证和对象存储等服务。仅在实现对应功能所需的范围内传递信息，相关服务也可能依据其公开规则处理信息。",
+              ],
+            },
+            {
+              partKey: "retention_and_security",
+              heading: "五、保存与安全",
+              paragraphs: [
+                "我们在实现处理目的所需的期限以及法律法规要求的期限内保存信息，并采取访问控制、传输保护、日志脱敏和备份等合理措施保护信息安全。期限届满后，将依法删除、匿名化处理或停止除存储和安全保护之外的处理。",
+              ],
+            },
+            {
+              partKey: "your_rights",
+              heading: "六、你的权利",
+              paragraphs: [
+                "你可以在“我的”页面查看和修改个人资料、退出登录或申请注销账户，也可以通过“联系客服”页面提出查阅、更正、删除个人信息或解释本政策的请求。法律法规另有规定的除外。",
+              ],
+            },
+            {
+              partKey: "minors",
+              heading: "七、未成年人保护",
+              paragraphs: [
+                "未满十四周岁的用户应在父母或其他监护人同意和指导下使用本服务。若监护人发现相关个人信息未经同意被处理，可通过客服渠道联系我们。",
+              ],
+            },
+            {
+              partKey: "updates_and_contact",
+              heading: "八、政策更新与联系",
+              paragraphs: [
+                "政策更新后会通过本页面发布。若处理目的、方式或信息种类发生重要变化，我们会依法重新履行告知或取得同意义务。联系渠道和工作时间以“联系客服”页面发布的配置为准。",
+              ],
+            },
+          ],
+        },
+        settings: { width: "normal" },
+      },
+    ],
+  },
+  {
+    contentKey: WEBSITE_CONTENT_KEY.TERMS,
+    contentType: "page",
+    seo: {
+      title: "服务条款｜PetCare 宠伴",
+      description: "PetCare 服务条款。",
+      canonicalPath: "/terms",
+      image: null,
+    },
+    sections: [
+      {
+        sectionKey: "legal_content",
+        sectionType: WEBSITE_SECTION_TYPE.RICH_TEXT,
+        sortOrder: 1,
+        isEnabled: true,
+        schemaVersion: 1,
+        content: {
+          title: "服务条款",
           effectiveDate: null,
           parts: [
             {
@@ -794,10 +870,10 @@ export const WEBSITE_CONTENT_SEED_TEMPLATES: readonly WebsiteSeedTemplate[] = [
         settings: { width: "normal" },
       },
     ],
-  })),
+  },
 ];
 
-interface StoredContactVersion {
+interface StoredSeedVersion {
   id: string;
   websiteContentId: string;
   status: string;
@@ -821,7 +897,7 @@ interface StoredContactVersion {
   }>;
 }
 
-function sectionSnapshots(sections: StoredContactVersion["sections"]) {
+function sectionSnapshots(sections: StoredSeedVersion["sections"]) {
   return sections.map(
     ({ sectionKey, sectionType, sortOrder, isEnabled, schemaVersion, content, settings }) => ({
       sectionKey,
@@ -849,15 +925,37 @@ function legacyContactSections(template: WebsiteSeedTemplate): WebsiteContentSec
   );
 }
 
-function isUntouchedLegacyContactSeed(
+function legacyPrivacySections(template: WebsiteSeedTemplate): WebsiteContentSection[] {
+  return template.sections.map((section) =>
+    section.sectionType === WEBSITE_SECTION_TYPE.RICH_TEXT && section.sectionKey === "legal_content"
+      ? {
+          ...structuredClone(section),
+          content: {
+            title: "隐私政策",
+            effectiveDate: null,
+            parts: [
+              {
+                partKey: "review_required",
+                heading: "内容待审核",
+                paragraphs: ["本页正式内容需经业务与法务审核后显式发布。"],
+              },
+            ],
+          },
+        }
+      : structuredClone(section),
+  );
+}
+
+function isUntouchedInitialSeed(
   content: {
     id: string;
     contentType: string;
     currentDraftVersionId: string | null;
     publishedVersionId: string | null;
   },
-  versions: StoredContactVersion[],
+  versions: StoredSeedVersion[],
   template: WebsiteSeedTemplate,
+  originalSections: WebsiteContentSection[],
 ): boolean {
   if (
     content.contentType !== template.contentType ||
@@ -876,7 +974,6 @@ function isUntouchedLegacyContactSeed(
     return false;
   }
 
-  const legacySections = legacyContactSections(template);
   const actual = [published, draft].map((version) => ({
     id: version.id,
     websiteContentId: version.websiteContentId,
@@ -901,12 +998,12 @@ function isUntouchedLegacyContactSeed(
       businessVersion: 1,
       seo: template.seo,
       sourceVersionId: null,
-      idempotencyKey: `seed:${WEBSITE_CONTENT_KEY.CONTACT}:published:v1`,
+      idempotencyKey: `seed:${template.contentKey}:published:v1`,
       changeSummary: "初始化官网内容",
       createdById: originalOperatorId,
       publishedById: originalOperatorId,
       hasPublishedAt: true,
-      sections: legacySections,
+      sections: originalSections,
     },
     {
       id: draft.id,
@@ -921,7 +1018,7 @@ function isUntouchedLegacyContactSeed(
       createdById: originalOperatorId,
       publishedById: null,
       hasPublishedAt: false,
-      sections: legacySections,
+      sections: originalSections,
     },
   ];
 
@@ -958,7 +1055,7 @@ async function upsertSections(
   );
 }
 
-async function upgradeUntouchedLegacyContactSeed(
+async function upgradeUntouchedInitialSeed(
   tx: Prisma.TransactionClient,
   content: {
     id: string;
@@ -968,14 +1065,16 @@ async function upgradeUntouchedLegacyContactSeed(
   },
   template: WebsiteSeedTemplate,
   operatorId: string,
+  originalSections: WebsiteContentSection[],
+  changeSummary: string,
 ): Promise<void> {
   const storedVersions = (await tx.websiteContentVersion.findMany({
     where: { websiteContentId: content.id },
     include: { sections: { orderBy: { sortOrder: "asc" } } },
     orderBy: { revision: "asc" },
-  })) as unknown as StoredContactVersion[];
+  })) as unknown as StoredSeedVersion[];
 
-  if (!isUntouchedLegacyContactSeed(content, storedVersions, template)) {
+  if (!isUntouchedInitialSeed(content, storedVersions, template, originalSections)) {
     return;
   }
 
@@ -992,7 +1091,7 @@ async function upgradeUntouchedLegacyContactSeed(
       seo: template.seo as unknown as Prisma.InputJsonValue,
       sourceVersionId: content.currentDraftVersionId,
       idempotencyKey: null,
-      changeSummary: "停用待运营配置的联系渠道",
+      changeSummary,
       createdById: operatorId,
       publishedById: operatorId,
       publishedAt: new Date(),
@@ -1006,7 +1105,7 @@ async function upgradeUntouchedLegacyContactSeed(
     published.businessVersion !== 2 ||
     published.sourceVersionId !== content.currentDraftVersionId
   ) {
-    throw new Error("Contact seed published-version collision");
+    throw new Error(`${template.contentKey} seed published-version collision`);
   }
 
   const draft = await tx.websiteContentVersion.upsert({
@@ -1022,7 +1121,7 @@ async function upgradeUntouchedLegacyContactSeed(
       seo: template.seo as unknown as Prisma.InputJsonValue,
       sourceVersionId: published.id,
       idempotencyKey: null,
-      changeSummary: "从安全联系渠道版本创建可编辑草稿",
+      changeSummary: "从升级后的发布版本创建可编辑草稿",
       createdById: operatorId,
     },
   });
@@ -1034,7 +1133,7 @@ async function upgradeUntouchedLegacyContactSeed(
     draft.businessVersion !== null ||
     draft.sourceVersionId !== published.id
   ) {
-    throw new Error("Contact seed draft-version collision");
+    throw new Error(`${template.contentKey} seed draft-version collision`);
   }
 
   await Promise.all([
@@ -1070,7 +1169,23 @@ async function seedTemplate(
 
   if (content.currentDraftVersionId !== null || content.publishedVersionId !== null) {
     if (template.contentKey === WEBSITE_CONTENT_KEY.CONTACT) {
-      await upgradeUntouchedLegacyContactSeed(tx, content, template, operatorId);
+      await upgradeUntouchedInitialSeed(
+        tx,
+        content,
+        template,
+        operatorId,
+        legacyContactSections(template),
+        "停用待运营配置的联系渠道",
+      );
+    } else if (template.contentKey === WEBSITE_CONTENT_KEY.PRIVACY) {
+      await upgradeUntouchedInitialSeed(
+        tx,
+        content,
+        template,
+        operatorId,
+        legacyPrivacySections(template),
+        "发布基础隐私政策",
+      );
     }
 
     return;

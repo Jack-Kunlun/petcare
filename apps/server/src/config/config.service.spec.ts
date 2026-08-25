@@ -109,6 +109,17 @@ describe("ConfigService", () => {
     expect(config.websiteContentCacheTtlSeconds).toBe(86400);
   });
 
+  it("allows the local Admin and Miniapp H5 origins by default", () => {
+    delete process.env.ALLOWED_ORIGINS;
+
+    expect(new ConfigService().allowedOrigins.split(",")).toEqual([
+      "http://localhost:8986",
+      "http://127.0.0.1:8986",
+      "http://localhost:5173",
+      "http://127.0.0.1:5173",
+    ]);
+  });
+
   it("exposes the configured database schema to runtime adapters", () => {
     process.env.DB_SCHEMA = "system_settings_e2e_123";
 

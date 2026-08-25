@@ -211,6 +211,49 @@ function restoreLegacyContactSeed(state: ReturnType<typeof createFakePrisma>) {
   return contact;
 }
 
+function requirePrivacySeed(state: ReturnType<typeof createFakePrisma>) {
+  const content = state.contents.find((candidate) => candidate.contentKey === "privacy");
+
+  if (!content?.publishedVersionId || !content.currentDraftVersionId) {
+    throw new Error("Privacy seed pointers are required for this test");
+  }
+
+  return {
+    content,
+    draftId: content.currentDraftVersionId,
+    publishedId: content.publishedVersionId,
+  };
+}
+
+function restoreLegacyPrivacySeed(state: ReturnType<typeof createFakePrisma>) {
+  const privacy = requirePrivacySeed(state);
+  const legacyContent = {
+    title: "隐私政策",
+    effectiveDate: null,
+    parts: [
+      {
+        partKey: "review_required",
+        heading: "内容待审核",
+        paragraphs: ["本页正式内容需经业务与法务审核后显式发布。"],
+      },
+    ],
+  };
+
+  for (const versionId of [privacy.publishedId, privacy.draftId]) {
+    const section = state.sections.find(
+      (candidate) => candidate.versionId === versionId && candidate.sectionKey === "legal_content",
+    );
+
+    if (!section) {
+      throw new Error("Legacy privacy section is required for this test");
+    }
+
+    section.content = structuredClone(legacyContent);
+  }
+
+  return privacy;
+}
+
 describe("seedWebsiteContent", () => {
   it("initializes each fixed content key with one published snapshot and one current draft clone", async () => {
     const state = createFakePrisma();
@@ -380,6 +423,101 @@ describe("seedWebsiteContent", () => {
     });
     expect(publishedPanel.content).toEqual({ operatorOwned: true });
     expect(state.contents).toHaveLength(10);
+    expect(state.versions).toHaveLength(20);
+    expect(state.sections).toHaveLength(60);
+  });
+
+  it("seeds usable help and privacy content instead of a review placeholder", async () => {
+    const state = createFakePrisma();
+
+    await seedWebsiteContent(state.prisma, "admin-1");
+
+    const help = state.contents.find((content) => content.contentKey === "help");
+    const privacy = requirePrivacySeed(state);
+    const privacyContent = getOrderedSections(state, privacy.publishedId)[0]?.content as {
+      effectiveDate: string | null;
+      parts: Array<{ partKey: string }>;
+    };
+
+    expect(help?.publishedVersionId).not.toBeNull();
+    expect(privacyContent.effectiveDate).toBe("2026-08-25");
+    expect(privacyContent.parts.map((part) => part.partKey)).toEqual([
+      "scope",
+      "information_collected",
+      "information_use",
+      "service_providers",
+      "retention_and_security",
+      "your_rights",
+      "minors",
+      "updates_and_contact",
+    ]);
+  });
+
+  it("upgrades only the untouched legacy privacy placeholder with immutable versions", async () => {
+    const state = createFakePrisma();
+
+    await seedWebsiteContent(state.prisma, "admin-1");
+    const legacy = restoreLegacyPrivacySeed(state);
+
+    await seedWebsiteContent(state.prisma, "admin-2");
+
+    const published = state.versions.find(
+      (version) => version.id === legacy.content.publishedVersionId,
+    );
+    const draft = state.versions.find(
+      (version) => version.id === legacy.content.currentDraftVersionId,
+    );
+    const publishedContent = getOrderedSections(state, published!.id)[0]?.content as {
+      parts: Array<{ partKey: string }>;
+    };
+
+    expect(legacy.content.publishedVersionId).not.toBe(legacy.publishedId);
+    expect(legacy.content.currentDraftVersionId).not.toBe(legacy.draftId);
+    expect(state.versions.find((version) => version.id === legacy.publishedId)?.status).toBe(
+      "superseded",
+    );
+    expect(state.versions.find((version) => version.id === legacy.draftId)?.status).toBe(
+      "superseded",
+    );
+    expect(published).toMatchObject({
+      status: "published",
+      revision: 3,
+      businessVersion: 2,
+      sourceVersionId: legacy.draftId,
+      createdById: "admin-2",
+      publishedById: "admin-2",
+    });
+    expect(draft).toMatchObject({
+      status: "draft",
+      revision: 4,
+      businessVersion: null,
+      sourceVersionId: published?.id,
+      createdById: "admin-2",
+    });
+    expect(publishedContent.parts[0]?.partKey).toBe("scope");
+
+    await seedWebsiteContent(state.prisma, "admin-2");
+
+    expect(state.versions).toHaveLength(22);
+    expect(state.sections).toHaveLength(62);
+  });
+
+  it("does not replace operator-edited legacy privacy content", async () => {
+    const state = createFakePrisma();
+
+    await seedWebsiteContent(state.prisma, "admin-1");
+    const legacy = restoreLegacyPrivacySeed(state);
+    const draft = state.sections.find(
+      (section) => section.versionId === legacy.draftId && section.sectionKey === "legal_content",
+    )!;
+
+    (draft.content as { title: string }).title = "运营已编辑";
+    await seedWebsiteContent(state.prisma, "admin-2");
+
+    expect(legacy.content).toMatchObject({
+      currentDraftVersionId: legacy.draftId,
+      publishedVersionId: legacy.publishedId,
+    });
     expect(state.versions).toHaveLength(20);
     expect(state.sections).toHaveLength(60);
   });

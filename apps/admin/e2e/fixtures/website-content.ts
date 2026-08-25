@@ -39,19 +39,19 @@ export async function loginWebsiteOperator(
 
 /** Opens one fixed Website Content editor after the overview navigation is available. */
 export async function openContentEditor(page: Page, contentKey: string): Promise<void> {
-  await page.getByTestId("desktop-menu-tree").getByRole("link", { name: "官网设置" }).click();
-  await expect(page.getByRole("heading", { name: "官网内容" })).toBeVisible();
+  await page.getByTestId("desktop-menu-tree").getByRole("link", { name: "内容配置" }).click();
+  await expect(page.getByRole("heading", { name: "官网与小程序内容" })).toBeVisible();
   const card = page.getByRole("listitem").filter({
-    has: page.getByRole("heading", { name: contentKey, exact: true }),
+    has: page.getByText(contentKey, { exact: true }),
   });
 
-  await card.getByRole("link", { name: "编辑草稿" }).click();
+  await card.getByRole("link", { name: /编辑.+草稿/u }).click();
   await expect(page).toHaveURL(new RegExp(`/website-content/${contentKey}/edit$`, "u"));
 }
 
 /** Opens one protected content editor through the SPA when its edit-card link is unavailable. */
 export async function openContentEditorRoute(page: Page, contentKey: string): Promise<void> {
-  await page.getByTestId("desktop-menu-tree").getByRole("link", { name: "官网设置" }).click();
+  await page.getByTestId("desktop-menu-tree").getByRole("link", { name: "内容配置" }).click();
   await expect(page).toHaveURL(/\/website-content$/u);
   await page.evaluate((key) => {
     globalThis.history.pushState({}, "", `/website-content/${key}/edit`);

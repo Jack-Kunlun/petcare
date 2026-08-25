@@ -1,8 +1,22 @@
+import type { WebsiteContentKey } from "@petcare/shared-types";
 import { useQuery } from "@tanstack/react-query";
 import { AlertCircle, FilePenLine, FileText, RefreshCw } from "lucide-react";
 import { Link } from "react-router-dom";
 import { fetchWebsiteContentOverview, websiteContentQueryKeys } from "../../api/website-content";
 import { PermissionGate } from "../../auth/PermissionGate";
+
+const contentLabels = {
+  site_shell: "全站导航与页脚",
+  home: "官网首页",
+  services: "服务模式",
+  trust: "信任保障",
+  companions: "成为宠托师",
+  about: "关于我们",
+  contact: "联系客服",
+  help: "帮助中心",
+  privacy: "隐私协议",
+  terms: "服务条款",
+} satisfies Record<WebsiteContentKey, string>;
 
 /** Lists every fixed Website Content unit and routes authorized operators to its structured editor. */
 export default function WebsiteContent() {
@@ -14,12 +28,12 @@ export default function WebsiteContent() {
   return (
     <section className="mx-auto w-full max-w-[1280px]">
       <header>
-        <p className="font-medium text-blue-800">官网内容管理</p>
+        <p className="font-medium text-blue-800">内容配置</p>
         <h1 className="mt-1 text-2xl font-bold tracking-tight text-slate-950 sm:text-3xl">
-          官网内容
+          官网与小程序内容
         </h1>
         <p className="mt-2 max-w-[720px] leading-6 text-slate-600">
-          每个内容单元独立保存草稿并显式发布。编辑固定模板不会新增、删除、换型或排序区块。
+          在这里配置官网页面，以及小程序使用的帮助中心、联系客服和隐私协议。每个内容单元独立保存草稿并显式发布。
         </p>
       </header>
 
@@ -66,7 +80,10 @@ export default function WebsiteContent() {
               <div className="flex items-start justify-between gap-3">
                 <div>
                   <FileText aria-hidden="true" className="h-5 w-5 text-blue-800" />
-                  <h2 className="mt-2 font-semibold text-slate-950">{item.contentKey}</h2>
+                  <h2 className="mt-2 font-semibold text-slate-950">
+                    {contentLabels[item.contentKey]}
+                  </h2>
+                  <p className="mt-0.5 text-xs text-slate-500">{item.contentKey}</p>
                 </div>
                 <span className="rounded-full bg-slate-100 px-2.5 py-1 text-xs font-semibold text-slate-700">
                   草稿 r{item.draftRevision}
@@ -105,6 +122,7 @@ export default function WebsiteContent() {
               <PermissionGate all={["website.edit"]}>
                 <Link
                   to={`/website-content/${item.contentKey}/edit`}
+                  aria-label={`编辑${contentLabels[item.contentKey]}草稿`}
                   className="mt-4 inline-flex min-h-11 items-center gap-2 rounded-lg border border-blue-700 px-4 font-semibold text-blue-800 outline-none transition-colors hover:bg-blue-50 focus-visible:ring-2 focus-visible:ring-blue-700"
                 >
                   <FilePenLine aria-hidden="true" className="h-4 w-4" />

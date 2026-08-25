@@ -74,7 +74,7 @@ describe("RBAC permission catalog", () => {
 
     expect(byCode.get("website.view")).toMatchObject({
       type: RBAC_PERMISSION_TYPES.MENU,
-      label: "官网设置",
+      label: "内容配置",
       path: "/website-content",
       parentCode: null,
       impliedApiCodes: ["website.read"],

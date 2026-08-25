@@ -85,4 +85,11 @@ describe("profile logout control", () => {
       /<button[\s\S]*?v-if="profile"[\s\S]*?@click="openCancellation"[\s\S]*?注销账户[\s\S]*?<\/button>/,
     );
   });
+
+  it("offers an explicit native login entry after anonymous bootstrap", () => {
+    expect(source).toContain('v-if="session.bootstrapped"');
+    expect(source).toContain('aria-label="微信登录"');
+    expect(source).toContain("@click=\"openPage('/pages/auth/index')\"");
+    expect(source).toMatch(/<button[\s\S]*?h-control[\s\S]*?微信登录[\s\S]*?<\/button>/);
+  });
 });
