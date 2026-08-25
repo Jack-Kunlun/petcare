@@ -21,6 +21,7 @@ describe("MiniappAccountService", () => {
     $transaction: jest.fn(),
   };
   const transaction = {
+    $queryRaw: jest.fn(),
     user: {
       findUnique: jest.fn(),
       update: jest.fn(),
@@ -56,6 +57,7 @@ describe("MiniappAccountService", () => {
   beforeEach(() => {
     jest.clearAllMocks();
     prisma.$transaction.mockImplementation((operation) => operation(transaction));
+    transaction.$queryRaw.mockResolvedValue([{ status: "active" }]);
   });
 
   it("returns only a masked phone and the derived completion state", async () => {
@@ -304,6 +306,21 @@ describe("MiniappAccountService", () => {
     expect(prisma.$transaction).not.toHaveBeenCalled();
   });
 
+  it.each([null, { id: "user-1", phone: null, status: "inactive" }])(
+    "rejects a missing or inactive account before cancellation work %#",
+    async (user) => {
+      prisma.user.findUnique.mockResolvedValue(user);
+
+      await expect(service.cancelAccount("user-1")).rejects.toMatchObject({
+        code: "AUTH_SESSION_EXPIRED",
+        status: HttpStatus.UNAUTHORIZED,
+      });
+      expect(prisma.order.count).not.toHaveBeenCalled();
+      expect(verificationCodeService.verifyAndConsume).not.toHaveBeenCalled();
+      expect(prisma.$transaction).not.toHaveBeenCalled();
+    },
+  );
+
   it("rejects an invalid cancellation code without starting a transaction", async () => {
     prisma.user.findUnique.mockResolvedValue({
       id: "user-1",
@@ -343,7 +360,6 @@ describe("MiniappAccountService", () => {
   it("cancels an unbound account without touching Redis", async () => {
     prisma.user.findUnique.mockResolvedValue({ id: "user-1", phone: null, status: "active" });
     prisma.order.count.mockResolvedValue(0);
-    transaction.user.findUnique.mockResolvedValue({ status: "active" });
     transaction.order.count.mockResolvedValue(0);
     transaction.user.update.mockResolvedValue(undefined);
 
@@ -378,7 +394,6 @@ describe("MiniappAccountService", () => {
     });
     prisma.order.count.mockResolvedValue(0);
     verificationCodeService.verifyAndConsume.mockResolvedValue(true);
-    transaction.user.findUnique.mockResolvedValue({ status: "active" });
     transaction.order.count.mockResolvedValue(0);
     transaction.user.update.mockResolvedValue(undefined);
 
@@ -413,7 +428,6 @@ describe("MiniappAccountService", () => {
   it("blocks an order that appears inside the cancellation transaction", async () => {
     prisma.user.findUnique.mockResolvedValue({ id: "user-1", phone: null, status: "active" });
     prisma.order.count.mockResolvedValue(0);
-    transaction.user.findUnique.mockResolvedValue({ status: "active" });
     transaction.order.count.mockResolvedValue(1);
 
     await expect(service.cancelAccount("user-1")).rejects.toMatchObject({
@@ -423,12 +437,29 @@ describe("MiniappAccountService", () => {
     expect(transaction.user.update).not.toHaveBeenCalled();
   });
 
+  it("locks the account row before checking orders or disabling the account", async () => {
+    prisma.user.findUnique.mockResolvedValue({ id: "user-1", phone: null, status: "active" });
+    prisma.order.count.mockResolvedValue(0);
+    transaction.order.count.mockResolvedValue(0);
+    transaction.user.update.mockResolvedValue(undefined);
+
+    await service.cancelAccount("user-1");
+
+    expect(transaction.$queryRaw).toHaveBeenCalledTimes(1);
+    expect(transaction.$queryRaw.mock.invocationCallOrder[0]).toBeLessThan(
+      transaction.order.count.mock.invocationCallOrder[0],
+    );
+    expect(transaction.$queryRaw.mock.invocationCallOrder[0]).toBeLessThan(
+      transaction.user.update.mock.invocationCallOrder[0],
+    );
+  });
+
   it.each([null, { status: "inactive" }])(
     "rejects a missing or inactive account found inside the transaction %#",
     async (current) => {
       prisma.user.findUnique.mockResolvedValue({ id: "user-1", phone: null, status: "active" });
       prisma.order.count.mockResolvedValue(0);
-      transaction.user.findUnique.mockResolvedValue(current);
+      transaction.$queryRaw.mockResolvedValue(current ? [current] : []);
 
       await expect(service.cancelAccount("user-1")).rejects.toMatchObject({
         code: "AUTH_ACCOUNT_DISABLED",
@@ -447,7 +478,6 @@ describe("MiniappAccountService", () => {
     });
     prisma.order.count.mockResolvedValue(0);
     verificationCodeService.verifyAndConsume.mockResolvedValue(true);
-    transaction.user.findUnique.mockResolvedValue({ status: "active" });
     transaction.order.count.mockResolvedValue(0);
     transaction.user.update.mockResolvedValue(undefined);
     let attempt = 0;
@@ -466,7 +496,7 @@ describe("MiniappAccountService", () => {
     await expect(service.cancelAccount("user-1", "123456")).resolves.toBeUndefined();
     expect(verificationCodeService.verifyAndConsume).toHaveBeenCalledTimes(1);
     expect(prisma.$transaction).toHaveBeenCalledTimes(2);
-    expect(transaction.user.findUnique).toHaveBeenCalledTimes(2);
+    expect(transaction.$queryRaw).toHaveBeenCalledTimes(2);
     expect(transaction.order.count).toHaveBeenCalledTimes(2);
     expect(transaction.user.update).toHaveBeenCalledTimes(2);
   });

@@ -3,6 +3,7 @@ import { AdminServiceType } from "@petcare/shared-types";
 import { ApiException } from "../../common/http/api-exception";
 import { ConfigService } from "../../config/config.service";
 import { PrismaService } from "../../prisma/prisma.service";
+import { lockUserRow } from "../../prisma/user-row-lock";
 import { AdminOrderListQueryDto } from "./dto/admin-order-list-query.dto";
 import { CreateRewardOrderDto } from "./dto/create-order.dto";
 import { OrderConfigSnapshotService } from "./order-config-snapshot.service";
@@ -45,6 +46,10 @@ export class OrderService {
   async createRewardOrder(dto: CreateRewardOrderDto, ownerId: string) {
     try {
       return await this.prisma.$transaction(async (tx) => {
+        if ((await lockUserRow(tx, ownerId)) !== "active") {
+          throw new ApiException("AUTH_ACCOUNT_DISABLED", "账户已被停用", HttpStatus.FORBIDDEN);
+        }
+
         const snapshot = await this.snapshots.createForOrder(
           dto.serviceType as AdminServiceType,
           dto.rewardAmount,

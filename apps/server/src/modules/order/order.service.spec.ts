@@ -8,6 +8,7 @@ import { OrderService } from "./order.service";
 describe("OrderService public responses", () => {
   const prisma = {
     $transaction: jest.fn(),
+    $queryRaw: jest.fn(),
     order: {
       create: jest.fn(),
       findMany: jest.fn(),
@@ -33,6 +34,7 @@ describe("OrderService public responses", () => {
   beforeEach(() => {
     jest.clearAllMocks();
     prisma.$transaction.mockImplementation(async (callback) => callback(prisma));
+    prisma.$queryRaw.mockResolvedValue([{ status: "active" }]);
     prisma.order.create.mockResolvedValue({ id: "order-1" });
     prisma.orderSop.createMany.mockResolvedValue({ count: 1 });
     prisma.orderFeeSnapshot.create.mockResolvedValue({ id: "fee-snapshot-1" });
@@ -64,6 +66,58 @@ describe("OrderService public responses", () => {
       },
     });
   });
+
+  it("locks the active owner before creating snapshots or order rows", async () => {
+    prisma.$queryRaw.mockResolvedValue([{ status: "active" }]);
+
+    await service.createRewardOrder(
+      {
+        serviceType: "feeding",
+        petId: "pet-1",
+        serviceTime: "2026-08-01T10:00:00.000Z",
+        address: "测试地址",
+        rewardAmount: 12500,
+        remark: "",
+      },
+      "owner-1",
+    );
+
+    expect(prisma.$queryRaw).toHaveBeenCalledTimes(1);
+    expect(prisma.$queryRaw.mock.invocationCallOrder[0]).toBeLessThan(
+      snapshots.createForOrder.mock.invocationCallOrder[0],
+    );
+    expect(prisma.$queryRaw.mock.invocationCallOrder[0]).toBeLessThan(
+      prisma.order.create.mock.invocationCallOrder[0],
+    );
+  });
+
+  it.each([{ rows: [{ status: "inactive" }] }, { rows: [] }])(
+    "rejects a missing or inactive owner before any order write %#",
+    async ({ rows }) => {
+      prisma.$queryRaw.mockResolvedValue(rows);
+
+      await expect(
+        service.createRewardOrder(
+          {
+            serviceType: "feeding",
+            petId: "pet-1",
+            serviceTime: "2026-08-01T10:00:00.000Z",
+            address: "测试地址",
+            rewardAmount: 12500,
+            remark: "",
+          },
+          "owner-1",
+        ),
+      ).rejects.toMatchObject({
+        code: "AUTH_ACCOUNT_DISABLED",
+        status: HttpStatus.FORBIDDEN,
+      });
+      expect(snapshots.createForOrder).not.toHaveBeenCalled();
+      expect(prisma.order.create).not.toHaveBeenCalled();
+      expect(prisma.orderSop.createMany).not.toHaveBeenCalled();
+      expect(prisma.orderFeeSnapshot.create).not.toHaveBeenCalled();
+    },
+  );
 
   it("stores reward order money as integer minor units", async () => {
     await expect(

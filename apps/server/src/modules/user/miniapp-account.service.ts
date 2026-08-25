@@ -9,6 +9,7 @@ import { ApiException } from "../../common/http/api-exception";
 import { Prisma } from "../../generated/prisma/client";
 import { AppLogger } from "../../logging/app-logger.service";
 import { PrismaService } from "../../prisma/prisma.service";
+import { lockUserRow } from "../../prisma/user-row-lock";
 import type { DetectedAvatarFile } from "../../public-avatar-storage/avatar-file";
 import {
   PUBLIC_AVATAR_STORAGE,
@@ -174,12 +175,7 @@ export class MiniappAccountService {
     }
 
     await this.withSerializableTransaction(async (transaction) => {
-      const current = await transaction.user.findUnique({
-        where: { id: userId },
-        select: { status: true },
-      });
-
-      if (!current || current.status !== "active") {
+      if ((await lockUserRow(transaction, userId)) !== "active") {
         throw new ApiException("AUTH_ACCOUNT_DISABLED", "账户已被停用", HttpStatus.FORBIDDEN);
       }
 
