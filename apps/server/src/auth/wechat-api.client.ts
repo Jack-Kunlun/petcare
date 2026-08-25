@@ -14,6 +14,7 @@ const REQUEST_TIMEOUT_MS = 5_000;
 export class WechatApiClient {
   constructor(private readonly configService: ConfigService) {}
 
+  /** Exchanges a one-time WeChat login code for the user's OpenID and session key. */
   async exchangeLoginCode(loginCode: string): Promise<{ openid: string; sessionKey: string }> {
     this.assertConfigured();
 

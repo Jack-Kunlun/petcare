@@ -59,6 +59,7 @@ export class WechatAuthService {
     private readonly tokenService: TokenService,
   ) {}
 
+  /** Signs in a Miniapp user and silently creates a default account when needed. */
   async login(loginCode: string): Promise<WechatSession> {
     const { openid } = await this.wechatApiClient.exchangeLoginCode(loginCode);
     let user = await this.prismaService.user.findUnique({
@@ -101,6 +102,7 @@ export class WechatAuthService {
     return this.issueSession(user);
   }
 
+  /** Rotates a valid refresh token and issues the current Miniapp session. */
   async refresh(refreshToken: string): Promise<WechatSession> {
     const { userId } = await this.tokenService.consumeRefresh(refreshToken);
     const user = await this.findSessionUser(userId);
@@ -108,6 +110,7 @@ export class WechatAuthService {
     return this.issueSession(user);
   }
 
+  /** Revokes a Miniapp refresh token so it cannot be reused. */
   async logout(refreshToken: string): Promise<void> {
     await this.tokenService.revoke(refreshToken);
   }

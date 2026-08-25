@@ -27,6 +27,7 @@ export class VerificationCodeService {
     @Inject(SMS_SENDER) private readonly smsSender: SmsSender,
   ) {}
 
+  /** Creates, rate-limits, stores, and sends a one-time verification code. */
   async send({ phone, purpose, subject }: SendVerificationCodeInput): Promise<void> {
     if (subject !== undefined && !subject.trim()) {
       throw new ApiException("VALIDATION_FAILED", "验证码发送主体无效", HttpStatus.BAD_REQUEST);
@@ -86,6 +87,7 @@ export class VerificationCodeService {
     }
   }
 
+  /** Atomically validates and consumes a one-time verification code. */
   async verifyAndConsume({ phone, code, purpose }: VerifyVerificationCodeInput): Promise<boolean> {
     return this.redisService.verifyAndConsumeOtp(
       this.otpKey(phone, purpose),

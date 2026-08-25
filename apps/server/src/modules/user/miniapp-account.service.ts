@@ -44,6 +44,7 @@ export class MiniappAccountService {
     @Inject(PUBLIC_AVATAR_STORAGE) private readonly avatarStorage: PublicAvatarStorage,
   ) {}
 
+  /** Returns the authenticated Miniapp user's editable account profile. */
   async getProfile(userId: string): Promise<MiniappUserProfile> {
     const user = await this.prisma.user.findUnique({
       where: { id: userId },
@@ -66,6 +67,7 @@ export class MiniappAccountService {
     };
   }
 
+  /** Replaces the authenticated Miniapp user's editable text profile. */
   async updateProfile(
     userId: string,
     input: UpdateMiniappProfileRequest,
@@ -90,6 +92,7 @@ export class MiniappAccountService {
     return this.getProfile(userId);
   }
 
+  /** Sends a first-time phone-binding verification code for the active account. */
   async sendPhoneCode(userId: string, phone: string): Promise<void> {
     await this.requireUnboundAccount(userId);
     await this.verificationCodeService.send({
@@ -99,6 +102,7 @@ export class MiniappAccountService {
     });
   }
 
+  /** Sends an account-cancellation code to the user's bound phone when required. */
   async sendCancellationCode(userId: string): Promise<void> {
     const user = await this.prisma.user.findUnique({
       where: { id: userId },
@@ -128,6 +132,7 @@ export class MiniappAccountService {
     });
   }
 
+  /** Deactivates an eligible Miniapp account after any required phone verification. */
   async cancelAccount(userId: string, code?: string): Promise<void> {
     const user = await this.prisma.user.findUnique({
       where: { id: userId },
@@ -194,6 +199,7 @@ export class MiniappAccountService {
     });
   }
 
+  /** Verifies and permanently binds the account's first phone number. */
   async bindPhone(userId: string, phone: string, code: string): Promise<MiniappUserProfile> {
     await this.requireUnboundAccount(userId);
 
@@ -243,6 +249,7 @@ export class MiniappAccountService {
     return this.getProfile(userId);
   }
 
+  /** Replaces the user's managed public avatar and removes the prior managed object. */
   async replaceAvatar(userId: string, file: DetectedAvatarFile): Promise<MiniappUserProfile> {
     const uploaded = await this.avatarStorage.upload({
       scope: "user-avatars",

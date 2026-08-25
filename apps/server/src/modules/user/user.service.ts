@@ -44,6 +44,7 @@ export class UserService {
     private configService: ConfigService,
   ) {}
 
+  /** Registers a user through the legacy public registration endpoint. */
   async register(dto: RegisterDto) {
     const user = await this.prisma.user.create({
       data: {
@@ -61,6 +62,7 @@ export class UserService {
     };
   }
 
+  /** Returns the privacy-safe public profile for one active user. */
   async findOne(id: string): Promise<PublicUser> {
     const user = await this.prisma.user.findFirst({
       where: { id, status: "active" },

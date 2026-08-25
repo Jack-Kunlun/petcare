@@ -81,6 +81,7 @@ function networkError(message: string): MiniappApiError {
   return new MiniappApiError(0, "NETWORK_ERROR", message || "网络请求失败");
 }
 
+/** Sends an unauthenticated Miniapp API request and unwraps the shared response envelope. */
 export function rawRequest<T>(path: string, options: RawRequestOptions = {}): Promise<T> {
   return new Promise<T>((resolve, reject) => {
     uni.request({
@@ -100,6 +101,7 @@ export function rawRequest<T>(path: string, options: RawRequestOptions = {}): Pr
   });
 }
 
+/** Uploads a local file without session handling and unwraps the shared response envelope. */
 export function rawUpload<T>(
   path: string,
   filePath: string,

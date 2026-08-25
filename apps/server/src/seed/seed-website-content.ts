@@ -56,7 +56,7 @@ function helpSection(
   };
 }
 
-/** Deterministic initial snapshots used by the website seed and fixed template registry. */
+/** Deterministic initial Content Version templates used by the seed and fixed registry. */
 export const WEBSITE_CONTENT_SEED_TEMPLATES: readonly WebsiteSeedTemplate[] = [
   {
     contentKey: WEBSITE_CONTENT_KEY.SITE_SHELL,
