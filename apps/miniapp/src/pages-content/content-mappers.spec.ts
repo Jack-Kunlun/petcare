@@ -8,6 +8,7 @@ import { describe, expect, it } from "vitest";
 import {
   filterHelpCategories,
   getContactAction,
+  getLegalContentKey,
   toContactPanel,
   toHelpCategories,
   toRichTextContent,
@@ -77,6 +78,13 @@ function publicContent(
 }
 
 describe("support content mappers", () => {
+  it("accepts only the two legal content keys", () => {
+    expect(getLegalContentKey("privacy")).toBe(WEBSITE_CONTENT_KEY.PRIVACY);
+    expect(getLegalContentKey("terms")).toBe(WEBSITE_CONTENT_KEY.TERMS);
+    expect(getLegalContentKey("help")).toBe(WEBSITE_CONTENT_KEY.PRIVACY);
+    expect(getLegalContentKey(undefined)).toBe(WEBSITE_CONTENT_KEY.PRIVACY);
+  });
+
   it("maps enabled Help categories and filters category, question, and answer text", () => {
     const content = publicContent([
       richText("account_and_identity", "账号与认证", [

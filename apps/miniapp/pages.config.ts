@@ -51,6 +51,7 @@ export default defineUniPages({
         "wallet/index",
         "help/index",
         "contact/index",
+        "legal/index",
       ].map(createPage),
     },
   ],

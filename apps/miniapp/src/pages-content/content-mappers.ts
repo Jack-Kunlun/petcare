@@ -1,10 +1,11 @@
 import type {
   WebsiteContactPanelSection,
+  WebsiteContentKey,
   WebsiteLinkDestination,
   WebsitePublicContent,
   WebsiteRichTextSection,
 } from "@petcare/shared-types";
-import { WEBSITE_SECTION_TYPE } from "@petcare/shared-types";
+import { WEBSITE_CONTENT_KEY, WEBSITE_SECTION_TYPE } from "@petcare/shared-types";
 
 /** One enabled Help category ready for ordered Miniapp rendering. */
 export interface HelpCategory {
@@ -89,6 +90,13 @@ export function toRichTextContent(
       ? [section.content]
       : [],
   );
+}
+
+/** Allows only published Privacy or Terms content to back the legal page. */
+export function getLegalContentKey(value: unknown): WebsiteContentKey {
+  return value === WEBSITE_CONTENT_KEY.TERMS
+    ? WEBSITE_CONTENT_KEY.TERMS
+    : WEBSITE_CONTENT_KEY.PRIVACY;
 }
 
 /** Returns the first enabled managed contact panel, if one is published. */

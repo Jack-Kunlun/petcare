@@ -37,7 +37,8 @@ type _LocationUrl =
   "/pages-content/coupons/index" |
   "/pages-content/wallet/index" |
   "/pages-content/help/index" |
-  "/pages-content/contact/index";
+  "/pages-content/contact/index" |
+  "/pages-content/legal/index";
 
 interface NavigateToOptions {
   url: _LocationUrl;

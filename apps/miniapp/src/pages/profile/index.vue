@@ -52,8 +52,14 @@ const supportItems = [
   {
     icon: "/static/main/customer.svg",
     label: "联系客服",
-    detail: "工作日 09:00–20:00",
+    detail: "查看已发布联系方式",
     route: "/pages-content/contact/index",
+  },
+  {
+    icon: "/static/main/help.svg",
+    label: "隐私协议",
+    detail: "查看已发布隐私内容",
+    route: "/pages-content/legal/index?key=privacy",
   },
 ] as const;
 

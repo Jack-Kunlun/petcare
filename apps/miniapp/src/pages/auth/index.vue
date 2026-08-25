@@ -35,6 +35,10 @@ const trustItems = [
   { icon: "/static/auth/camera.svg", label: "全程记录" },
 ] as const;
 
+function openLegal(key: "privacy" | "terms") {
+  uni.navigateTo({ url: `/pages-content/legal/index?key=${key}` });
+}
+
 async function handleLogin(): Promise<void> {
   if (loginPending.value) {
     return;
@@ -167,11 +171,27 @@ async function handleLogin(): Promise<void> {
         >
           <view class="flex">
             <text>登录即代表你已阅读并同意</text>
-            <text class="text-brand-active">《服务协议》</text>
+            <view
+              class="h-control flex items-center text-brand-active"
+              role="button"
+              aria-label="查看服务协议"
+              hover-class="opacity-80"
+              @click="openLegal('terms')"
+            >
+              <text>《服务协议》</text>
+            </view>
           </view>
           <view class="flex">
             <text>和</text>
-            <text class="text-brand-active">《隐私政策》</text>
+            <view
+              class="h-control flex items-center text-brand-active"
+              role="button"
+              aria-label="查看隐私政策"
+              hover-class="opacity-80"
+              @click="openLegal('privacy')"
+            >
+              <text>《隐私政策》</text>
+            </view>
           </view>
         </view>
       </view>

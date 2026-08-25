@@ -30,6 +30,7 @@ const expectedSubPages = [
   "pages-content/wallet/index",
   "pages-content/help/index",
   "pages-content/contact/index",
+  "pages-content/legal/index",
 ] as const;
 
 describe("miniapp page contract", () => {
@@ -46,7 +47,7 @@ describe("miniapp page contract", () => {
     expect(new Set(actual).size).toBe(expectedSubPages.length);
   });
 
-  it("delivers 36 formal pages or states including auth", () => {
-    expect(6 + expectedSubPages.length + 2).toBe(36);
+  it("delivers 37 formal pages or states including auth", () => {
+    expect(6 + expectedSubPages.length + 2).toBe(37);
   });
 });

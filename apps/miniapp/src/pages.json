@@ -279,7 +279,16 @@
             "navigationBarTextStyle": "black",
             "navigationStyle": "custom"
           }
+        },
+        // #ifdef MP-WEIXIN
+        {
+          "path": "legal/index",
+          "style": {
+            "navigationBarTextStyle": "black",
+            "navigationStyle": "custom"
+          }
         }
+        // #endif
       ]
     }
   ]
