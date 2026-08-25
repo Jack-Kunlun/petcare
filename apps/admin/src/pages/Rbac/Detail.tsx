@@ -10,6 +10,8 @@ import {
   replaceRbacRoleUsers,
 } from "../../api/rbac";
 import { PermissionGate } from "../../auth/PermissionGate";
+import { EditorPageLayout } from "../../components/EditorPageLayout";
+import { useUnsavedChanges } from "../../hooks/useUnsavedChanges";
 import { isConflict } from "./rbac-utils";
 import { replaceRbacRoleUsersForRole } from "./role-users-utils";
 
@@ -37,6 +39,17 @@ function getEffectivePermissionCodes(
   return effectiveCodes;
 }
 
+function normalizeUserIds(value: string): string[] {
+  return [
+    ...new Set(
+      value
+        .split(/[\n,\s]+/)
+        .map((item) => item.trim())
+        .filter(Boolean),
+    ),
+  ];
+}
+
 /** Shows role metadata, effective permissions, and role-to-administrator associations. */
 export default function RbacDetail() {
   const { id } = useParams<{ id: string }>();
@@ -53,6 +66,11 @@ export default function RbacDetail() {
     queryFn: () => fetchRbacRoleUsers(id!),
     enabled: Boolean(id),
   });
+  const dirty =
+    Boolean(roleQuery.data) &&
+    JSON.stringify([...normalizeUserIds(userIdsText)].sort()) !==
+      JSON.stringify([...new Set(roleQuery.data!.userIds)].sort());
+  const unsavedChanges = useUnsavedChanges(dirty);
 
   useEffect(() => {
     if (roleQuery.data) {
@@ -107,7 +125,7 @@ export default function RbacDetail() {
             void roleQuery.refetch();
             void usersQuery.refetch();
           }}
-          className="mt-4 inline-flex min-h-11 items-center gap-2 rounded-lg border border-red-700 px-4 font-semibold hover:bg-red-100"
+          className="mt-4 inline-flex h-10 items-center gap-2 rounded-lg border border-red-700 px-4 font-semibold hover:bg-red-100"
         >
           <RefreshCw aria-hidden="true" className="h-4 w-4" />
           重新加载
@@ -132,46 +150,53 @@ export default function RbacDetail() {
       return;
     }
 
-    const userIds = [
-      ...new Set(
-        userIdsText
-          .split(/[\n,\s]+/)
-          .map((value) => value.trim())
-          .filter(Boolean),
-      ),
-    ];
-
-    replaceUsersMutation.mutate(userIds);
+    replaceUsersMutation.mutate(normalizeUserIds(userIdsText));
   }
 
   return (
-    <div className="mx-auto flex w-full max-w-[1180px] flex-col gap-6">
-      <div className="flex flex-wrap items-center justify-between gap-3">
+    <EditorPageLayout
+      title={role.roleName}
+      description={role.description ?? "未填写角色说明"}
+      back={
         <Link
           to="/rbac"
-          className="inline-flex min-h-11 items-center gap-2 text-sm font-semibold text-slate-700 hover:text-blue-800"
+          className="inline-flex h-10 items-center gap-2 text-sm font-semibold text-slate-700 hover:text-blue-800"
         >
           <ArrowLeft aria-hidden="true" className="h-4 w-4" />
           返回角色列表
         </Link>
-        <PermissionGate all={["rbac.role.update"]}>
-          {role.isSystem ? null : (
-            <Link
-              to={`/rbac/${role.id}/edit`}
-              className="inline-flex min-h-11 items-center gap-2 rounded-lg border border-blue-700 px-4 font-semibold text-blue-800 hover:bg-blue-50"
-            >
-              <Pencil aria-hidden="true" className="h-4 w-4" />
-              编辑角色
-            </Link>
-          )}
-        </PermissionGate>
-      </div>
-      <header>
-        <p className="text-sm font-medium text-blue-700">角色详情</p>
-        <h1 className="mt-1 text-2xl font-bold tracking-tight text-slate-950">{role.roleName}</h1>
-        <p className="mt-2 text-slate-600">{role.description ?? "未填写角色说明"}</p>
-      </header>
-
+      }
+      actions={
+        <>
+          <PermissionGate all={["rbac.role.update"]}>
+            {role.isSystem ? null : (
+              <Link
+                to={`/rbac/${role.id}/edit`}
+                className="inline-flex h-10 items-center gap-2 rounded-lg border border-blue-700 px-4 font-semibold text-blue-800 hover:bg-blue-50"
+              >
+                <Pencil aria-hidden="true" className="h-4 w-4" />
+                编辑角色
+              </Link>
+            )}
+          </PermissionGate>
+          {!role.isSystem ? (
+            <PermissionGate all={["rbac.assign_role"]}>
+              <button
+                aria-label="顶部保存关联管理员"
+                type="button"
+                disabled={replaceUsersMutation.isPending}
+                onClick={saveUsers}
+                className="inline-flex h-10 items-center gap-2 rounded-lg bg-blue-700 px-4 font-semibold text-white hover:bg-blue-800 disabled:cursor-not-allowed disabled:opacity-50"
+              >
+                <Save aria-hidden="true" className="h-4 w-4" />
+                保存关联管理员
+              </button>
+            </PermissionGate>
+          ) : null}
+        </>
+      }
+      unsavedChanges={unsavedChanges}
+    >
       <section className="rounded-xl border border-slate-200 bg-white p-5 shadow-sm">
         <h2 className="font-semibold text-slate-950">角色元数据</h2>
         <dl className="mt-4 grid gap-4 text-sm sm:grid-cols-2 lg:grid-cols-4">
@@ -255,7 +280,7 @@ export default function RbacDetail() {
                   value={userIdsText}
                   onChange={(event) => setUserIdsText(event.target.value)}
                   rows={4}
-                  className="mt-2 w-full rounded-lg border border-slate-300 px-3 py-2 font-mono text-sm outline-none focus:border-blue-700 focus:ring-2 focus:ring-blue-700/20"
+                  className="mt-2 min-h-10 w-full rounded-lg border border-slate-300 px-3 py-2 font-mono text-sm outline-none focus:border-blue-700 focus:ring-2 focus:ring-blue-700/20"
                 />
               </label>
               {replaceUsersMutation.isError ? (
@@ -269,7 +294,7 @@ export default function RbacDetail() {
                 type="button"
                 disabled={replaceUsersMutation.isPending}
                 onClick={saveUsers}
-                className="mt-4 inline-flex min-h-11 items-center gap-2 rounded-lg bg-blue-700 px-4 font-semibold text-white hover:bg-blue-800 disabled:cursor-not-allowed disabled:opacity-50"
+                className="mt-4 inline-flex h-10 items-center gap-2 rounded-lg bg-blue-700 px-4 font-semibold text-white hover:bg-blue-800 disabled:cursor-not-allowed disabled:opacity-50"
               >
                 <Save aria-hidden="true" className="h-4 w-4" />
                 保存关联管理员
@@ -278,6 +303,6 @@ export default function RbacDetail() {
           </PermissionGate>
         ) : null}
       </section>
-    </div>
+    </EditorPageLayout>
   );
 }

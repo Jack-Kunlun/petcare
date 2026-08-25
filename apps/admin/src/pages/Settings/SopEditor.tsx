@@ -74,7 +74,7 @@ function validate(config: SopConfig): SettingsFieldErrors {
 }
 
 const inputClass =
-  "mt-1.5 min-h-11 w-full rounded-lg border border-slate-300 bg-white px-3 py-2 text-[16px] text-slate-950 outline-none transition-colors duration-200 focus-visible:border-blue-800 focus-visible:ring-2 focus-visible:ring-blue-800/20 motion-reduce:transition-none sm:text-sm";
+  "mt-1.5 min-h-10 w-full rounded-lg border border-slate-300 bg-white px-3 py-2 text-[16px] text-slate-950 outline-none transition-colors duration-200 focus-visible:border-blue-800 focus-visible:ring-2 focus-visible:ring-blue-800/20 motion-reduce:transition-none sm:text-sm";
 
 function settingsFieldErrorId(path: string): string {
   return `settings-error-${path.replace(/\./gu, "-")}`;
@@ -299,7 +299,7 @@ export function SopEditor({ initialValue, onChange }: SopEditorProps) {
             type="button"
             onClick={addRule}
             disabled={config.violationRules.length >= 3}
-            className="inline-flex min-h-11 cursor-pointer items-center gap-2 rounded-lg border border-blue-700 px-4 py-2 font-semibold text-blue-800 outline-none transition-colors duration-200 hover:bg-blue-50 focus-visible:ring-2 focus-visible:ring-blue-800 disabled:cursor-not-allowed disabled:opacity-40 motion-reduce:transition-none"
+            className="inline-flex h-10 cursor-pointer items-center gap-2 rounded-lg border border-blue-700 px-4 font-semibold text-blue-800 outline-none transition-colors duration-200 hover:bg-blue-50 focus-visible:ring-2 focus-visible:ring-blue-800 disabled:cursor-not-allowed disabled:opacity-40 motion-reduce:transition-none"
           >
             <Plus aria-hidden="true" className="h-4 w-4" />
             添加规则
@@ -408,7 +408,7 @@ export function SopEditor({ initialValue, onChange }: SopEditorProps) {
                           .map((item, itemIndex) => ({ ...item, sortOrder: itemIndex + 1 })),
                       })
                     }
-                    className="inline-flex min-h-11 cursor-pointer items-center justify-center gap-2 rounded-lg border border-red-200 px-3 py-2 font-semibold text-red-800 outline-none transition-colors duration-200 hover:bg-red-50 focus-visible:ring-2 focus-visible:ring-red-700 motion-reduce:transition-none sm:col-span-2"
+                    className="inline-flex h-10 cursor-pointer items-center justify-center gap-2 rounded-lg border border-red-200 px-3 font-semibold text-red-800 outline-none transition-colors duration-200 hover:bg-red-50 focus-visible:ring-2 focus-visible:ring-red-700 motion-reduce:transition-none sm:col-span-2"
                   >
                     <Trash2 aria-hidden="true" className="h-4 w-4" />
                     移除规则

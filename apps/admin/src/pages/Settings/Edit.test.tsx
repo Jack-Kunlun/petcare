@@ -8,7 +8,7 @@ import { QueryClient, QueryClientProvider } from "@tanstack/react-query";
 import { act, fireEvent, render, screen, waitFor, within } from "@testing-library/react";
 import userEvent from "@testing-library/user-event";
 import axios from "axios";
-import { MemoryRouter, Route, Routes } from "react-router-dom";
+import { createMemoryRouter, RouterProvider } from "react-router-dom";
 import { beforeEach, describe, expect, it, vi } from "vitest";
 import * as ratingApi from "../../api/system-settings/rating-threshold";
 import * as sopApi from "../../api/system-settings/sop";
@@ -91,14 +91,19 @@ function renderEdit(route: string, permissions = auth.user?.permissions ?? []) {
     user: auth.user ? { ...auth.user, permissions } : null,
   };
 
+  const router = createMemoryRouter(
+    [
+      { path: "/settings/:domain/edit", element: <SettingsEdit /> },
+      { path: "/settings", element: <p>系统设置概览</p> },
+      { path: "/settings/:domain/history/:id", element: <p>配置历史详情</p> },
+    ],
+    { initialEntries: [route] },
+  );
+
   render(
     <AuthContext.Provider value={context}>
       <QueryClientProvider client={queryClient}>
-        <MemoryRouter initialEntries={[route]}>
-          <Routes>
-            <Route path="/settings/:domain/edit" element={<SettingsEdit />} />
-          </Routes>
-        </MemoryRouter>
+        <RouterProvider router={router} />
       </QueryClientProvider>
     </AuthContext.Provider>,
   );
@@ -321,7 +326,9 @@ describe("Settings domain editors", () => {
 
     expect(await screen.findByDisplayValue("feeding-步骤 1")).toBeInTheDocument();
     await user.click(screen.getByRole("link", { name: "遛宠" }));
-    expect(await screen.findByDisplayValue("walking-步骤 1")).toBeInTheDocument();
+    await waitFor(() =>
+      expect(screen.getByRole("link", { name: "遛宠" })).toHaveAttribute("aria-current", "page"),
+    );
     expect(screen.getAllByRole("group", { name: /第 \d 步/ })).toHaveLength(5);
     await waitFor(() => expect(sopApi.fetchSopCurrent).toHaveBeenCalledWith("walking"));
   });
@@ -1051,5 +1058,69 @@ describe("Settings domain editors", () => {
     expect(screen.getByRole("button", { name: "保存草稿" })).toBeInTheDocument();
     expect(screen.queryByRole("button", { name: "检查并发布" })).not.toBeInTheDocument();
     expect(screen.getByText("需要 system.publish 权限才能发布。")).toBeInTheDocument();
+  });
+
+  it("uses the wide shared layout and guards dirty SOP service-type navigation", async () => {
+    const user = userEvent.setup();
+
+    setupSopDraft();
+    renderEdit("/settings/sop/edit?serviceType=feeding");
+
+    const stepName = (await screen.findAllByLabelText(/步骤名称/))[0]!;
+
+    expect(document.querySelector(".editor-page")).toHaveClass("max-w-[var(--editor-width-wide)]");
+    expect(
+      within(document.querySelector(".editor-page__header")!).getByRole("heading", {
+        name: "编辑SOP 配置",
+      }),
+    ).toBeInTheDocument();
+    expect(screen.getByRole("link", { name: "历史版本" })).toBeInTheDocument();
+    expect(
+      within(document.querySelector(".editor-page__header")!).getByRole("button", {
+        name: "顶部保存草稿",
+      }),
+    ).toBeInTheDocument();
+    expect(
+      within(document.querySelector(".editor-page__header")!).getByRole("button", {
+        name: "顶部检查并发布",
+      }),
+    ).toBeInTheDocument();
+
+    await user.clear(stepName);
+    await user.type(stepName, "新的步骤名称");
+    await user.click(screen.getByRole("link", { name: "遛宠" }));
+    expect(await screen.findByRole("dialog")).toHaveTextContent("放弃未保存的修改？");
+    await user.click(screen.getByRole("button", { name: "继续编辑" }));
+    expect(screen.getAllByLabelText(/步骤名称/)[0]).toHaveValue("新的步骤名称");
+    await user.click(screen.getByRole("link", { name: "遛宠" }));
+    await user.click(await screen.findByRole("button", { name: "放弃修改" }));
+    await waitFor(() =>
+      expect(screen.getByRole("link", { name: "遛宠" })).toHaveAttribute("aria-current", "page"),
+    );
+  });
+
+  it("clears Settings dirty state after a successful save", async () => {
+    const user = userEvent.setup();
+
+    setupRatingDraft();
+    vi.mocked(ratingApi.saveRatingThresholdDraft).mockResolvedValue({
+      id: "rating-draft",
+      domain: "rating_threshold",
+      revision: 3,
+      config: rating,
+      changeSummary: "保存的摘要",
+      updatedBy: "admin-1",
+      updatedAt: "2026-08-02T00:00:00.000Z",
+    });
+    renderEdit("/settings/rating_threshold/edit");
+
+    await screen.findByRole("spinbutton", { name: "预警评分" });
+    await user.clear(screen.getByLabelText(/变更摘要/));
+    await user.type(screen.getByLabelText(/变更摘要/), "保存的摘要");
+    await user.click(screen.getByRole("button", { name: "保存草稿" }));
+    await screen.findByText("草稿已保存，当前修订版为 3。");
+    await user.click(screen.getByRole("link", { name: "历史版本" }));
+    expect(await screen.findByText("配置历史详情")).toBeInTheDocument();
+    expect(screen.queryByRole("dialog")).not.toBeInTheDocument();
   });
 });

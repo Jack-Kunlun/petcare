@@ -1,8 +1,8 @@
 import type { RbacCatalogResponse, RbacRoleDetail } from "@petcare/shared-types";
 import { QueryClient, QueryClientProvider } from "@tanstack/react-query";
-import { render, screen, waitFor } from "@testing-library/react";
+import { render, screen, waitFor, within } from "@testing-library/react";
 import userEvent from "@testing-library/user-event";
-import { MemoryRouter, Route, Routes } from "react-router-dom";
+import { createMemoryRouter, RouterProvider } from "react-router-dom";
 import { beforeEach, describe, expect, it, vi } from "vitest";
 import * as rbacApi from "../../api/rbac";
 import { AuthContext, type AuthContextValue } from "../../auth/auth.context";
@@ -84,20 +84,25 @@ const auth: AuthContextValue = {
 
 function renderEdit(path: string) {
   const queryClient = new QueryClient({ defaultOptions: { queries: { retry: false } } });
+  const router = createMemoryRouter(
+    [
+      { path: "/rbac/new", element: <RbacEdit /> },
+      { path: "/rbac/:id/edit", element: <RbacEdit /> },
+      { path: "/rbac/:id", element: <div>角色详情</div> },
+      { path: "/rbac", element: <div>角色列表</div> },
+    ],
+    { initialEntries: [path] },
+  );
 
   render(
     <AuthContext.Provider value={auth}>
       <QueryClientProvider client={queryClient}>
-        <MemoryRouter initialEntries={[path]}>
-          <Routes>
-            <Route path="/rbac/new" element={<RbacEdit />} />
-            <Route path="/rbac/:id/edit" element={<RbacEdit />} />
-            <Route path="/rbac/:id" element={<div>角色详情</div>} />
-          </Routes>
-        </MemoryRouter>
+        <RouterProvider router={router} />
       </QueryClientProvider>
     </AuthContext.Provider>,
   );
+
+  return router;
 }
 
 describe("RbacEdit", () => {
@@ -169,5 +174,35 @@ describe("RbacEdit", () => {
       "角色已被其他管理员更新，请刷新后再试。",
     );
     expect(screen.getByLabelText("角色名称")).toHaveValue("运营协调员");
+  });
+
+  it("uses the shared layout, guards cancel while dirty, and saves without blocking success navigation", async () => {
+    const user = userEvent.setup();
+
+    renderEdit("/rbac/new");
+    await screen.findByRole("heading", { name: "新建角色" });
+    expect(document.querySelector(".editor-page")).toHaveClass(
+      "max-w-[var(--editor-width-default)]",
+    );
+    expect(
+      within(document.querySelector(".editor-page__header")!).getByRole("link", {
+        name: "返回角色列表",
+      }),
+    ).toBeInTheDocument();
+    expect(
+      within(document.querySelector(".editor-page__header")!).getByRole("button", {
+        name: "顶部保存角色",
+      }),
+    ).toBeInTheDocument();
+
+    await user.type(screen.getByLabelText("角色名称"), "客服专员");
+    await user.click(screen.getByRole("link", { name: "返回角色列表" }));
+    expect(await screen.findByRole("dialog")).toHaveTextContent("放弃未保存的修改？");
+    await user.click(screen.getByRole("button", { name: "继续编辑" }));
+    await waitFor(() => expect(screen.queryByRole("dialog")).not.toBeInTheDocument());
+    await user.click(screen.getByRole("button", { name: "保存角色" }));
+    await waitFor(() => expect(rbacApi.createRbacRole).toHaveBeenCalled());
+    expect(await screen.findByText("角色详情")).toBeInTheDocument();
+    expect(screen.queryByRole("dialog")).not.toBeInTheDocument();
   });
 });

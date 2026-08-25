@@ -78,7 +78,7 @@ function parseForm(form: FeeFormState): { config: FeeConfig | null; errors: Sett
 }
 
 const inputClass =
-  "mt-1.5 min-h-11 w-full rounded-lg border border-slate-300 bg-white px-3 py-2 pr-14 text-[16px] text-slate-950 outline-none transition-colors duration-200 focus-visible:border-blue-800 focus-visible:ring-2 focus-visible:ring-blue-800/20 motion-reduce:transition-none sm:text-sm";
+  "mt-1.5 min-h-10 w-full rounded-lg border border-slate-300 bg-white px-3 py-2 pr-14 text-[16px] text-slate-950 outline-none transition-colors duration-200 focus-visible:border-blue-800 focus-visible:ring-2 focus-visible:ring-blue-800/20 motion-reduce:transition-none sm:text-sm";
 
 export function FeeEditor({ initialValue, onChange }: FeeEditorProps) {
   const [form, setForm] = useState(() => initialForm(initialValue));

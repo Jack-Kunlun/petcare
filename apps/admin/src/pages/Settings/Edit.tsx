@@ -12,6 +12,8 @@ import { Link, useParams, useSearchParams } from "react-router-dom";
 import { isSystemConfigVersionConflict } from "../../api/system-settings/client";
 import { useAuth } from "../../auth/auth.context";
 import { PermissionGate } from "../../auth/PermissionGate";
+import { EditorPageLayout, FormSection } from "../../components/EditorPageLayout";
+import { useUnsavedChanges } from "../../hooks/useUnsavedChanges";
 import {
   fetchDomainCurrent,
   fetchDomainDiff,
@@ -260,6 +262,7 @@ export default function SettingsEdit() {
   });
 
   const editorLocked = publishTransitionLocked || publishMutation.isPending;
+  const unsavedChanges = useUnsavedChanges(dirty);
 
   if (!domain || !meta) {
     return <PageMessage title="配置领域不存在" message="请返回系统设置并选择有效的配置领域。" />;
@@ -313,32 +316,72 @@ export default function SettingsEdit() {
   }
 
   return (
-    <section className="mx-auto w-full max-w-[1280px]">
-      <Link
-        to="/settings"
-        className="inline-flex min-h-11 cursor-pointer items-center gap-2 rounded-lg px-2 font-medium text-blue-800 outline-none transition-colors duration-200 hover:bg-blue-50 focus-visible:ring-2 focus-visible:ring-blue-800 motion-reduce:transition-none"
-      >
-        <ArrowLeft aria-hidden="true" className="h-4 w-4" />
-        返回系统设置
-      </Link>
-      <header className="mt-3 flex flex-col gap-3 sm:flex-row sm:items-end sm:justify-between">
-        <div>
-          <p className="font-medium text-blue-800">配置编辑器</p>
-          <h1 className="mt-1 text-2xl font-bold text-slate-950 sm:text-3xl">编辑{meta.label}</h1>
-          <p className="mt-2 text-slate-600">
-            当前草稿修订版：<span className="font-semibold text-slate-900">{revision}</span>
-            {dirty ? " · 有未保存变更" : " · 已与服务端同步"}
-          </p>
-        </div>
+    <EditorPageLayout
+      width="wide"
+      title={`编辑${meta.label}`}
+      description="配置编辑器"
+      status={
+        <p className="text-slate-600">
+          当前草稿修订版：<span className="font-semibold text-slate-900">{revision}</span>
+          {dirty ? " · 有未保存变更" : " · 已与服务端同步"}
+        </p>
+      }
+      back={
         <Link
-          to={`/settings/${domain}/history/${currentQuery.data?.id ?? "latest"}${domain === "sop" ? `?serviceType=${serviceType}` : ""}`}
-          className="inline-flex min-h-11 cursor-pointer items-center justify-center gap-2 rounded-lg border border-slate-300 px-4 py-2 font-semibold text-slate-800 outline-none transition-colors duration-200 hover:bg-white focus-visible:ring-2 focus-visible:ring-blue-800 motion-reduce:transition-none"
+          to="/settings"
+          className="inline-flex h-10 cursor-pointer items-center gap-2 rounded-lg px-2 font-medium text-blue-800 outline-none transition-colors duration-200 hover:bg-blue-50 focus-visible:ring-2 focus-visible:ring-blue-800 motion-reduce:transition-none"
         >
-          <History aria-hidden="true" className="h-4 w-4" />
-          历史版本
+          <ArrowLeft aria-hidden="true" className="h-4 w-4" />
+          返回系统设置
         </Link>
-      </header>
-
+      }
+      actions={
+        <>
+          <Link
+            to={`/settings/${domain}/history/${currentQuery.data?.id ?? "latest"}${domain === "sop" ? `?serviceType=${serviceType}` : ""}`}
+            className="inline-flex h-10 cursor-pointer items-center justify-center gap-2 rounded-lg border border-slate-300 px-4 font-semibold text-slate-800 outline-none transition-colors duration-200 hover:bg-white focus-visible:ring-2 focus-visible:ring-blue-800 motion-reduce:transition-none"
+          >
+            <History aria-hidden="true" className="h-4 w-4" />
+            历史版本
+          </Link>
+          {localConfig ? (
+            <>
+              <PermissionGate all={[meta.editPermission]}>
+                <button
+                  aria-label="顶部保存草稿"
+                  type="button"
+                  onClick={submitDraft}
+                  disabled={
+                    boundRevision === null || saveMutation.isPending || publishMutation.isPending
+                  }
+                  className="inline-flex h-10 cursor-pointer items-center justify-center gap-2 rounded-lg border border-blue-700 px-4 font-semibold text-blue-800 outline-none transition-colors duration-200 hover:bg-blue-50 focus-visible:ring-2 focus-visible:ring-blue-800 disabled:cursor-not-allowed disabled:opacity-40 motion-reduce:transition-none"
+                >
+                  <Save aria-hidden="true" className="h-4 w-4" />
+                  {saveMutation.isPending ? "正在保存…" : "保存草稿"}
+                </button>
+              </PermissionGate>
+              <PermissionGate all={["system.publish"]}>
+                <button
+                  aria-label="顶部检查并发布"
+                  type="button"
+                  onClick={() => {
+                    setNotice(null);
+                    setDialogOpen(true);
+                  }}
+                  disabled={
+                    !draftQuery.data || dirty || saveMutation.isPending || publishMutation.isPending
+                  }
+                  className="h-10 cursor-pointer rounded-lg bg-amber-700 px-5 font-semibold text-white outline-none transition-colors duration-200 hover:bg-amber-800 focus-visible:ring-2 focus-visible:ring-amber-700 focus-visible:ring-offset-2 disabled:cursor-not-allowed disabled:opacity-40 motion-reduce:transition-none"
+                >
+                  检查并发布
+                </button>
+              </PermissionGate>
+            </>
+          ) : null}
+        </>
+      }
+      unsavedChanges={unsavedChanges}
+    >
       {domain === "sop" ? (
         <nav
           aria-label="SOP 服务类型"
@@ -349,7 +392,7 @@ export default function SettingsEdit() {
               key={item.value}
               to={`/settings/sop/edit?serviceType=${item.value}`}
               aria-current={serviceType === item.value ? "page" : undefined}
-              className={`flex min-h-11 cursor-pointer items-center justify-center rounded-lg px-3 py-2 font-semibold outline-none transition-colors duration-200 focus-visible:ring-2 focus-visible:ring-blue-800 motion-reduce:transition-none ${serviceType === item.value ? "bg-blue-800 text-white" : "text-slate-700 hover:bg-slate-100"}`}
+              className={`flex h-10 cursor-pointer items-center justify-center rounded-lg px-3 font-semibold outline-none transition-colors duration-200 focus-visible:ring-2 focus-visible:ring-blue-800 motion-reduce:transition-none ${serviceType === item.value ? "bg-blue-800 text-white" : "text-slate-700 hover:bg-slate-100"}`}
             >
               {item.label}
             </Link>
@@ -402,7 +445,7 @@ export default function SettingsEdit() {
                 <button
                   type="button"
                   onClick={() => focusSettingsField("changeSummary")}
-                  className="min-h-11 cursor-pointer text-left font-medium underline underline-offset-2 outline-none focus-visible:ring-2 focus-visible:ring-red-700"
+                  className="h-10 cursor-pointer text-left font-medium underline underline-offset-2 outline-none focus-visible:ring-2 focus-visible:ring-red-700"
                 >
                   {summaryError}
                 </button>
@@ -413,7 +456,7 @@ export default function SettingsEdit() {
                 <button
                   type="button"
                   onClick={() => focusSettingsField(path)}
-                  className="min-h-11 cursor-pointer text-left font-medium underline underline-offset-2 outline-none focus-visible:ring-2 focus-visible:ring-red-700"
+                  className="h-10 cursor-pointer text-left font-medium underline underline-offset-2 outline-none focus-visible:ring-2 focus-visible:ring-red-700"
                 >
                   {error}
                 </button>
@@ -445,7 +488,7 @@ export default function SettingsEdit() {
             onClick={() => {
               void currentQuery.refetch();
             }}
-            className="mt-4 min-h-11 cursor-pointer rounded-lg border border-red-700 px-4 py-2 font-semibold outline-none focus-visible:ring-2 focus-visible:ring-red-700 disabled:cursor-not-allowed disabled:opacity-40"
+            className="mt-4 h-10 cursor-pointer rounded-lg border border-red-700 px-4 font-semibold outline-none focus-visible:ring-2 focus-visible:ring-red-700 disabled:cursor-not-allowed disabled:opacity-40"
           >
             重新加载当前版本
           </button>
@@ -469,7 +512,7 @@ export default function SettingsEdit() {
             onClick={() => {
               void draftQuery.refetch();
             }}
-            className="mt-4 min-h-11 cursor-pointer rounded-lg border border-red-700 px-4 py-2 font-semibold outline-none focus-visible:ring-2 focus-visible:ring-red-700 disabled:cursor-not-allowed disabled:opacity-40"
+            className="mt-4 h-10 cursor-pointer rounded-lg border border-red-700 px-4 font-semibold outline-none focus-visible:ring-2 focus-visible:ring-red-700 disabled:cursor-not-allowed disabled:opacity-40"
           >
             重新加载草稿状态
           </button>
@@ -500,7 +543,7 @@ export default function SettingsEdit() {
             />
           ) : null}
 
-          <section className="mt-5 rounded-xl border border-slate-200 bg-white p-4 sm:p-6">
+          <FormSection className="mt-5 p-4 sm:p-6">
             <label className="font-medium text-slate-800">
               变更摘要{" "}
               <span aria-hidden="true" className="text-red-700">
@@ -522,7 +565,7 @@ export default function SettingsEdit() {
                 }}
                 aria-invalid={Boolean(summaryError)}
                 aria-describedby="change-summary-help change-summary-error"
-                className="mt-1.5 min-h-11 w-full resize-y rounded-lg border border-slate-300 px-3 py-2 text-[16px] text-slate-950 outline-none transition-colors duration-200 focus-visible:border-blue-800 focus-visible:ring-2 focus-visible:ring-blue-800/20 sm:text-sm"
+                className="mt-1.5 min-h-10 w-full resize-y rounded-lg border border-slate-300 px-3 py-2 text-[16px] text-slate-950 outline-none transition-colors duration-200 focus-visible:border-blue-800 focus-visible:ring-2 focus-visible:ring-blue-800/20 sm:text-sm"
               />
               <span
                 id="change-summary-help"
@@ -536,62 +579,64 @@ export default function SettingsEdit() {
                 </span>
               ) : null}
             </label>
-          </section>
+          </FormSection>
 
-          <div className="mt-5 flex flex-col gap-3 rounded-xl border border-slate-200 bg-white p-4 sm:flex-row sm:items-center sm:justify-between sm:p-5">
-            <p className="text-slate-600">先保存草稿，再检查字段差异并发布。</p>
-            <div className="flex flex-col-reverse gap-3 sm:flex-row">
-              <PermissionGate all={[meta.editPermission]}>
-                <button
-                  type="button"
-                  onClick={submitDraft}
-                  disabled={
-                    boundRevision === null || saveMutation.isPending || publishMutation.isPending
+          <FormSection className="mt-5 p-4 sm:p-5">
+            <div className="flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between">
+              <p className="text-slate-600">先保存草稿，再检查字段差异并发布。</p>
+              <div className="flex flex-col-reverse gap-3 sm:flex-row">
+                <PermissionGate all={[meta.editPermission]}>
+                  <button
+                    type="button"
+                    onClick={submitDraft}
+                    disabled={
+                      boundRevision === null || saveMutation.isPending || publishMutation.isPending
+                    }
+                    className="inline-flex h-10 cursor-pointer items-center justify-center gap-2 rounded-lg border border-blue-700 px-4 font-semibold text-blue-800 outline-none transition-colors duration-200 hover:bg-blue-50 focus-visible:ring-2 focus-visible:ring-blue-800 disabled:cursor-not-allowed disabled:opacity-40 motion-reduce:transition-none"
+                  >
+                    {saveMutation.isPending ? (
+                      <LoaderCircle
+                        aria-hidden="true"
+                        className="h-4 w-4 animate-spin motion-reduce:animate-none"
+                      />
+                    ) : (
+                      <Save aria-hidden="true" className="h-4 w-4" />
+                    )}
+                    {saveMutation.isPending ? "正在保存…" : "保存草稿"}
+                  </button>
+                </PermissionGate>
+                <PermissionGate
+                  all={["system.publish"]}
+                  fallback={
+                    <p className="self-center text-sm text-slate-600">
+                      需要 system.publish 权限才能发布。
+                    </p>
                   }
-                  className="inline-flex min-h-11 cursor-pointer items-center justify-center gap-2 rounded-lg border border-blue-700 px-4 py-2 font-semibold text-blue-800 outline-none transition-colors duration-200 hover:bg-blue-50 focus-visible:ring-2 focus-visible:ring-blue-800 disabled:cursor-not-allowed disabled:opacity-40 motion-reduce:transition-none"
                 >
-                  {saveMutation.isPending ? (
-                    <LoaderCircle
-                      aria-hidden="true"
-                      className="h-4 w-4 animate-spin motion-reduce:animate-none"
-                    />
-                  ) : (
-                    <Save aria-hidden="true" className="h-4 w-4" />
-                  )}
-                  {saveMutation.isPending ? "正在保存…" : "保存草稿"}
-                </button>
-              </PermissionGate>
-              <PermissionGate
-                all={["system.publish"]}
-                fallback={
-                  <p className="self-center text-sm text-slate-600">
-                    需要 system.publish 权限才能发布。
-                  </p>
-                }
-              >
-                <button
-                  type="button"
-                  onClick={() => {
-                    setNotice(null);
-                    setDialogOpen(true);
-                  }}
-                  disabled={
-                    !draftQuery.data || dirty || saveMutation.isPending || publishMutation.isPending
-                  }
-                  className="min-h-11 cursor-pointer rounded-lg bg-amber-700 px-5 py-2 font-semibold text-white outline-none transition-colors duration-200 hover:bg-amber-800 focus-visible:ring-2 focus-visible:ring-amber-700 focus-visible:ring-offset-2 disabled:cursor-not-allowed disabled:opacity-40 motion-reduce:transition-none"
-                >
-                  检查并发布
-                </button>
-              </PermissionGate>
+                  <button
+                    type="button"
+                    onClick={() => {
+                      setNotice(null);
+                      setDialogOpen(true);
+                    }}
+                    disabled={
+                      !draftQuery.data ||
+                      dirty ||
+                      saveMutation.isPending ||
+                      publishMutation.isPending
+                    }
+                    className="h-10 cursor-pointer rounded-lg bg-amber-700 px-5 font-semibold text-white outline-none transition-colors duration-200 hover:bg-amber-800 focus-visible:ring-2 focus-visible:ring-amber-700 focus-visible:ring-offset-2 disabled:cursor-not-allowed disabled:opacity-40 motion-reduce:transition-none"
+                  >
+                    检查并发布
+                  </button>
+                </PermissionGate>
+              </div>
             </div>
-          </div>
+          </FormSection>
         </fieldset>
       ) : null}
 
-      <section
-        className="mt-6 rounded-xl border border-slate-200 bg-white p-4 sm:p-6"
-        aria-labelledby="recent-history-heading"
-      >
+      <FormSection className="mt-6 p-4 sm:p-6" aria-labelledby="recent-history-heading">
         <h2 id="recent-history-heading" className="text-xl font-semibold text-slate-950">
           最近发布历史
         </h2>
@@ -610,7 +655,7 @@ export default function SettingsEdit() {
               onClick={() => {
                 void historyQuery.refetch();
               }}
-              className="mt-3 min-h-11 cursor-pointer rounded-lg border border-red-700 px-4 py-2 font-semibold outline-none hover:bg-red-100 focus-visible:ring-2 focus-visible:ring-red-800 disabled:cursor-not-allowed disabled:opacity-40"
+              className="mt-3 h-10 cursor-pointer rounded-lg border border-red-700 px-4 font-semibold outline-none hover:bg-red-100 focus-visible:ring-2 focus-visible:ring-red-800 disabled:cursor-not-allowed disabled:opacity-40"
             >
               重新加载发布历史
             </button>
@@ -624,7 +669,7 @@ export default function SettingsEdit() {
             <li key={item.id}>
               <Link
                 to={`/settings/${domain}/history/${item.id}${domain === "sop" ? `?serviceType=${serviceType}` : ""}`}
-                className="block min-h-11 cursor-pointer rounded-lg border border-slate-200 p-3 outline-none transition-colors duration-200 hover:border-blue-300 hover:bg-blue-50 focus-visible:ring-2 focus-visible:ring-blue-800 motion-reduce:transition-none"
+                className="block min-h-10 cursor-pointer rounded-lg border border-slate-200 p-3 outline-none transition-colors duration-200 hover:border-blue-300 hover:bg-blue-50 focus-visible:ring-2 focus-visible:ring-blue-800 motion-reduce:transition-none"
               >
                 <span className="font-semibold text-slate-950">版本 v{item.version}</span>
                 <span className="mt-1 block text-sm text-slate-600">{item.changeSummary}</span>
@@ -632,7 +677,7 @@ export default function SettingsEdit() {
             </li>
           ))}
         </ul>
-      </section>
+      </FormSection>
 
       <PublishDialog
         open={dialogOpen}
@@ -648,7 +693,7 @@ export default function SettingsEdit() {
         }}
         onPublish={() => publishMutation.mutate()}
       />
-    </section>
+    </EditorPageLayout>
   );
 }
 
@@ -663,7 +708,7 @@ function PageMessage({ title, message }: { title: string; message: string }) {
       <p className="mt-2">{message}</p>
       <Link
         to="/settings"
-        className="mt-4 inline-flex min-h-11 cursor-pointer items-center rounded-lg border border-amber-700 px-4 py-2 font-semibold outline-none focus-visible:ring-2 focus-visible:ring-amber-800"
+        className="mt-4 inline-flex h-10 cursor-pointer items-center rounded-lg border border-amber-700 px-4 font-semibold outline-none focus-visible:ring-2 focus-visible:ring-amber-800"
       >
         返回系统设置
       </Link>
