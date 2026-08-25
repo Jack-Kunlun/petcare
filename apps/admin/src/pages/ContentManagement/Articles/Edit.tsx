@@ -228,9 +228,8 @@ export default function ContentArticleEdit() {
                 <span aria-hidden="true" className="h-1.5 w-1.5 rounded-full bg-current" />
                 <span>有未保存修改</span>
               </span>
-            ) : saveNotice ? (
-              <span className="text-emerald-700">{saveNotice}</span>
             ) : null}
+            {!dirty && saveNotice ? <span className="text-emerald-700">{saveNotice}</span> : null}
           </span>
         </div>
       }

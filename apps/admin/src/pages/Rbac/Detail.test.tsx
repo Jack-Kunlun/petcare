@@ -198,6 +198,7 @@ describe("RbacDetail", () => {
 
     await user.clear(screen.getByLabelText("关联管理员 ID"));
     await user.type(screen.getByLabelText("关联管理员 ID"), "admin-1\nadmin-2");
+    expect(header.getByText("有未保存修改")).toBeInTheDocument();
     await user.click(header.getByRole("link", { name: "返回角色列表" }));
     expect(await screen.findByRole("dialog")).toHaveTextContent("放弃未保存的修改？");
     await user.click(screen.getByRole("button", { name: "继续编辑" }));
@@ -207,6 +208,7 @@ describe("RbacDetail", () => {
     await waitFor(() =>
       expect(screen.getByLabelText("关联管理员 ID")).toHaveValue("admin-1\nadmin-2"),
     );
+    await waitFor(() => expect(header.queryByText("有未保存修改")).not.toBeInTheDocument());
     await user.click(header.getByRole("link", { name: "返回角色列表" }));
     expect(await screen.findByText("角色列表")).toBeInTheDocument();
     expect(screen.queryByRole("dialog")).not.toBeInTheDocument();

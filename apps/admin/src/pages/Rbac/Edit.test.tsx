@@ -196,6 +196,9 @@ describe("RbacEdit", () => {
     ).toBeInTheDocument();
 
     await user.type(screen.getByLabelText("角色名称"), "客服专员");
+    expect(
+      within(document.querySelector(".editor-page__header")!).getByText("有未保存修改"),
+    ).toBeInTheDocument();
     await user.click(screen.getByRole("link", { name: "返回角色列表" }));
     expect(await screen.findByRole("dialog")).toHaveTextContent("放弃未保存的修改？");
     await user.click(screen.getByRole("button", { name: "继续编辑" }));

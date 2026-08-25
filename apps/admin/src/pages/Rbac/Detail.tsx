@@ -166,6 +166,18 @@ export default function RbacDetail() {
           返回角色列表
         </Link>
       }
+      status={
+        dirty ? (
+          <span
+            role="status"
+            aria-live="polite"
+            className="inline-flex items-center gap-1.5 text-sm font-medium text-amber-700"
+          >
+            <span aria-hidden="true" className="h-1.5 w-1.5 rounded-full bg-current" />
+            有未保存修改
+          </span>
+        ) : null
+      }
       actions={
         <>
           <PermissionGate all={["rbac.role.update"]}>

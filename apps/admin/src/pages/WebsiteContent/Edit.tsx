@@ -441,7 +441,7 @@ export default function WebsiteContentEdit() {
         </Link>
       }
       status={
-        dirty ? (
+        (dirty && (
           <span
             aria-live="polite"
             className="inline-flex items-center gap-2 text-sm font-medium text-amber-800"
@@ -449,7 +449,8 @@ export default function WebsiteContentEdit() {
             <AlertCircle aria-hidden="true" className="h-4 w-4" />
             有未保存变更
           </span>
-        ) : notice ? (
+        )) ||
+        (notice && (
           <span
             aria-live="polite"
             className="inline-flex items-center gap-2 text-sm font-medium text-emerald-800"
@@ -457,7 +458,7 @@ export default function WebsiteContentEdit() {
             <CheckCircle2 aria-hidden="true" className="h-4 w-4" />
             {notice}
           </span>
-        ) : null
+        ))
       }
       actions={
         <>
