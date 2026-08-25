@@ -1,6 +1,7 @@
 <script setup lang="ts">
 import { onShow } from "@dcloudio/uni-app";
 import { computed, ref } from "vue";
+import { runLogoutFlow } from "./logout";
 import { getProfile } from "@/api/user";
 import MainTabLayout from "@/components/MainTabLayout.vue";
 import { getDefaultAvatar } from "@/state/default-avatar";
@@ -97,25 +98,11 @@ function openPage(route: string) {
 }
 
 async function logoutCurrentDevice(): Promise<void> {
-  if (logoutPending.value) {
-    return;
-  }
-
-  logoutPending.value = true;
-
-  try {
-    await logout();
-
-    try {
-      await uni.reLaunch({ url: "/pages/index/index" });
-    } catch {
-      await uni.showToast({ title: "已退出登录，但返回首页失败", icon: "none" });
-    }
-  } catch {
-    await uni.showToast({ title: "退出登录失败，请重试", icon: "none" });
-  } finally {
-    logoutPending.value = false;
-  }
+  await runLogoutFlow(logoutPending, {
+    logout,
+    reLaunch: (options) => uni.reLaunch(options),
+    showToast: (options) => uni.showToast(options),
+  });
 }
 </script>
 

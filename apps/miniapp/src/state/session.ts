@@ -179,6 +179,8 @@ export function clearSession(manualLogout = false): void {
 }
 
 export async function logout(): Promise<void> {
+  const revision = sessionRevision;
+
   try {
     const refreshToken = readStoredString(STORAGE_KEY.refreshToken);
 
@@ -188,7 +190,9 @@ export async function logout(): Promise<void> {
   } catch {
     // Remote revocation and storage reads cannot prevent the local logout.
   } finally {
-    clearSession(true);
+    if (revision === sessionRevision) {
+      clearSession(true);
+    }
   }
 }
 

@@ -270,6 +270,48 @@ describe("miniapp session", () => {
     expect(storage.get(STORAGE_KEY.manualLogout)).toBe(true);
   });
 
+  it("does not let an old successful logout overwrite a newer interactive login", async () => {
+    seedStoredSession();
+    const remoteLogout = deferred<void>();
+
+    logoutWechatSessionMock.mockReturnValueOnce(remoteLogout.promise);
+    const pendingLogout = logout();
+
+    await vi.waitFor(() => expect(logoutWechatSessionMock).toHaveBeenCalledTimes(1));
+    resolveUniLogin();
+    loginWithWechatMock.mockResolvedValueOnce(interactiveSession);
+    await loginInteractively();
+    setStorageSync.mockClear();
+
+    remoteLogout.resolve(undefined);
+    await pendingLogout;
+
+    expect(session).toMatchObject(interactiveSession);
+    expect(storage.get(STORAGE_KEY.manualLogout)).not.toBe(true);
+    expect(setStorageSync).not.toHaveBeenCalledWith(STORAGE_KEY.manualLogout, true);
+  });
+
+  it("does not let an old failed logout overwrite a newer interactive login", async () => {
+    seedStoredSession();
+    const remoteLogout = deferred<void>();
+
+    logoutWechatSessionMock.mockReturnValueOnce(remoteLogout.promise);
+    const pendingLogout = logout();
+
+    await vi.waitFor(() => expect(logoutWechatSessionMock).toHaveBeenCalledTimes(1));
+    resolveUniLogin();
+    loginWithWechatMock.mockResolvedValueOnce(interactiveSession);
+    await loginInteractively();
+    setStorageSync.mockClear();
+
+    remoteLogout.reject(new Error("offline"));
+    await pendingLogout;
+
+    expect(session).toMatchObject(interactiveSession);
+    expect(storage.get(STORAGE_KEY.manualLogout)).not.toBe(true);
+    expect(setStorageSync).not.toHaveBeenCalledWith(STORAGE_KEY.manualLogout, true);
+  });
+
   it("rolls back an interactive login when session storage throws", async () => {
     storage.set("petcare.manualLogout", true);
     resolveUniLogin();
