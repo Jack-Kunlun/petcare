@@ -6,14 +6,43 @@ import type {
 } from "@petcare/shared-types";
 import { WEBSITE_SECTION_TYPE } from "@petcare/shared-types";
 
+/** One enabled Help category ready for ordered Miniapp rendering. */
 export interface HelpCategory {
+  /** Stable category key inherited from the managed section. */
   key: string;
+  /** Visible category title. */
   title: string;
-  questions: Array<{ key: string; question: string; answer: string }>;
+  /** Ordered questions configured for this category. */
+  questions: Array<{
+    /** Stable question key inherited from the managed rich-text part. */
+    key: string;
+    /** Visible question text. */
+    question: string;
+    /** Plain-text answer with configured paragraphs separated by newlines. */
+    answer: string;
+  }>;
 }
 
-export type ContactAction = { kind: "phone" | "email"; value: string } | { kind: "none" };
+/** Locally validated action available for a managed contact destination. */
+export type ContactAction =
+  | {
+      /** Opens the native phone dialer. */
+      kind: "phone";
+      /** Validated phone number passed to the dialer. */
+      value: string;
+    }
+  | {
+      /** Copies the configured support email address. */
+      kind: "email";
+      /** Validated email address copied for the user. */
+      value: string;
+    }
+  | {
+      /** Exposes no executable action for unsupported or invalid destinations. */
+      kind: "none";
+    };
 
+/** Maps enabled rich-text sections to ordered Help categories and questions. */
 export function toHelpCategories(content: WebsitePublicContent): HelpCategory[] {
   return content.sections.flatMap((section) =>
     section.isEnabled && section.sectionType === WEBSITE_SECTION_TYPE.RICH_TEXT
@@ -32,6 +61,7 @@ export function toHelpCategories(content: WebsitePublicContent): HelpCategory[] 
   );
 }
 
+/** Filters Help questions in memory by category, question, or answer text. */
 export function filterHelpCategories(categories: HelpCategory[], query: string): HelpCategory[] {
   const keyword = query.trim().toLowerCase();
 
@@ -50,6 +80,7 @@ export function filterHelpCategories(categories: HelpCategory[], query: string):
   });
 }
 
+/** Selects enabled structured rich-text content for legal-page rendering. */
 export function toRichTextContent(
   content: WebsitePublicContent,
 ): WebsiteRichTextSection["content"][] {
@@ -60,6 +91,7 @@ export function toRichTextContent(
   );
 }
 
+/** Returns the first enabled managed contact panel, if one is published. */
 export function toContactPanel(
   content: WebsitePublicContent,
 ): WebsiteContactPanelSection["content"] | null {
@@ -72,6 +104,7 @@ export function toContactPanel(
   return null;
 }
 
+/** Converts only locally valid phone and email destinations into executable actions. */
 export function getContactAction(href: WebsiteLinkDestination): ContactAction {
   if (href.startsWith("tel:")) {
     const value = href.slice(4).replace(/[\s-]/gu, "");
