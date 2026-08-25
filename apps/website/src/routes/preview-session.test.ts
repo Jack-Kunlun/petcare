@@ -17,6 +17,16 @@ function createContext(body: unknown) {
 }
 
 describe("createPreviewSessionHandler", () => {
+  it("accepts the fixed Help key for an Admin capability preview", async () => {
+    const api: PreviewSessionApi = { getPreview: vi.fn().mockResolvedValue({}) };
+    const context = createContext({ contentKey: "help", token: "preview-token" });
+
+    const response = await createPreviewSessionHandler(api)(context as never);
+
+    await expect(response.json()).resolves.toEqual({ path: "/preview/help" });
+    expect(api.getPreview).toHaveBeenCalledWith("help", "preview-token");
+  });
+
   it("validates the capability before storing it only in a fixed HttpOnly cookie", async () => {
     const api: PreviewSessionApi = { getPreview: vi.fn().mockResolvedValue({}) };
     const context = createContext({ contentKey: "home", token: "preview-token" });

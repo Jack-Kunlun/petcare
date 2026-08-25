@@ -25,6 +25,16 @@ describe("PublicWebsiteContentController", () => {
     expect(published.getPublished).toHaveBeenCalledWith("home");
   });
 
+  it("forwards the public Help key without requiring authentication", async () => {
+    const content = { contentKey: "help", businessVersion: 1 };
+    const published = { getPublished: jest.fn().mockResolvedValue(content) };
+    const previews = { readPreview: jest.fn() };
+    const controller = new PublicWebsiteContentController(published as never, previews as never);
+
+    await expect(controller.getPublished("help")).resolves.toBe(content);
+    expect(published.getPublished).toHaveBeenCalledWith("help");
+  });
+
   it("reads a preview only from the dedicated request header and prevents caching", async () => {
     const version = { contentKey: "home", revision: 2, sections: [], seo: {} };
     const published = {

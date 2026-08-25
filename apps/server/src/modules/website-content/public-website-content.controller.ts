@@ -14,7 +14,7 @@ import {
 import { WebsiteContentPublicService } from "./website-content-public.service";
 import { WebsitePreviewService } from "./website-preview.service";
 
-/** Exposes published and capability-scoped Website Content to the SSR website only. */
+/** Exposes published and capability-scoped Website Content to public clients. */
 @ApiTags("Website Content")
 @Controller("website-content")
 export class PublicWebsiteContentController {

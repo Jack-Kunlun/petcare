@@ -1,19 +1,22 @@
 import {
   WEBSITE_CONTENT_KEY,
   WEBSITE_CONTENT_STATUS,
+  type WebsiteContentKey,
   type WebsiteContentVersion,
 } from "@petcare/shared-types";
 import { WEBSITE_CONTENT_SEED_TEMPLATES } from "../../seed/seed-website-content";
 import { WebsiteContentPublicService } from "./website-content-public.service";
 
-function publishedVersion(): WebsiteContentVersion {
+function publishedVersion(
+  contentKey: WebsiteContentKey = WEBSITE_CONTENT_KEY.HOME,
+): WebsiteContentVersion {
   const template = WEBSITE_CONTENT_SEED_TEMPLATES.find(
-    ({ contentKey }) => contentKey === WEBSITE_CONTENT_KEY.HOME,
+    (candidate) => candidate.contentKey === contentKey,
   )!;
 
   return {
-    id: "published-home-1",
-    contentKey: WEBSITE_CONTENT_KEY.HOME,
+    id: `published-${contentKey}-1`,
+    contentKey,
     revision: 2,
     businessVersion: 1,
     status: WEBSITE_CONTENT_STATUS.PUBLISHED,
@@ -28,26 +31,43 @@ function publishedVersion(): WebsiteContentVersion {
   };
 }
 
+function createPublicService(version: WebsiteContentVersion) {
+  const repository = {
+    getPublishedPointer: jest.fn(async () => ({
+      contentId: `content-${version.contentKey}`,
+      publishedVersionId: version.id,
+    })),
+    getPublishedVersion: jest.fn(async () => version),
+  };
+  const cache = { get: jest.fn(async () => null), set: jest.fn(async () => false) };
+  const media = { resolvePublicAssets: jest.fn(async () => new Map()) };
+  const service = new WebsiteContentPublicService(
+    repository as never,
+    cache as never,
+    media as never,
+  );
+
+  return { service, repository, cache };
+}
+
 describe("WebsiteContentPublicService", () => {
+  it("returns enabled Help categories from the published pointer only", async () => {
+    const version = publishedVersion(WEBSITE_CONTENT_KEY.HELP);
+
+    version.sections[0].isEnabled = false;
+
+    const { service } = createPublicService(version);
+
+    const result = await service.getPublished(WEBSITE_CONTENT_KEY.HELP);
+
+    expect(result.contentKey).toBe("help");
+    expect(result.sections).toHaveLength(3);
+    expect(result.sections.every((section) => section.sectionType === "rich_text")).toBe(true);
+  });
+
   it("reads the public pointer, falls back to PostgreSQL, and best-effort fills Redis", async () => {
     const version = publishedVersion();
-    const repository = {
-      getPublishedPointer: jest.fn(async () => ({
-        contentId: "content-home",
-        publishedVersionId: version.id,
-      })),
-      getPublishedVersion: jest.fn(async () => version),
-    };
-    const cache = {
-      get: jest.fn(async () => null),
-      set: jest.fn(async () => false),
-    };
-    const media = { resolvePublicAssets: jest.fn(async () => new Map()) };
-    const service = new WebsiteContentPublicService(
-      repository as never,
-      cache as never,
-      media as never,
-    );
+    const { service, repository, cache } = createPublicService(version);
 
     const result = await service.getPublished(WEBSITE_CONTENT_KEY.HOME);
 

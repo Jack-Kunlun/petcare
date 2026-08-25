@@ -1,3 +1,4 @@
+import { WEBSITE_CONTENT_KEY, type WebsiteContentKey } from "@petcare/shared-types";
 import type { APIContext } from "astro";
 import { createWebsiteContentApi, type WebsitePreviewContent } from "../../lib/api";
 import { getWebsiteRuntimeConfig } from "../../lib/runtime-config";
@@ -5,25 +6,20 @@ import { getWebsiteRuntimeConfig } from "../../lib/runtime-config";
 /** Name of the HttpOnly capability cookie scoped to one fixed preview page. */
 export const WEBSITE_PREVIEW_COOKIE = "petcare_website_preview";
 
-const PREVIEWABLE_CONTENT_KEYS = new Set([
-  "home",
-  "services",
-  "trust",
-  "companions",
-  "about",
-  "contact",
-  "privacy",
-  "terms",
-]);
+type PreviewableContentKey = Exclude<WebsiteContentKey, typeof WEBSITE_CONTENT_KEY.SITE_SHELL>;
+
+const PREVIEWABLE_CONTENT_KEYS = new Set<PreviewableContentKey>(
+  Object.values(WEBSITE_CONTENT_KEY).filter(
+    (contentKey): contentKey is PreviewableContentKey =>
+      contentKey !== WEBSITE_CONTENT_KEY.SITE_SHELL,
+  ),
+);
 
 /** Minimal verification boundary used when exchanging a browser fragment for an HttpOnly cookie. */
 export interface PreviewSessionApi {
   /** Validates the capability at Nest and proves its content-key scope before setting a cookie. */
   getPreview(contentKey: PreviewableContentKey, token: string): Promise<WebsitePreviewContent>;
 }
-
-type PreviewableContentKey =
-  "home" | "services" | "trust" | "companions" | "about" | "contact" | "privacy" | "terms";
 
 /** Creates the same-origin POST handler that exchanges a fragment token for an HttpOnly session cookie. */
 export function createPreviewSessionHandler(api: PreviewSessionApi) {
@@ -82,7 +78,7 @@ async function readExchangeRequest(
 
   if (
     typeof candidate.contentKey !== "string" ||
-    !PREVIEWABLE_CONTENT_KEYS.has(candidate.contentKey) ||
+    !PREVIEWABLE_CONTENT_KEYS.has(candidate.contentKey as PreviewableContentKey) ||
     typeof candidate.token !== "string" ||
     candidate.token.length === 0
   ) {
