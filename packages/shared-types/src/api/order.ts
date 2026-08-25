@@ -97,10 +97,6 @@ export interface CreatePlatformOrderRequest {
 export interface OrderListQuery {
   page: number;
   pageSize: number;
-  status?: OrderStatus;
-  orderType?: OrderType;
-  startDate?: string;
-  endDate?: string;
 }
 
 /** Paginated anonymous-safe reward-order list. */

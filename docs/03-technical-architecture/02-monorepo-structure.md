@@ -219,16 +219,15 @@ export interface CreateRewardOrderResponse {
 export interface OrderListQuery {
   page: number;
   pageSize: number;
-  status?: OrderStatus;
-  orderType?: OrderType;
-  startDate?: string;
-  endDate?: string;
 }
 
 /**
- * 订单列表响应
+ * 匿名可浏览的悬赏订单列表响应
  */
-export type OrderListResponse = PaginatedResponse<Order>;
+export type PublicOrderListResponse = PaginatedResponse<PublicOrder>;
+
+/** @deprecated Use PublicOrderListResponse. */
+export type OrderListResponse = PublicOrderListResponse;
 ```
 
 #### 示例3：统一响应格式

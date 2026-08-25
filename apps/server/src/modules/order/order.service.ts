@@ -134,6 +134,7 @@ export class OrderService {
     }
   }
 
+  /** Returns one page of anonymously discoverable reward-order summaries. */
   async findAll(page = 1, pageSize = 20): Promise<PublicOrderListResponse> {
     const [list, total] = await Promise.all([
       this.prisma.order.findMany({
@@ -154,6 +155,7 @@ export class OrderService {
     };
   }
 
+  /** Returns one anonymously discoverable reward-order summary, or hides it as not found. */
   async findOne(id: string): Promise<PublicOrder> {
     const order = await this.prisma.order.findFirst({
       where: { id, ...publicOrderWhere },

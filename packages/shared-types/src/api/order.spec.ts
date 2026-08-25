@@ -1,6 +1,11 @@
 import { describe, expect, expectTypeOf, it } from "vitest";
 import type { OrderStatus, OrderType, ServiceType } from "../enums";
-import type { OrderListResponse, PublicOrder, PublicOrderListResponse } from "./order";
+import type {
+  OrderListQuery,
+  OrderListResponse,
+  PublicOrder,
+  PublicOrderListResponse,
+} from "./order";
 import type { PaginatedResponse } from "./response";
 
 describe("public order contract", () => {
@@ -17,6 +22,8 @@ describe("public order contract", () => {
     }>();
     expectTypeOf<PublicOrderListResponse>().toEqualTypeOf<PaginatedResponse<PublicOrder>>();
     expectTypeOf<OrderListResponse>().toEqualTypeOf<PublicOrderListResponse>();
+    expectTypeOf<OrderListQuery>().toEqualTypeOf<{ page: number; pageSize: number }>();
+    expectTypeOf<Exclude<keyof OrderListQuery, "page" | "pageSize">>().toEqualTypeOf<never>();
 
     const order = {
       id: "order-1",
