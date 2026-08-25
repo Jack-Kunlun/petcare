@@ -1,6 +1,14 @@
 import { beforeEach, describe, expect, it, vi } from "vitest";
 import { authorizedRequest, authorizedUpload } from "../state/session";
-import { bindPhone, getProfile, sendPhoneCode, updateProfile, uploadAvatar } from "./user";
+import {
+  bindPhone,
+  cancelAccount,
+  getProfile,
+  sendCancellationCode,
+  sendPhoneCode,
+  updateProfile,
+  uploadAvatar,
+} from "./user";
 
 vi.mock("../state/session", () => ({
   authorizedRequest: vi.fn(),
@@ -35,5 +43,23 @@ describe("miniapp user API", () => {
       "wxfile://avatar.png",
       "file",
     );
+  });
+
+  it("uses server-owned cancellation endpoints without sending a phone", async () => {
+    authorizedRequestMock.mockResolvedValue(undefined);
+
+    await sendCancellationCode();
+    await cancelAccount();
+    await cancelAccount("");
+    await cancelAccount("   ");
+    await cancelAccount("123456");
+
+    expect(authorizedRequestMock.mock.calls).toEqual([
+      ["/users/me/cancellation/code", { method: "POST" }],
+      ["/users/me/cancel", { method: "POST", data: {} }],
+      ["/users/me/cancel", { method: "POST", data: {} }],
+      ["/users/me/cancel", { method: "POST", data: {} }],
+      ["/users/me/cancel", { method: "POST", data: { code: "123456" } }],
+    ]);
   });
 });

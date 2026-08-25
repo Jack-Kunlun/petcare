@@ -23,6 +23,7 @@ const expectedSubPages = [
   "pages-account/creators/detail",
   "pages-account/profile/info",
   "pages-account/profile/edit",
+  "pages-account/account/cancel",
   "pages-content/classroom/article",
   "pages-content/community/article",
   "pages-content/coupons/index",
@@ -45,7 +46,7 @@ describe("miniapp page contract", () => {
     expect(new Set(actual).size).toBe(expectedSubPages.length);
   });
 
-  it("delivers 35 formal pages or states including auth", () => {
-    expect(6 + expectedSubPages.length + 2).toBe(35);
+  it("delivers 36 formal pages or states including auth", () => {
+    expect(6 + expectedSubPages.length + 2).toBe(36);
   });
 });

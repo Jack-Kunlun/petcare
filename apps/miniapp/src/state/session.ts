@@ -197,6 +197,16 @@ export async function logout(): Promise<void> {
   }
 }
 
+/** Finishes a successful server cancellation without making a redundant logout request. */
+export function completeCancellation(): void {
+  try {
+    clearSession(true);
+  } catch (error) {
+    clearSession(false);
+    throw error;
+  }
+}
+
 function refreshSession(refreshToken: string): Promise<void> {
   const revision = sessionRevision;
 

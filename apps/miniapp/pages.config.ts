@@ -39,6 +39,7 @@ export default defineUniPages({
         "creators/detail",
         "profile/info",
         "profile/edit",
+        "account/cancel",
       ].map(createPage),
     },
     {

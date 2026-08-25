@@ -31,6 +31,7 @@ type _LocationUrl =
   "/pages-account/creators/detail" |
   "/pages-account/profile/info" |
   "/pages-account/profile/edit" |
+  "/pages-account/account/cancel" |
   "/pages-content/classroom/article" |
   "/pages-content/community/article" |
   "/pages-content/coupons/index" |

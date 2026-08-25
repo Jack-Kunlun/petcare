@@ -25,3 +25,18 @@ export function sendPhoneCode(phone: string): Promise<void> {
 export function bindPhone(phone: string, code: string): Promise<MiniappUserProfile> {
   return authorizedRequest("/users/me/phone", { method: "PUT", data: { phone, code } });
 }
+
+/** Sends an account-cancellation code to the current account's bound phone. */
+export function sendCancellationCode(): Promise<void> {
+  return authorizedRequest("/users/me/cancellation/code", { method: "POST" });
+}
+
+/** Cancels the current account, omitting the optional SMS code when it is blank. */
+export function cancelAccount(code?: string): Promise<void> {
+  const cancellationCode = code?.trim();
+
+  return authorizedRequest("/users/me/cancel", {
+    method: "POST",
+    data: cancellationCode ? { code: cancellationCode } : {},
+  });
+}

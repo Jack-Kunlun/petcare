@@ -6,6 +6,7 @@ import {
   bootstrapSession,
   captureSessionUserRevision,
   clearSession,
+  completeCancellation,
   loginInteractively,
   logout,
   parseReturnUrl,
@@ -268,6 +269,36 @@ describe("miniapp session", () => {
     expect(logoutWechatSessionMock).not.toHaveBeenCalled();
     expect(session).toMatchObject({ accessToken: null, refreshToken: null, user: null });
     expect(storage.get(STORAGE_KEY.manualLogout)).toBe(true);
+  });
+
+  it("completes account cancellation locally without requesting remote logout", () => {
+    seedStoredSession();
+
+    completeCancellation();
+
+    expect(logoutWechatSessionMock).not.toHaveBeenCalled();
+    expect(session).toMatchObject({ accessToken: null, refreshToken: null, user: null });
+    expect(storage.get(STORAGE_KEY.manualLogout)).toBe(true);
+  });
+
+  it("keeps memory anonymous when durable cancellation cleanup fails", () => {
+    seedStoredSession();
+    setStorageSync.mockImplementation((key, value) => {
+      if (key === STORAGE_KEY.manualLogout) {
+        throw new Error("logout intent failed");
+      }
+
+      return storage.set(key, value);
+    });
+
+    expect(() => completeCancellation()).toThrow("logout intent failed");
+
+    expect(logoutWechatSessionMock).not.toHaveBeenCalled();
+    expect(session).toMatchObject({ accessToken: null, refreshToken: null, user: null });
+    expect(storage.get(STORAGE_KEY.sessionCommitted)).toBe(false);
+    expect(storage.has(STORAGE_KEY.accessToken)).toBe(false);
+    expect(storage.has(STORAGE_KEY.refreshToken)).toBe(false);
+    expect(storage.has(STORAGE_KEY.user)).toBe(false);
   });
 
   it("does not let an old successful logout overwrite a newer interactive login", async () => {

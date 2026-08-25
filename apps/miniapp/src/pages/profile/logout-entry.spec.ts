@@ -77,4 +77,12 @@ describe("profile logout control", () => {
     expect(source).toContain('@click="logoutCurrentDevice"');
     expect(source).toContain('logoutPending ? "退出中…" : "退出登录"');
   });
+
+  it("shows a separate low-emphasis cancellation entry only for a signed-in profile", () => {
+    expect(source).toContain("function openCancellation()");
+    expect(source).toContain('url: "/pages-account/account/cancel"');
+    expect(source).toMatch(
+      /<button[\s\S]*?v-if="profile"[\s\S]*?@click="openCancellation"[\s\S]*?注销账户[\s\S]*?<\/button>/,
+    );
+  });
 });

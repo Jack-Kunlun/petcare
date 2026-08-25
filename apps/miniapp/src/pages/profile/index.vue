@@ -97,6 +97,14 @@ function openPage(route: string) {
   uni.navigateTo({ url: route });
 }
 
+function openCancellation() {
+  if (logoutPending.value) {
+    return;
+  }
+
+  uni.navigateTo({ url: "/pages-account/account/cancel" });
+}
+
 async function logoutCurrentDevice(): Promise<void> {
   await runLogoutFlow(logoutPending, {
     logout,
@@ -303,6 +311,17 @@ async function logoutCurrentDevice(): Promise<void> {
         <text class="text-body text-danger font-medium leading-label">
           {{ logoutPending ? "退出中…" : "退出登录" }}
         </text>
+      </button>
+      <button
+        v-if="profile"
+        class="mx-page-horizontal mt-copy h-control flex items-center justify-center bg-transparent"
+        :class="logoutPending ? 'opacity-50' : ''"
+        :aria-disabled="logoutPending"
+        :disabled="logoutPending"
+        hover-class="opacity-80"
+        @click="openCancellation"
+      >
+        <text class="text-caption text-danger leading-caption">注销账户</text>
       </button>
     </view>
   </MainTabLayout>

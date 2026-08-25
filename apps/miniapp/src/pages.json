@@ -222,7 +222,16 @@
             "navigationBarTextStyle": "black",
             "navigationStyle": "custom"
           }
+        },
+        // #ifdef MP-WEIXIN
+        {
+          "path": "account/cancel",
+          "style": {
+            "navigationBarTextStyle": "black",
+            "navigationStyle": "custom"
+          }
         }
+        // #endif
       ]
     },
     {
