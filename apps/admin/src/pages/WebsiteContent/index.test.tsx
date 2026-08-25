@@ -23,6 +23,7 @@ const contentKeys = [
   "companions",
   "about",
   "contact",
+  "help",
   "privacy",
   "terms",
 ] as const;
@@ -78,21 +79,26 @@ function renderOverview(permissions = authenticated.user?.permissions ?? []) {
 describe("WebsiteContent overview", () => {
   beforeEach(() => vi.clearAllMocks());
 
-  it("renders nine fixed content units with draft, publish, editor and unpublished-change state", async () => {
+  it("renders ten fixed content units with draft, publish, editor and unpublished-change state", async () => {
     vi.mocked(websiteContentApi.fetchWebsiteContentOverview).mockResolvedValue(overview);
     renderOverview();
 
     expect(await screen.findByRole("list", { name: "官网内容单元" })).toBeInTheDocument();
-    expect(screen.getAllByRole("listitem")).toHaveLength(9);
+    expect(screen.getAllByRole("listitem")).toHaveLength(10);
     expect(screen.getByText("草稿 r2")).toBeInTheDocument();
     expect(screen.getByText("已发布 v1")).toBeInTheDocument();
-    expect(screen.getAllByText("运营主管")).toHaveLength(9);
+    expect(screen.getAllByText("运营主管")).toHaveLength(10);
     expect(screen.getAllByText("有未发布变更")).toHaveLength(1);
-    expect(screen.getAllByRole("link", { name: "编辑草稿" })).toHaveLength(9);
+    expect(screen.getAllByRole("link", { name: "编辑草稿" })).toHaveLength(10);
     expect(screen.getAllByRole("link", { name: "编辑草稿" })[0]).toHaveAttribute(
       "href",
       "/website-content/site_shell/edit",
     );
+    expect(
+      screen
+        .getAllByRole("link", { name: "编辑草稿" })
+        .some((link) => link.getAttribute("href") === "/website-content/help/edit"),
+    ).toBe(true);
   });
 
   it("shows retryable loading failure without hiding the overview route", async () => {

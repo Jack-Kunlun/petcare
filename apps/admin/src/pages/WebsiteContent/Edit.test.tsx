@@ -1,6 +1,10 @@
-import type { WebsiteContentVersion, WebsiteHomeExperienceSection } from "@petcare/shared-types";
+import type {
+  WebsiteContentVersion,
+  WebsiteHomeExperienceSection,
+  WebsiteRichTextSection,
+} from "@petcare/shared-types";
 import { QueryClient, QueryClientProvider } from "@tanstack/react-query";
-import { fireEvent, render, screen, waitFor } from "@testing-library/react";
+import { fireEvent, render, screen, waitFor, within } from "@testing-library/react";
 import userEvent from "@testing-library/user-event";
 import { MemoryRouter, Route, Routes } from "react-router-dom";
 import { beforeEach, describe, expect, it, vi } from "vitest";
@@ -157,6 +161,41 @@ const draft: WebsiteContentVersion = {
   publishedAt: null,
 };
 
+function helpSection(sectionKey: string, sortOrder: number, title: string): WebsiteRichTextSection {
+  return {
+    sectionKey,
+    sectionType: "rich_text",
+    sortOrder,
+    isEnabled: true,
+    schemaVersion: 1,
+    content: {
+      title,
+      effectiveDate: null,
+      parts: [
+        {
+          partKey: `question_${sortOrder}`,
+          heading: `Question ${sortOrder}`,
+          paragraphs: [`Answer ${sortOrder}`],
+        },
+      ],
+    },
+    settings: { width: "normal" },
+  };
+}
+
+const helpDraft: WebsiteContentVersion = {
+  ...draft,
+  id: "draft-help-r2",
+  contentKey: "help",
+  seo: { ...draft.seo, canonicalPath: "/help" },
+  sections: [
+    helpSection("account_and_identity", 1, "Account and identity"),
+    helpSection("bounty_and_orders", 2, "Bounties and orders"),
+    helpSection("care_records", 3, "Care records"),
+    helpSection("fees_and_benefits", 4, "Fees and benefits"),
+  ],
+};
+
 const authenticated: AuthContextValue = {
   status: "authenticated",
   user: {
@@ -180,6 +219,7 @@ const authenticated: AuthContextValue = {
 function renderEditor(
   permissions = authenticated.user?.permissions ?? [],
   queryClient = new QueryClient({ defaultOptions: { queries: { retry: false } } }),
+  initialEntry = "/website-content/home/edit",
 ) {
   const context: AuthContextValue = {
     ...authenticated,
@@ -189,7 +229,7 @@ function renderEditor(
   render(
     <AuthContext.Provider value={context}>
       <QueryClientProvider client={queryClient}>
-        <MemoryRouter initialEntries={["/website-content/home/edit"]}>
+        <MemoryRouter initialEntries={[initialEntry]}>
           <Routes>
             <Route path="/website-content/:contentKey/edit" element={<WebsiteContentEdit />} />
           </Routes>
@@ -217,6 +257,25 @@ describe("WebsiteContentEdit", () => {
     vi.mocked(websiteContentApi.fetchWebsiteContentDiff).mockResolvedValue([
       { path: "seo.title", before: "before", after: "after", changeType: "modified" },
     ]);
+  });
+
+  it("edits all four fixed Help categories and allows each category to be disabled", async () => {
+    const user = userEvent.setup();
+    const queryClient = new QueryClient({ defaultOptions: { queries: { retry: false } } });
+
+    vi.mocked(websiteContentApi.fetchWebsiteContentDraft).mockResolvedValue(helpDraft);
+    renderEditor(authenticated.user?.permissions, queryClient, "/website-content/help/edit");
+
+    expect(await screen.findAllByRole("textbox", { name: "正文标题" })).toHaveLength(4);
+
+    const accountSection = screen.getByText(/account_and_identity/u).closest("section");
+
+    expect(accountSection).not.toBeNull();
+    const toggle = within(accountSection!).getByRole("checkbox");
+
+    expect(toggle).toBeEnabled();
+    await user.click(toggle);
+    expect(toggle).not.toBeChecked();
   });
 
   it("keeps fixed sections ordered and saves a complete immutable draft snapshot", async () => {

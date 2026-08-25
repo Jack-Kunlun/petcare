@@ -28,7 +28,7 @@ export default function WebsiteContent() {
           aria-label="正在加载官网内容"
           className="mt-6 grid gap-4 sm:grid-cols-2 lg:grid-cols-3"
         >
-          {Array.from({ length: 9 }, (_, index) => index).map((item) => (
+          {Array.from({ length: 10 }, (_, index) => index).map((item) => (
             <div
               key={item}
               className="h-44 rounded-xl bg-slate-200 animate-[pc-skeleton-shimmer_220ms_linear_infinite] motion-reduce:animate-none"

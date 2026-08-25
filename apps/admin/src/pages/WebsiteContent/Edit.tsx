@@ -1,10 +1,11 @@
-import type {
-  ApiErrorResponse,
-  WebsiteContentKey,
-  WebsiteContentSection,
-  WebsiteContentVersion,
-  WebsiteMediaListQuery,
-  WebsiteSeoContent,
+import {
+  WEBSITE_CONTENT_KEY,
+  type ApiErrorResponse,
+  type WebsiteContentKey,
+  type WebsiteContentSection,
+  type WebsiteContentVersion,
+  type WebsiteMediaListQuery,
+  type WebsiteSeoContent,
 } from "@petcare/shared-types";
 import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
 import axios from "axios";
@@ -32,17 +33,7 @@ import { MediaAssetPicker } from "./MediaAssetPicker";
 import { PublishDialog } from "./PublishDialog";
 import { WebsiteMediaLibrary } from "./WebsiteMediaLibrary";
 
-const WEBSITE_CONTENT_KEYS = new Set<WebsiteContentKey>([
-  "site_shell",
-  "home",
-  "services",
-  "trust",
-  "companions",
-  "about",
-  "contact",
-  "privacy",
-  "terms",
-]);
+const WEBSITE_CONTENT_KEYS = new Set<WebsiteContentKey>(Object.values(WEBSITE_CONTENT_KEY));
 
 const REQUIRED_SECTION_KEYS: Record<WebsiteContentKey, readonly string[]> = {
   site_shell: ["site_header", "site_footer"],
