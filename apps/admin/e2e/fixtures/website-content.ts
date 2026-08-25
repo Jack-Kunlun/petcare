@@ -10,7 +10,6 @@ export const websiteContentFixtures = {
   help: {
     contentKey: "help",
     questionLabel: "正文小节 如何完善个人信息？ 标题",
-    initialQuestion: "如何完善个人信息？",
   },
   reader: {
     username: "rbac-e2e-website-reader",

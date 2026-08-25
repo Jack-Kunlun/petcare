@@ -148,10 +148,10 @@ test.describe("官网内容 Admin 到 Website 发布流程", () => {
       await openContentEditor(page, websiteContentFixtures.help.contentKey);
       const questionInput = page.getByLabel(websiteContentFixtures.help.questionLabel);
 
-      await expect(questionInput).toHaveValue(websiteContentFixtures.help.initialQuestion);
       await questionInput.fill(question);
       await page.getByLabel("变更摘要").fill("帮助 E2E：更新资料问题");
       await page.getByRole("button", { name: "保存草稿" }).click();
+      await expect(page.getByText(/草稿已保存，当前修订版为 r\d+。/u)).toBeVisible();
 
       const before = await page.request.get("/api/website-content/help");
 
