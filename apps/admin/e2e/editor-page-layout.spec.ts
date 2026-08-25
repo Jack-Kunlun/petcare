@@ -59,7 +59,18 @@ async function loginAsDefaultAdmin(page: Page): Promise<void> {
 }
 
 async function openRoute(page: Page, path: string): Promise<void> {
-  await page.goto(path);
+  await page.evaluate((destination) => {
+    const currentState = globalThis.history.state as { idx?: unknown } | null;
+    const state = {
+      usr: null,
+      key: globalThis.crypto.randomUUID(),
+      idx: (typeof currentState?.idx === "number" ? currentState.idx : 0) + 1,
+    };
+
+    // React Router's browser history ignores POP events without this state shape.
+    globalThis.history.pushState(state, "", destination);
+    globalThis.dispatchEvent(new PopStateEvent("popstate", { state }));
+  }, path);
 }
 
 async function assertEditorLayout(
