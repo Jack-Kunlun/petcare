@@ -2,6 +2,7 @@ import { HttpStatus, Injectable } from "@nestjs/common";
 import { AdminServiceType } from "@petcare/shared-types";
 import { ApiException } from "../../common/http/api-exception";
 import { ConfigService } from "../../config/config.service";
+import { Prisma } from "../../generated/prisma/client";
 import { PrismaService } from "../../prisma/prisma.service";
 import { lockUserRow } from "../../prisma/user-row-lock";
 import { AdminOrderListQueryDto } from "./dto/admin-order-list-query.dto";
@@ -45,50 +46,68 @@ export class OrderService {
   /** 在同一事务内创建悬赏订单及其 SOP、费用不可变快照。 */
   async createRewardOrder(dto: CreateRewardOrderDto, ownerId: string) {
     try {
-      return await this.prisma.$transaction(async (tx) => {
-        if ((await lockUserRow(tx, ownerId)) !== "active") {
-          throw new ApiException("AUTH_ACCOUNT_DISABLED", "账户已被停用", HttpStatus.FORBIDDEN);
+      for (let attempt = 1; attempt <= 3; attempt += 1) {
+        try {
+          // eslint-disable-next-line no-await-in-loop -- each retry reruns the complete transaction.
+          return await this.prisma.$transaction(
+            async (tx) => {
+              if ((await lockUserRow(tx, ownerId)) !== "active") {
+                throw new ApiException(
+                  "AUTH_ACCOUNT_DISABLED",
+                  "账户已被停用",
+                  HttpStatus.FORBIDDEN,
+                );
+              }
+
+              const snapshot = await this.snapshots.createForOrder(
+                dto.serviceType as AdminServiceType,
+                dto.rewardAmount,
+                tx,
+              );
+              const order = await tx.order.create({
+                data: {
+                  orderType: "reward",
+                  serviceType: dto.serviceType,
+                  ownerId,
+                  petId: dto.petId,
+                  serviceTime: new Date(dto.serviceTime),
+                  amount: dto.rewardAmount,
+                  address: dto.address,
+                  remark: dto.remark,
+                  sopConfigVersionId: snapshot.sopConfigVersionId,
+                  feeConfigVersionId: snapshot.feeConfigVersionId,
+                },
+              });
+
+              await tx.orderSop.createMany({
+                data: snapshot.sops.map((step) => ({ orderId: order.id, ...step })),
+              });
+              await tx.orderFeeSnapshot.create({
+                data: {
+                  orderId: order.id,
+                  feeConfigVersionId: snapshot.fee.feeConfigVersionId,
+                  inputAmountCents: snapshot.fee.inputAmountCents,
+                  platformCommissionBps: snapshot.fee.platformCommissionBps,
+                  platformCommissionCents: snapshot.fee.commissionAmountCents,
+                  rewardServiceFeeCents: snapshot.fee.rewardServiceFeeCents,
+                  withdrawalFeeBps: snapshot.fee.withdrawalFeeBps,
+                  minimumWithdrawalFeeCents: snapshot.fee.minimumWithdrawalFeeCents,
+                  providerSettlementCents: snapshot.fee.providerSettlementCents,
+                },
+              });
+
+              return { order };
+            },
+            { isolationLevel: Prisma.TransactionIsolationLevel.Serializable },
+          );
+        } catch (error) {
+          if (!this.isSerializationConflict(error) || attempt === 3) {
+            throw error;
+          }
         }
+      }
 
-        const snapshot = await this.snapshots.createForOrder(
-          dto.serviceType as AdminServiceType,
-          dto.rewardAmount,
-          tx,
-        );
-        const order = await tx.order.create({
-          data: {
-            orderType: "reward",
-            serviceType: dto.serviceType,
-            ownerId,
-            petId: dto.petId,
-            serviceTime: new Date(dto.serviceTime),
-            amount: dto.rewardAmount,
-            address: dto.address,
-            remark: dto.remark,
-            sopConfigVersionId: snapshot.sopConfigVersionId,
-            feeConfigVersionId: snapshot.feeConfigVersionId,
-          },
-        });
-
-        await tx.orderSop.createMany({
-          data: snapshot.sops.map((step) => ({ orderId: order.id, ...step })),
-        });
-        await tx.orderFeeSnapshot.create({
-          data: {
-            orderId: order.id,
-            feeConfigVersionId: snapshot.fee.feeConfigVersionId,
-            inputAmountCents: snapshot.fee.inputAmountCents,
-            platformCommissionBps: snapshot.fee.platformCommissionBps,
-            platformCommissionCents: snapshot.fee.commissionAmountCents,
-            rewardServiceFeeCents: snapshot.fee.rewardServiceFeeCents,
-            withdrawalFeeBps: snapshot.fee.withdrawalFeeBps,
-            minimumWithdrawalFeeCents: snapshot.fee.minimumWithdrawalFeeCents,
-            providerSettlementCents: snapshot.fee.providerSettlementCents,
-          },
-        });
-
-        return { order };
-      });
+      throw new Error("unreachable");
     } catch (error) {
       if (error instanceof ApiException) {
         throw error;
@@ -182,5 +201,9 @@ export class OrderService {
       page: query.page,
       pageSize: query.pageSize,
     };
+  }
+
+  private isSerializationConflict(error: unknown): boolean {
+    return typeof error === "object" && error !== null && "code" in error && error.code === "P2034";
   }
 }

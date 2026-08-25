@@ -89,6 +89,93 @@ describe("OrderService public responses", () => {
     expect(prisma.$queryRaw.mock.invocationCallOrder[0]).toBeLessThan(
       prisma.order.create.mock.invocationCallOrder[0],
     );
+    expect(prisma.$transaction).toHaveBeenCalledWith(expect.any(Function), {
+      isolationLevel: "Serializable",
+    });
+  });
+
+  it("retries the complete reward-order transaction twice after P2034", async () => {
+    let attempt = 0;
+
+    prisma.$transaction.mockImplementation(async (callback) => {
+      attempt += 1;
+      const result = await callback(prisma);
+
+      if (attempt < 3) {
+        throw { code: "P2034" };
+      }
+
+      return result;
+    });
+
+    await expect(
+      service.createRewardOrder(
+        {
+          serviceType: "feeding",
+          petId: "pet-1",
+          serviceTime: "2026-08-01T10:00:00.000Z",
+          address: "测试地址",
+          rewardAmount: 12500,
+          remark: "",
+        },
+        "owner-1",
+      ),
+    ).resolves.toEqual({ order: { id: "order-1" } });
+
+    expect(prisma.$transaction).toHaveBeenCalledTimes(3);
+    expect(prisma.$queryRaw).toHaveBeenCalledTimes(3);
+    expect(snapshots.createForOrder).toHaveBeenCalledTimes(3);
+    expect(prisma.order.create).toHaveBeenCalledTimes(3);
+    expect(prisma.orderSop.createMany).toHaveBeenCalledTimes(3);
+    expect(prisma.orderFeeSnapshot.create).toHaveBeenCalledTimes(3);
+  });
+
+  it("does not retry a non-P2034 transaction failure", async () => {
+    prisma.$transaction.mockRejectedValue(new Error("database unavailable"));
+
+    await expect(
+      service.createRewardOrder(
+        {
+          serviceType: "feeding",
+          petId: "pet-1",
+          serviceTime: "2026-08-01T10:00:00.000Z",
+          address: "测试地址",
+          rewardAmount: 12500,
+          remark: "",
+        },
+        "owner-1",
+      ),
+    ).rejects.toMatchObject({
+      code: "ORDER_CREATION_FAILED",
+      status: HttpStatus.INTERNAL_SERVER_ERROR,
+    });
+    expect(prisma.$transaction).toHaveBeenCalledTimes(1);
+  });
+
+  it("maps three exhausted P2034 attempts to the existing stable error", async () => {
+    prisma.$transaction.mockImplementation(async (callback) => {
+      await callback(prisma);
+      throw { code: "P2034" };
+    });
+
+    await expect(
+      service.createRewardOrder(
+        {
+          serviceType: "feeding",
+          petId: "pet-1",
+          serviceTime: "2026-08-01T10:00:00.000Z",
+          address: "测试地址",
+          rewardAmount: 12500,
+          remark: "",
+        },
+        "owner-1",
+      ),
+    ).rejects.toMatchObject({
+      code: "ORDER_CREATION_FAILED",
+      status: HttpStatus.INTERNAL_SERVER_ERROR,
+    });
+    expect(prisma.$transaction).toHaveBeenCalledTimes(3);
+    expect(prisma.$queryRaw).toHaveBeenCalledTimes(3);
   });
 
   it.each([{ rows: [{ status: "inactive" }] }, { rows: [] }])(
@@ -116,6 +203,7 @@ describe("OrderService public responses", () => {
       expect(prisma.order.create).not.toHaveBeenCalled();
       expect(prisma.orderSop.createMany).not.toHaveBeenCalled();
       expect(prisma.orderFeeSnapshot.create).not.toHaveBeenCalled();
+      expect(prisma.$transaction).toHaveBeenCalledTimes(1);
     },
   );
 
