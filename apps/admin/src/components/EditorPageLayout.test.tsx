@@ -1,8 +1,27 @@
 import { render, screen } from "@testing-library/react";
-import { describe, expect, it } from "vitest";
+import { describe, expect, it, vi } from "vitest";
 import { EditorPageLayout, FormSection } from "./EditorPageLayout";
 
 describe("EditorPageLayout", () => {
+  it("renders the shared unsaved-changes confirmation dialog with the stay action focused", () => {
+    const reset = vi.fn();
+    const proceed = vi.fn();
+
+    render(
+      <EditorPageLayout title="编辑文章" unsavedChanges={{ state: "blocked", reset, proceed }}>
+        内容
+      </EditorPageLayout>,
+    );
+
+    expect(screen.getByRole("dialog")).toHaveTextContent("放弃未保存的修改？");
+    expect(screen.getByRole("dialog")).toHaveTextContent(
+      "当前页面的修改尚未保存，离开后将无法恢复。",
+    );
+    expect(screen.getByRole("button", { name: "继续编辑" })).toHaveFocus();
+    expect(screen.getByRole("button", { name: "继续编辑" })).toHaveClass("focus-visible:ring-2");
+    expect(screen.getByRole("button", { name: "放弃修改" })).toHaveClass("focus-visible:ring-2");
+  });
+
   it("renders the stable header, content, and optional footer slots", () => {
     const { container } = render(
       <EditorPageLayout

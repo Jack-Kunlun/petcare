@@ -1,6 +1,16 @@
 import { act, render, screen } from "@testing-library/react";
+import { isValidElement, type ElementType, type ReactNode } from "react";
+import { matchRoutes } from "react-router-dom";
 import { beforeEach, describe, expect, it, vi } from "vitest";
-import App from "./App";
+import App, { createAdminRouter } from "./App";
+import { PermissionRoute } from "./auth/PermissionRoute";
+import { ProtectedRoute } from "./auth/ProtectedRoute";
+import Layout from "./components/Layout";
+import { ADMIN_ROUTE_REGISTRY } from "./routes/registry";
+
+function hasRouteElement(element: ReactNode, type: ElementType) {
+  return isValidElement(element) && element.type === type;
+}
 
 vi.mock("./auth/AuthProvider", () => ({
   AuthProvider: ({ children }: { children: React.ReactNode }) => children,
@@ -61,6 +71,54 @@ describe("App complaint routes", () => {
     window.history.replaceState({}, "", "/orders/complaints/complaint-1");
     render(<App />);
     expect(await screen.findByText("投诉卷宗详情路由")).toBeInTheDocument();
+  });
+});
+
+describe("createAdminRouter", () => {
+  it("keeps login, the protected layout, and every registry route reachable through the Data Router", () => {
+    window.history.replaceState({}, "", "/login");
+    const router = createAdminRouter();
+
+    const loginMatches = matchRoutes(router.routes, "/login");
+
+    expect(loginMatches?.[loginMatches.length - 1]?.route.path).toBe("/login");
+
+    for (const route of ADMIN_ROUTE_REGISTRY) {
+      const path = route.path
+        .replace(":contentKey", "home")
+        .replace(":versionId", "version-1")
+        .replace(":domain", "fee")
+        .replace(":id", "record-1");
+
+      const match = matchRoutes(router.routes, path);
+      const lastMatch = match?.[match.length - 1];
+
+      if (route.path === "/") {
+        expect(lastMatch?.route.index).toBe(true);
+      } else {
+        expect(lastMatch?.route.path).toBe(route.path);
+      }
+    }
+
+    router.dispose();
+  });
+
+  it("preserves PermissionRoute around every registry entry", () => {
+    const router = createAdminRouter();
+    const protectedRoute = router.routes.find((route) =>
+      hasRouteElement(route.element, ProtectedRoute),
+    );
+    const layoutRoute = protectedRoute?.children?.find((route) =>
+      hasRouteElement(route.element, Layout),
+    );
+
+    expect(layoutRoute?.children).toHaveLength(ADMIN_ROUTE_REGISTRY.length);
+
+    for (const route of layoutRoute?.children ?? []) {
+      expect(hasRouteElement(route.element, PermissionRoute)).toBe(true);
+    }
+
+    router.dispose();
   });
 });
 
