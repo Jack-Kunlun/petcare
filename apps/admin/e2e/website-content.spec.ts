@@ -2,8 +2,8 @@ import { expect, test, type Page } from "@playwright/test";
 import {
   createWebsiteLifecycleTitle,
   loginWebsiteOperator,
-  openHomeEditor,
-  openHomeEditorRoute,
+  openContentEditor,
+  openContentEditorRoute,
   websiteContentFixtures,
 } from "./fixtures/website-content";
 
@@ -23,12 +23,16 @@ async function expectNoStructureControls(page: Page): Promise<void> {
   ).toHaveCount(0);
 }
 
-async function publishSavedDraft(page: Page, changeSummary: string): Promise<void> {
+async function publishSavedDraft(
+  page: Page,
+  contentKey: string,
+  changeSummary: string,
+): Promise<void> {
   await page.getByRole("button", { name: "publish-saved-draft" }).click();
 
   const dialog = page.getByRole("dialog");
 
-  await expect(dialog.getByText("发布前确认：home")).toBeVisible();
+  await expect(dialog.getByText(`发布前确认：${contentKey}`)).toBeVisible();
   await dialog.getByRole("textbox", { name: "变更摘要" }).fill(changeSummary);
   await expect(dialog.getByRole("button", { name: "继续发布" })).toBeEnabled();
   await dialog.getByRole("button", { name: "继续发布" }).click();
@@ -55,7 +59,7 @@ test.describe("官网内容 Admin 到 Website 发布流程", () => {
       ).toBeVisible();
 
       await loginWebsiteOperator(page, websiteContentFixtures.editor);
-      await openHomeEditor(page);
+      await openContentEditor(page, "home");
       await page.getByLabel(websiteContentFixtures.home.heroTitleLabel).fill(draftTitle);
       await page.getByLabel("变更摘要").fill("官网 E2E：保存首屏草稿");
       await page.getByRole("button", { name: "保存草稿" }).click();
@@ -92,7 +96,7 @@ test.describe("官网内容 Admin 到 Website 发布流程", () => {
       const publisherPage = await publisherContext.newPage();
 
       await loginWebsiteOperator(publisherPage, websiteContentFixtures.publisher);
-      await openHomeEditorRoute(publisherPage);
+      await openContentEditorRoute(publisherPage, "home");
       await expect(
         publisherPage.getByLabel(websiteContentFixtures.home.heroTitleLabel),
       ).toBeDisabled();
@@ -100,7 +104,7 @@ test.describe("官网内容 Admin 到 Website 发布流程", () => {
       await expect(publisherPage.getByRole("button", { name: "preview-saved-draft" })).toHaveCount(
         0,
       );
-      await publishSavedDraft(publisherPage, "官网 E2E：发布已保存首屏草稿");
+      await publishSavedDraft(publisherPage, "home", "官网 E2E：发布已保存首屏草稿");
 
       await livePage.reload();
       await expect(livePage.getByRole("heading", { name: draftTitle, exact: true })).toBeVisible();
@@ -120,7 +124,7 @@ test.describe("官网内容 Admin 到 Website 发布流程", () => {
       await livePage.reload();
       await expect(livePage.getByRole("heading", { name: draftTitle, exact: true })).toBeVisible();
 
-      await publishSavedDraft(publisherPage, "官网 E2E：显式发布恢复草稿");
+      await publishSavedDraft(publisherPage, "home", "官网 E2E：显式发布恢复草稿");
       await livePage.reload();
       await expect(
         livePage.getByRole("heading", {
@@ -135,12 +139,47 @@ test.describe("官网内容 Admin 到 Website 发布流程", () => {
     }
   });
 
+  test("帮助草稿发布后才进入公开接口", async ({ browser, page }) => {
+    const question = `如何完善资料 ${Date.now()}`;
+    let publisherContext: Awaited<ReturnType<typeof browser.newContext>> | undefined;
+
+    try {
+      await loginWebsiteOperator(page, websiteContentFixtures.editor);
+      await openContentEditor(page, websiteContentFixtures.help.contentKey);
+      const questionInput = page.getByLabel(websiteContentFixtures.help.questionLabel);
+
+      await expect(questionInput).toHaveValue(websiteContentFixtures.help.initialQuestion);
+      await questionInput.fill(question);
+      await page.getByLabel("变更摘要").fill("帮助 E2E：更新资料问题");
+      await page.getByRole("button", { name: "保存草稿" }).click();
+
+      const before = await page.request.get("/api/website-content/help");
+
+      expect(before.ok()).toBe(true);
+      expect(JSON.stringify((await before.json()).data)).not.toContain(question);
+
+      publisherContext = await browser.newContext({ baseURL: new URL(page.url()).origin });
+      const publisherPage = await publisherContext.newPage();
+
+      await loginWebsiteOperator(publisherPage, websiteContentFixtures.publisher);
+      await openContentEditorRoute(publisherPage, "help");
+      await publishSavedDraft(publisherPage, "help", "帮助 E2E：发布资料问题");
+
+      const after = await publisherPage.request.get("/api/website-content/help");
+
+      expect(after.ok()).toBe(true);
+      expect(JSON.stringify((await after.json()).data)).toContain(question);
+    } finally {
+      await publisherContext?.close();
+    }
+  });
+
   test("读者、编辑者和发布者分别只看到其授权的官网内容操作", async ({ browser, page }) => {
     await loginWebsiteOperator(page, websiteContentFixtures.reader);
     await page.getByTestId("desktop-menu-tree").getByRole("link", { name: "官网设置" }).click();
     await expect(page.getByRole("heading", { name: "官网内容" })).toBeVisible();
     await expect(page.getByRole("link", { name: "编辑草稿" })).toHaveCount(0);
-    await openHomeEditorRoute(page);
+    await openContentEditorRoute(page, "home");
     await expect(page.getByRole("heading", { name: "没有官网内容编辑权限" })).toBeVisible();
     await expect(page.getByRole("button", { name: "保存草稿" })).toHaveCount(0);
     await expect(page.getByRole("button", { name: "preview-saved-draft" })).toHaveCount(0);
@@ -153,14 +192,14 @@ test.describe("官网内容 Admin 到 Website 发布流程", () => {
 
     try {
       await loginWebsiteOperator(editorPage, websiteContentFixtures.editor);
-      await openHomeEditor(editorPage);
+      await openContentEditor(editorPage, "home");
       await expect(editorPage.getByRole("button", { name: "保存草稿" })).toBeVisible();
       await expect(editorPage.getByRole("button", { name: "preview-saved-draft" })).toBeVisible();
       await expect(editorPage.getByRole("button", { name: "publish-saved-draft" })).toHaveCount(0);
       await expectNoStructureControls(editorPage);
 
       await loginWebsiteOperator(publisherPage, websiteContentFixtures.publisher);
-      await openHomeEditorRoute(publisherPage);
+      await openContentEditorRoute(publisherPage, "home");
       await expect(
         publisherPage.getByLabel(websiteContentFixtures.home.heroTitleLabel),
       ).toBeDisabled();
@@ -180,7 +219,7 @@ test.describe("官网内容 Admin 到 Website 发布流程", () => {
 
   test("编辑者可选择隔离素材并保存草稿，而无需调用生产 COS", async ({ page }) => {
     await loginWebsiteOperator(page, websiteContentFixtures.editor);
-    await openHomeEditor(page);
+    await openContentEditor(page, "home");
 
     const imageSelect = page.getByLabel("首屏图片素材");
     const seededAsset = imageSelect.locator("option", { hasText: "website-e2e-selection.png" });

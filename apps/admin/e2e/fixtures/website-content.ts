@@ -7,6 +7,11 @@ export const websiteContentFixtures = {
     heroTitleLabel: "主标题",
     initialTitle: "陪伴每一次托付",
   },
+  help: {
+    contentKey: "help",
+    questionLabel: "正文小节 如何完善个人信息？ 标题",
+    initialQuestion: "如何完善个人信息？",
+  },
   reader: {
     username: "rbac-e2e-website-reader",
     password: "Rbac-E2e-Restricted-Admin-2026!",
@@ -33,27 +38,27 @@ export async function loginWebsiteOperator(
   await expect(page).toHaveURL(/\/$/u);
 }
 
-/** Opens the fixed Home template editor after the overview navigation is available. */
-export async function openHomeEditor(page: Page): Promise<void> {
+/** Opens one fixed Website Content editor after the overview navigation is available. */
+export async function openContentEditor(page: Page, contentKey: string): Promise<void> {
   await page.getByTestId("desktop-menu-tree").getByRole("link", { name: "官网设置" }).click();
   await expect(page.getByRole("heading", { name: "官网内容" })).toBeVisible();
-  const homeCard = page.getByRole("listitem").filter({
-    has: page.getByRole("heading", { name: websiteContentFixtures.home.contentKey, exact: true }),
+  const card = page.getByRole("listitem").filter({
+    has: page.getByRole("heading", { name: contentKey, exact: true }),
   });
 
-  await homeCard.getByRole("link", { name: "编辑草稿" }).click();
-  await expect(page).toHaveURL(/\/website-content\/home\/edit$/u);
+  await card.getByRole("link", { name: "编辑草稿" }).click();
+  await expect(page).toHaveURL(new RegExp(`/website-content/${contentKey}/edit$`, "u"));
 }
 
-/** Opens the protected Home editor through the SPA when an operator lacks the edit-card link. */
-export async function openHomeEditorRoute(page: Page): Promise<void> {
+/** Opens one protected content editor through the SPA when its edit-card link is unavailable. */
+export async function openContentEditorRoute(page: Page, contentKey: string): Promise<void> {
   await page.getByTestId("desktop-menu-tree").getByRole("link", { name: "官网设置" }).click();
   await expect(page).toHaveURL(/\/website-content$/u);
-  await page.evaluate(() => {
-    globalThis.history.pushState({}, "", "/website-content/home/edit");
+  await page.evaluate((key) => {
+    globalThis.history.pushState({}, "", `/website-content/${key}/edit`);
     globalThis.dispatchEvent(new PopStateEvent("popstate"));
-  });
-  await expect(page).toHaveURL(/\/website-content\/home\/edit$/u);
+  }, contentKey);
+  await expect(page).toHaveURL(new RegExp(`/website-content/${contentKey}/edit$`, "u"));
 }
 
 /** Creates a predictable title that remains unique across parallel retries. */
