@@ -92,13 +92,41 @@ describe("Swagger response documentation", () => {
     expect(schema.properties).toMatchObject({
       list: {
         type: "array",
-        items: { $ref: "#/components/schemas/OrderResponseDto" },
+        items: { $ref: "#/components/schemas/PublicOrderResponseDto" },
       },
       total: { type: "number", example: 1 },
       page: { type: "number", example: 1 },
       pageSize: { type: "number", example: 20 },
     });
     expect(schema.properties).not.toHaveProperty("orders");
+  });
+
+  it("documents only anonymous-safe public user and order fields", () => {
+    expect(schemaPropertyNames("UserResponseDto")).toEqual([
+      "avatar",
+      "id",
+      "nickname",
+      "profile",
+      "status",
+      "userType",
+    ]);
+    expect(schemaPropertyNames("PublicUserProfileDto")).toEqual(["bio", "region"]);
+    expect(schemaPropertyNames("PublicOrderResponseDto")).toEqual([
+      "amount",
+      "id",
+      "orderType",
+      "owner",
+      "pet",
+      "serviceTime",
+      "serviceType",
+      "status",
+    ]);
+    expect(schemaPropertyNames("PublicOrderOwnerResponseDto")).toEqual(["avatar", "nickname"]);
+    expect(schemaPropertyNames("PublicOrderPetResponseDto")).toEqual([
+      "breed",
+      "coverImage",
+      "name",
+    ]);
   });
 
   it("documents the unified admin user pagination data fields", () => {
@@ -151,4 +179,11 @@ function responseSchema(path: string, method: "get" | "post", status: string): u
     { content?: Record<string, { schema?: unknown }> } | undefined;
 
   return response?.content?.["application/json"]?.schema;
+}
+
+function schemaPropertyNames(schemaName: string): string[] {
+  const schema = document.components?.schemas?.[schemaName] as
+    { properties?: Record<string, unknown> } | undefined;
+
+  return Object.keys(schema?.properties ?? {}).sort();
 }
