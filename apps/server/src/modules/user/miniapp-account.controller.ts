@@ -96,7 +96,7 @@ export class MiniappAccountController {
   @HttpCode(HttpStatus.NO_CONTENT)
   @ApiOperation({ summary: "发送小程序手机号绑定验证码" })
   @ApiNoContentResponse({ description: "验证码已发送" })
-  @ApiStandardErrors(400, 401, 404, 409, 429, 500)
+  @ApiStandardErrors(400, 401, 404, 409, 429, 500, 503)
   sendPhoneCode(
     @Body() dto: SendMiniappPhoneCodeDto,
     @Req() request: MiniappRequest,
@@ -119,7 +119,7 @@ export class MiniappAccountController {
   @HttpCode(HttpStatus.NO_CONTENT)
   @ApiOperation({ summary: "发送当前账户的注销验证码" })
   @ApiNoContentResponse({ description: "注销验证码已发送" })
-  @ApiStandardErrors(400, 401, 403, 409, 429, 500)
+  @ApiStandardErrors(400, 401, 403, 409, 429, 500, 503)
   sendCancellationCode(@Req() request: MiniappRequest): Promise<void> {
     return this.miniappAccountService.sendCancellationCode(this.requireUserId(request));
   }

@@ -1,9 +1,11 @@
 import { INestApplication } from "@nestjs/common";
 import { DocumentBuilder, OpenAPIObject, SwaggerModule } from "@nestjs/swagger";
 import { Test } from "@nestjs/testing";
+import { AccessTokenGuard } from "../../auth/access-token.guard";
 import { AuthController } from "../../auth/auth.controller";
 import { AuthService } from "../../auth/auth.service";
 import { CaptchaService } from "../../auth/captcha.service";
+import { ProfileCompleteGuard } from "../../auth/profile-complete.guard";
 import { WechatAuthController } from "../../auth/wechat-auth.controller";
 import { WechatAuthService } from "../../auth/wechat-auth.service";
 import { ConfigService } from "../../config/config.service";
@@ -12,6 +14,8 @@ import { AdminOrderController } from "../../modules/order/admin-order.controller
 import { OrderController } from "../../modules/order/order.controller";
 import { OrderService } from "../../modules/order/order.service";
 import { AdminUserController } from "../../modules/user/admin-user.controller";
+import { MiniappAccountController } from "../../modules/user/miniapp-account.controller";
+import { MiniappAccountService } from "../../modules/user/miniapp-account.service";
 import { UserController } from "../../modules/user/user.controller";
 import { UserService } from "../../modules/user/user.service";
 
@@ -27,6 +31,7 @@ beforeAll(async () => {
       AdminOrderController,
       AdminUserController,
       UserController,
+      MiniappAccountController,
       OrderController,
     ],
     providers: [
@@ -35,9 +40,15 @@ beforeAll(async () => {
       { provide: WechatAuthService, useValue: {} },
       { provide: ConfigService, useValue: {} },
       { provide: UserService, useValue: {} },
+      { provide: MiniappAccountService, useValue: {} },
       { provide: OrderService, useValue: {} },
     ],
-  }).compile();
+  })
+    .overrideGuard(AccessTokenGuard)
+    .useValue({ canActivate: () => true })
+    .overrideGuard(ProfileCompleteGuard)
+    .useValue({ canActivate: () => true })
+    .compile();
 
   app = moduleReference.createNestApplication();
   document = SwaggerModule.createDocument(
@@ -130,6 +141,8 @@ describe("Swagger response documentation", () => {
     expect(document.paths["/auth/wechat/bind-phone"]).toBeUndefined();
     expect(document.paths["/auth/wechat/login"]?.post?.responses?.["503"]).toBeDefined();
     expect(document.paths["/auth/wechat/logout"]?.post?.responses?.["204"]).toBeDefined();
+    expect(document.paths["/users/me/phone/code"]?.post?.responses?.["503"]).toBeDefined();
+    expect(document.paths["/users/me/cancellation/code"]?.post?.responses?.["503"]).toBeDefined();
   });
 });
 
