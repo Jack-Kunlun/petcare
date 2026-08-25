@@ -233,4 +233,117 @@ describe("WebsitePageTemplateRegistry", () => {
       ).toMatchObject({ code: WEBSITE_CONTENT_ERROR_CODE.INVALID_CONTENT });
     }
   });
+
+  it("keeps each Help category question-key sequence fixed while allowing copy edits", () => {
+    const editable = defaultSections(WEBSITE_CONTENT_KEY.HELP);
+    const helpSection = editable[0];
+
+    if (helpSection.sectionType !== WEBSITE_SECTION_TYPE.RICH_TEXT) {
+      throw new Error("Help seed section must use rich text");
+    }
+
+    helpSection.content.title = "Edited category";
+    helpSection.content.parts[0].heading = "Edited question";
+    helpSection.content.parts[0].paragraphs = ["Edited answer"];
+
+    expect(() => registry.validateSnapshot(WEBSITE_CONTENT_KEY.HELP, editable)).not.toThrow();
+
+    const mutations = [
+      (parts: typeof helpSection.content.parts) => parts.pop(),
+      (parts: typeof helpSection.content.parts) =>
+        parts.push({ ...structuredClone(parts[0]), partKey: "new_question" }),
+      (parts: typeof helpSection.content.parts) => {
+        parts[0].partKey = "renamed_question";
+      },
+      (parts: typeof helpSection.content.parts) => parts.reverse(),
+    ];
+
+    for (const sectionIndex of editable.keys()) {
+      for (const mutate of mutations) {
+        const sections = defaultSections(WEBSITE_CONTENT_KEY.HELP);
+        const section = sections[sectionIndex];
+
+        if (section.sectionType !== WEBSITE_SECTION_TYPE.RICH_TEXT) {
+          throw new Error("Help seed section must use rich text");
+        }
+
+        mutate(section.content.parts);
+
+        expect(
+          invalidContentError(() => registry.validateSnapshot(WEBSITE_CONTENT_KEY.HELP, sections)),
+        ).toMatchObject({ code: WEBSITE_CONTENT_ERROR_CODE.INVALID_CONTENT });
+      }
+    }
+  });
+
+  it("keeps the Contact channel-key sequence fixed while allowing channel copy edits", () => {
+    const editable = defaultSections(WEBSITE_CONTENT_KEY.CONTACT);
+    const editablePanel = editable.find((section) => section.sectionKey === "contact_channels");
+
+    if (editablePanel?.sectionType !== WEBSITE_SECTION_TYPE.CONTACT_PANEL) {
+      throw new Error("Contact seed panel is required");
+    }
+
+    editablePanel.content.channels[0] = {
+      ...editablePanel.content.channels[0],
+      label: "Edited label",
+      value: "Edited value",
+      href: "/edited-contact",
+      availability: "Edited availability",
+    };
+
+    expect(() => registry.validateSnapshot(WEBSITE_CONTENT_KEY.CONTACT, editable)).not.toThrow();
+
+    const mutations = [
+      (channels: typeof editablePanel.content.channels) => channels.pop(),
+      (channels: typeof editablePanel.content.channels) =>
+        channels.push({ ...structuredClone(channels[0]), channelKey: "new_channel" }),
+      (channels: typeof editablePanel.content.channels) => {
+        channels[0].channelKey = "renamed_channel";
+      },
+      (channels: typeof editablePanel.content.channels) => channels.reverse(),
+    ];
+
+    for (const mutate of mutations) {
+      const sections = defaultSections(WEBSITE_CONTENT_KEY.CONTACT);
+      const panel = sections.find((section) => section.sectionKey === "contact_channels");
+
+      if (panel?.sectionType !== WEBSITE_SECTION_TYPE.CONTACT_PANEL) {
+        throw new Error("Contact seed panel is required");
+      }
+
+      mutate(panel.content.channels);
+
+      expect(
+        invalidContentError(() => registry.validateSnapshot(WEBSITE_CONTENT_KEY.CONTACT, sections)),
+      ).toMatchObject({ code: WEBSITE_CONTENT_ERROR_CODE.INVALID_CONTENT });
+    }
+  });
+
+  it("leaves malformed fixed-item content to the section schema validator", () => {
+    const help = defaultSections(WEBSITE_CONTENT_KEY.HELP);
+    const contact = defaultSections(WEBSITE_CONTENT_KEY.CONTACT);
+    const contactPanel = contact.find((section) => section.sectionKey === "contact_channels");
+
+    (help[0] as unknown as { content: { parts: unknown } }).content.parts = [null];
+
+    if (!contactPanel) {
+      throw new Error("Contact seed panel is required");
+    }
+
+    (contactPanel as unknown as { content: { channels: unknown } }).content.channels = [null];
+
+    expect(
+      invalidContentError(() => registry.validateSnapshot(WEBSITE_CONTENT_KEY.HELP, help)),
+    ).toMatchObject({
+      code: WEBSITE_CONTENT_ERROR_CODE.INVALID_CONTENT,
+      clientMessage: "官网内容校验失败：sections[0].content.parts[0] 必须是对象",
+    });
+    expect(
+      invalidContentError(() => registry.validateSnapshot(WEBSITE_CONTENT_KEY.CONTACT, contact)),
+    ).toMatchObject({
+      code: WEBSITE_CONTENT_ERROR_CODE.INVALID_CONTENT,
+      clientMessage: "官网内容校验失败：sections[1].content.channels[0] 必须是对象",
+    });
+  });
 });

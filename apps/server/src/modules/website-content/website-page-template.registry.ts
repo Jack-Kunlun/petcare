@@ -1,6 +1,7 @@
 import { Injectable } from "@nestjs/common";
 import {
   WEBSITE_CONTENT_KEY,
+  WEBSITE_SECTION_TYPE,
   type WebsiteContentKey,
   type WebsiteContentSection,
   type WebsiteSectionType,
@@ -18,6 +19,10 @@ interface TemplateSectionDefinition {
   sortOrder: number;
   /** Whether this section must remain visible in the first release. */
   isRequired: boolean;
+  /** Immutable Help question keys in their seeded order. */
+  partKeys?: string[];
+  /** Immutable Contact channel keys in their seeded order. */
+  channelKeys?: string[];
 }
 
 const REQUIRED_SECTION_KEYS = {
@@ -56,12 +61,63 @@ function templateFor(contentKey: WebsiteContentKey) {
 function createTemplateDefinition(contentKey: WebsiteContentKey): TemplateSectionDefinition[] {
   const requiredKeys = REQUIRED_SECTION_KEYS[contentKey];
 
-  return templateFor(contentKey).sections.map((section) => ({
-    sectionKey: section.sectionKey,
-    sectionType: section.sectionType,
-    sortOrder: section.sortOrder,
-    isRequired: requiredKeys.includes(section.sectionKey),
-  }));
+  return templateFor(contentKey).sections.map((section) => {
+    const definition: TemplateSectionDefinition = {
+      sectionKey: section.sectionKey,
+      sectionType: section.sectionType,
+      sortOrder: section.sortOrder,
+      isRequired: requiredKeys.includes(section.sectionKey),
+    };
+
+    if (
+      contentKey === WEBSITE_CONTENT_KEY.HELP &&
+      section.sectionType === WEBSITE_SECTION_TYPE.RICH_TEXT
+    ) {
+      definition.partKeys = section.content.parts.map((part) => part.partKey);
+    }
+
+    if (
+      contentKey === WEBSITE_CONTENT_KEY.CONTACT &&
+      section.sectionKey === "contact_channels" &&
+      section.sectionType === WEBSITE_SECTION_TYPE.CONTACT_PANEL
+    ) {
+      definition.channelKeys = section.content.channels.map((channel) => channel.channelKey);
+    }
+
+    return definition;
+  });
+}
+
+function fixedKeyIssue(
+  collection: unknown,
+  keyName: string,
+  expectedKeys: readonly string[],
+  path: string,
+): ValidationIssue[] {
+  if (!Array.isArray(collection) || collection.length === 0) {
+    return [];
+  }
+
+  const keys: string[] = [];
+
+  for (const item of collection) {
+    if (!isObject(item) || typeof item[keyName] !== "string" || item[keyName].trim().length === 0) {
+      return [];
+    }
+
+    const key = item[keyName];
+
+    if (keys.includes(key)) {
+      return [];
+    }
+
+    keys.push(key);
+  }
+
+  return keys.length === expectedKeys.length &&
+    keys.every((key, index) => key === expectedKeys[index])
+    ? []
+    : [{ path, message: "不能修改预设项目组成或顺序" }];
 }
 
 function formatIssues(issues: readonly ValidationIssue[]): string {
@@ -137,6 +193,30 @@ export class WebsitePageTemplateRegistry {
 
         if (expected.isRequired && section.isEnabled !== true) {
           issues.push({ path: `${sectionPath}.isEnabled`, message: "必填区块不能停用" });
+        }
+
+        if (section.sectionType === expected.sectionType && isObject(section.content)) {
+          if (expected.partKeys) {
+            issues.push(
+              ...fixedKeyIssue(
+                section.content.parts,
+                "partKey",
+                expected.partKeys,
+                `${sectionPath}.content.parts`,
+              ),
+            );
+          }
+
+          if (expected.channelKeys) {
+            issues.push(
+              ...fixedKeyIssue(
+                section.content.channels,
+                "channelKey",
+                expected.channelKeys,
+                `${sectionPath}.content.channels`,
+              ),
+            );
+          }
         }
       }
 

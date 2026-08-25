@@ -283,13 +283,13 @@ async function logoutCurrentDevice(): Promise<void> {
         <text class="section-heading">服务与帮助</text>
       </view>
       <view class="mx-page-horizontal mt-copy overflow-hidden main-card">
-        <view
+        <navigator
           v-for="(item, index) in supportItems"
           :key="item.label"
+          :url="item.route"
           class="flex items-center gap-copy px-card-padding py-action"
           :class="index < supportItems.length - 1 ? 'border-b border-divider' : ''"
           hover-class="opacity-80"
-          @click="openPage(item.route)"
         >
           <view
             class="h-icon w-icon flex shrink-0 items-center justify-center rounded-control bg-divider"
@@ -301,7 +301,7 @@ async function logoutCurrentDevice(): Promise<void> {
             <text class="mt-caption quiet-text">{{ item.detail }}</text>
           </view>
           <image class="h-icon-xs w-icon-xs" src="/static/main/chevron.svg" mode="aspectFit" />
-        </view>
+        </navigator>
       </view>
 
       <button

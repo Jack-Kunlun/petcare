@@ -87,4 +87,16 @@ describe("published support pages", () => {
     );
     expect(auth).not.toMatch(/<view\s+class="pc-platform-viewport[^"]*overflow-hidden/u);
   });
+
+  it("uses native navigator rows for My support destinations", () => {
+    const supportNavigator = profile.match(
+      /<navigator\s+v-for="\(item, index\) in supportItems"[\s\S]*?<\/navigator>/u,
+    )?.[0];
+
+    expect(supportNavigator).toContain(':url="item.route"');
+    expect(supportNavigator).not.toContain("@click");
+    expect(profile).not.toMatch(
+      /<view\s+v-for="\(item, index\) in supportItems"[\s\S]*?@click="openPage\(item\.route\)"/u,
+    );
+  });
 });
