@@ -95,11 +95,11 @@
 
 @layer base {
   :root {
-    --admin-header-height: 4rem;
-    --admin-sidebar-width: 16rem;
-    --editor-width-narrow: 60rem;
-    --editor-width-default: 75rem;
-    --editor-width-wide: 90rem;
+    --admin-header-height: 64px;
+    --admin-sidebar-width: 256px;
+    --editor-width-narrow: 960px;
+    --editor-width-default: 1200px;
+    --editor-width-wide: 1440px;
     --background: 0 0% 100%;
     --foreground: 222.2 84% 4.9%;
     --card: 0 0% 100%;

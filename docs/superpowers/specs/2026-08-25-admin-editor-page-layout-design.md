@@ -56,11 +56,11 @@
 
 全局定义并由 Header、Sidebar、Layout 和 EditorPageLayout 消费：
 
-    --admin-header-height: 4rem;
-    --admin-sidebar-width: 16rem;
-    --editor-width-narrow: 60rem;
-    --editor-width-default: 75rem;
-    --editor-width-wide: 90rem;
+    --admin-header-height: 64px;
+    --admin-sidebar-width: 256px;
+    --editor-width-narrow: 960px;
+    --editor-width-default: 1200px;
+    --editor-width-wide: 1440px;
 
 - main 增加 min-w-0，并阻止页面级横向溢出。
 - PageTransition 只保留不会形成 containing block 的轻量 opacity 动画。
