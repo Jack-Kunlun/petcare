@@ -72,7 +72,7 @@ function ToolbarButton({
         aria-pressed={pressed}
         disabled={disabled}
         onClick={onClick}
-        className="flex h-8 w-8 cursor-pointer items-center justify-center rounded-md text-slate-600 outline-none transition-colors hover:bg-slate-100 hover:text-slate-950 focus-visible:ring-2 focus-visible:ring-blue-700 aria-pressed:bg-blue-50 aria-pressed:text-blue-700 disabled:cursor-not-allowed disabled:text-slate-300 disabled:hover:bg-transparent"
+        className="flex h-10 w-10 cursor-pointer items-center justify-center rounded-md text-slate-600 outline-none transition-colors hover:bg-slate-100 hover:text-slate-950 focus-visible:ring-2 focus-visible:ring-blue-700 aria-pressed:bg-blue-50 aria-pressed:text-blue-700 disabled:cursor-not-allowed disabled:text-slate-300 disabled:hover:bg-transparent"
       >
         <Icon aria-hidden="true" className="h-4 w-4" />
       </button>
@@ -125,9 +125,9 @@ export function RichTextEditor({
     selector: ({ editor: currentEditor }) => ({
       block: currentEditor.isActive("heading", { level: 2 })
         ? "heading2"
-        : (currentEditor.isActive("heading", { level: 3 })
+        : currentEditor.isActive("heading", { level: 3 })
           ? "heading3"
-          : "paragraph"),
+          : "paragraph",
       empty: currentEditor.isEmpty,
       bold: currentEditor.isActive("bold"),
       italic: currentEditor.isActive("italic"),
@@ -284,7 +284,7 @@ export function RichTextEditor({
             value={editorState.block}
             disabled={isLocked}
             onChange={(event) => setTextStyle(event.target.value)}
-            className="h-8 cursor-pointer rounded-md border border-border bg-white px-2 text-sm font-medium text-slate-700 outline-none hover:border-slate-400 focus-visible:border-blue-700 focus-visible:ring-2 focus-visible:ring-blue-700/15 disabled:cursor-not-allowed disabled:bg-slate-100 disabled:text-slate-400"
+            className="h-10 cursor-pointer rounded-md border border-border bg-white px-2 text-sm font-medium text-slate-700 outline-none hover:border-slate-400 focus-visible:border-blue-700 focus-visible:ring-2 focus-visible:ring-blue-700/15 disabled:cursor-not-allowed disabled:bg-slate-100 disabled:text-slate-400"
           >
             <option value="paragraph">正文</option>
             <option value="heading2">二级标题</option>

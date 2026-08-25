@@ -200,9 +200,10 @@ describe("RichTextEditor", () => {
     expect(screen.getByRole("option", { name: "正文" })).toBeInTheDocument();
     expect(screen.getByRole("option", { name: "二级标题" })).toBeInTheDocument();
     expect(screen.getByRole("option", { name: "三级标题" })).toBeInTheDocument();
-    expect(bold).toHaveClass("h-8", "w-8");
+    expect(textStyle).toHaveClass("h-10");
+    expect(bold).toHaveClass("h-10", "w-10");
     expect(bold).not.toHaveTextContent("粗体");
-    expect(image).toHaveClass("h-8", "w-8");
+    expect(image).toHaveClass("h-10", "w-10");
     expect(document.getElementById(bold.getAttribute("aria-describedby")!)).toHaveTextContent(
       "粗体",
     );
