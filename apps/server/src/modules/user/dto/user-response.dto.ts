@@ -4,17 +4,19 @@ import type {
   AdminUserListItem,
   AdminUserStatus,
   AdminUserType,
+  PublicUser,
+  PublicUserProfile,
 } from "@petcare/shared-types";
 
-export class PublicUserProfileDto {
-  @ApiProperty({ nullable: true, example: "上海市" })
-  address: string | null;
+export class PublicUserProfileDto implements PublicUserProfile {
+  @ApiProperty({ nullable: true, example: null })
+  region: string | null;
 
   @ApiProperty({ nullable: true, example: "喜欢猫咪" })
   bio: string | null;
 }
 
-export class UserResponseDto {
+export class UserResponseDto implements PublicUser {
   @ApiProperty({ format: "uuid" })
   id: string;
 
@@ -28,7 +30,7 @@ export class UserResponseDto {
   userType: AdminUserType;
 
   @ApiProperty({ example: "active" })
-  status: AdminUserStatus;
+  status: "active";
 
   @ApiProperty({ type: () => PublicUserProfileDto, nullable: true })
   profile: PublicUserProfileDto | null;

@@ -5,7 +5,7 @@ import {
   RegisterResponse,
   LoginRequest,
   LoginResponse,
-  GetUserResponse,
+  PublicUser,
   UpdateUserRequest,
   RealNameVerifyRequest,
 } from "@petcare/shared-types";
@@ -35,8 +35,8 @@ export class UserAPI {
   /**
    * 获取用户详情
    */
-  async getUserDetail(userId: string): Promise<GetUserResponse> {
-    const response = await this.http.get<GetUserResponse>(`/users/${userId}`);
+  async getUserDetail(userId: string): Promise<PublicUser> {
+    const response = await this.http.get<PublicUser>(`/users/${userId}`);
 
     return response.data;
   }

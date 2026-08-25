@@ -652,13 +652,18 @@ Retry-After: 30
 | 方法   | 路径                 | 说明         | 权限       |
 | ------ | -------------------- | ------------ | ---------- |
 | GET    | `/admin/users`       | 后台用户列表 | ADMIN      |
-| GET    | `/users/{id}`        | 用户详情     | 认证       |
+| GET    | `/users/{id}`        | 公开用户资料 | 公开       |
 | PUT    | `/users/{id}`        | 更新用户信息 | 本人/ADMIN |
 | DELETE | `/users/{id}`        | 删除用户     | ADMIN      |
 | PATCH  | `/users/{id}/avatar` | 更新头像     | 本人       |
 
 `GET /admin/users` 支持 `page`、`pageSize`、`keyword`、`userType` 和 `status`
 查询参数，分页数据统一返回 `list`、`total`、`page`、`pageSize`。
+
+`GET /users/{id}` 的成功响应 `data` 是裸公开用户对象，仅包含 `id`、`nickname`、`avatar`、
+`userType`、固定值 `active` 的 `status`，以及可空的 `profile`。`profile` 仅包含 `region` 和
+`bio`；在具备可信的粗粒度地区数据源前，`region` 固定返回 `null`。完整手机号、账号、存储地址、
+后台角色和创建或更新时间均不公开。不存在、停用和封禁账户统一返回 `RESOURCE_NOT_FOUND`，避免泄露账户状态。
 
 ### 管理员个人中心模块 (`/admin/account`)
 

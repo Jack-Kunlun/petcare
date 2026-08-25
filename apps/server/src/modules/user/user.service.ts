@@ -1,4 +1,5 @@
 import { HttpStatus, Injectable } from "@nestjs/common";
+import type { PublicUser } from "@petcare/shared-types";
 import { ApiException } from "../../common/http/api-exception";
 import { ConfigService } from "../../config/config.service";
 import { PrismaService } from "../../prisma/prisma.service";
@@ -10,8 +11,7 @@ const publicUserSelect = {
   nickname: true,
   avatar: true,
   userType: true,
-  status: true,
-  profile: { select: { address: true, bio: true } },
+  profile: { select: { bio: true } },
 } as const;
 
 const registerUserSelect = {
@@ -61,7 +61,7 @@ export class UserService {
     };
   }
 
-  async findOne(id: string) {
+  async findOne(id: string): Promise<PublicUser> {
     const user = await this.prisma.user.findFirst({
       where: { id, status: "active" },
       select: publicUserSelect,
@@ -76,8 +76,8 @@ export class UserService {
       nickname: user.nickname,
       avatar: user.avatar,
       userType: user.userType,
-      status: user.status,
-      profile: user.profile,
+      status: "active",
+      profile: user.profile ? { region: null, bio: user.profile.bio } : null,
     };
   }
 

@@ -1,13 +1,37 @@
 import { HttpStatus } from "@nestjs/common";
+import { GUARDS_METADATA } from "@nestjs/common/constants";
 import { Test } from "@nestjs/testing";
 import request from "supertest";
 import { ApiException } from "../../common/http/api-exception";
 import { ApiExceptionFilter } from "../../common/http/api-exception.filter";
 import { AppLogger } from "../../logging/app-logger.service";
+import { PublicUserProfileDto, UserResponseDto } from "./dto/user-response.dto";
 import { UserController } from "./user.controller";
 import { UserService } from "./user.service";
 
 describe("UserController public profile", () => {
+  it("documents the exact anonymous-safe public user shape", () => {
+    const userProperties = Reflect.getMetadata(
+      "swagger/apiModelPropertiesArray",
+      UserResponseDto.prototype,
+    ) as string[];
+    const profileProperties = Reflect.getMetadata(
+      "swagger/apiModelPropertiesArray",
+      PublicUserProfileDto.prototype,
+    ) as string[];
+
+    expect(userProperties).toEqual([
+      ":id",
+      ":nickname",
+      ":avatar",
+      ":userType",
+      ":status",
+      ":profile",
+    ]);
+    expect(profileProperties).toEqual([":region", ":bio"]);
+    expect(Reflect.getMetadata(GUARDS_METADATA, UserController.prototype.findOne)).toBeUndefined();
+  });
+
   it("returns one non-disclosing 404 envelope for a hidden account", async () => {
     const userService = {
       findOne: jest

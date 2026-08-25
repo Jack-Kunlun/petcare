@@ -56,7 +56,7 @@ describe("UserService public responses", () => {
     expect(registeredUser).not.toHaveProperty("profile");
   });
 
-  it("returns only explicitly public user and profile fields", async () => {
+  it("returns only explicitly public user fields without exposing a stored address", async () => {
     prisma.user.findFirst.mockResolvedValue({
       id: "user-1",
       nickname: "小白家长",
@@ -68,14 +68,31 @@ describe("UserService public responses", () => {
       passwordHash: "must-not-leak",
     });
 
-    await expect(service.findOne("user-1")).resolves.toEqual({
+    const response = await service.findOne("user-1");
+
+    expect(response).toEqual({
       id: "user-1",
       nickname: "小白家长",
       avatar: null,
       userType: "pet_owner",
       status: "active",
-      profile: { address: "上海市", bio: "喜欢猫咪" },
+      profile: { region: null, bio: "喜欢猫咪" },
     });
+    expect(Object.keys(response).sort()).toEqual([
+      "avatar",
+      "id",
+      "nickname",
+      "profile",
+      "status",
+      "userType",
+    ]);
+    expect(response).not.toHaveProperty("phone");
+    expect(response).not.toHaveProperty("username");
+    expect(response).not.toHaveProperty("role");
+    expect(response).not.toHaveProperty("roles");
+    expect(response).not.toHaveProperty("createdAt");
+    expect(response).not.toHaveProperty("updatedAt");
+    expect(response.profile).not.toHaveProperty("address");
 
     expect(prisma.user.findFirst).toHaveBeenCalledWith({
       where: { id: "user-1", status: "active" },
@@ -84,8 +101,7 @@ describe("UserService public responses", () => {
         nickname: true,
         avatar: true,
         userType: true,
-        status: true,
-        profile: { select: { address: true, bio: true } },
+        profile: { select: { bio: true } },
       },
     });
   });

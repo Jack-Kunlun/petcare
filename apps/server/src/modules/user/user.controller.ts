@@ -22,7 +22,7 @@ export class UserController {
   }
 
   @Get(":id")
-  @ApiOperation({ summary: "获取用户详情" })
+  @ApiOperation({ summary: "获取公开用户资料" })
   @ApiSuccessResponse(UserResponseDto)
   @ApiStandardErrors(404, 500)
   findOne(@Param("id") id: string) {
