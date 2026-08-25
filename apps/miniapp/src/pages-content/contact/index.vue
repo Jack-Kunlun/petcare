@@ -70,9 +70,9 @@ onLoad(() => {
         class="flex flex-col gap-copy rounded-card bg-danger-soft p-action"
         role="alert"
       >
-        <text class="text-body text-danger leading-body">客服信息加载失败，请稍后重试</text>
+        <text class="text-body text-ink leading-body">客服信息加载失败，请稍后重试</text>
         <button
-          class="h-control rounded-control bg-brand px-action text-body text-surface font-medium"
+          class="h-control rounded-control bg-brand-active px-action text-body text-surface font-medium"
           :class="loading ? 'opacity-50' : ''"
           :disabled="loading"
           :aria-disabled="loading"
@@ -105,7 +105,7 @@ onLoad(() => {
           class="main-card p-action"
         >
           <text class="card-heading">{{ channel.label }}</text>
-          <text class="mt-copy block text-section text-brand font-semibold leading-section">
+          <text class="mt-copy block text-section text-ink font-semibold leading-section">
             {{ channel.value }}
           </text>
           <text v-if="channel.availability" class="mt-sm block meta-text">
@@ -113,7 +113,7 @@ onLoad(() => {
           </text>
           <button
             v-if="getContactAction(channel.href).kind !== 'none'"
-            class="mt-action h-control flex items-center justify-center rounded-control bg-brand"
+            class="mt-action h-control flex items-center justify-center rounded-control bg-brand-active"
             :class="actionPending !== null ? 'opacity-50' : ''"
             :disabled="actionPending !== null"
             :aria-disabled="actionPending !== null"

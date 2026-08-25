@@ -48,9 +48,9 @@ onLoad(() => {
         class="flex flex-col gap-copy rounded-card bg-danger-soft p-action"
         role="alert"
       >
-        <text class="text-body text-danger leading-body">帮助内容加载失败，请稍后重试</text>
+        <text class="text-body text-ink leading-body">帮助内容加载失败，请稍后重试</text>
         <button
-          class="h-control rounded-control bg-brand px-action text-body text-surface font-medium"
+          class="h-control rounded-control bg-brand-active px-action text-body text-surface font-medium"
           :class="loading ? 'opacity-50' : ''"
           :disabled="loading"
           :aria-disabled="loading"
@@ -66,7 +66,12 @@ onLoad(() => {
           v-if="categories.length > 0"
           class="h-control flex items-center gap-sm rounded-control bg-surface px-copy shadow-card"
         >
-          <image class="h-icon-sm w-icon-sm" src="/static/main/search.svg" mode="aspectFit" />
+          <image
+            class="h-icon-sm w-icon-sm"
+            src="/static/main/search.svg"
+            mode="aspectFit"
+            aria-hidden="true"
+          />
           <input
             v-model="query"
             class="h-full min-w-0 flex-1 text-body text-ink"
