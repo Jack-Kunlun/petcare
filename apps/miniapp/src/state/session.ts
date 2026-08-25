@@ -1,6 +1,6 @@
 import type { MiniappUserProfile, WechatSession } from "@petcare/shared-types";
 import { reactive } from "vue";
-import { loginWithWechat, refreshWechatSession } from "../api/auth";
+import { loginWithWechat, logoutWechatSession, refreshWechatSession } from "../api/auth";
 import { MiniappApiError, rawRequest, rawUpload } from "../api/request";
 import type { RawRequestOptions } from "../api/request";
 
@@ -176,6 +176,20 @@ export function clearSession(manualLogout = false): void {
   sessionRevision += 1;
   setAnonymousSession();
   invalidateStoredSession();
+}
+
+export async function logout(): Promise<void> {
+  try {
+    const refreshToken = readStoredString(STORAGE_KEY.refreshToken);
+
+    if (refreshToken) {
+      await logoutWechatSession(refreshToken);
+    }
+  } catch {
+    // Remote revocation and storage reads cannot prevent the local logout.
+  } finally {
+    clearSession(true);
+  }
 }
 
 function refreshSession(refreshToken: string): Promise<void> {

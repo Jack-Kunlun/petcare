@@ -14,3 +14,10 @@ export function refreshWechatSession(refreshToken: string): Promise<WechatSessio
     data: { refreshToken },
   });
 }
+
+export async function logoutWechatSession(refreshToken: string): Promise<void> {
+  await rawRequest<void>("/auth/wechat/logout", {
+    method: "POST",
+    data: { refreshToken },
+  });
+}

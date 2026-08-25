@@ -4,7 +4,7 @@ import { computed, ref } from "vue";
 import { getProfile } from "@/api/user";
 import MainTabLayout from "@/components/MainTabLayout.vue";
 import { getDefaultAvatar } from "@/state/default-avatar";
-import { captureSessionUserRevision, session, updateSessionUser } from "@/state/session";
+import { captureSessionUserRevision, logout, session, updateSessionUser } from "@/state/session";
 
 definePage({
   style: {
@@ -57,6 +57,7 @@ const supportItems = [
 ] as const;
 
 const loadingProfile = ref(false);
+const logoutPending = ref(false);
 const profileError = ref("");
 const profile = computed(() => session.user);
 const avatarUrl = computed(() => {
@@ -93,6 +94,28 @@ function openStat(route?: string) {
 
 function openPage(route: string) {
   uni.navigateTo({ url: route });
+}
+
+async function logoutCurrentDevice(): Promise<void> {
+  if (logoutPending.value) {
+    return;
+  }
+
+  logoutPending.value = true;
+
+  try {
+    await logout();
+
+    try {
+      await uni.reLaunch({ url: "/pages/index/index" });
+    } catch {
+      await uni.showToast({ title: "已退出登录，但返回首页失败", icon: "none" });
+    }
+  } catch {
+    await uni.showToast({ title: "退出登录失败，请重试", icon: "none" });
+  } finally {
+    logoutPending.value = false;
+  }
 }
 </script>
 
@@ -280,12 +303,20 @@ function openPage(route: string) {
         </view>
       </view>
 
-      <view
-        class="mx-page-horizontal mt-card h-control flex items-center justify-center rounded-control bg-danger-soft opacity-50"
-        aria-disabled="true"
+      <button
+        v-if="profile"
+        class="mx-page-horizontal mt-card h-control flex items-center justify-center rounded-control bg-danger-soft"
+        :class="logoutPending ? 'opacity-50' : ''"
+        :aria-disabled="logoutPending"
+        :disabled="logoutPending"
+        :loading="logoutPending"
+        hover-class="opacity-80"
+        @click="logoutCurrentDevice"
       >
-        <text class="text-body text-danger font-medium leading-label">退出登录</text>
-      </view>
+        <text class="text-body text-danger font-medium leading-label">
+          {{ logoutPending ? "退出中…" : "退出登录" }}
+        </text>
+      </button>
     </view>
   </MainTabLayout>
 </template>

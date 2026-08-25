@@ -1,5 +1,5 @@
 import { beforeEach, describe, expect, it, vi } from "vitest";
-import { loginWithWechat, refreshWechatSession } from "../api/auth";
+import { loginWithWechat, logoutWechatSession, refreshWechatSession } from "../api/auth";
 import { MiniappApiError, rawRequest } from "../api/request";
 import {
   authorizedRequest,
@@ -7,6 +7,7 @@ import {
   captureSessionUserRevision,
   clearSession,
   loginInteractively,
+  logout,
   parseReturnUrl,
   requireProfile,
   session,
@@ -16,6 +17,7 @@ import {
 
 vi.mock("../api/auth", () => ({
   loginWithWechat: vi.fn(),
+  logoutWechatSession: vi.fn(),
   refreshWechatSession: vi.fn(),
 }));
 
@@ -72,6 +74,7 @@ const interactiveSession = {
 
 const rawRequestMock = vi.mocked(rawRequest);
 const loginWithWechatMock = vi.mocked(loginWithWechat);
+const logoutWechatSessionMock = vi.mocked(logoutWechatSession);
 const refreshWechatSessionMock = vi.mocked(refreshWechatSession);
 
 function seedStoredSession(publish = true): void {
@@ -113,6 +116,7 @@ describe("miniapp session", () => {
     removeStorageSync.mockImplementation((key) => storage.delete(key));
     rawRequestMock.mockReset();
     loginWithWechatMock.mockReset();
+    logoutWechatSessionMock.mockReset();
     refreshWechatSessionMock.mockReset();
     Object.assign(session, {
       accessToken: null,
@@ -215,6 +219,55 @@ describe("miniapp session", () => {
 
     expect(removeStorageSync).toHaveBeenCalledWith("petcare.manualLogout");
     expect(session.user).toEqual(refreshedSession.user);
+  });
+
+  it("revokes the current refresh token once before clearing the local session", async () => {
+    seedStoredSession();
+
+    await logout();
+
+    expect(logoutWechatSessionMock).toHaveBeenCalledTimes(1);
+    expect(logoutWechatSessionMock).toHaveBeenCalledWith(storedSession.refreshToken);
+    expect(session).toMatchObject({ accessToken: null, refreshToken: null, user: null });
+    expect(storage.get(STORAGE_KEY.manualLogout)).toBe(true);
+  });
+
+  it("clears local state without requesting remote logout when no refresh token exists", async () => {
+    await logout();
+
+    expect(logoutWechatSessionMock).not.toHaveBeenCalled();
+    expect(session).toMatchObject({ accessToken: null, refreshToken: null, user: null });
+    expect(storage.get(STORAGE_KEY.manualLogout)).toBe(true);
+  });
+
+  it("clears local state when remote logout fails", async () => {
+    seedStoredSession();
+    logoutWechatSessionMock.mockRejectedValueOnce(new Error("offline"));
+
+    await logout();
+
+    expect(session).toMatchObject({ accessToken: null, refreshToken: null, user: null });
+    expect(removeStorageSync).toHaveBeenCalledWith(STORAGE_KEY.accessToken);
+    expect(removeStorageSync).toHaveBeenCalledWith(STORAGE_KEY.refreshToken);
+    expect(removeStorageSync).toHaveBeenCalledWith(STORAGE_KEY.user);
+    expect(storage.get(STORAGE_KEY.manualLogout)).toBe(true);
+  });
+
+  it("clears local state when reading the refresh token fails", async () => {
+    seedStoredSession();
+    getStorageSync.mockImplementation((key) => {
+      if (key === STORAGE_KEY.refreshToken) {
+        throw new Error("storage unavailable");
+      }
+
+      return storage.get(key);
+    });
+
+    await logout();
+
+    expect(logoutWechatSessionMock).not.toHaveBeenCalled();
+    expect(session).toMatchObject({ accessToken: null, refreshToken: null, user: null });
+    expect(storage.get(STORAGE_KEY.manualLogout)).toBe(true);
   });
 
   it("rolls back an interactive login when session storage throws", async () => {
