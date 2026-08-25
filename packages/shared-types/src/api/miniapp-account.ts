@@ -2,9 +2,9 @@
 export const MINIAPP_ACCOUNT_ERROR_CODE = {
   /** The current account must bind a verified phone before restricted actions. */
   PROFILE_INCOMPLETE: "PROFILE_INCOMPLETE",
-  /** The requested phone is already bound to another account. */
+  /** The current account already has a verified phone and cannot bind another one. */
   PHONE_ALREADY_BOUND: "PHONE_ALREADY_BOUND",
-  /** The requested phone conflicts with the current account state. */
+  /** The requested phone is already bound to another account. */
   PHONE_CONFLICT: "PHONE_CONFLICT",
   /** The submitted SMS verification code is invalid or expired. */
   VERIFICATION_CODE_INVALID: "VERIFICATION_CODE_INVALID",

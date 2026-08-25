@@ -22,4 +22,13 @@ describe("profile edit interaction boundary", () => {
     expect(source).toContain('v-if="loadError && !profile"');
     expect(source).toContain('@click="loadProfile"');
   });
+
+  it("uses a native disabled button for the H5 and App avatar fallback", () => {
+    const fallback = source.match(/<!-- #ifndef MP-WEIXIN -->([\s\S]*?)<!-- #endif -->/)?.[1];
+
+    expect(fallback).toContain("<button");
+    expect(fallback).toContain(':disabled="busy !== null"');
+    expect(fallback).toContain(':aria-disabled="busy !== null"');
+    expect(fallback).toContain('@click="chooseImage"');
+  });
 });

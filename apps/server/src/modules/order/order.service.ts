@@ -9,17 +9,21 @@ import { OrderConfigSnapshotService } from "./order-config-snapshot.service";
 
 const publicOwnerSelect = {
   id: true,
-  phone: true,
-  username: true,
   nickname: true,
   avatar: true,
   userType: true,
   status: true,
 } as const;
 
+const adminOwnerSelect = {
+  ...publicOwnerSelect,
+  phone: true,
+  username: true,
+} as const;
+
 const adminOrderRelations = {
-  owner: { select: publicOwnerSelect },
-  provider: { select: publicOwnerSelect },
+  owner: { select: adminOwnerSelect },
+  provider: { select: adminOwnerSelect },
   pet: {
     select: {
       id: true,

@@ -246,4 +246,106 @@ describe("MiniappAccountService", () => {
     await service.replaceAvatar("user-1", file);
     expect(avatarStorage.delete).not.toHaveBeenCalled();
   });
+
+  it("keeps only the winning object after two concurrent replacements and a retry", async () => {
+    const file = {
+      body: Buffer.from("png-avatar"),
+      contentType: "image/png" as const,
+      extension: "png" as const,
+    };
+    const firstTransaction = {
+      user: {
+        findUnique: jest.fn().mockResolvedValue({
+          avatarObjectKey: "public/user-avatars/user-1/old.png",
+        }),
+        update: jest.fn().mockResolvedValue(undefined),
+      },
+    };
+    const retryTransaction = {
+      user: {
+        findUnique: jest.fn().mockResolvedValue({
+          avatarObjectKey: "public/user-avatars/user-1/first.png",
+        }),
+        update: jest.fn().mockResolvedValue(undefined),
+      },
+    };
+    let finishFirst!: () => void;
+    const firstCommitted = new Promise<void>((resolve) => {
+      finishFirst = resolve;
+    });
+    let transactionAttempt = 0;
+
+    avatarStorage.upload
+      .mockResolvedValueOnce({
+        objectKey: "public/user-avatars/user-1/first.png",
+        publicUrl: "https://cdn.example.com/first.png",
+      })
+      .mockResolvedValueOnce({
+        objectKey: "public/user-avatars/user-1/final.png",
+        publicUrl: "https://cdn.example.com/final.png",
+      });
+    prisma.$transaction.mockImplementation(async (operation) => {
+      transactionAttempt += 1;
+
+      if (transactionAttempt === 1) {
+        const result = await operation(firstTransaction);
+
+        finishFirst();
+
+        return result;
+      }
+
+      if (transactionAttempt === 2) {
+        throw { code: "P2034" };
+      }
+
+      await firstCommitted;
+
+      return operation(retryTransaction);
+    });
+    prisma.user.findUnique.mockResolvedValue({
+      ...selectedUser,
+      avatar: "https://cdn.example.com/final.png",
+      avatarObjectKey: "public/user-avatars/user-1/final.png",
+    });
+
+    await expect(
+      Promise.all([service.replaceAvatar("user-1", file), service.replaceAvatar("user-1", file)]),
+    ).resolves.toHaveLength(2);
+
+    expect(prisma.$transaction).toHaveBeenCalledTimes(3);
+    expect(prisma.$transaction).toHaveBeenLastCalledWith(
+      expect.any(Function),
+      expect.objectContaining({ isolationLevel: "Serializable" }),
+    );
+    expect(retryTransaction.user.findUnique).toHaveBeenCalledTimes(1);
+    expect(avatarStorage.delete.mock.calls.map(([objectKey]) => objectKey)).toEqual(
+      expect.arrayContaining([
+        "public/user-avatars/user-1/old.png",
+        "public/user-avatars/user-1/first.png",
+      ]),
+    );
+    expect(avatarStorage.delete).not.toHaveBeenCalledWith("public/user-avatars/user-1/final.png");
+  });
+
+  it("cleans up its upload after serializable retries are exhausted", async () => {
+    const file = {
+      body: Buffer.from("png-avatar"),
+      contentType: "image/png" as const,
+      extension: "png" as const,
+    };
+
+    avatarStorage.upload.mockResolvedValue({
+      objectKey: "public/user-avatars/user-1/new.png",
+      publicUrl: "https://cdn.example.com/new.png",
+    });
+    prisma.$transaction.mockRejectedValue({ code: "P2034" });
+
+    await expect(service.replaceAvatar("user-1", file)).rejects.toMatchObject({
+      code: "ACCOUNT_CONCURRENT_UPDATE",
+      status: HttpStatus.CONFLICT,
+    });
+    expect(prisma.$transaction).toHaveBeenCalledTimes(3);
+    expect(avatarStorage.delete).toHaveBeenCalledWith("public/user-avatars/user-1/new.png");
+  });
 });

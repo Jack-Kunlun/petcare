@@ -28,6 +28,10 @@ export class VerificationCodeService {
   ) {}
 
   async send({ phone, purpose, subject }: SendVerificationCodeInput): Promise<void> {
+    if (subject !== undefined && !subject.trim()) {
+      throw new ApiException("VALIDATION_FAILED", "验证码发送主体无效", HttpStatus.BAD_REQUEST);
+    }
+
     const cooldownKey = this.cooldownKey(phone, purpose);
     const cooldownCreated = await this.redisService.setIfAbsent(
       cooldownKey,

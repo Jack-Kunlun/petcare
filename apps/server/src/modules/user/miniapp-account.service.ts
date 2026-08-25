@@ -6,6 +6,7 @@ import {
 } from "@petcare/shared-types";
 import { VerificationCodeService } from "../../auth/verification-code.service";
 import { ApiException } from "../../common/http/api-exception";
+import { Prisma } from "../../generated/prisma/client";
 import { AppLogger } from "../../logging/app-logger.service";
 import { PrismaService } from "../../prisma/prisma.service";
 import type { DetectedAvatarFile } from "../../public-avatar-storage/avatar-file";
@@ -141,7 +142,7 @@ export class MiniappAccountService {
     });
 
     try {
-      const oldObjectKey = await this.prisma.$transaction(async (transaction) => {
+      const oldObjectKey = await this.withAvatarTransaction(async (transaction) => {
         const current = await transaction.user.findUnique({
           where: { id: userId },
           select: { avatarObjectKey: true },
@@ -158,6 +159,15 @@ export class MiniappAccountService {
       await this.deleteAvatarObject(userId, oldObjectKey);
     } catch (error) {
       await this.deleteAvatarObject(userId, uploaded.objectKey);
+
+      if (this.isSerializationConflict(error)) {
+        throw new ApiException(
+          "ACCOUNT_CONCURRENT_UPDATE",
+          "头像已被其他操作更新，请刷新后重试",
+          HttpStatus.CONFLICT,
+        );
+      }
+
       throw error;
     }
 
@@ -219,6 +229,29 @@ export class MiniappAccountService {
 
   private isUniqueConflict(error: unknown): boolean {
     return typeof error === "object" && error !== null && "code" in error && error.code === "P2002";
+  }
+
+  private async withAvatarTransaction<T>(
+    operation: (transaction: Prisma.TransactionClient) => Promise<T>,
+  ): Promise<T> {
+    for (let attempt = 1; attempt <= 3; attempt += 1) {
+      try {
+        // eslint-disable-next-line no-await-in-loop -- serializable retries must complete in order.
+        return await this.prisma.$transaction(operation, {
+          isolationLevel: Prisma.TransactionIsolationLevel.Serializable,
+        });
+      } catch (error) {
+        if (!this.isSerializationConflict(error) || attempt === 3) {
+          throw error;
+        }
+      }
+    }
+
+    throw new Error("unreachable");
+  }
+
+  private isSerializationConflict(error: unknown): boolean {
+    return typeof error === "object" && error !== null && "code" in error && error.code === "P2034";
   }
 
   private isManagedAvatarObjectKey(userId: string, objectKey: string | null): objectKey is string {

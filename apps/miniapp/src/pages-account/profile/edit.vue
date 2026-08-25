@@ -322,16 +322,18 @@ onUnload(() => {
         </button>
         <!-- #endif -->
         <!-- #ifndef MP-WEIXIN -->
-        <view
+        <button
           class="h-avatar-lg w-avatar-lg overflow-hidden rounded-full"
-          role="button"
+          style="margin: 0; padding: 0; border: none; background: transparent"
           aria-label="选择头像"
+          :disabled="busy !== null"
           :aria-disabled="busy !== null"
           :class="busy !== null ? 'opacity-50' : ''"
+          hover-class="none"
           @click="chooseImage"
         >
           <image class="h-full w-full" :src="avatarUrl" mode="aspectFill" />
-        </view>
+        </button>
         <!-- #endif -->
         <text class="text-caption text-brand leading-caption">
           {{ busy === "avatar" ? "正在上传…" : "更换头像" }}

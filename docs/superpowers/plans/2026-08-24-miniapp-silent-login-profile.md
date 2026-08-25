@@ -579,8 +579,8 @@ git commit -m "feat(auth): 隔离短信验证码用途"
 **Interfaces:**
 
 - `GET /users/me` returns `MiniappUserProfile`.
-- `PATCH /users/me` updates nickname, region, and bio.
-- `PUT /users/me/avatar` accepts one validated multipart file.
+- `PUT /users/me` updates nickname, region, and bio.
+- `POST /users/me/avatar` accepts one validated multipart file.
 - `POST /users/me/phone/code` sends a binding code for an unbound account.
 - `PUT /users/me/phone` consumes the code and atomically binds a unique phone.
 

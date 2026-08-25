@@ -10,6 +10,15 @@ describe("auth page login control", () => {
     expect(source).not.toContain("<wd-button");
     expect(source).toContain(':disabled="loginPending"');
     expect(source).toContain(':aria-disabled="loginPending"');
-    expect(source).toContain('loginPending ? "登录中…" : "微信一键登录"');
+    expect(source).toContain('"登录中…"');
+  });
+
+  it("retries only navigation after authentication has already succeeded", () => {
+    expect(source).toContain("const loginComplete = ref(false)");
+    expect(source).toMatch(
+      /if \(!loginComplete\.value\)[\s\S]*await loginInteractively\(\)[\s\S]*loginComplete\.value = true/,
+    );
+    expect(source).toContain("登录成功，但页面跳转失败，请再次点击进入首页");
+    expect(source).toMatch(/loginComplete\s*\? "进入首页"\s*:\s*"微信一键登录"/);
   });
 });

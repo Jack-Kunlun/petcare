@@ -13,6 +13,7 @@ definePage({
 
 const { layout } = usePlatformLayout();
 const loginPending = ref(false);
+const loginComplete = ref(false);
 const { colors, radii, sizes, fontSizes, lineHeights } = miniappDesignTokens;
 const loginButtonStyle = [
   "width: 100%",
@@ -42,10 +43,25 @@ async function handleLogin(): Promise<void> {
   loginPending.value = true;
 
   try {
-    await loginInteractively();
-    await uni.reLaunch({ url: "/pages/index/index" });
-  } catch {
-    await uni.showToast({ title: "登录失败，请稍后重试", icon: "none" });
+    if (!loginComplete.value) {
+      try {
+        await loginInteractively();
+        loginComplete.value = true;
+      } catch {
+        await uni.showToast({ title: "登录失败，请稍后重试", icon: "none" });
+
+        return;
+      }
+    }
+
+    try {
+      await uni.reLaunch({ url: "/pages/index/index" });
+    } catch {
+      await uni.showToast({
+        title: "登录成功，但页面跳转失败，请再次点击进入首页",
+        icon: "none",
+      });
+    }
   } finally {
     loginPending.value = false;
   }
@@ -135,7 +151,15 @@ async function handleLogin(): Promise<void> {
           hover-class="opacity-80"
           @click="handleLogin"
         >
-          {{ loginPending ? "登录中…" : "微信一键登录" }}
+          {{
+            loginPending
+              ? loginComplete
+                ? "进入中…"
+                : "登录中…"
+              : loginComplete
+                ? "进入首页"
+                : "微信一键登录"
+          }}
         </button>
 
         <view

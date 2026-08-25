@@ -203,6 +203,17 @@ describe("VerificationCodeService", () => {
     ).resolves.toBe(false);
   });
 
+  it.each(["", "   "])(
+    "rejects an explicitly blank subject before consuming quota",
+    async (subject) => {
+      await expect(
+        service.send({ phone: "13800138000", purpose: "miniapp_bind_phone", subject }),
+      ).rejects.toMatchObject({ code: "VALIDATION_FAILED", status: 400 });
+      expect(redis.values.size).toBe(0);
+      expect(sender.sendCode).not.toHaveBeenCalled();
+    },
+  );
+
   it("limits one Miniapp subject across different destination phones", async () => {
     await Array.from({ length: smsHourlyLimit }).reduce(async (previousSend, _, index) => {
       await previousSend;

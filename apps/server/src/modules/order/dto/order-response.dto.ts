@@ -71,15 +71,9 @@ export class OrderListResponseDto {
   pageSize: number;
 }
 
-export class OrderOwnerResponseDto implements AdminOrderUserSummary {
+export class OrderOwnerResponseDto {
   @ApiProperty({ format: "uuid" })
   id: string;
-
-  @ApiProperty({ nullable: true, example: "13800138000" })
-  phone: string | null;
-
-  @ApiProperty({ nullable: true })
-  username: string | null;
 
   @ApiProperty()
   nickname: string;
@@ -92,6 +86,17 @@ export class OrderOwnerResponseDto implements AdminOrderUserSummary {
 
   @ApiProperty({ example: "active" })
   status: string;
+}
+
+export class AdminOrderUserSummaryDto
+  extends OrderOwnerResponseDto
+  implements AdminOrderUserSummary
+{
+  @ApiProperty({ nullable: true, example: "13800138000" })
+  phone: string | null;
+
+  @ApiProperty({ nullable: true })
+  username: string | null;
 }
 
 export class OrderPetResponseDto {
@@ -155,11 +160,11 @@ export class AdminOrderPetSummaryDto implements AdminOrderPetSummary {
 }
 
 export class AdminOrderListItemDto extends OrderResponseDto implements AdminOrderListItem {
-  @ApiProperty({ type: OrderOwnerResponseDto })
-  owner: OrderOwnerResponseDto;
+  @ApiProperty({ type: AdminOrderUserSummaryDto })
+  owner: AdminOrderUserSummaryDto;
 
-  @ApiProperty({ type: OrderOwnerResponseDto, nullable: true })
-  provider: OrderOwnerResponseDto | null;
+  @ApiProperty({ type: AdminOrderUserSummaryDto, nullable: true })
+  provider: AdminOrderUserSummaryDto | null;
 
   @ApiProperty({ type: AdminOrderPetSummaryDto })
   pet: AdminOrderPetSummaryDto;

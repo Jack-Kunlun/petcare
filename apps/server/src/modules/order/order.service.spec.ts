@@ -156,17 +156,43 @@ describe("OrderService public responses", () => {
   });
 
   it("queries order details with a safe owner projection", async () => {
-    prisma.order.findUnique.mockResolvedValue({ id: "order-1" });
+    prisma.order.findUnique.mockResolvedValue({
+      id: "order-1",
+      owner: {
+        id: "owner-1",
+        nickname: "豆包家长",
+        avatar: null,
+        userType: "pet_owner",
+        status: "active",
+      },
+    });
 
-    await service.findOne("order-1");
+    const result = await service.findOne("order-1");
 
     expect(prisma.order.findUnique).toHaveBeenCalledWith({
       where: { id: "order-1" },
       include: {
-        owner: { select: expect.not.objectContaining({ passwordHash: true }) },
+        owner: {
+          select: {
+            id: true,
+            nickname: true,
+            avatar: true,
+            userType: true,
+            status: true,
+          },
+        },
         pet: true,
       },
     });
+    expect(result.owner).toEqual({
+      id: "owner-1",
+      nickname: "豆包家长",
+      avatar: null,
+      userType: "pet_owner",
+      status: "active",
+    });
+    expect(result.owner).not.toHaveProperty("phone");
+    expect(result.owner).not.toHaveProperty("username");
   });
 
   it("throws a stable 404 when the order does not exist", async () => {
@@ -225,8 +251,12 @@ describe("OrderService public responses", () => {
       skip: 10,
       take: 10,
       include: {
-        owner: { select: expect.not.objectContaining({ passwordHash: true }) },
-        provider: { select: expect.not.objectContaining({ passwordHash: true }) },
+        owner: {
+          select: expect.objectContaining({ phone: true, username: true }),
+        },
+        provider: {
+          select: expect.objectContaining({ phone: true, username: true }),
+        },
         pet: {
           select: {
             id: true,
