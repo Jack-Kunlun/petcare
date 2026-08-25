@@ -215,7 +215,7 @@ export default function ComplaintDetailPage() {
           <div className="space-y-6 xl:col-span-2">
             <Dossier complaint={complaint} />
           </div>
-          <aside className="space-y-4 xl:sticky xl:top-24">
+          <aside className="space-y-4 xl:sticky xl:top-6">
             <Workbench
               actions={complaint.allowedActions}
               pending={claim.isPending || retry.isPending}

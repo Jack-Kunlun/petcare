@@ -178,6 +178,7 @@ describe("ComplaintDetail", () => {
     expect(header.getByRole("button", { name: "顶部作出最终裁决" })).toBeInTheDocument();
     expect(header.queryByRole("button", { name: "顶部认领案件" })).not.toBeInTheDocument();
     expect(page?.querySelector("main")).not.toBeInTheDocument();
+    expect(page?.querySelector("aside")).toHaveClass("xl:sticky", "xl:top-6");
 
     const headings = screen.getAllByRole("heading", { level: 2 }).map((node) => node.textContent);
 
