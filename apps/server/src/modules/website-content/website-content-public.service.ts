@@ -66,6 +66,23 @@ function collectImageAssetIds(value: unknown, ids = new Set<string>()): Set<stri
   return ids;
 }
 
+function sanitizePublicContactChannels(content: WebsitePublicContent): WebsitePublicContent {
+  return {
+    ...content,
+    sections: content.sections.map((section) =>
+      section.sectionType === WEBSITE_SECTION_TYPE.CONTACT_PANEL
+        ? {
+            ...section,
+            content: {
+              ...section.content,
+              channels: section.content.channels.filter((channel) => channel.isEnabled !== false),
+            },
+          }
+        : section,
+    ),
+  };
+}
+
 /** Converts one published administrative snapshot into the strictly public contract. */
 export function toWebsitePublicContent(
   version: WebsiteContentVersion,
@@ -79,7 +96,7 @@ export function toWebsitePublicContent(
     throw websiteContentNotFound(version.contentKey);
   }
 
-  return {
+  return sanitizePublicContactChannels({
     contentKey: version.contentKey,
     businessVersion: version.businessVersion,
     publishedAt: version.publishedAt,
@@ -88,22 +105,9 @@ export function toWebsitePublicContent(
       .filter((section) => section.isEnabled)
       .sort((left, right) => left.sortOrder - right.sortOrder)
       .map((section) =>
-        resolvePublicImages(
-          section.sectionType === WEBSITE_SECTION_TYPE.CONTACT_PANEL
-            ? {
-                ...section,
-                content: {
-                  ...section.content,
-                  channels: section.content.channels.filter(
-                    (channel) => channel.isEnabled !== false,
-                  ),
-                },
-              }
-            : section,
-          assets,
-        ),
+        resolvePublicImages(section, assets),
       ) as unknown as WebsitePublicContentSection[],
-  };
+  });
 }
 
 /** Converts an authorized preview snapshot without requiring published lifecycle metadata. */
@@ -144,7 +148,7 @@ export class WebsiteContentPublicService {
     const cached = await this.readCache(pointer.publishedVersionId);
 
     if (cached?.contentKey === contentKey) {
-      return cached;
+      return sanitizePublicContactChannels(cached);
     }
 
     const version = await this.repository.getPublishedVersion(

@@ -412,7 +412,7 @@ describe("seedWebsiteContent", () => {
       revision: 3,
       businessVersion: 2,
       sourceVersionId: legacy.draftId,
-      idempotencyKey: "seed:contact:published:safe-v2",
+      idempotencyKey: null,
       createdById: "admin-2",
       publishedById: "admin-2",
     });
@@ -442,6 +442,58 @@ describe("seedWebsiteContent", () => {
 
     expect(state.versions).toHaveLength(22);
     expect(state.sections).toHaveLength(66);
+  });
+
+  it("never reuses a legacy safe-version key owned by another content", async () => {
+    const state = createFakePrisma();
+
+    await seedWebsiteContent(state.prisma, "admin-1");
+    const legacy = restoreLegacyContactSeed(state);
+    const foreignContent = state.contents.find((content) => content.contentKey === "home")!;
+    const foreignVersion = {
+      id: "foreign-safe-version",
+      websiteContentId: foreignContent.id,
+      status: "published",
+      revision: 99,
+      businessVersion: 99,
+      sourceVersionId: null,
+      idempotencyKey: "seed:contact:published:safe-v2",
+    } satisfies StoredVersion;
+    const foreignSection = {
+      id: "foreign-safe-section",
+      versionId: foreignVersion.id,
+      sectionKey: "operator-owned",
+      sectionType: "rich_text",
+      sortOrder: 0,
+      isEnabled: true,
+      schemaVersion: 1,
+      content: { title: "运营内容" },
+      settings: {},
+    } satisfies StoredSection;
+    const foreignPointers = {
+      currentDraftVersionId: foreignContent.currentDraftVersionId,
+      publishedVersionId: foreignContent.publishedVersionId,
+    };
+
+    state.versions.push(foreignVersion);
+    state.sections.push(foreignSection);
+
+    await seedWebsiteContent(state.prisma, "admin-2");
+
+    expect(legacy.content.publishedVersionId).not.toBe(foreignVersion.id);
+    expect(
+      state.versions.find((version) => version.id === legacy.content.publishedVersionId),
+    ).toMatchObject({
+      websiteContentId: legacy.content.id,
+      status: "published",
+      revision: 3,
+      businessVersion: 2,
+      sourceVersionId: legacy.draftId,
+    });
+    expect(state.sections.filter((section) => section.versionId === foreignVersion.id)).toEqual([
+      foreignSection,
+    ]);
+    expect(foreignContent).toMatchObject(foreignPointers);
   });
 
   it.each([

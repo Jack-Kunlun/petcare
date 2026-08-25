@@ -39,8 +39,6 @@ const LEGACY_CONTACT_CHANNELS = [
   },
 ] satisfies readonly WebsiteContactChannel[];
 
-const CONTACT_SAFE_PUBLISHED_IDEMPOTENCY_KEY = "seed:contact:published:safe-v2";
-
 function helpSection(
   sectionKey: string,
   sortOrder: number,
@@ -982,7 +980,9 @@ async function upgradeUntouchedLegacyContactSeed(
   }
 
   const published = await tx.websiteContentVersion.upsert({
-    where: { idempotencyKey: CONTACT_SAFE_PUBLISHED_IDEMPOTENCY_KEY },
+    where: {
+      websiteContentId_revision: { websiteContentId: content.id, revision: 3 },
+    },
     update: {},
     create: {
       websiteContentId: content.id,
@@ -991,13 +991,24 @@ async function upgradeUntouchedLegacyContactSeed(
       businessVersion: 2,
       seo: template.seo as unknown as Prisma.InputJsonValue,
       sourceVersionId: content.currentDraftVersionId,
-      idempotencyKey: CONTACT_SAFE_PUBLISHED_IDEMPOTENCY_KEY,
+      idempotencyKey: null,
       changeSummary: "停用待运营配置的联系渠道",
       createdById: operatorId,
       publishedById: operatorId,
       publishedAt: new Date(),
     },
   });
+
+  if (
+    published.websiteContentId !== content.id ||
+    published.revision !== 3 ||
+    published.status !== WEBSITE_CONTENT_STATUS.PUBLISHED ||
+    published.businessVersion !== 2 ||
+    published.sourceVersionId !== content.currentDraftVersionId
+  ) {
+    throw new Error("Contact seed published-version collision");
+  }
+
   const draft = await tx.websiteContentVersion.upsert({
     where: {
       websiteContentId_revision: { websiteContentId: content.id, revision: 4 },
@@ -1015,6 +1026,16 @@ async function upgradeUntouchedLegacyContactSeed(
       createdById: operatorId,
     },
   });
+
+  if (
+    draft.websiteContentId !== content.id ||
+    draft.revision !== 4 ||
+    draft.status !== WEBSITE_CONTENT_STATUS.DRAFT ||
+    draft.businessVersion !== null ||
+    draft.sourceVersionId !== published.id
+  ) {
+    throw new Error("Contact seed draft-version collision");
+  }
 
   await Promise.all([
     upsertSections(tx, published.id, template.sections),

@@ -3,9 +3,13 @@ import {
   WEBSITE_CONTENT_STATUS,
   type WebsiteContentKey,
   type WebsiteContentVersion,
+  type WebsitePublicContent,
 } from "@petcare/shared-types";
 import { WEBSITE_CONTENT_SEED_TEMPLATES } from "../../seed/seed-website-content";
-import { WebsiteContentPublicService } from "./website-content-public.service";
+import {
+  WebsiteContentPublicService,
+  toWebsitePublicContent,
+} from "./website-content-public.service";
 
 function publishedVersion(
   contentKey: WebsiteContentKey = WEBSITE_CONTENT_KEY.HOME,
@@ -31,7 +35,10 @@ function publishedVersion(
   };
 }
 
-function createPublicService(version: WebsiteContentVersion) {
+function createPublicService(
+  version: WebsiteContentVersion,
+  cached: WebsitePublicContent | null = null,
+) {
   const repository = {
     getPublishedPointer: jest.fn(async () => ({
       contentId: `content-${version.contentKey}`,
@@ -39,7 +46,7 @@ function createPublicService(version: WebsiteContentVersion) {
     })),
     getPublishedVersion: jest.fn(async () => version),
   };
-  const cache = { get: jest.fn(async () => null), set: jest.fn(async () => false) };
+  const cache = { get: jest.fn(async () => cached), set: jest.fn(async () => false) };
   const media = { resolvePublicAssets: jest.fn(async () => new Map()) };
   const service = new WebsiteContentPublicService(
     repository as never,
@@ -144,6 +151,45 @@ describe("WebsiteContentPublicService", () => {
     await expect(service.getPublished(WEBSITE_CONTENT_KEY.HOME)).resolves.toEqual(cached);
     expect(repository.getPublishedVersion).not.toHaveBeenCalled();
     expect(cache.set).not.toHaveBeenCalled();
+  });
+
+  it("re-sanitizes disabled contact channels from an older cache writer", async () => {
+    const version = publishedVersion(WEBSITE_CONTENT_KEY.CONTACT);
+    const sourcePanel = version.sections.find((section) => section.sectionType === "contact_panel");
+
+    if (!sourcePanel || sourcePanel.sectionType !== "contact_panel") {
+      throw new Error("Contact panel is required for this test");
+    }
+
+    sourcePanel.content.channels[0] = {
+      ...sourcePanel.content.channels[0],
+      isEnabled: true,
+      value: "service@petcare.example",
+      href: "mailto:service@petcare.example",
+    };
+    sourcePanel.content.channels[1] = {
+      ...sourcePanel.content.channels[1],
+      isEnabled: false,
+      value: "private@petcare.example",
+      href: "mailto:private@petcare.example",
+    };
+
+    const cached = toWebsitePublicContent(version);
+    const cachedPanel = cached.sections.find((section) => section.sectionType === "contact_panel");
+
+    if (!cachedPanel || cachedPanel.sectionType !== "contact_panel") {
+      throw new Error("Cached contact panel is required for this test");
+    }
+
+    cachedPanel.content.channels.push(sourcePanel.content.channels[1]);
+
+    const { service, repository } = createPublicService(version, cached);
+    const result = await service.getPublished(WEBSITE_CONTENT_KEY.CONTACT);
+    const publicPanel = result.sections.find((section) => section.sectionType === "contact_panel");
+
+    expect(publicPanel?.content.channels).toEqual([sourcePanel.content.channels[0]]);
+    expect(JSON.stringify(result)).not.toContain("private@petcare.example");
+    expect(repository.getPublishedVersion).not.toHaveBeenCalled();
   });
 
   it("falls back to PostgreSQL when Redis read failures escape the cache adapter", async () => {
