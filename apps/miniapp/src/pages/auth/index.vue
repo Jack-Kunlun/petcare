@@ -35,10 +35,6 @@ const trustItems = [
   { icon: "/static/auth/camera.svg", label: "全程记录" },
 ] as const;
 
-function openLegal(key: "privacy" | "terms") {
-  uni.navigateTo({ url: `/pages-content/legal/index?key=${key}` });
-}
-
 async function handleLogin(): Promise<void> {
   if (loginPending.value) {
     return;
@@ -73,8 +69,11 @@ async function handleLogin(): Promise<void> {
 </script>
 
 <template>
-  <view
-    class="pc-platform-viewport flex flex-col overflow-hidden bg-canvas text-ink"
+  <scroll-view
+    class="pc-platform-viewport flex flex-col bg-canvas text-ink"
+    scroll-y
+    enable-flex
+    :show-scrollbar="false"
     :style="
       layout.platform === 'h5'
         ? undefined
@@ -169,32 +168,30 @@ async function handleLogin(): Promise<void> {
         <view
           class="w-agreement flex flex-col items-center overflow-hidden whitespace-nowrap text-caption text-muted leading-caption"
         >
-          <view class="flex">
+          <view class="flex items-center">
             <text>登录即代表你已阅读并同意</text>
-            <view
+            <navigator
               class="h-control flex items-center text-brand-active"
-              role="button"
+              url="/pages-content/legal/index?key=terms"
               aria-label="查看服务协议"
               hover-class="opacity-80"
-              @click="openLegal('terms')"
             >
               <text>《服务协议》</text>
-            </view>
+            </navigator>
           </view>
-          <view class="flex">
+          <view class="flex items-center">
             <text>和</text>
-            <view
+            <navigator
               class="h-control flex items-center text-brand-active"
-              role="button"
+              url="/pages-content/legal/index?key=privacy"
               aria-label="查看隐私政策"
               hover-class="opacity-80"
-              @click="openLegal('privacy')"
             >
               <text>《隐私政策》</text>
-            </view>
+            </navigator>
           </view>
         </view>
       </view>
     </view>
-  </view>
+  </scroll-view>
 </template>

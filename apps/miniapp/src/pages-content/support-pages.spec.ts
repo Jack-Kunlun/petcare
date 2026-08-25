@@ -59,18 +59,32 @@ describe("published support pages", () => {
     expect(legal).not.toContain("openPrivacyContract");
   });
 
-  it("records the managed Privacy and login agreement entry points", () => {
+  it("records native login agreement navigation and a scrollable root source contract", () => {
+    const navigators = auth.match(/<navigator\b[\s\S]*?<\/navigator>/gu) ?? [];
+    const terms = navigators.find((navigator) =>
+      navigator.includes('url="/pages-content/legal/index?key=terms"'),
+    );
+    const privacy = navigators.find((navigator) =>
+      navigator.includes('url="/pages-content/legal/index?key=privacy"'),
+    );
+
     expect(profile).toContain('label: "隐私协议"');
     expect(profile).toContain('detail: "查看已发布隐私内容"');
     expect(profile).toContain('route: "/pages-content/legal/index?key=privacy"');
     expect(profile).toContain('detail: "查看已发布联系方式"');
     expect(profile).not.toContain("工作日 09:00–20:00");
-    expect(auth).toContain('function openLegal(key: "privacy" | "terms")');
-    expect(auth).toContain("/pages-content/legal/index?key=");
-    expect(auth).toContain("@click=\"openLegal('terms')\"");
-    expect(auth).toContain("@click=\"openLegal('privacy')\"");
-    expect(auth).toContain('aria-label="查看服务协议"');
-    expect(auth).toContain('aria-label="查看隐私政策"');
-    expect(auth.match(/@click="openLegal\(/gu)).toHaveLength(2);
+    expect(navigators).toHaveLength(2);
+    expect(terms).toContain("h-control");
+    expect(terms).toContain('aria-label="查看服务协议"');
+    expect(terms).toContain('hover-class="opacity-80"');
+    expect(privacy).toContain("h-control");
+    expect(privacy).toContain('aria-label="查看隐私政策"');
+    expect(privacy).toContain('hover-class="opacity-80"');
+    expect(auth).not.toContain("function openLegal");
+    expect(navigators.join("\n")).not.toContain("@click");
+    expect(auth).toMatch(
+      /<scroll-view\s+class="pc-platform-viewport flex flex-col bg-canvas text-ink"[\s\S]*?scroll-y[\s\S]*?enable-flex/u,
+    );
+    expect(auth).not.toMatch(/<view\s+class="pc-platform-viewport[^"]*overflow-hidden/u);
   });
 });
