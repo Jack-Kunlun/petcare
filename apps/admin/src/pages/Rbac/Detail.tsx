@@ -10,7 +10,7 @@ import {
   replaceRbacRoleUsers,
 } from "../../api/rbac";
 import { PermissionGate } from "../../auth/PermissionGate";
-import { EditorPageLayout } from "../../components/EditorPageLayout";
+import { EditorPageLayout, FormSection } from "../../components/EditorPageLayout";
 import { useUnsavedChanges } from "../../hooks/useUnsavedChanges";
 import { isConflict } from "./rbac-utils";
 import { replaceRbacRoleUsersForRole } from "./role-users-utils";
@@ -209,7 +209,7 @@ export default function RbacDetail() {
       }
       unsavedChanges={unsavedChanges}
     >
-      <section className="rounded-xl border border-slate-200 bg-white p-5 shadow-sm">
+      <FormSection>
         <h2 className="font-semibold text-slate-950">角色元数据</h2>
         <dl className="mt-4 grid gap-4 text-sm sm:grid-cols-2 lg:grid-cols-4">
           <div>
@@ -235,9 +235,9 @@ export default function RbacDetail() {
             </dd>
           </div>
         </dl>
-      </section>
+      </FormSection>
 
-      <section className="rounded-xl border border-slate-200 bg-white p-5 shadow-sm">
+      <FormSection>
         <h2 className="font-semibold text-slate-950">有效权限</h2>
         <p className="mt-1 text-sm text-slate-600">
           包含由菜单和按钮权限自动派生的服务端接口权限。
@@ -253,9 +253,9 @@ export default function RbacDetail() {
             </li>
           ))}
         </ul>
-      </section>
+      </FormSection>
 
-      <section className="rounded-xl border border-slate-200 bg-white p-5 shadow-sm">
+      <FormSection>
         <div className="flex items-center gap-2">
           <Users aria-hidden="true" className="h-5 w-5 text-blue-700" />
           <h2 className="font-semibold text-slate-950">关联管理员</h2>
@@ -314,7 +314,7 @@ export default function RbacDetail() {
             </div>
           </PermissionGate>
         ) : null}
-      </section>
+      </FormSection>
     </EditorPageLayout>
   );
 }

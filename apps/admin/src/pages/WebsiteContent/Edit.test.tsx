@@ -444,6 +444,19 @@ describe("WebsiteContentEdit", () => {
     );
     expect(screen.getAllByRole("button", { name: "preview-saved-draft" })[0]).toBeInTheDocument();
     expect(screen.getAllByRole("button", { name: "publish-saved-draft" })[0]).toBeInTheDocument();
+
+    const footer = document.querySelector<HTMLElement>("footer.editor-page__footer");
+
+    expect(footer).toBeInTheDocument();
+    expect(within(footer!).getByRole("button", { name: "保存草稿" })).toHaveAttribute(
+      "form",
+      "website-content-form",
+    );
+    expect(
+      within(footer!).getByRole("button", { name: "publish-saved-draft" }),
+    ).toBeInTheDocument();
+    expect(within(footer!).queryByRole("button", { name: "preview-saved-draft" })).toBeNull();
+    expect(screen.getAllByRole("button", { name: "preview-saved-draft" })).toHaveLength(1);
   });
 
   it("allows only optional template sections to be hidden and blocks dirty navigation", async () => {

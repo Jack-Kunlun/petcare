@@ -195,6 +195,7 @@ describe("RbacDetail", () => {
     expect(header.getByRole("link", { name: "返回角色列表" })).toBeInTheDocument();
     expect(header.getByRole("link", { name: "编辑角色" })).toBeInTheDocument();
     expect(header.getByRole("button", { name: "顶部保存关联管理员" })).toBeInTheDocument();
+    expect(document.querySelectorAll(".editor-page__content > .form-section")).toHaveLength(3);
 
     await user.clear(screen.getByLabelText("关联管理员 ID"));
     await user.type(screen.getByLabelText("关联管理员 ID"), "admin-1\nadmin-2");

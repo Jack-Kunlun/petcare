@@ -430,7 +430,7 @@ export default function WebsiteContentEdit() {
     <EditorPageLayout
       width="default"
       title={`编辑 ${contentKey}`}
-      description="预设区块编辑：仅可编辑预设区块的内容、有限展示设置和允许的显示状态。保存会创建新的不可变草稿，不会直接发布。"
+      description="预设区块编辑：仅可编辑预设区块的内容、有限展示设置和允许的显示状态。保存会创建新的不可变草稿，不会直接发布；预览和发布始终使用最近一次保存的草稿修订版。"
       back={
         <Link
           to="/website-content"
@@ -503,12 +503,40 @@ export default function WebsiteContentEdit() {
           </PermissionGate>
         </>
       }
+      footerActions={
+        canEdit || canPublish ? (
+          <>
+            <PermissionGate all={["website.edit"]}>
+              <button
+                type="submit"
+                form="website-content-form"
+                disabled={saveMutation.isPending}
+                className="inline-flex h-10 cursor-pointer items-center justify-center gap-2 rounded-lg bg-blue-700 px-4 font-semibold text-white outline-none transition-colors hover:bg-blue-800 focus-visible:ring-2 focus-visible:ring-blue-700 disabled:cursor-not-allowed disabled:opacity-50"
+              >
+                <Save aria-hidden="true" className="h-4 w-4" />
+                保存草稿
+              </button>
+            </PermissionGate>
+            <PermissionGate all={["website.publish"]}>
+              <button
+                type="button"
+                aria-label="publish-saved-draft"
+                disabled={dirty || publishMutation.isPending}
+                onClick={() => setPublishDialogOpen(true)}
+                className="inline-flex h-10 cursor-pointer items-center justify-center rounded-lg bg-red-700 px-4 font-semibold text-white outline-none hover:bg-red-800 focus-visible:ring-2 focus-visible:ring-red-700 disabled:cursor-not-allowed disabled:opacity-40"
+              >
+                发布已保存草稿
+              </button>
+            </PermissionGate>
+          </>
+        ) : undefined
+      }
       unsavedChanges={unsavedChanges}
     >
       {serverRevision !== null ? (
         <div
           role="alert"
-          className="mt-5 rounded-xl border border-amber-200 bg-amber-50 p-4 text-amber-950"
+          className="rounded-xl border border-amber-200 bg-amber-50 p-4 text-amber-950"
         >
           <h2 className="font-semibold">检测到版本冲突</h2>
           <p className="mt-1">服务端草稿已更新。本地输入仍保留，请根据最新草稿协调后重新保存。</p>
@@ -516,18 +544,12 @@ export default function WebsiteContentEdit() {
         </div>
       ) : null}
       {validationError ? (
-        <div
-          role="alert"
-          className="mt-5 rounded-xl border border-red-200 bg-red-50 p-4 text-red-950"
-        >
+        <div role="alert" className="rounded-xl border border-red-200 bg-red-50 p-4 text-red-950">
           {validationError}
         </div>
       ) : null}
       {saveMutation.isError && !isRevisionConflict(saveMutation.error) ? (
-        <div
-          role="alert"
-          className="mt-5 rounded-xl border border-red-200 bg-red-50 p-4 text-red-950"
-        >
+        <div role="alert" className="rounded-xl border border-red-200 bg-red-50 p-4 text-red-950">
           {errorMessage(saveMutation.error)}
         </div>
       ) : null}
@@ -605,61 +627,22 @@ export default function WebsiteContentEdit() {
             每次保存都必须说明本次不可变草稿的业务变更。
           </p>
         </FormSection>
-
-        <PermissionGate all={["website.edit"]}>
-          <button
-            type="submit"
-            disabled={saveMutation.isPending}
-            className="inline-flex h-10 cursor-pointer items-center gap-2 rounded-lg bg-blue-700 px-5 font-semibold text-white outline-none transition-colors hover:bg-blue-800 focus-visible:ring-2 focus-visible:ring-blue-700 disabled:cursor-not-allowed disabled:opacity-50"
-          >
-            <Save aria-hidden="true" className="h-4 w-4" />
-            保存草稿
-          </button>
-        </PermissionGate>
       </form>
 
-      <FormSection
-        title="预览与发布"
-        description="预览和发布始终使用最近一次保存的不可变草稿修订版。"
-      >
-        <div className="flex flex-wrap gap-3">
-          <PermissionGate all={["website.edit"]}>
-            <button
-              type="button"
-              aria-label="preview-saved-draft"
-              disabled={dirty || previewMutation.isPending}
-              onClick={handlePreview}
-              className="h-10 cursor-pointer rounded-lg border border-blue-700 px-4 font-semibold text-blue-800 outline-none hover:bg-blue-50 focus-visible:ring-2 focus-visible:ring-blue-800 disabled:cursor-not-allowed disabled:opacity-40"
-            >
-              预览已保存草稿
-            </button>
-          </PermissionGate>
-          <PermissionGate all={["website.publish"]}>
-            <button
-              type="button"
-              aria-label="publish-saved-draft"
-              disabled={dirty || publishMutation.isPending}
-              onClick={() => setPublishDialogOpen(true)}
-              className="h-10 cursor-pointer rounded-lg bg-red-700 px-4 font-semibold text-white outline-none hover:bg-red-800 focus-visible:ring-2 focus-visible:ring-red-700 disabled:cursor-not-allowed disabled:opacity-40"
-            >
-              发布已保存草稿
-            </button>
-          </PermissionGate>
+      {previewMutation.isError || publishMutation.isError ? (
+        <div aria-live="polite" className="space-y-3">
+          {previewMutation.isError ? (
+            <p role="alert" className="rounded-lg border border-red-200 bg-red-50 p-4 text-red-700">
+              无法为当前已保存修订创建预览。
+            </p>
+          ) : null}
+          {publishMutation.isError ? (
+            <p role="alert" className="rounded-lg border border-red-200 bg-red-50 p-4 text-red-700">
+              无法发布当前已保存修订。
+            </p>
+          ) : null}
         </div>
-        {dirty ? (
-          <p className="mt-3 text-sm text-amber-800">请先保存当前变更，再预览或发布。</p>
-        ) : null}
-        {previewMutation.isError ? (
-          <p role="alert" className="mt-3 text-sm text-red-700">
-            无法为当前已保存修订创建预览。
-          </p>
-        ) : null}
-        {publishMutation.isError ? (
-          <p role="alert" className="mt-3 text-sm text-red-700">
-            无法发布当前已保存修订。
-          </p>
-        ) : null}
-      </FormSection>
+      ) : null}
 
       <section id="website-content-history" aria-label="website-content-history">
         <FormSection title="已发布历史">
@@ -674,7 +657,7 @@ export default function WebsiteContentEdit() {
       </section>
 
       <PermissionGate all={["website.edit"]}>
-        <div aria-label="website-media-library" className="mt-6">
+        <div aria-label="website-media-library">
           <WebsiteMediaLibrary
             assets={mediaAssetsQuery.data?.list ?? []}
             total={mediaAssetsQuery.data?.total ?? 0}

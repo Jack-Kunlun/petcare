@@ -178,6 +178,8 @@ describe("ContentArticleEdit", () => {
 
     renderEdit("/content/articles/article-1/edit");
     await screen.findByRole("img", { name: "文章封面预览" });
+    expect(screen.getByRole("button", { name: "更换文章封面" })).toHaveClass("h-10");
+    expect(screen.getByRole("button", { name: "移除封面" })).toHaveClass("h-10");
     await user.click(screen.getByRole("button", { name: "移除封面" }));
     await user.click(screen.getByRole("button", { name: "保存修改" }));
 

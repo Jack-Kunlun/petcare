@@ -368,7 +368,7 @@ export default function ContentArticleEdit() {
                     aria-disabled={isLocked}
                     tabIndex={isLocked ? -1 : 0}
                     onKeyDown={handleCoverKeyDown}
-                    className={`inline-flex h-9 items-center rounded-lg bg-white px-3 text-sm font-semibold text-slate-800 ${
+                    className={`inline-flex h-10 items-center rounded-lg bg-white px-3 text-sm font-semibold text-slate-800 ${
                       isLocked
                         ? "cursor-not-allowed opacity-60"
                         : "cursor-pointer hover:bg-slate-100 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-blue-500"
@@ -385,7 +385,7 @@ export default function ContentArticleEdit() {
                       setCoverUrl(null);
                       markDirty();
                     }}
-                    className="inline-flex h-9 cursor-pointer items-center gap-1 rounded-lg bg-white px-3 text-sm font-semibold text-red-700 outline-none hover:bg-red-50 focus-visible:ring-2 focus-visible:ring-red-600 disabled:cursor-not-allowed disabled:opacity-60"
+                    className="inline-flex h-10 cursor-pointer items-center gap-1 rounded-lg bg-white px-3 text-sm font-semibold text-red-700 outline-none hover:bg-red-50 focus-visible:ring-2 focus-visible:ring-red-600 disabled:cursor-not-allowed disabled:opacity-60"
                   >
                     <Trash2 aria-hidden="true" className="h-4 w-4" />
                     删除

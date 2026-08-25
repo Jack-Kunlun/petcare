@@ -3,8 +3,11 @@ import { useBlocker } from "react-router-dom";
 
 /** Route-leave controls consumed by the shared editor confirmation dialog. */
 export interface UnsavedChangesController {
+  /** Current router blocker state used to control the confirmation dialog. */
   state: ReturnType<typeof useBlocker>["state"];
+  /** Keeps the current route and clears the pending navigation. */
   reset: () => void;
+  /** Discards the current edits and continues the pending navigation. */
   proceed: () => void;
 }
 

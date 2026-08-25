@@ -1086,6 +1086,22 @@ describe("Settings domain editors", () => {
       }),
     ).toBeInTheDocument();
 
+    const content = document.querySelector<HTMLElement>(".editor-page__content");
+    const footer = document.querySelector<HTMLElement>(".editor-page__footer");
+
+    expect(content).toBeInTheDocument();
+    expect(
+      Array.from(content!.children).some((child) =>
+        /(?:^|\s)mt-(?:4|5|6|8)(?:\s|$)/.test(child.className),
+      ),
+    ).toBe(false);
+    expect(footer).toBeInTheDocument();
+    expect(within(footer!).getByRole("button", { name: "保存草稿" })).toBeInTheDocument();
+    expect(within(footer!).getByRole("button", { name: "检查并发布" })).toBeInTheDocument();
+    expect(
+      screen.getByRole("heading", { name: "固定五步服务流程" }).parentElement?.parentElement,
+    ).toHaveClass("space-y-6");
+
     await user.clear(stepName);
     await user.type(stepName, "新的步骤名称");
     await user.click(screen.getByRole("link", { name: "遛宠" }));

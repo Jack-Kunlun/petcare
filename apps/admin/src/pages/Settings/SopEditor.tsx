@@ -165,7 +165,7 @@ export function SopEditor({ initialValue, onChange }: SopEditorProps) {
   }
 
   return (
-    <div className="space-y-5">
+    <div className="space-y-6">
       <section
         aria-labelledby="sop-steps-heading"
         className="rounded-xl border border-slate-200 bg-white p-4 sm:p-6"

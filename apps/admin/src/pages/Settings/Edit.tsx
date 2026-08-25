@@ -319,7 +319,7 @@ export default function SettingsEdit() {
     <EditorPageLayout
       width="wide"
       title={`编辑${meta.label}`}
-      description="配置编辑器"
+      description="配置编辑器。先保存草稿，再检查字段差异并发布。"
       status={
         <p className="text-slate-600">
           当前草稿修订版：<span className="font-semibold text-slate-900">{revision}</span>
@@ -380,12 +380,60 @@ export default function SettingsEdit() {
           ) : null}
         </>
       }
+      footerActions={
+        localConfig ? (
+          <>
+            <PermissionGate all={[meta.editPermission]}>
+              <button
+                type="button"
+                onClick={submitDraft}
+                disabled={
+                  boundRevision === null || saveMutation.isPending || publishMutation.isPending
+                }
+                className="inline-flex h-10 cursor-pointer items-center justify-center gap-2 rounded-lg border border-blue-700 px-4 font-semibold text-blue-800 outline-none transition-colors duration-200 hover:bg-blue-50 focus-visible:ring-2 focus-visible:ring-blue-800 disabled:cursor-not-allowed disabled:opacity-40 motion-reduce:transition-none"
+              >
+                {saveMutation.isPending ? (
+                  <LoaderCircle
+                    aria-hidden="true"
+                    className="h-4 w-4 animate-spin motion-reduce:animate-none"
+                  />
+                ) : (
+                  <Save aria-hidden="true" className="h-4 w-4" />
+                )}
+                {saveMutation.isPending ? "正在保存…" : "保存草稿"}
+              </button>
+            </PermissionGate>
+            <PermissionGate
+              all={["system.publish"]}
+              fallback={
+                <p className="self-center text-sm text-slate-600">
+                  需要 system.publish 权限才能发布。
+                </p>
+              }
+            >
+              <button
+                type="button"
+                onClick={() => {
+                  setNotice(null);
+                  setDialogOpen(true);
+                }}
+                disabled={
+                  !draftQuery.data || dirty || saveMutation.isPending || publishMutation.isPending
+                }
+                className="h-10 cursor-pointer rounded-lg bg-amber-700 px-5 font-semibold text-white outline-none transition-colors duration-200 hover:bg-amber-800 focus-visible:ring-2 focus-visible:ring-amber-700 focus-visible:ring-offset-2 disabled:cursor-not-allowed disabled:opacity-40 motion-reduce:transition-none"
+              >
+                检查并发布
+              </button>
+            </PermissionGate>
+          </>
+        ) : undefined
+      }
       unsavedChanges={unsavedChanges}
     >
       {domain === "sop" ? (
         <nav
           aria-label="SOP 服务类型"
-          className="mt-6 grid grid-cols-3 gap-2 rounded-xl border border-slate-200 bg-white p-2"
+          className="grid grid-cols-3 gap-2 rounded-xl border border-slate-200 bg-white p-2"
         >
           {SERVICE_TYPES.map((item) => (
             <Link
@@ -400,43 +448,45 @@ export default function SettingsEdit() {
         </nav>
       ) : null}
 
-      <div aria-live="polite" className="mt-5 space-y-3">
-        {notice ? (
-          <div
-            role={notice.kind === "error" ? "alert" : "status"}
-            className={`flex items-start gap-3 rounded-lg border p-4 ${notice.kind === "success" ? "border-emerald-200 bg-emerald-50 text-emerald-950" : "border-red-200 bg-red-50 text-red-950"}`}
-          >
-            {notice.kind === "success" ? (
-              <CheckCircle2 aria-hidden="true" className="h-5 w-5 shrink-0" />
-            ) : (
-              <AlertCircle aria-hidden="true" className="h-5 w-5 shrink-0" />
-            )}
-            <span>{notice.message}</span>
-          </div>
-        ) : null}
-        {conflict ? (
-          <div
-            role="alert"
-            className="flex items-start gap-3 rounded-lg border border-amber-300 bg-amber-50 p-4 text-amber-950"
-          >
-            <AlertCircle aria-hidden="true" className="h-5 w-5 shrink-0" />
-            <div>
-              <p className="font-semibold">检测到版本冲突</p>
-              <p className="mt-1 leading-6">{conflict}</p>
-              <p className="mt-1 text-sm">
-                服务端当前修订版：{draftQuery.data?.revision ?? "正在刷新"}
-              </p>
+      {notice || conflict ? (
+        <div aria-live="polite" className="space-y-3">
+          {notice ? (
+            <div
+              role={notice.kind === "error" ? "alert" : "status"}
+              className={`flex items-start gap-3 rounded-lg border p-4 ${notice.kind === "success" ? "border-emerald-200 bg-emerald-50 text-emerald-950" : "border-red-200 bg-red-50 text-red-950"}`}
+            >
+              {notice.kind === "success" ? (
+                <CheckCircle2 aria-hidden="true" className="h-5 w-5 shrink-0" />
+              ) : (
+                <AlertCircle aria-hidden="true" className="h-5 w-5 shrink-0" />
+              )}
+              <span>{notice.message}</span>
             </div>
-          </div>
-        ) : null}
-      </div>
+          ) : null}
+          {conflict ? (
+            <div
+              role="alert"
+              className="flex items-start gap-3 rounded-lg border border-amber-300 bg-amber-50 p-4 text-amber-950"
+            >
+              <AlertCircle aria-hidden="true" className="h-5 w-5 shrink-0" />
+              <div>
+                <p className="font-semibold">检测到版本冲突</p>
+                <p className="mt-1 leading-6">{conflict}</p>
+                <p className="mt-1 text-sm">
+                  服务端当前修订版：{draftQuery.data?.revision ?? "正在刷新"}
+                </p>
+              </div>
+            </div>
+          ) : null}
+        </div>
+      ) : null}
 
       {attempted && hasErrors ? (
         <div
           ref={errorSummaryRef}
           tabIndex={-1}
           role="alert"
-          className="mt-5 rounded-lg border-2 border-red-300 bg-red-50 p-4 text-red-950 outline-none focus-visible:ring-2 focus-visible:ring-red-700"
+          className="rounded-lg border-2 border-red-300 bg-red-50 p-4 text-red-950 outline-none focus-visible:ring-2 focus-visible:ring-red-700"
         >
           <h2 className="font-semibold">请先修正表单问题</h2>
           <ul className="mt-2 list-disc space-y-1 pl-5">
@@ -469,7 +519,7 @@ export default function SettingsEdit() {
       {loading ? (
         <p
           aria-live="polite"
-          className="mt-8 rounded-xl border border-slate-200 bg-white p-8 text-center text-slate-600"
+          className="rounded-xl border border-slate-200 bg-white p-8 text-center text-slate-600"
         >
           正在加载配置…
         </p>
@@ -478,7 +528,7 @@ export default function SettingsEdit() {
         <div
           role="alert"
           aria-label="当前生效版本加载失败"
-          className="mt-8 rounded-xl border border-red-200 bg-red-50 p-5 text-red-950"
+          className="rounded-xl border border-red-200 bg-red-50 p-5 text-red-950"
         >
           <p className="font-semibold">当前生效版本加载失败</p>
           <p className="mt-1">草稿与编辑区不受影响，可单独重试当前版本查询。</p>
@@ -498,7 +548,7 @@ export default function SettingsEdit() {
         <div
           role="alert"
           aria-label="草稿状态加载失败"
-          className="mt-4 rounded-xl border border-red-200 bg-red-50 p-5 text-red-950"
+          className="rounded-xl border border-red-200 bg-red-50 p-5 text-red-950"
         >
           <p className="font-semibold">草稿状态加载失败</p>
           <p className="mt-1">
@@ -520,7 +570,11 @@ export default function SettingsEdit() {
       ) : null}
 
       {!loading && localConfig ? (
-        <fieldset disabled={editorLocked} role="presentation" className="mt-6 min-w-0 border-0 p-0">
+        <fieldset
+          disabled={editorLocked}
+          role="presentation"
+          className="flex min-w-0 flex-col gap-6 border-0 p-0"
+        >
           {domain === "sop" ? (
             <SopEditor
               key={editorSnapshot?.sourceToken}
@@ -543,7 +597,7 @@ export default function SettingsEdit() {
             />
           ) : null}
 
-          <FormSection className="mt-5">
+          <FormSection>
             <label className="font-medium text-slate-800">
               变更摘要{" "}
               <span aria-hidden="true" className="text-red-700">
@@ -580,63 +634,10 @@ export default function SettingsEdit() {
               ) : null}
             </label>
           </FormSection>
-
-          <FormSection className="mt-5">
-            <div className="flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between">
-              <p className="text-slate-600">先保存草稿，再检查字段差异并发布。</p>
-              <div className="flex flex-col-reverse gap-3 sm:flex-row">
-                <PermissionGate all={[meta.editPermission]}>
-                  <button
-                    type="button"
-                    onClick={submitDraft}
-                    disabled={
-                      boundRevision === null || saveMutation.isPending || publishMutation.isPending
-                    }
-                    className="inline-flex h-10 cursor-pointer items-center justify-center gap-2 rounded-lg border border-blue-700 px-4 font-semibold text-blue-800 outline-none transition-colors duration-200 hover:bg-blue-50 focus-visible:ring-2 focus-visible:ring-blue-800 disabled:cursor-not-allowed disabled:opacity-40 motion-reduce:transition-none"
-                  >
-                    {saveMutation.isPending ? (
-                      <LoaderCircle
-                        aria-hidden="true"
-                        className="h-4 w-4 animate-spin motion-reduce:animate-none"
-                      />
-                    ) : (
-                      <Save aria-hidden="true" className="h-4 w-4" />
-                    )}
-                    {saveMutation.isPending ? "正在保存…" : "保存草稿"}
-                  </button>
-                </PermissionGate>
-                <PermissionGate
-                  all={["system.publish"]}
-                  fallback={
-                    <p className="self-center text-sm text-slate-600">
-                      需要 system.publish 权限才能发布。
-                    </p>
-                  }
-                >
-                  <button
-                    type="button"
-                    onClick={() => {
-                      setNotice(null);
-                      setDialogOpen(true);
-                    }}
-                    disabled={
-                      !draftQuery.data ||
-                      dirty ||
-                      saveMutation.isPending ||
-                      publishMutation.isPending
-                    }
-                    className="h-10 cursor-pointer rounded-lg bg-amber-700 px-5 font-semibold text-white outline-none transition-colors duration-200 hover:bg-amber-800 focus-visible:ring-2 focus-visible:ring-amber-700 focus-visible:ring-offset-2 disabled:cursor-not-allowed disabled:opacity-40 motion-reduce:transition-none"
-                  >
-                    检查并发布
-                  </button>
-                </PermissionGate>
-              </div>
-            </div>
-          </FormSection>
         </fieldset>
       ) : null}
 
-      <FormSection className="mt-6" ariaLabelledBy="recent-history-heading">
+      <FormSection ariaLabelledBy="recent-history-heading">
         <h2 id="recent-history-heading" className="text-xl font-semibold text-slate-950">
           最近发布历史
         </h2>
