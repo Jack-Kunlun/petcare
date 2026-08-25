@@ -86,6 +86,8 @@ function validate(form: RatingFormState): {
 }
 
 const inputClass =
+  "mt-1.5 h-10 w-full rounded-lg border border-slate-300 bg-white px-3 py-2 text-[16px] text-slate-950 outline-none transition-colors duration-200 focus-visible:border-blue-800 focus-visible:ring-2 focus-visible:ring-blue-800/20 motion-reduce:transition-none sm:text-sm";
+const textareaClass =
   "mt-1.5 min-h-10 w-full rounded-lg border border-slate-300 bg-white px-3 py-2 text-[16px] text-slate-950 outline-none transition-colors duration-200 focus-visible:border-blue-800 focus-visible:ring-2 focus-visible:ring-blue-800/20 motion-reduce:transition-none sm:text-sm";
 
 export function RatingThresholdEditor({ initialValue, onChange }: RatingThresholdEditorProps) {
@@ -242,7 +244,7 @@ export function RatingThresholdEditor({ initialValue, onChange }: RatingThreshol
             aria-describedby={
               fieldError("retrainingRequirement") ? "retrainingRequirement-error" : undefined
             }
-            className={`${inputClass} resize-y`}
+            className={`${textareaClass} resize-y`}
           />
           {fieldError("retrainingRequirement") ? (
             <FieldError

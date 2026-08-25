@@ -74,6 +74,8 @@ function validate(config: SopConfig): SettingsFieldErrors {
 }
 
 const inputClass =
+  "mt-1.5 h-10 w-full rounded-lg border border-slate-300 bg-white px-3 py-2 text-[16px] text-slate-950 outline-none transition-colors duration-200 focus-visible:border-blue-800 focus-visible:ring-2 focus-visible:ring-blue-800/20 motion-reduce:transition-none sm:text-sm";
+const textareaClass =
   "mt-1.5 min-h-10 w-full rounded-lg border border-slate-300 bg-white px-3 py-2 text-[16px] text-slate-950 outline-none transition-colors duration-200 focus-visible:border-blue-800 focus-visible:ring-2 focus-visible:ring-blue-800/20 motion-reduce:transition-none sm:text-sm";
 
 function settingsFieldErrorId(path: string): string {
@@ -221,7 +223,7 @@ export function SopEditor({ initialValue, onChange }: SopEditorProps) {
                         errors[instructionPath] ? settingsFieldErrorId(instructionPath) : undefined
                       }
                       onChange={(event) => updateStep(index, { instruction: event.target.value })}
-                      className={`${inputClass} resize-y`}
+                      className={`${textareaClass} resize-y`}
                     />
                     <FieldError path={instructionPath} errors={errors} />
                   </label>
@@ -337,7 +339,7 @@ export function SopEditor({ initialValue, onChange }: SopEditorProps) {
                         errors[descriptionPath] ? settingsFieldErrorId(descriptionPath) : undefined
                       }
                       onChange={(event) => updateRule(index, { description: event.target.value })}
-                      className={`${inputClass} resize-y`}
+                      className={`${textareaClass} resize-y`}
                     />
                     <FieldError path={descriptionPath} errors={errors} />
                   </label>

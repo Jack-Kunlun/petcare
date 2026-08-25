@@ -24,6 +24,7 @@ interface FormSectionProps {
   description?: ReactNode;
   actions?: ReactNode;
   className?: string;
+  ariaLabelledBy?: string;
 }
 
 const widthClasses: Record<EditorPageWidth, string> = {
@@ -124,11 +125,13 @@ export function FormSection({
   description,
   actions,
   className,
+  ariaLabelledBy,
 }: FormSectionProps) {
   const hasHeader = title || description || actions;
 
   return (
     <section
+      aria-labelledby={ariaLabelledBy}
       className={cn("form-section rounded-xl border border-slate-200 bg-white p-6", className)}
     >
       {hasHeader ? (

@@ -160,7 +160,7 @@ export default function RbacDetail() {
       back={
         <Link
           to="/rbac"
-          className="inline-flex h-10 items-center gap-2 text-sm font-semibold text-slate-700 hover:text-blue-800"
+          className="inline-flex h-10 cursor-pointer items-center gap-2 text-sm font-semibold text-slate-700 outline-none hover:text-blue-800 focus-visible:ring-2 focus-visible:ring-blue-700 focus-visible:ring-offset-2"
         >
           <ArrowLeft aria-hidden="true" className="h-4 w-4" />
           返回角色列表
@@ -172,7 +172,7 @@ export default function RbacDetail() {
             {role.isSystem ? null : (
               <Link
                 to={`/rbac/${role.id}/edit`}
-                className="inline-flex h-10 items-center gap-2 rounded-lg border border-blue-700 px-4 font-semibold text-blue-800 hover:bg-blue-50"
+                className="inline-flex h-10 cursor-pointer items-center gap-2 rounded-lg border border-blue-700 px-4 font-semibold text-blue-800 outline-none hover:bg-blue-50 focus-visible:ring-2 focus-visible:ring-blue-700 focus-visible:ring-offset-2"
               >
                 <Pencil aria-hidden="true" className="h-4 w-4" />
                 编辑角色
@@ -186,7 +186,7 @@ export default function RbacDetail() {
                 type="button"
                 disabled={replaceUsersMutation.isPending}
                 onClick={saveUsers}
-                className="inline-flex h-10 items-center gap-2 rounded-lg bg-blue-700 px-4 font-semibold text-white hover:bg-blue-800 disabled:cursor-not-allowed disabled:opacity-50"
+                className="inline-flex h-10 cursor-pointer items-center gap-2 rounded-lg bg-blue-700 px-4 font-semibold text-white outline-none hover:bg-blue-800 focus-visible:ring-2 focus-visible:ring-blue-700 focus-visible:ring-offset-2 disabled:cursor-not-allowed disabled:opacity-50"
               >
                 <Save aria-hidden="true" className="h-4 w-4" />
                 保存关联管理员
@@ -294,7 +294,7 @@ export default function RbacDetail() {
                 type="button"
                 disabled={replaceUsersMutation.isPending}
                 onClick={saveUsers}
-                className="mt-4 inline-flex h-10 items-center gap-2 rounded-lg bg-blue-700 px-4 font-semibold text-white hover:bg-blue-800 disabled:cursor-not-allowed disabled:opacity-50"
+                className="mt-4 inline-flex h-10 cursor-pointer items-center gap-2 rounded-lg bg-blue-700 px-4 font-semibold text-white outline-none hover:bg-blue-800 focus-visible:ring-2 focus-visible:ring-blue-700 focus-visible:ring-offset-2 disabled:cursor-not-allowed disabled:opacity-50"
               >
                 <Save aria-hidden="true" className="h-4 w-4" />
                 保存关联管理员

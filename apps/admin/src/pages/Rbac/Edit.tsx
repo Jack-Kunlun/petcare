@@ -98,7 +98,7 @@ export default function RbacEdit() {
       setNavigationDestination(pendingDestination);
       setPendingDestination(null);
     }
-  }, [dirty, navigate, pendingDestination]);
+  }, [dirty, pendingDestination]);
 
   useEffect(() => {
     if (navigationDestination) {
@@ -191,7 +191,7 @@ export default function RbacEdit() {
       back={
         <Link
           to={isNew ? "/rbac" : `/rbac/${id}`}
-          className="inline-flex h-10 items-center gap-2 text-sm font-semibold text-slate-700 hover:text-blue-800"
+          className="inline-flex h-10 cursor-pointer items-center gap-2 text-sm font-semibold text-slate-700 outline-none hover:text-blue-800 focus-visible:ring-2 focus-visible:ring-blue-700 focus-visible:ring-offset-2"
         >
           <ArrowLeft aria-hidden="true" className="h-4 w-4" />
           返回角色列表
@@ -205,7 +205,7 @@ export default function RbacEdit() {
               form="rbac-role-form"
               type="submit"
               disabled={!roleName.trim() || saveMutation.isPending}
-              className="inline-flex h-10 items-center gap-2 rounded-lg bg-blue-700 px-5 font-semibold text-white hover:bg-blue-800 disabled:cursor-not-allowed disabled:opacity-50"
+              className="inline-flex h-10 cursor-pointer items-center gap-2 rounded-lg bg-blue-700 px-5 font-semibold text-white outline-none hover:bg-blue-800 focus-visible:ring-2 focus-visible:ring-blue-700 focus-visible:ring-offset-2 disabled:cursor-not-allowed disabled:opacity-50"
             >
               <Save aria-hidden="true" className="h-4 w-4" />
               保存角色
@@ -312,7 +312,7 @@ export default function RbacEdit() {
             <button
               type="submit"
               disabled={!roleName.trim() || saveMutation.isPending}
-              className="inline-flex h-10 items-center gap-2 rounded-lg bg-blue-700 px-5 font-semibold text-white hover:bg-blue-800 disabled:cursor-not-allowed disabled:opacity-50"
+              className="inline-flex h-10 cursor-pointer items-center gap-2 rounded-lg bg-blue-700 px-5 font-semibold text-white outline-none hover:bg-blue-800 focus-visible:ring-2 focus-visible:ring-blue-700 focus-visible:ring-offset-2 disabled:cursor-not-allowed disabled:opacity-50"
             >
               <Save aria-hidden="true" className="h-4 w-4" />
               保存角色

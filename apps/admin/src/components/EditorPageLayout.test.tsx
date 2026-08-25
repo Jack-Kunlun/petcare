@@ -86,6 +86,19 @@ describe("EditorPageLayout", () => {
 });
 
 describe("FormSection", () => {
+  it("forwards an aria-labelledby value to its native section", () => {
+    const { container } = render(
+      <FormSection ariaLabelledBy="recent-history-heading">
+        <h2 id="recent-history-heading">最近发布历史</h2>
+      </FormSection>,
+    );
+
+    expect(container.querySelector("section.form-section")).toHaveAttribute(
+      "aria-labelledby",
+      "recent-history-heading",
+    );
+  });
+
   it("renders heading slots with the shared radius, padding, and section spacing", () => {
     const { container } = render(
       <FormSection

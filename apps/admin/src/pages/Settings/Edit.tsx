@@ -543,7 +543,7 @@ export default function SettingsEdit() {
             />
           ) : null}
 
-          <FormSection className="mt-5 p-4 sm:p-6">
+          <FormSection className="mt-5">
             <label className="font-medium text-slate-800">
               变更摘要{" "}
               <span aria-hidden="true" className="text-red-700">
@@ -581,7 +581,7 @@ export default function SettingsEdit() {
             </label>
           </FormSection>
 
-          <FormSection className="mt-5 p-4 sm:p-5">
+          <FormSection className="mt-5">
             <div className="flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between">
               <p className="text-slate-600">先保存草稿，再检查字段差异并发布。</p>
               <div className="flex flex-col-reverse gap-3 sm:flex-row">
@@ -636,7 +636,7 @@ export default function SettingsEdit() {
         </fieldset>
       ) : null}
 
-      <FormSection className="mt-6 p-4 sm:p-6" aria-labelledby="recent-history-heading">
+      <FormSection className="mt-6" ariaLabelledBy="recent-history-heading">
         <h2 id="recent-history-heading" className="text-xl font-semibold text-slate-950">
           最近发布历史
         </h2>
