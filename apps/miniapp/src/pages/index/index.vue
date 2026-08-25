@@ -108,7 +108,7 @@ const classroomArticles = [
 
     <view class="box-border flex flex-col pb-screen">
       <view
-        class="relative mx-page-horizontal mt-action h-hero-main overflow-hidden rounded-card bg-surface shadow-card"
+        class="relative mx-page-horizontal h-hero-main overflow-hidden rounded-card bg-surface shadow-card"
       >
         <image
           class="absolute inset-0 h-full w-full"

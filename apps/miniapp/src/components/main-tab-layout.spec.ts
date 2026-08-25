@@ -57,6 +57,14 @@ describe("main tab layout root header contract", () => {
     expect(source).not.toContain("pl-action");
   });
 
+  it("owns the action-sized gap between the root header and main content", () => {
+    const layoutSource = readSource("components/MainTabLayout.vue");
+    const homeSource = readSource("pages/index/index.vue");
+
+    expect(layoutSource).toMatch(/<scroll-view[^>]*>\s*<view class="pt-action">\s*<slot \/>/u);
+    expect(homeSource).not.toContain("mt-action h-hero-main");
+  });
+
   it.each(rootPagePaths)("uses the semantic page grid in %s", (pagePath) => {
     const source = readSource(pagePath);
 

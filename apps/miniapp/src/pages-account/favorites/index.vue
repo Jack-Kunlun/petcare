@@ -1,10 +1,14 @@
 <script setup lang="ts">
+import { computed, ref } from "vue";
+import { filterFavorites } from "./favorite-filter";
 import SubPageLayout from "@/components/SubPageLayout.vue";
 
 const tabs = ["文章", "动态", "服务", "照护者"] as const;
 
+type FavoriteKind = (typeof tabs)[number];
+
 interface FavoriteItem {
-  kind: string;
+  kind: FavoriteKind;
   title: string;
   detail: string;
   image: string;
@@ -42,6 +46,9 @@ const items: FavoriteItem[] = [
   },
 ];
 
+const activeTab = ref<FavoriteKind>(tabs[0]);
+const visibleItems = computed(() => filterFavorites(items, activeTab.value));
+
 function openItem(route?: string) {
   if (route) {
     uni.navigateTo({ url: route });
@@ -51,48 +58,59 @@ function openItem(route?: string) {
 
 <template>
   <SubPageLayout title="我的收藏">
-    <view class="flex flex-col gap-copy px-action py-card">
-      <view class="h-control flex rounded-pill bg-surface p-caption shadow-card">
+    <view class="px-action py-card">
+      <view class="h-control flex" role="tablist" aria-label="收藏分类">
         <view
-          v-for="(tab, index) in tabs"
+          v-for="tab in tabs"
           :key="tab"
-          class="flex flex-1 items-center justify-center rounded-pill"
-          :class="index === 0 ? 'bg-brand' : ''"
+          class="relative h-control min-w-0 flex flex-1 items-center justify-center"
+          role="tab"
+          :aria-selected="activeTab === tab"
+          hover-class="opacity-80"
+          @click="activeTab = tab"
         >
           <text
-            class="text-caption font-medium leading-caption"
-            :class="index === 0 ? 'text-surface' : 'text-muted'"
+            class="text-card leading-card"
+            :class="
+              activeTab === tab ? 'text-brand-active font-semibold' : 'text-muted font-medium'
+            "
           >
             {{ tab }}
           </text>
+          <view
+            v-if="activeTab === tab"
+            class="absolute bottom-0 h-tab-indicator w-indicator rounded-pill bg-brand"
+          />
         </view>
       </view>
 
-      <view
-        v-for="item in items"
-        :key="item.kind"
-        class="flex items-center gap-copy main-card p-copy"
-        :class="item.route ? '' : 'opacity-50'"
-        :hover-class="item.route ? 'opacity-80' : 'none'"
-        :aria-disabled="item.route ? undefined : 'true'"
-        @click="openItem(item.route)"
-      >
-        <image
-          class="h-mini-cover w-mini-cover shrink-0 rounded-control"
-          :src="item.image"
-          mode="aspectFill"
-        />
-        <view class="min-w-0 flex flex-1 flex-col">
-          <text class="text-caption text-brand leading-caption">{{ item.kind }}</text>
-          <text class="mt-caption truncate card-heading">{{ item.title }}</text>
-          <text class="mt-caption truncate quiet-text">{{ item.detail }}</text>
+      <view class="mt-action flex flex-col gap-copy">
+        <view
+          v-for="item in visibleItems"
+          :key="item.kind"
+          class="flex items-center gap-copy main-card p-copy"
+          :class="item.route ? '' : 'opacity-50'"
+          :hover-class="item.route ? 'opacity-80' : 'none'"
+          :aria-disabled="item.route ? undefined : 'true'"
+          @click="openItem(item.route)"
+        >
+          <image
+            class="h-mini-cover w-mini-cover shrink-0 rounded-control"
+            :src="item.image"
+            mode="aspectFill"
+          />
+          <view class="min-w-0 flex flex-1 flex-col">
+            <text class="text-caption text-brand leading-caption">{{ item.kind }}</text>
+            <text class="mt-caption truncate card-heading">{{ item.title }}</text>
+            <text class="mt-caption truncate quiet-text">{{ item.detail }}</text>
+          </view>
+          <image
+            v-if="item.route"
+            class="h-icon-xs w-icon-xs"
+            src="/static/main/chevron.svg"
+            mode="aspectFit"
+          />
         </view>
-        <image
-          v-if="item.route"
-          class="h-icon-xs w-icon-xs"
-          src="/static/main/chevron.svg"
-          mode="aspectFit"
-        />
       </view>
     </view>
   </SubPageLayout>

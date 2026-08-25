@@ -101,7 +101,9 @@ function handleTabChange(event: { value: string | number }) {
     </view>
 
     <scroll-view class="h-0 min-h-0 flex-1" scroll-y :show-scrollbar="false">
-      <slot />
+      <view class="pt-action">
+        <slot />
+      </view>
     </scroll-view>
 
     <view

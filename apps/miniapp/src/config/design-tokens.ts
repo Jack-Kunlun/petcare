@@ -47,6 +47,7 @@ export const miniappDesignTokens = {
     "avatar-sm": "36px",
     avatar: "44px",
     "avatar-lg": "56px",
+    "tab-indicator": "2px",
     "mini-cover": "64px",
     pet: "72px",
     "card-cover": "104px",
