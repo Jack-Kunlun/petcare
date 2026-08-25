@@ -107,6 +107,23 @@ describe("TokenService", () => {
     );
   });
 
+  it("rejects a pre-cancellation refresh before consuming its Redis session", async () => {
+    const tokens = await service.issue({ ...principal, sessionVersion: 3 });
+    const refreshPayload = await jwtService.verifyAsync(tokens.refreshToken, {
+      secret: jwtSecret,
+    });
+    const getAndDelete = jest.spyOn(redis, "getAndDelete");
+
+    sessionValidation.assertActiveVersion.mockRejectedValue(new UnauthorizedException());
+
+    await expect(service.consumeRefresh(tokens.refreshToken)).rejects.toBeInstanceOf(
+      UnauthorizedException,
+    );
+    expect(sessionValidation.assertActiveVersion).toHaveBeenCalledWith("user-1", 3);
+    expect(getAndDelete).not.toHaveBeenCalled();
+    expect(redis.values.has(`auth:session:${refreshPayload.sid}`)).toBe(true);
+  });
+
   it("allows only one concurrent refresh rotation", async () => {
     const tokens = await service.issue(principal);
     const results = await Promise.allSettled([

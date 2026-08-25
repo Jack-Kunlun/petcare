@@ -31,4 +31,12 @@ describe("SessionValidationService", () => {
       code: "AUTH_SESSION_EXPIRED",
     });
   });
+
+  it("rejects the previous version after account cancellation", async () => {
+    prisma.user.findUnique.mockResolvedValue({ status: "inactive", sessionVersion: 4 });
+
+    await expect(service.assertActiveVersion("user-1", 3)).rejects.toMatchObject({
+      code: "AUTH_SESSION_EXPIRED",
+    });
+  });
 });
