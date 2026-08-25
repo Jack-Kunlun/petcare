@@ -33,6 +33,7 @@ import {
 import { detectAvatarFile } from "../../public-avatar-storage/avatar-file";
 import {
   BindMiniappPhoneDto,
+  CancelMiniappAccountDto,
   MiniappUserProfileDto,
   SendMiniappPhoneCodeDto,
   UpdateMiniappProfileDto,
@@ -112,6 +113,24 @@ export class MiniappAccountController {
     @Req() request: MiniappRequest,
   ): Promise<MiniappUserProfile> {
     return this.miniappAccountService.bindPhone(this.requireUserId(request), dto.phone, dto.code);
+  }
+
+  @Post("cancellation/code")
+  @HttpCode(HttpStatus.NO_CONTENT)
+  @ApiOperation({ summary: "发送当前账户的注销验证码" })
+  @ApiNoContentResponse({ description: "注销验证码已发送" })
+  @ApiStandardErrors(400, 401, 403, 409, 429, 500)
+  sendCancellationCode(@Req() request: MiniappRequest): Promise<void> {
+    return this.miniappAccountService.sendCancellationCode(this.requireUserId(request));
+  }
+
+  @Post("cancel")
+  @HttpCode(HttpStatus.NO_CONTENT)
+  @ApiOperation({ summary: "注销当前小程序账户" })
+  @ApiNoContentResponse({ description: "账户已注销" })
+  @ApiStandardErrors(400, 401, 403, 409, 429, 500)
+  cancel(@Req() request: MiniappRequest, @Body() dto: CancelMiniappAccountDto): Promise<void> {
+    return this.miniappAccountService.cancelAccount(this.requireUserId(request), dto.code);
   }
 
   private requireUserId(request: MiniappRequest): string {

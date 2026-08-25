@@ -15,7 +15,6 @@ import {
   type PublicAvatarStorage,
 } from "../../public-avatar-storage/public-avatar-storage.types";
 
-// eslint-disable-next-line @typescript-eslint/no-unused-vars -- cancellation queries arrive in the next task.
 const ACTIVE_CANCELLATION_BLOCKING_STATUSES = [
   "pending_confirm",
   "confirmed",
@@ -99,6 +98,102 @@ export class MiniappAccountService {
     });
   }
 
+  async sendCancellationCode(userId: string): Promise<void> {
+    const user = await this.prisma.user.findUnique({
+      where: { id: userId },
+      select: { id: true, phone: true, status: true },
+    });
+
+    if (!user || user.status !== "active") {
+      throw new ApiException(
+        "AUTH_SESSION_EXPIRED",
+        "登录状态已失效，请重新登录",
+        HttpStatus.UNAUTHORIZED,
+      );
+    }
+
+    if (user.phone === null) {
+      throw this.cancellationCodeNotRequired();
+    }
+
+    if (await this.hasBlockingOrders(this.prisma.order, userId)) {
+      throw this.activeOrderExists();
+    }
+
+    await this.verificationCodeService.send({
+      phone: user.phone,
+      purpose: "miniapp_cancel_account",
+      subject: userId,
+    });
+  }
+
+  async cancelAccount(userId: string, code?: string): Promise<void> {
+    const user = await this.prisma.user.findUnique({
+      where: { id: userId },
+      select: { id: true, phone: true, status: true },
+    });
+
+    if (!user || user.status !== "active") {
+      throw new ApiException(
+        "AUTH_SESSION_EXPIRED",
+        "登录状态已失效，请重新登录",
+        HttpStatus.UNAUTHORIZED,
+      );
+    }
+
+    if (await this.hasBlockingOrders(this.prisma.order, userId)) {
+      throw this.activeOrderExists();
+    }
+
+    if (user.phone === null) {
+      if (code !== undefined) {
+        throw this.cancellationCodeNotRequired();
+      }
+    } else {
+      if (code === undefined) {
+        throw new ApiException(
+          MINIAPP_ACCOUNT_ERROR_CODE.CANCELLATION_CODE_REQUIRED,
+          "请输入账户注销验证码",
+          HttpStatus.BAD_REQUEST,
+        );
+      }
+
+      if (!/^\d{6}$/u.test(code)) {
+        throw this.verificationCodeInvalid();
+      }
+
+      const valid = await this.verificationCodeService.verifyAndConsume({
+        phone: user.phone,
+        code,
+        purpose: "miniapp_cancel_account",
+      });
+
+      if (!valid) {
+        throw this.verificationCodeInvalid();
+      }
+    }
+
+    await this.withSerializableTransaction(async (transaction) => {
+      const current = await transaction.user.findUnique({
+        where: { id: userId },
+        select: { status: true },
+      });
+
+      if (!current || current.status !== "active") {
+        throw new ApiException("AUTH_ACCOUNT_DISABLED", "账户已被停用", HttpStatus.FORBIDDEN);
+      }
+
+      if (await this.hasBlockingOrders(transaction.order, userId)) {
+        throw this.activeOrderExists();
+      }
+
+      await transaction.user.update({
+        where: { id: userId },
+        data: { status: "inactive", sessionVersion: { increment: 1 } },
+      });
+    });
+  }
+
   async bindPhone(userId: string, phone: string, code: string): Promise<MiniappUserProfile> {
     await this.requireUnboundAccount(userId);
 
@@ -150,7 +245,7 @@ export class MiniappAccountService {
     });
 
     try {
-      const oldObjectKey = await this.withAvatarTransaction(async (transaction) => {
+      const oldObjectKey = await this.withSerializableTransaction(async (transaction) => {
         const current = await transaction.user.findUnique({
           where: { id: userId },
           select: { avatarObjectKey: true },
@@ -197,6 +292,20 @@ export class MiniappAccountService {
     }
   }
 
+  private async hasBlockingOrders(
+    order: Prisma.TransactionClient["order"],
+    userId: string,
+  ): Promise<boolean> {
+    const count = await order.count({
+      where: {
+        status: { in: [...ACTIVE_CANCELLATION_BLOCKING_STATUSES] },
+        OR: [{ ownerId: userId }, { providerId: userId }],
+      },
+    });
+
+    return count > 0;
+  }
+
   private normalizeRequiredText(value: string, maxLength: number, field: string): string {
     const normalized = value.trim();
 
@@ -239,7 +348,7 @@ export class MiniappAccountService {
     return typeof error === "object" && error !== null && "code" in error && error.code === "P2002";
   }
 
-  private async withAvatarTransaction<T>(
+  private async withSerializableTransaction<T>(
     operation: (transaction: Prisma.TransactionClient) => Promise<T>,
   ): Promise<T> {
     for (let attempt = 1; attempt <= 3; attempt += 1) {
@@ -260,6 +369,30 @@ export class MiniappAccountService {
 
   private isSerializationConflict(error: unknown): boolean {
     return typeof error === "object" && error !== null && "code" in error && error.code === "P2034";
+  }
+
+  private activeOrderExists(): ApiException {
+    return new ApiException(
+      MINIAPP_ACCOUNT_ERROR_CODE.ACTIVE_ORDER_EXISTS,
+      "存在进行中的订单，暂时无法注销",
+      HttpStatus.CONFLICT,
+    );
+  }
+
+  private cancellationCodeNotRequired(): ApiException {
+    return new ApiException(
+      MINIAPP_ACCOUNT_ERROR_CODE.CANCELLATION_CODE_NOT_REQUIRED,
+      "当前账户未绑定手机号，无需验证码",
+      HttpStatus.BAD_REQUEST,
+    );
+  }
+
+  private verificationCodeInvalid(): ApiException {
+    return new ApiException(
+      MINIAPP_ACCOUNT_ERROR_CODE.VERIFICATION_CODE_INVALID,
+      "验证码错误或已失效",
+      HttpStatus.BAD_REQUEST,
+    );
   }
 
   private isManagedAvatarObjectKey(userId: string, objectKey: string | null): objectKey is string {

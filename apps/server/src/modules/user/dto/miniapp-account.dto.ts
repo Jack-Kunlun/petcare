@@ -1,6 +1,7 @@
-import { ApiProperty } from "@nestjs/swagger";
+import { ApiProperty, ApiPropertyOptional } from "@nestjs/swagger";
 import type {
   BindMiniappPhoneRequest,
+  CancelMiniappAccountRequest,
   MiniappUserProfile,
   SendMiniappPhoneCodeRequest,
   UpdateMiniappProfileRequest,
@@ -41,6 +42,15 @@ export class BindMiniappPhoneDto implements BindMiniappPhoneRequest {
   @IsString()
   @Matches(/^\d{6}$/u)
   code: string;
+}
+
+/** Validates the optional code required only for a bound account cancellation. */
+export class CancelMiniappAccountDto implements CancelMiniappAccountRequest {
+  @ApiPropertyOptional({ pattern: "^[0-9]{6}$", example: "123456" })
+  @ValidateIf((_object, value) => value !== undefined)
+  @IsString()
+  @Matches(/^\d{6}$/u)
+  code?: string;
 }
 
 /** Documents the current Miniapp user response without a raw phone number. */

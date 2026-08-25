@@ -12,6 +12,9 @@ describe("MiniappAccountService", () => {
       findUnique: jest.fn(),
       update: jest.fn(),
     },
+    order: {
+      count: jest.fn(),
+    },
     userProfile: {
       upsert: jest.fn(),
     },
@@ -22,6 +25,9 @@ describe("MiniappAccountService", () => {
       findUnique: jest.fn(),
       update: jest.fn(),
       updateMany: jest.fn(),
+    },
+    order: {
+      count: jest.fn(),
     },
   };
   const verificationCodeService = {
@@ -198,6 +204,291 @@ describe("MiniappAccountService", () => {
       code: MINIAPP_ACCOUNT_ERROR_CODE.PHONE_CONFLICT,
       status: HttpStatus.CONFLICT,
     });
+  });
+
+  it("blocks cancellation before sending SMS when an active order exists", async () => {
+    prisma.user.findUnique.mockResolvedValue({
+      id: "user-1",
+      phone: "13800138000",
+      status: "active",
+    });
+    prisma.order.count.mockResolvedValue(1);
+
+    await expect(service.sendCancellationCode("user-1")).rejects.toMatchObject({
+      code: MINIAPP_ACCOUNT_ERROR_CODE.ACTIVE_ORDER_EXISTS,
+      status: HttpStatus.CONFLICT,
+    });
+    expect(verificationCodeService.send).not.toHaveBeenCalled();
+  });
+
+  it("sends a cancellation-purpose code only to the active account phone", async () => {
+    prisma.user.findUnique.mockResolvedValue({
+      id: "user-1",
+      phone: "13800138000",
+      status: "active",
+    });
+    prisma.order.count.mockResolvedValue(0);
+
+    await expect(service.sendCancellationCode("user-1")).resolves.toBeUndefined();
+    expect(verificationCodeService.send).toHaveBeenCalledWith({
+      phone: "13800138000",
+      purpose: "miniapp_cancel_account",
+      subject: "user-1",
+    });
+    expect(prisma.order.count).toHaveBeenCalledWith({
+      where: {
+        status: { in: ["pending_confirm", "confirmed", "in_progress", "disputed"] },
+        OR: [{ ownerId: "user-1" }, { providerId: "user-1" }],
+      },
+    });
+  });
+
+  it.each([null, { id: "user-1", phone: "13800138000", status: "inactive" }])(
+    "rejects missing or inactive accounts before sending a cancellation code %#",
+    async (user) => {
+      prisma.user.findUnique.mockResolvedValue(user);
+
+      await expect(service.sendCancellationCode("user-1")).rejects.toMatchObject({
+        code: "AUTH_SESSION_EXPIRED",
+        status: HttpStatus.UNAUTHORIZED,
+      });
+      expect(prisma.order.count).not.toHaveBeenCalled();
+      expect(verificationCodeService.send).not.toHaveBeenCalled();
+    },
+  );
+
+  it("rejects cancellation-code delivery for an unbound account", async () => {
+    prisma.user.findUnique.mockResolvedValue({ id: "user-1", phone: null, status: "active" });
+
+    await expect(service.sendCancellationCode("user-1")).rejects.toMatchObject({
+      code: MINIAPP_ACCOUNT_ERROR_CODE.CANCELLATION_CODE_NOT_REQUIRED,
+      status: HttpStatus.BAD_REQUEST,
+    });
+    expect(prisma.order.count).not.toHaveBeenCalled();
+    expect(verificationCodeService.send).not.toHaveBeenCalled();
+  });
+
+  it("preserves SMS rate-limit errors for cancellation-code delivery", async () => {
+    prisma.user.findUnique.mockResolvedValue({
+      id: "user-1",
+      phone: "13800138000",
+      status: "active",
+    });
+    prisma.order.count.mockResolvedValue(0);
+    verificationCodeService.send.mockRejectedValue(
+      Object.assign(new Error("rate limited"), {
+        code: "RATE_LIMIT_EXCEEDED",
+        status: HttpStatus.TOO_MANY_REQUESTS,
+      }),
+    );
+
+    await expect(service.sendCancellationCode("user-1")).rejects.toMatchObject({
+      code: "RATE_LIMIT_EXCEEDED",
+      status: HttpStatus.TOO_MANY_REQUESTS,
+    });
+  });
+
+  it("requires a cancellation code before touching Redis for a bound account", async () => {
+    prisma.user.findUnique.mockResolvedValue({
+      id: "user-1",
+      phone: "13800138000",
+      status: "active",
+    });
+    prisma.order.count.mockResolvedValue(0);
+
+    await expect(service.cancelAccount("user-1")).rejects.toMatchObject({
+      code: MINIAPP_ACCOUNT_ERROR_CODE.CANCELLATION_CODE_REQUIRED,
+      status: HttpStatus.BAD_REQUEST,
+    });
+    expect(verificationCodeService.verifyAndConsume).not.toHaveBeenCalled();
+    expect(prisma.$transaction).not.toHaveBeenCalled();
+  });
+
+  it("rejects an invalid cancellation code without starting a transaction", async () => {
+    prisma.user.findUnique.mockResolvedValue({
+      id: "user-1",
+      phone: "13800138000",
+      status: "active",
+    });
+    prisma.order.count.mockResolvedValue(0);
+    verificationCodeService.verifyAndConsume.mockResolvedValue(false);
+
+    await expect(service.cancelAccount("user-1", "123456")).rejects.toMatchObject({
+      code: MINIAPP_ACCOUNT_ERROR_CODE.VERIFICATION_CODE_INVALID,
+      status: HttpStatus.BAD_REQUEST,
+    });
+    expect(verificationCodeService.verifyAndConsume).toHaveBeenCalledWith({
+      phone: "13800138000",
+      code: "123456",
+      purpose: "miniapp_cancel_account",
+    });
+    expect(prisma.$transaction).not.toHaveBeenCalled();
+  });
+
+  it("rejects a malformed cancellation code before touching Redis", async () => {
+    prisma.user.findUnique.mockResolvedValue({
+      id: "user-1",
+      phone: "13800138000",
+      status: "active",
+    });
+    prisma.order.count.mockResolvedValue(0);
+
+    await expect(service.cancelAccount("user-1", "12345x")).rejects.toMatchObject({
+      code: MINIAPP_ACCOUNT_ERROR_CODE.VERIFICATION_CODE_INVALID,
+      status: HttpStatus.BAD_REQUEST,
+    });
+    expect(verificationCodeService.verifyAndConsume).not.toHaveBeenCalled();
+  });
+
+  it("cancels an unbound account without touching Redis", async () => {
+    prisma.user.findUnique.mockResolvedValue({ id: "user-1", phone: null, status: "active" });
+    prisma.order.count.mockResolvedValue(0);
+    transaction.user.findUnique.mockResolvedValue({ status: "active" });
+    transaction.order.count.mockResolvedValue(0);
+    transaction.user.update.mockResolvedValue(undefined);
+
+    await expect(service.cancelAccount("user-1")).resolves.toBeUndefined();
+    expect(verificationCodeService.verifyAndConsume).not.toHaveBeenCalled();
+    expect(transaction.user.update).toHaveBeenCalledWith({
+      where: { id: "user-1" },
+      data: { status: "inactive", sessionVersion: { increment: 1 } },
+    });
+    expect(prisma.$transaction).toHaveBeenCalledWith(expect.any(Function), {
+      isolationLevel: "Serializable",
+    });
+  });
+
+  it("rejects a supplied code for an unbound account without touching Redis", async () => {
+    prisma.user.findUnique.mockResolvedValue({ id: "user-1", phone: null, status: "active" });
+    prisma.order.count.mockResolvedValue(0);
+
+    await expect(service.cancelAccount("user-1", "123456")).rejects.toMatchObject({
+      code: MINIAPP_ACCOUNT_ERROR_CODE.CANCELLATION_CODE_NOT_REQUIRED,
+      status: HttpStatus.BAD_REQUEST,
+    });
+    expect(verificationCodeService.verifyAndConsume).not.toHaveBeenCalled();
+    expect(prisma.$transaction).not.toHaveBeenCalled();
+  });
+
+  it("cancels a bound account only after consuming its cancellation code", async () => {
+    prisma.user.findUnique.mockResolvedValue({
+      id: "user-1",
+      phone: "13800138000",
+      status: "active",
+    });
+    prisma.order.count.mockResolvedValue(0);
+    verificationCodeService.verifyAndConsume.mockResolvedValue(true);
+    transaction.user.findUnique.mockResolvedValue({ status: "active" });
+    transaction.order.count.mockResolvedValue(0);
+    transaction.user.update.mockResolvedValue(undefined);
+
+    await expect(service.cancelAccount("user-1", "123456")).resolves.toBeUndefined();
+    expect(verificationCodeService.verifyAndConsume).toHaveBeenCalledTimes(1);
+    expect(transaction.user.update).toHaveBeenCalledWith({
+      where: { id: "user-1" },
+      data: { status: "inactive", sessionVersion: { increment: 1 } },
+    });
+  });
+
+  it("blocks owner or provider orders before consuming a cancellation code", async () => {
+    prisma.user.findUnique.mockResolvedValue({
+      id: "user-1",
+      phone: "13800138000",
+      status: "active",
+    });
+    prisma.order.count.mockResolvedValue(1);
+
+    await expect(service.cancelAccount("user-1", "123456")).rejects.toMatchObject({
+      code: MINIAPP_ACCOUNT_ERROR_CODE.ACTIVE_ORDER_EXISTS,
+      status: HttpStatus.CONFLICT,
+    });
+    expect(prisma.order.count).toHaveBeenCalledWith({
+      where: expect.objectContaining({
+        OR: [{ ownerId: "user-1" }, { providerId: "user-1" }],
+      }),
+    });
+    expect(verificationCodeService.verifyAndConsume).not.toHaveBeenCalled();
+  });
+
+  it("blocks an order that appears inside the cancellation transaction", async () => {
+    prisma.user.findUnique.mockResolvedValue({ id: "user-1", phone: null, status: "active" });
+    prisma.order.count.mockResolvedValue(0);
+    transaction.user.findUnique.mockResolvedValue({ status: "active" });
+    transaction.order.count.mockResolvedValue(1);
+
+    await expect(service.cancelAccount("user-1")).rejects.toMatchObject({
+      code: MINIAPP_ACCOUNT_ERROR_CODE.ACTIVE_ORDER_EXISTS,
+      status: HttpStatus.CONFLICT,
+    });
+    expect(transaction.user.update).not.toHaveBeenCalled();
+  });
+
+  it.each([null, { status: "inactive" }])(
+    "rejects a missing or inactive account found inside the transaction %#",
+    async (current) => {
+      prisma.user.findUnique.mockResolvedValue({ id: "user-1", phone: null, status: "active" });
+      prisma.order.count.mockResolvedValue(0);
+      transaction.user.findUnique.mockResolvedValue(current);
+
+      await expect(service.cancelAccount("user-1")).rejects.toMatchObject({
+        code: "AUTH_ACCOUNT_DISABLED",
+        status: HttpStatus.FORBIDDEN,
+      });
+      expect(transaction.order.count).not.toHaveBeenCalled();
+      expect(transaction.user.update).not.toHaveBeenCalled();
+    },
+  );
+
+  it("retries the whole serializable cancellation transaction after P2034", async () => {
+    prisma.user.findUnique.mockResolvedValue({
+      id: "user-1",
+      phone: "13800138000",
+      status: "active",
+    });
+    prisma.order.count.mockResolvedValue(0);
+    verificationCodeService.verifyAndConsume.mockResolvedValue(true);
+    transaction.user.findUnique.mockResolvedValue({ status: "active" });
+    transaction.order.count.mockResolvedValue(0);
+    transaction.user.update.mockResolvedValue(undefined);
+    let attempt = 0;
+
+    prisma.$transaction.mockImplementation(async (operation) => {
+      attempt += 1;
+      const result = await operation(transaction);
+
+      if (attempt === 1) {
+        throw { code: "P2034" };
+      }
+
+      return result;
+    });
+
+    await expect(service.cancelAccount("user-1", "123456")).resolves.toBeUndefined();
+    expect(verificationCodeService.verifyAndConsume).toHaveBeenCalledTimes(1);
+    expect(prisma.$transaction).toHaveBeenCalledTimes(2);
+    expect(transaction.user.findUnique).toHaveBeenCalledTimes(2);
+    expect(transaction.order.count).toHaveBeenCalledTimes(2);
+    expect(transaction.user.update).toHaveBeenCalledTimes(2);
+  });
+
+  it("rethrows P2034 after three cancellation attempts", async () => {
+    prisma.user.findUnique.mockResolvedValue({ id: "user-1", phone: null, status: "active" });
+    prisma.order.count.mockResolvedValue(0);
+    prisma.$transaction.mockRejectedValue({ code: "P2034" });
+
+    await expect(service.cancelAccount("user-1")).rejects.toMatchObject({ code: "P2034" });
+    expect(prisma.$transaction).toHaveBeenCalledTimes(3);
+  });
+
+  it("does not retry a non-serialization cancellation failure", async () => {
+    const databaseError = new Error("database unavailable");
+
+    prisma.user.findUnique.mockResolvedValue({ id: "user-1", phone: null, status: "active" });
+    prisma.order.count.mockResolvedValue(0);
+    prisma.$transaction.mockRejectedValue(databaseError);
+
+    await expect(service.cancelAccount("user-1")).rejects.toBe(databaseError);
+    expect(prisma.$transaction).toHaveBeenCalledTimes(1);
   });
 
   it("stores a user-scoped avatar and cleans up only this user's managed old object", async () => {

@@ -16,6 +16,8 @@ describe("MiniappAccountController", () => {
     replaceAvatar: jest.fn(),
     sendPhoneCode: jest.fn(),
     bindPhone: jest.fn(),
+    sendCancellationCode: jest.fn(),
+    cancelAccount: jest.fn(),
   };
   const controller = new MiniappAccountController(service as unknown as MiniappAccountService);
   const request = { user: { sub: "user-1" } };
@@ -33,9 +35,31 @@ describe("MiniappAccountController", () => {
     expect(route("replaceAvatar")).toEqual(["avatar", RequestMethod.POST]);
     expect(route("sendPhoneCode")).toEqual(["phone/code", RequestMethod.POST]);
     expect(route("bindPhone")).toEqual(["phone", RequestMethod.PUT]);
+    expect(route("sendCancellationCode")).toEqual(["cancellation/code", RequestMethod.POST]);
+    expect(route("cancel")).toEqual(["cancel", RequestMethod.POST]);
     expect(
       Reflect.getMetadata(HTTP_CODE_METADATA, MiniappAccountController.prototype.sendPhoneCode),
     ).toBe(HttpStatus.NO_CONTENT);
+    expect(
+      Reflect.getMetadata(
+        HTTP_CODE_METADATA,
+        MiniappAccountController.prototype.sendCancellationCode,
+      ),
+    ).toBe(HttpStatus.NO_CONTENT);
+    expect(Reflect.getMetadata(HTTP_CODE_METADATA, MiniappAccountController.prototype.cancel)).toBe(
+      HttpStatus.NO_CONTENT,
+    );
+  });
+
+  it("uses only the authenticated subject for account cancellation", async () => {
+    service.sendCancellationCode.mockResolvedValue(undefined);
+    service.cancelAccount.mockResolvedValue(undefined);
+
+    await expect(controller.sendCancellationCode(request as never)).resolves.toBeUndefined();
+    await expect(controller.cancel(request as never, { code: "123456" })).resolves.toBeUndefined();
+
+    expect(service.sendCancellationCode).toHaveBeenCalledWith("user-1");
+    expect(service.cancelAccount).toHaveBeenCalledWith("user-1", "123456");
   });
 
   it("uses only the authenticated subject for profile and phone operations", async () => {

@@ -2,6 +2,7 @@ import { plainToInstance } from "class-transformer";
 import { validate } from "class-validator";
 import {
   BindMiniappPhoneDto,
+  CancelMiniappAccountDto,
   SendMiniappPhoneCodeDto,
   UpdateMiniappProfileDto,
 } from "./miniapp-account.dto";
@@ -41,5 +42,18 @@ describe("Miniapp account DTOs", () => {
     [BindMiniappPhoneDto, { phone: "13800138000", code: "123456" }],
   ])("rejects non-canonical phone representation %#", async (Dto, input) => {
     await expect(validate(plainToInstance(Dto, input))).resolves.not.toHaveLength(0);
+  });
+
+  it("accepts an omitted or six-digit cancellation code and rejects other bodies", async () => {
+    await expect(validate(plainToInstance(CancelMiniappAccountDto, {}))).resolves.toHaveLength(0);
+    await expect(
+      validate(plainToInstance(CancelMiniappAccountDto, { code: "123456" })),
+    ).resolves.toHaveLength(0);
+    await expect(
+      validate(plainToInstance(CancelMiniappAccountDto, { code: "12345x" })),
+    ).resolves.not.toHaveLength(0);
+    await expect(
+      validate(plainToInstance(CancelMiniappAccountDto, { code: null })),
+    ).resolves.not.toHaveLength(0);
   });
 });
