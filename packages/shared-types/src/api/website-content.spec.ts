@@ -40,6 +40,7 @@ describe("website content contract", () => {
       COMPANIONS: "companions",
       ABOUT: "about",
       CONTACT: "contact",
+      HELP: "help",
       PRIVACY: "privacy",
       TERMS: "terms",
     });

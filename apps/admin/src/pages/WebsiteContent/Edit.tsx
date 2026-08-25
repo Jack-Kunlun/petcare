@@ -52,6 +52,7 @@ const REQUIRED_SECTION_KEYS: Record<WebsiteContentKey, readonly string[]> = {
   companions: ["hero"],
   about: ["hero"],
   contact: ["hero", "contact_channels"],
+  help: [],
   privacy: ["legal_content"],
   terms: ["legal_content"],
 };

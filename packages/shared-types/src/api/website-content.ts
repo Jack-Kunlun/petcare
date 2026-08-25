@@ -16,6 +16,8 @@ export const WEBSITE_CONTENT_KEY = {
   ABOUT: "about",
   /** Public contact page content. */
   CONTACT: "contact",
+  /** Public Miniapp help-center content. */
+  HELP: "help",
   /** Public privacy policy page content. */
   PRIVACY: "privacy",
   /** Public terms page content. */

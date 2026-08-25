@@ -28,6 +28,7 @@ const REQUIRED_SECTION_KEYS = {
   [WEBSITE_CONTENT_KEY.COMPANIONS]: ["hero"],
   [WEBSITE_CONTENT_KEY.ABOUT]: ["hero"],
   [WEBSITE_CONTENT_KEY.CONTACT]: ["hero", "contact_channels"],
+  [WEBSITE_CONTENT_KEY.HELP]: [],
   [WEBSITE_CONTENT_KEY.PRIVACY]: ["legal_content"],
   [WEBSITE_CONTENT_KEY.TERMS]: ["legal_content"],
 } satisfies Record<WebsiteContentKey, readonly string[]>;
