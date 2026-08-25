@@ -59,10 +59,7 @@ async function loginAsDefaultAdmin(page: Page): Promise<void> {
 }
 
 async function openRoute(page: Page, path: string): Promise<void> {
-  await page.evaluate((destination) => {
-    globalThis.history.pushState({}, "", destination);
-    globalThis.dispatchEvent(new PopStateEvent("popstate"));
-  }, path);
+  await page.goto(path);
 }
 
 async function assertEditorLayout(
