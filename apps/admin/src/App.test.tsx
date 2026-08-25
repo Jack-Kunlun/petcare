@@ -1,5 +1,5 @@
 import { act, render, screen } from "@testing-library/react";
-import { isValidElement, type ElementType, type ReactNode } from "react";
+import { isValidElement, StrictMode, type ElementType, type ReactNode } from "react";
 import { matchRoutes } from "react-router-dom";
 import { beforeEach, describe, expect, it, vi } from "vitest";
 import App, { createAdminRouter } from "./App";
@@ -10,6 +10,14 @@ import { ADMIN_ROUTE_REGISTRY } from "./routes/registry";
 
 function hasRouteElement(element: ReactNode, type: ElementType) {
   return isValidElement(element) && element.type === type;
+}
+
+function renderApp() {
+  const router = createAdminRouter();
+
+  void router.navigate(window.location.pathname);
+
+  return render(<App router={router} />);
 }
 
 vi.mock("./auth/AuthProvider", () => ({
@@ -62,14 +70,14 @@ describe("App complaint routes", () => {
   });
 
   it("registers the complaint list route without requiring the detail page", async () => {
-    render(<App />);
+    renderApp();
 
     expect(await screen.findByText("投诉工作队列路由")).toBeInTheDocument();
   });
 
   it("注册投诉卷宗详情路由", async () => {
     window.history.replaceState({}, "", "/orders/complaints/complaint-1");
-    render(<App />);
+    renderApp();
     expect(await screen.findByText("投诉卷宗详情路由")).toBeInTheDocument();
   });
 });
@@ -129,7 +137,7 @@ describe("App system settings routes", () => {
     ["/settings/fee/history/fee-v1", "系统设置历史详情路由"],
   ])("注册 %s", async (path, expected) => {
     window.history.replaceState({}, "", path);
-    render(<App />);
+    renderApp();
 
     expect(await screen.findByText(expected)).toBeInTheDocument();
   });
@@ -138,7 +146,7 @@ describe("App system settings routes", () => {
 describe("App account route", () => {
   it("renders for an authenticated user without a business permission", async () => {
     window.history.replaceState({}, "", "/account");
-    render(<App />);
+    renderApp();
 
     expect(await screen.findByText("个人中心路由")).toBeInTheDocument();
   });
@@ -149,7 +157,7 @@ describe("App classroom article editor routes", () => {
     "registers the article editor route %s",
     async (path) => {
       window.history.replaceState({}, "", path);
-      render(<App />);
+      renderApp();
 
       expect(await screen.findByText("课堂文章编辑路由")).toBeInTheDocument();
     },
@@ -158,7 +166,7 @@ describe("App classroom article editor routes", () => {
 
 it("keeps the global message root mounted across a redirect to login", async () => {
   window.history.replaceState({}, "", "/account");
-  render(<App />);
+  renderApp();
   expect(screen.getByTestId("global-error-root")).toBeInTheDocument();
 
   act(() => {
@@ -167,4 +175,29 @@ it("keeps the global message root mounted across a redirect to login", async () 
   });
 
   expect(screen.getByTestId("global-error-root")).toBeInTheDocument();
+});
+
+it("creates one browser router when App mounts in StrictMode", async () => {
+  window.history.replaceState({}, "", "/login");
+  vi.resetModules();
+
+  const routerModule = await vi.importActual<typeof import("react-router-dom")>("react-router-dom");
+  const createBrowserRouter = vi.fn(routerModule.createBrowserRouter);
+
+  vi.doMock("react-router-dom", () => ({ ...routerModule, createBrowserRouter }));
+
+  try {
+    const { default: StrictModeApp } = await import("./App");
+
+    render(
+      <StrictMode>
+        <StrictModeApp />
+      </StrictMode>,
+    );
+
+    expect(createBrowserRouter).toHaveBeenCalledTimes(1);
+  } finally {
+    vi.doUnmock("react-router-dom");
+    vi.resetModules();
+  }
 });

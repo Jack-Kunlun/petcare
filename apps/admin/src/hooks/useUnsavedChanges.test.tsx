@@ -1,5 +1,6 @@
-import { render, screen } from "@testing-library/react";
+import { fireEvent, render, screen } from "@testing-library/react";
 import userEvent from "@testing-library/user-event";
+import { useState } from "react";
 import { Link, createMemoryRouter, RouterProvider } from "react-router-dom";
 import { afterEach, describe, expect, it, vi } from "vitest";
 import { EditorPageLayout } from "../components/EditorPageLayout";
@@ -24,6 +25,29 @@ function createTestRouter(dirty: boolean, initialEntries = ["/"]) {
     ],
     { initialEntries },
   );
+}
+
+function SaveableEditorRoute() {
+  const [dirty, setDirty] = useState(true);
+  const unsavedChanges = useUnsavedChanges(dirty);
+
+  return (
+    <EditorPageLayout
+      title="编辑文章"
+      actions={<button onClick={() => setDirty(false)}>保存成功</button>}
+      unsavedChanges={unsavedChanges}
+    >
+      <p>编辑中</p>
+      <Link to="/next">前往下一页</Link>
+    </EditorPageLayout>
+  );
+}
+
+function createSaveableRouter() {
+  return createMemoryRouter([
+    { path: "/", element: <SaveableEditorRoute /> },
+    { path: "/next", element: <p>下一页</p> },
+  ]);
 }
 
 afterEach(() => {
@@ -71,6 +95,21 @@ describe("useUnsavedChanges", () => {
     await router.navigate(-1);
 
     expect(await screen.findByRole("dialog")).toBeInTheDocument();
+    expect(router.state.location.pathname).toBe("/");
+  });
+
+  it("resets a blocked navigation when a save clears dirty state", async () => {
+    const user = userEvent.setup();
+    const router = createSaveableRouter();
+
+    render(<RouterProvider router={router} />);
+
+    await user.click(screen.getByRole("link", { name: "前往下一页" }));
+    expect(await screen.findByRole("dialog")).toBeInTheDocument();
+
+    fireEvent.click(screen.getByRole("button", { name: "保存成功", hidden: true }));
+
+    expect(screen.queryByRole("dialog")).not.toBeInTheDocument();
     expect(router.state.location.pathname).toBe("/");
   });
 

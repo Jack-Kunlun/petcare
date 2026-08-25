@@ -1,4 +1,3 @@
-import { useState } from "react";
 import { createBrowserRouter, RouterProvider, type RouteObject } from "react-router-dom";
 import { AuthProvider } from "./auth/AuthProvider";
 import { PermissionRoute } from "./auth/PermissionRoute";
@@ -37,9 +36,13 @@ export function createAdminRouter() {
   return createBrowserRouter(createAdminRoutes());
 }
 
-function App() {
-  const [router] = useState(createAdminRouter);
+const adminRouter = createAdminRouter();
 
+interface AppProps {
+  router?: ReturnType<typeof createAdminRouter>;
+}
+
+function App({ router = adminRouter }: AppProps) {
   return (
     <>
       <GlobalErrorMessage />

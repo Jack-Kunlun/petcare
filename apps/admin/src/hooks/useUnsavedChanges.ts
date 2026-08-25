@@ -13,6 +13,12 @@ export function useUnsavedChanges(dirty: boolean): UnsavedChangesController {
   const blocker = useBlocker(dirty);
 
   useEffect(() => {
+    if (!dirty && blocker.state === "blocked") {
+      blocker.reset();
+    }
+  }, [blocker, dirty]);
+
+  useEffect(() => {
     if (!dirty) {
       return;
     }
