@@ -1,14 +1,20 @@
+import { MINIAPP_ACCOUNT_ERROR_CODE } from "@petcare/shared-types";
 import { MiniappApiError } from "../../api/request";
 
+/** Maps the current profile to the cancellation page's SMS requirement. */
 export function getCancellationRequirement(phoneMasked: string | null) {
   return phoneMasked
     ? { requiresCode: true, phoneLabel: phoneMasked }
     : { requiresCode: false, phoneLabel: "未绑定手机号" };
 }
 
+/** Mutable request state shared by the cancellation page controls. */
 export interface CancellationFlowState {
+  /** Whether a cancellation code request is pending. */
   sending: boolean;
+  /** Whether the destructive cancellation request is pending. */
   cancelling: boolean;
+  /** User-facing recovery message, or an empty string when clear. */
   errorMessage: string;
 }
 
@@ -18,6 +24,7 @@ interface ToastOptions {
 }
 
 interface CancellationCodeDependencies {
+  getCurrentUserId: () => string | null;
   sendCancellationCode: () => Promise<void>;
   startCountdown: () => void;
   showToast: (options: ToastOptions) => Promise<unknown>;
@@ -41,13 +48,13 @@ interface CancellationDependencies {
 
 function cancellationErrorMessage(error: unknown, fallback: string): string {
   if (error instanceof MiniappApiError) {
-    if (error.code === "ACTIVE_ORDER_EXISTS") {
+    if (error.code === MINIAPP_ACCOUNT_ERROR_CODE.ACTIVE_ORDER_EXISTS) {
       return "存在进行中的订单，完成或取消后才能注销";
     }
 
     if (
-      error.code === "CANCELLATION_CODE_REQUIRED" ||
-      error.code === "CANCELLATION_CODE_NOT_REQUIRED"
+      error.code === MINIAPP_ACCOUNT_ERROR_CODE.CANCELLATION_CODE_REQUIRED ||
+      error.code === MINIAPP_ACCOUNT_ERROR_CODE.CANCELLATION_CODE_NOT_REQUIRED
     ) {
       return "账户资料已变化，请刷新资料后重新进入注销页面";
     }
@@ -58,6 +65,7 @@ function cancellationErrorMessage(error: unknown, fallback: string): string {
   return error instanceof Error && error.message ? error.message : fallback;
 }
 
+/** Sends one cancellation code without leaking late results across user sessions. */
 export async function runCancellationCodeFlow(
   state: CancellationFlowState,
   requiresCode: boolean,
@@ -67,20 +75,35 @@ export async function runCancellationCodeFlow(
     return;
   }
 
+  const startedUserId = dependencies.getCurrentUserId();
+
+  if (!startedUserId) {
+    state.errorMessage = "登录状态已变化，请重新进入注销页面";
+
+    return;
+  }
+
+  const isCurrentRequest = () =>
+    dependencies.isActive() && dependencies.getCurrentUserId() === startedUserId;
+
+  if (!isCurrentRequest()) {
+    return;
+  }
+
   state.sending = true;
   state.errorMessage = "";
 
   try {
     await dependencies.sendCancellationCode();
 
-    if (!dependencies.isActive()) {
+    if (!isCurrentRequest()) {
       return;
     }
 
     dependencies.startCountdown();
     await dependencies.showToast({ title: "验证码已发送", icon: "none" }).catch(() => undefined);
   } catch (error) {
-    if (dependencies.isActive()) {
+    if (isCurrentRequest()) {
       state.errorMessage = cancellationErrorMessage(error, "验证码发送失败，请重试");
     }
   } finally {
@@ -88,6 +111,7 @@ export async function runCancellationCodeFlow(
   }
 }
 
+/** Confirms and completes one cancellation for the user who started the flow. */
 export async function runCancellationFlow(
   state: CancellationFlowState,
   input: { requiresCode: boolean; code: string },

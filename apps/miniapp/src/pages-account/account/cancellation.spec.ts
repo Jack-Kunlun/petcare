@@ -1,3 +1,4 @@
+import { MINIAPP_ACCOUNT_ERROR_CODE } from "@petcare/shared-types";
 import { describe, expect, it, vi } from "vitest";
 import { MiniappApiError } from "../../api/request";
 import {
@@ -51,6 +52,22 @@ describe("getCancellationRequirement", () => {
 });
 
 describe("cancellation code flow", () => {
+  it("requires a signed-in user before sending a code", async () => {
+    const state = createState();
+    const sendCancellationCode = vi.fn();
+
+    await runCancellationCodeFlow(state, true, {
+      getCurrentUserId: () => null,
+      sendCancellationCode,
+      startCountdown: vi.fn(),
+      showToast: vi.fn(),
+      isActive: () => true,
+    });
+
+    expect(sendCancellationCode).not.toHaveBeenCalled();
+    expect(state.errorMessage).toBe("登录状态已变化，请重新进入注销页面");
+  });
+
   it("sends once and starts the countdown only after success", async () => {
     const state = createState();
     const request = deferred<void>();
@@ -59,12 +76,14 @@ describe("cancellation code flow", () => {
     const showToast = vi.fn().mockResolvedValue(undefined);
 
     const first = runCancellationCodeFlow(state, true, {
+      getCurrentUserId: () => "user-1",
       sendCancellationCode,
       startCountdown,
       showToast,
       isActive: () => true,
     });
     const second = runCancellationCodeFlow(state, true, {
+      getCurrentUserId: () => "user-1",
       sendCancellationCode,
       startCountdown,
       showToast,
@@ -92,6 +111,7 @@ describe("cancellation code flow", () => {
     const showToast = vi.fn().mockResolvedValue(undefined);
 
     await runCancellationCodeFlow(state, false, {
+      getCurrentUserId: () => "user-1",
       sendCancellationCode,
       startCountdown,
       showToast,
@@ -100,6 +120,7 @@ describe("cancellation code flow", () => {
     expect(sendCancellationCode).not.toHaveBeenCalled();
 
     await runCancellationCodeFlow(state, true, {
+      getCurrentUserId: () => "user-1",
       sendCancellationCode,
       startCountdown,
       showToast,
@@ -117,6 +138,7 @@ describe("cancellation code flow", () => {
     const successCountdown = vi.fn();
     const successToast = vi.fn().mockResolvedValue(undefined);
     const success = runCancellationCodeFlow(successState, true, {
+      getCurrentUserId: () => "user-1",
       sendCancellationCode: () => successRequest.promise,
       startCountdown: successCountdown,
       showToast: successToast,
@@ -137,6 +159,7 @@ describe("cancellation code flow", () => {
     const failureCountdown = vi.fn();
     const failureToast = vi.fn().mockResolvedValue(undefined);
     const failure = runCancellationCodeFlow(failureState, true, {
+      getCurrentUserId: () => "user-1",
       sendCancellationCode: () => failureRequest.promise,
       startCountdown: failureCountdown,
       showToast: failureToast,
@@ -150,6 +173,48 @@ describe("cancellation code flow", () => {
     expect(failureCountdown).not.toHaveBeenCalled();
     expect(failureToast).not.toHaveBeenCalled();
     expect(failureState.errorMessage).toBe("");
+  });
+
+  it("ignores a pending code result after the signed-in user changes", async () => {
+    const state = createState();
+    const request = deferred<void>();
+    const startCountdown = vi.fn();
+    const showToast = vi.fn().mockResolvedValue(undefined);
+    let currentUserId = "user-1";
+    const pending = runCancellationCodeFlow(state, true, {
+      getCurrentUserId: () => currentUserId,
+      sendCancellationCode: () => request.promise,
+      startCountdown,
+      showToast,
+      isActive: () => true,
+    });
+
+    currentUserId = "user-2";
+    request.resolve(undefined);
+    await pending;
+
+    expect(startCountdown).not.toHaveBeenCalled();
+    expect(showToast).not.toHaveBeenCalled();
+    expect(state.errorMessage).toBe("");
+  });
+
+  it("does not expose a code-request failure to a replacement user", async () => {
+    const state = createState();
+    const request = deferred<void>();
+    let currentUserId = "user-1";
+    const pending = runCancellationCodeFlow(state, true, {
+      getCurrentUserId: () => currentUserId,
+      sendCancellationCode: () => request.promise,
+      startCountdown: vi.fn(),
+      showToast: vi.fn().mockResolvedValue(undefined),
+      isActive: () => true,
+    });
+
+    currentUserId = "user-2";
+    request.reject(new MiniappApiError(409, MINIAPP_ACCOUNT_ERROR_CODE.ACTIVE_ORDER_EXISTS, ""));
+    await pending;
+
+    expect(state.errorMessage).toBe("");
   });
 });
 
@@ -319,7 +384,7 @@ describe("account cancellation flow", () => {
     const deps = dependencies();
 
     deps.cancelAccount.mockRejectedValue(
-      new MiniappApiError(409, "ACTIVE_ORDER_EXISTS", "存在进行中的订单"),
+      new MiniappApiError(409, MINIAPP_ACCOUNT_ERROR_CODE.ACTIVE_ORDER_EXISTS, "存在进行中的订单"),
     );
 
     await runCancellationFlow(state, { requiresCode: false, code: "" }, deps);
@@ -330,20 +395,20 @@ describe("account cancellation flow", () => {
     expect(state.errorMessage).toBe("存在进行中的订单，完成或取消后才能注销");
   });
 
-  it.each(["CANCELLATION_CODE_REQUIRED", "CANCELLATION_CODE_NOT_REQUIRED"])(
-    "does not guess success when the server reports %s",
-    async (code) => {
-      const state = createState();
-      const deps = dependencies();
+  it.each([
+    MINIAPP_ACCOUNT_ERROR_CODE.CANCELLATION_CODE_REQUIRED,
+    MINIAPP_ACCOUNT_ERROR_CODE.CANCELLATION_CODE_NOT_REQUIRED,
+  ])("does not guess success when the server reports %s", async (code) => {
+    const state = createState();
+    const deps = dependencies();
 
-      deps.cancelAccount.mockRejectedValue(new MiniappApiError(400, code, "资料已变化"));
+    deps.cancelAccount.mockRejectedValue(new MiniappApiError(400, code, "资料已变化"));
 
-      await runCancellationFlow(state, { requiresCode: false, code: "" }, deps);
+    await runCancellationFlow(state, { requiresCode: false, code: "" }, deps);
 
-      expect(deps.completeCancellation).not.toHaveBeenCalled();
-      expect(state.errorMessage).toBe("账户资料已变化，请刷新资料后重新进入注销页面");
-    },
-  );
+    expect(deps.completeCancellation).not.toHaveBeenCalled();
+    expect(state.errorMessage).toBe("账户资料已变化，请刷新资料后重新进入注销页面");
+  });
 
   it("reports local cleanup and navigation failures as already cancelled", async () => {
     const cleanupState = createState();

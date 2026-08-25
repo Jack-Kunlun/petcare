@@ -34,7 +34,7 @@ describe("OrderService public responses", () => {
   beforeEach(() => {
     jest.clearAllMocks();
     prisma.$transaction.mockImplementation(async (callback) => callback(prisma));
-    prisma.$queryRaw.mockResolvedValue([{ status: "active" }]);
+    prisma.$queryRaw.mockResolvedValue([{ status: "active", phone: null }]);
     prisma.order.create.mockResolvedValue({ id: "order-1" });
     prisma.orderSop.createMany.mockResolvedValue({ count: 1 });
     prisma.orderFeeSnapshot.create.mockResolvedValue({ id: "fee-snapshot-1" });
@@ -68,7 +68,7 @@ describe("OrderService public responses", () => {
   });
 
   it("locks the active owner before creating snapshots or order rows", async () => {
-    prisma.$queryRaw.mockResolvedValue([{ status: "active" }]);
+    prisma.$queryRaw.mockResolvedValue([{ status: "active", phone: null }]);
 
     await service.createRewardOrder(
       {
@@ -178,7 +178,7 @@ describe("OrderService public responses", () => {
     expect(prisma.$queryRaw).toHaveBeenCalledTimes(3);
   });
 
-  it.each([{ rows: [{ status: "inactive" }] }, { rows: [] }])(
+  it.each([{ rows: [{ status: "inactive", phone: null }] }, { rows: [] }])(
     "rejects a missing or inactive owner before any order write %#",
     async ({ rows }) => {
       prisma.$queryRaw.mockResolvedValue(rows);

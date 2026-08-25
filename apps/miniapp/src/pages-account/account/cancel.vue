@@ -46,6 +46,7 @@ function requestCode(): void {
   }
 
   void runCancellationCodeFlow(flow, requirement.value.requiresCode, {
+    getCurrentUserId: () => session.user?.id ?? null,
     sendCancellationCode,
     startCountdown,
     showToast: (options) => uni.showToast(options),

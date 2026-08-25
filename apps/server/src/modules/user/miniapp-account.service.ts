@@ -152,11 +152,7 @@ export class MiniappAccountService {
       }
     } else {
       if (code === undefined) {
-        throw new ApiException(
-          MINIAPP_ACCOUNT_ERROR_CODE.CANCELLATION_CODE_REQUIRED,
-          "请输入账户注销验证码",
-          HttpStatus.BAD_REQUEST,
-        );
+        throw this.cancellationCodeRequired();
       }
 
       if (!/^\d{6}$/u.test(code)) {
@@ -175,8 +171,16 @@ export class MiniappAccountService {
     }
 
     await this.withSerializableTransaction(async (transaction) => {
-      if ((await lockUserRow(transaction, userId)) !== "active") {
+      const current = await lockUserRow(transaction, userId);
+
+      if (current?.status !== "active") {
         throw new ApiException("AUTH_ACCOUNT_DISABLED", "账户已被停用", HttpStatus.FORBIDDEN);
+      }
+
+      if (current.phone !== user.phone) {
+        throw current.phone === null
+          ? this.cancellationCodeNotRequired()
+          : this.cancellationCodeRequired();
       }
 
       if (await this.hasBlockingOrders(transaction.order, userId)) {
@@ -209,6 +213,12 @@ export class MiniappAccountService {
 
     try {
       await this.prisma.$transaction(async (transaction) => {
+        const current = await lockUserRow(transaction, userId);
+
+        if (current?.status !== "active" || current.phone !== null) {
+          throw this.phoneAlreadyBound();
+        }
+
         const result = await transaction.user.updateMany({
           where: { id: userId, phone: null, status: "active" },
           data: { phone },
@@ -379,6 +389,14 @@ export class MiniappAccountService {
     return new ApiException(
       MINIAPP_ACCOUNT_ERROR_CODE.CANCELLATION_CODE_NOT_REQUIRED,
       "当前账户未绑定手机号，无需验证码",
+      HttpStatus.BAD_REQUEST,
+    );
+  }
+
+  private cancellationCodeRequired(): ApiException {
+    return new ApiException(
+      MINIAPP_ACCOUNT_ERROR_CODE.CANCELLATION_CODE_REQUIRED,
+      "请输入账户注销验证码",
       HttpStatus.BAD_REQUEST,
     );
   }

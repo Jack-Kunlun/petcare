@@ -57,7 +57,7 @@ describe("MiniappAccountService", () => {
   beforeEach(() => {
     jest.clearAllMocks();
     prisma.$transaction.mockImplementation((operation) => operation(transaction));
-    transaction.$queryRaw.mockResolvedValue([{ status: "active" }]);
+    transaction.$queryRaw.mockResolvedValue([{ status: "active", phone: null }]);
   });
 
   it("returns only a masked phone and the derived completion state", async () => {
@@ -169,7 +169,7 @@ describe("MiniappAccountService", () => {
     expect(prisma.$transaction).not.toHaveBeenCalled();
   });
 
-  it("binds the verified phone with an atomic unbound predicate", async () => {
+  it("locks the account row before binding with an atomic unbound predicate", async () => {
     prisma.user.findUnique
       .mockResolvedValueOnce({ phone: null })
       .mockResolvedValueOnce({ ...selectedUser });
@@ -184,6 +184,9 @@ describe("MiniappAccountService", () => {
       where: { id: "user-1", phone: null, status: "active" },
       data: { phone: "13800138000" },
     });
+    expect(transaction.$queryRaw.mock.invocationCallOrder[0]).toBeLessThan(
+      transaction.user.updateMany.mock.invocationCallOrder[0],
+    );
   });
 
   it("maps a lost unbound-account race to a stable conflict", async () => {
@@ -394,6 +397,7 @@ describe("MiniappAccountService", () => {
     });
     prisma.order.count.mockResolvedValue(0);
     verificationCodeService.verifyAndConsume.mockResolvedValue(true);
+    transaction.$queryRaw.mockResolvedValue([{ status: "active", phone: "13800138000" }]);
     transaction.order.count.mockResolvedValue(0);
     transaction.user.update.mockResolvedValue(undefined);
 
@@ -403,6 +407,58 @@ describe("MiniappAccountService", () => {
       where: { id: "user-1" },
       data: { status: "inactive", sessionVersion: { increment: 1 } },
     });
+  });
+
+  it("requires a fresh code when an initially unbound account is bound before its row lock", async () => {
+    prisma.user.findUnique.mockResolvedValue({ id: "user-1", phone: null, status: "active" });
+    prisma.order.count.mockResolvedValue(0);
+    transaction.$queryRaw.mockResolvedValue([{ status: "active", phone: "13800138000" }]);
+
+    await expect(service.cancelAccount("user-1")).rejects.toMatchObject({
+      code: MINIAPP_ACCOUNT_ERROR_CODE.CANCELLATION_CODE_REQUIRED,
+      status: HttpStatus.BAD_REQUEST,
+    });
+    expect(verificationCodeService.verifyAndConsume).not.toHaveBeenCalled();
+    expect(transaction.order.count).not.toHaveBeenCalled();
+    expect(transaction.user.update).not.toHaveBeenCalled();
+  });
+
+  it("rechecks the locked phone after a serialization retry", async () => {
+    prisma.user.findUnique.mockResolvedValue({ id: "user-1", phone: null, status: "active" });
+    prisma.order.count.mockResolvedValue(0);
+    transaction.$queryRaw.mockResolvedValue([{ status: "active", phone: "13800138000" }]);
+    prisma.$transaction
+      .mockRejectedValueOnce({ code: "P2034" })
+      .mockImplementationOnce((operation) => operation(transaction));
+
+    await expect(service.cancelAccount("user-1")).rejects.toMatchObject({
+      code: MINIAPP_ACCOUNT_ERROR_CODE.CANCELLATION_CODE_REQUIRED,
+      status: HttpStatus.BAD_REQUEST,
+    });
+    expect(prisma.$transaction).toHaveBeenCalledTimes(2);
+    expect(transaction.user.update).not.toHaveBeenCalled();
+  });
+
+  it.each([
+    [null, MINIAPP_ACCOUNT_ERROR_CODE.CANCELLATION_CODE_NOT_REQUIRED],
+    ["13912345678", MINIAPP_ACCOUNT_ERROR_CODE.CANCELLATION_CODE_REQUIRED],
+  ])("requires page refresh when the bound phone changes to %p", async (lockedPhone, errorCode) => {
+    prisma.user.findUnique.mockResolvedValue({
+      id: "user-1",
+      phone: "13800138000",
+      status: "active",
+    });
+    prisma.order.count.mockResolvedValue(0);
+    verificationCodeService.verifyAndConsume.mockResolvedValue(true);
+    transaction.$queryRaw.mockResolvedValue([{ status: "active", phone: lockedPhone }]);
+
+    await expect(service.cancelAccount("user-1", "123456")).rejects.toMatchObject({
+      code: errorCode,
+      status: HttpStatus.BAD_REQUEST,
+    });
+    expect(verificationCodeService.verifyAndConsume).toHaveBeenCalledTimes(1);
+    expect(transaction.order.count).not.toHaveBeenCalled();
+    expect(transaction.user.update).not.toHaveBeenCalled();
   });
 
   it("blocks owner or provider orders before consuming a cancellation code", async () => {
@@ -478,6 +534,7 @@ describe("MiniappAccountService", () => {
     });
     prisma.order.count.mockResolvedValue(0);
     verificationCodeService.verifyAndConsume.mockResolvedValue(true);
+    transaction.$queryRaw.mockResolvedValue([{ status: "active", phone: "13800138000" }]);
     transaction.order.count.mockResolvedValue(0);
     transaction.user.update.mockResolvedValue(undefined);
     let attempt = 0;

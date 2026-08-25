@@ -33,7 +33,9 @@ describe("account cancellation page wiring", () => {
   it("guards async completions with the page lifecycle and current user", () => {
     expect(source).toContain("let active = true;");
     expect(source.match(/isActive: \(\) => active/g)).toHaveLength(2);
-    expect(source).toContain("getCurrentUserId: () => session.user?.id ?? null");
+    expect(source.match(/getCurrentUserId: \(\) => session\.user\?\.id \?\? null/g)).toHaveLength(
+      2,
+    );
     expect(source).toMatch(
       /onUnload\(\(\) => \{\s*active = false;\s*if \(countdownTimer\) \{\s*clearInterval\(countdownTimer\);\s*countdownTimer = undefined;/,
     );

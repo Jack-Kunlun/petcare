@@ -9,8 +9,8 @@ describe("UserService public responses", () => {
     user: {
       create: jest.fn(),
       count: jest.fn(),
+      findFirst: jest.fn(),
       findMany: jest.fn(),
-      findUnique: jest.fn(),
     },
   };
   const service = new UserService(prisma as unknown as PrismaService, {} as ConfigService);
@@ -57,7 +57,7 @@ describe("UserService public responses", () => {
   });
 
   it("returns only explicitly public user and profile fields", async () => {
-    prisma.user.findUnique.mockResolvedValue({
+    prisma.user.findFirst.mockResolvedValue({
       id: "user-1",
       nickname: "小白家长",
       avatar: null,
@@ -77,8 +77,8 @@ describe("UserService public responses", () => {
       profile: { address: "上海市", bio: "喜欢猫咪" },
     });
 
-    expect(prisma.user.findUnique).toHaveBeenCalledWith({
-      where: { id: "user-1" },
+    expect(prisma.user.findFirst).toHaveBeenCalledWith({
+      where: { id: "user-1", status: "active" },
       select: {
         id: true,
         nickname: true,
@@ -90,21 +90,44 @@ describe("UserService public responses", () => {
     });
   });
 
-  it("throws a stable 404 when the user does not exist", async () => {
-    prisma.user.findUnique.mockResolvedValue(null);
+  it("returns an active public user without inventing a missing profile", async () => {
+    prisma.user.findFirst.mockResolvedValue({
+      id: "user-2",
+      nickname: "未完善资料",
+      avatar: null,
+      userType: "pet_owner",
+      status: "active",
+      profile: null,
+    });
 
-    try {
-      await service.findOne("missing");
-      throw new Error("Expected findOne to reject");
-    } catch (error) {
-      expect(error).toBeInstanceOf(ApiException);
-      expect(error).toMatchObject({
-        code: "RESOURCE_NOT_FOUND",
-        clientMessage: "用户不存在",
-      });
-      expect((error as ApiException).getStatus()).toBe(HttpStatus.NOT_FOUND);
-    }
+    await expect(service.findOne("user-2")).resolves.toEqual({
+      id: "user-2",
+      nickname: "未完善资料",
+      avatar: null,
+      userType: "pet_owner",
+      status: "active",
+      profile: null,
+    });
   });
+
+  it.each(["inactive", "banned", "missing"])(
+    "returns the same stable 404 for a %s public account",
+    async () => {
+      prisma.user.findFirst.mockResolvedValue(null);
+
+      try {
+        await service.findOne("hidden-user");
+        throw new Error("Expected findOne to reject");
+      } catch (error) {
+        expect(error).toBeInstanceOf(ApiException);
+        expect(error).toMatchObject({
+          code: "RESOURCE_NOT_FOUND",
+          clientMessage: "用户不存在",
+        });
+        expect((error as ApiException).getStatus()).toBe(HttpStatus.NOT_FOUND);
+      }
+    },
+  );
 
   it("returns a filtered admin user page without sensitive fields", async () => {
     prisma.user.findMany.mockResolvedValue([
@@ -115,7 +138,7 @@ describe("UserService public responses", () => {
         nickname: "系统管理员",
         avatar: null,
         userType: "pet_owner",
-        status: "active",
+        status: "inactive",
         createdAt: new Date("2026-07-29T00:00:00.000Z"),
         provider: null,
       },
@@ -128,7 +151,7 @@ describe("UserService public responses", () => {
         pageSize: 10,
         keyword: "1767",
         userType: "pet_owner",
-        status: "active",
+        status: "inactive",
       }),
     ).resolves.toMatchObject({
       total: 1,
@@ -148,7 +171,7 @@ describe("UserService public responses", () => {
             ],
           },
           { userType: "pet_owner" },
-          { status: "active" },
+          { status: "inactive" },
         ],
       },
       orderBy: { createdAt: "desc" },

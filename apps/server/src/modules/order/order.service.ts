@@ -51,7 +51,7 @@ export class OrderService {
           // eslint-disable-next-line no-await-in-loop -- each retry reruns the complete transaction.
           return await this.prisma.$transaction(
             async (tx) => {
-              if ((await lockUserRow(tx, ownerId)) !== "active") {
+              if ((await lockUserRow(tx, ownerId))?.status !== "active") {
                 throw new ApiException(
                   "AUTH_ACCOUNT_DISABLED",
                   "账户已被停用",
