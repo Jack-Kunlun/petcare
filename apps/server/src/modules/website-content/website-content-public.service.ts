@@ -1,6 +1,7 @@
 import { Injectable } from "@nestjs/common";
 import {
   WEBSITE_CONTENT_STATUS,
+  WEBSITE_SECTION_TYPE,
   type WebsiteContentKey,
   type WebsiteContentVersion,
   type WebsitePublicContent,
@@ -86,9 +87,22 @@ export function toWebsitePublicContent(
     sections: version.sections
       .filter((section) => section.isEnabled)
       .sort((left, right) => left.sortOrder - right.sortOrder)
-      .map(
-        (section) => resolvePublicImages(section, assets) as unknown as WebsitePublicContentSection,
-      ),
+      .map((section) =>
+        resolvePublicImages(
+          section.sectionType === WEBSITE_SECTION_TYPE.CONTACT_PANEL
+            ? {
+                ...section,
+                content: {
+                  ...section.content,
+                  channels: section.content.channels.filter(
+                    (channel) => channel.isEnabled !== false,
+                  ),
+                },
+              }
+            : section,
+          assets,
+        ),
+      ) as unknown as WebsitePublicContentSection[],
   };
 }
 

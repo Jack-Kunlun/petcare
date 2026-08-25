@@ -84,12 +84,33 @@ function createFakePrisma() {
 
         const version = {
           id: `version-${versions.length + 1}`,
-          ...create,
+          ...structuredClone(create),
         } as StoredVersion;
 
         versions.push(version);
 
         return version;
+      }),
+      findMany: jest.fn(async ({ where }) =>
+        versions
+          .filter((version) => version.websiteContentId === where.websiteContentId)
+          .sort((left, right) => left.revision - right.revision)
+          .map((version) => ({
+            ...version,
+            sections: sections
+              .filter((section) => section.versionId === version.id)
+              .sort((left, right) => left.sortOrder - right.sortOrder),
+          })),
+      ),
+      updateMany: jest.fn(async ({ where, data }) => {
+        const matches = versions.filter(
+          (version) =>
+            version.websiteContentId === where.websiteContentId && where.id.in.includes(version.id),
+        );
+
+        matches.forEach((version) => Object.assign(version, data));
+
+        return { count: matches.length };
       }),
     },
     websiteContentSection: {
@@ -107,7 +128,7 @@ function createFakePrisma() {
 
         const section = {
           id: `section-${sections.length + 1}`,
-          ...create,
+          ...structuredClone(create),
         } as StoredSection;
 
         sections.push(section);
@@ -138,6 +159,56 @@ function getOrderedSections(state: ReturnType<typeof createFakePrisma>, versionI
       content: section.content,
       settings: section.settings,
     }));
+}
+
+function requireContactSeed(state: ReturnType<typeof createFakePrisma>) {
+  const content = state.contents.find((candidate) => candidate.contentKey === "contact");
+
+  if (!content?.publishedVersionId || !content.currentDraftVersionId) {
+    throw new Error("Contact seed pointers are required for this test");
+  }
+
+  return {
+    content,
+    draftId: content.currentDraftVersionId,
+    publishedId: content.publishedVersionId,
+  };
+}
+
+function restoreLegacyContactSeed(state: ReturnType<typeof createFakePrisma>) {
+  const contact = requireContactSeed(state);
+  const legacyChannels = [
+    {
+      channelKey: "customer_service",
+      label: "客服邮箱",
+      value: "service@example.com",
+      href: "mailto:service@example.com",
+      availability: "工作日 09:00–18:00",
+    },
+    {
+      channelKey: "business",
+      label: "商务合作",
+      value: "business@example.com",
+      href: "mailto:business@example.com",
+      availability: "工作日 09:00–18:00",
+    },
+  ];
+
+  for (const versionId of [contact.publishedId, contact.draftId]) {
+    const panel = state.sections.find(
+      (section) => section.versionId === versionId && section.sectionKey === "contact_channels",
+    );
+
+    if (!panel) {
+      throw new Error("Legacy contact panel is required for this test");
+    }
+
+    const content = panel.content as { channels: typeof legacyChannels };
+
+    content.channels = structuredClone(legacyChannels);
+  }
+
+  return contact;
 }
 
 describe("seedWebsiteContent", () => {
@@ -266,6 +337,7 @@ describe("seedWebsiteContent", () => {
     const expectedChannels = [
       {
         channelKey: "customer_service",
+        isEnabled: false,
         label: "客服电话",
         value: "待运营配置",
         href: "/contact",
@@ -273,6 +345,7 @@ describe("seedWebsiteContent", () => {
       },
       {
         channelKey: "business",
+        isEnabled: false,
         label: "客服邮箱",
         value: "待运营配置",
         href: "/contact",
@@ -307,6 +380,105 @@ describe("seedWebsiteContent", () => {
     });
     expect(publishedPanel.content).toEqual({ operatorOwned: true });
     expect(state.contents).toHaveLength(10);
+    expect(state.versions).toHaveLength(20);
+    expect(state.sections).toHaveLength(60);
+  });
+
+  it("upgrades only the untouched legacy contact seed with immutable safe versions", async () => {
+    const state = createFakePrisma();
+
+    await seedWebsiteContent(state.prisma, "admin-1");
+    const legacy = restoreLegacyContactSeed(state);
+
+    await seedWebsiteContent(state.prisma, "admin-2");
+
+    const published = state.versions.find(
+      (version) => version.id === legacy.content.publishedVersionId,
+    );
+    const draft = state.versions.find(
+      (version) => version.id === legacy.content.currentDraftVersionId,
+    );
+
+    expect(legacy.content.publishedVersionId).not.toBe(legacy.publishedId);
+    expect(legacy.content.currentDraftVersionId).not.toBe(legacy.draftId);
+    expect(state.versions.find((version) => version.id === legacy.publishedId)?.status).toBe(
+      "superseded",
+    );
+    expect(state.versions.find((version) => version.id === legacy.draftId)?.status).toBe(
+      "superseded",
+    );
+    expect(published).toMatchObject({
+      status: "published",
+      revision: 3,
+      businessVersion: 2,
+      sourceVersionId: legacy.draftId,
+      idempotencyKey: "seed:contact:published:safe-v2",
+      createdById: "admin-2",
+      publishedById: "admin-2",
+    });
+    expect(draft).toMatchObject({
+      status: "draft",
+      revision: 4,
+      businessVersion: null,
+      sourceVersionId: published?.id,
+      idempotencyKey: null,
+      createdById: "admin-2",
+    });
+    expect(getOrderedSections(state, draft!.id)).toEqual(getOrderedSections(state, published!.id));
+    expect(
+      getOrderedSections(state, published!.id).find(
+        (section) => section.sectionKey === "contact_channels",
+      )?.content,
+    ).toMatchObject({
+      channels: [
+        expect.objectContaining({ channelKey: "customer_service", isEnabled: false }),
+        expect.objectContaining({ channelKey: "business", isEnabled: false }),
+      ],
+    });
+    expect(state.versions).toHaveLength(22);
+    expect(state.sections).toHaveLength(66);
+
+    await seedWebsiteContent(state.prisma, "admin-2");
+
+    expect(state.versions).toHaveLength(22);
+    expect(state.sections).toHaveLength(66);
+  });
+
+  it.each([
+    "draft content",
+    "published content",
+    "version metadata",
+    "content metadata",
+    "content pointer",
+  ])("does not migrate operator-modified legacy contact %s", async (modification) => {
+    const state = createFakePrisma();
+
+    await seedWebsiteContent(state.prisma, "admin-1");
+    const legacy = restoreLegacyContactSeed(state);
+
+    if (modification === "content pointer") {
+      legacy.content.currentDraftVersionId = "operator-draft";
+    } else if (modification === "content metadata") {
+      legacy.content.contentType = "operator-owned";
+    } else if (modification === "version metadata") {
+      const draft = state.versions.find((version) => version.id === legacy.draftId)!;
+
+      draft.changeSummary = "运营已编辑";
+    } else {
+      const versionId = modification === "draft content" ? legacy.draftId : legacy.publishedId;
+      const hero = state.sections.find(
+        (section) => section.versionId === versionId && section.sectionKey === "hero",
+      )!;
+
+      (hero.content as { title: string }).title = "运营已编辑";
+    }
+
+    await seedWebsiteContent(state.prisma, "admin-2");
+
+    expect(legacy.content).toMatchObject({
+      currentDraftVersionId: modification === "content pointer" ? "operator-draft" : legacy.draftId,
+      publishedVersionId: legacy.publishedId,
+    });
     expect(state.versions).toHaveLength(20);
     expect(state.sections).toHaveLength(60);
   });

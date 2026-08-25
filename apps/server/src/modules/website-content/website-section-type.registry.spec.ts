@@ -204,6 +204,24 @@ describe("WebsiteSectionTypeRegistry", () => {
     );
   });
 
+  it("validates optional contact-channel visibility without rejecting legacy channels", () => {
+    const contactPanel = sectionOfType(
+      defaultSections(WEBSITE_CONTENT_KEY.CONTACT),
+      WEBSITE_SECTION_TYPE.CONTACT_PANEL,
+    );
+
+    contactPanel.content.channels[0].isEnabled = false;
+    expect(registry.validate(contactPanel)).toEqual([]);
+
+    (contactPanel.content.channels[0] as unknown as { isEnabled: unknown }).isEnabled = "yes";
+    expect(registry.validate(contactPanel)).toEqual(
+      expect.arrayContaining([expect.objectContaining({ path: "content.channels[0].isEnabled" })]),
+    );
+
+    delete contactPanel.content.channels[0].isEnabled;
+    expect(registry.validate(contactPanel)).toEqual([]);
+  });
+
   it("rejects ambiguous homepage record state and duplicate nested item keys", () => {
     const section = sectionOfType(
       defaultSections(WEBSITE_CONTENT_KEY.HOME),

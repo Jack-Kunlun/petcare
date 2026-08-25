@@ -5,6 +5,7 @@ import {
   WEBSITE_CONTENT_STATUS,
   WEBSITE_MEDIA_STATUS,
   WEBSITE_SECTION_TYPE,
+  type WebsiteContactChannel,
   type WebsiteContentSection,
   type WebsiteSectionType,
 } from "./website-content";
@@ -86,6 +87,19 @@ describe("website content contract", () => {
     } satisfies WebsiteContentSection;
 
     expect(renderSectionName(section)).toBe("hero");
+  });
+
+  it("supports explicitly disabling one fixed contact channel", () => {
+    const channel = {
+      channelKey: "customer_service",
+      label: "客服电话",
+      value: "待运营配置",
+      href: "/contact",
+      availability: "工作时间待运营配置",
+      isEnabled: false,
+    } satisfies WebsiteContactChannel;
+
+    expect(channel.isEnabled).toBe(false);
   });
 
   it("publishes stable machine-readable error codes", () => {

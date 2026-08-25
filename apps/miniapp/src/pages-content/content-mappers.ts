@@ -105,7 +105,10 @@ export function toContactPanel(
 ): WebsiteContactPanelSection["content"] | null {
   for (const section of content.sections) {
     if (section.isEnabled && section.sectionType === WEBSITE_SECTION_TYPE.CONTACT_PANEL) {
-      return section.content;
+      return {
+        ...section.content,
+        channels: section.content.channels.filter((channel) => channel.isEnabled !== false),
+      };
     }
   }
 

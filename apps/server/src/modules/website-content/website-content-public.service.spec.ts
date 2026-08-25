@@ -65,6 +65,35 @@ describe("WebsiteContentPublicService", () => {
     expect(result.sections.every((section) => section.sectionType === "rich_text")).toBe(true);
   });
 
+  it("omits disabled contact channels from the anonymous public projection", async () => {
+    const version = publishedVersion(WEBSITE_CONTENT_KEY.CONTACT);
+    const panel = version.sections.find((section) => section.sectionType === "contact_panel");
+
+    if (!panel || panel.sectionType !== "contact_panel") {
+      throw new Error("Contact panel is required for this test");
+    }
+
+    panel.content.channels[0] = {
+      ...panel.content.channels[0],
+      isEnabled: true,
+      value: "service@petcare.example",
+      href: "mailto:service@petcare.example",
+    };
+    panel.content.channels[1] = {
+      ...panel.content.channels[1],
+      isEnabled: false,
+      value: "private@petcare.example",
+      href: "mailto:private@petcare.example",
+    };
+
+    const { service } = createPublicService(version);
+    const result = await service.getPublished(WEBSITE_CONTENT_KEY.CONTACT);
+    const publicPanel = result.sections.find((section) => section.sectionType === "contact_panel");
+
+    expect(publicPanel?.content.channels).toEqual([panel.content.channels[0]]);
+    expect(JSON.stringify(result)).not.toContain("private@petcare.example");
+  });
+
   it("reads the public pointer, falls back to PostgreSQL, and best-effort fills Redis", async () => {
     const version = publishedVersion();
     const { service, repository, cache } = createPublicService(version);

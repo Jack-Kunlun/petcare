@@ -396,6 +396,8 @@ export type WebsiteRichTextSection = WebsiteContentSectionBase<
 export interface WebsiteContactChannel {
   /** Stable channel key in the contact template. */
   channelKey: string;
+  /** Whether the channel is publicly visible; absent legacy values remain visible. */
+  isEnabled?: boolean;
   /** Visible channel label. */
   label: string;
   /** Visible contact value. */

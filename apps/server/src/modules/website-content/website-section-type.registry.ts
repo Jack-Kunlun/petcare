@@ -263,11 +263,23 @@ function validateRichTextPart(value: unknown, path: string, issues: ValidationIs
 }
 
 function validateContactChannel(value: unknown, path: string, issues: ValidationIssue[]): void {
-  if (!hasOnlyKeys(value, path, ["channelKey", "label", "value", "href", "availability"], issues)) {
+  if (
+    !hasOnlyKeys(
+      value,
+      path,
+      ["channelKey", "isEnabled", "label", "value", "href", "availability"],
+      issues,
+    )
+  ) {
     return;
   }
 
   validateIdentifier(value.channelKey, `${path}.channelKey`, issues);
+
+  if (value.isEnabled !== undefined && typeof value.isEnabled !== "boolean") {
+    issues.push(issue(`${path}.isEnabled`, "必须是布尔值"));
+  }
+
   validateText(value.label, `${path}.label`, issues);
   validateText(value.value, `${path}.value`, issues);
   validateOptionalText(value.availability, `${path}.availability`, issues);

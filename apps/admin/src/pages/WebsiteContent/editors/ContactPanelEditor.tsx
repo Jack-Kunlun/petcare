@@ -1,6 +1,6 @@
 import type { WebsiteContactPanelSection } from "@petcare/shared-types";
 import type { SectionEditorProps } from "./editor-types";
-import { SelectField, TextField } from "./fields";
+import { CheckboxField, SelectField, TextField } from "./fields";
 
 /** Edits the template-owned public contact channels with bounded column settings. */
 export function ContactPanelEditor({
@@ -33,7 +33,19 @@ export function ContactPanelEditor({
         <div className="mt-3 space-y-4">
           {section.content.channels.map((channel, channelIndex) => (
             <div key={channel.channelKey} className="rounded-lg bg-slate-50 p-3">
-              <div className="grid gap-3 sm:grid-cols-2">
+              <CheckboxField
+                label={`显示联系渠道 ${channel.label}`}
+                checked={channel.isEnabled !== false}
+                disabled={disabled}
+                onChange={(isEnabled) => {
+                  const channels = section.content.channels.map((candidate, candidateIndex) =>
+                    candidateIndex === channelIndex ? { ...candidate, isEnabled } : candidate,
+                  );
+
+                  updateContent({ ...section.content, channels });
+                }}
+              />
+              <div className="mt-3 grid gap-3 sm:grid-cols-2">
                 <TextField
                   label={`联系渠道 ${channel.label} 标签`}
                   value={channel.label}

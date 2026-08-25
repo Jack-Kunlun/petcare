@@ -174,6 +174,34 @@ describe("support content mappers", () => {
     ).toBeNull();
   });
 
+  it("removes disabled channels while retaining enabled informational channels", () => {
+    const panel = contactPanel("primary", "主要渠道", true);
+
+    panel.content.channels = [
+      {
+        channelKey: "disabled",
+        label: "未配置客服",
+        value: "待运营配置",
+        href: "/contact",
+        availability: "待运营配置",
+        isEnabled: false,
+      },
+      {
+        channelKey: "information",
+        label: "线下地址",
+        value: "上海市",
+        href: "https://example.com/address",
+        availability: "预约后到访",
+        isEnabled: true,
+      },
+    ];
+
+    const result = toContactPanel(publicContent([panel], WEBSITE_CONTENT_KEY.CONTACT));
+
+    expect(result?.channels).toEqual([panel.content.channels[1]]);
+    expect(getContactAction(result!.channels[0].href)).toEqual({ kind: "none" });
+  });
+
   it("accepts only locally valid phone and email actions", () => {
     expect(getContactAction("tel:400-888-6288")).toEqual({
       kind: "phone",

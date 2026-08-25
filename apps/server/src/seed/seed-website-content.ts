@@ -1,9 +1,11 @@
+import { isDeepStrictEqual } from "node:util";
 import {
   WEBSITE_CONTENT_KEY,
   WEBSITE_CONTENT_STATUS,
   WEBSITE_SECTION_TYPE,
   type WebsiteContentKey,
   type WebsiteContentSection,
+  type WebsiteContactChannel,
   type WebsiteRichTextPart,
   type WebsiteRichTextSection,
   type WebsiteSeoContent,
@@ -19,6 +21,25 @@ interface WebsiteSeedTemplate {
 
 const image = (altText: string) => ({ assetId: null, altText });
 const action = (label: string, href: `/${string}`) => ({ label, href });
+
+const LEGACY_CONTACT_CHANNELS = [
+  {
+    channelKey: "customer_service",
+    label: "客服邮箱",
+    value: "service@example.com",
+    href: "mailto:service@example.com",
+    availability: "工作日 09:00–18:00",
+  },
+  {
+    channelKey: "business",
+    label: "商务合作",
+    value: "business@example.com",
+    href: "mailto:business@example.com",
+    availability: "工作日 09:00–18:00",
+  },
+] satisfies readonly WebsiteContactChannel[];
+
+const CONTACT_SAFE_PUBLISHED_IDEMPOTENCY_KEY = "seed:contact:published:safe-v2";
 
 function helpSection(
   sectionKey: string,
@@ -643,6 +664,7 @@ export const WEBSITE_CONTENT_SEED_TEMPLATES: readonly WebsiteSeedTemplate[] = [
           channels: [
             {
               channelKey: "customer_service",
+              isEnabled: false,
               label: "客服电话",
               value: "待运营配置",
               href: "/contact",
@@ -650,6 +672,7 @@ export const WEBSITE_CONTENT_SEED_TEMPLATES: readonly WebsiteSeedTemplate[] = [
             },
             {
               channelKey: "business",
+              isEnabled: false,
               label: "客服邮箱",
               value: "待运营配置",
               href: "/contact",
@@ -776,6 +799,140 @@ export const WEBSITE_CONTENT_SEED_TEMPLATES: readonly WebsiteSeedTemplate[] = [
   })),
 ];
 
+interface StoredContactVersion {
+  id: string;
+  websiteContentId: string;
+  status: string;
+  revision: number;
+  businessVersion: number | null;
+  seo: unknown;
+  sourceVersionId: string | null;
+  idempotencyKey: string | null;
+  changeSummary: string;
+  createdById: string;
+  publishedById: string | null;
+  publishedAt: Date | null;
+  sections: Array<{
+    sectionKey: string;
+    sectionType: string;
+    sortOrder: number;
+    isEnabled: boolean;
+    schemaVersion: number;
+    content: unknown;
+    settings: unknown;
+  }>;
+}
+
+function sectionSnapshots(sections: StoredContactVersion["sections"]) {
+  return sections.map(
+    ({ sectionKey, sectionType, sortOrder, isEnabled, schemaVersion, content, settings }) => ({
+      sectionKey,
+      sectionType,
+      sortOrder,
+      isEnabled,
+      schemaVersion,
+      content,
+      settings,
+    }),
+  );
+}
+
+function legacyContactSections(template: WebsiteSeedTemplate): WebsiteContentSection[] {
+  return template.sections.map((section) =>
+    section.sectionType === WEBSITE_SECTION_TYPE.CONTACT_PANEL
+      ? {
+          ...structuredClone(section),
+          content: {
+            ...structuredClone(section.content),
+            channels: structuredClone(LEGACY_CONTACT_CHANNELS),
+          },
+        }
+      : structuredClone(section),
+  );
+}
+
+function isUntouchedLegacyContactSeed(
+  content: {
+    id: string;
+    contentType: string;
+    currentDraftVersionId: string | null;
+    publishedVersionId: string | null;
+  },
+  versions: StoredContactVersion[],
+  template: WebsiteSeedTemplate,
+): boolean {
+  if (
+    content.contentType !== template.contentType ||
+    !content.currentDraftVersionId ||
+    !content.publishedVersionId ||
+    versions.length !== 2
+  ) {
+    return false;
+  }
+
+  const published = versions.find((version) => version.id === content.publishedVersionId);
+  const draft = versions.find((version) => version.id === content.currentDraftVersionId);
+  const originalOperatorId = published?.createdById;
+
+  if (!published || !draft || !originalOperatorId) {
+    return false;
+  }
+
+  const legacySections = legacyContactSections(template);
+  const actual = [published, draft].map((version) => ({
+    id: version.id,
+    websiteContentId: version.websiteContentId,
+    status: version.status,
+    revision: version.revision,
+    businessVersion: version.businessVersion,
+    seo: version.seo,
+    sourceVersionId: version.sourceVersionId,
+    idempotencyKey: version.idempotencyKey,
+    changeSummary: version.changeSummary,
+    createdById: version.createdById,
+    publishedById: version.publishedById ?? null,
+    hasPublishedAt: version.publishedAt !== null && version.publishedAt !== undefined,
+    sections: sectionSnapshots(version.sections),
+  }));
+  const expected = [
+    {
+      id: published.id,
+      websiteContentId: content.id,
+      status: WEBSITE_CONTENT_STATUS.PUBLISHED,
+      revision: 1,
+      businessVersion: 1,
+      seo: template.seo,
+      sourceVersionId: null,
+      idempotencyKey: `seed:${WEBSITE_CONTENT_KEY.CONTACT}:published:v1`,
+      changeSummary: "初始化官网内容",
+      createdById: originalOperatorId,
+      publishedById: originalOperatorId,
+      hasPublishedAt: true,
+      sections: legacySections,
+    },
+    {
+      id: draft.id,
+      websiteContentId: content.id,
+      status: WEBSITE_CONTENT_STATUS.DRAFT,
+      revision: 2,
+      businessVersion: null,
+      seo: template.seo,
+      sourceVersionId: published.id,
+      idempotencyKey: null,
+      changeSummary: "从初始发布版本创建可编辑草稿",
+      createdById: originalOperatorId,
+      publishedById: null,
+      hasPublishedAt: false,
+      sections: legacySections,
+    },
+  ];
+
+  return isDeepStrictEqual(
+    JSON.parse(JSON.stringify(actual)),
+    JSON.parse(JSON.stringify(expected)),
+  );
+}
+
 async function upsertSections(
   tx: Prisma.TransactionClient,
   versionId: string,
@@ -803,6 +960,79 @@ async function upsertSections(
   );
 }
 
+async function upgradeUntouchedLegacyContactSeed(
+  tx: Prisma.TransactionClient,
+  content: {
+    id: string;
+    contentType: string;
+    currentDraftVersionId: string | null;
+    publishedVersionId: string | null;
+  },
+  template: WebsiteSeedTemplate,
+  operatorId: string,
+): Promise<void> {
+  const storedVersions = (await tx.websiteContentVersion.findMany({
+    where: { websiteContentId: content.id },
+    include: { sections: { orderBy: { sortOrder: "asc" } } },
+    orderBy: { revision: "asc" },
+  })) as unknown as StoredContactVersion[];
+
+  if (!isUntouchedLegacyContactSeed(content, storedVersions, template)) {
+    return;
+  }
+
+  const published = await tx.websiteContentVersion.upsert({
+    where: { idempotencyKey: CONTACT_SAFE_PUBLISHED_IDEMPOTENCY_KEY },
+    update: {},
+    create: {
+      websiteContentId: content.id,
+      status: WEBSITE_CONTENT_STATUS.PUBLISHED,
+      revision: 3,
+      businessVersion: 2,
+      seo: template.seo as unknown as Prisma.InputJsonValue,
+      sourceVersionId: content.currentDraftVersionId,
+      idempotencyKey: CONTACT_SAFE_PUBLISHED_IDEMPOTENCY_KEY,
+      changeSummary: "停用待运营配置的联系渠道",
+      createdById: operatorId,
+      publishedById: operatorId,
+      publishedAt: new Date(),
+    },
+  });
+  const draft = await tx.websiteContentVersion.upsert({
+    where: {
+      websiteContentId_revision: { websiteContentId: content.id, revision: 4 },
+    },
+    update: {},
+    create: {
+      websiteContentId: content.id,
+      status: WEBSITE_CONTENT_STATUS.DRAFT,
+      revision: 4,
+      businessVersion: null,
+      seo: template.seo as unknown as Prisma.InputJsonValue,
+      sourceVersionId: published.id,
+      idempotencyKey: null,
+      changeSummary: "从安全联系渠道版本创建可编辑草稿",
+      createdById: operatorId,
+    },
+  });
+
+  await Promise.all([
+    upsertSections(tx, published.id, template.sections),
+    upsertSections(tx, draft.id, template.sections),
+  ]);
+  await tx.websiteContentVersion.updateMany({
+    where: {
+      websiteContentId: content.id,
+      id: { in: [content.publishedVersionId!, content.currentDraftVersionId!] },
+    },
+    data: { status: WEBSITE_CONTENT_STATUS.SUPERSEDED },
+  });
+  await tx.websiteContent.update({
+    where: { id: content.id },
+    data: { currentDraftVersionId: draft.id, publishedVersionId: published.id },
+  });
+}
+
 async function seedTemplate(
   tx: Prisma.TransactionClient,
   template: WebsiteSeedTemplate,
@@ -818,6 +1048,10 @@ async function seedTemplate(
   });
 
   if (content.currentDraftVersionId !== null || content.publishedVersionId !== null) {
+    if (template.contentKey === WEBSITE_CONTENT_KEY.CONTACT) {
+      await upgradeUntouchedLegacyContactSeed(tx, content, template, operatorId);
+    }
+
     return;
   }
 

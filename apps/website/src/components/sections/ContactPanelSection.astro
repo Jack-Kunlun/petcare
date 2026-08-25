@@ -21,17 +21,19 @@ const { section } = Astro.props;
       ]}
     >
       {
-        section.content.channels.map((channel) => {
-          const href = getSafeWebsiteHref(channel.href);
+        section.content.channels
+          .filter((channel) => channel.isEnabled !== false)
+          .map((channel) => {
+            const href = getSafeWebsiteHref(channel.href);
 
-          return (
-            <li>
-              <h3>{channel.label}</h3>
-              {href ? <a href={href}>{channel.value}</a> : <span>{channel.value}</span>}
-              {channel.availability ? <p>{channel.availability}</p> : null}
-            </li>
-          );
-        })
+            return (
+              <li>
+                <h3>{channel.label}</h3>
+                {href ? <a href={href}>{channel.value}</a> : <span>{channel.value}</span>}
+                {channel.availability ? <p>{channel.availability}</p> : null}
+              </li>
+            );
+          })
       }
     </ul>
   </div>
