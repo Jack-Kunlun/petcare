@@ -1,5 +1,5 @@
 import { QueryClient, QueryClientProvider } from "@tanstack/react-query";
-import { render, screen, waitFor } from "@testing-library/react";
+import { render, screen, waitFor, within } from "@testing-library/react";
 import userEvent from "@testing-library/user-event";
 import { MemoryRouter, Route, Routes } from "react-router-dom";
 import { beforeEach, describe, expect, it, vi } from "vitest";
@@ -85,6 +85,30 @@ describe("Settings history detail", () => {
     });
   });
 
+  it("uses the shared narrow layout and opens the same copy dialog from both actions", async () => {
+    const user = userEvent.setup();
+
+    renderDetail();
+
+    expect(await screen.findByRole("heading", { name: "费率设置 v1" })).toBeInTheDocument();
+    const page = document.querySelector("section.editor-page");
+
+    expect(page).toHaveClass("max-w-[var(--editor-width-narrow)]");
+    const header = within(page?.querySelector("header.editor-page__header") as HTMLElement);
+    const content = within(page?.querySelector("div.editor-page__content") as HTMLElement);
+
+    expect(header.getByRole("link", { name: "返回配置编辑器" })).toBeInTheDocument();
+    expect(header.getByText("历史版本")).toBeInTheDocument();
+    expect(header.getByRole("button", { name: "顶部复制为新草稿" })).toBeEnabled();
+    expect(content.getByRole("button", { name: "复制为新草稿" })).toBeEnabled();
+
+    await user.click(header.getByRole("button", { name: "顶部复制为新草稿" }));
+    expect(screen.getByRole("dialog", { name: "复制历史版本" })).toBeInTheDocument();
+    await user.click(screen.getByRole("button", { name: "取消" }));
+    await user.click(content.getByRole("button", { name: "复制为新草稿" }));
+    expect(screen.getByRole("dialog", { name: "复制历史版本" })).toBeInTheDocument();
+  });
+
   it("只读展示历史详情并经确认复制为新草稿", async () => {
     const user = userEvent.setup();
 
@@ -119,10 +143,17 @@ describe("Settings history detail", () => {
 
     expect(await screen.findByRole("heading", { name: "费率设置 v1" })).toBeInTheDocument();
     expect(screen.getByRole("alert", { name: "草稿状态加载失败" })).toBeInTheDocument();
+    const page = document.querySelector("section.editor-page");
+    const header = within(page?.querySelector("header.editor-page__header") as HTMLElement);
+
+    expect(header.getByRole("button", { name: "顶部复制为新草稿" })).toBeDisabled();
     expect(screen.getByRole("button", { name: "复制为新草稿" })).toBeDisabled();
 
     await user.click(screen.getByRole("button", { name: "重新检查草稿状态" }));
 
+    await waitFor(() =>
+      expect(header.getByRole("button", { name: "顶部复制为新草稿" })).toBeEnabled(),
+    );
     await waitFor(() => expect(screen.getByRole("button", { name: "复制为新草稿" })).toBeEnabled());
     expect(feeApi.fetchFeeDraft).toHaveBeenCalledTimes(2);
   });
@@ -133,6 +164,7 @@ describe("Settings history detail", () => {
     await screen.findByRole("heading", { name: "费率设置 v1" });
 
     expect(screen.queryByRole("button", { name: "复制为新草稿" })).not.toBeInTheDocument();
+    expect(screen.queryByRole("button", { name: "顶部复制为新草稿" })).not.toBeInTheDocument();
     expect(screen.getByText("需要领域编辑和 system.publish 权限。")).toBeInTheDocument();
   });
 });

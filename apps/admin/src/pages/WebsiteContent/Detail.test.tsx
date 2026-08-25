@@ -1,6 +1,6 @@
 import type { WebsiteContentVersion } from "@petcare/shared-types";
 import { QueryClient, QueryClientProvider } from "@tanstack/react-query";
-import { render, screen, waitFor } from "@testing-library/react";
+import { render, screen, waitFor, within } from "@testing-library/react";
 import userEvent from "@testing-library/user-event";
 import { MemoryRouter, Route, Routes } from "react-router-dom";
 import { beforeEach, describe, expect, it, vi } from "vitest";
@@ -57,11 +57,15 @@ const auth: AuthContextValue = {
   invalidateLocalSession: vi.fn(),
 };
 
-function renderDetail() {
+function renderDetail(permissions = auth.user?.permissions ?? []) {
   const queryClient = new QueryClient({ defaultOptions: { queries: { retry: false } } });
+  const context: AuthContextValue = {
+    ...auth,
+    user: auth.user ? { ...auth.user, permissions } : null,
+  };
 
   render(
-    <AuthContext.Provider value={auth}>
+    <AuthContext.Provider value={context}>
       <QueryClientProvider client={queryClient}>
         <MemoryRouter initialEntries={["/website-content/home/history/version-1"]}>
           <Routes>
@@ -99,6 +103,55 @@ describe("WebsiteContentDetail", () => {
       publishedAt: null,
       revision: 5,
     });
+  });
+
+  it("uses the shared narrow layout and opens the same restore dialog from both actions", async () => {
+    const user = userEvent.setup();
+
+    renderDetail();
+
+    expect(await screen.findByRole("heading", { name: "历史版本 v2" })).toBeInTheDocument();
+    const page = document.querySelector("section.editor-page");
+
+    expect(page).toHaveClass("max-w-[var(--editor-width-narrow)]");
+    const header = within(page?.querySelector("header.editor-page__header") as HTMLElement);
+    const content = within(page?.querySelector("div.editor-page__content") as HTMLElement);
+
+    expect(header.getByRole("link", { name: "返回官网内容编辑" })).toBeInTheDocument();
+    expect(header.getByText("历史版本")).toBeInTheDocument();
+    expect(header.getByRole("button", { name: "顶部恢复为新草稿" })).toBeEnabled();
+    expect(content.getByRole("button", { name: "恢复为新草稿" })).toBeEnabled();
+
+    await user.click(header.getByRole("button", { name: "顶部恢复为新草稿" }));
+    expect(screen.getByRole("dialog", { name: "确认创建恢复草稿" })).toBeInTheDocument();
+    await user.click(screen.getByRole("button", { name: "取消" }));
+    await user.click(content.getByRole("button", { name: "恢复为新草稿" }));
+    expect(screen.getByRole("dialog", { name: "确认创建恢复草稿" })).toBeInTheDocument();
+  });
+
+  it("keeps top and lower restore actions unavailable when the current draft cannot be read", async () => {
+    vi.mocked(websiteApi.fetchWebsiteContentDraft).mockRejectedValue(new Error("network down"));
+
+    renderDetail();
+
+    await screen.findByRole("heading", { name: "历史版本 v2" });
+    await screen.findByRole("alert");
+    const page = document.querySelector("section.editor-page");
+    const header = within(page?.querySelector("header.editor-page__header") as HTMLElement);
+    const content = within(page?.querySelector("div.editor-page__content") as HTMLElement);
+
+    expect(header.getByRole("button", { name: "顶部恢复为新草稿" })).toBeDisabled();
+    expect(content.getByRole("button", { name: "恢复为新草稿" })).toBeDisabled();
+  });
+
+  it("does not render either restore action without website.publish", async () => {
+    renderDetail([]);
+
+    await screen.findByRole("heading", { name: "历史版本 v2" });
+
+    expect(screen.queryByRole("button", { name: "顶部恢复为新草稿" })).not.toBeInTheDocument();
+    expect(screen.queryByRole("button", { name: "恢复为新草稿" })).not.toBeInTheDocument();
+    expect(screen.getByText("需要 website.publish 权限。")).toBeInTheDocument();
   });
 
   it("reads a historical version and restores it as a new draft", async () => {

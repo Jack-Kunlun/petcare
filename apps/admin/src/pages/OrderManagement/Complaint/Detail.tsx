@@ -29,6 +29,7 @@ import {
   transferAdminComplaint,
 } from "../../../api/complaints";
 import { PermissionGate } from "../../../auth/PermissionGate";
+import { EditorPageLayout, FormSection } from "../../../components/EditorPageLayout";
 import { DecisionDialog } from "./DecisionDialog";
 import { TransferDialog } from "./TransferDialog";
 
@@ -49,6 +50,20 @@ const taskLabels: Record<string, string> = {
   complainant_credit: "投诉方信用",
   respondent_credit: "被投诉方信用",
 };
+const currentActionDefinitions = [
+  { action: "claim", label: "认领案件", icon: <Hand className="h-4 w-4" /> },
+  { action: "transfer", label: "转派案件", icon: <Send className="h-4 w-4" /> },
+  {
+    action: "initial_decide",
+    label: "作出初审裁决",
+    icon: <Gavel className="h-4 w-4" />,
+  },
+  {
+    action: "final_decide",
+    label: "作出最终裁决",
+    icon: <Gavel className="h-4 w-4" />,
+  },
+] as const;
 
 /** 格式化 ISO 时间供卷宗阅读。 */
 function dateTime(value: string): string {
@@ -157,80 +172,93 @@ export default function ComplaintDetailPage() {
   }
 
   return (
-    <div className="mx-auto flex w-full max-w-full flex-col gap-6">
-      <Link
-        to="/orders/complaints"
-        className="inline-flex min-h-11 w-fit items-center gap-2 text-sm font-medium text-slate-600 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-blue-600"
-      >
-        <ArrowLeft className="h-4 w-4" />
-        返回投诉工作队列
-      </Link>
-      <header className="flex flex-col justify-between gap-4 sm:flex-row sm:items-start">
-        <div>
-          <p className="text-sm font-medium text-blue-700">投诉纠纷卷宗</p>
-          <h1 className="mt-1 font-mono text-2xl font-semibold text-slate-950">
-            {complaint.caseNumber}
-          </h1>
-          <p className="mt-1 text-sm text-slate-500">
-            订单 {complaint.orderId} · 更新于 {dateTime(complaint.updatedAt)}
-          </p>
-        </div>
-        <span className="w-fit rounded-full bg-blue-50 px-3 py-2 font-medium text-blue-800">
-          {statusLabels[complaint.status]}
-        </span>
-      </header>
-      {actionError ? (
-        <p
-          role="alert"
-          className="rounded-lg border border-amber-200 bg-amber-50 p-3 text-amber-900"
-        >
-          {actionError}
-        </p>
-      ) : null}
-      <main className="grid items-start gap-6 xl:grid-cols-3">
-        <div className="space-y-6 xl:col-span-2">
-          <Dossier complaint={complaint} />
-        </div>
-        <aside className="space-y-4 xl:sticky xl:top-6">
-          <Workbench
+    <>
+      <EditorPageLayout
+        width="wide"
+        title={<span className="font-mono">{complaint.caseNumber}</span>}
+        description={`投诉纠纷卷宗 · 订单 ${complaint.orderId} · 更新于 ${dateTime(complaint.updatedAt)}`}
+        status={
+          <span className="w-fit rounded-full bg-blue-50 px-3 py-2 font-medium text-blue-800">
+            {statusLabels[complaint.status]}
+          </span>
+        }
+        back={
+          <Link
+            to="/orders/complaints"
+            className="inline-flex min-h-11 w-fit items-center gap-2 text-sm font-medium text-slate-600 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-blue-600"
+          >
+            <ArrowLeft aria-hidden="true" className="h-4 w-4" />
+            返回投诉工作队列
+          </Link>
+        }
+        actions={
+          <ComplaintActionButtons
             actions={complaint.allowedActions}
             pending={claim.isPending || retry.isPending}
             onClaim={() => claim.mutate()}
             onTransfer={() => setDialog("transfer")}
             onInitial={() => setDialog("initial")}
             onFinal={() => setDialog("final")}
+            ariaLabelPrefix="顶部"
           />
-          {canRetry ? (
-            <section className="rounded-xl border border-slate-200 bg-white p-5 shadow-sm">
-              <h2 className="font-semibold text-slate-950">执行任务</h2>
-              {tasks.data?.list.map((task) => (
-                <div
-                  key={task.id}
-                  className="mt-3 flex items-center justify-between gap-3 rounded-lg border border-slate-200 p-3"
-                >
-                  <div>
-                    <p className="font-medium">{taskLabels[task.taskType]}</p>
-                    <p className="mt-1 text-xs text-red-700">{task.failureReason ?? "执行失败"}</p>
-                  </div>
-                  {task.status === "failed" ? (
-                    <PermissionGate all={["dispute.resolve"]}>
-                      <button
-                        type="button"
-                        disabled={retry.isPending}
-                        onClick={() => retry.mutate(task.id)}
-                        className="inline-flex min-h-11 items-center gap-2 rounded-lg border border-red-300 px-3 font-medium text-red-700 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-red-600"
-                      >
-                        <RefreshCcw className="h-4 w-4" />
-                        重试{taskLabels[task.taskType]}任务
-                      </button>
-                    </PermissionGate>
-                  ) : null}
+        }
+      >
+        {actionError ? (
+          <p
+            role="alert"
+            className="rounded-lg border border-amber-200 bg-amber-50 p-3 text-amber-900"
+          >
+            {actionError}
+          </p>
+        ) : null}
+        <div className="grid items-start gap-6 xl:grid-cols-3">
+          <div className="space-y-6 xl:col-span-2">
+            <Dossier complaint={complaint} />
+          </div>
+          <aside className="space-y-4 xl:sticky xl:top-24">
+            <Workbench
+              actions={complaint.allowedActions}
+              pending={claim.isPending || retry.isPending}
+              onClaim={() => claim.mutate()}
+              onTransfer={() => setDialog("transfer")}
+              onInitial={() => setDialog("initial")}
+              onFinal={() => setDialog("final")}
+            />
+            {canRetry ? (
+              <FormSection title="执行任务">
+                <div className="grid gap-3">
+                  {tasks.data?.list.map((task) => (
+                    <div
+                      key={task.id}
+                      className="flex items-center justify-between gap-3 rounded-lg border border-slate-200 p-3"
+                    >
+                      <div>
+                        <p className="font-medium">{taskLabels[task.taskType]}</p>
+                        <p className="mt-1 text-xs text-red-700">
+                          {task.failureReason ?? "执行失败"}
+                        </p>
+                      </div>
+                      {task.status === "failed" ? (
+                        <PermissionGate all={["dispute.resolve"]}>
+                          <button
+                            type="button"
+                            disabled={retry.isPending}
+                            onClick={() => retry.mutate(task.id)}
+                            className="inline-flex min-h-11 items-center gap-2 rounded-lg border border-red-300 px-3 font-medium text-red-700 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-red-600"
+                          >
+                            <RefreshCcw className="h-4 w-4" />
+                            重试{taskLabels[task.taskType]}任务
+                          </button>
+                        </PermissionGate>
+                      ) : null}
+                    </div>
+                  ))}
                 </div>
-              ))}
-            </section>
-          ) : null}
-        </aside>
-      </main>
+              </FormSection>
+            ) : null}
+          </aside>
+        </div>
+      </EditorPageLayout>
       {dialog === "transfer" ? (
         <TransferDialog
           version={complaint.version}
@@ -251,7 +279,7 @@ export default function ComplaintDetailPage() {
           }
         />
       ) : null}
-    </div>
+    </>
   );
 }
 
@@ -266,13 +294,16 @@ function Section({
   children: React.ReactNode;
 }) {
   return (
-    <section className="rounded-xl border border-slate-200 bg-white p-5 shadow-sm">
-      <h2 className="flex items-center gap-2 text-xl font-semibold text-slate-950">
-        {icon}
-        {title}
-      </h2>
-      <div className="mt-5">{children}</div>
-    </section>
+    <FormSection
+      title={
+        <span className="flex items-center gap-2">
+          {icon}
+          {title}
+        </span>
+      }
+    >
+      {children}
+    </FormSection>
   );
 }
 
@@ -404,63 +435,66 @@ function Decision({ label, value }: { label: string; value: SubmitDisputeDecisio
   );
 }
 
-/** 仅按服务端 allowedActions 渲染当前可用动作。 */
-function Workbench({
-  actions,
-  pending,
-  onClaim,
-  onTransfer,
-  onInitial,
-  onFinal,
-}: {
+type ComplaintActionButtonsProps = {
   actions: ComplaintAction[];
   pending: boolean;
   onClaim: () => void;
   onTransfer: () => void;
   onInitial: () => void;
   onFinal: () => void;
-}) {
-  const buttons = [
-    { action: "claim", label: "认领案件", icon: <Hand className="h-4 w-4" />, run: onClaim },
-    { action: "transfer", label: "转派案件", icon: <Send className="h-4 w-4" />, run: onTransfer },
-    {
-      action: "initial_decide",
-      label: "作出初审裁决",
-      icon: <Gavel className="h-4 w-4" />,
-      run: onInitial,
-    },
-    {
-      action: "final_decide",
-      label: "作出最终裁决",
-      icon: <Gavel className="h-4 w-4" />,
-      run: onFinal,
-    },
-  ] as const;
+  ariaLabelPrefix?: string;
+};
+
+/** 仅按服务端 allowedActions 渲染当前可用动作。 */
+function ComplaintActionButtons({
+  actions,
+  pending,
+  onClaim,
+  onTransfer,
+  onInitial,
+  onFinal,
+  ariaLabelPrefix,
+}: ComplaintActionButtonsProps) {
+  const callbacks = {
+    claim: onClaim,
+    transfer: onTransfer,
+    initial_decide: onInitial,
+    final_decide: onFinal,
+  };
 
   return (
-    <section className="rounded-xl border border-slate-200 bg-white p-5 shadow-sm">
-      <p className="text-sm font-medium text-blue-700">裁决工作台</p>
-      <h2 className="mt-1 text-xl font-semibold text-slate-950">当前可执行操作</h2>
-      <div className="mt-4 grid gap-3">
-        {buttons
-          .filter((button) => actions.includes(button.action))
-          .map((button) => (
-            <PermissionGate key={button.action} all={["dispute.resolve"]}>
-              <button
-                type="button"
-                disabled={pending}
-                onClick={button.run}
-                className="inline-flex min-h-11 items-center justify-center gap-2 rounded-lg bg-blue-700 px-4 font-semibold text-white disabled:opacity-50 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-blue-600 focus-visible:ring-offset-2"
-              >
-                {button.icon}
-                {button.label}
-              </button>
-            </PermissionGate>
-          ))}
-        {buttons.every((button) => !actions.includes(button.action)) ? (
-          <p className="text-sm text-slate-500">当前无需人工操作。</p>
-        ) : null}
+    <>
+      {currentActionDefinitions
+        .filter((button) => actions.includes(button.action))
+        .map((button) => (
+          <PermissionGate key={button.action} all={["dispute.resolve"]}>
+            <button
+              type="button"
+              aria-label={ariaLabelPrefix ? `${ariaLabelPrefix}${button.label}` : undefined}
+              disabled={pending}
+              onClick={callbacks[button.action]}
+              className="inline-flex min-h-11 cursor-pointer items-center justify-center gap-2 rounded-lg bg-blue-700 px-4 font-semibold text-white focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-blue-600 focus-visible:ring-offset-2 disabled:cursor-not-allowed disabled:opacity-50"
+            >
+              {button.icon}
+              {button.label}
+            </button>
+          </PermissionGate>
+        ))}
+    </>
+  );
+}
+
+function Workbench(props: ComplaintActionButtonsProps) {
+  const hasAvailableAction = currentActionDefinitions.some((button) =>
+    props.actions.includes(button.action),
+  );
+
+  return (
+    <FormSection title="当前可执行操作" description="裁决工作台">
+      <div className="grid gap-3">
+        <ComplaintActionButtons {...props} />
+        {!hasAvailableAction ? <p className="text-sm text-slate-500">当前无需人工操作。</p> : null}
       </div>
-    </section>
+    </FormSection>
   );
 }

@@ -10,6 +10,7 @@ import {
   rejectAdminProviderCertification,
 } from "../../../api/provider-certifications";
 import { PermissionGate } from "../../../auth/PermissionGate";
+import { EditorPageLayout, FormSection } from "../../../components/EditorPageLayout";
 
 type DialogMode = "approve" | "reject" | null;
 
@@ -117,176 +118,205 @@ export default function ProviderCertificationDetail() {
   const application = query.data;
   const isMutating = approveMutation.isPending || rejectMutation.isPending;
 
-  return (
-    <div className="mx-auto flex w-full max-w-[1200px] flex-col gap-6">
-      <Link
-        to="/users/certifications"
-        className="inline-flex min-h-11 w-fit items-center gap-2 text-sm font-medium text-slate-600 hover:text-blue-700 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-blue-600"
-      >
-        <ArrowLeft aria-hidden="true" className="h-4 w-4" />
-        返回认证审核
-      </Link>
+  const backLink = (
+    <Link
+      to="/users/certifications"
+      className="inline-flex min-h-11 w-fit items-center gap-2 text-sm font-medium text-slate-600 hover:text-blue-700 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-blue-600"
+    >
+      <ArrowLeft aria-hidden="true" className="h-4 w-4" />
+      返回认证审核
+    </Link>
+  );
 
-      {query.isPending ? (
-        <div aria-label="正在加载认证详情" className="h-80 animate-pulse rounded-xl bg-slate-100" />
-      ) : null}
-      {query.isError ? (
-        <section
-          role="alert"
-          className="rounded-xl border border-red-200 bg-red-50 p-8 text-center"
+  const renderReviewActions = (top = false) => (
+    <>
+      <PermissionGate all={["user.reject_provider"]}>
+        <button
+          type="button"
+          aria-label={top ? "顶部驳回申请" : undefined}
+          className="min-h-11 cursor-pointer rounded-lg border border-red-300 px-5 text-sm font-semibold text-red-700 hover:bg-red-50 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-red-600"
+          onClick={() => {
+            setFormError("");
+            setDialogMode("reject");
+          }}
         >
-          <ShieldAlert aria-hidden="true" className="mx-auto h-8 w-8 text-red-600" />
-          <h1 className="mt-3 text-xl font-semibold text-red-950">认证详情加载失败</h1>
-          <button
-            type="button"
-            className="mt-4 h-11 cursor-pointer rounded-lg border border-red-300 px-4 text-sm"
-            onClick={() => void query.refetch()}
+          驳回申请
+        </button>
+      </PermissionGate>
+      <PermissionGate all={["user.approve_provider"]}>
+        <button
+          type="button"
+          aria-label={top ? "顶部审核通过" : undefined}
+          className="min-h-11 cursor-pointer rounded-lg bg-emerald-700 px-5 text-sm font-semibold text-white hover:bg-emerald-800 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-emerald-600"
+          onClick={() => setDialogMode("approve")}
+        >
+          审核通过
+        </button>
+      </PermissionGate>
+    </>
+  );
+
+  if (!application) {
+    return (
+      <div className="mx-auto flex w-full max-w-[1200px] flex-col gap-6">
+        {backLink}
+        {query.isPending ? (
+          <div
+            aria-label="正在加载认证详情"
+            className="h-80 animate-pulse rounded-xl bg-slate-100"
+          />
+        ) : null}
+        {query.isError ? (
+          <section
+            role="alert"
+            className="rounded-xl border border-red-200 bg-red-50 p-8 text-center"
           >
-            重新加载
-          </button>
-        </section>
-      ) : null}
-
-      {application ? (
-        <>
-          <header className="flex flex-col justify-between gap-4 sm:flex-row sm:items-start">
-            <div>
-              <p className="text-sm font-medium text-blue-700">认证申请详情</p>
-              <h1 className="mt-1 text-2xl font-semibold text-slate-950">
-                {application.applicant.nickname}
-              </h1>
-              <p className="mt-1 text-sm text-slate-500">
-                提交于 {formatDateTime(application.createdAt)}
-              </p>
-            </div>
-            <span className="w-fit rounded-full bg-slate-100 px-3 py-1.5 text-sm font-medium text-slate-700">
-              {certificationStatusLabels[application.status]}
-            </span>
-          </header>
-
-          {actionError ? (
-            <p
-              role="alert"
-              className="rounded-lg border border-red-200 bg-red-50 p-3 text-sm text-red-800"
+            <ShieldAlert aria-hidden="true" className="mx-auto h-8 w-8 text-red-600" />
+            <h1 className="mt-3 text-xl font-semibold text-red-950">认证详情加载失败</h1>
+            <button
+              type="button"
+              className="mt-4 h-11 cursor-pointer rounded-lg border border-red-300 px-4 text-sm"
+              onClick={() => void query.refetch()}
             >
-              {actionError}
-            </p>
-          ) : null}
+              重新加载
+            </button>
+          </section>
+        ) : null}
+      </div>
+    );
+  }
 
-          <div className="grid gap-6 lg:grid-cols-2">
-            <section className="rounded-xl border border-slate-200 bg-white p-5 shadow-sm">
-              <h2 className="flex items-center gap-2 font-semibold text-slate-950">
+  return (
+    <>
+      <EditorPageLayout
+        width="default"
+        title={application.applicant.nickname}
+        description={
+          <>
+            <span className="mr-2 font-medium text-blue-700">认证申请详情</span>
+            提交于 {formatDateTime(application.createdAt)}
+          </>
+        }
+        status={
+          <span className="w-fit rounded-full bg-slate-100 px-3 py-1.5 text-sm font-medium text-slate-700">
+            {certificationStatusLabels[application.status]}
+          </span>
+        }
+        back={backLink}
+        actions={application.status === "pending" ? renderReviewActions(true) : undefined}
+        footerActions={
+          application.status === "pending" ? (
+            <div className="sticky bottom-4 flex flex-col gap-3 rounded-xl border border-slate-200 bg-white/95 p-4 shadow-lg backdrop-blur sm:flex-row sm:justify-end">
+              {renderReviewActions()}
+            </div>
+          ) : undefined
+        }
+      >
+        {actionError ? (
+          <p
+            role="alert"
+            className="rounded-lg border border-red-200 bg-red-50 p-3 text-sm text-red-800"
+          >
+            {actionError}
+          </p>
+        ) : null}
+
+        <div className="grid gap-6 lg:grid-cols-2">
+          <FormSection
+            title={
+              <span className="flex items-center gap-2">
                 <ShieldCheck aria-hidden="true" className="h-5 w-5 text-blue-700" />
                 申请人信息
-              </h2>
-              <dl className="mt-5 grid grid-cols-2 gap-4 text-sm">
-                <div>
-                  <dt className="text-slate-500">手机号</dt>
-                  <dd className="mt-1 font-medium tabular-nums text-slate-900">
-                    {application.applicant.phone}
-                  </dd>
-                </div>
-                <div>
-                  <dt className="text-slate-500">登录账号</dt>
-                  <dd className="mt-1 font-medium text-slate-900">
-                    {application.applicant.username ?? "未设置"}
-                  </dd>
-                </div>
-                <div>
-                  <dt className="text-slate-500">真实姓名</dt>
-                  <dd className="mt-1 font-medium text-slate-900">{application.realNameMasked}</dd>
-                </div>
-                <div>
-                  <dt className="text-slate-500">身份证号</dt>
-                  <dd className="mt-1 font-medium tabular-nums text-slate-900">
-                    {application.idCardMasked}
-                  </dd>
-                </div>
-              </dl>
-            </section>
-
-            <section className="rounded-xl border border-slate-200 bg-white p-5 shadow-sm">
-              <h2 className="flex items-center gap-2 font-semibold text-slate-950">
-                <BadgeCheck aria-hidden="true" className="h-5 w-5 text-blue-700" />
-                准入条件
-              </h2>
-              <dl className="mt-5 space-y-4 text-sm">
-                <div className="flex items-center justify-between gap-4">
-                  <dt className="text-slate-500">身份资料</dt>
-                  <dd className="font-medium text-emerald-700">
-                    {application.idCardVerified ? "已提交" : "缺失"}
-                  </dd>
-                </div>
-                <div className="flex items-center justify-between gap-4">
-                  <dt className="text-slate-500">培训考核</dt>
-                  <dd className="font-medium text-slate-900">
-                    {application.trainingPassed ? "已通过" : "未通过"}
-                  </dd>
-                </div>
-                <div className="flex items-center justify-between gap-4">
-                  <dt className="text-slate-500">微信支付分</dt>
-                  <dd className="font-medium tabular-nums text-slate-900">
-                    {application.wechatScore ?? "未提供"}
-                  </dd>
-                </div>
-              </dl>
-            </section>
-          </div>
-
-          <section className="rounded-xl border border-slate-200 bg-white p-5 shadow-sm">
-            <h2 className="flex items-center gap-2 font-semibold text-slate-950">
-              <FileCheck2 aria-hidden="true" className="h-5 w-5 text-blue-700" />
-              审核记录
-            </h2>
-            <dl className="mt-5 grid gap-4 text-sm sm:grid-cols-3">
+              </span>
+            }
+          >
+            <dl className="grid grid-cols-2 gap-4 text-sm">
               <div>
-                <dt className="text-slate-500">审核管理员</dt>
-                <dd className="mt-1 font-medium text-slate-900">
-                  {application.reviewedBy?.nickname ?? "尚未审核"}
+                <dt className="text-slate-500">手机号</dt>
+                <dd className="mt-1 font-medium tabular-nums text-slate-900">
+                  {application.applicant.phone}
                 </dd>
               </div>
               <div>
-                <dt className="text-slate-500">审核时间</dt>
+                <dt className="text-slate-500">登录账号</dt>
                 <dd className="mt-1 font-medium text-slate-900">
-                  {formatDateTime(application.reviewedAt)}
+                  {application.applicant.username ?? "未设置"}
                 </dd>
               </div>
               <div>
-                <dt className="text-slate-500">驳回原因</dt>
-                <dd className="mt-1 font-medium text-slate-900">
-                  {application.rejectReason ?? "无"}
+                <dt className="text-slate-500">真实姓名</dt>
+                <dd className="mt-1 font-medium text-slate-900">{application.realNameMasked}</dd>
+              </div>
+              <div>
+                <dt className="text-slate-500">身份证号</dt>
+                <dd className="mt-1 font-medium tabular-nums text-slate-900">
+                  {application.idCardMasked}
                 </dd>
               </div>
             </dl>
-          </section>
+          </FormSection>
 
-          {application.status === "pending" ? (
-            <div className="sticky bottom-4 flex flex-col gap-3 rounded-xl border border-slate-200 bg-white/95 p-4 shadow-lg backdrop-blur sm:flex-row sm:justify-end">
-              <PermissionGate all={["user.reject_provider"]}>
-                <button
-                  type="button"
-                  className="min-h-11 cursor-pointer rounded-lg border border-red-300 px-5 text-sm font-semibold text-red-700 hover:bg-red-50 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-red-600"
-                  onClick={() => {
-                    setFormError("");
-                    setDialogMode("reject");
-                  }}
-                >
-                  驳回申请
-                </button>
-              </PermissionGate>
-              <PermissionGate all={["user.approve_provider"]}>
-                <button
-                  type="button"
-                  className="min-h-11 cursor-pointer rounded-lg bg-emerald-700 px-5 text-sm font-semibold text-white hover:bg-emerald-800 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-emerald-600"
-                  onClick={() => setDialogMode("approve")}
-                >
-                  审核通过
-                </button>
-              </PermissionGate>
+          <FormSection
+            title={
+              <span className="flex items-center gap-2">
+                <BadgeCheck aria-hidden="true" className="h-5 w-5 text-blue-700" />
+                准入条件
+              </span>
+            }
+          >
+            <dl className="space-y-4 text-sm">
+              <div className="flex items-center justify-between gap-4">
+                <dt className="text-slate-500">身份资料</dt>
+                <dd className="font-medium text-emerald-700">
+                  {application.idCardVerified ? "已提交" : "缺失"}
+                </dd>
+              </div>
+              <div className="flex items-center justify-between gap-4">
+                <dt className="text-slate-500">培训考核</dt>
+                <dd className="font-medium text-slate-900">
+                  {application.trainingPassed ? "已通过" : "未通过"}
+                </dd>
+              </div>
+              <div className="flex items-center justify-between gap-4">
+                <dt className="text-slate-500">微信支付分</dt>
+                <dd className="font-medium tabular-nums text-slate-900">
+                  {application.wechatScore ?? "未提供"}
+                </dd>
+              </div>
+            </dl>
+          </FormSection>
+        </div>
+
+        <FormSection
+          title={
+            <span className="flex items-center gap-2">
+              <FileCheck2 aria-hidden="true" className="h-5 w-5 text-blue-700" />
+              审核记录
+            </span>
+          }
+        >
+          <dl className="grid gap-4 text-sm sm:grid-cols-3">
+            <div>
+              <dt className="text-slate-500">审核管理员</dt>
+              <dd className="mt-1 font-medium text-slate-900">
+                {application.reviewedBy?.nickname ?? "尚未审核"}
+              </dd>
             </div>
-          ) : null}
-        </>
-      ) : null}
+            <div>
+              <dt className="text-slate-500">审核时间</dt>
+              <dd className="mt-1 font-medium text-slate-900">
+                {formatDateTime(application.reviewedAt)}
+              </dd>
+            </div>
+            <div>
+              <dt className="text-slate-500">驳回原因</dt>
+              <dd className="mt-1 font-medium text-slate-900">
+                {application.rejectReason ?? "无"}
+              </dd>
+            </div>
+          </dl>
+        </FormSection>
+      </EditorPageLayout>
 
       {dialogMode === "approve" ? (
         <div className="fixed inset-0 z-50 flex items-center justify-center bg-slate-950/50 p-4">
@@ -379,6 +409,6 @@ export default function ProviderCertificationDetail() {
           </section>
         </div>
       ) : null}
-    </div>
+    </>
   );
 }

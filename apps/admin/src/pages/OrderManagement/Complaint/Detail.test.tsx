@@ -1,6 +1,6 @@
 import type { AdminComplaintDetail, DisputeExecutionTaskView } from "@petcare/shared-types";
 import { QueryClient, QueryClientProvider } from "@tanstack/react-query";
-import { fireEvent, render, screen, waitFor } from "@testing-library/react";
+import { fireEvent, render, screen, waitFor, within } from "@testing-library/react";
 import userEvent from "@testing-library/user-event";
 import axios from "axios";
 import { MemoryRouter, Route, Routes } from "react-router-dom";
@@ -166,6 +166,19 @@ describe("ComplaintDetail", () => {
   it("按顺序展示完整卷宗并且只显示服务端允许的操作", async () => {
     renderPage();
     await screen.findByText("CP20260729001");
+    const page = document.querySelector("section.editor-page");
+
+    expect(page).toHaveClass("max-w-[var(--editor-width-wide)]");
+    const header = within(page?.querySelector("header.editor-page__header") as HTMLElement);
+
+    expect(header.getByRole("link", { name: "返回投诉工作队列" })).toBeInTheDocument();
+    expect(header.getByRole("heading", { name: "CP20260729001" })).toBeInTheDocument();
+    expect(header.getByText("终审中")).toBeInTheDocument();
+    expect(header.getByRole("button", { name: "顶部转派案件" })).toBeInTheDocument();
+    expect(header.getByRole("button", { name: "顶部作出最终裁决" })).toBeInTheDocument();
+    expect(header.queryByRole("button", { name: "顶部认领案件" })).not.toBeInTheDocument();
+    expect(page?.querySelector("main")).not.toBeInTheDocument();
+
     const headings = screen.getAllByRole("heading", { level: 2 }).map((node) => node.textContent);
 
     expect(headings.slice(0, 6)).toEqual([
@@ -179,6 +192,20 @@ describe("ComplaintDetail", () => {
     expect(screen.getByRole("button", { name: "转派案件" })).toBeInTheDocument();
     expect(screen.getByRole("button", { name: "作出最终裁决" })).toBeInTheDocument();
     expect(screen.queryByRole("button", { name: "认领案件" })).not.toBeInTheDocument();
+  });
+
+  it("routes top allowed actions through the same existing dialogs", async () => {
+    const user = userEvent.setup();
+
+    renderPage({ ...detail, allowedActions: ["transfer", "initial_decide"] });
+    await screen.findByText("CP20260729001");
+    const header = within(document.querySelector("header.editor-page__header") as HTMLElement);
+
+    await user.click(header.getByRole("button", { name: "顶部转派案件" }));
+    expect(screen.getByRole("dialog")).toBeInTheDocument();
+    await user.keyboard("{Escape}");
+    await user.click(header.getByRole("button", { name: "顶部作出初审裁决" }));
+    expect(screen.getByRole("heading", { name: "作出初审裁决" })).toBeInTheDocument();
   });
 
   it("验证金额必须为非负整数且合计不超过订单可分配金额", async () => {
