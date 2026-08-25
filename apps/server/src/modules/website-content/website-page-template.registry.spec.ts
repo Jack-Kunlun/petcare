@@ -202,4 +202,35 @@ describe("WebsitePageTemplateRegistry", () => {
       invalidContentError(() => registry.validateSnapshot(WEBSITE_CONTENT_KEY.CONTACT, sections)),
     ).toMatchObject({ code: WEBSITE_CONTENT_ERROR_CODE.INVALID_CONTENT });
   });
+
+  it("keeps all fixed help categories optional to display", () => {
+    const sections = defaultSections(WEBSITE_CONTENT_KEY.HELP);
+
+    sections.forEach((section) => {
+      section.isEnabled = false;
+    });
+
+    expect(() => registry.validateSnapshot(WEBSITE_CONTENT_KEY.HELP, sections)).not.toThrow();
+  });
+
+  it("keeps the help category composition fixed", () => {
+    const missing = defaultSections(WEBSITE_CONTENT_KEY.HELP);
+    const added = defaultSections(WEBSITE_CONTENT_KEY.HELP);
+    const reordered = defaultSections(WEBSITE_CONTENT_KEY.HELP);
+    const changedType = defaultSections(WEBSITE_CONTENT_KEY.HELP);
+
+    missing.pop();
+    added.push({ ...structuredClone(added[0]), sectionKey: "new_category", sortOrder: 5 });
+    [reordered[0].sortOrder, reordered[1].sortOrder] = [
+      reordered[1].sortOrder,
+      reordered[0].sortOrder,
+    ];
+    changedType[0].sectionType = WEBSITE_SECTION_TYPE.CTA as never;
+
+    for (const sections of [missing, added, reordered, changedType]) {
+      expect(
+        invalidContentError(() => registry.validateSnapshot(WEBSITE_CONTENT_KEY.HELP, sections)),
+      ).toMatchObject({ code: WEBSITE_CONTENT_ERROR_CODE.INVALID_CONTENT });
+    }
+  });
 });

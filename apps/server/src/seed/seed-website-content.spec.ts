@@ -155,11 +155,12 @@ describe("seedWebsiteContent", () => {
       "companions",
       "about",
       "contact",
+      "help",
       "privacy",
       "terms",
     ]);
-    expect(state.contents).toHaveLength(9);
-    expect(state.versions).toHaveLength(18);
+    expect(state.contents).toHaveLength(10);
+    expect(state.versions).toHaveLength(20);
 
     for (const content of state.contents) {
       const publishedVersions = state.versions.filter(
@@ -231,7 +232,83 @@ describe("seedWebsiteContent", () => {
       }),
       expect.objectContaining({ sectionKey: "home_cta", sectionType: "cta", sortOrder: 5 }),
     ]);
-    expect(state.sections).toHaveLength(52);
+
+    const help = state.contents.find((content) => content.contentKey === "help");
+    const helpDraft = state.versions.find((version) => version.id === help?.currentDraftVersionId);
+
+    expect(helpDraft).toBeDefined();
+    expect(getOrderedSections(state, helpDraft!.id).map((section) => section.sectionKey)).toEqual([
+      "account_and_identity",
+      "bounty_and_orders",
+      "care_records",
+      "fees_and_benefits",
+    ]);
+    expect(state.sections).toHaveLength(60);
+  });
+
+  it("seeds safe configurable contact defaults without replacing operator-owned contact content", async () => {
+    const state = createFakePrisma();
+
+    await seedWebsiteContent(state.prisma, "admin-1");
+
+    const contact = state.contents.find((content) => content.contentKey === "contact");
+    const contactDraft = state.versions.find(
+      (version) => version.id === contact?.currentDraftVersionId,
+    );
+    const contactPublished = state.versions.find(
+      (version) => version.id === contact?.publishedVersionId,
+    );
+
+    if (!contact || !contactDraft || !contactPublished) {
+      throw new Error("Contact seed content is required for this test");
+    }
+
+    const expectedChannels = [
+      {
+        channelKey: "customer_service",
+        label: "客服电话",
+        value: "待运营配置",
+        href: "/contact",
+        availability: "工作时间待运营配置",
+      },
+      {
+        channelKey: "business",
+        label: "客服邮箱",
+        value: "待运营配置",
+        href: "/contact",
+        availability: "工作时间待运营配置",
+      },
+    ];
+
+    expect(
+      getOrderedSections(state, contactDraft.id).find(
+        (section) => section.sectionKey === "contact_channels",
+      )?.content,
+    ).toMatchObject({ channels: expectedChannels });
+
+    const publishedPanel = state.sections.find(
+      (section) =>
+        section.versionId === contactPublished.id && section.sectionKey === "contact_channels",
+    );
+
+    if (!publishedPanel) {
+      throw new Error("Published contact panel is required for this test");
+    }
+
+    publishedPanel.content = { operatorOwned: true };
+    contact.currentDraftVersionId = "operator-draft";
+    contact.publishedVersionId = "operator-published";
+
+    await seedWebsiteContent(state.prisma, "admin-1");
+
+    expect(contact).toMatchObject({
+      currentDraftVersionId: "operator-draft",
+      publishedVersionId: "operator-published",
+    });
+    expect(publishedPanel.content).toEqual({ operatorOwned: true });
+    expect(state.contents).toHaveLength(10);
+    expect(state.versions).toHaveLength(20);
+    expect(state.sections).toHaveLength(60);
   });
 
   it("does not replace an existing operator-owned website pointer", async () => {

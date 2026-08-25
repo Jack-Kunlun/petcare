@@ -4,6 +4,8 @@ import {
   WEBSITE_SECTION_TYPE,
   type WebsiteContentKey,
   type WebsiteContentSection,
+  type WebsiteRichTextPart,
+  type WebsiteRichTextSection,
   type WebsiteSeoContent,
 } from "@petcare/shared-types";
 import { Prisma, PrismaClient } from "../generated/prisma/client";
@@ -17,6 +19,23 @@ interface WebsiteSeedTemplate {
 
 const image = (altText: string) => ({ assetId: null, altText });
 const action = (label: string, href: `/${string}`) => ({ label, href });
+
+function helpSection(
+  sectionKey: string,
+  sortOrder: number,
+  title: string,
+  parts: WebsiteRichTextPart[],
+): WebsiteRichTextSection {
+  return {
+    sectionKey,
+    sectionType: WEBSITE_SECTION_TYPE.RICH_TEXT,
+    sortOrder,
+    isEnabled: true,
+    schemaVersion: 1,
+    content: { title, effectiveDate: null, parts },
+    settings: { width: "normal" },
+  };
+}
 
 /** Deterministic initial snapshots used by the website seed and fixed template registry. */
 export const WEBSITE_CONTENT_SEED_TEMPLATES: readonly WebsiteSeedTemplate[] = [
@@ -624,17 +643,17 @@ export const WEBSITE_CONTENT_SEED_TEMPLATES: readonly WebsiteSeedTemplate[] = [
           channels: [
             {
               channelKey: "customer_service",
-              label: "客服邮箱",
-              value: "service@example.com",
-              href: "mailto:service@example.com",
-              availability: "工作日 09:00–18:00",
+              label: "客服电话",
+              value: "待运营配置",
+              href: "/contact",
+              availability: "工作时间待运营配置",
             },
             {
               channelKey: "business",
-              label: "商务合作",
-              value: "business@example.com",
-              href: "mailto:business@example.com",
-              availability: "工作日 09:00–18:00",
+              label: "客服邮箱",
+              value: "待运营配置",
+              href: "/contact",
+              availability: "工作时间待运营配置",
             },
           ],
         },
@@ -654,6 +673,66 @@ export const WEBSITE_CONTENT_SEED_TEMPLATES: readonly WebsiteSeedTemplate[] = [
         },
         settings: { tone: "soft", alignment: "center" },
       },
+    ],
+  },
+  {
+    contentKey: WEBSITE_CONTENT_KEY.HELP,
+    contentType: "page",
+    seo: {
+      title: "帮助中心｜PetCare 宠伴",
+      description: "PetCare 小程序常见问题与使用指南。",
+      canonicalPath: "/help",
+      image: null,
+    },
+    sections: [
+      helpSection("account_and_identity", 1, "账号与认证", [
+        {
+          partKey: "complete_profile",
+          heading: "如何完善个人信息？",
+          paragraphs: ["进入“我的－个人信息－编辑个人信息”，验证手机号后即可完成资料。"],
+        },
+        {
+          partKey: "wechat_profile",
+          heading: "如何修改头像和昵称？",
+          paragraphs: ["在编辑个人信息页主动选择微信头像并填写微信昵称，保存后即可更新。"],
+        },
+      ]),
+      helpSection("bounty_and_orders", 2, "悬赏与订单", [
+        {
+          partKey: "publish_bounty",
+          heading: "如何发布悬赏？",
+          paragraphs: ["进入悬赏大厅并点击发布按钮，资料完善后按页面步骤填写需求。"],
+        },
+        {
+          partKey: "publish_blocked",
+          heading: "为什么暂时无法发布？",
+          paragraphs: ["请先确认已经登录并通过短信验证手机号；页面会引导你完善资料。"],
+        },
+      ]),
+      helpSection("care_records", 3, "服务记录", [
+        {
+          partKey: "service_progress",
+          heading: "怎样查看服务进度？",
+          paragraphs: ["从订单列表进入订单详情，可查看该订单已经开放的服务进度与照护记录。"],
+        },
+        {
+          partKey: "service_issue",
+          heading: "遇到服务问题怎么办？",
+          paragraphs: ["请保留订单编号和相关记录，再通过“联系客服”页面选择已配置的渠道。"],
+        },
+      ]),
+      helpSection("fees_and_benefits", 4, "费用与优惠", [
+        {
+          partKey: "coupon_location",
+          heading: "优惠券在哪里查看？",
+          paragraphs: ["进入“我的”页面并点击“优惠券”即可查看当前页面提供的优惠信息。"],
+        },
+        {
+          partKey: "fee_reference",
+          heading: "服务费用以哪里为准？",
+          paragraphs: ["实际费用以提交订单前的确认页面和最终订单记录为准。"],
+        },
+      ]),
     ],
   },
   ...[
