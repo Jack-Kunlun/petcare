@@ -10,6 +10,10 @@ export const MINIAPP_ACCOUNT_ERROR_CODE = {
   VERIFICATION_CODE_INVALID: "VERIFICATION_CODE_INVALID",
   /** The account cannot be cancelled while it has an active order. */
   ACTIVE_ORDER_EXISTS: "ACTIVE_ORDER_EXISTS",
+  /** A bound account must submit its cancellation SMS code. */
+  CANCELLATION_CODE_REQUIRED: "CANCELLATION_CODE_REQUIRED",
+  /** An unbound account must not submit a cancellation SMS code. */
+  CANCELLATION_CODE_NOT_REQUIRED: "CANCELLATION_CODE_NOT_REQUIRED",
 } as const;
 
 /** Current Miniapp profile without a raw phone number. */

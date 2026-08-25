@@ -23,4 +23,14 @@ describe("miniapp account contract", () => {
     expect(MINIAPP_ACCOUNT_ERROR_CODE.PROFILE_INCOMPLETE).toBe("PROFILE_INCOMPLETE");
     expectTypeOf<BindMiniappPhoneRequest>().toEqualTypeOf<{ phone: string; code: string }>();
   });
+
+  it("publishes stable cancellation recovery codes", () => {
+    expect(MINIAPP_ACCOUNT_ERROR_CODE.ACTIVE_ORDER_EXISTS).toBe("ACTIVE_ORDER_EXISTS");
+    expect(MINIAPP_ACCOUNT_ERROR_CODE.CANCELLATION_CODE_REQUIRED).toBe(
+      "CANCELLATION_CODE_REQUIRED",
+    );
+    expect(MINIAPP_ACCOUNT_ERROR_CODE.CANCELLATION_CODE_NOT_REQUIRED).toBe(
+      "CANCELLATION_CODE_NOT_REQUIRED",
+    );
+  });
 });

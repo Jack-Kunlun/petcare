@@ -15,6 +15,14 @@ import {
   type PublicAvatarStorage,
 } from "../../public-avatar-storage/public-avatar-storage.types";
 
+// eslint-disable-next-line @typescript-eslint/no-unused-vars -- cancellation queries arrive in the next task.
+const ACTIVE_CANCELLATION_BLOCKING_STATUSES = [
+  "pending_confirm",
+  "confirmed",
+  "in_progress",
+  "disputed",
+] as const;
+
 const miniappProfileSelect = {
   id: true,
   nickname: true,
