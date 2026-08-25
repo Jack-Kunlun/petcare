@@ -21,9 +21,12 @@ interface CancellationCodeDependencies {
   sendCancellationCode: () => Promise<void>;
   startCountdown: () => void;
   showToast: (options: ToastOptions) => Promise<unknown>;
+  isActive: () => boolean;
 }
 
 interface CancellationDependencies {
+  getCurrentUserId: () => string | null;
+  isActive: () => boolean;
   showModal: (options: {
     title: string;
     content: string;
@@ -31,7 +34,7 @@ interface CancellationDependencies {
     cancelText: string;
   }) => Promise<{ confirm?: boolean }>;
   cancelAccount: (code?: string) => Promise<void>;
-  completeCancellation: () => void;
+  completeCancellation: (cancelledUserId: string) => boolean;
   showToast: (options: ToastOptions) => Promise<unknown>;
   reLaunch: (options: { url: string }) => Promise<unknown>;
 }
@@ -60,7 +63,7 @@ export async function runCancellationCodeFlow(
   requiresCode: boolean,
   dependencies: CancellationCodeDependencies,
 ): Promise<void> {
-  if (!requiresCode || state.sending || state.cancelling) {
+  if (!requiresCode || state.sending || state.cancelling || !dependencies.isActive()) {
     return;
   }
 
@@ -69,10 +72,17 @@ export async function runCancellationCodeFlow(
 
   try {
     await dependencies.sendCancellationCode();
+
+    if (!dependencies.isActive()) {
+      return;
+    }
+
     dependencies.startCountdown();
     await dependencies.showToast({ title: "验证码已发送", icon: "none" }).catch(() => undefined);
   } catch (error) {
-    state.errorMessage = cancellationErrorMessage(error, "验证码发送失败，请重试");
+    if (dependencies.isActive()) {
+      state.errorMessage = cancellationErrorMessage(error, "验证码发送失败，请重试");
+    }
   } finally {
     state.sending = false;
   }
@@ -83,7 +93,15 @@ export async function runCancellationFlow(
   input: { requiresCode: boolean; code: string },
   dependencies: CancellationDependencies,
 ): Promise<void> {
-  if (state.sending || state.cancelling) {
+  if (state.sending || state.cancelling || !dependencies.isActive()) {
+    return;
+  }
+
+  const startedUserId = dependencies.getCurrentUserId();
+
+  if (!startedUserId) {
+    state.errorMessage = "登录状态已变化，请重新进入注销页面";
+
     return;
   }
 
@@ -112,49 +130,85 @@ export async function runCancellationFlow(
           })
         ).confirm === true;
     } catch {
-      state.errorMessage = "无法确认注销，请重试";
+      if (dependencies.isActive()) {
+        state.errorMessage = "无法确认注销，请重试";
+      }
 
       return;
     }
 
-    if (!confirmed) {
+    if (!confirmed || !dependencies.isActive()) {
+      return;
+    }
+
+    if (dependencies.getCurrentUserId() !== startedUserId) {
+      state.errorMessage = "登录状态已变化，请重新进入注销页面";
+
       return;
     }
 
     try {
       await dependencies.cancelAccount(input.requiresCode ? code : undefined);
     } catch (error) {
-      state.errorMessage = cancellationErrorMessage(error, "注销失败，请重试");
+      if (dependencies.isActive()) {
+        state.errorMessage = cancellationErrorMessage(error, "注销失败，请重试");
+      }
 
       return;
     }
 
+    let locallyCompleted: boolean;
+
     try {
-      dependencies.completeCancellation();
+      locallyCompleted = dependencies.completeCancellation(startedUserId);
     } catch {
+      if (!dependencies.isActive()) {
+        return;
+      }
+
       state.errorMessage = "账户已注销，本机登录状态清理不完整，请关闭并重新打开小程序";
       await dependencies
         .showToast({ title: "账户已注销，请重新打开小程序", icon: "none" })
         .catch(() => undefined);
 
-      try {
-        await dependencies.reLaunch({ url: "/pages/index/index" });
-      } catch {
-        // The recovery message already tells the user how to leave stale local state behind.
+      if (dependencies.isActive()) {
+        try {
+          await dependencies.reLaunch({ url: "/pages/index/index" });
+        } catch {
+          // The recovery message already tells the user how to leave stale local state behind.
+        }
       }
+
+      return;
+    }
+
+    if (!dependencies.isActive()) {
+      return;
+    }
+
+    if (!locallyCompleted) {
+      await dependencies
+        .showToast({ title: "原账户已注销，当前登录未受影响", icon: "none" })
+        .catch(() => undefined);
 
       return;
     }
 
     await dependencies.showToast({ title: "账户已注销", icon: "success" }).catch(() => undefined);
 
+    if (!dependencies.isActive()) {
+      return;
+    }
+
     try {
       await dependencies.reLaunch({ url: "/pages/index/index" });
     } catch {
-      state.errorMessage = "账户已注销，但返回首页失败，请手动返回";
-      await dependencies
-        .showToast({ title: "账户已注销，请手动返回首页", icon: "none" })
-        .catch(() => undefined);
+      if (dependencies.isActive()) {
+        state.errorMessage = "账户已注销，但返回首页失败，请手动返回";
+        await dependencies
+          .showToast({ title: "账户已注销，请手动返回首页", icon: "none" })
+          .catch(() => undefined);
+      }
     }
   } finally {
     state.cancelling = false;

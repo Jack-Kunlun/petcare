@@ -274,7 +274,7 @@ describe("miniapp session", () => {
   it("completes account cancellation locally without requesting remote logout", () => {
     seedStoredSession();
 
-    completeCancellation();
+    expect(completeCancellation("user-1")).toBe(true);
 
     expect(logoutWechatSessionMock).not.toHaveBeenCalled();
     expect(session).toMatchObject({ accessToken: null, refreshToken: null, user: null });
@@ -291,7 +291,7 @@ describe("miniapp session", () => {
       return storage.set(key, value);
     });
 
-    expect(() => completeCancellation()).toThrow("logout intent failed");
+    expect(() => completeCancellation("user-1")).toThrow("logout intent failed");
 
     expect(logoutWechatSessionMock).not.toHaveBeenCalled();
     expect(session).toMatchObject({ accessToken: null, refreshToken: null, user: null });
@@ -299,6 +299,38 @@ describe("miniapp session", () => {
     expect(storage.has(STORAGE_KEY.accessToken)).toBe(false);
     expect(storage.has(STORAGE_KEY.refreshToken)).toBe(false);
     expect(storage.has(STORAGE_KEY.user)).toBe(false);
+  });
+
+  it("does not clear a different account that became current after cancellation started", () => {
+    const accountB = {
+      accessToken: "account-b-access",
+      refreshToken: "account-b-refresh",
+      user: { ...storedSession.user, id: "user-2", nickname: "账户 B" },
+    };
+
+    Object.assign(session, accountB);
+    storage.set(STORAGE_KEY.sessionCommitted, true);
+    storage.set(STORAGE_KEY.accessToken, accountB.accessToken);
+    storage.set(STORAGE_KEY.refreshToken, accountB.refreshToken);
+    storage.set(STORAGE_KEY.user, accountB.user);
+
+    expect(completeCancellation("user-1")).toBe(false);
+
+    expect(session).toMatchObject(accountB);
+    expect(storage.get(STORAGE_KEY.accessToken)).toBe(accountB.accessToken);
+    expect(storage.get(STORAGE_KEY.refreshToken)).toBe(accountB.refreshToken);
+    expect(storage.get(STORAGE_KEY.user)).toEqual(accountB.user);
+    expect(storage.has(STORAGE_KEY.manualLogout)).toBe(false);
+    expect(setStorageSync).not.toHaveBeenCalledWith(STORAGE_KEY.manualLogout, true);
+    expect(removeStorageSync).not.toHaveBeenCalled();
+  });
+
+  it("durably completes cancellation when the current session is already anonymous", () => {
+    expect(completeCancellation("user-1")).toBe(true);
+
+    expect(session).toMatchObject({ accessToken: null, refreshToken: null, user: null });
+    expect(storage.get(STORAGE_KEY.manualLogout)).toBe(true);
+    expect(logoutWechatSessionMock).not.toHaveBeenCalled();
   });
 
   it("does not let an old successful logout overwrite a newer interactive login", async () => {

@@ -25,6 +25,7 @@ const cancelDisabled = computed(
   () =>
     !session.user || busy.value || (requirement.value.requiresCode && !/^\d{6}$/u.test(code.value)),
 );
+let active = true;
 let countdownTimer: ReturnType<typeof setInterval> | undefined;
 
 function startCountdown(): void {
@@ -48,6 +49,7 @@ function requestCode(): void {
     sendCancellationCode,
     startCountdown,
     showToast: (options) => uni.showToast(options),
+    isActive: () => active,
   });
 }
 
@@ -60,6 +62,8 @@ function requestCancellation(): void {
     flow,
     { requiresCode: requirement.value.requiresCode, code: code.value },
     {
+      getCurrentUserId: () => session.user?.id ?? null,
+      isActive: () => active,
       showModal: (options) => uni.showModal(options),
       cancelAccount,
       completeCancellation,
@@ -70,8 +74,11 @@ function requestCancellation(): void {
 }
 
 onUnload(() => {
+  active = false;
+
   if (countdownTimer) {
     clearInterval(countdownTimer);
+    countdownTimer = undefined;
   }
 });
 </script>

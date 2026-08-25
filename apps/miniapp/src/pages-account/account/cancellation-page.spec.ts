@@ -29,4 +29,13 @@ describe("account cancellation page wiring", () => {
     expect(source).toContain("runCancellationCodeFlow");
     expect(source).toContain("runCancellationFlow");
   });
+
+  it("guards async completions with the page lifecycle and current user", () => {
+    expect(source).toContain("let active = true;");
+    expect(source.match(/isActive: \(\) => active/g)).toHaveLength(2);
+    expect(source).toContain("getCurrentUserId: () => session.user?.id ?? null");
+    expect(source).toMatch(
+      /onUnload\(\(\) => \{\s*active = false;\s*if \(countdownTimer\) \{\s*clearInterval\(countdownTimer\);\s*countdownTimer = undefined;/,
+    );
+  });
 });
