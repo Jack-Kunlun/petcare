@@ -6,7 +6,7 @@ import type {
 import { QueryClient, QueryClientProvider } from "@tanstack/react-query";
 import { fireEvent, render, screen, waitFor, within } from "@testing-library/react";
 import userEvent from "@testing-library/user-event";
-import { MemoryRouter, Route, Routes } from "react-router-dom";
+import { createMemoryRouter, RouterProvider } from "react-router-dom";
 import { beforeEach, describe, expect, it, vi } from "vitest";
 import * as websiteContentApi from "../../api/website-content";
 import { AuthContext, type AuthContextValue } from "../../auth/auth.context";
@@ -226,17 +226,23 @@ function renderEditor(
     user: authenticated.user ? { ...authenticated.user, permissions } : null,
   };
 
+  const router = createMemoryRouter(
+    [
+      { path: "/website-content", element: <p>官网内容列表占位</p> },
+      { path: "/website-content/:contentKey/edit", element: <WebsiteContentEdit /> },
+    ],
+    { initialEntries: [initialEntry] },
+  );
+
   render(
     <AuthContext.Provider value={context}>
       <QueryClientProvider client={queryClient}>
-        <MemoryRouter initialEntries={[initialEntry]}>
-          <Routes>
-            <Route path="/website-content/:contentKey/edit" element={<WebsiteContentEdit />} />
-          </Routes>
-        </MemoryRouter>
+        <RouterProvider router={router} />
       </QueryClientProvider>
     </AuthContext.Provider>,
   );
+
+  return router;
 }
 
 describe("WebsiteContentEdit", () => {
@@ -309,7 +315,7 @@ describe("WebsiteContentEdit", () => {
     await user.type(title, "更新后的首页标题");
     await user.clear(screen.getByRole("textbox", { name: "变更摘要" }));
     await user.type(screen.getByRole("textbox", { name: "变更摘要" }), "更新首页主标题");
-    await user.click(screen.getByRole("button", { name: "保存草稿" }));
+    await user.click(screen.getAllByRole("button", { name: "保存草稿" })[0]);
 
     await waitFor(() =>
       expect(websiteContentApi.saveWebsiteContentDraft).toHaveBeenCalledWith("home", {
@@ -354,7 +360,7 @@ describe("WebsiteContentEdit", () => {
     await user.type(serviceTitle, "更新后的服务标题");
     await user.clear(screen.getByRole("textbox", { name: "变更摘要" }));
     await user.type(screen.getByRole("textbox", { name: "变更摘要" }), "更新首页体验服务");
-    await user.click(screen.getByRole("button", { name: "保存草稿" }));
+    await user.click(screen.getAllByRole("button", { name: "保存草稿" })[0]);
 
     await waitFor(() =>
       expect(websiteContentApi.saveWebsiteContentDraft).toHaveBeenCalledWith(
@@ -383,7 +389,7 @@ describe("WebsiteContentEdit", () => {
 
     await screen.findByRole("textbox", { name: "主标题" });
     await user.clear(screen.getByRole("textbox", { name: "SEO 标题" }));
-    await user.click(screen.getByRole("button", { name: "保存草稿" }));
+    await user.click(screen.getAllByRole("button", { name: "保存草稿" })[0]);
 
     expect(
       screen.getByText("请填写 SEO 标题、SEO 描述和变更摘要后再保存草稿。"),
@@ -399,7 +405,7 @@ describe("WebsiteContentEdit", () => {
 
     await screen.findByRole("textbox", { name: "主标题" });
     await user.clear(screen.getByRole("textbox", { name: "首屏图片替代文本" }));
-    await user.click(screen.getByRole("button", { name: "保存草稿" }));
+    await user.click(screen.getAllByRole("button", { name: "保存草稿" })[0]);
 
     expect(screen.getByRole("alert")).toHaveTextContent("请填写所有区块中的必填字段后再保存草稿。");
     expect(websiteContentApi.saveWebsiteContentDraft).not.toHaveBeenCalled();
@@ -410,7 +416,7 @@ describe("WebsiteContentEdit", () => {
       screen.getByRole("textbox", { name: "主要行动按钮链接" }),
       "javascript:alert(1)",
     );
-    await user.click(screen.getByRole("button", { name: "保存草稿" }));
+    await user.click(screen.getAllByRole("button", { name: "保存草稿" })[0]);
 
     expect(screen.getByRole("alert")).toHaveTextContent(
       "请使用站内路径、HTTPS、mailto 或 tel 链接。",
@@ -418,12 +424,33 @@ describe("WebsiteContentEdit", () => {
     expect(websiteContentApi.saveWebsiteContentDraft).not.toHaveBeenCalled();
   });
 
-  it("allows only optional template sections to be hidden and warns before leaving dirty work", async () => {
+  it("uses the shared editor layout with the existing top actions", async () => {
+    vi.mocked(websiteContentApi.fetchWebsiteContentDraft).mockResolvedValue(draft);
+    renderEditor(["website.view", "website.edit", "website.publish"]);
+
+    await screen.findByRole("textbox", { name: "主标题" });
+    expect(document.querySelector("section.editor-page")).toBeInTheDocument();
+    expect(document.querySelector("header.editor-page__header")).toBeInTheDocument();
+    expect(document.querySelector("div.editor-page__content")).toBeInTheDocument();
+    expect(screen.getByRole("heading", { name: "编辑 home" })).toBeInTheDocument();
+    expect(screen.getByRole("link", { name: "返回官网内容" })).toBeInTheDocument();
+    expect(screen.getByRole("link", { name: "查看历史" })).toHaveAttribute(
+      "href",
+      "#website-content-history",
+    );
+    expect(screen.getAllByRole("button", { name: "保存草稿" })[0]).toHaveAttribute(
+      "form",
+      "website-content-form",
+    );
+    expect(screen.getAllByRole("button", { name: "preview-saved-draft" })[0]).toBeInTheDocument();
+    expect(screen.getAllByRole("button", { name: "publish-saved-draft" })[0]).toBeInTheDocument();
+  });
+
+  it("allows only optional template sections to be hidden and blocks dirty navigation", async () => {
     const user = userEvent.setup();
-    const confirmSpy = vi.spyOn(globalThis, "confirm").mockReturnValue(false);
 
     vi.mocked(websiteContentApi.fetchWebsiteContentDraft).mockResolvedValue(draft);
-    renderEditor();
+    const router = renderEditor();
 
     await screen.findByRole("textbox", { name: "主标题" });
     expect(screen.getAllByText("此区块为页面必需区块")).toHaveLength(2);
@@ -437,8 +464,14 @@ describe("WebsiteContentEdit", () => {
     expect(screen.queryByRole("textbox", { name: "区块标题" })).toBeNull();
 
     await user.click(screen.getByRole("link", { name: "返回官网内容" }));
-    expect(confirmSpy).toHaveBeenCalledWith("当前有未保存变更，确定离开编辑页吗？");
-    confirmSpy.mockRestore();
+    expect(await screen.findByRole("dialog")).toHaveTextContent("放弃未保存的修改？");
+    expect(router.state.location.pathname).toBe("/website-content/home/edit");
+
+    await user.click(screen.getByRole("button", { name: "继续编辑" }));
+    expect(screen.queryByRole("dialog")).not.toBeInTheDocument();
+    await user.click(screen.getByRole("link", { name: "返回官网内容" }));
+    await user.click(await screen.findByRole("button", { name: "放弃修改" }));
+    expect(await screen.findByText("官网内容列表占位")).toBeInTheDocument();
   });
 
   it("retains local work and reports the server revision after an optimistic-lock conflict", async () => {
@@ -457,7 +490,7 @@ describe("WebsiteContentEdit", () => {
     fireEvent.change(title, { target: { value: "本地待协调标题" } });
     await user.clear(screen.getByRole("textbox", { name: "变更摘要" }));
     await user.type(screen.getByRole("textbox", { name: "变更摘要" }), "协调后保存");
-    await user.click(screen.getByRole("button", { name: "保存草稿" }));
+    await user.click(screen.getAllByRole("button", { name: "保存草稿" })[0]);
 
     expect(await screen.findByText("检测到版本冲突")).toBeInTheDocument();
     expect(screen.getByRole("textbox", { name: "主标题" })).toHaveValue("本地待协调标题");
@@ -512,9 +545,9 @@ describe("WebsiteContentEdit", () => {
 
     const title = await screen.findByRole("textbox", { name: "主标题" });
 
-    const previewButton = screen.getByRole("button", { name: "preview-saved-draft" });
-    const publishButton = screen.getByRole("button", { name: "publish-saved-draft" });
-    const saveButton = screen.getByRole("button", { name: "保存草稿" });
+    const previewButton = screen.getAllByRole("button", { name: "preview-saved-draft" })[0];
+    const publishButton = screen.getAllByRole("button", { name: "publish-saved-draft" })[0];
+    const saveButton = screen.getAllByRole("button", { name: "保存草稿" })[0];
 
     for (const button of [previewButton, publishButton, saveButton]) {
       expect(button).toHaveClass("cursor-pointer", "disabled:cursor-not-allowed");
@@ -527,13 +560,13 @@ describe("WebsiteContentEdit", () => {
 
     await user.clear(title);
     await user.type(title, "dirty title");
-    expect(screen.getByRole("button", { name: "preview-saved-draft" })).toBeDisabled();
-    expect(screen.getByRole("button", { name: "publish-saved-draft" })).toBeDisabled();
+    expect(screen.getAllByRole("button", { name: "preview-saved-draft" })[0]).toBeDisabled();
+    expect(screen.getAllByRole("button", { name: "publish-saved-draft" })[0]).toBeDisabled();
     expect(websiteContentApi.createWebsiteContentPreview).not.toHaveBeenCalled();
 
-    await user.click(screen.getByRole("button", { name: "保存草稿" }));
+    await user.click(screen.getAllByRole("button", { name: "保存草稿" })[0]);
     await screen.findByText("草稿已保存，当前修订版为 r3。", { exact: false });
-    await user.click(screen.getByRole("button", { name: "preview-saved-draft" }));
+    await user.click(screen.getAllByRole("button", { name: "preview-saved-draft" })[0]);
 
     await waitFor(() =>
       expect(websiteContentApi.createWebsiteContentPreview).toHaveBeenCalledWith("home", {
@@ -567,7 +600,7 @@ describe("WebsiteContentEdit", () => {
     vi.mocked(websiteContentApi.createWebsiteContentPreview).mockReturnValue(previewRequest);
     renderEditor(["website.view", "website.edit"]);
 
-    const previewButton = await screen.findByRole("button", { name: "preview-saved-draft" });
+    const [previewButton] = await screen.findAllByRole("button", { name: "preview-saved-draft" });
 
     await user.click(previewButton);
     expect(open).toHaveBeenCalledWith("about:blank", "_blank");
@@ -587,11 +620,36 @@ describe("WebsiteContentEdit", () => {
     open.mockRestore();
   });
 
+  it("clears dirty state after saving so later navigation does not prompt", async () => {
+    const user = userEvent.setup();
+
+    vi.mocked(websiteContentApi.fetchWebsiteContentDraft).mockResolvedValue(draft);
+    vi.mocked(websiteContentApi.saveWebsiteContentDraft).mockResolvedValue({
+      ...draft,
+      id: "draft-home-r3",
+      revision: 3,
+    });
+    renderEditor();
+
+    const title = await screen.findByRole("textbox", { name: "主标题" });
+
+    await user.clear(title);
+    await user.type(title, "已保存标题");
+    await user.click(screen.getAllByRole("button", { name: "保存草稿" })[0]);
+    await screen.findByText("草稿已保存，当前修订版为 r3。", { exact: false });
+
+    await user.click(screen.getByRole("link", { name: "返回官网内容" }));
+    expect(await screen.findByText("官网内容列表占位")).toBeInTheDocument();
+    expect(screen.queryByRole("dialog")).not.toBeInTheDocument();
+  });
+
   it("makes publisher-only access read-only while retaining publish and history", async () => {
     vi.mocked(websiteContentApi.fetchWebsiteContentDraft).mockResolvedValue(draft);
     renderEditor(["website.view", "website.publish"]);
 
-    expect(await screen.findByRole("button", { name: "publish-saved-draft" })).toBeEnabled();
+    expect(
+      (await screen.findAllByRole("button", { name: "publish-saved-draft" }))[0],
+    ).toBeEnabled();
     expect(screen.queryByRole("button", { name: "preview-saved-draft" })).toBeNull();
     expect(screen.queryByLabelText("website-media-library")).toBeNull();
     expect(screen.queryByRole("button", { name: "保存草稿" })).toBeNull();
@@ -615,8 +673,8 @@ describe("WebsiteContentEdit", () => {
     });
     renderEditor(["website.view", "website.edit", "website.publish"], queryClient);
 
-    await screen.findByRole("button", { name: "publish-saved-draft" });
-    await user.click(screen.getByRole("button", { name: "publish-saved-draft" }));
+    await screen.findAllByRole("button", { name: "publish-saved-draft" });
+    await user.click(screen.getAllByRole("button", { name: "publish-saved-draft" })[0]);
     await screen.findByText("before");
     await user.type(screen.getByRole("textbox", { name: "变更摘要" }), "发布首页更新");
     await user.click(screen.getByRole("button", { name: "继续发布" }));

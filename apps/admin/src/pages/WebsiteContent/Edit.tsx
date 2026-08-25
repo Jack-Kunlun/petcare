@@ -26,6 +26,8 @@ import {
 } from "../../api/website-content";
 import { useAuth } from "../../auth/auth.context";
 import { PermissionGate } from "../../auth/PermissionGate";
+import { EditorPageLayout, FormSection } from "../../components/EditorPageLayout";
+import { useUnsavedChanges } from "../../hooks/useUnsavedChanges";
 import { ContentHistory } from "./ContentHistory";
 import { TextField } from "./editors/fields";
 import { WebsiteSectionEditor } from "./editors/WebsiteSectionEditor";
@@ -177,6 +179,7 @@ export default function WebsiteContentEdit() {
   const [serverRevision, setServerRevision] = useState<number | null>(null);
   const [publishDialogOpen, setPublishDialogOpen] = useState(false);
   const [mediaQuery, setMediaQuery] = useState<WebsiteMediaListQuery>({ page: 1, pageSize: 20 });
+  const unsavedChanges = useUnsavedChanges(dirty);
 
   const draftQuery = useQuery({
     queryKey: websiteContentQueryKeys.draft(contentKey ?? "home"),
@@ -213,21 +216,6 @@ export default function WebsiteContentEdit() {
       setValidationError(null);
     }
   }, [remoteState, dirty]);
-
-  useEffect(() => {
-    if (!dirty) {
-      return undefined;
-    }
-
-    const onBeforeUnload = (event: BeforeUnloadEvent) => {
-      event.preventDefault();
-      event.returnValue = "";
-    };
-
-    globalThis.addEventListener("beforeunload", onBeforeUnload);
-
-    return () => globalThis.removeEventListener("beforeunload", onBeforeUnload);
-  }, [dirty]);
 
   const saveMutation = useMutation({
     mutationFn: async () => {
@@ -285,6 +273,16 @@ export default function WebsiteContentEdit() {
       previewWindow?.close();
     },
   });
+
+  const handlePreview = () => {
+    const previewWindow = globalThis.open("about:blank", "_blank");
+
+    if (previewWindow) {
+      previewWindow.opener = null;
+    }
+
+    previewMutation.mutate(previewWindow);
+  };
 
   const publishMutation = useMutation({
     mutationFn: async (request: Parameters<typeof publishWebsiteContent>[1]) => {
@@ -429,41 +427,83 @@ export default function WebsiteContentEdit() {
   }
 
   return (
-    <section className="mx-auto w-full max-w-[1080px]">
-      <Link
-        to="/website-content"
-        onClick={(event) => {
-          if (dirty && !globalThis.confirm("当前有未保存变更，确定离开编辑页吗？")) {
-            event.preventDefault();
-          }
-        }}
-        className="inline-flex min-h-11 items-center gap-2 rounded-lg px-2 font-medium text-blue-800 outline-none hover:bg-blue-50 focus-visible:ring-2 focus-visible:ring-blue-800"
-      >
-        <ArrowLeft aria-hidden="true" className="h-4 w-4" />
-        返回官网内容
-      </Link>
-      <header className="mt-4">
-        <p className="font-medium text-blue-800">预设区块编辑</p>
-        <h1 className="mt-1 text-2xl font-bold tracking-tight text-slate-950 sm:text-3xl">
-          编辑 {contentKey}
-        </h1>
-        <p className="mt-2 max-w-[760px] leading-6 text-slate-600">
-          仅可编辑预设区块的内容、有限展示设置和允许的显示状态。保存会创建新的不可变草稿，不会直接发布。
-        </p>
-      </header>
-
-      {dirty ? (
-        <div className="mt-5 flex gap-3 rounded-xl border border-amber-200 bg-amber-50 p-4 text-amber-950">
-          <AlertCircle aria-hidden="true" className="h-5 w-5 shrink-0" />
-          <p>有未保存变更。离开页面前请保存草稿，浏览器关闭时会提示确认。</p>
-        </div>
-      ) : null}
-      {notice ? (
-        <div className="mt-5 flex gap-3 rounded-xl border border-emerald-200 bg-emerald-50 p-4 text-emerald-950">
-          <CheckCircle2 aria-hidden="true" className="h-5 w-5 shrink-0" />
-          <p>{notice}</p>
-        </div>
-      ) : null}
+    <EditorPageLayout
+      width="default"
+      title={`编辑 ${contentKey}`}
+      description="预设区块编辑：仅可编辑预设区块的内容、有限展示设置和允许的显示状态。保存会创建新的不可变草稿，不会直接发布。"
+      back={
+        <Link
+          to="/website-content"
+          className="inline-flex h-10 cursor-pointer items-center gap-2 rounded-lg px-2 font-medium text-blue-800 outline-none hover:bg-blue-50 focus-visible:ring-2 focus-visible:ring-blue-800"
+        >
+          <ArrowLeft aria-hidden="true" className="h-4 w-4" />
+          返回官网内容
+        </Link>
+      }
+      status={
+        dirty ? (
+          <span
+            aria-live="polite"
+            className="inline-flex items-center gap-2 text-sm font-medium text-amber-800"
+          >
+            <AlertCircle aria-hidden="true" className="h-4 w-4" />
+            有未保存变更
+          </span>
+        ) : notice ? (
+          <span
+            aria-live="polite"
+            className="inline-flex items-center gap-2 text-sm font-medium text-emerald-800"
+          >
+            <CheckCircle2 aria-hidden="true" className="h-4 w-4" />
+            {notice}
+          </span>
+        ) : null
+      }
+      actions={
+        <>
+          <a
+            href="#website-content-history"
+            className="inline-flex h-10 cursor-pointer items-center justify-center rounded-lg border border-slate-300 bg-white px-4 font-semibold text-slate-700 outline-none transition-colors hover:bg-slate-50 focus-visible:ring-2 focus-visible:ring-blue-800"
+          >
+            查看历史
+          </a>
+          <PermissionGate all={["website.edit"]}>
+            <button
+              type="button"
+              aria-label="preview-saved-draft"
+              disabled={dirty || previewMutation.isPending}
+              onClick={handlePreview}
+              className="inline-flex h-10 cursor-pointer items-center justify-center rounded-lg border border-blue-700 px-4 font-semibold text-blue-800 outline-none hover:bg-blue-50 focus-visible:ring-2 focus-visible:ring-blue-800 disabled:cursor-not-allowed disabled:opacity-40"
+            >
+              预览已保存草稿
+            </button>
+          </PermissionGate>
+          <PermissionGate all={["website.edit"]}>
+            <button
+              type="submit"
+              form="website-content-form"
+              disabled={saveMutation.isPending}
+              className="inline-flex h-10 cursor-pointer items-center justify-center gap-2 rounded-lg bg-blue-700 px-4 font-semibold text-white outline-none transition-colors hover:bg-blue-800 focus-visible:ring-2 focus-visible:ring-blue-700 disabled:cursor-not-allowed disabled:opacity-50"
+            >
+              <Save aria-hidden="true" className="h-4 w-4" />
+              保存草稿
+            </button>
+          </PermissionGate>
+          <PermissionGate all={["website.publish"]}>
+            <button
+              type="button"
+              aria-label="publish-saved-draft"
+              disabled={dirty || publishMutation.isPending}
+              onClick={() => setPublishDialogOpen(true)}
+              className="inline-flex h-10 cursor-pointer items-center justify-center rounded-lg bg-red-700 px-4 font-semibold text-white outline-none hover:bg-red-800 focus-visible:ring-2 focus-visible:ring-red-700 disabled:cursor-not-allowed disabled:opacity-40"
+            >
+              发布已保存草稿
+            </button>
+          </PermissionGate>
+        </>
+      }
+      unsavedChanges={unsavedChanges}
+    >
       {serverRevision !== null ? (
         <div
           role="alert"
@@ -491,10 +531,9 @@ export default function WebsiteContentEdit() {
         </div>
       ) : null}
 
-      <form className="mt-6 space-y-6" noValidate onSubmit={submit}>
-        <section className="rounded-xl border border-slate-200 bg-white p-5 shadow-sm">
-          <h2 className="text-lg font-semibold text-slate-950">SEO 元数据</h2>
-          <div className="mt-4 grid gap-4">
+      <form id="website-content-form" className="space-y-6" noValidate onSubmit={submit}>
+        <FormSection title="SEO 元数据">
+          <div className="grid gap-4">
             <TextField
               label="SEO 标题"
               value={editorState.seo.title}
@@ -540,7 +579,7 @@ export default function WebsiteContentEdit() {
               />
             ) : null}
           </div>
-        </section>
+        </FormSection>
 
         {editorState.sections.map((section, index) => (
           <WebsiteSectionEditor
@@ -552,7 +591,7 @@ export default function WebsiteContentEdit() {
           />
         ))}
 
-        <section className="rounded-xl border border-slate-200 bg-white p-5 shadow-sm">
+        <FormSection>
           <TextField
             label="变更摘要"
             value={editorState.changeSummary}
@@ -564,13 +603,13 @@ export default function WebsiteContentEdit() {
           <p className="mt-2 text-sm text-slate-500">
             每次保存都必须说明本次不可变草稿的业务变更。
           </p>
-        </section>
+        </FormSection>
 
         <PermissionGate all={["website.edit"]}>
           <button
             type="submit"
             disabled={saveMutation.isPending}
-            className="inline-flex min-h-11 cursor-pointer items-center gap-2 rounded-lg bg-blue-700 px-5 font-semibold text-white outline-none transition-colors hover:bg-blue-800 focus-visible:ring-2 focus-visible:ring-blue-700 disabled:cursor-not-allowed disabled:opacity-50"
+            className="inline-flex h-10 cursor-pointer items-center gap-2 rounded-lg bg-blue-700 px-5 font-semibold text-white outline-none transition-colors hover:bg-blue-800 focus-visible:ring-2 focus-visible:ring-blue-700 disabled:cursor-not-allowed disabled:opacity-50"
           >
             <Save aria-hidden="true" className="h-4 w-4" />
             保存草稿
@@ -578,27 +617,18 @@ export default function WebsiteContentEdit() {
         </PermissionGate>
       </form>
 
-      <section className="mt-6 rounded-xl border border-slate-200 bg-white p-5 shadow-sm">
-        <h2 className="text-lg font-semibold text-slate-950">预览与发布</h2>
-        <p className="mt-2 text-sm leading-6 text-slate-600">
-          预览和发布始终使用最近一次保存的不可变草稿修订版。
-        </p>
-        <div className="mt-4 flex flex-wrap gap-3">
+      <FormSection
+        title="预览与发布"
+        description="预览和发布始终使用最近一次保存的不可变草稿修订版。"
+      >
+        <div className="flex flex-wrap gap-3">
           <PermissionGate all={["website.edit"]}>
             <button
               type="button"
               aria-label="preview-saved-draft"
               disabled={dirty || previewMutation.isPending}
-              onClick={() => {
-                const previewWindow = globalThis.open("about:blank", "_blank");
-
-                if (previewWindow) {
-                  previewWindow.opener = null;
-                }
-
-                previewMutation.mutate(previewWindow);
-              }}
-              className="min-h-11 cursor-pointer rounded-lg border border-blue-700 px-4 font-semibold text-blue-800 outline-none hover:bg-blue-50 focus-visible:ring-2 focus-visible:ring-blue-800 disabled:cursor-not-allowed disabled:opacity-40"
+              onClick={handlePreview}
+              className="h-10 cursor-pointer rounded-lg border border-blue-700 px-4 font-semibold text-blue-800 outline-none hover:bg-blue-50 focus-visible:ring-2 focus-visible:ring-blue-800 disabled:cursor-not-allowed disabled:opacity-40"
             >
               预览已保存草稿
             </button>
@@ -609,7 +639,7 @@ export default function WebsiteContentEdit() {
               aria-label="publish-saved-draft"
               disabled={dirty || publishMutation.isPending}
               onClick={() => setPublishDialogOpen(true)}
-              className="min-h-11 cursor-pointer rounded-lg bg-red-700 px-4 font-semibold text-white outline-none hover:bg-red-800 focus-visible:ring-2 focus-visible:ring-red-700 disabled:cursor-not-allowed disabled:opacity-40"
+              className="h-10 cursor-pointer rounded-lg bg-red-700 px-4 font-semibold text-white outline-none hover:bg-red-800 focus-visible:ring-2 focus-visible:ring-red-700 disabled:cursor-not-allowed disabled:opacity-40"
             >
               发布已保存草稿
             </button>
@@ -628,14 +658,10 @@ export default function WebsiteContentEdit() {
             无法发布当前已保存修订。
           </p>
         ) : null}
-      </section>
+      </FormSection>
 
-      <section
-        aria-label="website-content-history"
-        className="mt-6 rounded-xl border border-slate-200 bg-white p-5 shadow-sm"
-      >
-        <h2 className="text-lg font-semibold text-slate-950">已发布历史</h2>
-        <div className="mt-4">
+      <section id="website-content-history" aria-label="website-content-history">
+        <FormSection title="已发布历史">
           <ContentHistory
             contentKey={contentKey}
             items={historyQuery.data?.list ?? []}
@@ -643,7 +669,7 @@ export default function WebsiteContentEdit() {
             error={historyQuery.isError}
             onRetry={() => void historyQuery.refetch()}
           />
-        </div>
+        </FormSection>
       </section>
 
       <PermissionGate all={["website.edit"]}>
@@ -683,7 +709,7 @@ export default function WebsiteContentEdit() {
           onPublish={(request) => publishMutation.mutate(request)}
         />
       </PermissionGate>
-    </section>
+    </EditorPageLayout>
   );
 }
 

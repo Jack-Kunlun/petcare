@@ -5,7 +5,6 @@ import {
   type DragEvent,
   type FormEvent,
   type KeyboardEvent,
-  type MouseEvent,
   useEffect,
   useRef,
   useState,
@@ -18,6 +17,8 @@ import {
   updateAdminClassroomArticle,
   uploadAdminClassroomArticleMedia,
 } from "../../../api/content/articles";
+import { EditorPageLayout, FormSection } from "../../../components/EditorPageLayout";
+import { useUnsavedChanges } from "../../../hooks/useUnsavedChanges";
 import { showApiError } from "../../../lib/global-error";
 import { RichTextEditor } from "./RichTextEditor";
 
@@ -38,6 +39,8 @@ export default function ContentArticleEdit() {
   const [pendingUploadCount, setPendingUploadCount] = useState(0);
   const [dirty, setDirty] = useState(false);
   const [saveNotice, setSaveNotice] = useState<string | null>(null);
+  const [createdArticleId, setCreatedArticleId] = useState<string | null>(null);
+  const unsavedChanges = useUnsavedChanges(dirty);
 
   const articleQuery = useQuery({
     queryKey: articleQueryKeys.detail(articleId ?? "new"),
@@ -71,7 +74,7 @@ export default function ContentArticleEdit() {
       queryClient.setQueryData(articleQueryKeys.detail(saved.id), saved);
 
       if (!articleId) {
-        navigate(`/content/articles/${saved.id}/edit`, { replace: true });
+        setCreatedArticleId(saved.id);
       }
     },
   });
@@ -93,19 +96,10 @@ export default function ContentArticleEdit() {
   }, [articleQuery.data]);
 
   useEffect(() => {
-    if (!dirty) {
-      return;
+    if (createdArticleId && !dirty) {
+      navigate(`/content/articles/${createdArticleId}/edit`, { replace: true });
     }
-
-    const warnBeforeUnload = (event: BeforeUnloadEvent) => {
-      event.preventDefault();
-      event.returnValue = "";
-    };
-
-    window.addEventListener("beforeunload", warnBeforeUnload);
-
-    return () => window.removeEventListener("beforeunload", warnBeforeUnload);
-  }, [dirty]);
+  }, [createdArticleId, dirty, navigate]);
 
   function markDirty(): void {
     setDirty(true);
@@ -147,12 +141,6 @@ export default function ContentArticleEdit() {
     }
 
     saveMutation.mutate();
-  }
-
-  function confirmLeave(event: MouseEvent<HTMLAnchorElement>): void {
-    if (dirty && !window.confirm("当前内容尚未保存，确定离开吗？")) {
-      event.preventDefault();
-    }
   }
 
   function handleCoverDrop(event: DragEvent<HTMLElement>): void {
@@ -216,76 +204,62 @@ export default function ContentArticleEdit() {
   const statusLabel = articleQuery.data?.status === "offline" ? "已下线" : "草稿";
 
   return (
-    <section className="mx-auto w-full max-w-[1200px] pb-12">
-      <header
-        role="region"
-        aria-label="文章操作"
-        className="sticky top-0 z-20 -mx-1 border-b border-slate-200 bg-page-background/95 px-1 py-4 backdrop-blur-sm"
-      >
-        <div className="flex flex-col justify-between gap-4 sm:flex-row sm:items-center">
-          <div className="min-w-0">
-            <Link
-              to="/content/articles"
-              onClick={confirmLeave}
-              className="inline-flex h-8 cursor-pointer items-center gap-1 rounded-md pr-2 text-sm font-medium text-blue-700 outline-none hover:text-blue-900 focus-visible:ring-2 focus-visible:ring-blue-700"
-            >
-              <ArrowLeft aria-hidden="true" className="h-4 w-4" />
-              返回文章列表
-            </Link>
-            <div className="mt-2 flex flex-wrap items-center gap-3">
-              <h1 className="text-2xl font-semibold tracking-tight text-slate-950">
-                {articleId ? "编辑文章" : "新建文章"}
-              </h1>
-              <span className="rounded-full bg-slate-100 px-2.5 py-1 text-xs font-medium text-slate-600">
-                {statusLabel}
-              </span>
-              <span aria-live="polite" className="text-sm font-medium">
-                {dirty ? (
-                  <span className="inline-flex items-center gap-1.5 text-amber-700">
-                    <span aria-hidden="true" className="h-1.5 w-1.5 rounded-full bg-current" />
-                    <span>有未保存修改</span>
-                  </span>
-                ) : (saveNotice ? (
-                  <span className="text-emerald-700">{saveNotice}</span>
-                ) : null)}
-              </span>
-            </div>
-            <p className="mt-1 text-sm text-slate-500">
-              创建宠物护理知识内容并发布至 PetCare 课堂。
-            </p>
-          </div>
-          <div className="flex shrink-0 items-center gap-3">
-            <Link
-              to="/content/articles"
-              onClick={confirmLeave}
-              className="inline-flex h-10 cursor-pointer items-center justify-center rounded-lg border border-border bg-white px-4 font-semibold text-slate-700 outline-none transition-colors hover:bg-slate-50 focus-visible:ring-2 focus-visible:ring-blue-700"
-            >
-              取消
-            </Link>
-            <button
-              type="submit"
-              form="article-form"
-              disabled={isLocked}
-              className="inline-flex h-10 cursor-pointer items-center justify-center rounded-lg bg-blue-700 px-4 font-semibold text-white outline-none transition-colors hover:bg-blue-800 focus-visible:ring-2 focus-visible:ring-blue-700 focus-visible:ring-offset-2 disabled:cursor-not-allowed disabled:bg-slate-400"
-            >
-              {articleId ? "保存修改" : "保存草稿"}
-            </button>
-          </div>
-        </div>
-      </header>
-
-      <form id="article-form" className="mt-6 space-y-6" noValidate onSubmit={submitForm}>
-        <section
-          aria-labelledby="article-basic-heading"
-          className="space-y-6 rounded-xl border border-border bg-white p-6 shadow-sm"
+    <EditorPageLayout
+      width="default"
+      title={articleId ? "编辑文章" : "新建文章"}
+      description="创建宠物护理知识内容并发布至 PetCare 课堂。"
+      back={
+        <Link
+          to="/content/articles"
+          className="inline-flex h-10 cursor-pointer items-center gap-1 rounded-md px-2 text-sm font-medium text-blue-700 outline-none hover:text-blue-900 focus-visible:ring-2 focus-visible:ring-blue-700"
         >
-          <div>
-            <h2 id="article-basic-heading" className="text-lg font-semibold text-slate-950">
-              基础信息
-            </h2>
-            <p className="mt-1 text-sm text-slate-500">设置文章标题、摘要和列表封面。</p>
-          </div>
-
+          <ArrowLeft aria-hidden="true" className="h-4 w-4" />
+          返回文章列表
+        </Link>
+      }
+      status={
+        <div className="flex flex-wrap items-center gap-2">
+          <span className="rounded-full bg-slate-100 px-2.5 py-1 text-xs font-medium text-slate-600">
+            {statusLabel}
+          </span>
+          <span aria-live="polite" className="text-sm font-medium">
+            {dirty ? (
+              <span className="inline-flex items-center gap-1.5 text-amber-700">
+                <span aria-hidden="true" className="h-1.5 w-1.5 rounded-full bg-current" />
+                <span>有未保存修改</span>
+              </span>
+            ) : saveNotice ? (
+              <span className="text-emerald-700">{saveNotice}</span>
+            ) : null}
+          </span>
+        </div>
+      }
+      actions={
+        <>
+          <Link
+            to="/content/articles"
+            className="inline-flex h-10 cursor-pointer items-center justify-center rounded-lg border border-border bg-white px-4 font-semibold text-slate-700 outline-none transition-colors hover:bg-slate-50 focus-visible:ring-2 focus-visible:ring-blue-700"
+          >
+            取消
+          </Link>
+          <button
+            type="submit"
+            form="article-form"
+            disabled={isLocked}
+            className="inline-flex h-10 cursor-pointer items-center justify-center rounded-lg bg-blue-700 px-4 font-semibold text-white outline-none transition-colors hover:bg-blue-800 focus-visible:ring-2 focus-visible:ring-blue-700 focus-visible:ring-offset-2 disabled:cursor-not-allowed disabled:bg-slate-400"
+          >
+            {articleId ? "保存修改" : "保存草稿"}
+          </button>
+        </>
+      }
+      unsavedChanges={unsavedChanges}
+    >
+      <form id="article-form" className="space-y-6" noValidate onSubmit={submitForm}>
+        <FormSection
+          title="基础信息"
+          description="设置文章标题、摘要和列表封面。"
+          className="space-y-6"
+        >
           <div>
             <label htmlFor="article-title" className="font-medium text-slate-900">
               标题{" "}
@@ -447,18 +421,9 @@ export default function ContentArticleEdit() {
               </p>
             ) : null}
           </div>
-        </section>
+        </FormSection>
 
-        <section
-          aria-label="正文编辑区"
-          className="rounded-xl border border-border bg-white p-6 shadow-sm"
-        >
-          <div className="mb-5">
-            <h2 id="article-body-heading" className="text-lg font-semibold text-slate-950">
-              文章正文
-            </h2>
-            <p className="mt-1 text-sm text-slate-500">使用标题、列表与图片组织正文内容。</p>
-          </div>
+        <FormSection title="文章正文" description="使用标题、列表与图片组织正文内容。">
           <RichTextEditor
             value={bodyHtml}
             disabled={isLocked}
@@ -468,8 +433,8 @@ export default function ContentArticleEdit() {
             }}
             onUpload={uploadMedia}
           />
-        </section>
+        </FormSection>
       </form>
-    </section>
+    </EditorPageLayout>
   );
 }

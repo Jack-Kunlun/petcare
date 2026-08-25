@@ -5,7 +5,7 @@ import type {
 import { QueryClient, QueryClientProvider } from "@tanstack/react-query";
 import { fireEvent, render, screen, waitFor } from "@testing-library/react";
 import userEvent from "@testing-library/user-event";
-import { MemoryRouter, Route, Routes } from "react-router-dom";
+import { createMemoryRouter, RouterProvider } from "react-router-dom";
 import { beforeEach, describe, expect, it, vi } from "vitest";
 import ContentArticleEdit from "./Edit";
 
@@ -69,22 +69,24 @@ const publicAsset: UploadAdminClassroomArticleMediaResponse = {
   mimeType: "image/png",
 };
 
-function renderEdit(path: string): QueryClient {
+function renderEdit(path: string) {
   const queryClient = new QueryClient({ defaultOptions: { queries: { retry: false } } });
+  const router = createMemoryRouter(
+    [
+      { path: "/content/articles", element: <p>文章列表占位</p> },
+      { path: "/content/articles/new", element: <ContentArticleEdit /> },
+      { path: "/content/articles/:id/edit", element: <ContentArticleEdit /> },
+    ],
+    { initialEntries: [path] },
+  );
 
   render(
     <QueryClientProvider client={queryClient}>
-      <MemoryRouter initialEntries={[path]}>
-        <Routes>
-          <Route path="/content/articles" element={<p>文章列表占位</p>} />
-          <Route path="/content/articles/new" element={<ContentArticleEdit />} />
-          <Route path="/content/articles/:id/edit" element={<ContentArticleEdit />} />
-        </Routes>
-      </MemoryRouter>
+      <RouterProvider router={router} />
     </QueryClientProvider>,
   );
 
-  return queryClient;
+  return router;
 }
 
 describe("ContentArticleEdit", () => {
@@ -293,11 +295,16 @@ describe("ContentArticleEdit", () => {
     expect(await screen.findByRole("heading", { name: "编辑文章" })).toBeInTheDocument();
   });
 
-  it("uses a wide card layout with a sticky save action and field guidance", () => {
+  it("uses the shared editor layout with its existing status and actions", () => {
     renderEdit("/content/articles/new");
 
+    expect(document.querySelector("section.editor-page")).toBeInTheDocument();
+    expect(document.querySelector("header.editor-page__header")).toBeInTheDocument();
+    expect(document.querySelector("div.editor-page__content")).toBeInTheDocument();
     expect(screen.getByRole("heading", { name: "新建文章" })).toBeInTheDocument();
-    expect(screen.getByRole("region", { name: "文章操作" })).toHaveClass("sticky");
+    expect(screen.getByText("草稿")).toBeInTheDocument();
+    expect(screen.getByRole("link", { name: "返回文章列表" })).toBeInTheDocument();
+    expect(screen.getByRole("link", { name: "取消" })).toBeInTheDocument();
     expect(screen.getByRole("button", { name: "保存草稿" })).toHaveAttribute(
       "form",
       "article-form",
@@ -331,11 +338,11 @@ describe("ContentArticleEdit", () => {
     );
   });
 
-  it("warns before abandoning dirty content and before closing the browser", async () => {
+  it("blocks dirty navigation and lets the editor stay or discard changes", async () => {
     const user = userEvent.setup();
-    const confirmLeave = vi.spyOn(window, "confirm").mockReturnValue(false);
 
-    renderEdit("/content/articles/new");
+    const router = renderEdit("/content/articles/new");
+
     await user.type(screen.getByLabelText("标题"), "未保存标题");
 
     expect(screen.getByText("有未保存修改")).toBeInTheDocument();
@@ -345,12 +352,29 @@ describe("ContentArticleEdit", () => {
     expect(beforeUnload.defaultPrevented).toBe(true);
 
     await user.click(screen.getByRole("link", { name: "取消" }));
-    expect(confirmLeave).toHaveBeenCalledWith("当前内容尚未保存，确定离开吗？");
+    expect(await screen.findByRole("dialog")).toHaveTextContent("放弃未保存的修改？");
+    expect(router.state.location.pathname).toBe("/content/articles/new");
+
+    await user.click(screen.getByRole("button", { name: "继续编辑" }));
+    expect(screen.queryByRole("dialog")).not.toBeInTheDocument();
     expect(screen.getByRole("heading", { name: "新建文章" })).toBeInTheDocument();
 
-    confirmLeave.mockReturnValue(true);
+    await user.click(screen.getByRole("link", { name: "取消" }));
+    await user.click(await screen.findByRole("button", { name: "放弃修改" }));
+    expect(await screen.findByText("文章列表占位")).toBeInTheDocument();
+  });
+
+  it("clears dirty state after saving so later navigation does not prompt", async () => {
+    const user = userEvent.setup();
+
+    renderEdit("/content/articles/new");
+    await user.type(screen.getByLabelText("标题"), "幼犬喂养课堂");
+    await user.type(screen.getByLabelText("摘要"), "基础喂养知识");
+    await user.click(screen.getByRole("button", { name: "保存草稿" }));
+
+    expect(await screen.findByText("草稿已保存")).toBeInTheDocument();
     await user.click(screen.getByRole("link", { name: "取消" }));
     expect(await screen.findByText("文章列表占位")).toBeInTheDocument();
-    confirmLeave.mockRestore();
+    expect(screen.queryByRole("dialog")).not.toBeInTheDocument();
   });
 });
