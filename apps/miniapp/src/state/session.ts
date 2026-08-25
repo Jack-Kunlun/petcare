@@ -27,6 +27,7 @@ export const session = reactive<SessionState>({
 });
 
 let sessionRevision = 0;
+let interactiveLoginCommitRevision = 0;
 let refreshAttempt: { revision: number; promise: Promise<void> } | null = null;
 
 function readStoredString(key: string): string | null {
@@ -179,7 +180,7 @@ export function clearSession(manualLogout = false): void {
 }
 
 export async function logout(): Promise<void> {
-  const revision = sessionRevision;
+  const interactiveLoginRevision = interactiveLoginCommitRevision;
 
   try {
     const refreshToken = readStoredString(STORAGE_KEY.refreshToken);
@@ -190,7 +191,7 @@ export async function logout(): Promise<void> {
   } catch {
     // Remote revocation and storage reads cannot prevent the local logout.
   } finally {
-    if (revision === sessionRevision) {
+    if (interactiveLoginRevision === interactiveLoginCommitRevision) {
       clearSession(true);
     }
   }
@@ -286,6 +287,7 @@ export async function loginInteractively(): Promise<void> {
   const revision = ++sessionRevision;
 
   if (await createWechatSession(revision, true)) {
+    interactiveLoginCommitRevision += 1;
     session.bootstrapped = true;
   }
 }

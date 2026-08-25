@@ -312,6 +312,62 @@ describe("miniapp session", () => {
     expect(setStorageSync).not.toHaveBeenCalledWith(STORAGE_KEY.manualLogout, true);
   });
 
+  it("keeps a pending logout intent after interactive login fails", async () => {
+    seedStoredSession();
+    const remoteLogout = deferred<void>();
+
+    logoutWechatSessionMock.mockReturnValueOnce(remoteLogout.promise);
+    const pendingLogout = logout();
+
+    await vi.waitFor(() => expect(logoutWechatSessionMock).toHaveBeenCalledTimes(1));
+    login.mockImplementationOnce((options: LoginOptions) =>
+      options.fail?.({ errMsg: "login:fail" }),
+    );
+    await expect(loginInteractively()).rejects.toThrow("login:fail");
+
+    remoteLogout.resolve(undefined);
+    await pendingLogout;
+
+    expect(session).toMatchObject({ accessToken: null, refreshToken: null, user: null });
+    expect(storage.get(STORAGE_KEY.manualLogout)).toBe(true);
+  });
+
+  it("keeps a pending logout intent after an ordinary session clear", async () => {
+    seedStoredSession();
+    const remoteLogout = deferred<void>();
+
+    logoutWechatSessionMock.mockReturnValueOnce(remoteLogout.promise);
+    const pendingLogout = logout();
+
+    await vi.waitFor(() => expect(logoutWechatSessionMock).toHaveBeenCalledTimes(1));
+    clearSession(false);
+
+    remoteLogout.resolve(undefined);
+    await pendingLogout;
+
+    expect(session).toMatchObject({ accessToken: null, refreshToken: null, user: null });
+    expect(storage.get(STORAGE_KEY.manualLogout)).toBe(true);
+  });
+
+  it("keeps a pending logout intent after bootstrap restores a session", async () => {
+    seedStoredSession();
+    const remoteLogout = deferred<void>();
+
+    logoutWechatSessionMock.mockReturnValueOnce(remoteLogout.promise);
+    refreshWechatSessionMock.mockResolvedValueOnce(refreshedSession);
+    const pendingLogout = logout();
+
+    await vi.waitFor(() => expect(logoutWechatSessionMock).toHaveBeenCalledTimes(1));
+    await bootstrapSession();
+
+    expect(session).toMatchObject(refreshedSession);
+    remoteLogout.resolve(undefined);
+    await pendingLogout;
+
+    expect(session).toMatchObject({ accessToken: null, refreshToken: null, user: null });
+    expect(storage.get(STORAGE_KEY.manualLogout)).toBe(true);
+  });
+
   it("rolls back an interactive login when session storage throws", async () => {
     storage.set("petcare.manualLogout", true);
     resolveUniLogin();

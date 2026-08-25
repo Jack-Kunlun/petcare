@@ -1,9 +1,9 @@
 <script setup lang="ts">
 import { onShow } from "@dcloudio/uni-app";
 import { computed, ref } from "vue";
-import { runLogoutFlow } from "./logout";
 import { getProfile } from "@/api/user";
 import MainTabLayout from "@/components/MainTabLayout.vue";
+import { runLogoutFlow } from "@/pages/profile/logout";
 import { getDefaultAvatar } from "@/state/default-avatar";
 import { captureSessionUserRevision, logout, session, updateSessionUser } from "@/state/session";
 
