@@ -3,7 +3,6 @@ import { resolve } from "node:path";
 import { describe, expect, it } from "vitest";
 
 const source = readFileSync(resolve(import.meta.dirname, "edit.vue"), "utf8");
-const fieldSource = readFileSync(resolve(import.meta.dirname, "ProfileField.vue"), "utf8");
 
 describe("profile edit interaction boundary", () => {
   it("uses one busy owner across load, avatar, save, code, and bind actions", () => {
@@ -36,21 +35,30 @@ describe("profile edit interaction boundary", () => {
     expect(fallback).toContain('@click="chooseImage"');
   });
 
-  it("keeps profile fields continuous and moves first-time phone binding into a bottom sheet", () => {
-    const nicknameIndex = source.indexOf('label="昵称"');
-    const phoneIndex = source.indexOf('label="手机号"');
-    const regionIndex = source.indexOf('label="所在地区"');
-    const bioIndex = source.indexOf('label="个人简介"');
+  it("uses the Figma profile form hierarchy without changing the writable profile fields", () => {
+    const nicknameIndex = source.indexOf(">昵称</text>");
+    const phoneIndex = source.indexOf(">手机号</text>");
+    const regionIndex = source.indexOf(">地区</text>");
+    const bioIndex = source.indexOf(">个人简介</text>");
 
     expect(nicknameIndex).toBeGreaterThan(-1);
     expect(phoneIndex).toBeGreaterThan(nicknameIndex);
     expect(regionIndex).toBeGreaterThan(phoneIndex);
     expect(bioIndex).toBeGreaterThan(regionIndex);
+    expect(source).toContain("基础资料");
+    expect(source).toContain('class="profile-edit-page"');
+    expect(source).toContain('font-family: "Noto Sans SC"');
+    expect(source).toContain("h-avatar-xl w-avatar-xl");
+    expect(source).toContain("profile-avatar-camera-bg.svg");
+    expect(source).toContain("profile-camera.svg");
+    expect(source).toContain('mode="region"');
+    expect(source).toContain("profile-location.svg");
     expect(source).not.toContain("完善手机号");
     expect(source).not.toContain("验证并绑定");
     expect(source).toContain("<wd-popup");
     expect(source).toContain('position="bottom"');
-    expect(source).toContain(':clickable="profile.phoneMasked === null"');
+    expect(source).toContain('v-if="profile.phoneMasked === null"');
+    expect(source).toContain('@click="openPhoneSheet"');
     expect(source).toContain('id="phone-error"');
     expect(source).toContain('id="code-error"');
     expect(source).toContain("请输入手机号");
@@ -66,24 +74,11 @@ describe("profile edit interaction boundary", () => {
   });
 
   it("keeps field and action availability semantics aligned", () => {
-    for (const prop of [
-      "label",
-      "value",
-      "placeholder",
-      "clickable",
-      "readonly",
-      "disabled",
-      "required",
-      "helper",
-      "error",
-      "rightIcon",
-    ]) {
-      expect(fieldSource).toContain(`${prop}`);
-    }
-
-    expect(fieldSource).toContain(':disabled="!interactive"');
-    expect(fieldSource).toContain(':aria-disabled="!interactive"');
+    expect(source).toContain(':disabled="busy !== null"');
+    expect(source).toContain(':aria-disabled="busy !== null"');
     expect(source).toContain(':disabled="saveDisabled"');
     expect(source).toContain(':aria-disabled="saveDisabled"');
+    expect(source).toContain(":aria-busy=\"busy === 'save'\"");
+    expect(source).toContain('saveDisabled.value || busy.value === "save"');
   });
 });

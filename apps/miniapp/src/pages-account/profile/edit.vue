@@ -4,7 +4,6 @@ import { MINIAPP_ACCOUNT_ERROR_CODE } from "@petcare/shared-types";
 import type { MiniappUserProfile } from "@petcare/shared-types";
 import { computed, reactive, ref } from "vue";
 import { isMainlandChinaMobile, isProfileFormDirty, mergeProfileResponse } from "./profile-form";
-import ProfileField from "./ProfileField.vue";
 import { MiniappApiError } from "@/api/request";
 import { bindPhone, getProfile, sendPhoneCode, updateProfile, uploadAvatar } from "@/api/user";
 import SubPageLayout from "@/components/SubPageLayout.vue";
@@ -19,6 +18,10 @@ import {
 
 interface ChooseAvatarEvent {
   detail?: { avatarUrl?: string };
+}
+
+interface RegionPickerEvent {
+  detail?: { value?: string[] };
 }
 
 const profile = ref<MiniappUserProfile | null>(session.user);
@@ -55,6 +58,16 @@ const primaryButtonStyle = {
   backgroundColor: miniappDesignTokens.colors.brand,
   color: miniappDesignTokens.colors.surface,
 };
+const saveButtonStyle = computed(() => {
+  if (!saveDisabled.value || busy.value === "save") {
+    return primaryButtonStyle;
+  }
+
+  return {
+    backgroundColor: miniappDesignTokens.colors["brand-disabled"],
+    color: miniappDesignTokens.colors["text-disabled"],
+  };
+});
 const phoneCodeButtonText = computed(() => {
   if (busy.value === "code") {
     return "发送中…";
@@ -283,6 +296,14 @@ function clearCodeError() {
   codeError.value = "";
 }
 
+function handleRegionChange(event: unknown) {
+  const value = (event as RegionPickerEvent).detail?.value;
+
+  if (Array.isArray(value)) {
+    form.region = value.filter(Boolean).join(" · ");
+  }
+}
+
 function validatePhone(): boolean {
   const value = phone.value.trim();
 
@@ -431,8 +452,8 @@ onUnload(() => {
 </script>
 
 <template>
-  <SubPageLayout title="编辑个人信息">
-    <view class="min-h-full bg-surface px-action py-card">
+  <SubPageLayout class="profile-edit-page" title="编辑个人信息">
+    <view class="min-h-full bg-canvas px-action pb-section pt-screen">
       <view v-if="loadError && !profile" class="flex flex-col items-center gap-copy py-section">
         <text class="text-caption text-danger leading-caption">{{ loadError }}</text>
         <button
@@ -451,7 +472,7 @@ onUnload(() => {
       </view>
 
       <template v-if="profile">
-        <view class="flex justify-center pb-screen pt-sm">
+        <view class="h-[120px] flex justify-center">
           <!-- #ifdef MP-WEIXIN -->
           <button
             class="flex flex-col items-center gap-sm bg-transparent p-0"
@@ -464,8 +485,24 @@ onUnload(() => {
             hover-class="opacity-70"
             @chooseavatar="handleChooseAvatar"
           >
-            <image class="h-pet w-pet rounded-full" :src="avatarUrl" mode="aspectFill" />
-            <text class="text-caption text-brand leading-caption">
+            <view class="relative h-avatar-xl w-avatar-xl shrink-0">
+              <image
+                class="h-avatar-xl w-avatar-xl rounded-full"
+                :src="avatarUrl"
+                mode="aspectFill"
+              />
+              <image
+                class="absolute bottom-0 right-0 h-[28px] w-[28px]"
+                src="/static/main/profile-avatar-camera-bg.svg"
+                mode="aspectFit"
+              />
+              <image
+                class="absolute bottom-[6px] right-[6px] h-icon-xs w-icon-xs"
+                src="/static/main/profile-camera.svg"
+                mode="aspectFit"
+              />
+            </view>
+            <text class="text-body text-brand-active font-medium leading-label">
               {{ busy === "avatar" ? "正在上传…" : "更换头像" }}
             </text>
           </button>
@@ -481,78 +518,142 @@ onUnload(() => {
             hover-class="opacity-70"
             @click="chooseImage"
           >
-            <image class="h-pet w-pet rounded-full" :src="avatarUrl" mode="aspectFill" />
-            <text class="text-caption text-brand leading-caption">
+            <view class="relative h-avatar-xl w-avatar-xl shrink-0">
+              <image
+                class="h-avatar-xl w-avatar-xl rounded-full"
+                :src="avatarUrl"
+                mode="aspectFill"
+              />
+              <image
+                class="absolute bottom-0 right-0 h-[28px] w-[28px]"
+                src="/static/main/profile-avatar-camera-bg.svg"
+                mode="aspectFit"
+              />
+              <image
+                class="absolute bottom-[6px] right-[6px] h-icon-xs w-icon-xs"
+                src="/static/main/profile-camera.svg"
+                mode="aspectFit"
+              />
+            </view>
+            <text class="text-body text-brand-active font-medium leading-label">
               {{ busy === "avatar" ? "正在上传…" : "更换头像" }}
             </text>
           </button>
           <!-- #endif -->
         </view>
 
-        <view class="border-t border-divider">
-          <ProfileField label="昵称" required :disabled="busy !== null">
-            <template #control>
+        <view class="mt-[28px]">
+          <text class="block text-section text-ink font-medium leading-card">基础资料</text>
+
+          <view
+            class="mt-copy flex flex-col gap-card overflow-hidden border border-divider rounded-card bg-surface p-action"
+          >
+            <label class="block h-[72px]">
+              <text class="block text-body text-ink font-medium leading-label">昵称</text>
               <!-- #ifdef MP-WEIXIN -->
               <input
                 v-model="form.nickname"
-                class="h-control min-w-0 flex-1 text-right text-body text-ink leading-body"
+                class="mt-sm box-border h-control w-full border border-divider rounded-control bg-surface px-copy text-body text-ink leading-label"
                 type="nickname"
                 :maxlength="24"
                 :disabled="busy !== null"
                 aria-label="昵称"
                 placeholder="请输入昵称"
+                placeholder-class="text-subtle"
               />
               <!-- #endif -->
               <!-- #ifndef MP-WEIXIN -->
               <input
                 v-model="form.nickname"
-                class="h-control min-w-0 flex-1 text-right text-body text-ink leading-body"
+                class="mt-sm box-border h-control w-full border border-divider rounded-control bg-surface px-copy text-body text-ink leading-label"
                 type="text"
                 :maxlength="24"
                 :disabled="busy !== null"
                 aria-label="昵称"
                 placeholder="请输入昵称"
+                placeholder-class="text-subtle"
               />
               <!-- #endif -->
-            </template>
-          </ProfileField>
+            </label>
 
-          <ProfileField
-            label="手机号"
-            :value="profile.phoneMasked ?? '绑定手机号'"
-            :clickable="profile.phoneMasked === null"
-            :disabled="busy !== null"
-            :right-icon="profile.phoneMasked === null ? '/static/main/chevron.svg' : ''"
-            @click="openPhoneSheet"
-          />
-
-          <ProfileField label="所在地区" :disabled="busy !== null">
-            <template #control>
-              <input
-                v-model="form.region"
-                class="h-control min-w-0 flex-1 text-right text-body text-ink leading-body"
-                type="text"
-                :maxlength="80"
+            <view class="h-[72px]">
+              <text class="block text-body text-ink font-medium leading-label">手机号</text>
+              <button
+                v-if="profile.phoneMasked === null"
+                class="mt-sm box-border h-control w-full flex items-center gap-sm border border-divider rounded-control bg-canvas px-copy text-left"
+                :class="busy !== null ? 'cursor-not-allowed opacity-50' : 'cursor-pointer'"
+                style="margin-left: 0; margin-right: 0"
                 :disabled="busy !== null"
-                aria-label="所在地区"
-                placeholder="请输入所在地区"
-              />
-            </template>
-          </ProfileField>
+                :aria-disabled="busy !== null"
+                aria-label="绑定手机号"
+                hover-class="bg-soft"
+                @click="openPhoneSheet"
+              >
+                <text class="min-w-0 flex-1 text-body text-brand-active leading-label">
+                  绑定手机号
+                </text>
+                <image
+                  class="h-icon-xs w-icon-xs shrink-0"
+                  src="/static/main/profile-chevron.svg"
+                  mode="aspectFit"
+                />
+              </button>
+              <view
+                v-else
+                class="mt-sm box-border h-control w-full flex items-center justify-between border border-divider rounded-control bg-canvas px-copy"
+                aria-label="已绑定手机号"
+              >
+                <text class="text-body text-muted leading-label">{{ profile.phoneMasked }}</text>
+                <text class="text-caption text-muted leading-caption">已绑定</text>
+              </view>
+            </view>
 
-          <ProfileField label="个人简介" :disabled="busy !== null">
-            <template #control>
+            <view class="h-[72px]">
+              <text class="block text-body text-ink font-medium leading-label">地区</text>
+              <picker
+                mode="region"
+                :disabled="busy !== null"
+                aria-label="选择地区"
+                @change="handleRegionChange"
+              >
+                <view
+                  class="mt-sm box-border h-control w-full flex items-center gap-sm border border-divider rounded-control bg-surface px-copy"
+                  :class="busy !== null ? 'opacity-50' : ''"
+                >
+                  <image
+                    class="h-icon-sm w-icon-sm shrink-0"
+                    src="/static/main/profile-location.svg"
+                    mode="aspectFit"
+                  />
+                  <text
+                    class="min-w-0 flex-1 truncate text-body leading-label"
+                    :class="form.region ? 'text-ink' : 'text-subtle'"
+                  >
+                    {{ form.region || "请选择" }}
+                  </text>
+                  <image
+                    class="h-icon-xs w-icon-xs shrink-0"
+                    src="/static/main/profile-chevron.svg"
+                    mode="aspectFit"
+                  />
+                </view>
+              </picker>
+            </view>
+
+            <label class="block min-h-[72px]">
+              <text class="block text-body text-ink font-medium leading-label">个人简介</text>
               <textarea
                 v-model="form.bio"
-                class="min-h-control min-w-0 flex-1 text-right text-body text-ink leading-body"
+                class="min-h-control mt-sm box-border w-full border border-divider rounded-control bg-surface px-copy py-copy text-body text-ink leading-label"
                 auto-height
                 :maxlength="200"
                 :disabled="busy !== null"
                 aria-label="个人简介"
                 placeholder="介绍一下自己"
+                placeholder-class="text-subtle"
               />
-            </template>
-          </ProfileField>
+            </label>
+          </view>
         </view>
       </template>
     </view>
@@ -679,17 +780,28 @@ onUnload(() => {
 
     <template #actions>
       <button
-        class="h-control flex items-center justify-center rounded-control bg-brand"
-        :class="saveDisabled ? 'cursor-not-allowed opacity-40' : 'cursor-pointer'"
-        :style="primaryButtonStyle"
+        class="h-header flex items-center justify-center rounded-control"
+        :class="saveDisabled ? 'cursor-not-allowed' : 'cursor-pointer'"
+        :style="saveButtonStyle"
         :disabled="saveDisabled"
         :aria-disabled="saveDisabled"
+        :aria-busy="busy === 'save'"
         @click="save"
       >
-        <text class="text-button text-surface font-semibold leading-button">
-          {{ busy === "save" ? "保存中…" : "保存修改" }}
+        <text class="text-body font-medium leading-label">
+          {{ busy === "save" ? "保存中…" : "保存" }}
         </text>
       </button>
     </template>
   </SubPageLayout>
 </template>
+
+<style scoped>
+.profile-edit-page {
+  font-family: "Noto Sans SC", "PingFang SC", "Microsoft YaHei", sans-serif;
+}
+
+button::after {
+  border: 0;
+}
+</style>
