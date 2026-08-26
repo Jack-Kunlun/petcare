@@ -1,22 +1,36 @@
 <script setup lang="ts">
-import { onLoad } from "@dcloudio/uni-app";
+import { onLoad, onShow } from "@dcloudio/uni-app";
 import {
   COMMUNITY_POST_REPORT_REASON,
   COMMUNITY_POST_REPORT_REASON_LABELS,
 } from "@petcare/shared-types";
-import type { CommunityPostReportReason, PublicCommunityPostDetail } from "@petcare/shared-types";
+import type {
+  CommunityPostLikeState,
+  CommunityPostReportReason,
+  PublicCommunityPostDetail,
+} from "@petcare/shared-types";
 import { computed, ref } from "vue";
-import { getCommunityPost, reportCommunityPost } from "@/api/content";
+import {
+  getCommunityPost,
+  getCommunityPostLikeState,
+  likeCommunityPost,
+  reportCommunityPost,
+  unlikeCommunityPost,
+} from "@/api/content";
 import { MiniappApiError } from "@/api/request";
 import SubPageLayout from "@/components/SubPageLayout.vue";
 import { getDefaultAvatar } from "@/state/default-avatar";
-import { requireProfile } from "@/state/session";
+import { requireProfile, session } from "@/state/session";
 
 const postId = ref("");
 const post = ref<PublicCommunityPostDetail | null>(null);
 const status = ref<"loading" | "ready" | "error">("loading");
 const loading = ref(false);
 const checkingProfile = ref(false);
+const liked = ref(false);
+const likeStateStatus = ref<"idle" | "loading" | "ready" | "error">("idle");
+const likePending = ref(false);
+const likeError = ref("");
 const reportVisible = ref(false);
 const reportReason = ref<CommunityPostReportReason>(COMMUNITY_POST_REPORT_REASON.SPAM);
 const reportDescription = ref("");
@@ -32,6 +46,61 @@ function formatDate(value: string): string {
   return value.slice(0, 16).replace("T", " ");
 }
 
+function applyLikeState(state: CommunityPostLikeState): void {
+  liked.value = state.liked;
+  likeStateStatus.value = "ready";
+
+  if (post.value) {
+    post.value = { ...post.value, likesCount: state.likesCount };
+  }
+}
+
+function likeButtonLabel(): string {
+  if (checkingProfile.value) {
+    return "正在检查账号";
+  }
+
+  if (likePending.value) {
+    return "处理中";
+  }
+
+  if (likeStateStatus.value === "loading") {
+    return "读取点赞状态";
+  }
+
+  if (likeStateStatus.value === "error" && session.user) {
+    return "重试点赞";
+  }
+
+  return liked.value ? "取消点赞" : "点赞";
+}
+
+async function loadLikeState(): Promise<boolean> {
+  if (
+    !session.user ||
+    !post.value ||
+    !postId.value ||
+    likePending.value ||
+    likeStateStatus.value === "loading"
+  ) {
+    return false;
+  }
+
+  likeStateStatus.value = "loading";
+  likeError.value = "";
+
+  try {
+    applyLikeState(await getCommunityPostLikeState(postId.value));
+
+    return true;
+  } catch (error) {
+    likeStateStatus.value = "error";
+    likeError.value = error instanceof MiniappApiError ? error.message : "点赞状态加载失败，请重试";
+
+    return false;
+  }
+}
+
 async function loadPost(): Promise<void> {
   if (loading.value || !postId.value) {
     return;
@@ -43,11 +112,58 @@ async function loadPost(): Promise<void> {
   try {
     post.value = await getCommunityPost(postId.value);
     status.value = "ready";
+    liked.value = false;
+    likeStateStatus.value = "idle";
+    likeError.value = "";
+
+    if (session.user) {
+      void loadLikeState();
+    }
   } catch {
     post.value = null;
     status.value = "error";
   } finally {
     loading.value = false;
+  }
+}
+
+async function toggleLike(): Promise<void> {
+  if (
+    checkingProfile.value ||
+    likePending.value ||
+    reportSubmitting.value ||
+    !post.value ||
+    !postId.value
+  ) {
+    return;
+  }
+
+  checkingProfile.value = true;
+  const returnUrl = `/pages-content/community/article?id=${encodeURIComponent(postId.value)}`;
+
+  try {
+    if (!(await requireProfile(returnUrl))) {
+      return;
+    }
+
+    if (likeStateStatus.value !== "ready" && !(await loadLikeState())) {
+      return;
+    }
+
+    likePending.value = true;
+    likeError.value = "";
+
+    try {
+      applyLikeState(
+        await (liked.value ? unlikeCommunityPost(postId.value) : likeCommunityPost(postId.value)),
+      );
+    } catch (error) {
+      likeError.value = error instanceof MiniappApiError ? error.message : "点赞操作失败，请重试";
+    } finally {
+      likePending.value = false;
+    }
+  } finally {
+    checkingProfile.value = false;
   }
 }
 
@@ -119,6 +235,19 @@ onLoad((query = {}) => {
   postId.value = query.id;
   void loadPost();
 });
+
+onShow(() => {
+  if (!session.user) {
+    liked.value = false;
+    likeStateStatus.value = "idle";
+
+    return;
+  }
+
+  if (post.value && likeStateStatus.value === "idle") {
+    void loadLikeState();
+  }
+});
 </script>
 
 <template>
@@ -168,7 +297,33 @@ onLoad((query = {}) => {
         </view>
 
         <view class="mt-action border-t border-divider pt-copy">
-          <text class="quiet-text">点赞、评论、关注与分享功能暂未开放</text>
+          <view class="flex items-center gap-copy">
+            <button
+              class="min-h-control border rounded-control px-action text-body font-medium"
+              :class="[
+                liked
+                  ? 'border-brand bg-soft text-brand-active'
+                  : 'border-divider bg-surface text-muted',
+                likePending || checkingProfile || likeStateStatus === 'loading' ? 'opacity-50' : '',
+              ]"
+              :disabled="
+                likePending || checkingProfile || reportSubmitting || likeStateStatus === 'loading'
+              "
+              :aria-disabled="
+                likePending || checkingProfile || reportSubmitting || likeStateStatus === 'loading'
+              "
+              :aria-pressed="liked"
+              :loading="likePending"
+              @click="toggleLike"
+            >
+              {{ likeButtonLabel() }} · {{ post.likesCount }}
+            </button>
+            <text class="quiet-text">评论 {{ post.commentsCount }}</text>
+          </view>
+          <text v-if="likeError" class="mt-copy block text-small text-danger" role="alert">
+            {{ likeError }}
+          </text>
+          <text class="mt-copy block quiet-text">评论、关注与分享功能暂未开放</text>
         </view>
 
         <view class="mt-copy border-t border-divider pt-copy">
@@ -178,8 +333,8 @@ onLoad((query = {}) => {
           <button
             v-if="!reportVisible"
             class="mt-copy h-control w-full border border-divider rounded-control bg-surface text-body text-muted"
-            :disabled="checkingProfile || reportSubmitting"
-            :aria-disabled="checkingProfile || reportSubmitting"
+            :disabled="checkingProfile || likePending || reportSubmitting"
+            :aria-disabled="checkingProfile || likePending || reportSubmitting"
             @click="openReport"
           >
             {{ checkingProfile ? "正在检查账号" : "举报该动态" }}

@@ -8,9 +8,12 @@ import {
   getClassroomArticle,
   getClassroomArticles,
   getCommunityPost,
+  getCommunityPostLikeState,
   getCommunityPosts,
   getMyCommunityPosts,
+  likeCommunityPost,
   reportCommunityPost,
+  unlikeCommunityPost,
   uploadCommunityMedia,
 } from "./content";
 import { rawRequest } from "./request";
@@ -69,6 +72,9 @@ describe("miniapp content API", () => {
     await getMyCommunityPosts({ page: 1, pageSize: 20 });
     await deleteCommunityPost("post/1");
     await reportCommunityPost("post/1", { reason: "spam", description: "重复广告" });
+    await getCommunityPostLikeState("post/1");
+    await likeCommunityPost("post/1");
+    await unlikeCommunityPost("post/1");
 
     expect(authorizedRequestMock.mock.calls).toEqual([
       ["/community/posts", { method: "POST", data: { content: "今天带旺财散步" } }],
@@ -78,6 +84,9 @@ describe("miniapp content API", () => {
         "/community/posts/post%2F1/reports",
         { method: "POST", data: { reason: "spam", description: "重复广告" } },
       ],
+      ["/community/posts/post%2F1/like"],
+      ["/community/posts/post%2F1/like", { method: "PUT" }],
+      ["/community/posts/post%2F1/like", { method: "DELETE" }],
     ]);
   });
 

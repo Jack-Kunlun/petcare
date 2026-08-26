@@ -3,8 +3,10 @@ import {
   type AdminCommunityPostReportResponse,
   type AdminContentPostDetail,
   type ApiErrorResponse,
+  type CommunityPostLikeState,
   type MyCommunityPostListItem,
   type MyCommunityPostListResponse,
+  type PublicCommunityPostDetail,
   type PublicCommunityPostListResponse,
 } from "@petcare/shared-types";
 import {
@@ -145,6 +147,50 @@ test("受控社区动态从发布、举报到后台下架保持纵向一致", as
   );
 
   expect(publicList.list.map((post) => post.id)).toContain(pending.id);
+  const concurrentLikes = await Promise.all([
+    page.request.put(`/api/community/posts/${pending.id}/like`, {
+      headers: { Authorization: reporterAuthorization },
+    }),
+    page.request.put(`/api/community/posts/${pending.id}/like`, {
+      headers: { Authorization: reporterAuthorization },
+    }),
+  ]);
+
+  await Promise.all(
+    concurrentLikes.map((response) => responseData<CommunityPostLikeState>(response)),
+  );
+  await expect(
+    responseData<CommunityPostLikeState>(
+      await page.request.get(`/api/community/posts/${pending.id}/like`, {
+        headers: { Authorization: reporterAuthorization },
+      }),
+    ),
+  ).resolves.toEqual({ liked: true, likesCount: 1 });
+  await expect(
+    responseData<PublicCommunityPostDetail>(
+      await page.request.get(`/api/content/community-posts/${pending.id}`),
+    ),
+  ).resolves.toMatchObject({ likesCount: 1, commentsCount: 0 });
+
+  const concurrentUnlikes = await Promise.all([
+    page.request.delete(`/api/community/posts/${pending.id}/like`, {
+      headers: { Authorization: reporterAuthorization },
+    }),
+    page.request.delete(`/api/community/posts/${pending.id}/like`, {
+      headers: { Authorization: reporterAuthorization },
+    }),
+  ]);
+
+  await Promise.all(
+    concurrentUnlikes.map((response) => responseData<CommunityPostLikeState>(response)),
+  );
+  await expect(
+    responseData<CommunityPostLikeState>(
+      await page.request.get(`/api/community/posts/${pending.id}/like`, {
+        headers: { Authorization: reporterAuthorization },
+      }),
+    ),
+  ).resolves.toEqual({ liked: false, likesCount: 0 });
   await expectFailure(
     await request.post(`/api/community/posts/${pending.id}/reports`, {
       data: { reason: COMMUNITY_POST_REPORT_REASON.SPAM },

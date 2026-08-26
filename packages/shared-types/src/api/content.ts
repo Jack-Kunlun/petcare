@@ -363,6 +363,14 @@ export interface CommunityPostReportReceipt {
   createdAt: string;
 }
 
+/** Authenticated user's idempotent like state for one published community post. */
+export interface CommunityPostLikeState {
+  /** Whether the current user has liked the post. */
+  liked: boolean;
+  /** Current persisted like count for the post. */
+  likesCount: number;
+}
+
 /** Post fields attached to an administrator's report context. */
 export interface AdminCommunityPostReportPostSummary {
   /** Related community post identifier. */
@@ -417,6 +425,10 @@ export interface PublicCommunityPostListItem {
   content: string;
   /** Public image URLs in author-selected order. */
   mediaUrls: string[];
+  /** Current persisted like count. */
+  likesCount: number;
+  /** Current visible comment count. */
+  commentsCount: number;
   /** Post creation time in ISO 8601 format. */
   createdAt: string;
 }

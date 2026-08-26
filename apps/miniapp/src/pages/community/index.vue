@@ -522,7 +522,11 @@ onLoad((query = {}) => {
             </view>
 
             <view class="mt-copy border-t border-divider px-card-padding py-copy">
-              <text class="quiet-text">点赞、评论、关注与分享功能暂未开放</text>
+              <view class="flex items-center gap-action">
+                <text class="quiet-text">赞 {{ post.likesCount }}</text>
+                <text class="quiet-text">评论 {{ post.commentsCount }}</text>
+              </view>
+              <text class="mt-caption block quiet-text">关注与分享功能暂未开放</text>
             </view>
           </view>
 

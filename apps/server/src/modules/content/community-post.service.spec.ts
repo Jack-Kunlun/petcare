@@ -24,6 +24,11 @@ describe("CommunityPostService", () => {
       findMany: jest.fn(),
       updateMany: jest.fn(),
     },
+    communityPostLike: {
+      createMany: jest.fn(),
+      deleteMany: jest.fn(),
+      findUnique: jest.fn(),
+    },
     $transaction: jest.fn(),
   };
   const storage = {
@@ -42,6 +47,9 @@ describe("CommunityPostService", () => {
     prisma.communityMediaAsset.updateMany.mockResolvedValue({ count: 0 });
     prisma.communityPostReport.findMany.mockResolvedValue([]);
     prisma.communityPostReport.updateMany.mockResolvedValue({ count: 0 });
+    prisma.communityPostLike.createMany.mockResolvedValue({ count: 0 });
+    prisma.communityPostLike.deleteMany.mockResolvedValue({ count: 0 });
+    prisma.communityPostLike.findUnique.mockResolvedValue(null);
   });
 
   it("trims text and creates a pending text-only post", async () => {
@@ -301,6 +309,8 @@ describe("CommunityPostService", () => {
         id: "post-public",
         content: "公开动态",
         mediaUrls: ["https://cdn.example/1.png"],
+        likesCount: 3,
+        commentsCount: 2,
         createdAt: new Date("2026-08-26T08:00:00.000Z"),
         author: { nickname: "  ", username: "public-user", avatar: null },
       },
@@ -314,6 +324,8 @@ describe("CommunityPostService", () => {
           author: { displayName: "public-user", avatar: null },
           content: "公开动态",
           mediaUrls: ["https://cdn.example/1.png"],
+          likesCount: 3,
+          commentsCount: 2,
           createdAt: "2026-08-26T08:00:00.000Z",
         },
       ],
@@ -341,6 +353,97 @@ describe("CommunityPostService", () => {
         where: { id: "post-private", status: ADMIN_CONTENT_POST_STATUS.PUBLISHED },
       }),
     );
+  });
+
+  it("reads the current user's like state only for a published post", async () => {
+    prisma.post.findFirst.mockResolvedValue({ likesCount: 4 });
+    prisma.communityPostLike.findUnique.mockResolvedValue({ id: "like-1" });
+
+    await expect(service.findLikeState("user-1", "post-1")).resolves.toEqual({
+      liked: true,
+      likesCount: 4,
+    });
+    expect(prisma.communityPostLike.findUnique).toHaveBeenCalledWith({
+      where: { postId_userId: { postId: "post-1", userId: "user-1" } },
+      select: { id: true },
+    });
+
+    prisma.post.findFirst.mockResolvedValueOnce(null);
+    await expect(service.findLikeState("user-1", "post-private")).rejects.toMatchObject({
+      code: "CONTENT_POST_NOT_FOUND",
+    });
+  });
+
+  it("idempotently likes a published post and increments its count once", async () => {
+    prisma.post.findFirst
+      .mockResolvedValueOnce({ id: "post-1" })
+      .mockResolvedValueOnce({ likesCount: 4 })
+      .mockResolvedValueOnce({ id: "post-1" })
+      .mockResolvedValueOnce({ likesCount: 4 });
+    prisma.communityPostLike.createMany
+      .mockResolvedValueOnce({ count: 1 })
+      .mockResolvedValueOnce({ count: 0 });
+    prisma.post.updateMany.mockResolvedValue({ count: 1 });
+
+    await expect(service.like("user-1", "post-1")).resolves.toEqual({
+      liked: true,
+      likesCount: 4,
+    });
+    await expect(service.like("user-1", "post-1")).resolves.toEqual({
+      liked: true,
+      likesCount: 4,
+    });
+
+    expect(prisma.communityPostLike.createMany).toHaveBeenCalledWith({
+      data: { postId: "post-1", userId: "user-1" },
+      skipDuplicates: true,
+    });
+    expect(prisma.post.updateMany).toHaveBeenCalledTimes(1);
+    expect(prisma.post.updateMany).toHaveBeenCalledWith({
+      where: { id: "post-1", status: ADMIN_CONTENT_POST_STATUS.PUBLISHED },
+      data: { likesCount: { increment: 1 } },
+    });
+  });
+
+  it("idempotently removes a like and never decrements twice", async () => {
+    prisma.post.findFirst
+      .mockResolvedValueOnce({ id: "post-1" })
+      .mockResolvedValueOnce({ likesCount: 3 })
+      .mockResolvedValueOnce({ id: "post-1" })
+      .mockResolvedValueOnce({ likesCount: 3 });
+    prisma.communityPostLike.deleteMany
+      .mockResolvedValueOnce({ count: 1 })
+      .mockResolvedValueOnce({ count: 0 });
+    prisma.post.updateMany.mockResolvedValue({ count: 1 });
+
+    await expect(service.unlike("user-1", "post-1")).resolves.toEqual({
+      liked: false,
+      likesCount: 3,
+    });
+    await expect(service.unlike("user-1", "post-1")).resolves.toEqual({
+      liked: false,
+      likesCount: 3,
+    });
+
+    expect(prisma.post.updateMany).toHaveBeenCalledTimes(1);
+    expect(prisma.post.updateMany).toHaveBeenCalledWith({
+      where: {
+        id: "post-1",
+        status: ADMIN_CONTENT_POST_STATUS.PUBLISHED,
+        likesCount: { gt: 0 },
+      },
+      data: { likesCount: { decrement: 1 } },
+    });
+  });
+
+  it("does not create a like for a non-public post", async () => {
+    prisma.post.findFirst.mockResolvedValue(null);
+
+    await expect(service.like("user-1", "post-private")).rejects.toMatchObject({
+      code: "CONTENT_POST_NOT_FOUND",
+    });
+    expect(prisma.communityPostLike.createMany).not.toHaveBeenCalled();
+    expect(prisma.post.updateMany).not.toHaveBeenCalled();
   });
 
   it("accepts one trimmed report for a published post", async () => {

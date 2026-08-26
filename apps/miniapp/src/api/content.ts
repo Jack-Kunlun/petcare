@@ -1,5 +1,6 @@
 import type {
   CommunityMediaAsset,
+  CommunityPostLikeState,
   CommunityPostReportReceipt,
   CreateCommunityPostReportRequest,
   CreateCommunityPostRequest,
@@ -62,6 +63,21 @@ export function reportCommunityPost(
     method: "POST",
     data: request,
   });
+}
+
+/** Reads the authenticated user's like state for one published post. */
+export function getCommunityPostLikeState(id: string): Promise<CommunityPostLikeState> {
+  return authorizedRequest(`/community/posts/${encodeURIComponent(id)}/like`);
+}
+
+/** Idempotently likes one published community post. */
+export function likeCommunityPost(id: string): Promise<CommunityPostLikeState> {
+  return authorizedRequest(`/community/posts/${encodeURIComponent(id)}/like`, { method: "PUT" });
+}
+
+/** Idempotently removes the authenticated user's like from one published post. */
+export function unlikeCommunityPost(id: string): Promise<CommunityPostLikeState> {
+  return authorizedRequest(`/community/posts/${encodeURIComponent(id)}/like`, { method: "DELETE" });
 }
 
 /** Reads a page of currently published community posts. */

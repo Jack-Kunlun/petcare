@@ -11,9 +11,12 @@ describe("CommunityPostController", () => {
     create: jest.fn(),
     deleteOwn: jest.fn(),
     findMine: jest.fn(),
+    findLikeState: jest.fn(),
     findPublished: jest.fn(),
     findPublishedById: jest.fn(),
     report: jest.fn(),
+    like: jest.fn(),
+    unlike: jest.fn(),
   };
   const controller = new CommunityPostController(posts as never);
 
@@ -30,6 +33,11 @@ describe("CommunityPostController", () => {
     expect(Reflect.getMetadata("path", CommunityPostController.prototype.report)).toBe(
       ":id/reports",
     );
+    expect(Reflect.getMetadata("path", CommunityPostController.prototype.findLikeState)).toBe(
+      ":id/like",
+    );
+    expect(Reflect.getMetadata("path", CommunityPostController.prototype.like)).toBe(":id/like");
+    expect(Reflect.getMetadata("path", CommunityPostController.prototype.unlike)).toBe(":id/like");
     expect(Reflect.getMetadata("path", CommunityPostController.prototype.deleteOwn)).toBe(":id");
   });
 
@@ -38,6 +46,9 @@ describe("CommunityPostController", () => {
     posts.findMine.mockResolvedValue({ list: [], total: 0, page: 1, pageSize: 20 });
     posts.deleteOwn.mockResolvedValue(undefined);
     posts.report.mockResolvedValue({ id: "report-1", status: "pending" });
+    posts.findLikeState.mockResolvedValue({ liked: false, likesCount: 0 });
+    posts.like.mockResolvedValue({ liked: true, likesCount: 1 });
+    posts.unlike.mockResolvedValue({ liked: false, likesCount: 0 });
     const request = { user: { sub: "user-1" } } as never;
 
     await expect(controller.create(request, { content: "动态正文" })).resolves.toMatchObject({
@@ -50,11 +61,26 @@ describe("CommunityPostController", () => {
     await expect(controller.report(request, "post-1", { reason: "spam" })).resolves.toMatchObject({
       id: "report-1",
     });
+    await expect(controller.findLikeState(request, "post-1")).resolves.toEqual({
+      liked: false,
+      likesCount: 0,
+    });
+    await expect(controller.like(request, "post-1")).resolves.toEqual({
+      liked: true,
+      likesCount: 1,
+    });
+    await expect(controller.unlike(request, "post-1")).resolves.toEqual({
+      liked: false,
+      likesCount: 0,
+    });
 
     expect(posts.create).toHaveBeenCalledWith("user-1", { content: "动态正文" });
     expect(posts.findMine).toHaveBeenCalledWith("user-1", { page: 1, pageSize: 20 });
     expect(posts.deleteOwn).toHaveBeenCalledWith("user-1", "post-1");
     expect(posts.report).toHaveBeenCalledWith("user-1", "post-1", { reason: "spam" });
+    expect(posts.findLikeState).toHaveBeenCalledWith("user-1", "post-1");
+    expect(posts.like).toHaveBeenCalledWith("user-1", "post-1");
+    expect(posts.unlike).toHaveBeenCalledWith("user-1", "post-1");
   });
 
   it("exposes public published list and detail without authentication", async () => {

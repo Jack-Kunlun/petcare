@@ -17,6 +17,7 @@ import {
   type AdminContentPostStateRequest,
   type AdminContentRewardListResponse,
   type CommunityMediaAsset,
+  type CommunityPostLikeState,
   type CreateCommunityPostRequest,
   type CreateAdminClassroomArticleRequest,
   type MyCommunityPostListResponse,
@@ -162,7 +163,7 @@ describe("content contracts", () => {
     expect(Object.values(COMMUNITY_POST_REPORT_STATUS)).toEqual(["pending", "resolved"]);
   });
 
-  it("keeps public community posts free of private and unsupported interaction fields", () => {
+  it("keeps public community posts private-safe while exposing real interaction counts", () => {
     const list: PublicCommunityPostListResponse = {
       list: [
         {
@@ -170,6 +171,8 @@ describe("content contracts", () => {
           author: { displayName: "旺财家长", avatar: null },
           content: "今天带旺财散步",
           mediaUrls: ["https://cdn.example/community.png"],
+          likesCount: 3,
+          commentsCount: 2,
           createdAt: "2026-08-26T08:00:00.000Z",
         },
       ],
@@ -182,7 +185,10 @@ describe("content contracts", () => {
     expect(detail.author.displayName).toBe("旺财家长");
     expect("phone" in detail.author).toBe(false);
     expect("moderationReason" in detail).toBe(false);
-    expect("likesCount" in detail).toBe(false);
+    expect(detail.likesCount).toBe(3);
+    const likeState: CommunityPostLikeState = { liked: true, likesCount: detail.likesCount };
+
+    expect(likeState).toEqual({ liked: true, likesCount: 3 });
   });
 
   it("keeps official website article contracts limited to public fields", () => {

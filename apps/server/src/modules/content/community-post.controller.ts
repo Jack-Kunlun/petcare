@@ -8,6 +8,7 @@ import {
   Param,
   ParseUUIDPipe,
   Post,
+  Put,
   Query,
   Req,
   UseGuards,
@@ -20,6 +21,7 @@ import {
   ApiTags,
 } from "@nestjs/swagger";
 import type {
+  CommunityPostLikeState,
   CommunityPostReportReceipt,
   MyCommunityPostListItem,
   MyCommunityPostListResponse,
@@ -36,6 +38,7 @@ import {
 } from "../../common/swagger/api-response.decorators";
 import { CommunityPostService } from "./community-post.service";
 import {
+  CommunityPostLikeStateDto,
   CommunityPostReportReceiptDto,
   CreateCommunityPostReportDto,
   CreateCommunityPostDto,
@@ -79,6 +82,45 @@ export class CommunityPostController {
     @Query() query: MyCommunityPostListQueryDto,
   ): Promise<MyCommunityPostListResponse> {
     return this.posts.findMine(request.user.sub, query);
+  }
+
+  /** Returns the current user's like state for one published post. */
+  @Get(":id/like")
+  @ApiParam({ name: "id", format: "uuid" })
+  @ApiOperation({ summary: "获取社区动态点赞状态" })
+  @ApiSuccessResponse(CommunityPostLikeStateDto)
+  @ApiStandardErrors(400, 401, 403, 404, 500)
+  findLikeState(
+    @Req() request: AuthRequest,
+    @Param("id", new ParseUUIDPipe({ version: "4" })) id: string,
+  ): Promise<CommunityPostLikeState> {
+    return this.posts.findLikeState(request.user.sub, id);
+  }
+
+  /** Idempotently likes one published post. */
+  @Put(":id/like")
+  @ApiParam({ name: "id", format: "uuid" })
+  @ApiOperation({ summary: "点赞社区动态" })
+  @ApiSuccessResponse(CommunityPostLikeStateDto)
+  @ApiStandardErrors(400, 401, 403, 404, 500)
+  like(
+    @Req() request: AuthRequest,
+    @Param("id", new ParseUUIDPipe({ version: "4" })) id: string,
+  ): Promise<CommunityPostLikeState> {
+    return this.posts.like(request.user.sub, id);
+  }
+
+  /** Idempotently removes the current user's like from one published post. */
+  @Delete(":id/like")
+  @ApiParam({ name: "id", format: "uuid" })
+  @ApiOperation({ summary: "取消点赞社区动态" })
+  @ApiSuccessResponse(CommunityPostLikeStateDto)
+  @ApiStandardErrors(400, 401, 403, 404, 500)
+  unlike(
+    @Req() request: AuthRequest,
+    @Param("id", new ParseUUIDPipe({ version: "4" })) id: string,
+  ): Promise<CommunityPostLikeState> {
+    return this.posts.unlike(request.user.sub, id);
   }
 
   /** Reports one currently published community post. */

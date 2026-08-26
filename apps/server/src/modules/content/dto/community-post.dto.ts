@@ -7,6 +7,7 @@ import {
 import type {
   CommunityPostReportReceipt,
   CommunityMediaAsset,
+  CommunityPostLikeState,
   CreateCommunityPostReportRequest,
   CreateCommunityPostRequest,
   MyCommunityPostListItem,
@@ -74,6 +75,15 @@ export class CommunityPostReportReceiptDto implements CommunityPostReportReceipt
 
   @ApiProperty({ format: "date-time" })
   createdAt: string;
+}
+
+/** Authenticated user's like state for one published community post. */
+export class CommunityPostLikeStateDto implements CommunityPostLikeState {
+  @ApiProperty()
+  liked: boolean;
+
+  @ApiProperty({ minimum: 0 })
+  likesCount: number;
 }
 
 /** Public response for one validated community image upload. */
@@ -194,6 +204,12 @@ export class PublicCommunityPostDetailDto implements PublicCommunityPostDetail {
 
   @ApiProperty({ type: [String] })
   mediaUrls: string[];
+
+  @ApiProperty({ minimum: 0 })
+  likesCount: number;
+
+  @ApiProperty({ minimum: 0 })
+  commentsCount: number;
 
   @ApiProperty({ format: "date-time" })
   createdAt: string;

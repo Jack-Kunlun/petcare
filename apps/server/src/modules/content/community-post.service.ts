@@ -6,6 +6,7 @@ import {
 } from "@petcare/shared-types";
 import type {
   AdminCommunityPostReportResponse,
+  CommunityPostLikeState,
   CommunityPostReportReceipt,
   CreateCommunityPostReportRequest,
   CreateCommunityPostRequest,
@@ -59,6 +60,8 @@ type PublicPostRow = {
   id: string;
   content: string;
   mediaUrls: string[];
+  likesCount: number;
+  commentsCount: number;
   createdAt: Date;
   author: {
     nickname: string;
@@ -90,6 +93,8 @@ function toPublicPost(row: PublicPostRow): PublicCommunityPostListItem {
     },
     content: row.content,
     mediaUrls: row.mediaUrls,
+    likesCount: row.likesCount,
+    commentsCount: row.commentsCount,
     createdAt: row.createdAt.toISOString(),
   };
 }
@@ -236,6 +241,8 @@ export class CommunityPostService {
       id: true,
       content: true,
       mediaUrls: true,
+      likesCount: true,
+      commentsCount: true,
       createdAt: true,
       author: { select: { nickname: true, username: true, avatar: true } },
     } as const;
@@ -266,6 +273,8 @@ export class CommunityPostService {
         id: true,
         content: true,
         mediaUrls: true,
+        likesCount: true,
+        commentsCount: true,
         createdAt: true,
         author: { select: { nickname: true, username: true, avatar: true } },
       },
@@ -276,6 +285,36 @@ export class CommunityPostService {
     }
 
     return toPublicPost(post);
+  }
+
+  /** Returns whether the authenticated user likes one currently published post. */
+  async findLikeState(userId: string, id: string): Promise<CommunityPostLikeState> {
+    const [post, like] = await Promise.all([
+      this.prisma.post.findFirst({
+        where: { id, status: ADMIN_CONTENT_POST_STATUS.PUBLISHED },
+        select: { likesCount: true },
+      }),
+      this.prisma.communityPostLike.findUnique({
+        where: { postId_userId: { postId: id, userId } },
+        select: { id: true },
+      }),
+    ]);
+
+    if (!post) {
+      throw communityPostNotFound();
+    }
+
+    return { liked: Boolean(like), likesCount: post.likesCount };
+  }
+
+  /** Idempotently likes one currently published post. */
+  like(userId: string, id: string): Promise<CommunityPostLikeState> {
+    return this.setLikeState(userId, id, true);
+  }
+
+  /** Idempotently removes the current user's like from one published post. */
+  unlike(userId: string, id: string): Promise<CommunityPostLikeState> {
+    return this.setLikeState(userId, id, false);
   }
 
   /** Accepts one report per reporter for a currently published post. */
@@ -398,5 +437,55 @@ export class CommunityPostService {
 
   private isUniqueConstraintError(error: unknown): boolean {
     return typeof error === "object" && error !== null && "code" in error && error.code === "P2002";
+  }
+
+  private setLikeState(
+    userId: string,
+    id: string,
+    liked: boolean,
+  ): Promise<CommunityPostLikeState> {
+    return this.prisma.$transaction(async (transaction) => {
+      const post = await transaction.post.findFirst({
+        where: { id, status: ADMIN_CONTENT_POST_STATUS.PUBLISHED },
+        select: { id: true },
+      });
+
+      if (!post) {
+        throw communityPostNotFound();
+      }
+
+      const changed = liked
+        ? await transaction.communityPostLike.createMany({
+            data: { postId: id, userId },
+            skipDuplicates: true,
+          })
+        : await transaction.communityPostLike.deleteMany({ where: { postId: id, userId } });
+
+      if (changed.count > 0) {
+        const updated = await transaction.post.updateMany({
+          where: {
+            id,
+            status: ADMIN_CONTENT_POST_STATUS.PUBLISHED,
+            ...(!liked ? { likesCount: { gt: 0 } } : {}),
+          },
+          data: { likesCount: liked ? { increment: 1 } : { decrement: 1 } },
+        });
+
+        if (updated.count === 0) {
+          throw communityPostNotFound();
+        }
+      }
+
+      const current = await transaction.post.findFirst({
+        where: { id, status: ADMIN_CONTENT_POST_STATUS.PUBLISHED },
+        select: { likesCount: true },
+      });
+
+      if (!current) {
+        throw communityPostNotFound();
+      }
+
+      return { liked, likesCount: current.likesCount };
+    });
   }
 }
