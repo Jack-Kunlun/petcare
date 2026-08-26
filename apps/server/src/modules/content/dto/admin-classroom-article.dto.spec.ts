@@ -1,3 +1,4 @@
+import { CLASSROOM_ARTICLE_CATEGORY } from "@petcare/shared-types";
 import { plainToInstance } from "class-transformer";
 import { validate } from "class-validator";
 import {
@@ -6,6 +7,7 @@ import {
 } from "./admin-classroom-article.dto";
 
 const validUpdate = {
+  category: CLASSROOM_ARTICLE_CATEGORY.FEEDING_GUIDE,
   title: "标题",
   summary: "摘要",
   bodyHtml: "<p>正文</p>",
@@ -16,6 +18,7 @@ const validUpdate = {
 describe("Admin classroom article DTOs", () => {
   it("trims a valid update while preserving nullable cover intent", async () => {
     const dto = plainToInstance(UpdateAdminClassroomArticleDto, {
+      category: CLASSROOM_ARTICLE_CATEGORY.HEALTH_MANAGEMENT,
       title: "  幼犬喂养课堂  ",
       summary: "  基础知识  ",
       bodyHtml: "<p>正文</p>",
@@ -35,6 +38,7 @@ describe("Admin classroom article DTOs", () => {
     ["blank summary", { summary: " " }],
     ["overlong summary", { summary: "x".repeat(501) }],
     ["overlong HTML", { bodyHtml: "x".repeat(200_001) }],
+    ["unknown category", { category: "general" }],
     ["non-UUID cover", { coverAssetId: "https://external.example/cover.png" }],
     ["non-strict timestamp", { expectedUpdatedAt: "yesterday" }],
   ])("rejects %s", async (_description, override) => {
@@ -45,6 +49,7 @@ describe("Admin classroom article DTOs", () => {
 
   it("allows a new article to omit its cover", async () => {
     const dto = plainToInstance(CreateAdminClassroomArticleDto, {
+      category: CLASSROOM_ARTICLE_CATEGORY.BEHAVIOR_TRAINING,
       title: "标题",
       summary: "摘要",
       bodyHtml: "<p>正文</p>",

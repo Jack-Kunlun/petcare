@@ -1,3 +1,4 @@
+import { CLASSROOM_ARTICLE_CATEGORY } from "@petcare/shared-types";
 import { describe, expect, it, vi } from "vitest";
 import { WebsiteContentApiError, createWebsiteContentApi } from "./api";
 
@@ -13,6 +14,7 @@ const articleList = {
   list: [
     {
       slug: "pet-first-aid",
+      category: CLASSROOM_ARTICLE_CATEGORY.HEALTH_MANAGEMENT,
       title: "Pet first aid",
       summary: "What to do before help arrives.",
       coverUrl: null,

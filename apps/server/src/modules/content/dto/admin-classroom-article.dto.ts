@@ -1,14 +1,23 @@
 import { ApiProperty, ApiPropertyOptional } from "@nestjs/swagger";
+import { CLASSROOM_ARTICLE_CATEGORY } from "@petcare/shared-types";
 import type {
   AdminClassroomArticleStateRequest,
+  ClassroomArticleCategory,
   CreateAdminClassroomArticleRequest,
   UpdateAdminClassroomArticleRequest,
 } from "@petcare/shared-types";
 import { Transform } from "class-transformer";
-import { IsISO8601, IsOptional, IsString, IsUUID, Length, MaxLength } from "class-validator";
+import { IsISO8601, IsIn, IsOptional, IsString, IsUUID, Length, MaxLength } from "class-validator";
+
+const classroomArticleCategories = Object.values(CLASSROOM_ARTICLE_CATEGORY);
 
 /** Input shared by classroom article creation and editable updates. */
 export class CreateAdminClassroomArticleDto implements CreateAdminClassroomArticleRequest {
+  /** Controlled category selected by the article operator. */
+  @ApiProperty({ enum: classroomArticleCategories })
+  @IsIn(classroomArticleCategories)
+  category: ClassroomArticleCategory;
+
   /** Article title after leading and trailing whitespace is removed. */
   @ApiProperty({ minLength: 1, maxLength: 120 })
   @Transform(({ value }) => (typeof value === "string" ? value.trim() : value))

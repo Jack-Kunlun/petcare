@@ -1,9 +1,10 @@
-import type {
-  AdminClassroomArticleDetail,
-  AdminClassroomArticleStateRequest,
-  CreateAdminClassroomArticleRequest,
-  UpdateAdminClassroomArticleRequest,
-  UploadAdminClassroomArticleMediaResponse,
+import {
+  CLASSROOM_ARTICLE_CATEGORY,
+  type AdminClassroomArticleDetail,
+  type AdminClassroomArticleStateRequest,
+  type CreateAdminClassroomArticleRequest,
+  type UpdateAdminClassroomArticleRequest,
+  type UploadAdminClassroomArticleMediaResponse,
 } from "@petcare/shared-types";
 import { beforeEach, describe, expect, it, vi } from "vitest";
 import { apiClient } from "../auth";
@@ -26,6 +27,7 @@ vi.mock("../auth", () => ({
 
 const articleDetail: AdminClassroomArticleDetail = {
   id: "article-1",
+  category: CLASSROOM_ARTICLE_CATEGORY.FEEDING_GUIDE,
   title: "幼犬喂养课堂",
   summary: "基础知识",
   coverUrl: null,
@@ -39,6 +41,7 @@ const articleDetail: AdminClassroomArticleDetail = {
 };
 
 const createRequest: CreateAdminClassroomArticleRequest = {
+  category: CLASSROOM_ARTICLE_CATEGORY.FEEDING_GUIDE,
   title: articleDetail.title,
   summary: articleDetail.summary,
   bodyHtml: articleDetail.bodyHtml,

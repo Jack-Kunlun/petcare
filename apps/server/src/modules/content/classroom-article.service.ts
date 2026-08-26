@@ -5,6 +5,7 @@ import type {
   AdminClassroomArticleListResponse,
   AdminClassroomArticleStateRequest,
   AdminClassroomArticleStatus,
+  ClassroomArticleCategory,
   CreateAdminClassroomArticleRequest,
   UpdateAdminClassroomArticleRequest,
   PublicClassroomArticleAuthor,
@@ -40,6 +41,7 @@ const authorSelect = {
 
 const adminArticleListSelect = {
   id: true,
+  category: true,
   title: true,
   summary: true,
   coverUrl: true,
@@ -63,6 +65,7 @@ const publicArticleAuthorSelect = {
 
 const publicArticleListSelect = {
   id: true,
+  category: true,
   title: true,
   summary: true,
   coverUrl: true,
@@ -97,6 +100,7 @@ function asPublicAuthor(
 
 function toPublicArticleListItem(value: {
   id: string;
+  category: string | null;
   title: string;
   summary: string;
   coverUrl: string | null;
@@ -105,6 +109,7 @@ function toPublicArticleListItem(value: {
 }): PublicClassroomArticleListItem {
   return {
     slug: value.id,
+    category: value.category as ClassroomArticleCategory | null,
     title: value.title,
     summary: value.summary,
     coverUrl: value.coverUrl,
@@ -135,6 +140,7 @@ export class ClassroomArticleService {
       : null;
     const article = await this.prisma.classroomArticle.create({
       data: {
+        category: request.category,
         title: request.title.trim(),
         summary: request.summary.trim(),
         coverUrl: cover?.url ?? null,
@@ -191,6 +197,7 @@ export class ClassroomArticleService {
         updatedAt: new Date(request.expectedUpdatedAt),
       },
       data: {
+        category: request.category,
         title: request.title.trim(),
         summary: request.summary.trim(),
         coverUrl,
@@ -214,6 +221,10 @@ export class ClassroomArticleService {
 
     if (current.status !== "draft" && current.status !== "offline") {
       throw classroomArticleStateConflict();
+    }
+
+    if (!current.category) {
+      throw classroomArticleInvalidContent("发布前必须选择文章分类");
     }
 
     const bodyHtml = await decodeArticleBody(current.content, (assetIds) =>
@@ -308,7 +319,24 @@ export class ClassroomArticleService {
   async findPublishedArticlePage(
     query: PublicClassroomArticleListQuery,
   ): Promise<PublicClassroomArticleListResponse> {
-    const where = { status: "published" };
+    const keyword = query.keyword?.trim();
+    const filters: Prisma.ClassroomArticleWhereInput[] = [{ status: "published" }];
+
+    if (keyword) {
+      filters.push({
+        OR: [
+          { title: { contains: keyword, mode: "insensitive" } },
+          { summary: { contains: keyword, mode: "insensitive" } },
+          { content: { contains: keyword, mode: "insensitive" } },
+        ],
+      });
+    }
+
+    if (query.category) {
+      filters.push({ category: query.category });
+    }
+
+    const where = { AND: filters };
     const [list, total] = await Promise.all([
       this.prisma.classroomArticle.findMany({
         where,
@@ -350,6 +378,7 @@ export class ClassroomArticleService {
   private toAdminListItem(article: AdminArticleListRecord): AdminClassroomArticleListItem {
     return {
       id: article.id,
+      category: article.category as ClassroomArticleCategory | null,
       title: article.title,
       summary: article.summary,
       coverUrl: article.coverUrl,
@@ -379,7 +408,7 @@ export class ClassroomArticleService {
   private async requireArticle(id: string) {
     const article = await this.prisma.classroomArticle.findUnique({
       where: { id },
-      select: { id: true, status: true, content: true, coverUrl: true },
+      select: { id: true, category: true, status: true, content: true, coverUrl: true },
     });
 
     if (!article) {

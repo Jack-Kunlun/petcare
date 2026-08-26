@@ -1,6 +1,7 @@
 import { GUARDS_METADATA } from "@nestjs/common/constants";
 import { SwaggerModule } from "@nestjs/swagger";
 import { Test } from "@nestjs/testing";
+import { CLASSROOM_ARTICLE_CATEGORY } from "@petcare/shared-types";
 import { ClassroomArticleService } from "./classroom-article.service";
 import { PublicContentController } from "./public-content.controller";
 
@@ -21,15 +22,20 @@ describe("PublicContentController", () => {
     };
     const controller = new PublicContentController(articleService as never);
 
-    await expect(controller.findArticles({ page: 2, pageSize: 10 })).resolves.toMatchObject({
-      page: 1,
-    });
+    const query = {
+      page: 2,
+      pageSize: 10,
+      keyword: "喂养",
+      category: CLASSROOM_ARTICLE_CATEGORY.FEEDING_GUIDE,
+    };
+
+    await expect(controller.findArticles(query)).resolves.toMatchObject({ page: 1 });
     await expect(controller.findArticle("article-1")).resolves.toEqual({
       slug: "article-1",
       bodyHtml: "<p>正文</p>",
     });
 
-    expect(articleService.findPublishedArticlePage).toHaveBeenCalledWith({ page: 2, pageSize: 10 });
+    expect(articleService.findPublishedArticlePage).toHaveBeenCalledWith(query);
     expect(articleService.findPublishedArticleBySlug).toHaveBeenCalledWith("article-1");
   });
 

@@ -2,6 +2,8 @@ import { describe, expect, it } from "vitest";
 import {
   ADMIN_CLASSROOM_ARTICLE_STATUS,
   ADMIN_CONTENT_POST_STATUS,
+  CLASSROOM_ARTICLE_CATEGORY,
+  CLASSROOM_ARTICLE_CATEGORY_LABELS,
   type AdminClassroomArticleDetail,
   type AdminClassroomArticleListResponse,
   type AdminClassroomArticleStateRequest,
@@ -22,6 +24,15 @@ describe("content contracts", () => {
       "published",
       "offline",
     ]);
+    expect(Object.values(CLASSROOM_ARTICLE_CATEGORY)).toEqual([
+      "feeding_guide",
+      "health_management",
+      "behavior_training",
+      "disease_prevention",
+    ]);
+    expect(CLASSROOM_ARTICLE_CATEGORY_LABELS[CLASSROOM_ARTICLE_CATEGORY.FEEDING_GUIDE]).toBe(
+      "喂养指南",
+    );
 
     const responses: Array<
       | AdminContentRewardListResponse
@@ -37,6 +48,7 @@ describe("content contracts", () => {
       list: [
         {
           slug: "article-id",
+          category: CLASSROOM_ARTICLE_CATEGORY.HEALTH_MANAGEMENT,
           title: "Article title",
           summary: "Article summary",
           coverUrl: null,
@@ -54,13 +66,14 @@ describe("content contracts", () => {
     };
 
     expect(detail.slug).toBe("article-id");
-    expect("category" in detail).toBe(false);
+    expect(detail.category).toBe(CLASSROOM_ARTICLE_CATEGORY.HEALTH_MANAGEMENT);
     expect("status" in detail).toBe(false);
   });
 
   it("defines editable classroom article requests and safe public HTML", () => {
     const detail: AdminClassroomArticleDetail = {
       id: "article-1",
+      category: CLASSROOM_ARTICLE_CATEGORY.FEEDING_GUIDE,
       title: "幼犬喂养课堂",
       summary: "基础喂养知识",
       coverUrl: null,
@@ -73,6 +86,7 @@ describe("content contracts", () => {
       bodyHtml: "<p>正文</p>",
     };
     const create: CreateAdminClassroomArticleRequest = {
+      category: CLASSROOM_ARTICLE_CATEGORY.FEEDING_GUIDE,
       title: "幼犬喂养课堂",
       summary: "基础喂养知识",
       bodyHtml: "<p>正文</p>",
@@ -87,6 +101,7 @@ describe("content contracts", () => {
     };
     const publicDetail: PublicClassroomArticleDetail = {
       slug: "article-1",
+      category: CLASSROOM_ARTICLE_CATEGORY.FEEDING_GUIDE,
       title: "幼犬喂养课堂",
       summary: "基础喂养知识",
       coverUrl: null,

@@ -1,6 +1,7 @@
-import type {
-  AdminClassroomArticleDetail,
-  UploadAdminClassroomArticleMediaResponse,
+import {
+  CLASSROOM_ARTICLE_CATEGORY,
+  type AdminClassroomArticleDetail,
+  type UploadAdminClassroomArticleMediaResponse,
 } from "@petcare/shared-types";
 import { QueryClient, QueryClientProvider } from "@tanstack/react-query";
 import { fireEvent, render, screen, waitFor } from "@testing-library/react";
@@ -49,6 +50,7 @@ vi.mock("../../../lib/global-error", () => globalErrorMocks);
 
 const articleDetail: AdminClassroomArticleDetail = {
   id: "article-1",
+  category: CLASSROOM_ARTICLE_CATEGORY.FEEDING_GUIDE,
   title: "幼犬喂养课堂",
   summary: "基础喂养知识",
   coverUrl: null,
@@ -102,12 +104,17 @@ describe("ContentArticleEdit", () => {
     const user = userEvent.setup();
 
     renderEdit("/content/articles/new");
+    await user.selectOptions(
+      screen.getByLabelText("分类"),
+      CLASSROOM_ARTICLE_CATEGORY.FEEDING_GUIDE,
+    );
     await user.type(screen.getByLabelText("标题"), "  幼犬喂养课堂  ");
     await user.type(screen.getByLabelText("摘要"), "  基础喂养知识  ");
     fireEvent.change(screen.getByLabelText("文章正文"), { target: { value: "<p>正文</p>" } });
     await user.click(screen.getByRole("button", { name: "保存草稿" }));
 
     expect(apiMocks.createAdminClassroomArticle).toHaveBeenCalledWith({
+      category: CLASSROOM_ARTICLE_CATEGORY.FEEDING_GUIDE,
       title: "幼犬喂养课堂",
       summary: "基础喂养知识",
       bodyHtml: "<p>正文</p>",
@@ -124,6 +131,7 @@ describe("ContentArticleEdit", () => {
     renderEdit("/content/articles/new");
     await user.click(screen.getByRole("button", { name: "保存草稿" }));
 
+    expect(screen.getByText("请选择文章分类", { selector: "p" })).toBeInTheDocument();
     expect(screen.getByText("标题不能为空")).toBeInTheDocument();
     expect(screen.getByText("摘要不能为空")).toBeInTheDocument();
     expect(apiMocks.createAdminClassroomArticle).not.toHaveBeenCalled();
@@ -257,7 +265,8 @@ describe("ContentArticleEdit", () => {
       new File(["png"], "cover.png", { type: "image/png" }),
     );
 
-    await waitFor(() => expect(screen.getByLabelText("标题")).toBeDisabled());
+    await waitFor(() => expect(screen.getByLabelText("分类")).toBeDisabled());
+    expect(screen.getByLabelText("标题")).toBeDisabled();
     expect(screen.getByLabelText("摘要")).toBeDisabled();
     expect(screen.getByLabelText("上传封面")).toBeDisabled();
     expect(screen.getByLabelText("文章正文")).toBeDisabled();
@@ -282,11 +291,16 @@ describe("ContentArticleEdit", () => {
     const user = userEvent.setup();
 
     renderEdit("/content/articles/new");
+    await user.selectOptions(
+      screen.getByLabelText("分类"),
+      CLASSROOM_ARTICLE_CATEGORY.FEEDING_GUIDE,
+    );
     await user.type(screen.getByLabelText("标题"), "幼犬喂养课堂");
     await user.type(screen.getByLabelText("摘要"), "基础喂养知识");
     await user.click(screen.getByRole("button", { name: "保存草稿" }));
 
-    await waitFor(() => expect(screen.getByLabelText("标题")).toBeDisabled());
+    await waitFor(() => expect(screen.getByLabelText("分类")).toBeDisabled());
+    expect(screen.getByLabelText("标题")).toBeDisabled();
     expect(screen.getByLabelText("摘要")).toBeDisabled();
     expect(screen.getByLabelText("上传封面")).toBeDisabled();
     expect(screen.getByLabelText("文章正文")).toBeDisabled();
@@ -311,6 +325,8 @@ describe("ContentArticleEdit", () => {
       "form",
       "article-form",
     );
+    expect(screen.getByLabelText("分类")).toHaveValue("");
+    expect(screen.getByRole("option", { name: "喂养指南" })).toBeInTheDocument();
     expect(screen.getByLabelText("标题")).toHaveAttribute("placeholder", "请输入文章标题");
     expect(screen.getByText("0 / 120")).toBeInTheDocument();
     expect(screen.getByLabelText("摘要")).toHaveAttribute(
@@ -370,6 +386,10 @@ describe("ContentArticleEdit", () => {
     const user = userEvent.setup();
 
     renderEdit("/content/articles/new");
+    await user.selectOptions(
+      screen.getByLabelText("分类"),
+      CLASSROOM_ARTICLE_CATEGORY.FEEDING_GUIDE,
+    );
     await user.type(screen.getByLabelText("标题"), "幼犬喂养课堂");
     await user.type(screen.getByLabelText("摘要"), "基础喂养知识");
     await user.click(screen.getByRole("button", { name: "保存草稿" }));

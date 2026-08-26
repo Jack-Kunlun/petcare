@@ -30,6 +30,35 @@ export const ADMIN_CLASSROOM_ARTICLE_STATUS = {
 export type AdminClassroomArticleStatus =
   (typeof ADMIN_CLASSROOM_ARTICLE_STATUS)[keyof typeof ADMIN_CLASSROOM_ARTICLE_STATUS];
 
+/** 课堂文章使用的受控分类。 */
+export const CLASSROOM_ARTICLE_CATEGORY = {
+  /** 日常饮食、营养和换粮知识。 */
+  FEEDING_GUIDE: "feeding_guide",
+  /** 体检、护理和健康观察知识。 */
+  HEALTH_MANAGEMENT: "health_management",
+  /** 习惯培养和行为纠正知识。 */
+  BEHAVIOR_TRAINING: "behavior_training",
+  /** 常见疾病风险识别和预防知识。 */
+  DISEASE_PREVENTION: "disease_prevention",
+} as const;
+
+/** 课堂文章受控分类类型。 */
+export type ClassroomArticleCategory =
+  (typeof CLASSROOM_ARTICLE_CATEGORY)[keyof typeof CLASSROOM_ARTICLE_CATEGORY];
+
+/** 课堂文章分类的统一中文显示名称。 */
+export const CLASSROOM_ARTICLE_CATEGORY_LABELS: Readonly<Record<ClassroomArticleCategory, string>> =
+  {
+    /** 喂养类文章的显示名称。 */
+    feeding_guide: "喂养指南",
+    /** 健康类文章的显示名称。 */
+    health_management: "健康管理",
+    /** 行为类文章的显示名称。 */
+    behavior_training: "行为训练",
+    /** 疾病预防类文章的显示名称。 */
+    disease_prevention: "疾病预防",
+  };
+
 /** 内容列表中的作者摘要。 */
 export type AdminContentAuthorSummary = Pick<
   AdminUserListItem,
@@ -126,6 +155,8 @@ export type AdminContentPostListResponse = PaginatedResponse<AdminContentPostLis
 export interface AdminClassroomArticleListItem {
   /** 课堂文章唯一标识。 */
   id: string;
+  /** 受控文章分类；历史文章尚未分类时为 null。 */
+  category: ClassroomArticleCategory | null;
   /** 文章标题。 */
   title: string;
   /** 文章摘要。 */
@@ -169,6 +200,8 @@ export interface AdminClassroomArticleDetail extends AdminClassroomArticleListIt
 
 /** 新建课堂文章的请求内容。 */
 export interface CreateAdminClassroomArticleRequest {
+  /** 运营人员选择的受控文章分类。 */
+  category: ClassroomArticleCategory;
   /** 去除首尾空白后的文章标题，长度为 1 至 120 个字符。 */
   title: string;
   /** 去除首尾空白后的文章摘要，长度为 1 至 500 个字符。 */
@@ -211,6 +244,8 @@ export interface PublicClassroomArticleAuthor {
 export interface PublicClassroomArticleListItem {
   /** Stable route value; the first release uses the article ID directly. */
   slug: string;
+  /** Controlled article category, or null for a legacy article awaiting classification. */
+  category: ClassroomArticleCategory | null;
   /** Public article title. */
   title: string;
   /** Public article summary. */
@@ -235,6 +270,10 @@ export interface PublicClassroomArticleListQuery {
   page: number;
   /** Number of articles per page, from 1 through 100. */
   pageSize: number;
+  /** Optional title, summary, or body search text. */
+  keyword?: string;
+  /** Optional exact controlled category filter. */
+  category?: ClassroomArticleCategory;
 }
 
 /** Public paginated classroom article list response. */

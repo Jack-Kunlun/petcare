@@ -1,4 +1,5 @@
 import { ApiProperty } from "@nestjs/swagger";
+import { CLASSROOM_ARTICLE_CATEGORY } from "@petcare/shared-types";
 import type {
   AdminClassroomArticleDetail,
   AdminClassroomArticleListItem,
@@ -140,6 +141,9 @@ export class AdminClassroomArticleListItemDto implements AdminClassroomArticleLi
   @ApiProperty({ format: "uuid" })
   id: string;
 
+  @ApiProperty({ enum: Object.values(CLASSROOM_ARTICLE_CATEGORY), nullable: true })
+  category: AdminClassroomArticleListItem["category"];
+
   @ApiProperty()
   title: string;
 
@@ -205,6 +209,9 @@ export class PublicClassroomArticleAuthorDto implements PublicClassroomArticleAu
 export class PublicClassroomArticleListItemDto implements PublicClassroomArticleListItem {
   @ApiProperty({ description: "Stable route value; currently the article ID." })
   slug: string;
+
+  @ApiProperty({ enum: Object.values(CLASSROOM_ARTICLE_CATEGORY), nullable: true })
+  category: PublicClassroomArticleListItem["category"];
 
   @ApiProperty()
   title: string;

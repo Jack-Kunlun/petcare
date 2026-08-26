@@ -1,4 +1,7 @@
-import type { AdminClassroomArticleListItem } from "@petcare/shared-types";
+import {
+  CLASSROOM_ARTICLE_CATEGORY,
+  type AdminClassroomArticleListItem,
+} from "@petcare/shared-types";
 import { QueryClient, QueryClientProvider } from "@tanstack/react-query";
 import { cleanup, render, screen, waitFor } from "@testing-library/react";
 import userEvent from "@testing-library/user-event";
@@ -26,6 +29,7 @@ vi.mock("../../../auth/permissions", () => ({
 
 const draftArticle: AdminClassroomArticleListItem = {
   id: "article-1",
+  category: CLASSROOM_ARTICLE_CATEGORY.FEEDING_GUIDE,
   title: "幼犬喂养课堂",
   summary: "基础喂养知识",
   coverUrl: null,
@@ -90,6 +94,7 @@ describe("ContentArticles", () => {
     renderPage();
 
     await screen.findByText(draftArticle.title);
+    expect(screen.getAllByText("喂养指南")).toHaveLength(3);
     expect(screen.getByRole("link", { name: "新建文章" })).toHaveAttribute(
       "href",
       "/content/articles/new",
@@ -171,6 +176,26 @@ describe("ContentArticles", () => {
     expect(screen.queryByRole("link", { name: "编辑" })).not.toBeInTheDocument();
     expect(screen.queryByRole("button", { name: /更多/u })).not.toBeInTheDocument();
     expect(screen.getByRole("link", { name: "查看官网 已发布文章" })).toBeInTheDocument();
+  });
+
+  it("keeps publishing unavailable until a legacy article has a category", async () => {
+    const unclassified = { ...draftArticle, id: "legacy-1", title: "历史文章", category: null };
+
+    vi.mocked(fetchAdminClassroomArticles).mockResolvedValue({
+      ...articleResponse,
+      list: [unclassified],
+      total: 1,
+    });
+    const user = userEvent.setup();
+
+    renderPage();
+    await screen.findByText("历史文章");
+    expect(screen.getByText("未分类")).toBeInTheDocument();
+    await user.click(screen.getByRole("button", { name: "更多 历史文章" }));
+
+    expect(screen.getByRole("menuitem", { name: "请先选择分类 历史文章" })).toHaveAttribute(
+      "data-disabled",
+    );
   });
 
   it("shows only new and edit controls without publish permission", async () => {

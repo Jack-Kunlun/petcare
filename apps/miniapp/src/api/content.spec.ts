@@ -1,5 +1,6 @@
+import { CLASSROOM_ARTICLE_CATEGORY } from "@petcare/shared-types";
 import { beforeEach, describe, expect, it, vi } from "vitest";
-import { getClassroomArticle } from "./content";
+import { getClassroomArticle, getClassroomArticles } from "./content";
 import { rawRequest } from "./request";
 
 vi.mock("./request", () => ({ rawRequest: vi.fn() }));
@@ -15,5 +16,19 @@ describe("miniapp content API", () => {
     await getClassroomArticle("article/1");
 
     expect(rawRequestMock).toHaveBeenCalledWith("/content/articles/article%2F1");
+  });
+
+  it("passes public classroom filters through the native GET query", async () => {
+    rawRequestMock.mockResolvedValue({ list: [], total: 0, page: 1, pageSize: 10 });
+    const query = {
+      page: 1,
+      pageSize: 10,
+      keyword: "幼犬",
+      category: CLASSROOM_ARTICLE_CATEGORY.FEEDING_GUIDE,
+    };
+
+    await getClassroomArticles(query);
+
+    expect(rawRequestMock).toHaveBeenCalledWith("/content/articles", { data: query });
   });
 });

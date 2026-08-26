@@ -1083,6 +1083,7 @@ model Post {
 
 model ClassroomArticle {
   id          String    @id @default(uuid())
+  category    String?
   title       String
   summary     String
   coverUrl    String?   @map("cover_url")

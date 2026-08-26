@@ -1,4 +1,9 @@
-import type { UploadAdminClassroomArticleMediaResponse } from "@petcare/shared-types";
+import {
+  CLASSROOM_ARTICLE_CATEGORY,
+  CLASSROOM_ARTICLE_CATEGORY_LABELS,
+  type ClassroomArticleCategory,
+  type UploadAdminClassroomArticleMediaResponse,
+} from "@petcare/shared-types";
 import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
 import { ArrowLeft, ImagePlus, Trash2 } from "lucide-react";
 import {
@@ -22,6 +27,11 @@ import { useUnsavedChanges } from "../../../hooks/useUnsavedChanges";
 import { showApiError } from "../../../lib/global-error";
 import { RichTextEditor } from "./RichTextEditor";
 
+const categoryOptions = Object.values(CLASSROOM_ARTICLE_CATEGORY).map((value) => ({
+  value,
+  label: CLASSROOM_ARTICLE_CATEGORY_LABELS[value],
+}));
+
 /** Creates a classroom article draft or edits an existing draft or offline article. */
 export default function ContentArticleEdit() {
   const { id: articleId } = useParams();
@@ -29,11 +39,13 @@ export default function ContentArticleEdit() {
   const queryClient = useQueryClient();
   const initializedId = useRef<string | null>(null);
   const coverInputRef = useRef<HTMLInputElement>(null);
+  const [category, setCategory] = useState<ClassroomArticleCategory | "">("");
   const [title, setTitle] = useState("");
   const [summary, setSummary] = useState("");
   const [bodyHtml, setBodyHtml] = useState("");
   const [coverUrl, setCoverUrl] = useState<string | null>(null);
   const [coverAssetId, setCoverAssetId] = useState<string | null | undefined>(undefined);
+  const [categoryError, setCategoryError] = useState<string | null>(null);
   const [titleError, setTitleError] = useState<string | null>(null);
   const [summaryError, setSummaryError] = useState<string | null>(null);
   const [pendingUploadCount, setPendingUploadCount] = useState(0);
@@ -50,8 +62,13 @@ export default function ContentArticleEdit() {
   const mediaUploading = pendingUploadCount > 0;
   const saveMutation = useMutation({
     mutationFn: () => {
+      if (!category) {
+        throw new Error("文章分类不能为空");
+      }
+
       if (!articleId) {
         return createAdminClassroomArticle({
+          category,
           title: title.trim(),
           summary: summary.trim(),
           bodyHtml,
@@ -60,6 +77,7 @@ export default function ContentArticleEdit() {
       }
 
       return updateAdminClassroomArticle(articleId, {
+        category,
         title: title.trim(),
         summary: summary.trim(),
         bodyHtml,
@@ -87,6 +105,7 @@ export default function ContentArticleEdit() {
     }
 
     initializedId.current = article.id;
+    setCategory(article.category ?? "");
     setTitle(article.title);
     setSummary(article.summary);
     setBodyHtml(article.bodyHtml);
@@ -130,13 +149,15 @@ export default function ContentArticleEdit() {
 
   function submitForm(event: FormEvent<HTMLFormElement>): void {
     event.preventDefault();
+    const nextCategoryError = category ? null : "请选择文章分类";
     const nextTitleError = title.trim() ? null : "标题不能为空";
     const nextSummaryError = summary.trim() ? null : "摘要不能为空";
 
+    setCategoryError(nextCategoryError);
     setTitleError(nextTitleError);
     setSummaryError(nextSummaryError);
 
-    if (nextTitleError || nextSummaryError) {
+    if (nextCategoryError || nextTitleError || nextSummaryError) {
       return;
     }
 
@@ -259,6 +280,43 @@ export default function ContentArticleEdit() {
           description="设置文章标题、摘要和列表封面。"
           className="space-y-6"
         >
+          <div>
+            <label htmlFor="article-category" className="font-medium text-slate-900">
+              分类{" "}
+              <span aria-hidden="true" className="text-red-600">
+                *
+              </span>
+            </label>
+            <select
+              id="article-category"
+              aria-label="分类"
+              value={category}
+              disabled={isLocked}
+              aria-invalid={Boolean(categoryError)}
+              aria-describedby={categoryError ? "article-category-error" : undefined}
+              onChange={(event) => {
+                setCategory(event.target.value as ClassroomArticleCategory);
+                setCategoryError(null);
+                markDirty();
+              }}
+              className="mt-2 h-10 w-full cursor-pointer rounded-lg border border-border bg-white px-3 text-slate-900 outline-none transition-colors hover:border-blue-400 focus-visible:border-blue-700 focus-visible:ring-2 focus-visible:ring-blue-700/15 disabled:cursor-not-allowed disabled:bg-slate-100"
+            >
+              <option value="" disabled>
+                请选择文章分类
+              </option>
+              {categoryOptions.map((option) => (
+                <option key={option.value} value={option.value}>
+                  {option.label}
+                </option>
+              ))}
+            </select>
+            {categoryError ? (
+              <p id="article-category-error" className="mt-1 text-sm text-red-700">
+                {categoryError}
+              </p>
+            ) : null}
+          </div>
+
           <div>
             <label htmlFor="article-title" className="font-medium text-slate-900">
               标题{" "}

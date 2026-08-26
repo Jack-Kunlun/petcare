@@ -2,6 +2,7 @@ import type {
   AdminClassroomArticleListItem,
   AdminClassroomArticleStatus,
 } from "@petcare/shared-types";
+import { CLASSROOM_ARTICLE_CATEGORY_LABELS } from "@petcare/shared-types";
 import * as Dialog from "@radix-ui/react-dialog";
 import * as DropdownMenu from "@radix-ui/react-dropdown-menu";
 import { keepPreviousData, useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
@@ -149,6 +150,16 @@ interface ArticleRowProps {
 
 function ArticleRow({ article, canWrite, canPublish, onStateChange }: ArticleRowProps) {
   const statusActionLabel = statusActionLabels[article.status];
+  const publishingBlocked = article.status !== "published" && !article.category;
+  let statusActionClass = "cursor-pointer text-emerald-700 hover:bg-emerald-50 focus:bg-emerald-50";
+
+  if (article.status === "published") {
+    statusActionClass = "text-amber-700 hover:bg-amber-50 focus:bg-amber-50";
+  }
+
+  if (publishingBlocked) {
+    statusActionClass = "cursor-not-allowed text-slate-400";
+  }
 
   return (
     <tr className="border-t border-border align-top transition-[background-color,border-color] duration-200 hover:bg-page-background hover:border-border">
@@ -167,7 +178,16 @@ function ArticleRow({ article, canWrite, canPublish, onStateChange }: ArticleRow
             )}
           </div>
           <div className="min-w-0">
-            <p className="font-medium text-slate-900">{article.title}</p>
+            <div className="flex flex-wrap items-center gap-2">
+              <p className="font-medium text-slate-900">{article.title}</p>
+              <span
+                className={`rounded-full px-2 py-0.5 text-xs font-medium ${
+                  article.category ? "bg-blue-50 text-blue-700" : "bg-amber-50 text-amber-700"
+                }`}
+              >
+                {article.category ? CLASSROOM_ARTICLE_CATEGORY_LABELS[article.category] : "未分类"}
+              </span>
+            </div>
             <p className="mt-1 line-clamp-2 text-xs leading-5 text-slate-500">{article.summary}</p>
           </div>
         </div>
@@ -218,17 +238,14 @@ function ArticleRow({ article, canWrite, canPublish, onStateChange }: ArticleRow
                   className="z-30 min-w-32 rounded-lg border border-slate-200 bg-white p-1 shadow-lg outline-none"
                 >
                   <DropdownMenu.Item
-                    aria-label={`${statusActionLabel} ${article.title}`}
+                    aria-label={`${publishingBlocked ? "请先选择分类" : statusActionLabel} ${article.title}`}
+                    disabled={publishingBlocked}
                     onSelect={() =>
                       onStateChange(article, article.status === "published" ? "offline" : "publish")
                     }
-                    className={`flex min-h-10 cursor-pointer items-center rounded-md px-3 py-2 text-sm font-medium outline-none ${
-                      article.status === "published"
-                        ? "text-amber-700 hover:bg-amber-50 focus:bg-amber-50"
-                        : "text-emerald-700 hover:bg-emerald-50 focus:bg-emerald-50"
-                    }`}
+                    className={`flex min-h-10 items-center rounded-md px-3 py-2 text-sm font-medium outline-none ${statusActionClass}`}
                   >
-                    {statusActionLabel}
+                    {publishingBlocked ? "请先选择分类" : statusActionLabel}
                   </DropdownMenu.Item>
                 </DropdownMenu.Content>
               </DropdownMenu.Portal>

@@ -1,12 +1,14 @@
 import { Controller, Get, Param, Query } from "@nestjs/common";
 import { ApiOperation, ApiPropertyOptional, ApiTags } from "@nestjs/swagger";
+import { CLASSROOM_ARTICLE_CATEGORY } from "@petcare/shared-types";
 import type {
+  ClassroomArticleCategory,
   PublicClassroomArticleDetail,
   PublicClassroomArticleListQuery,
   PublicClassroomArticleListResponse,
 } from "@petcare/shared-types";
 import { Type } from "class-transformer";
-import { IsInt, IsOptional, Max, Min } from "class-validator";
+import { IsIn, IsInt, IsOptional, IsString, Max, MaxLength, Min } from "class-validator";
 import {
   ApiStandardErrors,
   ApiSuccessResponse,
@@ -16,6 +18,8 @@ import {
   PublicClassroomArticleDetailDto,
   PublicClassroomArticleListResponseDto,
 } from "./dto/content-response.dto";
+
+const classroomArticleCategories = Object.values(CLASSROOM_ARTICLE_CATEGORY);
 
 /** Pagination input for publicly readable classroom articles. */
 class PublicClassroomArticleListQueryDto implements PublicClassroomArticleListQuery {
@@ -35,6 +39,19 @@ class PublicClassroomArticleListQueryDto implements PublicClassroomArticleListQu
   @Min(1)
   @Max(100)
   pageSize = 20;
+
+  /** Optional title, summary, or body search text. */
+  @ApiPropertyOptional({ maxLength: 120 })
+  @IsOptional()
+  @IsString()
+  @MaxLength(120)
+  keyword?: string;
+
+  /** Optional exact controlled article category. */
+  @ApiPropertyOptional({ enum: classroomArticleCategories })
+  @IsOptional()
+  @IsIn(classroomArticleCategories)
+  category?: ClassroomArticleCategory;
 }
 
 /** Provides published classroom articles for unauthenticated official website visitors. */

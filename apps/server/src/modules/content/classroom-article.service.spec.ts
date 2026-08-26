@@ -1,4 +1,7 @@
+import { CLASSROOM_ARTICLE_CATEGORY } from "@petcare/shared-types";
 import { ClassroomArticleService } from "./classroom-article.service";
+
+const articleCategory = CLASSROOM_ARTICLE_CATEGORY.FEEDING_GUIDE;
 
 describe("ClassroomArticleService", () => {
   const prisma = {
@@ -64,6 +67,7 @@ describe("ClassroomArticleService", () => {
     prisma.classroomArticle.findMany.mockResolvedValue([
       {
         id: "article-public-1",
+        category: articleCategory,
         title: "幼猫喂养课堂",
         summary: "基础喂养知识",
         coverUrl: "https://example.com/cover.jpg",
@@ -73,10 +77,18 @@ describe("ClassroomArticleService", () => {
     ]);
     prisma.classroomArticle.count.mockResolvedValue(1);
 
-    await expect(service.findPublishedArticlePage({ page: 1, pageSize: 20 })).resolves.toEqual({
+    await expect(
+      service.findPublishedArticlePage({
+        page: 1,
+        pageSize: 20,
+        keyword: "幼猫",
+        category: articleCategory,
+      }),
+    ).resolves.toEqual({
       list: [
         {
           slug: "article-public-1",
+          category: articleCategory,
           title: "幼猫喂养课堂",
           summary: "基础喂养知识",
           coverUrl: "https://example.com/cover.jpg",
@@ -91,7 +103,19 @@ describe("ClassroomArticleService", () => {
 
     expect(prisma.classroomArticle.findMany).toHaveBeenCalledWith(
       expect.objectContaining({
-        where: { status: "published" },
+        where: {
+          AND: [
+            { status: "published" },
+            {
+              OR: [
+                { title: { contains: "幼猫", mode: "insensitive" } },
+                { summary: { contains: "幼猫", mode: "insensitive" } },
+                { content: { contains: "幼猫", mode: "insensitive" } },
+              ],
+            },
+            { category: articleCategory },
+          ],
+        },
         orderBy: { publishedAt: "desc" },
       }),
     );
@@ -100,6 +124,7 @@ describe("ClassroomArticleService", () => {
   it("reads a published article by its stable id slug and escapes HTML-looking legacy text", async () => {
     prisma.classroomArticle.findFirst.mockResolvedValue({
       id: "article-public-1",
+      category: articleCategory,
       title: "幼猫喂养课堂",
       summary: "基础喂养知识",
       coverUrl: null,
@@ -110,6 +135,7 @@ describe("ClassroomArticleService", () => {
 
     await expect(service.findPublishedArticleBySlug("article-public-1")).resolves.toEqual({
       slug: "article-public-1",
+      category: articleCategory,
       title: "幼猫喂养课堂",
       summary: "基础喂养知识",
       coverUrl: null,
@@ -151,6 +177,7 @@ describe("ClassroomArticleService", () => {
     });
 
     await service.createDraft("admin-1", {
+      category: articleCategory,
       title: " 幼犬喂养课堂 ",
       summary: " 基础知识 ",
       bodyHtml: "<p>正文</p>",
@@ -196,6 +223,7 @@ describe("ClassroomArticleService", () => {
     });
 
     await service.createDraft("admin-1", {
+      category: articleCategory,
       title: "幼犬喂养课堂",
       summary: "基础知识",
       bodyHtml: '<img src="https://cdn.example.com/body.png" data-asset-id="asset-body-1">',
@@ -235,6 +263,7 @@ describe("ClassroomArticleService", () => {
 
     await expect(
       service.updateEditable("article-1", {
+        category: articleCategory,
         title: "幼犬喂养课堂",
         summary: "更新后的基础知识",
         bodyHtml: "<p>正文</p>",
@@ -248,6 +277,7 @@ describe("ClassroomArticleService", () => {
     const observedAt = new Date("2026-08-24T00:00:00.000Z");
     const article = {
       id: "article-1",
+      category: articleCategory,
       title: "幼犬喂养课堂",
       summary: "基础知识",
       coverUrl: "https://cdn.example.com/old-cover.png",
@@ -263,6 +293,7 @@ describe("ClassroomArticleService", () => {
     prisma.classroomArticle.updateMany.mockResolvedValue({ count: 1 });
 
     await service.updateEditable("article-1", {
+      category: articleCategory,
       title: " 幼犬喂养课堂 ",
       summary: " 更新后的基础知识 ",
       bodyHtml: "<p>正文</p>",
@@ -276,6 +307,7 @@ describe("ClassroomArticleService", () => {
         updatedAt: observedAt,
       },
       data: {
+        category: articleCategory,
         title: "幼犬喂养课堂",
         summary: "更新后的基础知识",
         coverUrl: "https://cdn.example.com/old-cover.png",
@@ -289,6 +321,7 @@ describe("ClassroomArticleService", () => {
     const observedAt = new Date("2026-08-24T00:00:00.000Z");
     const article = {
       id: "article-1",
+      category: articleCategory,
       title: "幼犬喂养课堂",
       summary: "基础知识",
       coverUrl: "https://cdn.example.com/old-cover.png",
@@ -304,6 +337,7 @@ describe("ClassroomArticleService", () => {
     prisma.classroomArticle.updateMany.mockResolvedValue({ count: 1 });
 
     await service.updateEditable("article-1", {
+      category: articleCategory,
       title: "幼犬喂养课堂",
       summary: "更新后的基础知识",
       bodyHtml: "<p>正文</p>",
@@ -342,6 +376,7 @@ describe("ClassroomArticleService", () => {
     });
 
     await service.updateEditable("article-1", {
+      category: articleCategory,
       title: "幼犬喂养课堂",
       summary: "更新后的基础知识",
       bodyHtml: "<p>正文</p>",
@@ -360,6 +395,7 @@ describe("ClassroomArticleService", () => {
   it("returns a concurrent update conflict when the observed timestamp no longer matches", async () => {
     prisma.classroomArticle.findUnique.mockResolvedValue({
       id: "article-1",
+      category: articleCategory,
       status: "draft",
       content: "PETCARE_CLASSROOM_RICH_TEXT_V1\n<p>正文</p>",
       coverUrl: null,
@@ -368,6 +404,7 @@ describe("ClassroomArticleService", () => {
 
     await expect(
       service.updateEditable("article-1", {
+        category: articleCategory,
         title: "幼犬喂养课堂",
         summary: "更新后的基础知识",
         bodyHtml: "<p>正文</p>",
@@ -380,6 +417,7 @@ describe("ClassroomArticleService", () => {
     const observedAt = new Date("2026-08-24T00:00:00.000Z");
     const article = {
       id: "article-1",
+      category: articleCategory,
       title: "幼犬喂养课堂",
       summary: "基础知识",
       coverUrl: null,
@@ -418,6 +456,7 @@ describe("ClassroomArticleService", () => {
     const observedAt = new Date("2026-08-24T00:00:00.000Z");
     const article = {
       id: "article-1",
+      category: articleCategory,
       title: "幼犬喂养课堂",
       summary: "基础知识",
       coverUrl: null,
@@ -450,6 +489,7 @@ describe("ClassroomArticleService", () => {
   it("rejects publishing an empty cleaned body", async () => {
     prisma.classroomArticle.findUnique.mockResolvedValue({
       id: "article-1",
+      category: articleCategory,
       status: "draft",
       content: "PETCARE_CLASSROOM_RICH_TEXT_V1\n<p><br /></p>",
       coverUrl: null,
@@ -473,6 +513,7 @@ describe("ClassroomArticleService", () => {
 
     prisma.classroomArticle.findUnique.mockResolvedValue({
       id: "article-1",
+      category: articleCategory,
       title: "幼犬喂养课堂",
       summary: "基础知识",
       coverUrl: null,
@@ -492,6 +533,21 @@ describe("ClassroomArticleService", () => {
     expect(prisma.classroomArticle.updateMany).toHaveBeenCalledWith(
       expect.objectContaining({ data: expect.objectContaining({ status: "published" }) }),
     );
+  });
+
+  it("rejects publishing a legacy article without a controlled category", async () => {
+    prisma.classroomArticle.findUnique.mockResolvedValue({
+      id: "article-1",
+      category: null,
+      status: "draft",
+      content: "PETCARE_CLASSROOM_RICH_TEXT_V1\n<p>正文</p>",
+      coverUrl: null,
+    });
+
+    await expect(
+      service.publish("article-1", { expectedUpdatedAt: "2026-08-24T00:00:00.000Z" }),
+    ).rejects.toMatchObject({ code: "CONTENT_ARTICLE_INVALID_CONTENT", status: 400 });
+    expect(prisma.classroomArticle.updateMany).not.toHaveBeenCalled();
   });
 
   it("offlines a published article without changing its publication timestamp", async () => {
