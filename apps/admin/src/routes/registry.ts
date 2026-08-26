@@ -6,6 +6,7 @@ import ContentManagement from "../pages/ContentManagement";
 import ContentArticles from "../pages/ContentManagement/Articles";
 import ContentArticleEdit from "../pages/ContentManagement/Articles/Edit";
 import ContentPosts from "../pages/ContentManagement/Posts";
+import ContentPostDetail from "../pages/ContentManagement/Posts/Detail";
 import Dashboard from "../pages/Dashboard";
 import OrderManagement from "../pages/OrderManagement";
 import ComplaintWorkQueue from "../pages/OrderManagement/Complaint";
@@ -170,6 +171,17 @@ export const ADMIN_ROUTE_REGISTRY: readonly AdminRouteDefinition[] = [
   },
   catalogMenuRoute("content", "content.view", createElement(ContentManagement), "悬赏管理"),
   catalogMenuRoute("content-posts", "content.post.view", createElement(ContentPosts)),
+  {
+    id: "content-post-detail",
+    path: "/content/posts/:id",
+    element: createElement(ContentPostDetail),
+    menuPermission: null,
+    requiredPermissions: ["content.post.view"],
+    parentPath: "/content/posts",
+    order: 0,
+    icon: null,
+    menuLabel: null,
+  },
   catalogMenuRoute("content-articles", "content.article.view", createElement(ContentArticles)),
   {
     id: "content-articles-new",

@@ -186,6 +186,19 @@ describe("ADMIN_ROUTE_REGISTRY", () => {
     );
   });
 
+  it("registers the post detail route with read-only page permission", () => {
+    expect(ADMIN_ROUTE_REGISTRY).toEqual(
+      expect.arrayContaining([
+        expect.objectContaining({
+          path: "/content/posts/:id",
+          requiredPermissions: ["content.post.view"],
+          parentPath: "/content/posts",
+          menuPermission: null,
+        }),
+      ]),
+    );
+  });
+
   it("registers the RBAC list, create, edit, and detail views behind the single menu entry", () => {
     expect(
       ADMIN_ROUTE_REGISTRY.filter((route) => route.path.startsWith("/rbac")).map((route) => ({

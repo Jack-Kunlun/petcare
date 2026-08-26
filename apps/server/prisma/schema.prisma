@@ -52,6 +52,7 @@ model User {
   orderIntents                      OrderIntent[]
   posts                             Post[]
   communityMediaAssets              CommunityMediaAsset[]              @relation("CommunityMediaAssetOwner")
+  communityPostModerationEvents     CommunityPostModerationEvent[]     @relation("CommunityPostModerationOperator")
   classroomArticles                 ClassroomArticle[]
   favorites                         Favorite[]
   notifications                     Notification[]
@@ -1071,11 +1072,12 @@ model Post {
   createdAt        DateTime @default(now()) @map("created_at")
   updatedAt        DateTime @updatedAt @map("updated_at")
 
-  author      User                  @relation(fields: [authorId], references: [id], onDelete: Cascade)
-  pet         Pet?                  @relation(fields: [petId], references: [id])
-  favorites   Favorite[]
-  comments    Comment[]
-  mediaAssets CommunityMediaAsset[]
+  author           User                           @relation(fields: [authorId], references: [id], onDelete: Cascade)
+  pet              Pet?                           @relation(fields: [petId], references: [id])
+  favorites        Favorite[]
+  comments         Comment[]
+  mediaAssets      CommunityMediaAsset[]
+  moderationEvents CommunityPostModerationEvent[]
 
   @@index([authorId])
   @@index([createdAt])
@@ -1105,6 +1107,24 @@ model CommunityMediaAsset {
   @@index([postId])
   @@index([checksum])
   @@map("community_media_assets")
+}
+
+model CommunityPostModerationEvent {
+  id             String   @id @default(uuid())
+  postId         String   @map("post_id")
+  operatorId     String   @map("operator_id")
+  action         String
+  previousStatus String   @map("previous_status")
+  nextStatus     String   @map("next_status")
+  reason         String?
+  createdAt      DateTime @default(now()) @map("created_at")
+
+  post     Post @relation(fields: [postId], references: [id], onDelete: Cascade)
+  operator User @relation("CommunityPostModerationOperator", fields: [operatorId], references: [id], onDelete: Restrict)
+
+  @@index([postId, createdAt])
+  @@index([operatorId, createdAt])
+  @@map("community_post_moderation_events")
 }
 
 // ============================================

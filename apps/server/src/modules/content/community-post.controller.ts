@@ -27,7 +27,7 @@ type AuthRequest = Request & { user: AccessTokenPayload };
 export class CommunityPostController {
   constructor(private readonly posts: CommunityPostService) {}
 
-  /** Submits a text-only post into the pending moderation queue. */
+  /** Submits one community post into the pending moderation queue. */
   @Post()
   @ApiOperation({ summary: "提交待审核社区动态" })
   @ApiSuccessResponse(MyCommunityPostListItemDto, { status: 201 })

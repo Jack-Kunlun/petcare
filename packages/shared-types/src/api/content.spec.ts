@@ -6,10 +6,13 @@ import {
   CLASSROOM_ARTICLE_CATEGORY_LABELS,
   COMMUNITY_MEDIA_ERROR_CODE,
   COMMUNITY_MEDIA_STATUS,
+  COMMUNITY_POST_MODERATION_ACTION,
   type AdminClassroomArticleDetail,
   type AdminClassroomArticleListResponse,
   type AdminClassroomArticleStateRequest,
+  type AdminContentPostDetail,
   type AdminContentPostListResponse,
+  type AdminContentPostStateRequest,
   type AdminContentRewardListResponse,
   type CommunityMediaAsset,
   type CreateCommunityPostRequest,
@@ -89,6 +92,58 @@ describe("content contracts", () => {
     expect(COMMUNITY_MEDIA_ERROR_CODE.STORAGE_UNAVAILABLE).toBe(
       "COMMUNITY_MEDIA_STORAGE_UNAVAILABLE",
     );
+  });
+
+  it("records community moderation commands and history with stable actions", () => {
+    const request: AdminContentPostStateRequest = {
+      expectedUpdatedAt: "2026-08-26T08:00:00.000Z",
+      reason: "包含联系方式",
+    };
+    const detail: AdminContentPostDetail = {
+      id: "post-1",
+      author: {
+        id: "user-1",
+        phone: "13800138000",
+        username: null,
+        nickname: "小明",
+        avatar: null,
+      },
+      contentExcerpt: "今天带旺财散步",
+      mediaCount: 1,
+      likesCount: 0,
+      commentsCount: 0,
+      sharesCount: 0,
+      status: ADMIN_CONTENT_POST_STATUS.REJECTED,
+      createdAt: "2026-08-26T08:00:00.000Z",
+      updatedAt: "2026-08-26T08:01:00.000Z",
+      content: "今天带旺财散步",
+      mediaUrls: ["https://cdn.example/community.png"],
+      moderationReason: request.reason ?? null,
+      moderationHistory: [
+        {
+          id: "event-1",
+          action: COMMUNITY_POST_MODERATION_ACTION.REJECT,
+          previousStatus: ADMIN_CONTENT_POST_STATUS.PENDING,
+          nextStatus: ADMIN_CONTENT_POST_STATUS.REJECTED,
+          reason: request.reason ?? null,
+          operator: {
+            id: "admin-1",
+            phone: "17679141879",
+            username: "operator",
+            nickname: "运营",
+            avatar: null,
+          },
+          createdAt: "2026-08-26T08:01:00.000Z",
+        },
+      ],
+    };
+
+    expect(Object.values(COMMUNITY_POST_MODERATION_ACTION)).toEqual([
+      "approve",
+      "reject",
+      "offline",
+    ]);
+    expect(detail.moderationHistory[0].reason).toBe("包含联系方式");
   });
 
   it("keeps official website article contracts limited to public fields", () => {

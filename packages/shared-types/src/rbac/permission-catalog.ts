@@ -371,6 +371,30 @@ export const RBAC_PERMISSION_CATALOG: readonly RbacPermissionDefinition[] = [
     icon: null,
     impliedApiCodes: [],
   },
+  /** 允许运营人员审核和下架社区帖子。 */
+  {
+    code: "content.post.moderate",
+    type: "button",
+    label: "审核社区帖子",
+    module: "content",
+    path: null,
+    parentCode: "content.post.view",
+    order: 10,
+    icon: null,
+    impliedApiCodes: ["content.post.read", "content.post.moderate_action"],
+  },
+  /** 允许通过后台接口执行社区帖子审核命令。 */
+  {
+    code: "content.post.moderate_action",
+    type: "api",
+    label: "审核社区帖子接口",
+    module: "content",
+    path: null,
+    parentCode: null,
+    order: 30,
+    icon: null,
+    impliedApiCodes: [],
+  },
   /** 打开文章管理页面。 */
   {
     code: "content.article.view",

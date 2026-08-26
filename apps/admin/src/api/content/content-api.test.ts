@@ -18,7 +18,14 @@ import {
   updateAdminClassroomArticle,
   uploadAdminClassroomArticleMedia,
 } from "./articles";
-import { fetchAdminContentPosts } from "./posts";
+import {
+  approveAdminContentPost,
+  fetchAdminContentPost,
+  fetchAdminContentPosts,
+  offlineAdminContentPost,
+  postQueryKeys,
+  rejectAdminContentPost,
+} from "./posts";
 import { fetchAdminContentRewards } from "./rewards";
 
 vi.mock("../auth", () => ({
@@ -95,6 +102,39 @@ describe("content api", () => {
     });
     expect(apiClient.get).toHaveBeenNthCalledWith(2, "/admin/content/articles", {
       params: { page: 1, pageSize: 20, status: "draft" },
+    });
+  });
+
+  it("calls every community post detail and moderation endpoint", async () => {
+    const detail = {
+      id: "post-1",
+      status: "pending",
+      updatedAt: "2026-08-26T08:00:00.000Z",
+    };
+    const state = { expectedUpdatedAt: detail.updatedAt };
+
+    vi.mocked(apiClient.get).mockResolvedValue({ data: detail } as never);
+    vi.mocked(apiClient.post).mockResolvedValue({ data: detail } as never);
+
+    await expect(fetchAdminContentPost("post-1")).resolves.toBe(detail);
+    await expect(approveAdminContentPost("post-1", state)).resolves.toBe(detail);
+    await expect(
+      rejectAdminContentPost("post-1", { ...state, reason: "包含联系方式" }),
+    ).resolves.toBe(detail);
+    await expect(
+      offlineAdminContentPost("post-1", { ...state, reason: "违反社区规范" }),
+    ).resolves.toBe(detail);
+
+    expect(postQueryKeys.detail("post-1")).toEqual(["admin-content-posts", "detail", "post-1"]);
+    expect(apiClient.get).toHaveBeenCalledWith("/admin/content/posts/post-1");
+    expect(apiClient.post).toHaveBeenNthCalledWith(1, "/admin/content/posts/post-1/approve", state);
+    expect(apiClient.post).toHaveBeenNthCalledWith(2, "/admin/content/posts/post-1/reject", {
+      ...state,
+      reason: "包含联系方式",
+    });
+    expect(apiClient.post).toHaveBeenNthCalledWith(3, "/admin/content/posts/post-1/offline", {
+      ...state,
+      reason: "违反社区规范",
     });
   });
 

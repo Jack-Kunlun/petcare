@@ -1,6 +1,7 @@
 import { GUARDS_METADATA, HTTP_CODE_METADATA, MODULE_METADATA } from "@nestjs/common/constants";
 import { SwaggerModule } from "@nestjs/swagger";
 import { Test } from "@nestjs/testing";
+import { CLASSROOM_ARTICLE_CATEGORY } from "@petcare/shared-types";
 import { AccessTokenGuard } from "../../auth/access-token.guard";
 import { AuthService } from "../../auth/auth.service";
 import { PermissionGuard } from "../../auth/permission.guard";
@@ -27,6 +28,10 @@ function createController() {
   const contentService = {
     findRewardPage: jest.fn().mockResolvedValue({ list: [], total: 0, page: 1, pageSize: 20 }),
     findPostPage: jest.fn().mockResolvedValue({ list: [], total: 0, page: 1, pageSize: 20 }),
+    findPostDetail: jest.fn().mockResolvedValue({ id: "post-1", status: "pending" }),
+    approvePost: jest.fn().mockResolvedValue({ id: "post-1", status: "published" }),
+    rejectPost: jest.fn().mockResolvedValue({ id: "post-1", status: "rejected" }),
+    offlinePost: jest.fn().mockResolvedValue({ id: "post-1", status: "offline" }),
   };
   const articleDetail = {
     id: "article-1",
@@ -84,6 +89,10 @@ describe("AdminContentController", () => {
     expect(guards).toEqual([AccessTokenGuard, PermissionGuard]);
     expect(permissions("findRewards")).toEqual(["content.reward.read"]);
     expect(permissions("findPosts")).toEqual(["content.post.read"]);
+    expect(permissions("findPost")).toEqual(["content.post.read"]);
+    expect(permissions("approvePost")).toEqual(["content.post.moderate_action"]);
+    expect(permissions("rejectPost")).toEqual(["content.post.moderate_action"]);
+    expect(permissions("offlinePost")).toEqual(["content.post.moderate_action"]);
     expect(permissions("findArticles")).toEqual(["content.article.read"]);
     expect(permissions("findArticle")).toEqual(["content.article.write_action"]);
     expect(permissions("createArticle")).toEqual(["content.article.write_action"]);
@@ -100,11 +109,49 @@ describe("AdminContentController", () => {
     expect(
       Reflect.getMetadata(HTTP_CODE_METADATA, AdminContentController.prototype.offlineArticle),
     ).toBe(200);
+    expect(
+      Reflect.getMetadata(HTTP_CODE_METADATA, AdminContentController.prototype.approvePost),
+    ).toBe(200);
+  });
+
+  it("delegates post detail and moderation commands with the authenticated operator", async () => {
+    const { controller, contentService } = createController();
+    const request = { user: { sub: "admin-1" } } as never;
+    const state = { expectedUpdatedAt: "2026-08-26T08:00:00.000Z" };
+
+    await expect(controller.findPost("post-1")).resolves.toMatchObject({ status: "pending" });
+    await expect(controller.approvePost("post-1", state, request)).resolves.toMatchObject({
+      status: "published",
+    });
+    await expect(
+      controller.rejectPost("post-1", { ...state, reason: "包含联系方式" }, request),
+    ).resolves.toMatchObject({ status: "rejected" });
+    await expect(
+      controller.offlinePost("post-1", { ...state, reason: "违反社区规范" }, request),
+    ).resolves.toMatchObject({ status: "offline" });
+
+    expect(contentService.findPostDetail).toHaveBeenCalledWith("post-1");
+    expect(contentService.approvePost).toHaveBeenCalledWith("post-1", "admin-1", state);
+    expect(contentService.rejectPost).toHaveBeenCalledWith(
+      "post-1",
+      "admin-1",
+      expect.objectContaining({ reason: "包含联系方式" }),
+    );
+    expect(contentService.offlinePost).toHaveBeenCalledWith(
+      "post-1",
+      "admin-1",
+      expect.objectContaining({ reason: "违反社区规范" }),
+    );
   });
 
   it("delegates article reads and commands to the article service and uses the authenticated operator", async () => {
     const { controller, articleService, articleDetail } = createController();
-    const create = { title: "文章", summary: "摘要", bodyHtml: "<p>正文</p>" };
+    const create = {
+      category: CLASSROOM_ARTICLE_CATEGORY.FEEDING_GUIDE,
+      title: "文章",
+      summary: "摘要",
+      bodyHtml: "<p>正文</p>",
+    };
     const update = {
       ...create,
       coverAssetId: null,
@@ -188,6 +235,10 @@ describe("AdminContentController", () => {
       expect.arrayContaining([
         "/admin/content/rewards",
         "/admin/content/posts",
+        "/admin/content/posts/{id}",
+        "/admin/content/posts/{id}/approve",
+        "/admin/content/posts/{id}/reject",
+        "/admin/content/posts/{id}/offline",
         "/admin/content/articles",
         "/admin/content/articles/{id}",
         "/admin/content/articles/{id}/publish",
@@ -214,6 +265,10 @@ describe("AdminContentController", () => {
     }
 
     for (const path of [
+      "/admin/content/posts/{id}",
+      "/admin/content/posts/{id}/approve",
+      "/admin/content/posts/{id}/reject",
+      "/admin/content/posts/{id}/offline",
       "/admin/content/articles/{id}",
       "/admin/content/articles/{id}/publish",
       "/admin/content/articles/{id}/offline",
@@ -235,6 +290,16 @@ describe("AdminContentController", () => {
     }
 
     expect(document.paths["/admin/content/articles/{id}"]?.get?.responses).toHaveProperty("400");
+    expect(document.paths["/admin/content/posts/{id}"]?.get?.responses).toHaveProperty("400");
+
+    for (const path of [
+      "/admin/content/posts/{id}/approve",
+      "/admin/content/posts/{id}/reject",
+      "/admin/content/posts/{id}/offline",
+    ]) {
+      expect(document.paths[path]?.post?.responses).toHaveProperty("400");
+      expect(document.paths[path]?.post?.responses).toHaveProperty("409");
+    }
 
     for (const path of [
       "/admin/content/articles/{id}",

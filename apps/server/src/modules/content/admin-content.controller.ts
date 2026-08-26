@@ -18,6 +18,7 @@ import { ApiBearerAuth, ApiBody, ApiConsumes, ApiOperation, ApiTags } from "@nes
 import type {
   AdminClassroomArticleDetail,
   AdminClassroomArticleListResponse,
+  AdminContentPostDetail,
   AdminContentPostListResponse,
   AdminContentRewardListResponse,
   UploadAdminClassroomArticleMediaResponse,
@@ -42,6 +43,7 @@ import {
   CreateAdminClassroomArticleDto,
   UpdateAdminClassroomArticleDto,
 } from "./dto/admin-classroom-article.dto";
+import { AdminContentPostStateDto } from "./dto/admin-community-post.dto";
 import {
   AdminClassroomArticleListQueryDto,
   AdminContentPostListQueryDto,
@@ -50,6 +52,7 @@ import {
 import {
   AdminClassroomArticleDetailDto,
   AdminClassroomArticleListResponseDto,
+  AdminContentPostDetailDto,
   AdminContentPostListResponseDto,
   AdminContentRewardListResponseDto,
 } from "./dto/content-response.dto";
@@ -93,6 +96,61 @@ export class AdminContentController {
   @ApiStandardErrors(400, 401, 403, 500)
   findPosts(@Query() query: AdminContentPostListQueryDto): Promise<AdminContentPostListResponse> {
     return this.contentService.findPostPage(query);
+  }
+
+  /** Returns full community post content and moderation history. */
+  @Get("posts/:id")
+  @RequirePermissions("content.post.read")
+  @ApiOperation({ summary: "获取后台帖子详情" })
+  @ApiSuccessResponse(AdminContentPostDetailDto)
+  @ApiStandardErrors(400, 401, 403, 404, 500)
+  findPost(@Param("id") id: string): Promise<AdminContentPostDetail> {
+    return this.contentService.findPostDetail(id);
+  }
+
+  /** Publishes one pending community post. */
+  @Post("posts/:id/approve")
+  @HttpCode(HttpStatus.OK)
+  @RequirePermissions("content.post.moderate_action")
+  @ApiOperation({ summary: "通过社区帖子审核" })
+  @ApiSuccessResponse(AdminContentPostDetailDto)
+  @ApiStandardErrors(400, 401, 403, 404, 409, 500)
+  approvePost(
+    @Param("id") id: string,
+    @Body() dto: AdminContentPostStateDto,
+    @Req() request: AuthRequest,
+  ): Promise<AdminContentPostDetail> {
+    return this.contentService.approvePost(id, request.user.sub, dto);
+  }
+
+  /** Rejects one pending community post with a reason. */
+  @Post("posts/:id/reject")
+  @HttpCode(HttpStatus.OK)
+  @RequirePermissions("content.post.moderate_action")
+  @ApiOperation({ summary: "驳回社区帖子" })
+  @ApiSuccessResponse(AdminContentPostDetailDto)
+  @ApiStandardErrors(400, 401, 403, 404, 409, 500)
+  rejectPost(
+    @Param("id") id: string,
+    @Body() dto: AdminContentPostStateDto,
+    @Req() request: AuthRequest,
+  ): Promise<AdminContentPostDetail> {
+    return this.contentService.rejectPost(id, request.user.sub, dto);
+  }
+
+  /** Takes one published community post offline with a reason. */
+  @Post("posts/:id/offline")
+  @HttpCode(HttpStatus.OK)
+  @RequirePermissions("content.post.moderate_action")
+  @ApiOperation({ summary: "下架社区帖子" })
+  @ApiSuccessResponse(AdminContentPostDetailDto)
+  @ApiStandardErrors(400, 401, 403, 404, 409, 500)
+  offlinePost(
+    @Param("id") id: string,
+    @Body() dto: AdminContentPostStateDto,
+    @Req() request: AuthRequest,
+  ): Promise<AdminContentPostDetail> {
+    return this.contentService.offlinePost(id, request.user.sub, dto);
   }
 
   /** 返回后台课堂文章列表。 */

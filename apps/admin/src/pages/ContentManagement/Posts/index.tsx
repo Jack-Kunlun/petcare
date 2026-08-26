@@ -10,6 +10,7 @@ import {
 } from "lucide-react";
 import { useState } from "react";
 import type { FormEvent } from "react";
+import { Link } from "react-router-dom";
 import { fetchAdminContentPosts } from "../../../api/content/posts";
 
 const PAGE_SIZE = 20;
@@ -74,6 +75,14 @@ function PostRow({ post }: { post: AdminContentPostListItem }) {
         <StatusBadge status={post.status} />
       </td>
       <td className="px-5 py-4 text-sm text-slate-600">{formatDate(post.createdAt)}</td>
+      <td className="px-5 py-4 text-right">
+        <Link
+          to={`/content/posts/${post.id}`}
+          className="inline-flex min-h-11 items-center rounded-lg border border-slate-300 px-3 text-sm font-medium text-slate-700 transition-colors hover:border-blue-600 hover:text-blue-700 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-blue-600"
+        >
+          查看详情
+        </Link>
+      </td>
     </tr>
   );
 }
@@ -222,7 +231,7 @@ export default function ContentPosts() {
         {!query.isPending && !query.isError && query.data?.list.length !== 0 && (
           <>
             <div className="overflow-x-auto">
-              <table className="min-w-[960px] w-full text-left text-sm">
+              <table className="min-w-[1040px] w-full text-left text-sm">
                 <thead className="bg-slate-50 text-xs font-semibold uppercase tracking-wide text-slate-500">
                   <tr>
                     <th className="px-5 py-3">帖子内容</th>
@@ -231,6 +240,7 @@ export default function ContentPosts() {
                     <th className="px-5 py-3">互动</th>
                     <th className="px-5 py-3">状态</th>
                     <th className="px-5 py-3">发布时间</th>
+                    <th className="px-5 py-3 text-right">操作</th>
                   </tr>
                 </thead>
                 <tbody>

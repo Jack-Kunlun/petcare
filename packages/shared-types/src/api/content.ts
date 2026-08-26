@@ -198,6 +198,58 @@ export interface AdminContentPostListQuery {
 /** 后台帖子列表响应。 */
 export type AdminContentPostListResponse = PaginatedResponse<AdminContentPostListItem>;
 
+/** 后台帖子审核动作。 */
+export const COMMUNITY_POST_MODERATION_ACTION = {
+  /** 将待审核帖子公开发布。 */
+  APPROVE: "approve",
+  /** 驳回待审核帖子。 */
+  REJECT: "reject",
+  /** 下架已发布帖子。 */
+  OFFLINE: "offline",
+} as const;
+
+/** 后台帖子审核动作类型。 */
+export type CommunityPostModerationAction =
+  (typeof COMMUNITY_POST_MODERATION_ACTION)[keyof typeof COMMUNITY_POST_MODERATION_ACTION];
+
+/** 后台帖子审核历史事件。 */
+export interface AdminContentPostModerationEvent {
+  /** 审核事件唯一标识。 */
+  id: string;
+  /** 本次审核动作。 */
+  action: CommunityPostModerationAction;
+  /** 执行动作前的帖子状态。 */
+  previousStatus: AdminContentPostStatus;
+  /** 执行动作后的帖子状态。 */
+  nextStatus: AdminContentPostStatus;
+  /** 驳回或下架原因；通过时为 null。 */
+  reason: string | null;
+  /** 执行审核动作的管理员。 */
+  operator: AdminContentAuthorSummary;
+  /** 审核动作发生时间，ISO 8601 格式。 */
+  createdAt: string;
+}
+
+/** 后台帖子完整详情。 */
+export interface AdminContentPostDetail extends AdminContentPostListItem {
+  /** 帖子完整正文。 */
+  content: string;
+  /** 帖子图片公开地址，保持作者提交顺序。 */
+  mediaUrls: string[];
+  /** 当前驳回或下架原因；无原因时为 null。 */
+  moderationReason: string | null;
+  /** 按发生时间倒序排列的审核历史。 */
+  moderationHistory: AdminContentPostModerationEvent[];
+}
+
+/** 后台帖子审核命令。 */
+export interface AdminContentPostStateRequest {
+  /** 操作者看到的帖子最后更新时间，用于拒绝过期命令。 */
+  expectedUpdatedAt: string;
+  /** 驳回或下架原因；通过命令不使用该字段。 */
+  reason?: string;
+}
+
 /** 登录用户提交文字社区动态的请求。 */
 export interface CreateCommunityPostRequest {
   /** 去除首尾空白后的动态正文，长度为 1 至 1000 个字符。 */

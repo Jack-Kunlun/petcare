@@ -1,13 +1,18 @@
 import { ApiProperty } from "@nestjs/swagger";
-import { CLASSROOM_ARTICLE_CATEGORY } from "@petcare/shared-types";
+import {
+  CLASSROOM_ARTICLE_CATEGORY,
+  COMMUNITY_POST_MODERATION_ACTION,
+} from "@petcare/shared-types";
 import type {
   AdminClassroomArticleDetail,
   AdminClassroomArticleListItem,
   AdminClassroomArticleListResponse,
   AdminContentAuthorSummary,
+  AdminContentPostDetail,
   AdminContentPetSummary,
   AdminContentPostListItem,
   AdminContentPostListResponse,
+  AdminContentPostModerationEvent,
   AdminContentRewardListItem,
   AdminContentRewardListResponse,
   PublicClassroomArticleAuthor,
@@ -134,6 +139,48 @@ export class AdminContentPostListResponseDto implements AdminContentPostListResp
 
   @ApiProperty({ example: 20 })
   pageSize: number;
+}
+
+/** 后台帖子审核历史事件响应。 */
+export class AdminContentPostModerationEventDto implements AdminContentPostModerationEvent {
+  @ApiProperty({ format: "uuid" })
+  id: string;
+
+  @ApiProperty({ enum: Object.values(COMMUNITY_POST_MODERATION_ACTION) })
+  action: AdminContentPostModerationEvent["action"];
+
+  @ApiProperty({ example: "pending" })
+  previousStatus: AdminContentPostModerationEvent["previousStatus"];
+
+  @ApiProperty({ example: "published" })
+  nextStatus: AdminContentPostModerationEvent["nextStatus"];
+
+  @ApiProperty({ nullable: true })
+  reason: string | null;
+
+  @ApiProperty({ type: AdminContentAuthorSummaryDto })
+  operator: AdminContentAuthorSummaryDto;
+
+  @ApiProperty({ format: "date-time" })
+  createdAt: string;
+}
+
+/** 后台帖子完整详情响应。 */
+export class AdminContentPostDetailDto
+  extends AdminContentPostListItemDto
+  implements AdminContentPostDetail
+{
+  @ApiProperty()
+  content: string;
+
+  @ApiProperty({ type: [String] })
+  mediaUrls: string[];
+
+  @ApiProperty({ nullable: true })
+  moderationReason: string | null;
+
+  @ApiProperty({ type: [AdminContentPostModerationEventDto] })
+  moderationHistory: AdminContentPostModerationEventDto[];
 }
 
 /** 后台课堂文章列表项响应。 */
