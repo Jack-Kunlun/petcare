@@ -1,3 +1,4 @@
+import process from "node:process";
 import Uni from "@uni-helper/plugin-uni";
 import UniHelperComponents from "@uni-helper/vite-plugin-uni-components";
 import UniHelperManifest from "@uni-helper/vite-plugin-uni-manifest";
@@ -7,16 +8,20 @@ import AutoImport from "unplugin-auto-import/vite";
 import { defineConfig } from "vite";
 import { WotResolver } from "./src/resolver";
 
+const e2e = Boolean(process.env.ADMIN_E2E_MINIAPP_URL);
+
 export default defineConfig({
   base: "./",
+  cacheDir: process.env.ADMIN_E2E_MINIAPP_VITE_CACHE_DIR || "node_modules/.vite",
   plugins: [
-    UniHelperManifest(),
+    ...(e2e ? [] : [UniHelperManifest()]),
     UniHelperPages({
-      dts: "src/uni-pages.d.ts",
+      dts: e2e ? false : "src/uni-pages.d.ts",
+      outDir: e2e ? process.env.ADMIN_E2E_MINIAPP_VITE_CACHE_DIR : "src",
     }),
     UniHelperComponents({
       resolvers: [WotResolver()],
-      dts: "src/components.d.ts",
+      dts: e2e ? false : "src/components.d.ts",
     }),
     UnoCSS({
       mode: "per-module",
@@ -24,7 +29,7 @@ export default defineConfig({
     Uni(),
     AutoImport({
       imports: ["vue", "uni-app"],
-      dts: "src/auto-imports.d.ts",
+      dts: e2e ? false : "src/auto-imports.d.ts",
       vueTemplate: true,
     }),
   ],

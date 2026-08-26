@@ -31,4 +31,19 @@ describe("miniapp content API", () => {
 
     expect(rawRequestMock).toHaveBeenCalledWith("/content/articles", { data: query });
   });
+
+  it("omits unset public classroom filters from the native GET query", async () => {
+    rawRequestMock.mockResolvedValue({ list: [], total: 0, page: 1, pageSize: 10 });
+
+    await getClassroomArticles({
+      page: 1,
+      pageSize: 10,
+      keyword: undefined,
+      category: undefined,
+    });
+
+    const options = rawRequestMock.mock.calls[0]?.[1];
+
+    expect(Object.keys(options?.data as object)).toEqual(["page", "pageSize"]);
+  });
 });

@@ -11,6 +11,7 @@ import { clearTimeout, setTimeout } from "node:timers";
 import { fileURLToPath, pathToFileURL, URL } from "node:url";
 
 const adminDirectory = path.resolve(path.dirname(fileURLToPath(import.meta.url)), "..");
+const miniappDirectory = path.resolve(adminDirectory, "../miniapp");
 const serverDirectory = path.resolve(adminDirectory, "../server");
 const websiteDirectory = path.resolve(adminDirectory, "../website");
 const repositoryDirectory = path.resolve(adminDirectory, "../..");
@@ -69,6 +70,12 @@ function loadLocalEnvironment() {
 
 export function shouldLoadLocalEnvironment(env) {
   return !env.CI;
+}
+
+export function resolveAdminE2eDatabaseHost(value) {
+  const host = value?.trim();
+
+  return host?.toLowerCase() === "localhost" ? "127.0.0.1" : host;
 }
 
 export function createAdminE2eSchemaName({
@@ -392,7 +399,16 @@ export async function startApplicationServers(
 ) {
   const serverPort = requireEnvironmentValue(env, "ADMIN_E2E_SERVER_PORT");
   const adminPort = requireEnvironmentValue(env, "ADMIN_E2E_ADMIN_PORT");
+  const miniappPort = requireEnvironmentValue(env, "ADMIN_E2E_MINIAPP_PORT");
   const websitePort = requireEnvironmentValue(env, "ADMIN_E2E_WEBSITE_PORT");
+  const miniappCli = path.join(
+    miniappDirectory,
+    "node_modules",
+    "@dcloudio",
+    "vite-plugin-uni",
+    "bin",
+    "uni.js",
+  );
   const viteCli = path.join(adminDirectory, "node_modules", "vite", "bin", "vite.js");
   const websiteEntry = path.join(websiteDirectory, "dist", "server", "entry.mjs");
   const children = [];
@@ -443,6 +459,21 @@ export async function startApplicationServers(
 
     children.push(admin);
     await waitForServer("Admin", `http://127.0.0.1:${adminPort}`, admin, signal);
+
+    const miniapp = spawnProcess(
+      process.execPath,
+      [miniappCli, "--host", "127.0.0.1", "--port", miniappPort, "--strictPort"],
+      {
+        cwd: miniappDirectory,
+        detached: process.platform !== "win32",
+        env,
+        shell: false,
+        stdio: "inherit",
+      },
+    );
+
+    children.push(miniapp);
+    await waitForServer("Miniapp", `http://127.0.0.1:${miniappPort}`, miniapp, signal);
   } catch (error) {
     const cleanupResults = await Promise.allSettled(children.toReversed().map(stopChild));
     const cleanupErrors = cleanupResults
@@ -856,6 +887,7 @@ async function runMain(playwrightArgs, signal) {
   const temporaryDirectory = path.join(tmpdir(), schemaName);
   const serverPort = await findAvailablePort();
   let adminPort = await findAvailablePort();
+  let miniappPort = await findAvailablePort();
   let websitePort = await findAvailablePort();
 
   while (adminPort === serverPort) {
@@ -866,16 +898,25 @@ async function runMain(playwrightArgs, signal) {
     websitePort = await findAvailablePort();
   }
 
+  while ([serverPort, adminPort, websitePort].includes(miniappPort)) {
+    miniappPort = await findAvailablePort();
+  }
+
   const baseEnv = {
     ...process.env,
+    DB_HOST: resolveAdminE2eDatabaseHost(process.env.DB_HOST),
     PORT: String(serverPort),
     ADMIN_E2E_SERVER_PORT: String(serverPort),
     ADMIN_E2E_ADMIN_PORT: String(adminPort),
+    ADMIN_E2E_MINIAPP_PORT: String(miniappPort),
+    ADMIN_E2E_MINIAPP_URL: `http://127.0.0.1:${miniappPort}`,
     ADMIN_E2E_WEBSITE_PORT: String(websitePort),
     ADMIN_E2E_WEBSITE_URL: `http://127.0.0.1:${websitePort}`,
     ADMIN_E2E_VITE_CACHE_DIR: path.join(temporaryDirectory, "vite-cache"),
+    ADMIN_E2E_MINIAPP_VITE_CACHE_DIR: path.join(temporaryDirectory, "miniapp-vite-cache"),
     LOG_DIR: path.join(temporaryDirectory, "server-logs"),
-    ALLOWED_ORIGINS: `http://127.0.0.1:${adminPort},http://127.0.0.1:${websitePort}`,
+    ALLOWED_ORIGINS: `http://127.0.0.1:${adminPort},http://127.0.0.1:${websitePort},http://127.0.0.1:${miniappPort}`,
+    VITE_MINIAPP_API_BASE_URL: `http://127.0.0.1:${serverPort}`,
     WEBSITE_PUBLIC_URL: `http://127.0.0.1:${websitePort}`,
     WEBSITE_CONTENT_API_BASE_URL: `http://127.0.0.1:${serverPort}`,
     // Fake, isolated configuration makes the list adapter resolve the seeded asset URL locally.

@@ -45,8 +45,8 @@ pnpm test:e2e:debug
 
 ## 官网内容端到端场景
 
-官网内容测试会在同一个隔离 schema 生命周期中启动 Nest Server、Astro Website 和 Admin。
-runner 为三者分配独立端口，并通过 `ADMIN_E2E_WEBSITE_URL` 把 Website 地址传给 Playwright；
+官网内容测试会在同一个隔离 schema 生命周期中启动 Nest Server、Astro Website、Admin 和 Miniapp H5。
+runner 为四者分配独立端口，并通过 `ADMIN_E2E_WEBSITE_URL` 把 Website 地址传给 Playwright；
 它们会在测试失败、启动失败和信号中断后按同一受控进程树清理。
 
 可仅运行官网内容场景：
@@ -58,3 +58,11 @@ pnpm --filter @petcare/admin test:e2e -- website-content.spec.ts
 该场景验证公开页与草稿隔离、固定修订预览的 `no-store`/`noindex` 响应、显式发布、历史恢复、
 读者/编辑者/发布者的操作边界，以及预设区块不提供新增、删除、换型或排序控件。
 素材选择使用 runner 写入隔离 schema 的确定性测试记录和本地 Website URL，不上传、读取或校验任何生产腾讯云 COS 对象；COS provider 契约仍由服务端单元测试覆盖。
+
+## 课堂内容纵向端到端场景
+
+课堂测试通过隔离 Admin HTTP 边界发布和下线文章，并在 375px Miniapp H5 中验证列表、搜索、详情和下线不可用状态。Miniapp H5 使用独立端口和临时 Vite 缓存，不会改写源码中的生成类型文件。
+
+```bash
+pnpm --filter @petcare/admin test:e2e:classroom
+```

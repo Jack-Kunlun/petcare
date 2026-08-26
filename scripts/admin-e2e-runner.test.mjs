@@ -13,6 +13,7 @@ import path from "node:path";
 import {
   assertDisposableAdminSchema,
   createAdminE2eSchemaName,
+  resolveAdminE2eDatabaseHost,
   runWithIsolatedAdminSchema,
   shouldLoadLocalEnvironment,
   startApplicationServers,
@@ -103,11 +104,21 @@ test("标准 Admin E2E 命令固定进入版本控制内的隔离 runner", async
   const packageJson = JSON.parse(await readFile(path.join(adminDirectory, "package.json"), "utf8"));
 
   assert.match(packageJson.scripts["test:e2e"], /e2e\/run-e2e\.mjs/u);
+  assert.match(
+    packageJson.scripts["test:e2e:classroom"],
+    /e2e\/run-e2e\.mjs classroom-content\.spec\.ts/u,
+  );
 });
 
 test("本地读取仓库 .env，CI 只使用注入的环境变量", () => {
   assert.equal(shouldLoadLocalEnvironment({}), true);
   assert.equal(shouldLoadLocalEnvironment({ CI: "true" }), false);
+});
+
+test("Windows E2E 将 localhost 数据库固定到 IPv4 loopback", () => {
+  assert.equal(resolveAdminE2eDatabaseHost(" localhost "), "127.0.0.1");
+  assert.equal(resolveAdminE2eDatabaseHost("postgres"), "postgres");
+  assert.equal(resolveAdminE2eDatabaseHost(undefined), undefined);
 });
 
 test("生成的 Admin E2E schema 唯一且绝不允许 public", () => {
@@ -342,12 +353,13 @@ test("POSIX fixture 强制清理保留非 ESRCH 错误", async () => {
 });
 
 test("应用部分启动失败时继续关闭全部进程并聚合启动与清理错误", async () => {
-  const startupError = new Error("Admin failed to become ready");
-  const stopError = new Error("Admin failed to stop");
+  const startupError = new Error("Miniapp failed to become ready");
+  const stopError = new Error("Miniapp failed to stop");
   const server = { name: "server" };
   const website = { name: "website" };
   const admin = { name: "admin" };
-  const children = [server, website, admin];
+  const miniapp = { name: "miniapp" };
+  const children = [server, website, admin, miniapp];
   const stopped = [];
   let readinessChecks = 0;
 
@@ -356,6 +368,7 @@ test("应用部分启动失败时继续关闭全部进程并聚合启动与清�
       {
         ADMIN_E2E_SERVER_PORT: "3001",
         ADMIN_E2E_ADMIN_PORT: "8987",
+        ADMIN_E2E_MINIAPP_PORT: "4322",
         ADMIN_E2E_WEBSITE_PORT: "8081",
       },
       undefined,
@@ -363,13 +376,13 @@ test("应用部分启动失败时继续关闭全部进程并聚合启动与清�
         spawnProcess: () => children.shift(),
         waitForServer: async () => {
           readinessChecks += 1;
-          if (readinessChecks === 3) {
+          if (readinessChecks === 4) {
             throw startupError;
           }
         },
         stopChild: async (child) => {
           stopped.push(child.name);
-          if (child === admin) {
+          if (child === miniapp) {
             throw stopError;
           }
         },
@@ -383,7 +396,7 @@ test("应用部分启动失败时继续关闭全部进程并聚合启动与清�
     },
   );
 
-  assert.deepEqual(stopped, ["admin", "website", "server"]);
+  assert.deepEqual(stopped, ["miniapp", "admin", "website", "server"]);
 });
 
 test("Website startup failure closes Website and Server in reverse order", async () => {
@@ -401,6 +414,7 @@ test("Website startup failure closes Website and Server in reverse order", async
       {
         ADMIN_E2E_SERVER_PORT: "3001",
         ADMIN_E2E_ADMIN_PORT: "8987",
+        ADMIN_E2E_MINIAPP_PORT: "4322",
         ADMIN_E2E_WEBSITE_PORT: "8081",
       },
       undefined,
@@ -431,7 +445,8 @@ test("Website participates in signal-safe isolated lifecycle cleanup", async () 
   const server = { name: "server" };
   const website = { name: "website" };
   const admin = { name: "admin" };
-  const children = [server, website, admin];
+  const miniapp = { name: "miniapp" };
+  const children = [server, website, admin, miniapp];
   const stopped = [];
 
   await assert.rejects(
@@ -440,6 +455,7 @@ test("Website participates in signal-safe isolated lifecycle cleanup", async () 
       baseEnv: {
         ADMIN_E2E_SERVER_PORT: "3001",
         ADMIN_E2E_ADMIN_PORT: "8987",
+        ADMIN_E2E_MINIAPP_PORT: "4322",
         ADMIN_E2E_WEBSITE_PORT: "8081",
       },
       signal: controller.signal,
@@ -460,5 +476,5 @@ test("Website participates in signal-safe isolated lifecycle cleanup", async () 
     interruption,
   );
 
-  assert.deepEqual(stopped, ["admin", "website", "server"]);
+  assert.deepEqual(stopped, ["miniapp", "admin", "website", "server"]);
 });

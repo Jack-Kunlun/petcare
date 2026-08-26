@@ -11,7 +11,14 @@ import { rawRequest } from "./request";
 export function getClassroomArticles(
   query: PublicClassroomArticleListQuery,
 ): Promise<PublicClassroomArticleListResponse> {
-  return rawRequest<PublicClassroomArticleListResponse>("/content/articles", { data: query });
+  const data = {
+    page: query.page,
+    pageSize: query.pageSize,
+    ...(query.keyword ? { keyword: query.keyword } : {}),
+    ...(query.category ? { category: query.category } : {}),
+  };
+
+  return rawRequest<PublicClassroomArticleListResponse>("/content/articles", { data });
 }
 
 /** Reads one currently published classroom article by its stable route value. */
