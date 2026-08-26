@@ -2,6 +2,7 @@ import { Inject, Injectable } from "@nestjs/common";
 import {
   ADMIN_CONTENT_POST_STATUS,
   COMMUNITY_MEDIA_STATUS,
+  COMMUNITY_POST_CONTENT_TYPE,
   COMMUNITY_POST_COMMENT_STATUS,
   COMMUNITY_POST_REPORT_STATUS,
   NOTIFICATION_TYPE,
@@ -11,6 +12,7 @@ import type {
   AdminCommunityPostCommentListResponse,
   AdminCommunityPostCommentOfflineRequest,
   AdminCommunityPostReportResponse,
+  CommunityPostPaginationQuery,
   CommunityPostLikeState,
   CommunityPostReportReceipt,
   CreateCommunityPostCommentRequest,
@@ -318,7 +320,20 @@ export class CommunityPostService {
   async findPublished(
     query: PublicCommunityPostListQuery,
   ): Promise<PublicCommunityPostListResponse> {
-    const where = { status: ADMIN_CONTENT_POST_STATUS.PUBLISHED };
+    const filters: Prisma.PostWhereInput[] = [{ status: ADMIN_CONTENT_POST_STATUS.PUBLISHED }];
+    const keyword = query.keyword?.trim();
+
+    if (keyword) {
+      filters.push({ content: { contains: keyword, mode: "insensitive" } });
+    }
+
+    if (query.contentType) {
+      filters.push({
+        mediaUrls: { isEmpty: query.contentType === COMMUNITY_POST_CONTENT_TYPE.TEXT },
+      });
+    }
+
+    const where = { AND: filters };
     const select = {
       id: true,
       content: true,
@@ -455,7 +470,7 @@ export class CommunityPostService {
   /** Lists only visible top-level comments while keeping non-public posts indistinguishable. */
   async findPublishedComments(
     postId: string,
-    query: PublicCommunityPostListQuery,
+    query: CommunityPostPaginationQuery,
     viewerId?: string,
   ): Promise<PublicCommunityPostCommentListResponse> {
     const post = await this.prisma.post.findFirst({
@@ -542,7 +557,7 @@ export class CommunityPostService {
   /** Returns every top-level comment state to a separately authorized post moderator. */
   async findCommentsForAdmin(
     postId: string,
-    query: PublicCommunityPostListQuery,
+    query: CommunityPostPaginationQuery,
   ): Promise<AdminCommunityPostCommentListResponse> {
     const post = await this.prisma.post.findUnique({ where: { id: postId }, select: { id: true } });
 

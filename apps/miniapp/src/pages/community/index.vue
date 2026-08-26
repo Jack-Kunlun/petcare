@@ -2,12 +2,14 @@
 import { onLoad } from "@dcloudio/uni-app";
 import type {
   ClassroomArticleCategory,
+  CommunityPostContentType,
   PublicClassroomArticleListItem,
   PublicCommunityPostListItem,
 } from "@petcare/shared-types";
 import {
   CLASSROOM_ARTICLE_CATEGORY,
   CLASSROOM_ARTICLE_CATEGORY_LABELS,
+  COMMUNITY_POST_CONTENT_TYPE,
 } from "@petcare/shared-types";
 import { computed, ref } from "vue";
 import { openCommunityPublishEntry } from "./publish-entry";
@@ -33,6 +35,13 @@ const categoryOptions = Object.values(CLASSROOM_ARTICLE_CATEGORY).map((value) =>
   value,
   label: CLASSROOM_ARTICLE_CATEGORY_LABELS[value],
 }));
+const contentTypeOptions: ReadonlyArray<{
+  value: CommunityPostContentType;
+  label: string;
+}> = [
+  { value: COMMUNITY_POST_CONTENT_TYPE.TEXT, label: "纯文字" },
+  { value: COMMUNITY_POST_CONTENT_TYPE.IMAGE, label: "带图片" },
+];
 
 const activeChannel = ref<(typeof channelTabs)[number]["value"]>("featured");
 const classroomArticles = ref<PublicClassroomArticleListItem[]>([]);
@@ -47,6 +56,9 @@ const classroomTotal = ref(0);
 const publishPending = ref(false);
 const classroomHasMore = computed(() => classroomArticles.value.length < classroomTotal.value);
 const featuredPosts = ref<PublicCommunityPostListItem[]>([]);
+const featuredKeyword = ref("");
+const featuredAppliedKeyword = ref("");
+const featuredContentType = ref<CommunityPostContentType | null>(null);
 const featuredStatus = ref<"idle" | "loading" | "ready" | "error">("idle");
 const featuredLoading = ref(false);
 const featuredLoadMoreError = ref(false);
@@ -68,7 +80,18 @@ async function loadFeatured(reset = true): Promise<void> {
 
   try {
     const page = reset ? 1 : featuredPage.value + 1;
-    const response = await getCommunityPosts({ page, pageSize: COMMUNITY_PAGE_SIZE });
+    const keyword = reset ? featuredKeyword.value.trim() : featuredAppliedKeyword.value;
+
+    if (reset) {
+      featuredAppliedKeyword.value = keyword;
+    }
+
+    const response = await getCommunityPosts({
+      page,
+      pageSize: COMMUNITY_PAGE_SIZE,
+      keyword: keyword || undefined,
+      contentType: featuredContentType.value ?? undefined,
+    });
 
     featuredPosts.value = reset ? response.list : [...featuredPosts.value, ...response.list];
     featuredPage.value = response.page;
@@ -161,6 +184,21 @@ function selectCategory(category: ClassroomArticleCategory | null): void {
 function searchClassroom(): void {
   if (!classroomLoading.value) {
     void loadClassroom();
+  }
+}
+
+function selectFeaturedContentType(contentType: CommunityPostContentType | null): void {
+  if (featuredLoading.value || featuredContentType.value === contentType) {
+    return;
+  }
+
+  featuredContentType.value = contentType;
+  void loadFeatured();
+}
+
+function searchFeatured(): void {
+  if (!featuredLoading.value) {
+    void loadFeatured();
   }
 }
 
@@ -426,6 +464,77 @@ onLoad((query = {}) => {
           </view>
         </view>
 
+        <view class="mx-page-horizontal mt-copy flex gap-copy">
+          <view
+            class="h-control min-w-0 flex flex-1 items-center gap-sm rounded-control bg-surface px-copy shadow-card"
+          >
+            <image
+              class="h-icon-sm w-icon-sm"
+              src="/static/main/search.svg"
+              mode="aspectFit"
+              aria-hidden="true"
+            />
+            <input
+              v-model="featuredKeyword"
+              class="h-full min-w-0 flex-1 text-body text-ink"
+              aria-label="搜索社区动态"
+              confirm-type="search"
+              :maxlength="50"
+              placeholder="搜索社区动态"
+              :disabled="featuredLoading"
+              :aria-disabled="featuredLoading"
+              @confirm="searchFeatured"
+            />
+          </view>
+          <button
+            class="h-control rounded-control bg-brand-active px-action text-body text-surface font-medium"
+            :class="featuredLoading ? 'opacity-50' : ''"
+            :disabled="featuredLoading"
+            :aria-disabled="featuredLoading"
+            :loading="featuredLoading"
+            @click="searchFeatured"
+          >
+            搜索
+          </button>
+        </view>
+
+        <scroll-view class="mt-copy w-full" scroll-x :show-scrollbar="false">
+          <view class="flex gap-sm px-page-horizontal pb-sm">
+            <view
+              class="shrink-0 rounded-pill px-copy py-sm"
+              :class="[
+                featuredContentType === null ? 'bg-brand text-surface' : 'bg-surface text-muted',
+                featuredLoading ? 'opacity-50' : '',
+              ]"
+              role="button"
+              :aria-pressed="featuredContentType === null"
+              :aria-disabled="featuredLoading"
+              :hover-class="featuredLoading ? 'none' : 'opacity-80'"
+              @click="selectFeaturedContentType(null)"
+            >
+              <text class="text-caption font-medium leading-caption">全部</text>
+            </view>
+            <view
+              v-for="option in contentTypeOptions"
+              :key="option.value"
+              class="shrink-0 rounded-pill px-copy py-sm"
+              :class="[
+                featuredContentType === option.value
+                  ? 'bg-brand text-surface'
+                  : 'bg-surface text-muted',
+                featuredLoading ? 'opacity-50' : '',
+              ]"
+              role="button"
+              :aria-pressed="featuredContentType === option.value"
+              :aria-disabled="featuredLoading"
+              :hover-class="featuredLoading ? 'none' : 'opacity-80'"
+              @click="selectFeaturedContentType(option.value)"
+            >
+              <text class="text-caption font-medium leading-caption">{{ option.label }}</text>
+            </view>
+          </view>
+        </scroll-view>
+
         <view class="mt-card flex items-center justify-between px-page-horizontal">
           <view class="flex items-end gap-sm">
             <text class="section-heading">社区精选</text>
@@ -474,7 +583,7 @@ onLoad((query = {}) => {
           v-else-if="featuredStatus === 'ready' && featuredPosts.length === 0"
           class="mx-page-horizontal mt-copy main-card p-action"
         >
-          <text class="text-body text-muted leading-body">还没有已发布的社区动态</text>
+          <text class="text-body text-muted leading-body">未找到符合条件的社区动态</text>
         </view>
 
         <view

@@ -91,4 +91,24 @@ describe("community post DTOs", () => {
     expect(dto).toMatchObject({ page: 1, pageSize: 20 });
     expect(publicDto).toMatchObject({ page: 1, pageSize: 20 });
   });
+
+  it("validates a trimmed bounded keyword and controlled content type", async () => {
+    const valid = plainToInstance(PublicCommunityPostListQueryDto, {
+      keyword: "  旺财  ",
+      contentType: "image",
+    });
+    const blank = plainToInstance(PublicCommunityPostListQueryDto, { keyword: "   " });
+    const tooLong = plainToInstance(PublicCommunityPostListQueryDto, {
+      keyword: "搜".repeat(51),
+    });
+    const unknownType = plainToInstance(PublicCommunityPostListQueryDto, {
+      contentType: "video",
+    });
+
+    await expect(validate(valid)).resolves.toHaveLength(0);
+    await expect(validate(blank)).resolves.not.toHaveLength(0);
+    await expect(validate(tooLong)).resolves.not.toHaveLength(0);
+    await expect(validate(unknownType)).resolves.not.toHaveLength(0);
+    expect(valid).toMatchObject({ keyword: "旺财", contentType: "image" });
+  });
 });

@@ -103,12 +103,22 @@ describe("miniapp content API", () => {
   it("reads public community pages and encoded detail ids without authentication", async () => {
     rawRequestMock.mockResolvedValue({ list: [], total: 0, page: 1, pageSize: 10 });
 
-    await getCommunityPosts({ page: 1, pageSize: 10 });
+    await getCommunityPosts({
+      page: 1,
+      pageSize: 10,
+      keyword: "旺财",
+      contentType: "text",
+    });
+    await getCommunityPosts({ page: 2, pageSize: 5 });
     await getCommunityPost("post/1");
     await getCommunityPostComments("post/1", { page: 1, pageSize: 20 });
 
     expect(rawRequestMock.mock.calls).toEqual([
-      ["/content/community-posts", { data: { page: 1, pageSize: 10 } }],
+      [
+        "/content/community-posts",
+        { data: { page: 1, pageSize: 10, keyword: "旺财", contentType: "text" } },
+      ],
+      ["/content/community-posts", { data: { page: 2, pageSize: 5 } }],
       ["/content/community-posts/post%2F1"],
       ["/content/community-posts/post%2F1/comments", { data: { page: 1, pageSize: 20 } }],
     ]);

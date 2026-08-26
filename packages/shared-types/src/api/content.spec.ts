@@ -6,6 +6,7 @@ import {
   CLASSROOM_ARTICLE_CATEGORY_LABELS,
   COMMUNITY_MEDIA_ERROR_CODE,
   COMMUNITY_MEDIA_STATUS,
+  COMMUNITY_POST_CONTENT_TYPE,
   COMMUNITY_POST_COMMENT_STATUS,
   COMMUNITY_POST_MODERATION_ACTION,
   COMMUNITY_POST_REPORT_REASON,
@@ -196,6 +197,7 @@ describe("content contracts", () => {
     const likeState: CommunityPostLikeState = { liked: true, likesCount: detail.likesCount };
 
     expect(likeState).toEqual({ liked: true, likesCount: 3 });
+    expect(Object.values(COMMUNITY_POST_CONTENT_TYPE)).toEqual(["text", "image"]);
   });
 
   it("keeps public comments private-safe and moderator comments stateful", () => {

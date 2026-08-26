@@ -56,7 +56,7 @@ import {
 } from "./dto/admin-content-query.dto";
 import {
   AdminCommunityPostCommentOfflineDto,
-  PublicCommunityPostListQueryDto,
+  CommunityPostPaginationQueryDto,
 } from "./dto/community-post.dto";
 import {
   AdminClassroomArticleDetailDto,
@@ -139,7 +139,7 @@ export class AdminContentController {
   @ApiStandardErrors(400, 401, 403, 404, 500)
   findPostComments(
     @Param("id", new ParseUUIDPipe({ version: "4" })) id: string,
-    @Query() query: PublicCommunityPostListQueryDto,
+    @Query() query: CommunityPostPaginationQueryDto,
   ): Promise<AdminCommunityPostCommentListResponse> {
     return this.communityPosts.findCommentsForAdmin(id, query);
   }

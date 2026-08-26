@@ -1,6 +1,7 @@
 import type {
   CommunityMediaAsset,
   CommunityPostLikeState,
+  CommunityPostPaginationQuery,
   CommunityPostReportReceipt,
   CreateCommunityPostCommentRequest,
   CreateCommunityPostReportRequest,
@@ -86,7 +87,7 @@ export function unlikeCommunityPost(id: string): Promise<CommunityPostLikeState>
 /** Reads visible comments and owner capabilities for the authenticated viewer. */
 export function getMyCommunityPostComments(
   id: string,
-  query: PublicCommunityPostListQuery,
+  query: CommunityPostPaginationQuery,
 ): Promise<PublicCommunityPostCommentListResponse> {
   return authorizedRequest(`/community/posts/${encodeURIComponent(id)}/comments`, { data: query });
 }
@@ -114,7 +115,14 @@ export function deleteCommunityPostComment(postId: string, commentId: string): P
 export function getCommunityPosts(
   query: PublicCommunityPostListQuery,
 ): Promise<PublicCommunityPostListResponse> {
-  return rawRequest<PublicCommunityPostListResponse>("/content/community-posts", { data: query });
+  const data = {
+    page: query.page,
+    pageSize: query.pageSize,
+    ...(query.keyword ? { keyword: query.keyword } : {}),
+    ...(query.contentType ? { contentType: query.contentType } : {}),
+  };
+
+  return rawRequest<PublicCommunityPostListResponse>("/content/community-posts", { data });
 }
 
 /** Reads one currently published community post. */
@@ -127,7 +135,7 @@ export function getCommunityPost(id: string): Promise<PublicCommunityPostDetail>
 /** Reads visible comments below one published post without authentication. */
 export function getCommunityPostComments(
   id: string,
-  query: PublicCommunityPostListQuery,
+  query: CommunityPostPaginationQuery,
 ): Promise<PublicCommunityPostCommentListResponse> {
   return rawRequest<PublicCommunityPostCommentListResponse>(
     `/content/community-posts/${encodeURIComponent(id)}/comments`,

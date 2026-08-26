@@ -1,11 +1,14 @@
 import { ApiProperty, ApiPropertyOptional } from "@nestjs/swagger";
 import {
   ADMIN_CONTENT_POST_STATUS,
+  COMMUNITY_POST_CONTENT_TYPE,
   COMMUNITY_POST_REPORT_REASON,
   COMMUNITY_POST_REPORT_STATUS,
 } from "@petcare/shared-types";
 import type {
   AdminCommunityPostCommentOfflineRequest,
+  CommunityPostContentType,
+  CommunityPostPaginationQuery,
   CommunityPostReportReceipt,
   CommunityMediaAsset,
   CommunityPostLikeState,
@@ -188,8 +191,8 @@ export class MyCommunityPostListResponseDto implements MyCommunityPostListRespon
   pageSize: number;
 }
 
-/** Pagination for the unauthenticated published community feed. */
-export class PublicCommunityPostListQueryDto implements PublicCommunityPostListQuery {
+/** Pagination shared by community post and comment lists. */
+export class CommunityPostPaginationQueryDto implements CommunityPostPaginationQuery {
   @ApiPropertyOptional({ default: 1, minimum: 1 })
   @IsOptional()
   @Type(() => Number)
@@ -204,6 +207,27 @@ export class PublicCommunityPostListQueryDto implements PublicCommunityPostListQ
   @Min(1)
   @Max(50)
   pageSize = 20;
+}
+
+const communityPostContentTypes = Object.values(COMMUNITY_POST_CONTENT_TYPE);
+
+/** Search and controlled content-type filters for the public community feed. */
+export class PublicCommunityPostListQueryDto
+  extends CommunityPostPaginationQueryDto
+  implements PublicCommunityPostListQuery
+{
+  @ApiPropertyOptional({ minLength: 1, maxLength: 50 })
+  @Transform(({ value }) => (typeof value === "string" ? value.trim() : value))
+  @IsOptional()
+  @IsString()
+  @MinLength(1)
+  @MaxLength(50)
+  keyword?: string;
+
+  @ApiPropertyOptional({ enum: communityPostContentTypes })
+  @IsOptional()
+  @IsIn(communityPostContentTypes)
+  contentType?: CommunityPostContentType;
 }
 
 /** Public author fields safe for unauthenticated readers. */

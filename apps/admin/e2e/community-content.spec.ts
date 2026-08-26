@@ -1,4 +1,5 @@
 import {
+  COMMUNITY_POST_CONTENT_TYPE,
   COMMUNITY_POST_REPORT_REASON,
   NOTIFICATION_CATEGORY,
   NOTIFICATION_TYPE,
@@ -199,6 +200,43 @@ test("受控社区动态从发布、举报到后台下架保持纵向一致", as
   );
 
   expect(publicList.list.map((post) => post.id)).toContain(pending.id);
+  const publicPost = publicList.list.find((post) => post.id === pending.id);
+
+  expect(publicPost).toBeDefined();
+  expect(Object.keys(publicPost!).sort()).toEqual(
+    [
+      "author",
+      "commentsCount",
+      "content",
+      "createdAt",
+      "id",
+      "likesCount",
+      "mediaUrls",
+    ].sort(),
+  );
+  expect(Object.keys(publicPost!.author).sort()).toEqual(["avatar", "displayName"]);
+  const searchedTextPosts = await responseData<PublicCommunityPostListResponse>(
+    await page.request.get(
+      `/api/content/community-posts?page=1&pageSize=1&keyword=${encodeURIComponent(content)}&contentType=${COMMUNITY_POST_CONTENT_TYPE.TEXT}`,
+    ),
+  );
+  const searchedImagePosts = await responseData<PublicCommunityPostListResponse>(
+    await page.request.get(
+      `/api/content/community-posts?page=1&pageSize=20&keyword=${encodeURIComponent(content)}&contentType=${COMMUNITY_POST_CONTENT_TYPE.IMAGE}`,
+    ),
+  );
+
+  expect(searchedTextPosts).toMatchObject({ total: 1, page: 1, pageSize: 1 });
+  expect(searchedTextPosts.list.map((post) => post.id)).toEqual([pending.id]);
+  expect(searchedImagePosts.list.map((post) => post.id)).not.toContain(pending.id);
+  await expectFailure(
+    await page.request.get("/api/content/community-posts?contentType=video"),
+    400,
+  );
+  await expectFailure(
+    await page.request.get(`/api/content/community-posts?keyword=${"搜".repeat(51)}`),
+    400,
+  );
   const concurrentLikes = await Promise.all([
     page.request.put(`/api/community/posts/${pending.id}/like`, {
       headers: { Authorization: reporterAuthorization },
@@ -478,6 +516,13 @@ test("受控社区动态从发布、举报到后台下架保持纵向一致", as
 
   try {
     await miniappPage.goto(`${miniappUrl}/#/pages/community/index`);
+    await miniappPage.getByLabel("搜索社区动态").locator("input").fill(content);
+    await miniappPage.getByText("搜索", { exact: true }).click();
+    await expect(miniappPage.getByText(content, { exact: true })).toBeVisible();
+    await miniappPage.getByText("带图片", { exact: true }).click();
+    await expect(miniappPage.getByText(content, { exact: true })).toHaveCount(0);
+    await expect(miniappPage.getByText("未找到符合条件的社区动态")).toBeVisible();
+    await miniappPage.getByText("纯文字", { exact: true }).click();
     await expect(miniappPage.getByText(content, { exact: true })).toBeVisible();
     await miniappPage.goto(`${miniappUrl}/#/pages-content/community/article?id=${pending.id}`);
     await expect(miniappPage.getByText(content, { exact: true })).toBeVisible();

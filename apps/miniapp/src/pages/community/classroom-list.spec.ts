@@ -25,3 +25,25 @@ describe("community classroom list", () => {
     expect(community).toContain('{ value: "nearby", label: "附近动态", disabled: true }');
   });
 });
+
+describe("community featured list", () => {
+  it("loads published posts with search, content type, paging, and explicit states", () => {
+    expect(community).toContain("getCommunityPosts({");
+    expect(community).toContain("keyword: keyword || undefined");
+    expect(community).toContain("featuredAppliedKeyword.value");
+    expect(community).toContain("contentType: featuredContentType.value ?? undefined");
+    expect(community).toContain("featuredPage.value + 1");
+    expect(community).toContain("featuredStatus === 'loading'");
+    expect(community).toContain("featuredStatus === 'error'");
+    expect(community).toContain("featuredPosts.length === 0");
+    expect(community).toContain("featuredLoadMoreError");
+  });
+
+  it("keeps search and filters unavailable while the feed is loading", () => {
+    expect(community).toContain('aria-label="搜索社区动态"');
+    expect(community).toContain(':maxlength="50"');
+    expect(community).toContain("selectFeaturedContentType(option.value)");
+    expect(community).toContain(':aria-disabled="featuredLoading"');
+    expect(community).toContain(":hover-class=\"featuredLoading ? 'none' : 'opacity-80'\"");
+  });
+});

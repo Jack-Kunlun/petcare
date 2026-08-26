@@ -570,12 +570,32 @@ export interface PublicCommunityPostListItem {
 /** Published community post detail. */
 export type PublicCommunityPostDetail = PublicCommunityPostListItem;
 
-/** Pagination accepted by the public community feed. */
-export interface PublicCommunityPostListQuery {
+/** Controlled public community post content types. */
+export const COMMUNITY_POST_CONTENT_TYPE = {
+  /** Posts without images. */
+  TEXT: "text",
+  /** Posts with at least one image. */
+  IMAGE: "image",
+} as const;
+
+/** Controlled public community post content type. */
+export type CommunityPostContentType =
+  (typeof COMMUNITY_POST_CONTENT_TYPE)[keyof typeof COMMUNITY_POST_CONTENT_TYPE];
+
+/** Pagination shared by community post and comment lists. */
+export interface CommunityPostPaginationQuery {
   /** One-based result page. */
   page: number;
   /** Number of posts per page, from 1 through 50. */
   pageSize: number;
+}
+
+/** Search and filtering accepted by the public community feed. */
+export interface PublicCommunityPostListQuery extends CommunityPostPaginationQuery {
+  /** Optional trimmed post-content keyword, from 1 through 50 characters. */
+  keyword?: string;
+  /** Optional exact controlled content type. */
+  contentType?: CommunityPostContentType;
 }
 
 /** Public paginated community feed response. */

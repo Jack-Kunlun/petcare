@@ -41,6 +41,7 @@ import {
 import { CommunityPostService } from "./community-post.service";
 import {
   CommunityPostLikeStateDto,
+  CommunityPostPaginationQueryDto,
   CommunityPostReportReceiptDto,
   CreateCommunityPostCommentDto,
   CreateCommunityPostReportDto,
@@ -98,7 +99,7 @@ export class CommunityPostController {
   findComments(
     @Req() request: AuthRequest,
     @Param("id", new ParseUUIDPipe({ version: "4" })) id: string,
-    @Query() query: PublicCommunityPostListQueryDto,
+    @Query() query: CommunityPostPaginationQueryDto,
   ): Promise<PublicCommunityPostCommentListResponse> {
     return this.posts.findPublishedComments(id, query, request.user.sub);
   }
@@ -236,7 +237,7 @@ export class PublicCommunityPostController {
   @ApiStandardErrors(400, 404, 500)
   findPublishedComments(
     @Param("id", new ParseUUIDPipe({ version: "4" })) id: string,
-    @Query() query: PublicCommunityPostListQueryDto,
+    @Query() query: CommunityPostPaginationQueryDto,
   ): Promise<PublicCommunityPostCommentListResponse> {
     return this.posts.findPublishedComments(id, query);
   }

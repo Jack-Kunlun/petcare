@@ -298,6 +298,56 @@ test("受控关闭会清除真实子孙进程及其监听端口", async () => {
   }
 });
 
+test("应用关闭会清除四棵真实进程树及监听端口", async () => {
+  const roots = [];
+  let trees = [];
+
+  try {
+    const close = await startApplicationServers(
+      {
+        ADMIN_E2E_SERVER_PORT: "3001",
+        ADMIN_E2E_ADMIN_PORT: "8987",
+        ADMIN_E2E_MINIAPP_PORT: "4322",
+        ADMIN_E2E_WEBSITE_PORT: "8081",
+      },
+      undefined,
+      {
+        spawnProcess: () => {
+          const root = fork(treeFixture, {
+            detached: process.platform !== "win32",
+            silent: true,
+          });
+
+          roots.push(root);
+          return root;
+        },
+        waitForServer: async (_label, _url, root) => {
+          trees.push((await once(root, "message"))[0]);
+        },
+      },
+    );
+
+    await assert.doesNotReject(close);
+    assert.equal(
+      await waitUntil(async () =>
+        (await Promise.all(trees.map((tree) => canConnect(tree.port)))).every(
+          (connected) => !connected,
+        ),
+      ),
+      true,
+      "all descendant listener ports should close",
+    );
+    assert.equal(
+      await waitUntil(() => trees.every((tree) => !processExists(tree.descendantPid))),
+      true,
+      "all descendant processes should exit",
+    );
+  } finally {
+    await Promise.allSettled(roots.map((root) => forceKillTestProcess(root.pid)));
+    await Promise.allSettled(trees.map((tree) => forceKillTestProcess(tree.descendantPid)));
+  }
+});
+
 test("受管进程已正常退出时 stopProcess 是幂等 no-op", async () => {
   await assert.doesNotReject(
     stopProcess({

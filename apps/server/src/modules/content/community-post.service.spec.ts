@@ -332,7 +332,14 @@ describe("CommunityPostService", () => {
     ]);
     prisma.post.count.mockResolvedValue(1);
 
-    await expect(service.findPublished({ page: 2, pageSize: 10 })).resolves.toEqual({
+    await expect(
+      service.findPublished({
+        page: 2,
+        pageSize: 10,
+        keyword: "  公开  ",
+        contentType: "image",
+      }),
+    ).resolves.toEqual({
       list: [
         {
           id: "post-public",
@@ -350,7 +357,13 @@ describe("CommunityPostService", () => {
     });
     expect(prisma.post.findMany).toHaveBeenCalledWith(
       expect.objectContaining({
-        where: { status: ADMIN_CONTENT_POST_STATUS.PUBLISHED },
+        where: {
+          AND: [
+            { status: ADMIN_CONTENT_POST_STATUS.PUBLISHED },
+            { content: { contains: "公开", mode: "insensitive" } },
+            { mediaUrls: { isEmpty: false } },
+          ],
+        },
         skip: 10,
         take: 10,
       }),
