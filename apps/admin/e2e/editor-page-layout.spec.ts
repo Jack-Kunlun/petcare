@@ -152,11 +152,7 @@ async function assertStickyAfterLongScroll(page: Page, viewport: Viewport): Prom
 
   expect(scrollState.scrollHeight).toBeGreaterThan(scrollState.clientHeight);
   expect(scrollState.scrollTop).toBeGreaterThan(0);
-  await assertEditorLayout(
-    page,
-    { title: "新建角色", action: "顶部保存角色" },
-    viewport,
-  );
+  await assertEditorLayout(page, { title: "新建角色", action: "顶部保存角色" }, viewport);
 }
 
 for (const viewport of viewports) {
@@ -184,7 +180,7 @@ for (const viewport of viewports) {
     );
     await openAndAssert(
       page,
-      { path: "/website-content/home/edit", title: "编辑 home", action: "保存草稿" },
+      { path: "/website-content/home/edit", title: "编辑 home", action: "顶部保存草稿" },
       viewport,
     );
     await openAndAssert(

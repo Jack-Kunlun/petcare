@@ -39,12 +39,12 @@ test("超级管理员可以创建并编辑角色，菜单和按钮可选而接�
   await page.getByRole("checkbox", { name: "导出订单数据", exact: true }).check();
   await expect(page.getByText("导出订单数据接口")).toBeVisible();
   await expect(page.getByRole("checkbox", { name: "导出订单数据接口" })).toBeDisabled();
-  await page.getByRole("button", { name: "保存角色" }).click();
+  await page.getByRole("button", { name: "保存角色", exact: true }).click();
   await expect(page.getByRole("heading", { name: roleName })).toBeVisible();
 
   await page.getByRole("link", { name: "编辑角色" }).click();
   await page.getByLabel("角色说明").fill("Admin RBAC Playwright acceptance role updated");
-  await page.getByRole("button", { name: "保存角色" }).click();
+  await page.getByRole("button", { name: "保存角色", exact: true }).click();
   await expect(page.getByText("Admin RBAC Playwright acceptance role updated")).toBeVisible();
 });
 

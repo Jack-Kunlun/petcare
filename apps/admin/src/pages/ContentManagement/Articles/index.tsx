@@ -40,6 +40,12 @@ const statusClasses: Record<AdminClassroomArticleStatus, string> = {
   offline: "bg-slate-100 text-slate-600 ring-slate-500/20",
 };
 
+const statusActionLabels: Record<AdminClassroomArticleStatus, string> = {
+  draft: "发布",
+  published: "下线",
+  offline: "重新发布",
+};
+
 function formatDate(value: string | null): string {
   if (!value) {
     return "未发布";
@@ -142,6 +148,8 @@ interface ArticleRowProps {
 }
 
 function ArticleRow({ article, canWrite, canPublish, onStateChange }: ArticleRowProps) {
+  const statusActionLabel = statusActionLabels[article.status];
+
   return (
     <tr className="border-t border-border align-top transition-[background-color,border-color] duration-200 hover:bg-page-background hover:border-border">
       <td className="px-5 py-4">
@@ -210,13 +218,7 @@ function ArticleRow({ article, canWrite, canPublish, onStateChange }: ArticleRow
                   className="z-30 min-w-32 rounded-lg border border-slate-200 bg-white p-1 shadow-lg outline-none"
                 >
                   <DropdownMenu.Item
-                    aria-label={`${
-                      article.status === "published"
-                        ? "下线"
-                        : (article.status === "offline"
-                          ? "重新发布"
-                          : "发布")
-                    } ${article.title}`}
+                    aria-label={`${statusActionLabel} ${article.title}`}
                     onSelect={() =>
                       onStateChange(article, article.status === "published" ? "offline" : "publish")
                     }
@@ -226,11 +228,7 @@ function ArticleRow({ article, canWrite, canPublish, onStateChange }: ArticleRow
                         : "text-emerald-700 hover:bg-emerald-50 focus:bg-emerald-50"
                     }`}
                   >
-                    {article.status === "published"
-                      ? "下线"
-                      : (article.status === "offline"
-                        ? "重新发布"
-                        : "发布")}
+                    {statusActionLabel}
                   </DropdownMenu.Item>
                 </DropdownMenu.Content>
               </DropdownMenu.Portal>
@@ -453,7 +451,7 @@ export default function ContentArticles() {
                 ? "尝试调整搜索关键词或筛选条件。"
                 : "还没有创建文章，可以创建第一篇文章。"}
             </p>
-            {filtersActive ? (
+            {filtersActive && (
               <button
                 type="button"
                 onClick={resetFilters}
@@ -461,7 +459,8 @@ export default function ContentArticles() {
               >
                 重置筛选
               </button>
-            ) : (canWrite ? (
+            )}
+            {!filtersActive && canWrite && (
               <Link
                 to="/content/articles/new"
                 className="mt-5 inline-flex h-10 cursor-pointer items-center gap-2 rounded-lg bg-blue-700 px-4 font-semibold text-white outline-none transition-colors hover:bg-blue-800 focus-visible:ring-2 focus-visible:ring-blue-700 focus-visible:ring-offset-2"
@@ -469,7 +468,7 @@ export default function ContentArticles() {
                 <Plus aria-hidden="true" className="h-4 w-4" />
                 创建第一篇文章
               </Link>
-            ) : null)}
+            )}
           </div>
         )}
         {!query.isPending && !query.isError && query.data?.list.length !== 0 && (

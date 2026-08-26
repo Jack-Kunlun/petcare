@@ -430,7 +430,9 @@ describe("WebsiteContentEdit", () => {
 
     await screen.findByRole("textbox", { name: "主标题" });
     expect(document.querySelector("section.editor-page")).toBeInTheDocument();
-    expect(document.querySelector("header.editor-page__header")).toBeInTheDocument();
+    const header = document.querySelector<HTMLElement>("header.editor-page__header");
+
+    expect(header).toBeInTheDocument();
     expect(document.querySelector("div.editor-page__content")).toBeInTheDocument();
     expect(screen.getByRole("heading", { name: "编辑 home" })).toBeInTheDocument();
     expect(screen.getByRole("link", { name: "返回官网内容" })).toBeInTheDocument();
@@ -438,12 +440,12 @@ describe("WebsiteContentEdit", () => {
       "href",
       "#website-content-history",
     );
-    expect(screen.getAllByRole("button", { name: "保存草稿" })[0]).toHaveAttribute(
+    expect(within(header!).getByRole("button", { name: "顶部保存草稿" })).toHaveAttribute(
       "form",
       "website-content-form",
     );
     expect(screen.getAllByRole("button", { name: "preview-saved-draft" })[0]).toBeInTheDocument();
-    expect(screen.getAllByRole("button", { name: "publish-saved-draft" })[0]).toBeInTheDocument();
+    expect(within(header!).getByRole("button", { name: "顶部发布已保存草稿" })).toBeInTheDocument();
 
     const footer = document.querySelector<HTMLElement>("footer.editor-page__footer");
 

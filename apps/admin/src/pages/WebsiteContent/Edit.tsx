@@ -482,6 +482,7 @@ export default function WebsiteContentEdit() {
           <PermissionGate all={["website.edit"]}>
             <button
               type="submit"
+              aria-label="顶部保存草稿"
               form="website-content-form"
               disabled={saveMutation.isPending}
               className="inline-flex h-10 cursor-pointer items-center justify-center gap-2 rounded-lg bg-blue-700 px-4 font-semibold text-white outline-none transition-colors hover:bg-blue-800 focus-visible:ring-2 focus-visible:ring-blue-700 disabled:cursor-not-allowed disabled:opacity-50"
@@ -493,7 +494,7 @@ export default function WebsiteContentEdit() {
           <PermissionGate all={["website.publish"]}>
             <button
               type="button"
-              aria-label="publish-saved-draft"
+              aria-label="顶部发布已保存草稿"
               disabled={dirty || publishMutation.isPending}
               onClick={() => setPublishDialogOpen(true)}
               className="inline-flex h-10 cursor-pointer items-center justify-center rounded-lg bg-red-700 px-4 font-semibold text-white outline-none hover:bg-red-800 focus-visible:ring-2 focus-visible:ring-red-700 disabled:cursor-not-allowed disabled:opacity-40"

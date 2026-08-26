@@ -62,7 +62,7 @@ test.describe("官网内容 Admin 到 Website 发布流程", () => {
       await openContentEditor(page, "home");
       await page.getByLabel(websiteContentFixtures.home.heroTitleLabel).fill(draftTitle);
       await page.getByLabel("变更摘要").fill("官网 E2E：保存首屏草稿");
-      await page.getByRole("button", { name: "保存草稿" }).click();
+      await page.getByRole("button", { name: "保存草稿", exact: true }).click();
       await expect(page.getByText(/草稿已保存，当前修订版为 r\d+。/u)).toBeVisible();
 
       await livePage.reload();
@@ -100,7 +100,9 @@ test.describe("官网内容 Admin 到 Website 发布流程", () => {
       await expect(
         publisherPage.getByLabel(websiteContentFixtures.home.heroTitleLabel),
       ).toBeDisabled();
-      await expect(publisherPage.getByRole("button", { name: "保存草稿" })).toHaveCount(0);
+      await expect(
+        publisherPage.getByRole("button", { name: "保存草稿", exact: true }),
+      ).toHaveCount(0);
       await expect(publisherPage.getByRole("button", { name: "preview-saved-draft" })).toHaveCount(
         0,
       );
@@ -114,7 +116,7 @@ test.describe("官网内容 Admin 到 Website 发布流程", () => {
       await expect(originalVersion).toBeVisible();
       await originalVersion.click();
       await expect(publisherPage).toHaveURL(/\/website-content\/home\/history\//u);
-      await publisherPage.getByRole("button", { name: "恢复为新草稿" }).click();
+      await publisherPage.getByRole("button", { name: "恢复为新草稿", exact: true }).click();
       await publisherPage
         .getByRole("textbox", { name: "恢复变更摘要" })
         .fill("官网 E2E：恢复初始首页");
@@ -150,7 +152,7 @@ test.describe("官网内容 Admin 到 Website 发布流程", () => {
 
       await questionInput.fill(question);
       await page.getByLabel("变更摘要").fill("帮助 E2E：更新资料问题");
-      await page.getByRole("button", { name: "保存草稿" }).click();
+      await page.getByRole("button", { name: "保存草稿", exact: true }).click();
       await expect(page.getByText(/草稿已保存，当前修订版为 r\d+。/u)).toBeVisible();
 
       const before = await page.request.get("/api/website-content/help");
@@ -181,7 +183,7 @@ test.describe("官网内容 Admin 到 Website 发布流程", () => {
     await expect(page.getByRole("link", { name: /编辑.+草稿/u })).toHaveCount(0);
     await openContentEditorRoute(page, "home");
     await expect(page.getByRole("heading", { name: "没有官网内容编辑权限" })).toBeVisible();
-    await expect(page.getByRole("button", { name: "保存草稿" })).toHaveCount(0);
+    await expect(page.getByRole("button", { name: "保存草稿", exact: true })).toHaveCount(0);
     await expect(page.getByRole("button", { name: "preview-saved-draft" })).toHaveCount(0);
     await expect(page.getByRole("button", { name: "publish-saved-draft" })).toHaveCount(0);
 
@@ -193,7 +195,7 @@ test.describe("官网内容 Admin 到 Website 发布流程", () => {
     try {
       await loginWebsiteOperator(editorPage, websiteContentFixtures.editor);
       await openContentEditor(editorPage, "home");
-      await expect(editorPage.getByRole("button", { name: "保存草稿" })).toBeVisible();
+      await expect(editorPage.getByRole("button", { name: "保存草稿", exact: true })).toBeVisible();
       await expect(editorPage.getByRole("button", { name: "preview-saved-draft" })).toBeVisible();
       await expect(editorPage.getByRole("button", { name: "publish-saved-draft" })).toHaveCount(0);
       await expectNoStructureControls(editorPage);
@@ -203,7 +205,9 @@ test.describe("官网内容 Admin 到 Website 发布流程", () => {
       await expect(
         publisherPage.getByLabel(websiteContentFixtures.home.heroTitleLabel),
       ).toBeDisabled();
-      await expect(publisherPage.getByRole("button", { name: "保存草稿" })).toHaveCount(0);
+      await expect(
+        publisherPage.getByRole("button", { name: "保存草稿", exact: true }),
+      ).toHaveCount(0);
       await expect(publisherPage.getByRole("button", { name: "preview-saved-draft" })).toHaveCount(
         0,
       );
@@ -234,7 +238,7 @@ test.describe("官网内容 Admin 到 Website 发布流程", () => {
     await imageSelect.selectOption(assetId);
     await page.getByLabel("首屏图片替代文本").fill("官网 E2E 隔离素材");
     await page.getByLabel("变更摘要").fill("官网 E2E：选择隔离素材");
-    await page.getByRole("button", { name: "保存草稿" }).click();
+    await page.getByRole("button", { name: "保存草稿", exact: true }).click();
     await expect(page.getByText(/草稿已保存，当前修订版为 r\d+。/u)).toBeVisible();
   });
 });

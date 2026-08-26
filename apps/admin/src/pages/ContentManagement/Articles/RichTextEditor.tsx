@@ -122,23 +122,29 @@ export function RichTextEditor({
   });
   const editorState = useEditorState({
     editor,
-    selector: ({ editor: currentEditor }) => ({
-      block: currentEditor.isActive("heading", { level: 2 })
-        ? "heading2"
-        : currentEditor.isActive("heading", { level: 3 })
-          ? "heading3"
-          : "paragraph",
-      empty: currentEditor.isEmpty,
-      bold: currentEditor.isActive("bold"),
-      italic: currentEditor.isActive("italic"),
-      strike: currentEditor.isActive("strike"),
-      orderedList: currentEditor.isActive("orderedList"),
-      bulletList: currentEditor.isActive("bulletList"),
-      blockquote: currentEditor.isActive("blockquote"),
-      link: currentEditor.isActive("link"),
-      undo: currentEditor.can().undo(),
-      redo: currentEditor.can().redo(),
-    }),
+    selector: ({ editor: currentEditor }) => {
+      let block = "paragraph";
+
+      if (currentEditor.isActive("heading", { level: 2 })) {
+        block = "heading2";
+      } else if (currentEditor.isActive("heading", { level: 3 })) {
+        block = "heading3";
+      }
+
+      return {
+        block,
+        empty: currentEditor.isEmpty,
+        bold: currentEditor.isActive("bold"),
+        italic: currentEditor.isActive("italic"),
+        strike: currentEditor.isActive("strike"),
+        orderedList: currentEditor.isActive("orderedList"),
+        bulletList: currentEditor.isActive("bulletList"),
+        blockquote: currentEditor.isActive("blockquote"),
+        link: currentEditor.isActive("link"),
+        undo: currentEditor.can().undo(),
+        redo: currentEditor.can().redo(),
+      };
+    },
   });
   const isLocked = disabled || uploading;
 
