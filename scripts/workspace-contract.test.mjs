@@ -212,7 +212,14 @@ test("根级命令覆盖质量门禁与全部应用开发", async () => {
 
 test("Server 依赖 Prisma Client 的命令在编译前显式生成客户端", async () => {
   const manifest = await readJson("apps/server/package.json");
-  const generatedClientLifecycles = ["typecheck", "test", "test:cov", "test:coverage", "test:e2e"];
+  const generatedClientLifecycles = [
+    "start:dev",
+    "typecheck",
+    "test",
+    "test:cov",
+    "test:coverage",
+    "test:e2e",
+  ];
 
   for (const lifecycle of generatedClientLifecycles) {
     assert.match(
