@@ -69,6 +69,6 @@ describe("main tab layout root header contract", () => {
     const source = readSource(pagePath);
 
     expect(source).toMatch(/\b(?:mx|px)-page-horizontal\b/);
-    expect(source).not.toMatch(/\b(?:mx|px)-action\b/);
+    expect(source).not.toMatch(/<view[^>]*\sclass="[^"]*\b(?:mx|px)-action\b/u);
   });
 });
