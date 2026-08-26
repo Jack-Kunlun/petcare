@@ -1,6 +1,7 @@
 // packages/shared-types/src/api/order.ts
 
 import { OrderType, OrderStatus, ServiceType } from "../enums";
+import type { PublicPetSummary } from "./pet";
 import type { PaginatedResponse } from "./response";
 
 /**
@@ -32,14 +33,7 @@ export interface PublicOrderOwner {
 }
 
 /** Public pet summary shown with a discoverable reward order. */
-export interface PublicOrderPet {
-  /** Pet display name. */
-  name: string;
-  /** Pet breed label. */
-  breed: string;
-  /** First public pet photo, or null when no photo is available. */
-  coverImage: string | null;
-}
+export type PublicOrderPet = PublicPetSummary;
 
 /** Anonymous-safe projection of a discoverable reward order. */
 export interface PublicOrder {

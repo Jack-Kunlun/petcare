@@ -2,6 +2,7 @@
 
 export * from "./response";
 export * from "./user";
+export * from "./pet";
 export * from "./order";
 export * from "./auth";
 export * from "./miniapp-account";
