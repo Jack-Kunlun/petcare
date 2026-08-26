@@ -42,7 +42,8 @@ export class TencentCosWebsiteMediaStorage implements WebsiteMediaStorage {
     const year = String(date.getUTCFullYear());
     const month = String(date.getUTCMonth() + 1).padStart(2, "0");
     const id = (this.hooks.uuid ?? randomUUID)();
-    const storageKey = `public/website-media/${year}/${month}/${id}.${upload.extension}`;
+    const area = upload.area ?? "website-media";
+    const storageKey = `public/${area}/${year}/${month}/${id}.${upload.extension}`;
 
     await this.call("putObject", {
       Bucket: this.config.bucket,

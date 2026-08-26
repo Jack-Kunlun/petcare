@@ -18,6 +18,8 @@ export interface ValidatedWebsiteMediaFile {
 export interface WebsiteMediaValidationOptions {
   minDimension?: number;
   maxDimension?: number;
+  subject?: string;
+  errorFactory?: (message: string) => Error;
 }
 
 /** Detects image type and dimensions from bytes instead of trusting client metadata. */
@@ -27,8 +29,11 @@ export async function validateWebsiteMediaFile(
   _declaredMimeType: string,
   options: WebsiteMediaValidationOptions = {},
 ): Promise<ValidatedWebsiteMediaFile> {
+  const subject = options.subject ?? "官网图片";
+  const invalid = options.errorFactory ?? websiteContentInvalidMedia;
+
   if (buffer.length === 0 || buffer.length > MAX_BYTES) {
-    throw websiteContentInvalidMedia("官网图片大小必须在 1 字节到 10 MiB 之间");
+    throw invalid(`${subject}大小必须在 1 字节到 10 MiB 之间`);
   }
 
   let result: probe.ProbeResult | null;
@@ -36,11 +41,11 @@ export async function validateWebsiteMediaFile(
   try {
     result = probe.sync(buffer);
   } catch {
-    throw websiteContentInvalidMedia("官网图片字节无法解码");
+    throw invalid(`${subject}字节无法解码`);
   }
 
   if (!result) {
-    throw websiteContentInvalidMedia("官网图片字节无法解码");
+    throw invalid(`${subject}字节无法解码`);
   }
 
   const type = result.type?.toLowerCase();
@@ -59,14 +64,14 @@ export async function validateWebsiteMediaFile(
   }
 
   if (!mapped) {
-    throw websiteContentInvalidMedia("官网图片仅支持 JPEG、PNG 或 WebP");
+    throw invalid(`${subject}仅支持 JPEG、PNG 或 WebP`);
   }
 
   const min = options.minDimension ?? 32;
   const max = options.maxDimension ?? 8192;
 
   if (result.width < min || result.height < min || result.width > max || result.height > max) {
-    throw websiteContentInvalidMedia(`官网图片尺寸必须在 ${min} 到 ${max} 像素之间`);
+    throw invalid(`${subject}尺寸必须在 ${min} 到 ${max} 像素之间`);
   }
 
   return {

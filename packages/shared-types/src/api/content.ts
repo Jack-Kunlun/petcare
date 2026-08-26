@@ -23,6 +23,46 @@ export type AdminContentPostStatus =
 /** 社区帖子生命周期状态。 */
 export type CommunityPostStatus = AdminContentPostStatus;
 
+/** Community image lifecycle state before and after post binding. */
+export const COMMUNITY_MEDIA_STATUS = {
+  /** Media may be bound to one post owned by the uploader. */
+  ACTIVE: "active",
+  /** Media has been invalidated and cannot be bound to a post. */
+  DISCARDED: "discarded",
+} as const;
+
+/** Community image lifecycle state. */
+export type CommunityMediaStatus =
+  (typeof COMMUNITY_MEDIA_STATUS)[keyof typeof COMMUNITY_MEDIA_STATUS];
+
+/** Stable machine-readable community media failures. */
+export const COMMUNITY_MEDIA_ERROR_CODE = {
+  /** Image bytes, type, size, count, identity, or lifecycle state is invalid. */
+  INVALID_MEDIA: "COMMUNITY_MEDIA_INVALID",
+  /** The current user does not own the requested media. */
+  MEDIA_FORBIDDEN: "COMMUNITY_MEDIA_FORBIDDEN",
+  /** The media was already bound by another concurrent request. */
+  MEDIA_CONFLICT: "COMMUNITY_MEDIA_CONFLICT",
+  /** The configured object store is temporarily unavailable. */
+  STORAGE_UNAVAILABLE: "COMMUNITY_MEDIA_STORAGE_UNAVAILABLE",
+} as const;
+
+/** Public metadata for one server-validated community image. */
+export interface CommunityMediaAsset {
+  /** Managed media identity used when creating a community post. */
+  id: string;
+  /** Public image URL resolved by the server-owned storage adapter. */
+  url: string;
+  /** Server-detected image MIME type. */
+  mimeType: "image/jpeg" | "image/png" | "image/webp";
+  /** Decoded image width in pixels. */
+  width: number;
+  /** Decoded image height in pixels. */
+  height: number;
+  /** Uploaded image size in bytes. */
+  sizeBytes: number;
+}
+
 /** 课堂文章状态。 */
 export const ADMIN_CLASSROOM_ARTICLE_STATUS = {
   /** 文章仍在编辑中。 */
@@ -162,6 +202,8 @@ export type AdminContentPostListResponse = PaginatedResponse<AdminContentPostLis
 export interface CreateCommunityPostRequest {
   /** 去除首尾空白后的动态正文，长度为 1 至 1000 个字符。 */
   content: string;
+  /** 当前用户拥有且尚未绑定的社区图片标识，最多 9 个且不可重复。 */
+  mediaAssetIds?: string[];
 }
 
 /** 作者查看的社区动态摘要。 */
@@ -170,6 +212,8 @@ export interface MyCommunityPostListItem {
   id: string;
   /** 作者提交的完整文字正文。 */
   content: string;
+  /** 该动态已绑定图片的公开地址，保持作者提交顺序。 */
+  mediaUrls: string[];
   /** 当前审核和公开状态。 */
   status: CommunityPostStatus;
   /** 审核驳回原因；仅 rejected 状态返回，否则为 null。 */

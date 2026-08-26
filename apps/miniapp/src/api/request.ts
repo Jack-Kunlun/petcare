@@ -5,6 +5,9 @@ export type RawRequestOptions = Omit<
   "url" | "success" | "fail" | "complete"
 >;
 
+/** Receives native upload completion progress from 0 to 100. */
+export type UploadProgressHandler = (progress: number) => void;
+
 export class MiniappApiError extends Error {
   constructor(
     readonly statusCode: number,
@@ -107,9 +110,10 @@ export function rawUpload<T>(
   filePath: string,
   fieldName: string,
   headers: Record<string, string> = {},
+  onProgress?: UploadProgressHandler,
 ): Promise<T> {
   return new Promise<T>((resolve, reject) => {
-    uni.uploadFile({
+    const task = uni.uploadFile({
       url: requestUrl(path),
       filePath,
       name: fieldName,
@@ -125,5 +129,9 @@ export function rawUpload<T>(
         reject(networkError(error.errMsg));
       },
     });
+
+    if (onProgress) {
+      task?.onProgressUpdate((event) => onProgress(event.progress));
+    }
   });
 }

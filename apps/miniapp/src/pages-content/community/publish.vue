@@ -1,28 +1,73 @@
 <script setup lang="ts">
 import { onLoad } from "@dcloudio/uni-app";
 import { ADMIN_CONTENT_POST_STATUS } from "@petcare/shared-types";
-import type { CommunityPostStatus, MyCommunityPostListItem } from "@petcare/shared-types";
+import type {
+  CommunityMediaAsset,
+  CommunityPostStatus,
+  MyCommunityPostListItem,
+} from "@petcare/shared-types";
 import { computed, ref } from "vue";
-import { createCommunityPost, getMyCommunityPosts } from "@/api/content";
+import {
+  createCommunityPost,
+  discardCommunityMedia,
+  getMyCommunityPosts,
+  uploadCommunityMedia,
+} from "@/api/content";
 import { MiniappApiError } from "@/api/request";
 import SubPageLayout from "@/components/SubPageLayout.vue";
 import { requireProfile } from "@/state/session";
 
 const MAX_CONTENT_LENGTH = 1000;
+const MAX_MEDIA_COUNT = 9;
+
+interface DraftMedia {
+  key: string;
+  filePath: string;
+  progress: number;
+  status: "uploading" | "ready" | "error";
+  asset: CommunityMediaAsset | null;
+  error: string;
+}
+
+let mediaSequence = 0;
 const content = ref("");
+const draftMedia = ref<DraftMedia[]>([]);
 const posts = ref<MyCommunityPostListItem[]>([]);
 const total = ref(0);
 const listStatus = ref<"loading" | "ready" | "error">("loading");
 const listLoading = ref(false);
+const choosingMedia = ref(false);
 const submitting = ref(false);
 const submitError = ref("");
 const trimmedContent = computed(() => content.value.trim());
+const mediaUploading = computed(() => draftMedia.value.some((item) => item.status === "uploading"));
+const mediaFailed = computed(() => draftMedia.value.some((item) => item.status === "error"));
+const canChooseMedia = computed(
+  () => !submitting.value && !choosingMedia.value && draftMedia.value.length < MAX_MEDIA_COUNT,
+);
 const canSubmit = computed(
   () =>
     !submitting.value &&
+    !choosingMedia.value &&
     trimmedContent.value.length > 0 &&
-    trimmedContent.value.length <= MAX_CONTENT_LENGTH,
+    trimmedContent.value.length <= MAX_CONTENT_LENGTH &&
+    draftMedia.value.every((item) => item.status === "ready" && item.asset),
 );
+const submitLabel = computed(() => {
+  if (submitting.value) {
+    return "提交中";
+  }
+
+  if (mediaUploading.value) {
+    return "图片上传中";
+  }
+
+  if (mediaFailed.value) {
+    return "请重试失败图片";
+  }
+
+  return "提交审核";
+});
 
 const statusLabels: Record<CommunityPostStatus, string> = {
   [ADMIN_CONTENT_POST_STATUS.PENDING]: "审核中",
@@ -46,6 +91,78 @@ function errorMessage(error: unknown, fallback: string): string {
 
 function formatDate(value: string): string {
   return value.slice(0, 16).replace("T", " ");
+}
+
+async function uploadMedia(item: DraftMedia): Promise<void> {
+  if (submitting.value || item.status === "uploading") {
+    return;
+  }
+
+  item.status = "uploading";
+  item.progress = 0;
+  item.error = "";
+  item.asset = null;
+
+  try {
+    item.asset = await uploadCommunityMedia(item.filePath, (progress) => {
+      item.progress = progress;
+    });
+    item.progress = 100;
+    item.status = "ready";
+  } catch (error) {
+    item.status = "error";
+    item.error = errorMessage(error, "上传失败，请重试");
+  }
+}
+
+function chooseMedia(): void {
+  if (!canChooseMedia.value) {
+    return;
+  }
+
+  choosingMedia.value = true;
+  const remaining = MAX_MEDIA_COUNT - draftMedia.value.length;
+
+  uni.chooseImage({
+    count: remaining,
+    sizeType: ["compressed"],
+    success(result) {
+      const paths = Array.isArray(result.tempFilePaths)
+        ? result.tempFilePaths
+        : [result.tempFilePaths];
+      const items: DraftMedia[] = paths.slice(0, remaining).map((filePath) => ({
+        key: `community-media-${(mediaSequence += 1)}`,
+        filePath,
+        progress: 0,
+        status: "error",
+        asset: null,
+        error: "",
+      }));
+
+      draftMedia.value.push(...items);
+      items.forEach((item) => void uploadMedia(item));
+    },
+    fail(error) {
+      if (!error.errMsg.includes("cancel")) {
+        void uni.showToast({ title: "图片选择失败", icon: "none" });
+      }
+    },
+    complete() {
+      choosingMedia.value = false;
+    },
+  });
+}
+
+function removeMedia(item: DraftMedia): void {
+  if (submitting.value || item.status === "uploading") {
+    return;
+  }
+
+  draftMedia.value = draftMedia.value.filter((candidate) => candidate.key !== item.key);
+
+  if (item.asset) {
+    void discardCommunityMedia(item.asset.id).catch(() => undefined);
+  }
 }
 
 async function loadMine(): Promise<void> {
@@ -78,9 +195,13 @@ async function submit(): Promise<void> {
   submitError.value = "";
 
   try {
-    const post = await createCommunityPost({ content: trimmedContent.value });
+    const post = await createCommunityPost({
+      content: trimmedContent.value,
+      mediaAssetIds: draftMedia.value.flatMap((item) => (item.asset ? [item.asset.id] : [])),
+    });
 
     content.value = "";
+    draftMedia.value = [];
     posts.value = [post, ...posts.value];
     total.value += 1;
     listStatus.value = "ready";
@@ -120,6 +241,66 @@ onLoad(() => {
         <text class="mt-sm block text-right quiet-text">
           {{ content.length }}/{{ MAX_CONTENT_LENGTH }}
         </text>
+
+        <view class="mt-action flex items-center justify-between gap-copy">
+          <view class="flex flex-col">
+            <text class="text-body text-ink font-medium leading-label">动态图片</text>
+            <text class="quiet-text">{{ draftMedia.length }}/{{ MAX_MEDIA_COUNT }} 张</text>
+          </view>
+          <button
+            class="h-control rounded-control px-action text-body font-medium"
+            :class="canChooseMedia ? 'bg-soft text-brand' : 'bg-divider text-subtle'"
+            :disabled="!canChooseMedia"
+            :aria-disabled="!canChooseMedia"
+            @click="chooseMedia"
+          >
+            {{ choosingMedia ? "选择中" : "选择图片" }}
+          </button>
+        </view>
+
+        <view v-if="draftMedia.length > 0" class="grid grid-cols-3 mt-copy gap-copy">
+          <view v-for="(item, index) in draftMedia" :key="item.key" class="min-w-0">
+            <view class="relative h-card-cover overflow-hidden rounded-control bg-divider">
+              <image class="h-full w-full" :src="item.filePath" mode="aspectFill" />
+              <view
+                v-if="item.status === 'uploading'"
+                class="absolute inset-0 flex items-center justify-center bg-ink opacity-80"
+                aria-live="polite"
+              >
+                <text class="text-caption text-surface leading-caption">{{ item.progress }}%</text>
+              </view>
+              <view
+                v-else-if="item.status === 'error'"
+                class="absolute inset-0 flex items-center justify-center bg-danger-soft p-sm"
+                role="alert"
+              >
+                <text class="text-center text-micro text-danger leading-micro">{{
+                  item.error
+                }}</text>
+              </view>
+            </view>
+            <button
+              v-if="item.status === 'error'"
+              class="mt-sm w-full rounded-control bg-soft py-caption text-caption text-brand"
+              :disabled="submitting"
+              :aria-disabled="submitting"
+              :aria-label="`重试第 ${index + 1} 张图片`"
+              @click="uploadMedia(item)"
+            >
+              重试
+            </button>
+            <button
+              class="mt-sm w-full rounded-control bg-divider py-caption text-caption text-muted"
+              :class="submitting || item.status === 'uploading' ? 'opacity-50' : ''"
+              :disabled="submitting || item.status === 'uploading'"
+              :aria-disabled="submitting || item.status === 'uploading'"
+              :aria-label="`删除第 ${index + 1} 张图片`"
+              @click="removeMedia(item)"
+            >
+              删除
+            </button>
+          </view>
+        </view>
         <text v-if="submitError" class="mt-copy block text-caption text-danger" role="alert">
           {{ submitError }}
         </text>
@@ -169,6 +350,15 @@ onLoad(() => {
               </text>
             </view>
             <text class="mt-copy block text-body text-ink leading-body">{{ post.content }}</text>
+            <view v-if="post.mediaUrls.length > 0" class="grid grid-cols-3 mt-copy gap-sm">
+              <image
+                v-for="url in post.mediaUrls"
+                :key="url"
+                class="h-card-cover w-full rounded-control"
+                :src="url"
+                mode="aspectFill"
+              />
+            </view>
             <view
               v-if="post.status === ADMIN_CONTENT_POST_STATUS.REJECTED && post.moderationReason"
               class="mt-copy rounded-control bg-danger-soft p-copy"
@@ -195,7 +385,7 @@ onLoad(() => {
           class="text-button font-semibold leading-button"
           :class="canSubmit ? 'text-surface' : 'text-subtle'"
         >
-          {{ submitting ? "提交中" : "提交审核" }}
+          {{ submitLabel }}
         </text>
       </button>
     </template>

@@ -27,4 +27,16 @@ describe("validateWebsiteMediaFile", () => {
       validateWebsiteMediaFile(Buffer.alloc(10 * 1024 * 1024 + 1), "large.png", "image/png"),
     ).rejects.toMatchObject({ code: "WEBSITE_CONTENT_INVALID_MEDIA" });
   });
+
+  it("supports a domain-specific subject and stable error factory", async () => {
+    const errorFactory = jest.fn((message: string) => new Error(message));
+
+    await expect(
+      validateWebsiteMediaFile(Buffer.from("bad"), "bad.png", "image/png", {
+        subject: "社区图片",
+        errorFactory,
+      }),
+    ).rejects.toThrow("社区图片字节无法解码");
+    expect(errorFactory).toHaveBeenCalledWith("社区图片字节无法解码");
+  });
 });

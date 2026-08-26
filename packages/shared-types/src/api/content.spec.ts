@@ -4,11 +4,14 @@ import {
   ADMIN_CONTENT_POST_STATUS,
   CLASSROOM_ARTICLE_CATEGORY,
   CLASSROOM_ARTICLE_CATEGORY_LABELS,
+  COMMUNITY_MEDIA_ERROR_CODE,
+  COMMUNITY_MEDIA_STATUS,
   type AdminClassroomArticleDetail,
   type AdminClassroomArticleListResponse,
   type AdminClassroomArticleStateRequest,
   type AdminContentPostListResponse,
   type AdminContentRewardListResponse,
+  type CommunityMediaAsset,
   type CreateCommunityPostRequest,
   type CreateAdminClassroomArticleRequest,
   type MyCommunityPostListResponse,
@@ -52,12 +55,24 @@ describe("content contracts", () => {
   });
 
   it("keeps community submission author-scoped and pending by contract", () => {
-    const create: CreateCommunityPostRequest = { content: "今天带旺财散步" };
+    const media: CommunityMediaAsset = {
+      id: "00000000-0000-4000-8000-000000000001",
+      url: "https://cdn.example/community.png",
+      mimeType: "image/png",
+      width: 640,
+      height: 480,
+      sizeBytes: 1024,
+    };
+    const create: CreateCommunityPostRequest = {
+      content: "今天带旺财散步",
+      mediaAssetIds: [media.id],
+    };
     const mine: MyCommunityPostListResponse = {
       list: [
         {
           id: "post-1",
           content: create.content,
+          mediaUrls: [media.url],
           status: ADMIN_CONTENT_POST_STATUS.PENDING,
           moderationReason: null,
           createdAt: "2026-08-26T08:00:00.000Z",
@@ -70,6 +85,10 @@ describe("content contracts", () => {
     };
 
     expect(mine.list[0].status).toBe("pending");
+    expect(COMMUNITY_MEDIA_STATUS.ACTIVE).toBe("active");
+    expect(COMMUNITY_MEDIA_ERROR_CODE.STORAGE_UNAVAILABLE).toBe(
+      "COMMUNITY_MEDIA_STORAGE_UNAVAILABLE",
+    );
   });
 
   it("keeps official website article contracts limited to public fields", () => {

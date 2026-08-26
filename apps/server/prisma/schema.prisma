@@ -51,6 +51,7 @@ model User {
   ordersAsProvider                  Order[]                            @relation("OrderProvider")
   orderIntents                      OrderIntent[]
   posts                             Post[]
+  communityMediaAssets              CommunityMediaAsset[]              @relation("CommunityMediaAssetOwner")
   classroomArticles                 ClassroomArticle[]
   favorites                         Favorite[]
   notifications                     Notification[]
@@ -1070,14 +1071,40 @@ model Post {
   createdAt        DateTime @default(now()) @map("created_at")
   updatedAt        DateTime @updatedAt @map("updated_at")
 
-  author    User       @relation(fields: [authorId], references: [id], onDelete: Cascade)
-  pet       Pet?       @relation(fields: [petId], references: [id])
-  favorites Favorite[]
-  comments  Comment[]
+  author      User                  @relation(fields: [authorId], references: [id], onDelete: Cascade)
+  pet         Pet?                  @relation(fields: [petId], references: [id])
+  favorites   Favorite[]
+  comments    Comment[]
+  mediaAssets CommunityMediaAsset[]
 
   @@index([authorId])
   @@index([createdAt])
   @@map("posts")
+}
+
+model CommunityMediaAsset {
+  id           String   @id @default(uuid())
+  ownerId      String   @map("owner_id")
+  postId       String?  @map("post_id")
+  storageKey   String   @unique @map("storage_key")
+  originalName String   @map("original_name")
+  mimeType     String   @map("mime_type")
+  sizeBytes    Int      @map("size_bytes")
+  width        Int
+  height       Int
+  checksum     String
+  /// active / discarded
+  status       String   @default("active")
+  createdAt    DateTime @default(now()) @map("created_at")
+  updatedAt    DateTime @updatedAt @map("updated_at")
+
+  owner User  @relation("CommunityMediaAssetOwner", fields: [ownerId], references: [id], onDelete: Cascade)
+  post  Post? @relation(fields: [postId], references: [id], onDelete: SetNull)
+
+  @@index([ownerId, status, createdAt])
+  @@index([postId])
+  @@index([checksum])
+  @@map("community_media_assets")
 }
 
 // ============================================

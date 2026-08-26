@@ -32,6 +32,23 @@ describe("TencentCosWebsiteMediaStorage", () => {
       }),
       expect.any(Function),
     );
+
+    await expect(
+      storage.put({
+        body: Buffer.from("png"),
+        mimeType: "image/png",
+        extension: "png",
+        area: "community-media",
+      }),
+    ).resolves.toMatchObject({
+      storageKey: "public/community-media/2026/08/00000000-0000-4000-8000-000000000000.png",
+    });
+    expect(cos.putObject).toHaveBeenLastCalledWith(
+      expect.objectContaining({
+        Key: expect.stringMatching(/^public\/community-media\/2026\/08\//u),
+      }),
+      expect.any(Function),
+    );
   });
 
   it("maps callback failures to a stable storage error", async () => {

@@ -2,7 +2,7 @@ import type { MiniappUserProfile, WechatSession } from "@petcare/shared-types";
 import { reactive } from "vue";
 import { loginWithWechat, logoutWechatSession, refreshWechatSession } from "../api/auth";
 import { MiniappApiError, rawRequest, rawUpload } from "../api/request";
-import type { RawRequestOptions } from "../api/request";
+import type { RawRequestOptions, UploadProgressHandler } from "../api/request";
 
 export const STORAGE_KEY = {
   sessionCommitted: "petcare.sessionCommitted",
@@ -383,9 +383,16 @@ export function authorizedUpload<T>(
   filePath: string,
   fieldName: string,
   headers: Record<string, string> = {},
+  onProgress?: UploadProgressHandler,
 ): Promise<T> {
   return authorizedOperation((accessToken) =>
-    rawUpload<T>(path, filePath, fieldName, authorizationHeaders(headers, accessToken) ?? {}),
+    rawUpload<T>(
+      path,
+      filePath,
+      fieldName,
+      authorizationHeaders(headers, accessToken) ?? {},
+      onProgress,
+    ),
   );
 }
 

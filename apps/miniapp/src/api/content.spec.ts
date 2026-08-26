@@ -1,19 +1,22 @@
 import { CLASSROOM_ARTICLE_CATEGORY } from "@petcare/shared-types";
 import { beforeEach, describe, expect, it, vi } from "vitest";
-import { authorizedRequest } from "../state/session";
+import { authorizedRequest, authorizedUpload } from "../state/session";
 import {
   createCommunityPost,
+  discardCommunityMedia,
   getClassroomArticle,
   getClassroomArticles,
   getMyCommunityPosts,
+  uploadCommunityMedia,
 } from "./content";
 import { rawRequest } from "./request";
 
 vi.mock("./request", () => ({ rawRequest: vi.fn() }));
-vi.mock("../state/session", () => ({ authorizedRequest: vi.fn() }));
+vi.mock("../state/session", () => ({ authorizedRequest: vi.fn(), authorizedUpload: vi.fn() }));
 
 const rawRequestMock = vi.mocked(rawRequest);
 const authorizedRequestMock = vi.mocked(authorizedRequest);
+const authorizedUploadMock = vi.mocked(authorizedUpload);
 
 describe("miniapp content API", () => {
   beforeEach(() => vi.clearAllMocks());
@@ -65,5 +68,27 @@ describe("miniapp content API", () => {
       ["/community/posts", { method: "POST", data: { content: "今天带旺财散步" } }],
       ["/community/posts/mine", { data: { page: 1, pageSize: 20 } }],
     ]);
+  });
+
+  it("uploads community media through the authenticated native boundary", async () => {
+    const onProgress = vi.fn();
+
+    authorizedUploadMock.mockResolvedValue({ id: "asset-1" });
+    await uploadCommunityMedia("temp/pet.png", onProgress);
+
+    expect(authorizedUploadMock).toHaveBeenCalledWith(
+      "/community/media-assets",
+      "temp/pet.png",
+      "file",
+      {},
+      onProgress,
+    );
+
+    authorizedRequestMock.mockResolvedValue(undefined);
+    await discardCommunityMedia("asset/1");
+    expect(authorizedRequestMock).toHaveBeenCalledWith(
+      "/community/media-assets/asset%2F1/discard",
+      { method: "POST" },
+    );
   });
 });

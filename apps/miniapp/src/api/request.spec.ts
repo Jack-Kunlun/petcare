@@ -20,6 +20,7 @@ interface UploadCallbacks {
 
 const request = vi.fn();
 const uploadFile = vi.fn();
+const onProgressUpdate = vi.fn();
 
 function completeRequest(statusCode: number, data: unknown): void {
   const options = request.mock.calls.at(-1)?.[0] as RequestCallbacks;
@@ -37,6 +38,8 @@ describe("native Miniapp request boundary", () => {
   beforeEach(() => {
     request.mockReset();
     uploadFile.mockReset();
+    onProgressUpdate.mockReset();
+    uploadFile.mockReturnValue({ onProgressUpdate });
     vi.stubEnv("VITE_MINIAPP_API_BASE_URL", "https://api.example.test/");
     vi.stubGlobal("uni", { request, uploadFile });
   });
@@ -130,5 +133,22 @@ describe("native Miniapp request boundary", () => {
     });
 
     await expect(pending).resolves.toEqual({ avatar: "https://cdn.example.test/avatar.png" });
+  });
+
+  it("forwards native upload progress", async () => {
+    const onProgress = vi.fn();
+    const pending = rawUpload("/community/media-assets", "temp/pet.png", "file", {}, onProgress);
+    const listener = onProgressUpdate.mock.calls[0]?.[0] as (event: { progress: number }) => void;
+
+    listener({ progress: 42 });
+    completeUpload(200, {
+      code: "SUCCESS",
+      message: "操作成功",
+      data: { id: "asset-1" },
+      meta: { requestId: "request-4", timestamp: "2026-08-24T00:00:00.000Z" },
+    });
+
+    await pending;
+    expect(onProgress).toHaveBeenCalledWith(42);
   });
 });

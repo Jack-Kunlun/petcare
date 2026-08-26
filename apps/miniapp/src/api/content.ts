@@ -1,4 +1,5 @@
 import type {
+  CommunityMediaAsset,
   CreateCommunityPostRequest,
   MyCommunityPostListItem,
   MyCommunityPostListQuery,
@@ -9,10 +10,26 @@ import type {
   WebsiteContentKey,
   WebsitePublicContent,
 } from "@petcare/shared-types";
-import { authorizedRequest } from "../state/session";
+import { authorizedRequest, authorizedUpload } from "../state/session";
+import type { UploadProgressHandler } from "./request";
 import { rawRequest } from "./request";
 
-/** Submits a text-only community post for moderation. */
+/** Uploads one community image with authenticated native progress updates. */
+export function uploadCommunityMedia(
+  filePath: string,
+  onProgress?: UploadProgressHandler,
+): Promise<CommunityMediaAsset> {
+  return authorizedUpload("/community/media-assets", filePath, "file", {}, onProgress);
+}
+
+/** Invalidates one unbound community image removed from the local draft. */
+export function discardCommunityMedia(assetId: string): Promise<void> {
+  return authorizedRequest(`/community/media-assets/${encodeURIComponent(assetId)}/discard`, {
+    method: "POST",
+  });
+}
+
+/** Submits one community post for moderation. */
 export function createCommunityPost(
   request: CreateCommunityPostRequest,
 ): Promise<MyCommunityPostListItem> {
