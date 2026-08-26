@@ -6,10 +6,12 @@ import {
   CLASSROOM_ARTICLE_CATEGORY_LABELS,
   COMMUNITY_MEDIA_ERROR_CODE,
   COMMUNITY_MEDIA_STATUS,
+  COMMUNITY_POST_COMMENT_STATUS,
   COMMUNITY_POST_MODERATION_ACTION,
   COMMUNITY_POST_REPORT_REASON,
   COMMUNITY_POST_REPORT_STATUS,
   type AdminClassroomArticleDetail,
+  type AdminCommunityPostCommentListResponse,
   type AdminClassroomArticleListResponse,
   type AdminClassroomArticleStateRequest,
   type AdminContentPostDetail,
@@ -18,12 +20,14 @@ import {
   type AdminContentRewardListResponse,
   type CommunityMediaAsset,
   type CommunityPostLikeState,
+  type CreateCommunityPostCommentRequest,
   type CreateCommunityPostRequest,
   type CreateAdminClassroomArticleRequest,
   type MyCommunityPostListResponse,
   type PublicClassroomArticleDetail,
   type PublicClassroomArticleListResponse,
   type PublicCommunityPostDetail,
+  type PublicCommunityPostCommentListResponse,
   type PublicCommunityPostListResponse,
   type UpdateAdminClassroomArticleRequest,
   type UploadAdminClassroomArticleMediaResponse,
@@ -189,6 +193,53 @@ describe("content contracts", () => {
     const likeState: CommunityPostLikeState = { liked: true, likesCount: detail.likesCount };
 
     expect(likeState).toEqual({ liked: true, likesCount: 3 });
+  });
+
+  it("keeps public comments private-safe and moderator comments stateful", () => {
+    const create: CreateCommunityPostCommentRequest = { content: "好可爱" };
+    const publicComments: PublicCommunityPostCommentListResponse = {
+      list: [
+        {
+          id: "comment-1",
+          author: { displayName: "旺财家长", avatar: null },
+          content: create.content,
+          canDelete: true,
+          createdAt: "2026-08-26T08:00:00.000Z",
+        },
+      ],
+      total: 1,
+      page: 1,
+      pageSize: 20,
+    };
+    const adminComments: AdminCommunityPostCommentListResponse = {
+      ...publicComments,
+      list: [
+        {
+          id: "comment-1",
+          postId: "post-1",
+          commenter: {
+            id: "user-1",
+            phone: "13800138000",
+            username: null,
+            nickname: "旺财家长",
+            avatar: null,
+          },
+          content: create.content,
+          status: COMMUNITY_POST_COMMENT_STATUS.OFFLINE,
+          moderationReason: "违反社区规范",
+          createdAt: "2026-08-26T08:00:00.000Z",
+          updatedAt: "2026-08-26T08:01:00.000Z",
+        },
+      ],
+    };
+
+    expect(Object.values(COMMUNITY_POST_COMMENT_STATUS)).toEqual([
+      "published",
+      "offline",
+      "deleted",
+    ]);
+    expect("phone" in publicComments.list[0].author).toBe(false);
+    expect(adminComments.list[0].moderationReason).toBe("违反社区规范");
   });
 
   it("keeps official website article contracts limited to public fields", () => {

@@ -5,15 +5,19 @@ import {
   COMMUNITY_POST_REPORT_STATUS,
 } from "@petcare/shared-types";
 import type {
+  AdminCommunityPostCommentOfflineRequest,
   CommunityPostReportReceipt,
   CommunityMediaAsset,
   CommunityPostLikeState,
+  CreateCommunityPostCommentRequest,
   CreateCommunityPostReportRequest,
   CreateCommunityPostRequest,
   MyCommunityPostListItem,
   MyCommunityPostListQuery,
   MyCommunityPostListResponse,
   PublicCommunityPostAuthor,
+  PublicCommunityPostComment,
+  PublicCommunityPostCommentListResponse,
   PublicCommunityPostDetail,
   PublicCommunityPostListQuery,
   PublicCommunityPostListResponse,
@@ -84,6 +88,26 @@ export class CommunityPostLikeStateDto implements CommunityPostLikeState {
 
   @ApiProperty({ minimum: 0 })
   likesCount: number;
+}
+
+/** Validated plain-text comment submission. */
+export class CreateCommunityPostCommentDto implements CreateCommunityPostCommentRequest {
+  @ApiProperty({ minLength: 1, maxLength: 200 })
+  @Transform(({ value }) => (typeof value === "string" ? value.trim() : value))
+  @IsString()
+  @MinLength(1)
+  @MaxLength(200)
+  content: string;
+}
+
+/** Validated administrator reason for taking one comment offline. */
+export class AdminCommunityPostCommentOfflineDto implements AdminCommunityPostCommentOfflineRequest {
+  @ApiProperty({ minLength: 1, maxLength: 500 })
+  @Transform(({ value }) => (typeof value === "string" ? value.trim() : value))
+  @IsString()
+  @MinLength(1)
+  @MaxLength(500)
+  reason: string;
 }
 
 /** Public response for one validated community image upload. */
@@ -189,6 +213,39 @@ export class PublicCommunityPostAuthorDto implements PublicCommunityPostAuthor {
 
   @ApiProperty({ nullable: true })
   avatar: string | null;
+}
+
+/** One visible community comment without private account fields. */
+export class PublicCommunityPostCommentDto implements PublicCommunityPostComment {
+  @ApiProperty({ format: "uuid" })
+  id: string;
+
+  @ApiProperty({ type: PublicCommunityPostAuthorDto })
+  author: PublicCommunityPostAuthorDto;
+
+  @ApiProperty()
+  content: string;
+
+  @ApiProperty()
+  canDelete: boolean;
+
+  @ApiProperty({ format: "date-time" })
+  createdAt: string;
+}
+
+/** Paginated visible comments below one published post. */
+export class PublicCommunityPostCommentListResponseDto implements PublicCommunityPostCommentListResponse {
+  @ApiProperty({ type: [PublicCommunityPostCommentDto] })
+  list: PublicCommunityPostCommentDto[];
+
+  @ApiProperty()
+  total: number;
+
+  @ApiProperty()
+  page: number;
+
+  @ApiProperty()
+  pageSize: number;
 }
 
 /** Public published community post response. */

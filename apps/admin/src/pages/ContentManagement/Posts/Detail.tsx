@@ -2,6 +2,7 @@ import {
   COMMUNITY_POST_REPORT_REASON_LABELS,
   type AdminContentPostStatus,
   type ApiErrorResponse,
+  type CommunityPostCommentStatus,
   type CommunityPostModerationAction,
 } from "@petcare/shared-types";
 import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
@@ -23,8 +24,10 @@ import { Link, useParams } from "react-router-dom";
 import {
   approveAdminContentPost,
   fetchAdminContentPost,
+  fetchAdminContentPostComments,
   fetchAdminContentPostReports,
   offlineAdminContentPost,
+  offlineAdminContentPostComment,
   postQueryKeys,
   rejectAdminContentPost,
 } from "../../../api/content/posts";
@@ -55,6 +58,12 @@ const actionLabels: Record<CommunityPostModerationAction, string> = {
   offline: "下架",
 };
 
+const commentStatusLabels: Record<CommunityPostCommentStatus, string> = {
+  published: "公开",
+  offline: "已下架",
+  deleted: "已删除",
+};
+
 function formatDateTime(value: string): string {
   return new Intl.DateTimeFormat("zh-CN", {
     dateStyle: "medium",
@@ -80,6 +89,11 @@ export default function ContentPostDetail() {
   const [formError, setFormError] = useState("");
   const [actionError, setActionError] = useState("");
   const [actionSuccess, setActionSuccess] = useState("");
+  const [commentActionId, setCommentActionId] = useState("");
+  const [commentReason, setCommentReason] = useState("");
+  const [commentFormError, setCommentFormError] = useState("");
+  const [commentActionError, setCommentActionError] = useState("");
+  const [commentActionSuccess, setCommentActionSuccess] = useState("");
   const query = useQuery({
     queryKey: postQueryKeys.detail(id),
     queryFn: () => fetchAdminContentPost(id),
@@ -88,6 +102,11 @@ export default function ContentPostDetail() {
   const reportsQuery = useQuery({
     queryKey: postQueryKeys.reports(id),
     queryFn: () => fetchAdminContentPostReports(id),
+    enabled: Boolean(id) && canModerate,
+  });
+  const commentsQuery = useQuery({
+    queryKey: postQueryKeys.comments(id),
+    queryFn: () => fetchAdminContentPostComments(id),
     enabled: Boolean(id) && canModerate,
   });
 
@@ -134,6 +153,26 @@ export default function ContentPostDetail() {
       }
     },
   });
+  const commentMutation = useMutation({
+    mutationFn: ({ commentId, reason }: { commentId: string; reason: string }) =>
+      offlineAdminContentPostComment(id, commentId, { reason }),
+    onSuccess: async () => {
+      setCommentActionId("");
+      setCommentReason("");
+      setCommentFormError("");
+      setCommentActionError("");
+      setCommentActionSuccess("评论下架成功");
+      await Promise.all([
+        queryClient.invalidateQueries({ queryKey: postQueryKeys.comments(id) }),
+        queryClient.invalidateQueries({ queryKey: postQueryKeys.detail(id) }),
+        queryClient.invalidateQueries({ queryKey: postQueryKeys.all }),
+      ]);
+    },
+    onError: (error) => {
+      setCommentActionSuccess("");
+      setCommentActionError(moderationErrorMessage(error));
+    },
+  });
 
   const post = query.data;
   const needsReason = actionMode === "reject" || actionMode === "offline";
@@ -145,6 +184,7 @@ export default function ContentPostDetail() {
     setFormError("");
     setActionError("");
     setActionSuccess("");
+    setCommentActionSuccess("");
   }
 
   function closeAction() {
@@ -179,6 +219,44 @@ export default function ContentPostDetail() {
       expectedUpdatedAt: post.updatedAt,
       ...(needsReason ? { reason: trimmedReason } : {}),
     });
+  }
+
+  function openCommentAction(commentId: string) {
+    setCommentActionId(commentId);
+    setCommentReason("");
+    setCommentFormError("");
+    setCommentActionError("");
+    setCommentActionSuccess("");
+    setActionSuccess("");
+  }
+
+  function closeCommentAction() {
+    if (commentMutation.isPending) {
+      return;
+    }
+
+    setCommentActionId("");
+    setCommentReason("");
+    setCommentFormError("");
+    setCommentActionError("");
+  }
+
+  function submitCommentAction(event: FormEvent<HTMLFormElement>) {
+    event.preventDefault();
+    const trimmedReason = commentReason.trim();
+
+    if (!commentActionId || commentMutation.isPending) {
+      return;
+    }
+
+    if (!trimmedReason) {
+      setCommentFormError("请填写评论下架原因");
+
+      return;
+    }
+
+    setCommentFormError("");
+    commentMutation.mutate({ commentId: commentActionId, reason: trimmedReason });
   }
 
   const backLink = (
@@ -412,6 +490,134 @@ export default function ContentPostDetail() {
             </div>
           )}
         </FormSection>
+
+        {canModerate ? (
+          <FormSection
+            title={
+              <span className="flex items-center gap-2">
+                <MessageSquare aria-hidden="true" className="h-5 w-5 text-blue-700" />
+                评论管理
+              </span>
+            }
+          >
+            {commentActionSuccess ? (
+              <p
+                role="status"
+                className="mb-3 rounded-lg border border-emerald-200 bg-emerald-50 p-3 text-sm text-emerald-800"
+              >
+                {commentActionSuccess}
+              </p>
+            ) : null}
+            {commentsQuery.isPending ? (
+              <div
+                aria-label="正在加载评论记录"
+                className="h-20 animate-pulse rounded-lg bg-slate-100"
+              />
+            ) : null}
+            {commentsQuery.isError ? (
+              <div className="flex flex-wrap items-center justify-between gap-3" role="alert">
+                <p className="text-sm text-red-700">评论记录加载失败，请稍后重试。</p>
+                <button
+                  type="button"
+                  className="min-h-11 cursor-pointer rounded-lg border border-red-300 px-3 text-sm font-medium text-red-800 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-red-600"
+                  onClick={() => void commentsQuery.refetch()}
+                >
+                  重试
+                </button>
+              </div>
+            ) : null}
+            {commentsQuery.data?.list.length === 0 ? (
+              <p className="text-sm text-slate-500">暂无评论记录。</p>
+            ) : null}
+            {commentsQuery.data?.list.length ? (
+              <ol className="space-y-3">
+                {commentsQuery.data.list.map((comment) => (
+                  <li key={comment.id} className="rounded-lg border border-slate-200 p-4 text-sm">
+                    <div className="flex flex-wrap items-start justify-between gap-3">
+                      <div>
+                        <p className="font-semibold text-slate-900">{comment.commenter.nickname}</p>
+                        <p className="mt-1 text-xs text-slate-500">
+                          {comment.commenter.phone ?? comment.commenter.id} ·{" "}
+                          {formatDateTime(comment.createdAt)}
+                        </p>
+                      </div>
+                      <span className="rounded-full bg-slate-100 px-2 py-1 text-xs text-slate-700">
+                        {commentStatusLabels[comment.status]}
+                      </span>
+                    </div>
+                    <p className="mt-3 whitespace-pre-wrap break-words text-slate-800">
+                      {comment.content}
+                    </p>
+                    {comment.moderationReason ? (
+                      <p className="mt-2 text-orange-800">下架原因：{comment.moderationReason}</p>
+                    ) : null}
+
+                    {comment.status === "published" && commentActionId !== comment.id ? (
+                      <button
+                        type="button"
+                        className="mt-3 min-h-11 cursor-pointer rounded-lg border border-orange-300 px-3 text-sm font-semibold text-orange-800 hover:bg-orange-50 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-orange-600"
+                        disabled={commentMutation.isPending}
+                        aria-disabled={commentMutation.isPending}
+                        onClick={() => openCommentAction(comment.id)}
+                      >
+                        下架评论
+                      </button>
+                    ) : null}
+
+                    {commentActionId === comment.id ? (
+                      <form
+                        className="mt-3 rounded-lg bg-slate-50 p-3"
+                        onSubmit={submitCommentAction}
+                      >
+                        <label
+                          htmlFor={`comment-offline-reason-${comment.id}`}
+                          className="font-medium text-slate-800"
+                        >
+                          评论下架原因（必填）
+                        </label>
+                        <textarea
+                          id={`comment-offline-reason-${comment.id}`}
+                          autoFocus
+                          value={commentReason}
+                          rows={3}
+                          maxLength={500}
+                          disabled={commentMutation.isPending}
+                          aria-invalid={Boolean(commentFormError)}
+                          onChange={(event) => setCommentReason(event.target.value)}
+                          className="mt-2 w-full resize-y rounded-lg border border-slate-300 p-3 text-sm outline-none focus:border-blue-600 focus:ring-2 focus:ring-blue-600/20 disabled:cursor-not-allowed disabled:bg-slate-100"
+                        />
+                        {commentFormError || commentActionError ? (
+                          <p role="alert" className="mt-1 text-xs text-red-700">
+                            {commentFormError || commentActionError}
+                          </p>
+                        ) : null}
+                        <div className="mt-3 flex justify-end gap-2">
+                          <button
+                            type="button"
+                            disabled={commentMutation.isPending}
+                            aria-disabled={commentMutation.isPending}
+                            className="min-h-11 cursor-pointer rounded-lg border border-slate-300 px-3 text-sm font-medium text-slate-700 disabled:cursor-not-allowed disabled:opacity-50"
+                            onClick={closeCommentAction}
+                          >
+                            取消
+                          </button>
+                          <button
+                            type="submit"
+                            disabled={commentMutation.isPending || !commentReason.trim()}
+                            aria-disabled={commentMutation.isPending || !commentReason.trim()}
+                            className="min-h-11 cursor-pointer rounded-lg bg-orange-700 px-3 text-sm font-semibold text-white hover:bg-orange-800 disabled:cursor-not-allowed disabled:bg-slate-400"
+                          >
+                            {commentMutation.isPending ? "下架中" : "确认下架评论"}
+                          </button>
+                        </div>
+                      </form>
+                    ) : null}
+                  </li>
+                ))}
+              </ol>
+            ) : null}
+          </FormSection>
+        ) : null}
 
         {canModerate ? (
           <FormSection

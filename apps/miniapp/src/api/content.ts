@@ -2,6 +2,7 @@ import type {
   CommunityMediaAsset,
   CommunityPostLikeState,
   CommunityPostReportReceipt,
+  CreateCommunityPostCommentRequest,
   CreateCommunityPostReportRequest,
   CreateCommunityPostRequest,
   MyCommunityPostListItem,
@@ -10,6 +11,8 @@ import type {
   PublicClassroomArticleDetail,
   PublicClassroomArticleListQuery,
   PublicClassroomArticleListResponse,
+  PublicCommunityPostComment,
+  PublicCommunityPostCommentListResponse,
   PublicCommunityPostDetail,
   PublicCommunityPostListQuery,
   PublicCommunityPostListResponse,
@@ -80,6 +83,33 @@ export function unlikeCommunityPost(id: string): Promise<CommunityPostLikeState>
   return authorizedRequest(`/community/posts/${encodeURIComponent(id)}/like`, { method: "DELETE" });
 }
 
+/** Reads visible comments and owner capabilities for the authenticated viewer. */
+export function getMyCommunityPostComments(
+  id: string,
+  query: PublicCommunityPostListQuery,
+): Promise<PublicCommunityPostCommentListResponse> {
+  return authorizedRequest(`/community/posts/${encodeURIComponent(id)}/comments`, { data: query });
+}
+
+/** Publishes one plain-text comment below a published post. */
+export function createCommunityPostComment(
+  id: string,
+  request: CreateCommunityPostCommentRequest,
+): Promise<PublicCommunityPostComment> {
+  return authorizedRequest(`/community/posts/${encodeURIComponent(id)}/comments`, {
+    method: "POST",
+    data: request,
+  });
+}
+
+/** Idempotently deletes one comment owned by the authenticated viewer. */
+export function deleteCommunityPostComment(postId: string, commentId: string): Promise<void> {
+  return authorizedRequest(
+    `/community/posts/${encodeURIComponent(postId)}/comments/${encodeURIComponent(commentId)}`,
+    { method: "DELETE" },
+  );
+}
+
 /** Reads a page of currently published community posts. */
 export function getCommunityPosts(
   query: PublicCommunityPostListQuery,
@@ -91,6 +121,17 @@ export function getCommunityPosts(
 export function getCommunityPost(id: string): Promise<PublicCommunityPostDetail> {
   return rawRequest<PublicCommunityPostDetail>(
     `/content/community-posts/${encodeURIComponent(id)}`,
+  );
+}
+
+/** Reads visible comments below one published post without authentication. */
+export function getCommunityPostComments(
+  id: string,
+  query: PublicCommunityPostListQuery,
+): Promise<PublicCommunityPostCommentListResponse> {
+  return rawRequest<PublicCommunityPostCommentListResponse>(
+    `/content/community-posts/${encodeURIComponent(id)}/comments`,
+    { data: query },
   );
 }
 

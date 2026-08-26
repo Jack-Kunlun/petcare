@@ -3,13 +3,17 @@ import { beforeEach, describe, expect, it, vi } from "vitest";
 import { authorizedRequest, authorizedUpload } from "../state/session";
 import {
   createCommunityPost,
+  createCommunityPostComment,
   deleteCommunityPost,
+  deleteCommunityPostComment,
   discardCommunityMedia,
   getClassroomArticle,
   getClassroomArticles,
   getCommunityPost,
+  getCommunityPostComments,
   getCommunityPostLikeState,
   getCommunityPosts,
+  getMyCommunityPostComments,
   getMyCommunityPosts,
   likeCommunityPost,
   reportCommunityPost,
@@ -75,6 +79,9 @@ describe("miniapp content API", () => {
     await getCommunityPostLikeState("post/1");
     await likeCommunityPost("post/1");
     await unlikeCommunityPost("post/1");
+    await getMyCommunityPostComments("post/1", { page: 1, pageSize: 20 });
+    await createCommunityPostComment("post/1", { content: "好可爱" });
+    await deleteCommunityPostComment("post/1", "comment/1");
 
     expect(authorizedRequestMock.mock.calls).toEqual([
       ["/community/posts", { method: "POST", data: { content: "今天带旺财散步" } }],
@@ -87,6 +94,9 @@ describe("miniapp content API", () => {
       ["/community/posts/post%2F1/like"],
       ["/community/posts/post%2F1/like", { method: "PUT" }],
       ["/community/posts/post%2F1/like", { method: "DELETE" }],
+      ["/community/posts/post%2F1/comments", { data: { page: 1, pageSize: 20 } }],
+      ["/community/posts/post%2F1/comments", { method: "POST", data: { content: "好可爱" } }],
+      ["/community/posts/post%2F1/comments/comment%2F1", { method: "DELETE" }],
     ]);
   });
 
@@ -95,10 +105,12 @@ describe("miniapp content API", () => {
 
     await getCommunityPosts({ page: 1, pageSize: 10 });
     await getCommunityPost("post/1");
+    await getCommunityPostComments("post/1", { page: 1, pageSize: 20 });
 
     expect(rawRequestMock.mock.calls).toEqual([
       ["/content/community-posts", { data: { page: 1, pageSize: 10 } }],
       ["/content/community-posts/post%2F1"],
+      ["/content/community-posts/post%2F1/comments", { data: { page: 1, pageSize: 20 } }],
     ]);
   });
 

@@ -12,6 +12,9 @@ describe("CommunityPostController", () => {
     deleteOwn: jest.fn(),
     findMine: jest.fn(),
     findLikeState: jest.fn(),
+    findPublishedComments: jest.fn(),
+    createComment: jest.fn(),
+    deleteOwnComment: jest.fn(),
     findPublished: jest.fn(),
     findPublishedById: jest.fn(),
     report: jest.fn(),
@@ -33,6 +36,15 @@ describe("CommunityPostController", () => {
     expect(Reflect.getMetadata("path", CommunityPostController.prototype.report)).toBe(
       ":id/reports",
     );
+    expect(Reflect.getMetadata("path", CommunityPostController.prototype.findComments)).toBe(
+      ":id/comments",
+    );
+    expect(Reflect.getMetadata("path", CommunityPostController.prototype.createComment)).toBe(
+      ":id/comments",
+    );
+    expect(Reflect.getMetadata("path", CommunityPostController.prototype.deleteOwnComment)).toBe(
+      ":postId/comments/:commentId",
+    );
     expect(Reflect.getMetadata("path", CommunityPostController.prototype.findLikeState)).toBe(
       ":id/like",
     );
@@ -49,6 +61,9 @@ describe("CommunityPostController", () => {
     posts.findLikeState.mockResolvedValue({ liked: false, likesCount: 0 });
     posts.like.mockResolvedValue({ liked: true, likesCount: 1 });
     posts.unlike.mockResolvedValue({ liked: false, likesCount: 0 });
+    posts.findPublishedComments.mockResolvedValue({ list: [], total: 0, page: 1, pageSize: 20 });
+    posts.createComment.mockResolvedValue({ id: "comment-1", canDelete: true });
+    posts.deleteOwnComment.mockResolvedValue(undefined);
     const request = { user: { sub: "user-1" } } as never;
 
     await expect(controller.create(request, { content: "动态正文" })).resolves.toMatchObject({
@@ -73,6 +88,15 @@ describe("CommunityPostController", () => {
       liked: false,
       likesCount: 0,
     });
+    await expect(
+      controller.findComments(request, "post-1", { page: 1, pageSize: 20 }),
+    ).resolves.toMatchObject({ total: 0 });
+    await expect(
+      controller.createComment(request, "post-1", { content: "好可爱" }),
+    ).resolves.toMatchObject({ id: "comment-1" });
+    await expect(
+      controller.deleteOwnComment(request, "post-1", "comment-1"),
+    ).resolves.toBeUndefined();
 
     expect(posts.create).toHaveBeenCalledWith("user-1", { content: "动态正文" });
     expect(posts.findMine).toHaveBeenCalledWith("user-1", { page: 1, pageSize: 20 });
@@ -81,6 +105,15 @@ describe("CommunityPostController", () => {
     expect(posts.findLikeState).toHaveBeenCalledWith("user-1", "post-1");
     expect(posts.like).toHaveBeenCalledWith("user-1", "post-1");
     expect(posts.unlike).toHaveBeenCalledWith("user-1", "post-1");
+    expect(posts.findPublishedComments).toHaveBeenCalledWith(
+      "post-1",
+      { page: 1, pageSize: 20 },
+      "user-1",
+    );
+    expect(posts.createComment).toHaveBeenCalledWith("user-1", "post-1", {
+      content: "好可爱",
+    });
+    expect(posts.deleteOwnComment).toHaveBeenCalledWith("user-1", "post-1", "comment-1");
   });
 
   it("exposes public published list and detail without authentication", async () => {
@@ -89,6 +122,7 @@ describe("CommunityPostController", () => {
 
     posts.findPublished.mockResolvedValue({ list: [], total: 0, page: 2, pageSize: 10 });
     posts.findPublishedById.mockResolvedValue({ id: "post-1" });
+    posts.findPublishedComments.mockResolvedValue({ list: [], total: 0, page: 1, pageSize: 20 });
 
     expect(Reflect.getMetadata("path", PublicCommunityPostController)).toBe(
       "content/community-posts",
@@ -96,7 +130,11 @@ describe("CommunityPostController", () => {
     expect(Reflect.getMetadata(GUARDS_METADATA, PublicCommunityPostController)).toBeUndefined();
     await expect(publicController.findPublished(query)).resolves.toMatchObject({ page: 2 });
     await expect(publicController.findPublishedById("post-1")).resolves.toEqual({ id: "post-1" });
+    await expect(publicController.findPublishedComments("post-1", query)).resolves.toMatchObject({
+      total: 0,
+    });
     expect(posts.findPublished).toHaveBeenCalledWith(query);
     expect(posts.findPublishedById).toHaveBeenCalledWith("post-1");
+    expect(posts.findPublishedComments).toHaveBeenCalledWith("post-1", query);
   });
 });

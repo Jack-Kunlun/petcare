@@ -371,6 +371,72 @@ export interface CommunityPostLikeState {
   likesCount: number;
 }
 
+/** Lifecycle states for one community post comment. */
+export const COMMUNITY_POST_COMMENT_STATUS = {
+  /** The comment is visible below its published post. */
+  PUBLISHED: "published",
+  /** An administrator removed the comment from public view. */
+  OFFLINE: "offline",
+  /** The commenter deleted the comment. */
+  DELETED: "deleted",
+} as const;
+
+/** Community post comment lifecycle state. */
+export type CommunityPostCommentStatus =
+  (typeof COMMUNITY_POST_COMMENT_STATUS)[keyof typeof COMMUNITY_POST_COMMENT_STATUS];
+
+/** Request for publishing a plain-text comment below one community post. */
+export interface CreateCommunityPostCommentRequest {
+  /** Trimmed plain text from 1 through 200 characters. */
+  content: string;
+}
+
+/** Public comment data without private account fields. */
+export interface PublicCommunityPostComment {
+  /** Comment identifier used by an authorized owner deletion command. */
+  id: string;
+  /** Public commenter name and avatar. */
+  author: PublicCommunityPostAuthor;
+  /** Plain-text comment body. */
+  content: string;
+  /** Whether the authenticated viewer may delete this comment. */
+  canDelete: boolean;
+  /** Comment creation time in ISO 8601 format. */
+  createdAt: string;
+}
+
+/** Public paginated visible comments below one published post. */
+export type PublicCommunityPostCommentListResponse = PaginatedResponse<PublicCommunityPostComment>;
+
+/** Administrator-visible comment and commenter context. */
+export interface AdminCommunityPostComment {
+  /** Comment identifier. */
+  id: string;
+  /** Related community post identifier. */
+  postId: string;
+  /** Commenter account context visible only to authorized moderators. */
+  commenter: AdminContentAuthorSummary;
+  /** Plain-text comment body. */
+  content: string;
+  /** Current comment lifecycle state. */
+  status: CommunityPostCommentStatus;
+  /** Administrator-supplied offline reason, or null. */
+  moderationReason: string | null;
+  /** Comment creation time in ISO 8601 format. */
+  createdAt: string;
+  /** Comment last update time in ISO 8601 format. */
+  updatedAt: string;
+}
+
+/** Administrator paginated comment context for one post. */
+export type AdminCommunityPostCommentListResponse = PaginatedResponse<AdminCommunityPostComment>;
+
+/** Command for taking one visible comment offline. */
+export interface AdminCommunityPostCommentOfflineRequest {
+  /** Trimmed moderation reason from 1 through 500 characters. */
+  reason: string;
+}
+
 /** Post fields attached to an administrator's report context. */
 export interface AdminCommunityPostReportPostSummary {
   /** Related community post identifier. */

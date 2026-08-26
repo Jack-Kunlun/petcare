@@ -21,9 +21,11 @@ import {
 import {
   approveAdminContentPost,
   fetchAdminContentPost,
+  fetchAdminContentPostComments,
   fetchAdminContentPostReports,
   fetchAdminContentPosts,
   offlineAdminContentPost,
+  offlineAdminContentPostComment,
   postQueryKeys,
   rejectAdminContentPost,
 } from "./posts";
@@ -114,14 +116,22 @@ describe("content api", () => {
     };
     const state = { expectedUpdatedAt: detail.updatedAt };
     const reports = { list: [], total: 0 };
+    const comments = { list: [], total: 0, page: 1, pageSize: 50 };
+    const comment = { id: "comment-1", status: "offline" };
 
     vi.mocked(apiClient.get)
       .mockResolvedValueOnce({ data: detail } as never)
-      .mockResolvedValueOnce({ data: reports } as never);
-    vi.mocked(apiClient.post).mockResolvedValue({ data: detail } as never);
+      .mockResolvedValueOnce({ data: reports } as never)
+      .mockResolvedValueOnce({ data: comments } as never);
+    vi.mocked(apiClient.post)
+      .mockResolvedValueOnce({ data: detail } as never)
+      .mockResolvedValueOnce({ data: detail } as never)
+      .mockResolvedValueOnce({ data: detail } as never)
+      .mockResolvedValueOnce({ data: comment } as never);
 
     await expect(fetchAdminContentPost("post-1")).resolves.toBe(detail);
     await expect(fetchAdminContentPostReports("post-1")).resolves.toBe(reports);
+    await expect(fetchAdminContentPostComments("post-1")).resolves.toBe(comments);
     await expect(approveAdminContentPost("post-1", state)).resolves.toBe(detail);
     await expect(
       rejectAdminContentPost("post-1", { ...state, reason: "包含联系方式" }),
@@ -129,11 +139,18 @@ describe("content api", () => {
     await expect(
       offlineAdminContentPost("post-1", { ...state, reason: "违反社区规范" }),
     ).resolves.toBe(detail);
+    await expect(
+      offlineAdminContentPostComment("post-1", "comment-1", { reason: "违规" }),
+    ).resolves.toBe(comment);
 
     expect(postQueryKeys.detail("post-1")).toEqual(["admin-content-posts", "detail", "post-1"]);
     expect(postQueryKeys.reports("post-1")).toEqual(["admin-content-posts", "reports", "post-1"]);
+    expect(postQueryKeys.comments("post-1")).toEqual(["admin-content-posts", "comments", "post-1"]);
     expect(apiClient.get).toHaveBeenNthCalledWith(1, "/admin/content/posts/post-1");
     expect(apiClient.get).toHaveBeenNthCalledWith(2, "/admin/content/posts/post-1/reports");
+    expect(apiClient.get).toHaveBeenNthCalledWith(3, "/admin/content/posts/post-1/comments", {
+      params: { page: 1, pageSize: 50 },
+    });
     expect(apiClient.post).toHaveBeenNthCalledWith(1, "/admin/content/posts/post-1/approve", state);
     expect(apiClient.post).toHaveBeenNthCalledWith(2, "/admin/content/posts/post-1/reject", {
       ...state,
@@ -143,6 +160,11 @@ describe("content api", () => {
       ...state,
       reason: "违反社区规范",
     });
+    expect(apiClient.post).toHaveBeenNthCalledWith(
+      4,
+      "/admin/content/posts/post-1/comments/comment-1/offline",
+      { reason: "违规" },
+    );
   });
 
   it("calls every classroom article management endpoint", async () => {

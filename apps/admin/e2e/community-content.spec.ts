@@ -1,5 +1,7 @@
 import {
   COMMUNITY_POST_REPORT_REASON,
+  type AdminCommunityPostComment,
+  type AdminCommunityPostCommentListResponse,
   type AdminCommunityPostReportResponse,
   type AdminContentPostDetail,
   type ApiErrorResponse,
@@ -7,6 +9,8 @@ import {
   type MyCommunityPostListItem,
   type MyCommunityPostListResponse,
   type PublicCommunityPostDetail,
+  type PublicCommunityPostComment,
+  type PublicCommunityPostCommentListResponse,
   type PublicCommunityPostListResponse,
 } from "@petcare/shared-types";
 import {
@@ -128,6 +132,21 @@ test("受控社区动态从发布、举报到后台下架保持纵向一致", as
   expect(pending.status).toBe("pending");
   await expectFailure(await page.request.get(`/api/content/community-posts/${pending.id}`), 404);
   await expectFailure(
+    await page.request.get(
+      `/api/content/community-posts/${pending.id}/comments?page=1&pageSize=20`,
+    ),
+    404,
+    "CONTENT_POST_NOT_FOUND",
+  );
+  await expectFailure(
+    await page.request.post(`/api/community/posts/${pending.id}/comments`, {
+      headers: { Authorization: reporterAuthorization },
+      data: { content: "未公开评论" },
+    }),
+    404,
+    "CONTENT_POST_NOT_FOUND",
+  );
+  await expectFailure(
     await page.request.post(`/api/community/posts/${pending.id}/reports`, {
       headers: { Authorization: reporterAuthorization },
       data: { reason: COMMUNITY_POST_REPORT_REASON.SPAM },
@@ -192,6 +211,74 @@ test("受控社区动态从发布、举报到后台下架保持纵向一致", as
     ),
   ).resolves.toEqual({ liked: false, likesCount: 0 });
   await expectFailure(
+    await request.post(`/api/community/posts/${pending.id}/comments`, {
+      data: { content: "匿名评论" },
+    }),
+    401,
+  );
+  const commentContent = "评".repeat(200);
+  const reporterComment = await responseData<PublicCommunityPostComment>(
+    await page.request.post(`/api/community/posts/${pending.id}/comments`, {
+      headers: { Authorization: reporterAuthorization },
+      data: { content: `  ${commentContent}  ` },
+    }),
+  );
+
+  expect(reporterComment).toMatchObject({ content: commentContent, canDelete: true });
+  expect(Object.keys(reporterComment.author).sort()).toEqual(["avatar", "displayName"]);
+  await expectFailure(
+    await page.request.post(`/api/community/posts/${pending.id}/comments`, {
+      headers: { Authorization: reporterAuthorization },
+      data: { content: "评".repeat(201) },
+    }),
+    400,
+  );
+  const publicComments = await responseData<PublicCommunityPostCommentListResponse>(
+    await page.request.get(
+      `/api/content/community-posts/${pending.id}/comments?page=1&pageSize=20`,
+    ),
+  );
+  const ownedComments = await responseData<PublicCommunityPostCommentListResponse>(
+    await page.request.get(`/api/community/posts/${pending.id}/comments?page=1&pageSize=20`, {
+      headers: { Authorization: reporterAuthorization },
+    }),
+  );
+
+  expect(publicComments).toMatchObject({
+    total: 1,
+    list: [{ id: reporterComment.id, content: commentContent, canDelete: false }],
+  });
+  expect(ownedComments.list).toMatchObject([{ id: reporterComment.id, canDelete: true }]);
+  await expectFailure(
+    await page.request.delete(`/api/community/posts/${pending.id}/comments/${reporterComment.id}`, {
+      headers: { Authorization: authorAuthorization },
+    }),
+    403,
+    "CONTENT_COMMENT_FORBIDDEN",
+  );
+  const authorComment = await responseData<PublicCommunityPostComment>(
+    await page.request.post(`/api/community/posts/${pending.id}/comments`, {
+      headers: { Authorization: authorAuthorization },
+      data: { content: "作者补充" },
+    }),
+  );
+  const firstDelete = await page.request.delete(
+    `/api/community/posts/${pending.id}/comments/${authorComment.id}`,
+    { headers: { Authorization: authorAuthorization } },
+  );
+  const repeatedDelete = await page.request.delete(
+    `/api/community/posts/${pending.id}/comments/${authorComment.id}`,
+    { headers: { Authorization: authorAuthorization } },
+  );
+
+  expect(firstDelete.status()).toBe(204);
+  expect(repeatedDelete.status()).toBe(204);
+  await expect(
+    responseData<PublicCommunityPostDetail>(
+      await page.request.get(`/api/content/community-posts/${pending.id}`),
+    ),
+  ).resolves.toMatchObject({ commentsCount: 1 });
+  await expectFailure(
     await request.post(`/api/community/posts/${pending.id}/reports`, {
       data: { reason: COMMUNITY_POST_REPORT_REASON.SPAM },
     }),
@@ -230,6 +317,19 @@ test("受控社区动态从发布、举报到后台下架保持纵向一致", as
   );
 
   expect(reports).toMatchObject({ total: 1, list: [{ reason: "spam", status: "pending" }] });
+  const adminComments = await responseData<AdminCommunityPostCommentListResponse>(
+    await page.request.get(`/api/admin/content/posts/${pending.id}/comments?page=1&pageSize=20`, {
+      headers: { Authorization: adminAuthorization },
+    }),
+  );
+
+  expect(adminComments).toMatchObject({
+    total: 2,
+    list: expect.arrayContaining([
+      expect.objectContaining({ id: reporterComment.id, status: "published" }),
+      expect.objectContaining({ id: authorComment.id, status: "deleted" }),
+    ]),
+  });
   const restrictedAuthorization = `Bearer ${await loginAccessToken(
     request,
     requiredEnv("RBAC_E2E_RESTRICTED_USERNAME"),
@@ -240,6 +340,22 @@ test("受控社区动态从发布、举报到后台下架保持纵向一致", as
     await request.get(`/api/admin/content/posts/${pending.id}/reports`, {
       headers: { Authorization: restrictedAuthorization },
     }),
+    403,
+  );
+  await expectFailure(
+    await request.get(`/api/admin/content/posts/${pending.id}/comments?page=1&pageSize=20`, {
+      headers: { Authorization: restrictedAuthorization },
+    }),
+    403,
+  );
+  await expectFailure(
+    await request.post(
+      `/api/admin/content/posts/${pending.id}/comments/${reporterComment.id}/offline`,
+      {
+        headers: { Authorization: restrictedAuthorization },
+        data: { reason: "越权请求" },
+      },
+    ),
     403,
   );
   await expectFailure(
@@ -259,6 +375,7 @@ test("受控社区动态从发布、举报到后台下架保持纵向一致", as
     await expect(miniappPage.getByText(content, { exact: true })).toBeVisible();
     await miniappPage.goto(`${miniappUrl}/#/pages-content/community/article?id=${pending.id}`);
     await expect(miniappPage.getByText(content, { exact: true })).toBeVisible();
+    await expect(miniappPage.getByText(commentContent, { exact: true })).toBeVisible();
 
     await page.evaluate((postId) => {
       globalThis.history.pushState({}, "", `/content/posts/${postId}`);
@@ -266,13 +383,76 @@ test("受控社区动态从发布、举报到后台下架保持纵向一致", as
     }, pending.id);
     await expect(page).toHaveURL(new RegExp(`/content/posts/${pending.id}$`, "u"));
     await expect(page.getByText("垃圾广告或诈骗", { exact: true })).toBeVisible();
-    await expect(page.getByText(/社区 E2E 举报人/u)).toBeVisible();
+    await expect(page.getByText(/举报人：社区 E2E 举报人/u)).toBeVisible();
+    await expect(page.getByText(commentContent, { exact: true })).toBeVisible();
+    await page.getByRole("button", { name: "下架评论" }).click();
+    await page.getByLabel(/评论下架原因/u).fill("评论违反社区规范");
+    await page.getByRole("button", { name: "确认下架评论" }).click();
+    await expect(page.getByText("评论下架成功", { exact: true })).toBeVisible();
+
+    const repeatedOffline = await responseData<AdminCommunityPostComment>(
+      await page.request.post(
+        `/api/admin/content/posts/${pending.id}/comments/${reporterComment.id}/offline`,
+        {
+          headers: { Authorization: adminAuthorization },
+          data: { reason: "重复下架" },
+        },
+      ),
+    );
+    const secondRepeatedOffline = await responseData<AdminCommunityPostComment>(
+      await page.request.post(
+        `/api/admin/content/posts/${pending.id}/comments/${reporterComment.id}/offline`,
+        {
+          headers: { Authorization: adminAuthorization },
+          data: { reason: "再次重复下架" },
+        },
+      ),
+    );
+
+    expect(repeatedOffline).toMatchObject({
+      status: "offline",
+      moderationReason: "评论违反社区规范",
+    });
+    expect(secondRepeatedOffline).toMatchObject({
+      status: "offline",
+      moderationReason: "评论违反社区规范",
+    });
+    await expect(
+      responseData<PublicCommunityPostCommentListResponse>(
+        await page.request.get(
+          `/api/content/community-posts/${pending.id}/comments?page=1&pageSize=20`,
+        ),
+      ),
+    ).resolves.toMatchObject({ list: [], total: 0 });
+    await expect(
+      responseData<PublicCommunityPostDetail>(
+        await page.request.get(`/api/content/community-posts/${pending.id}`),
+      ),
+    ).resolves.toMatchObject({ commentsCount: 0 });
+    await miniappPage.reload();
+    await expect(miniappPage.getByText(commentContent, { exact: true })).toHaveCount(0);
+
     await page.getByRole("button", { name: "从举报下架帖子" }).click();
     await page.getByLabel(/下架原因/u).fill("举报核实后下架");
     await page.getByRole("button", { name: "确认下架" }).click();
     await expect(page.getByRole("status")).toContainText("下架成功");
 
     await expectFailure(await page.request.get(`/api/content/community-posts/${pending.id}`), 404);
+    await expectFailure(
+      await page.request.get(
+        `/api/content/community-posts/${pending.id}/comments?page=1&pageSize=20`,
+      ),
+      404,
+      "CONTENT_POST_NOT_FOUND",
+    );
+    await expectFailure(
+      await page.request.post(`/api/community/posts/${pending.id}/comments`, {
+        headers: { Authorization: reporterAuthorization },
+        data: { content: "下架后评论" },
+      }),
+      404,
+      "CONTENT_POST_NOT_FOUND",
+    );
     const afterOffline = await responseData<PublicCommunityPostListResponse>(
       await page.request.get("/api/content/community-posts?page=1&pageSize=20"),
     );

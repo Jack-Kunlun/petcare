@@ -1,11 +1,14 @@
 import { ApiProperty } from "@nestjs/swagger";
 import {
   CLASSROOM_ARTICLE_CATEGORY,
+  COMMUNITY_POST_COMMENT_STATUS,
   COMMUNITY_POST_MODERATION_ACTION,
   COMMUNITY_POST_REPORT_REASON,
   COMMUNITY_POST_REPORT_STATUS,
 } from "@petcare/shared-types";
 import type {
+  AdminCommunityPostComment,
+  AdminCommunityPostCommentListResponse,
   AdminCommunityPostReport,
   AdminCommunityPostReportPostSummary,
   AdminCommunityPostReportResponse,
@@ -234,6 +237,48 @@ export class AdminCommunityPostReportResponseDto implements AdminCommunityPostRe
 
   @ApiProperty()
   total: number;
+}
+
+/** Administrator-visible community comment context. */
+export class AdminCommunityPostCommentDto implements AdminCommunityPostComment {
+  @ApiProperty({ format: "uuid" })
+  id: string;
+
+  @ApiProperty({ format: "uuid" })
+  postId: string;
+
+  @ApiProperty({ type: AdminContentAuthorSummaryDto })
+  commenter: AdminContentAuthorSummaryDto;
+
+  @ApiProperty()
+  content: string;
+
+  @ApiProperty({ enum: Object.values(COMMUNITY_POST_COMMENT_STATUS) })
+  status: AdminCommunityPostComment["status"];
+
+  @ApiProperty({ nullable: true })
+  moderationReason: string | null;
+
+  @ApiProperty({ format: "date-time" })
+  createdAt: string;
+
+  @ApiProperty({ format: "date-time" })
+  updatedAt: string;
+}
+
+/** Paginated administrator comment context for one post. */
+export class AdminCommunityPostCommentListResponseDto implements AdminCommunityPostCommentListResponse {
+  @ApiProperty({ type: [AdminCommunityPostCommentDto] })
+  list: AdminCommunityPostCommentDto[];
+
+  @ApiProperty()
+  total: number;
+
+  @ApiProperty()
+  page: number;
+
+  @ApiProperty()
+  pageSize: number;
 }
 
 /** 后台课堂文章列表项响应。 */

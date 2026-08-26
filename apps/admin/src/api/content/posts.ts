@@ -1,4 +1,7 @@
 import type {
+  AdminCommunityPostComment,
+  AdminCommunityPostCommentListResponse,
+  AdminCommunityPostCommentOfflineRequest,
   AdminCommunityPostReportResponse,
   AdminContentPostDetail,
   AdminContentPostListQuery,
@@ -15,6 +18,8 @@ export const postQueryKeys = {
   detail: (id: string) => ["admin-content-posts", "detail", id] as const,
   /** 构造指定社区帖子举报记录的缓存键。 */
   reports: (id: string) => ["admin-content-posts", "reports", id] as const,
+  /** Constructs the cache key for one post's controlled comment context. */
+  comments: (id: string) => ["admin-content-posts", "comments", id] as const,
 };
 
 /** 分页查询后台帖子内容。 */
@@ -41,6 +46,32 @@ export async function fetchAdminContentPostReports(
 ): Promise<AdminCommunityPostReportResponse> {
   const response = await apiClient.get<AdminCommunityPostReportResponse>(
     `/admin/content/posts/${id}/reports`,
+  );
+
+  return response.data;
+}
+
+/** Reads controlled comment and commenter context for one post. */
+export async function fetchAdminContentPostComments(
+  id: string,
+): Promise<AdminCommunityPostCommentListResponse> {
+  const response = await apiClient.get<AdminCommunityPostCommentListResponse>(
+    `/admin/content/posts/${id}/comments`,
+    { params: { page: 1, pageSize: 50 } },
+  );
+
+  return response.data;
+}
+
+/** Takes one visible comment offline with a required moderation reason. */
+export async function offlineAdminContentPostComment(
+  postId: string,
+  commentId: string,
+  request: AdminCommunityPostCommentOfflineRequest,
+): Promise<AdminCommunityPostComment> {
+  const response = await apiClient.post<AdminCommunityPostComment>(
+    `/admin/content/posts/${postId}/comments/${commentId}/offline`,
+    request,
   );
 
   return response.data;

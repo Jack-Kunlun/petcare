@@ -30,6 +30,16 @@ describe("community post reader", () => {
     expect(detail).toContain("getCommunityPostLikeState(postId.value)");
     expect(detail).toContain("likeCommunityPost(postId.value)");
     expect(detail).toContain("unlikeCommunityPost(postId.value)");
+    expect(detail).toContain("getCommunityPostComments(postId.value, query)");
+    expect(detail).toContain("getMyCommunityPostComments(postId.value, query)");
+    expect(detail).toContain("createCommunityPostComment(postId.value");
+    expect(detail).toContain("deleteCommunityPostComment(postId.value, comment.id)");
+    expect(detail).toContain('commentsStatus.value = "loading"');
+    expect(detail).toContain("commentsStatus === 'error'");
+    expect(detail).toContain("comments.length === 0");
+    expect(detail).toContain(':maxlength="200"');
+    expect(detail).toContain(':disabled="!commentSubmittable"');
+    expect(detail).toContain('v-if="comment.canDelete"');
     expect(detail).toContain(':aria-pressed="liked"');
     expect(detail).toContain("likeStateStatus === 'loading'");
     expect(detail).toContain("COMMUNITY_POST_REPORT_REASON_LABELS");
@@ -37,7 +47,6 @@ describe("community post reader", () => {
     expect(detail).toContain(':disabled="reportSubmitting"');
     expect(detail).toContain(':aria-disabled="reportSubmitting"');
     expect(detail).toContain("动态不存在、未公开或加载失败");
-    expect(detail).not.toContain("const comments");
     expect(detail).not.toContain("postActions");
     expect(detail).not.toContain("286 赞");
   });

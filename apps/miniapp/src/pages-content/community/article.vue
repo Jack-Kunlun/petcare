@@ -7,12 +7,17 @@ import {
 import type {
   CommunityPostLikeState,
   CommunityPostReportReason,
+  PublicCommunityPostComment,
   PublicCommunityPostDetail,
 } from "@petcare/shared-types";
 import { computed, ref } from "vue";
 import {
+  createCommunityPostComment,
+  deleteCommunityPostComment,
   getCommunityPost,
+  getCommunityPostComments,
   getCommunityPostLikeState,
+  getMyCommunityPostComments,
   likeCommunityPost,
   reportCommunityPost,
   unlikeCommunityPost,
@@ -21,6 +26,8 @@ import { MiniappApiError } from "@/api/request";
 import SubPageLayout from "@/components/SubPageLayout.vue";
 import { getDefaultAvatar } from "@/state/default-avatar";
 import { requireProfile, session } from "@/state/session";
+
+const COMMENT_PAGE_SIZE = 20;
 
 const postId = ref("");
 const post = ref<PublicCommunityPostDetail | null>(null);
@@ -37,9 +44,32 @@ const reportDescription = ref("");
 const reportSubmitting = ref(false);
 const reportError = ref("");
 const reportSuccess = ref("");
+const comments = ref<PublicCommunityPostComment[]>([]);
+const commentsStatus = ref<"idle" | "loading" | "ready" | "error">("idle");
+const commentsLoading = ref(false);
+const commentsPage = ref(1);
+const commentsTotal = ref(0);
+const commentsViewerId = ref<string | null>(null);
+const commentLoadMoreError = ref("");
+const commentContent = ref("");
+const commentCheckingProfile = ref(false);
+const commentSubmitting = ref(false);
+const commentDeletingId = ref("");
+const commentError = ref("");
+const commentSuccess = ref("");
 const reportReasons = Object.values(COMMUNITY_POST_REPORT_REASON);
 const avatar = computed(() =>
   post.value ? (post.value.author.avatar ?? getDefaultAvatar(post.value.id)) : "",
+);
+const commentBusy = computed(
+  () =>
+    commentCheckingProfile.value ||
+    commentSubmitting.value ||
+    Boolean(commentDeletingId.value) ||
+    commentsStatus.value === "loading",
+);
+const commentSubmittable = computed(
+  () => commentContent.value.trim().length > 0 && !commentBusy.value,
 );
 
 function formatDate(value: string): string {
@@ -119,11 +149,123 @@ async function loadPost(): Promise<void> {
     if (session.user) {
       void loadLikeState();
     }
+
+    void loadComments(true);
   } catch {
     post.value = null;
     status.value = "error";
   } finally {
     loading.value = false;
+  }
+}
+
+async function loadComments(reset: boolean): Promise<void> {
+  if (!post.value || !postId.value || commentsLoading.value) {
+    return;
+  }
+
+  const page = reset ? 1 : commentsPage.value + 1;
+
+  commentsLoading.value = true;
+  commentLoadMoreError.value = "";
+
+  if (reset) {
+    commentsStatus.value = "loading";
+    commentError.value = "";
+  }
+
+  try {
+    const query = { page, pageSize: COMMENT_PAGE_SIZE };
+    const response = session.user
+      ? await getMyCommunityPostComments(postId.value, query)
+      : await getCommunityPostComments(postId.value, query);
+
+    comments.value = reset ? response.list : [...comments.value, ...response.list];
+    commentsPage.value = response.page;
+    commentsTotal.value = response.total;
+    commentsViewerId.value = session.user?.id ?? null;
+    commentsStatus.value = "ready";
+  } catch (error) {
+    const message = error instanceof MiniappApiError ? error.message : "评论加载失败，请重试";
+
+    if (reset) {
+      comments.value = [];
+      commentsStatus.value = "error";
+      commentError.value = message;
+    } else {
+      commentLoadMoreError.value = message;
+    }
+  } finally {
+    commentsLoading.value = false;
+  }
+}
+
+async function submitComment(): Promise<void> {
+  if (!post.value || !postId.value || !commentSubmittable.value) {
+    return;
+  }
+
+  commentCheckingProfile.value = true;
+  commentError.value = "";
+  commentSuccess.value = "";
+  const returnUrl = `/pages-content/community/article?id=${encodeURIComponent(postId.value)}`;
+
+  try {
+    if (!(await requireProfile(returnUrl))) {
+      return;
+    }
+
+    commentCheckingProfile.value = false;
+    commentSubmitting.value = true;
+    const created = await createCommunityPostComment(postId.value, {
+      content: commentContent.value.trim(),
+    });
+
+    comments.value = [created, ...comments.value];
+    commentsTotal.value += 1;
+    commentsViewerId.value = session.user?.id ?? null;
+    commentsStatus.value = "ready";
+    post.value = { ...post.value, commentsCount: post.value.commentsCount + 1 };
+    commentContent.value = "";
+    commentSuccess.value = "评论已发布";
+  } catch (error) {
+    commentError.value = error instanceof MiniappApiError ? error.message : "评论发布失败，请重试";
+  } finally {
+    commentCheckingProfile.value = false;
+    commentSubmitting.value = false;
+  }
+}
+
+async function deleteComment(comment: PublicCommunityPostComment): Promise<void> {
+  if (!comment.canDelete || commentBusy.value || !post.value || !postId.value) {
+    return;
+  }
+
+  const confirmation = await uni.showModal({
+    title: "删除评论",
+    content: "删除后该评论将不再公开显示。",
+    confirmText: "删除",
+    confirmColor: "#dc2626",
+  });
+
+  if (!confirmation.confirm) {
+    return;
+  }
+
+  commentDeletingId.value = comment.id;
+  commentError.value = "";
+  commentSuccess.value = "";
+
+  try {
+    await deleteCommunityPostComment(postId.value, comment.id);
+    comments.value = comments.value.filter((item) => item.id !== comment.id);
+    commentsTotal.value = Math.max(0, commentsTotal.value - 1);
+    post.value = { ...post.value, commentsCount: Math.max(0, post.value.commentsCount - 1) };
+    commentSuccess.value = "评论已删除";
+  } catch (error) {
+    commentError.value = error instanceof MiniappApiError ? error.message : "评论删除失败，请重试";
+  } finally {
+    commentDeletingId.value = "";
   }
 }
 
@@ -240,12 +382,16 @@ onShow(() => {
   if (!session.user) {
     liked.value = false;
     likeStateStatus.value = "idle";
-
-    return;
+  } else if (post.value && likeStateStatus.value === "idle") {
+    void loadLikeState();
   }
 
-  if (post.value && likeStateStatus.value === "idle") {
-    void loadLikeState();
+  if (
+    post.value &&
+    commentsStatus.value !== "loading" &&
+    commentsViewerId.value !== (session.user?.id ?? null)
+  ) {
+    void loadComments(true);
   }
 });
 </script>
@@ -323,7 +469,7 @@ onShow(() => {
           <text v-if="likeError" class="mt-copy block text-small text-danger" role="alert">
             {{ likeError }}
           </text>
-          <text class="mt-copy block quiet-text">评论、关注与分享功能暂未开放</text>
+          <text class="mt-copy block quiet-text">关注与分享功能暂未开放</text>
         </view>
 
         <view class="mt-copy border-t border-divider pt-copy">
@@ -397,6 +543,136 @@ onShow(() => {
               </button>
             </view>
           </view>
+        </view>
+
+        <view class="mt-action border-t border-divider pt-action">
+          <view class="flex items-center justify-between gap-copy">
+            <text class="text-body text-ink font-semibold">评论 {{ commentsTotal }}</text>
+            <button
+              class="min-h-control border border-divider rounded-control bg-surface px-copy text-small text-muted"
+              :disabled="commentsLoading || commentSubmitting || Boolean(commentDeletingId)"
+              :aria-disabled="commentsLoading || commentSubmitting || Boolean(commentDeletingId)"
+              @click="loadComments(true)"
+            >
+              {{ commentsLoading ? "刷新中" : "刷新" }}
+            </button>
+          </view>
+
+          <view class="mt-copy flex flex-col gap-copy rounded-control bg-page-bg p-copy">
+            <textarea
+              v-model="commentContent"
+              class="h-card-cover w-full border border-divider rounded-control bg-surface p-copy text-body text-ink"
+              :maxlength="200"
+              placeholder="说点友善的话（最多 200 字）"
+              :disabled="commentBusy"
+              :aria-disabled="commentBusy"
+            />
+            <view class="flex items-center justify-between gap-copy">
+              <text class="quiet-text">{{ commentContent.length }}/200</text>
+              <button
+                class="min-h-control rounded-control bg-brand-active px-action text-body text-surface font-medium"
+                :disabled="!commentSubmittable"
+                :aria-disabled="!commentSubmittable"
+                :loading="commentSubmitting"
+                @click="submitComment"
+              >
+                {{
+                  commentCheckingProfile
+                    ? "正在检查账号"
+                    : commentSubmitting
+                      ? "发布中"
+                      : session.user
+                        ? "发表评论"
+                        : "登录后评论"
+                }}
+              </button>
+            </view>
+          </view>
+
+          <text v-if="commentSuccess" class="mt-copy block text-small text-success" role="status">
+            {{ commentSuccess }}
+          </text>
+          <text v-if="commentError" class="mt-copy block text-small text-danger" role="alert">
+            {{ commentError }}
+          </text>
+
+          <view v-if="commentsStatus === 'loading'" class="mt-action" aria-live="polite">
+            <text class="quiet-text">评论加载中…</text>
+          </view>
+          <view
+            v-else-if="commentsStatus === 'error'"
+            class="mt-action flex flex-col gap-copy rounded-control bg-danger-soft p-copy"
+            role="alert"
+          >
+            <text class="text-small text-danger">评论暂时不可用</text>
+            <button
+              class="h-control rounded-control bg-brand-active text-body text-surface font-medium"
+              :disabled="commentsLoading"
+              :aria-disabled="commentsLoading"
+              @click="loadComments(true)"
+            >
+              重试加载评论
+            </button>
+          </view>
+          <text
+            v-else-if="comments.length === 0"
+            class="mt-action block quiet-text"
+            aria-live="polite"
+          >
+            暂无评论，来聊聊吧
+          </text>
+          <view v-else class="mt-action flex flex-col gap-copy">
+            <view
+              v-for="comment in comments"
+              :key="comment.id"
+              class="border-b border-divider pb-copy last:border-b-0"
+            >
+              <view class="flex items-center gap-copy">
+                <image
+                  class="h-avatar w-avatar rounded-full"
+                  :src="comment.author.avatar ?? getDefaultAvatar(comment.id)"
+                  mode="aspectFill"
+                />
+                <view class="min-w-0 flex flex-1 flex-col">
+                  <text class="text-body text-ink font-medium">
+                    {{ comment.author.displayName }}
+                  </text>
+                  <text class="quiet-text">{{ formatDate(comment.createdAt) }}</text>
+                </view>
+                <button
+                  v-if="comment.canDelete"
+                  class="min-h-control border border-danger rounded-control bg-surface px-copy text-small text-danger"
+                  :disabled="commentBusy"
+                  :aria-disabled="commentBusy"
+                  :loading="commentDeletingId === comment.id"
+                  @click="deleteComment(comment)"
+                >
+                  {{ commentDeletingId === comment.id ? "删除中" : "删除" }}
+                </button>
+              </view>
+              <text class="mt-copy block text-body text-ink leading-body">
+                {{ comment.content }}
+              </text>
+            </view>
+          </view>
+
+          <text
+            v-if="commentLoadMoreError"
+            class="mt-copy block text-small text-danger"
+            role="alert"
+          >
+            {{ commentLoadMoreError }}
+          </text>
+          <button
+            v-if="comments.length < commentsTotal && commentsStatus === 'ready'"
+            class="mt-copy h-control w-full border border-divider rounded-control bg-surface text-body text-muted"
+            :disabled="commentsLoading || commentBusy"
+            :aria-disabled="commentsLoading || commentBusy"
+            :loading="commentsLoading"
+            @click="loadComments(false)"
+          >
+            {{ commentsLoading ? "加载中" : "加载更多评论" }}
+          </button>
         </view>
       </view>
     </view>

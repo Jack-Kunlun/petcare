@@ -5,6 +5,7 @@ import {
   HttpCode,
   HttpStatus,
   Param,
+  ParseUUIDPipe,
   Post,
   Put,
   Query,
@@ -16,6 +17,8 @@ import {
 import { FileInterceptor } from "@nestjs/platform-express";
 import { ApiBearerAuth, ApiBody, ApiConsumes, ApiOperation, ApiTags } from "@nestjs/swagger";
 import type {
+  AdminCommunityPostComment,
+  AdminCommunityPostCommentListResponse,
   AdminCommunityPostReportResponse,
   AdminClassroomArticleDetail,
   AdminClassroomArticleListResponse,
@@ -52,8 +55,14 @@ import {
   AdminContentRewardListQueryDto,
 } from "./dto/admin-content-query.dto";
 import {
+  AdminCommunityPostCommentOfflineDto,
+  PublicCommunityPostListQueryDto,
+} from "./dto/community-post.dto";
+import {
   AdminClassroomArticleDetailDto,
   AdminClassroomArticleListResponseDto,
+  AdminCommunityPostCommentDto,
+  AdminCommunityPostCommentListResponseDto,
   AdminCommunityPostReportResponseDto,
   AdminContentPostDetailDto,
   AdminContentPostListResponseDto,
@@ -120,6 +129,34 @@ export class AdminContentController {
   @ApiStandardErrors(400, 401, 403, 404, 500)
   findPostReports(@Param("id") id: string): Promise<AdminCommunityPostReportResponse> {
     return this.communityPosts.findReportsForAdmin(id);
+  }
+
+  /** Returns every comment state and private commenter context to post moderators. */
+  @Get("posts/:id/comments")
+  @RequirePermissions("content.post.moderate_action")
+  @ApiOperation({ summary: "获取社区帖子评论上下文" })
+  @ApiSuccessResponse(AdminCommunityPostCommentListResponseDto)
+  @ApiStandardErrors(400, 401, 403, 404, 500)
+  findPostComments(
+    @Param("id", new ParseUUIDPipe({ version: "4" })) id: string,
+    @Query() query: PublicCommunityPostListQueryDto,
+  ): Promise<AdminCommunityPostCommentListResponse> {
+    return this.communityPosts.findCommentsForAdmin(id, query);
+  }
+
+  /** Idempotently removes one visible comment from public view. */
+  @Post("posts/:postId/comments/:commentId/offline")
+  @HttpCode(HttpStatus.OK)
+  @RequirePermissions("content.post.moderate_action")
+  @ApiOperation({ summary: "下架社区帖子评论" })
+  @ApiSuccessResponse(AdminCommunityPostCommentDto)
+  @ApiStandardErrors(400, 401, 403, 404, 409, 500)
+  offlinePostComment(
+    @Param("postId", new ParseUUIDPipe({ version: "4" })) postId: string,
+    @Param("commentId", new ParseUUIDPipe({ version: "4" })) commentId: string,
+    @Body() dto: AdminCommunityPostCommentOfflineDto,
+  ): Promise<AdminCommunityPostComment> {
+    return this.communityPosts.offlineComment(postId, commentId, dto);
   }
 
   /** Publishes one pending community post. */

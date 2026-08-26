@@ -1190,20 +1190,23 @@ model ClassroomArticle {
 }
 
 model Comment {
-  id              String   @id @default(uuid())
-  postId          String   @map("post_id")
-  commenterId     String   @map("commenter_id")
-  content         String
-  parentCommentId String?  @map("parent_comment_id")
-  createdAt       DateTime @default(now()) @map("created_at")
-  updatedAt       DateTime @updatedAt @map("updated_at")
+  id               String   @id @default(uuid())
+  postId           String   @map("post_id")
+  commenterId      String   @map("commenter_id")
+  content          String
+  parentCommentId  String?  @map("parent_comment_id")
+  /// published / offline / deleted
+  status           String   @default("published")
+  moderationReason String?  @map("moderation_reason")
+  createdAt        DateTime @default(now()) @map("created_at")
+  updatedAt        DateTime @updatedAt @map("updated_at")
 
   post      Post      @relation(fields: [postId], references: [id], onDelete: Cascade)
   commenter User      @relation(fields: [commenterId], references: [id], onDelete: Cascade)
   parent    Comment?  @relation("ParentComment", fields: [parentCommentId], references: [id])
   replies   Comment[] @relation("ParentComment")
 
-  @@index([postId])
+  @@index([postId, status, createdAt])
   @@index([commenterId])
   @@map("comments")
 }

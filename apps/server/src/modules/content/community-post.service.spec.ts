@@ -29,6 +29,13 @@ describe("CommunityPostService", () => {
       deleteMany: jest.fn(),
       findUnique: jest.fn(),
     },
+    comment: {
+      create: jest.fn(),
+      findMany: jest.fn(),
+      findFirst: jest.fn(),
+      count: jest.fn(),
+      updateMany: jest.fn(),
+    },
     $transaction: jest.fn(),
   };
   const storage = {
@@ -50,6 +57,10 @@ describe("CommunityPostService", () => {
     prisma.communityPostLike.createMany.mockResolvedValue({ count: 0 });
     prisma.communityPostLike.deleteMany.mockResolvedValue({ count: 0 });
     prisma.communityPostLike.findUnique.mockResolvedValue(null);
+    prisma.comment.findMany.mockResolvedValue([]);
+    prisma.comment.findFirst.mockResolvedValue(null);
+    prisma.comment.count.mockResolvedValue(0);
+    prisma.comment.updateMany.mockResolvedValue({ count: 0 });
   });
 
   it("trims text and creates a pending text-only post", async () => {
@@ -444,6 +455,131 @@ describe("CommunityPostService", () => {
     });
     expect(prisma.communityPostLike.createMany).not.toHaveBeenCalled();
     expect(prisma.post.updateMany).not.toHaveBeenCalled();
+  });
+
+  it("creates and lists a private-safe owned comment with one atomic count increment", async () => {
+    const row = {
+      id: "comment-1",
+      commenterId: "user-1",
+      content: "好可爱",
+      createdAt: new Date("2026-08-26T09:00:00.000Z"),
+      commenter: { nickname: "旺财家长", avatar: null },
+    };
+
+    prisma.post.findFirst.mockResolvedValue({ id: "post-1" });
+    prisma.comment.create.mockResolvedValue(row);
+    prisma.comment.findMany.mockResolvedValue([row]);
+    prisma.comment.count.mockResolvedValue(1);
+    prisma.post.updateMany.mockResolvedValue({ count: 1 });
+
+    await expect(
+      service.createComment("user-1", "post-1", { content: "  好可爱  " }),
+    ).resolves.toEqual({
+      id: "comment-1",
+      author: { displayName: "旺财家长", avatar: null },
+      content: "好可爱",
+      canDelete: true,
+      createdAt: "2026-08-26T09:00:00.000Z",
+    });
+    await expect(
+      service.findPublishedComments("post-1", { page: 1, pageSize: 20 }, "user-1"),
+    ).resolves.toMatchObject({
+      list: [{ id: "comment-1", canDelete: true }],
+      total: 1,
+    });
+    expect(prisma.comment.create).toHaveBeenCalledWith(
+      expect.objectContaining({
+        data: {
+          postId: "post-1",
+          commenterId: "user-1",
+          content: "好可爱",
+          status: "published",
+        },
+      }),
+    );
+    expect(prisma.post.updateMany).toHaveBeenCalledWith({
+      where: { id: "post-1", status: ADMIN_CONTENT_POST_STATUS.PUBLISHED },
+      data: { commentsCount: { increment: 1 } },
+    });
+    expect(prisma.comment.findMany).toHaveBeenCalledWith(
+      expect.objectContaining({
+        where: { postId: "post-1", parentCommentId: null, status: "published" },
+      }),
+    );
+  });
+
+  it("hides missing and non-public posts from comment creation and reads", async () => {
+    prisma.post.findFirst.mockResolvedValue(null);
+
+    await expect(
+      service.createComment("user-1", "post-private", { content: "不可见" }),
+    ).rejects.toMatchObject({ code: "CONTENT_POST_NOT_FOUND" });
+    await expect(
+      service.findPublishedComments("post-private", { page: 1, pageSize: 20 }),
+    ).rejects.toMatchObject({ code: "CONTENT_POST_NOT_FOUND" });
+    expect(prisma.comment.create).not.toHaveBeenCalled();
+    expect(prisma.comment.findMany).not.toHaveBeenCalled();
+  });
+
+  it("idempotently deletes an owned visible comment and decrements once", async () => {
+    prisma.comment.findFirst.mockResolvedValue({ commenterId: "user-1" });
+    prisma.comment.updateMany.mockResolvedValueOnce({ count: 1 }).mockResolvedValue({ count: 0 });
+    prisma.post.updateMany.mockResolvedValue({ count: 1 });
+
+    await expect(
+      service.deleteOwnComment("user-1", "post-1", "comment-1"),
+    ).resolves.toBeUndefined();
+    await expect(
+      service.deleteOwnComment("user-1", "post-1", "comment-1"),
+    ).resolves.toBeUndefined();
+
+    expect(prisma.post.updateMany).toHaveBeenCalledTimes(1);
+    expect(prisma.post.updateMany).toHaveBeenCalledWith({
+      where: { id: "post-1", commentsCount: { gt: 0 } },
+      data: { commentsCount: { decrement: 1 } },
+    });
+  });
+
+  it("rejects deleting another user's comment", async () => {
+    prisma.comment.findFirst.mockResolvedValue({ commenterId: "user-2" });
+
+    await expect(service.deleteOwnComment("user-1", "post-1", "comment-1")).rejects.toMatchObject({
+      code: "CONTENT_COMMENT_FORBIDDEN",
+    });
+    expect(prisma.comment.updateMany).not.toHaveBeenCalled();
+  });
+
+  it("idempotently takes a visible comment offline with moderator context", async () => {
+    const offline = {
+      id: "comment-1",
+      postId: "post-1",
+      content: "违规评论",
+      status: "offline",
+      moderationReason: "违反社区规范",
+      createdAt: new Date("2026-08-26T09:00:00.000Z"),
+      updatedAt: new Date("2026-08-26T09:01:00.000Z"),
+      commenter: {
+        id: "user-1",
+        phone: "13800138000",
+        username: null,
+        nickname: "旺财家长",
+        avatar: null,
+      },
+    };
+
+    prisma.comment.updateMany
+      .mockResolvedValueOnce({ count: 1 })
+      .mockResolvedValueOnce({ count: 0 });
+    prisma.comment.findFirst.mockResolvedValue(offline);
+    prisma.post.updateMany.mockResolvedValue({ count: 1 });
+
+    await expect(
+      service.offlineComment("post-1", "comment-1", { reason: "  违反社区规范  " }),
+    ).resolves.toMatchObject({ status: "offline", moderationReason: "违反社区规范" });
+    await expect(
+      service.offlineComment("post-1", "comment-1", { reason: "重复命令" }),
+    ).resolves.toMatchObject({ status: "offline", moderationReason: "违反社区规范" });
+    expect(prisma.post.updateMany).toHaveBeenCalledTimes(1);
   });
 
   it("accepts one trimmed report for a published post", async () => {

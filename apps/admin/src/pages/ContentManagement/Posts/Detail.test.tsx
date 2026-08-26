@@ -7,8 +7,10 @@ import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
 import {
   approveAdminContentPost,
   fetchAdminContentPost,
+  fetchAdminContentPostComments,
   fetchAdminContentPostReports,
   offlineAdminContentPost,
+  offlineAdminContentPostComment,
   rejectAdminContentPost,
 } from "../../../api/content/posts";
 import ContentPostDetail from "./Detail";
@@ -20,12 +22,15 @@ vi.mock("../../../api/content/posts", () => ({
     all: ["admin-content-posts"],
     detail: (id: string) => ["admin-content-posts", "detail", id],
     reports: (id: string) => ["admin-content-posts", "reports", id],
+    comments: (id: string) => ["admin-content-posts", "comments", id],
   },
   fetchAdminContentPost: vi.fn(),
   fetchAdminContentPostReports: vi.fn(),
+  fetchAdminContentPostComments: vi.fn(),
   approveAdminContentPost: vi.fn(),
   rejectAdminContentPost: vi.fn(),
   offlineAdminContentPost: vi.fn(),
+  offlineAdminContentPostComment: vi.fn(),
 }));
 
 vi.mock("../../../auth/permissions", () => ({
@@ -114,6 +119,45 @@ describe("ContentPostDetail", () => {
       ],
       total: 1,
     });
+    vi.mocked(fetchAdminContentPostComments).mockResolvedValue({
+      list: [
+        {
+          id: "comment-1",
+          postId: "post-1",
+          commenter: {
+            id: "commenter-1",
+            phone: "17679141881",
+            username: null,
+            nickname: "评论用户",
+            avatar: null,
+          },
+          content: "好可爱",
+          status: "published",
+          moderationReason: null,
+          createdAt: "2026-08-26T09:10:00.000Z",
+          updatedAt: "2026-08-26T09:10:00.000Z",
+        },
+      ],
+      total: 1,
+      page: 1,
+      pageSize: 50,
+    });
+    vi.mocked(offlineAdminContentPostComment).mockResolvedValue({
+      id: "comment-1",
+      postId: "post-1",
+      commenter: {
+        id: "commenter-1",
+        phone: "17679141881",
+        username: null,
+        nickname: "评论用户",
+        avatar: null,
+      },
+      content: "好可爱",
+      status: "offline",
+      moderationReason: "违反社区规范",
+      createdAt: "2026-08-26T09:10:00.000Z",
+      updatedAt: "2026-08-26T09:11:00.000Z",
+    });
     vi.mocked(approveAdminContentPost).mockResolvedValue({ ...post, status: "published" });
     vi.mocked(rejectAdminContentPost).mockResolvedValue({
       ...post,
@@ -143,6 +187,7 @@ describe("ContentPostDetail", () => {
     );
     expect(screen.getByText(/运营/u)).toBeInTheDocument();
     expect(await screen.findByText("垃圾广告或诈骗")).toBeInTheDocument();
+    expect(await screen.findByText("好可爱")).toBeInTheDocument();
     expect(screen.getByText(/举报用户/u)).toBeInTheDocument();
     expect(screen.getByRole("button", { name: "审核通过" })).toBeInTheDocument();
 
@@ -177,7 +222,29 @@ describe("ContentPostDetail", () => {
     expect(screen.queryByRole("button", { name: "驳回" })).not.toBeInTheDocument();
     expect(screen.queryByRole("button", { name: "下架帖子" })).not.toBeInTheDocument();
     expect(screen.queryByText("举报记录")).not.toBeInTheDocument();
+    expect(screen.queryByText("评论管理")).not.toBeInTheDocument();
     expect(fetchAdminContentPostReports).not.toHaveBeenCalled();
+    expect(fetchAdminContentPostComments).not.toHaveBeenCalled();
+  });
+
+  it("requires a reason before taking a visible comment offline", async () => {
+    const user = userEvent.setup();
+
+    renderPage();
+
+    await user.click(await screen.findByRole("button", { name: "下架评论" }));
+    const confirm = screen.getByRole("button", { name: "确认下架评论" });
+
+    expect(confirm).toBeDisabled();
+    await user.type(screen.getByLabelText(/评论下架原因/u), "违反社区规范");
+    await user.click(confirm);
+
+    await waitFor(() =>
+      expect(offlineAdminContentPostComment).toHaveBeenCalledWith("post-1", "comment-1", {
+        reason: "违反社区规范",
+      }),
+    );
+    expect(await screen.findByRole("status")).toHaveTextContent("评论下架成功");
   });
 
   it("requires a reason before taking a published post offline", async () => {

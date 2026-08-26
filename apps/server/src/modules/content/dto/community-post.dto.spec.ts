@@ -1,6 +1,8 @@
 import { plainToInstance } from "class-transformer";
 import { validate } from "class-validator";
 import {
+  AdminCommunityPostCommentOfflineDto,
+  CreateCommunityPostCommentDto,
   CreateCommunityPostReportDto,
   CreateCommunityPostDto,
   MyCommunityPostListQueryDto,
@@ -52,6 +54,32 @@ describe("community post DTOs", () => {
     await expect(validate(valid)).resolves.toHaveLength(0);
     await expect(validate(invalid)).resolves.not.toHaveLength(0);
     expect(valid.description).toBe("重复广告");
+  });
+
+  it("trims comments and enforces the 200 character boundary", async () => {
+    const valid = plainToInstance(CreateCommunityPostCommentDto, {
+      content: `  ${"评".repeat(200)}  `,
+    });
+    const tooLong = plainToInstance(CreateCommunityPostCommentDto, {
+      content: "评".repeat(201),
+    });
+    const blank = plainToInstance(CreateCommunityPostCommentDto, { content: "   " });
+
+    await expect(validate(valid)).resolves.toHaveLength(0);
+    await expect(validate(tooLong)).resolves.not.toHaveLength(0);
+    await expect(validate(blank)).resolves.not.toHaveLength(0);
+    expect(valid.content).toHaveLength(200);
+  });
+
+  it("requires and trims a bounded comment offline reason", async () => {
+    const valid = plainToInstance(AdminCommunityPostCommentOfflineDto, {
+      reason: "  违反社区规范  ",
+    });
+    const blank = plainToInstance(AdminCommunityPostCommentOfflineDto, { reason: "   " });
+
+    await expect(validate(valid)).resolves.toHaveLength(0);
+    await expect(validate(blank)).resolves.not.toHaveLength(0);
+    expect(valid.reason).toBe("违反社区规范");
   });
 
   it("uses bounded pagination defaults", async () => {

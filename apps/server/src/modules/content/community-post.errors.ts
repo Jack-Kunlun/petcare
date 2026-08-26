@@ -64,3 +64,22 @@ export function communityPostMediaUnavailable(): ApiException {
     HttpStatus.CONFLICT,
   );
 }
+
+/** Creates a stable error when a community comment is missing from its post context. */
+export function communityPostCommentNotFound(): ApiException {
+  return new ApiException("CONTENT_COMMENT_NOT_FOUND", "社区评论不存在", HttpStatus.NOT_FOUND);
+}
+
+/** Creates a stable error when a user tries to delete another commenter's comment. */
+export function communityPostCommentForbidden(): ApiException {
+  return new ApiException("CONTENT_COMMENT_FORBIDDEN", "无权删除该社区评论", HttpStatus.FORBIDDEN);
+}
+
+/** Creates a stable error when a comment transition cannot preserve its visible count. */
+export function communityPostCommentStateConflict(): ApiException {
+  return new ApiException(
+    "CONTENT_COMMENT_STATE_CONFLICT",
+    "评论状态已变化，请刷新后重试",
+    HttpStatus.CONFLICT,
+  );
+}

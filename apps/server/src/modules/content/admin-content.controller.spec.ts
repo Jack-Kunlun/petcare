@@ -49,6 +49,12 @@ function createController() {
   };
   const communityPosts = {
     findReportsForAdmin: jest.fn().mockResolvedValue({ list: [], total: 0 }),
+    findCommentsForAdmin: jest
+      .fn()
+      .mockResolvedValue({ list: [], total: 0, page: 1, pageSize: 20 }),
+    offlineComment: jest
+      .fn()
+      .mockResolvedValue({ id: "comment-1", status: "offline", moderationReason: "违规" }),
   };
   const articleService = {
     findArticlePage: jest.fn().mockResolvedValue({ list: [], total: 0, page: 1, pageSize: 20 }),
@@ -97,6 +103,8 @@ describe("AdminContentController", () => {
     expect(permissions("findPosts")).toEqual(["content.post.read"]);
     expect(permissions("findPost")).toEqual(["content.post.read"]);
     expect(permissions("findPostReports")).toEqual(["content.post.report_read"]);
+    expect(permissions("findPostComments")).toEqual(["content.post.moderate_action"]);
+    expect(permissions("offlinePostComment")).toEqual(["content.post.moderate_action"]);
     expect(permissions("approvePost")).toEqual(["content.post.moderate_action"]);
     expect(permissions("rejectPost")).toEqual(["content.post.moderate_action"]);
     expect(permissions("offlinePost")).toEqual(["content.post.moderate_action"]);
@@ -128,6 +136,12 @@ describe("AdminContentController", () => {
 
     await expect(controller.findPost("post-1")).resolves.toMatchObject({ status: "pending" });
     await expect(controller.findPostReports("post-1")).resolves.toMatchObject({ total: 0 });
+    await expect(
+      controller.findPostComments("post-1", { page: 1, pageSize: 20 }),
+    ).resolves.toMatchObject({ total: 0 });
+    await expect(
+      controller.offlinePostComment("post-1", "comment-1", { reason: "违规" }),
+    ).resolves.toMatchObject({ status: "offline" });
     await expect(controller.approvePost("post-1", state, request)).resolves.toMatchObject({
       status: "published",
     });
@@ -140,6 +154,13 @@ describe("AdminContentController", () => {
 
     expect(contentService.findPostDetail).toHaveBeenCalledWith("post-1");
     expect(communityPosts.findReportsForAdmin).toHaveBeenCalledWith("post-1");
+    expect(communityPosts.findCommentsForAdmin).toHaveBeenCalledWith("post-1", {
+      page: 1,
+      pageSize: 20,
+    });
+    expect(communityPosts.offlineComment).toHaveBeenCalledWith("post-1", "comment-1", {
+      reason: "违规",
+    });
     expect(contentService.approvePost).toHaveBeenCalledWith("post-1", "admin-1", state);
     expect(contentService.rejectPost).toHaveBeenCalledWith(
       "post-1",

@@ -21,6 +21,8 @@ import {
   ApiTags,
 } from "@nestjs/swagger";
 import type {
+  PublicCommunityPostComment,
+  PublicCommunityPostCommentListResponse,
   CommunityPostLikeState,
   CommunityPostReportReceipt,
   MyCommunityPostListItem,
@@ -40,12 +42,15 @@ import { CommunityPostService } from "./community-post.service";
 import {
   CommunityPostLikeStateDto,
   CommunityPostReportReceiptDto,
+  CreateCommunityPostCommentDto,
   CreateCommunityPostReportDto,
   CreateCommunityPostDto,
   MyCommunityPostListItemDto,
   MyCommunityPostListQueryDto,
   MyCommunityPostListResponseDto,
   PublicCommunityPostDetailDto,
+  PublicCommunityPostCommentDto,
+  PublicCommunityPostCommentListResponseDto,
   PublicCommunityPostListQueryDto,
   PublicCommunityPostListResponseDto,
 } from "./dto/community-post.dto";
@@ -82,6 +87,48 @@ export class CommunityPostController {
     @Query() query: MyCommunityPostListQueryDto,
   ): Promise<MyCommunityPostListResponse> {
     return this.posts.findMine(request.user.sub, query);
+  }
+
+  /** Lists visible comments and marks comments owned by the authenticated viewer. */
+  @Get(":id/comments")
+  @ApiParam({ name: "id", format: "uuid" })
+  @ApiOperation({ summary: "获取社区动态评论及当前用户删除权限" })
+  @ApiSuccessResponse(PublicCommunityPostCommentListResponseDto)
+  @ApiStandardErrors(400, 401, 403, 404, 500)
+  findComments(
+    @Req() request: AuthRequest,
+    @Param("id", new ParseUUIDPipe({ version: "4" })) id: string,
+    @Query() query: PublicCommunityPostListQueryDto,
+  ): Promise<PublicCommunityPostCommentListResponse> {
+    return this.posts.findPublishedComments(id, query, request.user.sub);
+  }
+
+  /** Publishes one plain-text comment below a published post. */
+  @Post(":id/comments")
+  @ApiParam({ name: "id", format: "uuid" })
+  @ApiOperation({ summary: "发表评论" })
+  @ApiSuccessResponse(PublicCommunityPostCommentDto, { status: 201 })
+  @ApiStandardErrors(400, 401, 403, 404, 500)
+  createComment(
+    @Req() request: AuthRequest,
+    @Param("id", new ParseUUIDPipe({ version: "4" })) id: string,
+    @Body() dto: CreateCommunityPostCommentDto,
+  ): Promise<PublicCommunityPostComment> {
+    return this.posts.createComment(request.user.sub, id, dto);
+  }
+
+  /** Idempotently deletes one comment owned by the authenticated commenter. */
+  @Delete(":postId/comments/:commentId")
+  @HttpCode(HttpStatus.NO_CONTENT)
+  @ApiOperation({ summary: "删除自己的评论" })
+  @ApiNoContentResponse({ description: "社区评论已删除" })
+  @ApiStandardErrors(400, 401, 403, 404, 409, 500)
+  deleteOwnComment(
+    @Req() request: AuthRequest,
+    @Param("postId", new ParseUUIDPipe({ version: "4" })) postId: string,
+    @Param("commentId", new ParseUUIDPipe({ version: "4" })) commentId: string,
+  ): Promise<void> {
+    return this.posts.deleteOwnComment(request.user.sub, postId, commentId);
   }
 
   /** Returns the current user's like state for one published post. */
@@ -179,5 +226,18 @@ export class PublicCommunityPostController {
     @Param("id", new ParseUUIDPipe({ version: "4" })) id: string,
   ): Promise<PublicCommunityPostDetail> {
     return this.posts.findPublishedById(id);
+  }
+
+  /** Returns visible comments for one published post without private account fields. */
+  @Get(":id/comments")
+  @ApiParam({ name: "id", format: "uuid" })
+  @ApiOperation({ summary: "获取已发布社区动态评论" })
+  @ApiSuccessResponse(PublicCommunityPostCommentListResponseDto)
+  @ApiStandardErrors(400, 404, 500)
+  findPublishedComments(
+    @Param("id", new ParseUUIDPipe({ version: "4" })) id: string,
+    @Query() query: PublicCommunityPostListQueryDto,
+  ): Promise<PublicCommunityPostCommentListResponse> {
+    return this.posts.findPublishedComments(id, query);
   }
 }
