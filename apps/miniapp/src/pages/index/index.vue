@@ -1,4 +1,9 @@
 <script setup lang="ts">
+import { onShow } from "@dcloudio/uni-app";
+import type { PublicClassroomArticleListItem } from "@petcare/shared-types";
+import { CLASSROOM_ARTICLE_CATEGORY_LABELS } from "@petcare/shared-types";
+import { ref } from "vue";
+import { getClassroomArticles } from "@/api/content";
 import MainTabLayout from "@/components/MainTabLayout.vue";
 
 definePage({
@@ -7,6 +12,13 @@ definePage({
     navigationStyle: "custom",
   },
 });
+
+const HOME_CLASSROOM_PAGE_SIZE = 2;
+const CLASSROOM_COVER_PLACEHOLDER = "/static/main/petcare-placeholder-light.svg";
+
+const classroomArticles = ref<PublicClassroomArticleListItem[]>([]);
+const classroomStatus = ref<"loading" | "ready" | "error">("loading");
+const classroomLoading = ref(false);
 
 const bountyCards = [
   {
@@ -51,8 +63,12 @@ function openReward(id: string) {
   uni.navigateTo({ url: `/pages-bounty/reward/detail?id=${encodeURIComponent(id)}` });
 }
 
-function openClassroomArticle(id: string) {
-  uni.navigateTo({ url: `/pages-content/classroom/article?id=${encodeURIComponent(id)}` });
+function openClassroomArticle(slug: string) {
+  uni.navigateTo({ url: `/pages-content/classroom/article?id=${encodeURIComponent(slug)}` });
+}
+
+function openClassroomList() {
+  uni.redirectTo({ url: "/pages/community/index?tab=classroom" });
 }
 
 function openCommunityArticle(id: string) {
@@ -63,22 +79,36 @@ function openBountyTab() {
   uni.redirectTo({ url: "/pages/bounty/index" });
 }
 
-const classroomArticles = [
-  {
-    id: "article-1",
-    image: "/static/main/community-pet-4.jpg",
-    tag: "日常护理",
-    title: "换季掉毛别焦虑，做好这 4 件事就够了",
-    reads: "2.4k 阅读",
-  },
-  {
-    id: "article-2",
-    image: "/static/main/community-pet-5.jpg",
-    tag: "科学喂养",
-    title: "幼犬第一次换粮，如何平稳度过适应期？",
-    reads: "1.8k 阅读",
-  },
-] as const;
+function classroomCategoryLabel(article: PublicClassroomArticleListItem): string {
+  return article.category ? CLASSROOM_ARTICLE_CATEGORY_LABELS[article.category] : "未分类";
+}
+
+function publishedDate(value: string | null): string {
+  return value?.slice(0, 10) ?? "";
+}
+
+async function loadHomeClassroom(): Promise<void> {
+  if (classroomLoading.value) {
+    return;
+  }
+
+  classroomLoading.value = true;
+  classroomStatus.value = "loading";
+
+  try {
+    const response = await getClassroomArticles({ page: 1, pageSize: HOME_CLASSROOM_PAGE_SIZE });
+
+    classroomArticles.value = response.list;
+    classroomStatus.value = "ready";
+  } catch {
+    classroomArticles.value = [];
+    classroomStatus.value = "error";
+  } finally {
+    classroomLoading.value = false;
+  }
+}
+
+onShow(() => void loadHomeClassroom());
 </script>
 
 <template>
@@ -235,34 +265,92 @@ const classroomArticles = [
 
       <view class="mt-section flex items-center justify-between px-page-horizontal">
         <text class="section-heading">萌宠课堂</text>
-        <text
-          class="text-caption text-brand leading-caption"
+        <view
+          class="h-control flex items-center gap-caption"
+          role="button"
+          aria-label="查看全部课堂文章"
           hover-class="opacity-80"
-          @click="openClassroomArticle('article-1')"
+          @click="openClassroomList"
         >
-          全部文章
-        </text>
+          <text class="text-caption text-brand leading-caption">全部文章</text>
+          <image
+            class="h-icon-xs w-icon-xs"
+            src="/static/main/chevron-brand.svg"
+            mode="aspectFit"
+            aria-hidden="true"
+          />
+        </view>
       </view>
 
-      <view class="mx-page-horizontal mt-copy flex flex-col gap-copy">
+      <view
+        v-if="classroomStatus === 'loading'"
+        class="mx-page-horizontal mt-copy flex flex-col gap-copy"
+        aria-label="课堂文章加载中"
+        aria-live="polite"
+      >
+        <view
+          v-for="index in HOME_CLASSROOM_PAGE_SIZE"
+          :key="index"
+          class="flex gap-copy main-card p-copy"
+        >
+          <view class="h-card-cover w-card-cover shrink-0 rounded-control bg-divider" />
+          <view class="min-w-0 flex flex-1 flex-col gap-copy py-caption">
+            <view class="h-icon-xs w-indicator rounded-pill bg-divider" />
+            <view class="h-icon-xs w-full rounded-pill bg-divider" />
+            <view class="h-icon-xs w-hero-copy rounded-pill bg-divider" />
+          </view>
+        </view>
+      </view>
+
+      <view
+        v-else-if="classroomStatus === 'error'"
+        class="mx-page-horizontal mt-copy flex flex-col gap-copy rounded-card bg-danger-soft p-action"
+        role="alert"
+      >
+        <text class="text-body text-ink leading-body">课堂文章加载失败，请稍后重试</text>
+        <button
+          class="h-control rounded-control bg-brand-active px-action text-body text-surface font-medium"
+          :class="classroomLoading ? 'opacity-50' : ''"
+          :disabled="classroomLoading"
+          :aria-disabled="classroomLoading"
+          :loading="classroomLoading"
+          @click="loadHomeClassroom"
+        >
+          重新加载
+        </button>
+      </view>
+
+      <view
+        v-else-if="classroomArticles.length === 0"
+        class="mx-page-horizontal mt-copy main-card p-action"
+      >
+        <text class="text-body text-muted leading-body">暂无已发布的课堂文章</text>
+      </view>
+
+      <view v-else class="mx-page-horizontal mt-copy flex flex-col gap-copy">
         <view
           v-for="article in classroomArticles"
-          :key="article.title"
+          :key="article.slug"
           class="flex gap-copy main-card p-copy"
           hover-class="opacity-80"
-          @click="openClassroomArticle(article.id)"
+          @click="openClassroomArticle(article.slug)"
         >
           <image
             class="h-card-cover w-card-cover shrink-0 rounded-control"
-            :src="article.image"
+            :src="article.coverUrl || CLASSROOM_COVER_PLACEHOLDER"
             mode="aspectFill"
+            :aria-label="`${article.title}封面`"
           />
           <view class="min-w-0 flex flex-1 flex-col justify-between py-caption">
             <view class="flex flex-col gap-sm">
-              <text class="text-caption text-brand leading-caption">{{ article.tag }}</text>
+              <text class="text-caption text-brand leading-caption">
+                {{ classroomCategoryLabel(article) }}
+              </text>
               <text class="card-heading">{{ article.title }}</text>
             </view>
-            <text class="quiet-text">{{ article.reads }}</text>
+            <text v-if="article.publishedAt" class="quiet-text">
+              发布于 {{ publishedDate(article.publishedAt) }}
+            </text>
           </view>
         </view>
       </view>
