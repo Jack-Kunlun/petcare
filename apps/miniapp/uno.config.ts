@@ -26,6 +26,7 @@ export default defineConfig({
     colors: miniappDesignTokens.colors,
     spacing: miniappDesignTokens.spacing,
     width: miniappDesignTokens.sizes,
+    minWidth: miniappDesignTokens.sizes,
     height: miniappDesignTokens.sizes,
     borderRadius: miniappDesignTokens.radii,
     fontSize: miniappDesignTokens.fontSizes,

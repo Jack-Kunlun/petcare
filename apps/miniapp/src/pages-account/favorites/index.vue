@@ -58,19 +58,19 @@ function openItem(route?: string) {
 
 <template>
   <SubPageLayout title="我的收藏">
-    <view class="px-action py-card">
-      <view class="h-control flex" role="tablist" aria-label="收藏分类">
+    <view class="px-action pb-card pt-copy">
+      <view class="h-control flex items-center gap-screen" role="tablist" aria-label="收藏分类">
         <view
           v-for="tab in tabs"
           :key="tab"
-          class="relative h-control min-w-0 flex flex-1 items-center justify-center"
+          class="relative h-control min-w-control flex shrink-0 items-center justify-center px-caption"
           role="tab"
           :aria-selected="activeTab === tab"
           hover-class="opacity-80"
           @click="activeTab = tab"
         >
           <text
-            class="text-card leading-card"
+            class="text-tab leading-label transition-colors duration-200"
             :class="
               activeTab === tab ? 'text-brand-active font-semibold' : 'text-muted font-medium'
             "

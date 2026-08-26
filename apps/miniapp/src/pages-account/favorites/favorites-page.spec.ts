@@ -1,6 +1,7 @@
 import { readFileSync } from "node:fs";
 import { resolve } from "node:path";
 import { describe, expect, it } from "vitest";
+import { miniappDesignTokens } from "../../config/design-tokens";
 
 const source = readFileSync(resolve(import.meta.dirname, "index.vue"), "utf8");
 
@@ -10,9 +11,17 @@ describe("favorites category tabs", () => {
     expect(source).toContain('role="tab"');
     expect(source).toContain(':aria-selected="activeTab === tab"');
     expect(source).toContain('@click="activeTab = tab"');
-    expect(source).toContain('class="h-control flex"');
+    expect(source).toContain('class="px-action pb-card pt-copy"');
+    expect(source).toContain('class="h-control flex items-center gap-screen"');
+    expect(source).toContain(
+      'class="relative h-control min-w-control flex shrink-0 items-center justify-center px-caption"',
+    );
+    expect(source).toContain("text-tab leading-label transition-colors duration-200");
     expect(source).toContain("text-brand-active font-semibold");
     expect(source).toContain("h-tab-indicator w-indicator rounded-pill bg-brand");
+    expect(miniappDesignTokens.fontSizes.tab).toBe("15px");
+    expect(miniappDesignTokens.sizes["tab-indicator"]).toBe("3px");
+    expect(source).not.toContain("min-w-0 flex flex-1 items-center justify-center");
     expect(source).not.toContain("h-control flex rounded-pill bg-surface p-caption shadow-card");
     expect(source).not.toContain("index === 0 ? 'bg-brand' : ''");
   });
