@@ -9,7 +9,6 @@ declare module 'vue' {
   export interface GlobalComponents {
     MainTabLayout: typeof import('./components/MainTabLayout.vue')['default']
     SubPageLayout: typeof import('./components/SubPageLayout.vue')['default']
-    WdButton: typeof import('@wot-ui/ui/components/wd-button/wd-button.vue')['default']
     WdTabbar: typeof import('@wot-ui/ui/components/wd-tabbar/wd-tabbar.vue')['default']
     WdTabbarItem: typeof import('@wot-ui/ui/components/wd-tabbar-item/wd-tabbar-item.vue')['default']
   }
