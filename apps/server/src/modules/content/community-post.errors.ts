@@ -6,6 +6,11 @@ export function communityPostNotFound(): ApiException {
   return new ApiException("CONTENT_POST_NOT_FOUND", "社区帖子不存在", HttpStatus.NOT_FOUND);
 }
 
+/** Creates a stable error when a user tries to delete another author's post. */
+export function communityPostForbidden(): ApiException {
+  return new ApiException("CONTENT_POST_FORBIDDEN", "无权删除该社区帖子", HttpStatus.FORBIDDEN);
+}
+
 /** Creates a stable error for a command that is invalid in the current post state. */
 export function communityPostStateConflict(): ApiException {
   return new ApiException(

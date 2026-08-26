@@ -5,6 +5,10 @@ import type {
   MyCommunityPostListItem,
   MyCommunityPostListQuery,
   MyCommunityPostListResponse,
+  PublicCommunityPostDetail,
+  PublicCommunityPostListItem,
+  PublicCommunityPostListQuery,
+  PublicCommunityPostListResponse,
 } from "@petcare/shared-types";
 import { PrismaService } from "../../prisma/prisma.service";
 import type { WebsiteMediaStorage } from "../website-content/media/website-media-storage.types";
@@ -16,6 +20,7 @@ import {
   communityMediaStorageUnavailable,
 } from "./community-media.errors";
 import { normalizeCommunityPostStatus } from "./community-post-status";
+import { communityPostForbidden, communityPostNotFound } from "./community-post.errors";
 
 const MAX_MEDIA_COUNT = 9;
 
@@ -29,6 +34,18 @@ type PostRow = {
   updatedAt: Date;
 };
 
+type PublicPostRow = {
+  id: string;
+  content: string;
+  mediaUrls: string[];
+  createdAt: Date;
+  author: {
+    nickname: string;
+    username: string | null;
+    avatar: string | null;
+  };
+};
+
 function toMyPost(row: PostRow): MyCommunityPostListItem {
   const status = normalizeCommunityPostStatus(row.status);
 
@@ -40,6 +57,19 @@ function toMyPost(row: PostRow): MyCommunityPostListItem {
     moderationReason: status === ADMIN_CONTENT_POST_STATUS.REJECTED ? row.moderationReason : null,
     createdAt: row.createdAt.toISOString(),
     updatedAt: row.updatedAt.toISOString(),
+  };
+}
+
+function toPublicPost(row: PublicPostRow): PublicCommunityPostListItem {
+  return {
+    id: row.id,
+    author: {
+      displayName: row.author.nickname.trim() || row.author.username?.trim() || "宠伴用户",
+      avatar: row.author.avatar,
+    },
+    content: row.content,
+    mediaUrls: row.mediaUrls,
+    createdAt: row.createdAt.toISOString(),
   };
 }
 
@@ -146,7 +176,7 @@ export class CommunityPostService {
     authorId: string,
     query: MyCommunityPostListQuery,
   ): Promise<MyCommunityPostListResponse> {
-    const where = { authorId };
+    const where = { authorId, status: { not: ADMIN_CONTENT_POST_STATUS.DELETED } };
     const [list, total] = await Promise.all([
       this.prisma.post.findMany({
         where,
@@ -172,5 +202,81 @@ export class CommunityPostService {
       page: query.page,
       pageSize: query.pageSize,
     };
+  }
+
+  /** Returns only published posts without private author or moderation fields. */
+  async findPublished(
+    query: PublicCommunityPostListQuery,
+  ): Promise<PublicCommunityPostListResponse> {
+    const where = { status: ADMIN_CONTENT_POST_STATUS.PUBLISHED };
+    const select = {
+      id: true,
+      content: true,
+      mediaUrls: true,
+      createdAt: true,
+      author: { select: { nickname: true, username: true, avatar: true } },
+    } as const;
+    const [list, total] = await Promise.all([
+      this.prisma.post.findMany({
+        where,
+        orderBy: { createdAt: "desc" },
+        skip: (query.page - 1) * query.pageSize,
+        take: query.pageSize,
+        select,
+      }),
+      this.prisma.post.count({ where }),
+    ]);
+
+    return {
+      list: list.map(toPublicPost),
+      total,
+      page: query.page,
+      pageSize: query.pageSize,
+    };
+  }
+
+  /** Returns one published post; every non-public state is indistinguishable from missing data. */
+  async findPublishedById(id: string): Promise<PublicCommunityPostDetail> {
+    const post = await this.prisma.post.findFirst({
+      where: { id, status: ADMIN_CONTENT_POST_STATUS.PUBLISHED },
+      select: {
+        id: true,
+        content: true,
+        mediaUrls: true,
+        createdAt: true,
+        author: { select: { nickname: true, username: true, avatar: true } },
+      },
+    });
+
+    if (!post) {
+      throw communityPostNotFound();
+    }
+
+    return toPublicPost(post);
+  }
+
+  /** Soft-deletes an author's own post and treats repeated deletion as success. */
+  async deleteOwn(authorId: string, id: string): Promise<void> {
+    const post = await this.prisma.post.findUnique({
+      where: { id },
+      select: { authorId: true, status: true },
+    });
+
+    if (!post) {
+      throw communityPostNotFound();
+    }
+
+    if (post.authorId !== authorId) {
+      throw communityPostForbidden();
+    }
+
+    if (post.status === ADMIN_CONTENT_POST_STATUS.DELETED) {
+      return;
+    }
+
+    await this.prisma.post.updateMany({
+      where: { id, authorId, status: { not: ADMIN_CONTENT_POST_STATUS.DELETED } },
+      data: { status: ADMIN_CONTENT_POST_STATUS.DELETED, moderationReason: null },
+    });
   }
 }

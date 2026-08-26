@@ -8,6 +8,7 @@ describe("community publisher", () => {
 
     expect(source).toContain("createCommunityPost");
     expect(source).toContain("getMyCommunityPosts");
+    expect(source).toContain("deleteCommunityPost");
     expect(source).toContain("uploadCommunityMedia");
     expect(source).toContain("discardCommunityMedia");
     expect(source).toContain("uni.chooseImage");
@@ -15,9 +16,11 @@ describe("community publisher", () => {
     expect(source).toContain("mediaAssetIds:");
     expect(source).toContain('@click="uploadMedia(item)"');
     expect(source).toContain('@click="removeMedia(item)"');
+    expect(source).toContain('@click="deletePost(post)"');
     expect(source).toContain(':disabled="!canSubmit"');
     expect(source).toContain(':aria-disabled="!canSubmit"');
     expect(source).toContain(':disabled="submitting"');
     expect(source).toContain("未通过原因");
+    expect(source).toContain("删除失败，动态仍保留，请重试");
   });
 });

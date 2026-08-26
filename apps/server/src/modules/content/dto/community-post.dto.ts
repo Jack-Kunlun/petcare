@@ -6,6 +6,10 @@ import type {
   MyCommunityPostListItem,
   MyCommunityPostListQuery,
   MyCommunityPostListResponse,
+  PublicCommunityPostAuthor,
+  PublicCommunityPostDetail,
+  PublicCommunityPostListQuery,
+  PublicCommunityPostListResponse,
 } from "@petcare/shared-types";
 import { Transform, Type } from "class-transformer";
 import {
@@ -106,6 +110,66 @@ export class MyCommunityPostListItemDto implements MyCommunityPostListItem {
 export class MyCommunityPostListResponseDto implements MyCommunityPostListResponse {
   @ApiProperty({ type: [MyCommunityPostListItemDto] })
   list: MyCommunityPostListItemDto[];
+
+  @ApiProperty()
+  total: number;
+
+  @ApiProperty()
+  page: number;
+
+  @ApiProperty()
+  pageSize: number;
+}
+
+/** Pagination for the unauthenticated published community feed. */
+export class PublicCommunityPostListQueryDto implements PublicCommunityPostListQuery {
+  @ApiPropertyOptional({ default: 1, minimum: 1 })
+  @IsOptional()
+  @Type(() => Number)
+  @IsInt()
+  @Min(1)
+  page = 1;
+
+  @ApiPropertyOptional({ default: 20, minimum: 1, maximum: 50 })
+  @IsOptional()
+  @Type(() => Number)
+  @IsInt()
+  @Min(1)
+  @Max(50)
+  pageSize = 20;
+}
+
+/** Public author fields safe for unauthenticated readers. */
+export class PublicCommunityPostAuthorDto implements PublicCommunityPostAuthor {
+  @ApiProperty()
+  displayName: string;
+
+  @ApiProperty({ nullable: true })
+  avatar: string | null;
+}
+
+/** Public published community post response. */
+export class PublicCommunityPostDetailDto implements PublicCommunityPostDetail {
+  @ApiProperty({ format: "uuid" })
+  id: string;
+
+  @ApiProperty({ type: PublicCommunityPostAuthorDto })
+  author: PublicCommunityPostAuthorDto;
+
+  @ApiProperty()
+  content: string;
+
+  @ApiProperty({ type: [String] })
+  mediaUrls: string[];
+
+  @ApiProperty({ format: "date-time" })
+  createdAt: string;
+}
+
+/** Public paginated community feed response. */
+export class PublicCommunityPostListResponseDto implements PublicCommunityPostListResponse {
+  @ApiProperty({ type: [PublicCommunityPostDetailDto] })
+  list: PublicCommunityPostDetailDto[];
 
   @ApiProperty()
   total: number;

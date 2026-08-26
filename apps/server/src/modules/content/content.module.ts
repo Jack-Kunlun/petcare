@@ -5,7 +5,10 @@ import { AdminContentController } from "./admin-content.controller";
 import { ClassroomArticleService } from "./classroom-article.service";
 import { CommunityMediaController } from "./community-media.controller";
 import { CommunityMediaService } from "./community-media.service";
-import { CommunityPostController } from "./community-post.controller";
+import {
+  CommunityPostController,
+  PublicCommunityPostController,
+} from "./community-post.controller";
 import { CommunityPostService } from "./community-post.service";
 import { ContentService } from "./content.service";
 import { PublicContentController } from "./public-content.controller";
@@ -17,6 +20,7 @@ import { PublicContentController } from "./public-content.controller";
     AdminContentController,
     CommunityMediaController,
     CommunityPostController,
+    PublicCommunityPostController,
     PublicContentController,
   ],
   providers: [ContentService, ClassroomArticleService, CommunityMediaService, CommunityPostService],

@@ -71,8 +71,8 @@ function openClassroomList() {
   uni.redirectTo({ url: "/pages/community/index?tab=classroom" });
 }
 
-function openCommunityArticle(id: string) {
-  uni.navigateTo({ url: `/pages-content/community/article?id=${encodeURIComponent(id)}` });
+function openCommunityList() {
+  uni.redirectTo({ url: "/pages/community/index" });
 }
 
 function openBountyTab() {
@@ -359,19 +359,15 @@ onShow(() => void loadHomeClassroom());
         <text class="section-heading">社区精选</text>
       </view>
       <view
-        class="mx-page-horizontal mt-copy overflow-hidden main-card"
+        class="mx-page-horizontal mt-copy flex items-center justify-between gap-copy main-card p-action"
         hover-class="opacity-80"
-        @click="openCommunityArticle('post-1')"
+        @click="openCommunityList"
       >
-        <image
-          class="h-hero-main w-full"
-          src="/static/main/community-pet-2.jpg"
-          mode="aspectFill"
-        />
-        <view class="flex flex-col gap-sm p-card-padding">
-          <text class="card-heading">第一次带旺财参加宠物友好市集，开心到不想回家</text>
-          <text class="meta-text">来自 小林与旺财 · 1.2k 人正在讨论</text>
+        <view class="min-w-0 flex flex-1 flex-col gap-sm">
+          <text class="card-heading">发现真实养宠动态</text>
+          <text class="meta-text">查看审核通过的社区分享</text>
         </view>
+        <image class="h-icon-xs w-icon-xs" src="/static/main/chevron.svg" mode="aspectFit" />
       </view>
     </view>
   </MainTabLayout>

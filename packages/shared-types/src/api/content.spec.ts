@@ -20,6 +20,8 @@ import {
   type MyCommunityPostListResponse,
   type PublicClassroomArticleDetail,
   type PublicClassroomArticleListResponse,
+  type PublicCommunityPostDetail,
+  type PublicCommunityPostListResponse,
   type UpdateAdminClassroomArticleRequest,
   type UploadAdminClassroomArticleMediaResponse,
 } from "./content";
@@ -144,6 +146,29 @@ describe("content contracts", () => {
       "offline",
     ]);
     expect(detail.moderationHistory[0].reason).toBe("包含联系方式");
+  });
+
+  it("keeps public community posts free of private and unsupported interaction fields", () => {
+    const list: PublicCommunityPostListResponse = {
+      list: [
+        {
+          id: "post-1",
+          author: { displayName: "旺财家长", avatar: null },
+          content: "今天带旺财散步",
+          mediaUrls: ["https://cdn.example/community.png"],
+          createdAt: "2026-08-26T08:00:00.000Z",
+        },
+      ],
+      total: 1,
+      page: 1,
+      pageSize: 20,
+    };
+    const detail: PublicCommunityPostDetail = list.list[0];
+
+    expect(detail.author.displayName).toBe("旺财家长");
+    expect("phone" in detail.author).toBe(false);
+    expect("moderationReason" in detail).toBe(false);
+    expect("likesCount" in detail).toBe(false);
   });
 
   it("keeps official website article contracts limited to public fields", () => {

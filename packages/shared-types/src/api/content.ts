@@ -287,6 +287,42 @@ export interface MyCommunityPostListQuery {
 /** 作者自己的社区动态分页响应。 */
 export type MyCommunityPostListResponse = PaginatedResponse<MyCommunityPostListItem>;
 
+/** Public community author fields safe for unauthenticated readers. */
+export interface PublicCommunityPostAuthor {
+  /** Display name selected from the author's public profile fields. */
+  displayName: string;
+  /** Optional public avatar URL. */
+  avatar: string | null;
+}
+
+/** Published community post exposed to unauthenticated readers. */
+export interface PublicCommunityPostListItem {
+  /** Community post identifier used by the detail route. */
+  id: string;
+  /** Public author display data without account contact fields. */
+  author: PublicCommunityPostAuthor;
+  /** Full published post text. */
+  content: string;
+  /** Public image URLs in author-selected order. */
+  mediaUrls: string[];
+  /** Post creation time in ISO 8601 format. */
+  createdAt: string;
+}
+
+/** Published community post detail. */
+export type PublicCommunityPostDetail = PublicCommunityPostListItem;
+
+/** Pagination accepted by the public community feed. */
+export interface PublicCommunityPostListQuery {
+  /** One-based result page. */
+  page: number;
+  /** Number of posts per page, from 1 through 50. */
+  pageSize: number;
+}
+
+/** Public paginated community feed response. */
+export type PublicCommunityPostListResponse = PaginatedResponse<PublicCommunityPostListItem>;
+
 /** 后台课堂文章列表项。 */
 export interface AdminClassroomArticleListItem {
   /** 课堂文章唯一标识。 */

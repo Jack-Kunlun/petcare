@@ -10,7 +10,10 @@ describe("CommunityPostService", () => {
     post: {
       create: jest.fn(),
       findMany: jest.fn(),
+      findFirst: jest.fn(),
+      findUnique: jest.fn(),
       count: jest.fn(),
+      updateMany: jest.fn(),
     },
     communityMediaAsset: {
       findMany: jest.fn(),
@@ -243,7 +246,11 @@ describe("CommunityPostService", () => {
       pageSize: 10,
     });
     expect(prisma.post.findMany).toHaveBeenCalledWith(
-      expect.objectContaining({ where: { authorId: "user-1" }, skip: 10, take: 10 }),
+      expect.objectContaining({
+        where: { authorId: "user-1", status: { not: ADMIN_CONTENT_POST_STATUS.DELETED } },
+        skip: 10,
+        take: 10,
+      }),
     );
   });
 
@@ -264,5 +271,82 @@ describe("CommunityPostService", () => {
     await expect(service.findMine("user-1", { page: 1, pageSize: 20 })).resolves.toMatchObject({
       list: [{ id: "post-legacy", status: ADMIN_CONTENT_POST_STATUS.PENDING }],
     });
+  });
+
+  it("lists only published posts with safe public author fields", async () => {
+    prisma.post.findMany.mockResolvedValue([
+      {
+        id: "post-public",
+        content: "公开动态",
+        mediaUrls: ["https://cdn.example/1.png"],
+        createdAt: new Date("2026-08-26T08:00:00.000Z"),
+        author: { nickname: "  ", username: "public-user", avatar: null },
+      },
+    ]);
+    prisma.post.count.mockResolvedValue(1);
+
+    await expect(service.findPublished({ page: 2, pageSize: 10 })).resolves.toEqual({
+      list: [
+        {
+          id: "post-public",
+          author: { displayName: "public-user", avatar: null },
+          content: "公开动态",
+          mediaUrls: ["https://cdn.example/1.png"],
+          createdAt: "2026-08-26T08:00:00.000Z",
+        },
+      ],
+      total: 1,
+      page: 2,
+      pageSize: 10,
+    });
+    expect(prisma.post.findMany).toHaveBeenCalledWith(
+      expect.objectContaining({
+        where: { status: ADMIN_CONTENT_POST_STATUS.PUBLISHED },
+        skip: 10,
+        take: 10,
+      }),
+    );
+  });
+
+  it("uses the same not-found response for missing and non-public post detail", async () => {
+    prisma.post.findFirst.mockResolvedValue(null);
+
+    await expect(service.findPublishedById("post-private")).rejects.toMatchObject({
+      code: "CONTENT_POST_NOT_FOUND",
+    });
+    expect(prisma.post.findFirst).toHaveBeenCalledWith(
+      expect.objectContaining({
+        where: { id: "post-private", status: ADMIN_CONTENT_POST_STATUS.PUBLISHED },
+      }),
+    );
+  });
+
+  it("soft-deletes an owned post and treats a repeated delete as success", async () => {
+    prisma.post.findUnique
+      .mockResolvedValueOnce({ authorId: "user-1", status: "published" })
+      .mockResolvedValueOnce({ authorId: "user-1", status: "deleted" });
+    prisma.post.updateMany.mockResolvedValue({ count: 1 });
+
+    await expect(service.deleteOwn("user-1", "post-1")).resolves.toBeUndefined();
+    await expect(service.deleteOwn("user-1", "post-1")).resolves.toBeUndefined();
+
+    expect(prisma.post.updateMany).toHaveBeenCalledTimes(1);
+    expect(prisma.post.updateMany).toHaveBeenCalledWith({
+      where: {
+        id: "post-1",
+        authorId: "user-1",
+        status: { not: ADMIN_CONTENT_POST_STATUS.DELETED },
+      },
+      data: { status: ADMIN_CONTENT_POST_STATUS.DELETED, moderationReason: null },
+    });
+  });
+
+  it("rejects deletion by a non-owner without changing the post", async () => {
+    prisma.post.findUnique.mockResolvedValue({ authorId: "user-2", status: "published" });
+
+    await expect(service.deleteOwn("user-1", "post-1")).rejects.toMatchObject({
+      code: "CONTENT_POST_FORBIDDEN",
+    });
+    expect(prisma.post.updateMany).not.toHaveBeenCalled();
   });
 });

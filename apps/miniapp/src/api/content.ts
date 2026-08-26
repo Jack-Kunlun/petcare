@@ -7,6 +7,9 @@ import type {
   PublicClassroomArticleDetail,
   PublicClassroomArticleListQuery,
   PublicClassroomArticleListResponse,
+  PublicCommunityPostDetail,
+  PublicCommunityPostListQuery,
+  PublicCommunityPostListResponse,
   WebsiteContentKey,
   WebsitePublicContent,
 } from "@petcare/shared-types";
@@ -41,6 +44,25 @@ export function getMyCommunityPosts(
   query: MyCommunityPostListQuery,
 ): Promise<MyCommunityPostListResponse> {
   return authorizedRequest("/community/posts/mine", { data: query });
+}
+
+/** Soft-deletes one post owned by the authenticated author. */
+export function deleteCommunityPost(id: string): Promise<void> {
+  return authorizedRequest(`/community/posts/${encodeURIComponent(id)}`, { method: "DELETE" });
+}
+
+/** Reads a page of currently published community posts. */
+export function getCommunityPosts(
+  query: PublicCommunityPostListQuery,
+): Promise<PublicCommunityPostListResponse> {
+  return rawRequest<PublicCommunityPostListResponse>("/content/community-posts", { data: query });
+}
+
+/** Reads one currently published community post. */
+export function getCommunityPost(id: string): Promise<PublicCommunityPostDetail> {
+  return rawRequest<PublicCommunityPostDetail>(
+    `/content/community-posts/${encodeURIComponent(id)}`,
+  );
 }
 
 /** Reads a filtered page of currently published classroom articles. */

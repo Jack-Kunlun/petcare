@@ -3,6 +3,7 @@ import { onLoad } from "@dcloudio/uni-app";
 import type {
   ClassroomArticleCategory,
   PublicClassroomArticleListItem,
+  PublicCommunityPostListItem,
 } from "@petcare/shared-types";
 import {
   CLASSROOM_ARTICLE_CATEGORY,
@@ -10,8 +11,9 @@ import {
 } from "@petcare/shared-types";
 import { computed, ref } from "vue";
 import { openCommunityPublishEntry } from "./publish-entry";
-import { getClassroomArticles } from "@/api/content";
+import { getClassroomArticles, getCommunityPosts } from "@/api/content";
 import MainTabLayout from "@/components/MainTabLayout.vue";
+import { getDefaultAvatar } from "@/state/default-avatar";
 
 definePage({
   style: {
@@ -21,6 +23,7 @@ definePage({
 });
 
 const CLASSROOM_PAGE_SIZE = 10;
+const COMMUNITY_PAGE_SIZE = 10;
 const channelTabs = [
   { value: "featured", label: "社区精选", disabled: false },
   { value: "classroom", label: "萌宠课堂", disabled: false },
@@ -43,42 +46,46 @@ const classroomPage = ref(1);
 const classroomTotal = ref(0);
 const publishPending = ref(false);
 const classroomHasMore = computed(() => classroomArticles.value.length < classroomTotal.value);
+const featuredPosts = ref<PublicCommunityPostListItem[]>([]);
+const featuredStatus = ref<"idle" | "loading" | "ready" | "error">("idle");
+const featuredLoading = ref(false);
+const featuredLoadMoreError = ref(false);
+const featuredPage = ref(1);
+const featuredTotal = ref(0);
+const featuredHasMore = computed(() => featuredPosts.value.length < featuredTotal.value);
 
-const posts = [
-  {
-    id: "post-1",
-    avatar: "/static/main/owner-1.jpg",
-    author: "小林与旺财",
-    detail: "静安区 · 12分钟前",
-    text: "今天第一次带旺财去宠物友好市集，见到好多新朋友，回家路上还一直回头看。",
-    image: "/static/main/community-pet-2.jpg",
-    tag: "#城市养宠日记",
-    likes: "286",
-    comments: "42",
-  },
-  {
-    id: "post-2",
-    avatar: "/static/main/owner-5.jpg",
-    author: "栗子妈妈",
-    detail: "长宁区 · 35分钟前",
-    text: "换季梳毛第三天，终于找到了栗子最喜欢的梳子。动作慢一点，它就会主动趴好啦。",
-    image: "/static/main/community-pet-3.jpg",
-    tag: "#猫咪护理",
-    likes: "168",
-    comments: "31",
-  },
-  {
-    id: "post-3",
-    avatar: "/static/main/owner-4.jpg",
-    author: "阿哲和团子",
-    detail: "普陀区 · 1小时前",
-    text: "清晨散步的路线收藏好了，树荫多、人也少，特别适合怕热的小短腿。",
-    image: "/static/main/community-pet-5.jpg",
-    tag: "#附近遛狗路线",
-    likes: "94",
-    comments: "18",
-  },
-] as const;
+async function loadFeatured(reset = true): Promise<void> {
+  if (featuredLoading.value) {
+    return;
+  }
+
+  featuredLoading.value = true;
+  featuredLoadMoreError.value = false;
+
+  if (reset) {
+    featuredStatus.value = "loading";
+  }
+
+  try {
+    const page = reset ? 1 : featuredPage.value + 1;
+    const response = await getCommunityPosts({ page, pageSize: COMMUNITY_PAGE_SIZE });
+
+    featuredPosts.value = reset ? response.list : [...featuredPosts.value, ...response.list];
+    featuredPage.value = response.page;
+    featuredTotal.value = response.total;
+    featuredStatus.value = "ready";
+  } catch {
+    if (reset) {
+      featuredPosts.value = [];
+      featuredTotal.value = 0;
+      featuredStatus.value = "error";
+    } else {
+      featuredLoadMoreError.value = true;
+    }
+  } finally {
+    featuredLoading.value = false;
+  }
+}
 
 async function loadClassroom(reset = true): Promise<void> {
   if (classroomLoading.value) {
@@ -136,6 +143,10 @@ function selectChannel(tab: (typeof channelTabs)[number]): void {
   if (tab.value === "classroom" && classroomStatus.value === "idle") {
     void loadClassroom();
   }
+
+  if (tab.value === "featured" && featuredStatus.value === "idle") {
+    void loadFeatured();
+  }
 }
 
 function selectCategory(category: ClassroomArticleCategory | null): void {
@@ -159,12 +170,26 @@ function loadMoreClassroom(): void {
   }
 }
 
+function loadMoreFeatured(): void {
+  if (!featuredLoading.value && featuredHasMore.value) {
+    void loadFeatured(false);
+  }
+}
+
 function classroomCategoryLabel(category: ClassroomArticleCategory | null): string {
   return category ? CLASSROOM_ARTICLE_CATEGORY_LABELS[category] : "未分类";
 }
 
 function publishedDate(value: string | null): string {
   return value?.slice(0, 10) ?? "";
+}
+
+function communityDate(value: string): string {
+  return value.slice(0, 16).replace("T", " ");
+}
+
+function communityAvatar(post: PublicCommunityPostListItem): string {
+  return post.author.avatar ?? getDefaultAvatar(post.id);
 }
 
 function openClassroomArticle(slug: string): void {
@@ -183,7 +208,11 @@ onLoad((query = {}) => {
   if (query.tab === "classroom") {
     activeChannel.value = "classroom";
     void loadClassroom();
+
+    return;
   }
+
+  void loadFeatured();
 });
 </script>
 
@@ -389,53 +418,83 @@ onLoad((query = {}) => {
 
       <template v-else>
         <view
-          class="mx-page-horizontal mt-copy flex items-center justify-between rounded-card from-brand to-brand-active bg-gradient-to-r p-card-padding text-surface shadow-card"
+          class="mx-page-horizontal mt-copy rounded-card from-brand to-brand-active bg-gradient-to-r p-card-padding text-surface shadow-card"
         >
           <view class="flex flex-col gap-caption">
-            <text class="text-card font-semibold leading-card">今日社区活力</text>
-            <text class="text-caption leading-caption">分享真实养宠生活，发现身边同好</text>
-          </view>
-          <view class="flex gap-action">
-            <view class="flex flex-col items-center">
-              <text class="text-card font-semibold leading-card">328</text>
-              <text class="text-micro leading-micro">今日新增</text>
-            </view>
-            <view class="flex flex-col items-center">
-              <text class="text-card font-semibold leading-card">2.4k</text>
-              <text class="text-micro leading-micro">互动</text>
-            </view>
+            <text class="text-card font-semibold leading-card">真实养宠生活</text>
+            <text class="text-caption leading-caption">这里仅展示审核通过的社区动态</text>
           </view>
         </view>
 
         <view class="mt-card flex items-center justify-between px-page-horizontal">
           <view class="flex items-end gap-sm">
             <text class="section-heading">社区精选</text>
-            <text class="quiet-text">1,286 人正在这里</text>
+            <text v-if="featuredStatus === 'ready'" class="quiet-text">
+              {{ featuredTotal }} 条动态
+            </text>
           </view>
-          <text class="text-caption text-brand leading-caption">刷新</text>
+          <button
+            class="h-control rounded-control bg-transparent px-copy text-caption text-brand leading-caption"
+            :class="featuredLoading ? 'opacity-50' : ''"
+            :disabled="featuredLoading"
+            :aria-disabled="featuredLoading"
+            :loading="featuredLoading"
+            @click="loadFeatured()"
+          >
+            刷新
+          </button>
         </view>
 
-        <view class="mx-page-horizontal mt-copy flex flex-col gap-copy">
-          <view v-for="post in posts" :key="post.author" class="overflow-hidden main-card">
+        <view
+          v-if="featuredStatus === 'loading'"
+          class="mx-page-horizontal mt-copy main-card p-action"
+          aria-live="polite"
+        >
+          <text class="text-body text-muted leading-body">社区动态加载中…</text>
+        </view>
+
+        <view
+          v-else-if="featuredStatus === 'error'"
+          class="mx-page-horizontal mt-copy flex flex-col gap-copy rounded-card bg-danger-soft p-action"
+          role="alert"
+        >
+          <text class="text-body text-ink leading-body">社区动态加载失败，请稍后重试</text>
+          <button
+            class="h-control rounded-control bg-brand-active px-action text-body text-surface font-medium"
+            :disabled="featuredLoading"
+            :aria-disabled="featuredLoading"
+            :loading="featuredLoading"
+            @click="loadFeatured()"
+          >
+            重新加载
+          </button>
+        </view>
+
+        <view
+          v-else-if="featuredStatus === 'ready' && featuredPosts.length === 0"
+          class="mx-page-horizontal mt-copy main-card p-action"
+        >
+          <text class="text-body text-muted leading-body">还没有已发布的社区动态</text>
+        </view>
+
+        <view
+          v-else-if="featuredStatus === 'ready'"
+          class="mx-page-horizontal mt-copy flex flex-col gap-copy"
+        >
+          <view v-for="post in featuredPosts" :key="post.id" class="overflow-hidden main-card">
             <view class="flex items-center justify-between p-card-padding pb-copy">
               <view class="flex items-center gap-copy">
                 <image
                   class="h-avatar w-avatar rounded-full"
-                  :src="post.avatar"
+                  :src="communityAvatar(post)"
                   mode="aspectFill"
                 />
                 <view class="flex flex-col">
                   <text class="text-body text-ink font-semibold leading-label">
-                    {{ post.author }}
+                    {{ post.author.displayName }}
                   </text>
-                  <text class="quiet-text">{{ post.detail }}</text>
+                  <text class="quiet-text">{{ communityDate(post.createdAt) }}</text>
                 </view>
-              </view>
-              <view
-                class="border border-brand rounded-pill px-copy py-caption opacity-50"
-                aria-disabled="true"
-              >
-                <text class="text-caption text-brand font-medium leading-caption">关注</text>
               </view>
             </view>
 
@@ -444,50 +503,54 @@ onLoad((query = {}) => {
               hover-class="opacity-80"
               @click="openCommunityArticle(post.id)"
             >
-              <text class="text-body text-ink leading-body">{{ post.text }}</text>
+              <text class="text-body text-ink leading-body">{{ post.content }}</text>
             </view>
 
             <view
-              class="relative mx-card-padding h-hero-main overflow-hidden rounded-control"
+              v-if="post.mediaUrls.length > 0"
+              class="grid grid-cols-3 mx-card-padding gap-sm"
               hover-class="opacity-80"
               @click="openCommunityArticle(post.id)"
             >
-              <image class="h-full w-full" :src="post.image" mode="aspectFill" />
-              <view class="absolute bottom-sm left-sm rounded-pill bg-ink px-sm py-caption">
-                <text class="text-caption text-surface leading-caption">{{ post.tag }}</text>
-              </view>
+              <image
+                v-for="url in post.mediaUrls"
+                :key="url"
+                class="h-card-cover w-full rounded-control"
+                :src="url"
+                mode="aspectFill"
+              />
             </view>
 
-            <view
-              class="mt-copy flex items-center border-t border-divider px-card-padding py-copy opacity-50"
-              aria-disabled="true"
-            >
-              <view class="h-control flex flex-1 items-center gap-sm">
-                <image
-                  class="h-icon-sm w-icon-sm"
-                  src="/static/main/community-like.svg"
-                  mode="aspectFit"
-                />
-                <text class="text-caption text-muted leading-caption">{{ post.likes }}</text>
-              </view>
-              <view class="h-control flex flex-1 items-center justify-center gap-sm">
-                <image
-                  class="h-icon-sm w-icon-sm"
-                  src="/static/main/community-comment.svg"
-                  mode="aspectFit"
-                />
-                <text class="text-caption text-muted leading-caption">{{ post.comments }}</text>
-              </view>
-              <view class="h-control flex flex-1 items-center justify-end gap-sm">
-                <image
-                  class="h-icon-sm w-icon-sm"
-                  src="/static/main/community-share.svg"
-                  mode="aspectFit"
-                />
-                <text class="text-caption text-muted leading-caption">分享</text>
-              </view>
+            <view class="mt-copy border-t border-divider px-card-padding py-copy">
+              <text class="quiet-text">点赞、评论、关注与分享功能暂未开放</text>
             </view>
           </view>
+
+          <view v-if="featuredLoadMoreError" class="flex flex-col gap-copy" role="alert">
+            <text class="text-center text-caption text-danger leading-caption">
+              更多动态加载失败
+            </text>
+            <button
+              class="h-control border border-brand rounded-control bg-surface px-action text-body text-brand font-medium"
+              :disabled="featuredLoading"
+              :aria-disabled="featuredLoading"
+              :loading="featuredLoading"
+              @click="loadMoreFeatured"
+            >
+              重试加载更多
+            </button>
+          </view>
+          <button
+            v-else-if="featuredHasMore"
+            class="h-control w-full border border-brand rounded-control bg-surface px-action text-body text-brand font-medium"
+            :class="featuredLoading ? 'opacity-50' : ''"
+            :disabled="featuredLoading"
+            :aria-disabled="featuredLoading"
+            :loading="featuredLoading"
+            @click="loadMoreFeatured"
+          >
+            加载更多
+          </button>
         </view>
       </template>
     </view>

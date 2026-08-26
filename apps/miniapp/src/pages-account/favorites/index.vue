@@ -25,10 +25,9 @@ const items: FavoriteItem[] = [
   },
   {
     kind: "动态",
-    title: "第一次带旺财参加宠物友好市集",
-    detail: "小林与旺财 · 286 赞",
-    image: "/static/main/community-pet-2.jpg",
-    route: "/pages-content/community/article?id=post-1",
+    title: "动态收藏暂未开放",
+    detail: "社区互动能力将在后续版本提供",
+    image: "/static/main/petcare-placeholder-light.svg",
   },
   {
     kind: "服务",

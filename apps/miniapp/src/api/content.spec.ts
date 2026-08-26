@@ -3,9 +3,12 @@ import { beforeEach, describe, expect, it, vi } from "vitest";
 import { authorizedRequest, authorizedUpload } from "../state/session";
 import {
   createCommunityPost,
+  deleteCommunityPost,
   discardCommunityMedia,
   getClassroomArticle,
   getClassroomArticles,
+  getCommunityPost,
+  getCommunityPosts,
   getMyCommunityPosts,
   uploadCommunityMedia,
 } from "./content";
@@ -63,10 +66,24 @@ describe("miniapp content API", () => {
 
     await createCommunityPost({ content: "今天带旺财散步" });
     await getMyCommunityPosts({ page: 1, pageSize: 20 });
+    await deleteCommunityPost("post/1");
 
     expect(authorizedRequestMock.mock.calls).toEqual([
       ["/community/posts", { method: "POST", data: { content: "今天带旺财散步" } }],
       ["/community/posts/mine", { data: { page: 1, pageSize: 20 } }],
+      ["/community/posts/post%2F1", { method: "DELETE" }],
+    ]);
+  });
+
+  it("reads public community pages and encoded detail ids without authentication", async () => {
+    rawRequestMock.mockResolvedValue({ list: [], total: 0, page: 1, pageSize: 10 });
+
+    await getCommunityPosts({ page: 1, pageSize: 10 });
+    await getCommunityPost("post/1");
+
+    expect(rawRequestMock.mock.calls).toEqual([
+      ["/content/community-posts", { data: { page: 1, pageSize: 10 } }],
+      ["/content/community-posts/post%2F1"],
     ]);
   });
 

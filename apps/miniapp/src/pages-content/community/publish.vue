@@ -9,6 +9,7 @@ import type {
 import { computed, ref } from "vue";
 import {
   createCommunityPost,
+  deleteCommunityPost,
   discardCommunityMedia,
   getMyCommunityPosts,
   uploadCommunityMedia,
@@ -39,6 +40,8 @@ const listLoading = ref(false);
 const choosingMedia = ref(false);
 const submitting = ref(false);
 const submitError = ref("");
+const deletingPostId = ref("");
+const deleteError = ref("");
 const trimmedContent = computed(() => content.value.trim());
 const mediaUploading = computed(() => draftMedia.value.some((item) => item.status === "uploading"));
 const mediaFailed = computed(() => draftMedia.value.some((item) => item.status === "error"));
@@ -213,6 +216,38 @@ async function submit(): Promise<void> {
   }
 }
 
+async function deletePost(post: MyCommunityPostListItem): Promise<void> {
+  if (deletingPostId.value) {
+    return;
+  }
+
+  const confirmation = await uni
+    .showModal({
+      title: "删除动态",
+      content: "删除后将不再公开展示，确定继续吗？",
+      confirmText: "删除",
+    })
+    .catch(() => null);
+
+  if (!confirmation?.confirm) {
+    return;
+  }
+
+  deletingPostId.value = post.id;
+  deleteError.value = "";
+
+  try {
+    await deleteCommunityPost(post.id);
+    posts.value = posts.value.filter((item) => item.id !== post.id);
+    total.value = Math.max(0, total.value - 1);
+    await uni.showToast({ title: "动态已删除", icon: "success" }).catch(() => undefined);
+  } catch (error) {
+    deleteError.value = errorMessage(error, "删除失败，动态仍保留，请重试");
+  } finally {
+    deletingPostId.value = "";
+  }
+}
+
 onLoad(() => {
   void requireProfile("/pages-content/community/publish").then((allowed) => {
     if (allowed) {
@@ -339,6 +374,9 @@ onLoad(() => {
         </view>
 
         <view v-else class="mt-copy flex flex-col gap-copy">
+          <text v-if="deleteError" class="text-caption text-danger" role="alert">
+            {{ deleteError }}
+          </text>
           <view v-for="post in posts" :key="post.id" class="main-card p-action">
             <view class="flex items-center justify-between gap-copy">
               <text class="quiet-text">{{ formatDate(post.createdAt) }}</text>
@@ -367,6 +405,18 @@ onLoad(() => {
                 未通过原因：{{ post.moderationReason }}
               </text>
             </view>
+            <button
+              v-if="post.status !== ADMIN_CONTENT_POST_STATUS.DELETED"
+              class="mt-copy h-control w-full border border-danger rounded-control bg-surface px-action text-body text-danger font-medium"
+              :class="deletingPostId ? 'opacity-50' : ''"
+              :disabled="Boolean(deletingPostId)"
+              :aria-disabled="Boolean(deletingPostId)"
+              :loading="deletingPostId === post.id"
+              :aria-label="`删除动态 ${formatDate(post.createdAt)}`"
+              @click="deletePost(post)"
+            >
+              {{ deletingPostId === post.id ? "删除中" : "删除动态" }}
+            </button>
           </view>
         </view>
       </view>

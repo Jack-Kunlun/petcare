@@ -1,6 +1,10 @@
 import { plainToInstance } from "class-transformer";
 import { validate } from "class-validator";
-import { CreateCommunityPostDto, MyCommunityPostListQueryDto } from "./community-post.dto";
+import {
+  CreateCommunityPostDto,
+  MyCommunityPostListQueryDto,
+  PublicCommunityPostListQueryDto,
+} from "./community-post.dto";
 
 describe("community post DTOs", () => {
   it("trims and validates text submissions", async () => {
@@ -39,8 +43,11 @@ describe("community post DTOs", () => {
 
   it("uses bounded pagination defaults", async () => {
     const dto = plainToInstance(MyCommunityPostListQueryDto, {});
+    const publicDto = plainToInstance(PublicCommunityPostListQueryDto, {});
 
     await expect(validate(dto)).resolves.toHaveLength(0);
+    await expect(validate(publicDto)).resolves.toHaveLength(0);
     expect(dto).toMatchObject({ page: 1, pageSize: 20 });
+    expect(publicDto).toMatchObject({ page: 1, pageSize: 20 });
   });
 });
