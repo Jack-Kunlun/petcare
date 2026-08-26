@@ -218,7 +218,7 @@ Expected: PASS.
 
 - [x] **Step 1: Add failing assertions for the v45 sections**
 
-Cover loading, guest login, authenticated greeting, Banner title, `热门悬赏`, `养宠小课堂`, `社区精选`, and CTA navigation to `/pages/bounty/index`.
+Cover loading, guest login, authenticated greeting, Banner title, `热门悬赏`, `萌宠课堂`, `社区精选`, and CTA navigation to `/pages/bounty/index`.
 
 - [x] **Step 2: Implement static home data and layout**
 

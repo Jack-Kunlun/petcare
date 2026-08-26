@@ -8,7 +8,7 @@ definePage({
   },
 });
 
-const channelTabs = ["社区精选", "养宠小课堂", "附近动态"] as const;
+const channelTabs = ["社区精选", "萌宠课堂", "附近动态"] as const;
 
 const posts = [
   {

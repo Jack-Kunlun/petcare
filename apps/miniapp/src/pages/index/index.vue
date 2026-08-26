@@ -234,7 +234,7 @@ const classroomArticles = [
       </scroll-view>
 
       <view class="mt-section flex items-center justify-between px-page-horizontal">
-        <text class="section-heading">养宠小课堂</text>
+        <text class="section-heading">萌宠课堂</text>
         <text
           class="text-caption text-brand leading-caption"
           hover-class="opacity-80"

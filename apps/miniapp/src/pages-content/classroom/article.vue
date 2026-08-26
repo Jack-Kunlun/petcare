@@ -46,7 +46,7 @@ function openArticle(id: string) {
 </script>
 
 <template>
-  <SubPageLayout title="养宠小课堂">
+  <SubPageLayout title="萌宠课堂">
     <view class="flex flex-col pb-card">
       <image class="h-hero w-full" src="/static/main/community-pet-4.jpg" mode="aspectFill" />
       <view class="flex flex-col gap-card px-action py-card">

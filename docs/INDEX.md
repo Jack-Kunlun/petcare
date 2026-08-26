@@ -13,10 +13,11 @@
 1. [README.md](../README.md) - 项目概览和快速开始
 2. [环境变量配置](./environment-variables.md) - 开发环境设置
 3. [产品需求文档](./01-requirements/01-prd.md) - 了解业务背景
-4. [技术架构](./03-technical-architecture/01-tech-stack.md) - 理解技术选型
-5. [API接口规范](./06-api-specification/01-api-specification.md) - 前后端协作基础
-6. [开发规范](./09-development-guidelines/02-development-standards.md) - 编码标准
-7. [部署指南](./08-deployment/deployment.md) - 上线部署流程
+4. [当前状态与开发路线图](./01-requirements/05-development-roadmap.md) - 确认当前周期和任务顺序
+5. [技术架构](./03-technical-architecture/01-tech-stack.md) - 理解技术选型
+6. [API接口规范](./06-api-specification/01-api-specification.md) - 前后端协作基础
+7. [开发规范](./09-development-guidelines/02-development-standards.md) - 编码标准
+8. [部署指南](./08-deployment/deployment.md) - 上线部署流程
 
 ---
 
@@ -31,7 +32,8 @@
 | [01-prd.md](./01-requirements/01-prd.md)                                         | 产品需求文档（含系统设置版本与订单快照） | PM、开发、测试  |
 | [02-user-stories.md](./01-requirements/02-user-stories.md)                       | 用户故事                                 | PM、开发        |
 | [03-competitive-analysis.md](./01-requirements/03-competitive-analysis.md)       | 竞品分析                                 | PM、产品        |
-| [04-prototype-specification.md](./01-requirements/04-prototype-specification.md) | 原型规格文档(v41)                        | PM、前端、UI/UX |
+| [04-prototype-specification.md](./01-requirements/04-prototype-specification.md) | 原型规格文档(v47)                        | PM、前端、UI/UX |
+| [05-development-roadmap.md](./01-requirements/05-development-roadmap.md)         | 当前状态、任务顺序与周期                 | 全体成员        |
 
 **使用场景**:
 

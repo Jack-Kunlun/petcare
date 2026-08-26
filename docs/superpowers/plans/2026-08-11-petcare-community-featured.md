@@ -58,7 +58,7 @@
 - [ ] Create `01 · Community` at `(80,80)` with enough width for two 375px frames separated by 80px and at least 160px outer padding.
 - [ ] Create `Community / Featured / Full Page` as a 375px-wide vertical frame with Canvas fill and 16px horizontal padding.
 - [ ] Build a 40px Header using Horizontal Auto Layout: title `社区` at 22px Medium and one live `Icon/Search` instance in a 40px visual container with a 44px interaction wrapper.
-- [ ] Build a 48px three-item Segmented Control with equal-width text-only states: `社区精选` active, `养宠小课堂`, `附近动态` inactive.
+- [ ] Build a 48px three-item Segmented Control with equal-width text-only states: `社区精选` active, `萌宠课堂`, `附近动态` inactive.
 - [ ] Build a light 16px-radius Active Overview containing `1,286 人`, `328 新增`, and `2.4k 互动`; bind fills and text colors to existing variables.
 - [ ] Screenshot Header, Tabs, and Overview together; verify 16px page alignment, 16px inter-section spacing, centered labels, and no visible shadow.
 

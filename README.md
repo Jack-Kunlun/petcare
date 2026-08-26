@@ -298,10 +298,11 @@ const jwtSecret = this.configService.jwtSecret;
 ## 文档
 
 - **[文档索引](./docs/INDEX.md)** 📚 - 完整文档导航
+- **[当前状态与开发路线图](./docs/01-requirements/05-development-roadmap.md)** - 当前完成度、任务顺序与周期
 - [产品需求文档](./docs/01-requirements/01-prd.md)
 - [用户故事](./docs/01-requirements/02-user-stories.md)
 - [竞品分析](./docs/01-requirements/03-competitive-analysis.md)
-- **[原型规格文档(v41)](./docs/01-requirements/04-prototype-specification.md)**
+- **[原型规格文档(v47)](./docs/01-requirements/04-prototype-specification.md)**
 - [技术架构](./docs/03-technical-architecture/01-tech-stack.md)
 - **[API接口规范](./docs/06-api-specification/01-api-specification.md)** 📡
 - [开发规范](./docs/09-development-guidelines/02-development-standards.md)

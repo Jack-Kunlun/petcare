@@ -84,7 +84,7 @@
 
 ### 社区业务 Tabs
 
-- 业务状态：`社区精选 / 养宠小课堂 / 附近动态`。
+- 业务状态：`社区精选 / 萌宠课堂 / 附近动态`。
 - 使用三等分 Segmented Control，整体高度 `48px`，内边距 `4px`，圆角 `12px`。
 - Active 为 Light Primary Surface + Primary Blue 文字，`14px`、Medium/600。
 - Inactive 为透明背景 + Secondary Text，`14px`、Medium/500。

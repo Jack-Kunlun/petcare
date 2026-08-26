@@ -243,14 +243,15 @@ pnpm test:e2e              # E2E测试
 ### 核心文档（按优先级）
 
 1. **[README.md](./README.md)** - 项目概览和快速开始
-2. **[docs/INDEX.md](./docs/INDEX.md)** - 完整文档索引 📚
-3. **[docs/environment-variables.md](./docs/environment-variables.md)** - 环境变量配置详解
-4. **[docs/06-api-specification/api-specification.md](./docs/06-api-specification/api-specification.md)** - API接口规范 📡
-5. **[docs/08-deployment/deployment.md](./docs/08-deployment/deployment.md)** - 完整部署指南 ⭐
-6. **[docs/01-requirements/01-prd.md](./docs/01-requirements/01-prd.md)** - 产品需求文档
-7. **[docs/01-requirements/04-prototype-specification.md](./docs/01-requirements/04-prototype-specification.md)** - 原型规格文档(v41)
-8. **[docs/03-technical-architecture/01-tech-stack.md](./docs/03-technical-architecture/01-tech-stack.md)** - 技术架构说明
-9. **[docs/09-development-guidelines/02-development-standards.md](./docs/09-development-guidelines/02-development-standards.md)** - 开发规范详细版
+2. **[docs/01-requirements/05-development-roadmap.md](./docs/01-requirements/05-development-roadmap.md)** - 当前状态、任务顺序与周期
+3. **[docs/INDEX.md](./docs/INDEX.md)** - 完整文档索引 📚
+4. **[docs/environment-variables.md](./docs/environment-variables.md)** - 环境变量配置详解
+5. **[docs/06-api-specification/01-api-specification.md](./docs/06-api-specification/01-api-specification.md)** - API接口规范 📡
+6. **[docs/08-deployment/deployment.md](./docs/08-deployment/deployment.md)** - 完整部署指南 ⭐
+7. **[docs/01-requirements/01-prd.md](./docs/01-requirements/01-prd.md)** - 产品需求文档
+8. **[docs/01-requirements/04-prototype-specification.md](./docs/01-requirements/04-prototype-specification.md)** - 原型规格文档(v47)
+9. **[docs/03-technical-architecture/01-tech-stack.md](./docs/03-technical-architecture/01-tech-stack.md)** - 技术架构说明
+10. **[docs/09-development-guidelines/02-development-standards.md](./docs/09-development-guidelines/02-development-standards.md)** - 开发规范详细版
 
 ### 安全相关
 
