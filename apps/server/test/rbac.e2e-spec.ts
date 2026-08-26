@@ -84,6 +84,7 @@ describe("RBAC authorization boundary (e2e)", () => {
     const moduleRef = await Test.createTestingModule({ imports: [AppModule] })
       .overrideProvider(RedisService)
       .useValue({
+        consumeFixedWindow: jest.fn().mockResolvedValue(true),
         set: jest.fn().mockResolvedValue(undefined),
         getAndDelete: jest.fn().mockResolvedValue(null),
         del: jest.fn().mockResolvedValue(undefined),

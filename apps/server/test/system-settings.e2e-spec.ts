@@ -84,6 +84,7 @@ describe("System settings closed loop (e2e)", () => {
     const moduleRef = await Test.createTestingModule({ imports: [AppModule] })
       .overrideProvider(RedisService)
       .useValue({
+        consumeFixedWindow: jest.fn().mockResolvedValue(true),
         set: jest.fn().mockResolvedValue(undefined),
         getAndDelete: jest.fn().mockResolvedValue(null),
         del: jest.fn().mockResolvedValue(undefined),
@@ -143,17 +144,9 @@ describe("System settings closed loop (e2e)", () => {
     });
 
     await prisma.userRole.create({ data: { userId: viewer.id, roleId: viewerRole.id } });
-    await prisma.user.create({
-      data: {
-        id: "mock-owner-id",
-        phone: "13900000003",
-        nickname: "订单快照验收用户",
-        status: "active",
-      },
-    });
     const pet = await prisma.pet.create({
       data: {
-        ownerId: "mock-owner-id",
+        ownerId: administrator.id,
         name: "快照测试宠物",
         breed: "中华田园猫",
         age: 3,
@@ -183,6 +176,7 @@ describe("System settings closed loop (e2e)", () => {
   function createRewardOrder() {
     return request(app.getHttpServer())
       .post("/orders/reward")
+      .set("Authorization", `Bearer ${adminToken}`)
       .send({
         serviceType: "feeding",
         petId,

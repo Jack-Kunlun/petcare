@@ -25,14 +25,14 @@ OpenID、邮箱和地址。仅在非生产环境显式设置 `LOG_LEVEL=debug` �
 
 ### 数据库配置（独立配置项）
 
-| 变量名        | 必填 | 默认值      | 说明                  |
-| ------------- | ---- | ----------- | --------------------- |
-| `DB_HOST`     | ✅   | `localhost` | 数据库主机地址        |
-| `DB_PORT`     | ✅   | `5432`      | 数据库端口号          |
-| `DB_USERNAME` | ✅   | -           | 数据库用户名          |
-| `DB_PASSWORD` | ✅   | -           | 数据库密码            |
-| `DB_NAME`     | ✅   | `petcare`   | 数据库名称            |
-| `DB_SCHEMA`   | ✅   | `public`    | PostgreSQL Schema名称 |
+| 变量名        | 必填 | 默认值      | 说明                                   |
+| ------------- | ---- | ----------- | -------------------------------------- |
+| `DB_HOST`     | ✅   | `localhost` | 数据库主机地址                         |
+| `DB_PORT`     | ✅   | `5432`      | 数据库端口号                           |
+| `DB_USERNAME` | ✅   | -           | 数据库用户名                           |
+| `DB_PASSWORD` | ✅   | -           | 数据库密码                             |
+| `DB_NAME`     | ✅   | `petcare`   | 数据库名称                             |
+| `DB_SCHEMA`   | ✅   | `public`    | PostgreSQL Schema 名称（仅小写标识符） |
 
 示例：
 
@@ -44,6 +44,8 @@ DB_PASSWORD=replace-with-a-local-strong-password
 DB_NAME=petcare
 DB_SCHEMA=public
 ```
+
+`DB_SCHEMA` 必须以小写字母或下划线开头，且只能包含小写字母、数字和下划线。
 
 ### Redis配置（独立配置项）
 

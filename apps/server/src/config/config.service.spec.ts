@@ -126,6 +126,14 @@ describe("ConfigService", () => {
     expect(new ConfigService().databaseSchema).toBe("system_settings_e2e_123");
   });
 
+  it("rejects unsafe database schema identifiers", () => {
+    process.env.DB_SCHEMA = "public,pg_catalog";
+
+    expect(() => new ConfigService().databaseSchema).toThrow(
+      "DB_SCHEMA must be a valid PostgreSQL identifier",
+    );
+  });
+
   it("requires the default administrator phone and password", () => {
     const config = new ConfigService();
 

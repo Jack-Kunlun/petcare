@@ -241,7 +241,13 @@ export class ConfigService {
 
   // 数据库配置
   get databaseSchema(): string {
-    return process.env.DB_SCHEMA || "public";
+    const schema = process.env.DB_SCHEMA || "public";
+
+    if (!/^[a-z_][a-z0-9_]*$/u.test(schema)) {
+      throw new Error("DB_SCHEMA must be a valid PostgreSQL identifier");
+    }
+
+    return schema;
   }
 
   get databaseName(): string {
