@@ -3,6 +3,7 @@ import {
   ADMIN_CONTENT_POST_STATUS,
   COMMUNITY_MEDIA_STATUS,
   COMMUNITY_POST_MODERATION_ACTION,
+  COMMUNITY_POST_REPORT_STATUS,
 } from "@petcare/shared-types";
 import type {
   AdminContentPostDetail,
@@ -49,6 +50,7 @@ const postListSelect = {
   likesCount: true,
   commentsCount: true,
   sharesCount: true,
+  _count: { select: { reports: true } },
   status: true,
   createdAt: true,
   updatedAt: true,
@@ -108,6 +110,7 @@ function toPostListItem(post: PostListRecord): AdminContentPostListResponse["lis
     likesCount: post.likesCount,
     commentsCount: post.commentsCount,
     sharesCount: post.sharesCount,
+    reportsCount: post._count.reports,
     status: normalizeCommunityPostStatus(post.status),
     createdAt: post.createdAt.toISOString(),
     updatedAt: post.updatedAt.toISOString(),
@@ -388,6 +391,13 @@ export class ContentService {
           reason: transition.requireReason ? reason : null,
         },
       });
+
+      if (transition.action === COMMUNITY_POST_MODERATION_ACTION.OFFLINE) {
+        await transaction.communityPostReport.updateMany({
+          where: { postId: id, status: COMMUNITY_POST_REPORT_STATUS.PENDING },
+          data: { status: COMMUNITY_POST_REPORT_STATUS.RESOLVED, resolvedAt: new Date() },
+        });
+      }
     });
 
     return this.findPostDetail(id);

@@ -1,6 +1,6 @@
 import { spawn } from "node:child_process";
 import console from "node:console";
-import { randomBytes } from "node:crypto";
+import { randomBytes, randomUUID } from "node:crypto";
 import { existsSync, readFileSync, rmSync } from "node:fs";
 import { createRequire } from "node:module";
 import { createServer } from "node:net";
@@ -647,6 +647,7 @@ async function seedCompiledServer(env) {
   const { PasswordService } = serverRequire(
     path.join(serverDirectory, "dist", "auth", "password.service.js"),
   );
+  const { JwtService } = serverRequire("@nestjs/jwt");
   const phone = requireEnvironmentValue(env, "DEFAULT_ADMIN_PHONE");
   const prisma = new PrismaClient({
     adapter: new PrismaPg(
@@ -694,6 +695,49 @@ async function seedCompiledServer(env) {
         createdById: administrator.id,
       },
     });
+    const [communityAuthor, communityReporter] = await Promise.all([
+      prisma.user.upsert({
+        where: { phone: "13900000095" },
+        update: { username: "community-e2e-author", nickname: "社区 E2E 作者", status: "active" },
+        create: {
+          phone: "13900000095",
+          username: "community-e2e-author",
+          nickname: "社区 E2E 作者",
+          status: "active",
+        },
+      }),
+      prisma.user.upsert({
+        where: { phone: "13900000096" },
+        update: {
+          username: "community-e2e-reporter",
+          nickname: "社区 E2E 举报人",
+          status: "active",
+        },
+        create: {
+          phone: "13900000096",
+          username: "community-e2e-reporter",
+          nickname: "社区 E2E 举报人",
+          status: "active",
+        },
+      }),
+    ]);
+    const jwtSecret = requireEnvironmentValue(env, "JWT_SECRET");
+    const jwt = new JwtService();
+    const accessToken = (user) =>
+      jwt.sign(
+        {
+          sub: user.id,
+          sid: randomUUID(),
+          sessionVersion: user.sessionVersion,
+          username: user.username,
+          roles: [],
+          type: "access",
+        },
+        { secret: jwtSecret, expiresIn: "30m" },
+      );
+
+    env.COMMUNITY_E2E_AUTHOR_TOKEN = accessToken(communityAuthor);
+    env.COMMUNITY_E2E_REPORTER_TOKEN = accessToken(communityReporter);
     const [
       systemViewPermission,
       systemFeeConfigPermission,
@@ -928,6 +972,10 @@ async function runMain(playwrightArgs, signal) {
     TENCENT_COS_PUBLIC_BASE_URL: `http://127.0.0.1:${websitePort}`,
     RBAC_E2E_RESTRICTED_USERNAME: rbacRestrictedAdmin.username,
     RBAC_E2E_RESTRICTED_PASSWORD: rbacRestrictedAdmin.password,
+    COMMUNITY_POST_MAX_ATTEMPTS: "1",
+    COMMUNITY_POST_WINDOW_SECONDS: "1",
+    COMMUNITY_MEDIA_MAX_ATTEMPTS: "5",
+    COMMUNITY_MEDIA_WINDOW_SECONDS: "60",
   };
   const prismaCli = path.join(serverDirectory, "node_modules", "prisma", "build", "index.js");
   const playwrightCli = path.join(adminDirectory, "node_modules", "@playwright", "test", "cli.js");

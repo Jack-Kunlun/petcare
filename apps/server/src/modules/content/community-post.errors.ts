@@ -11,6 +11,24 @@ export function communityPostForbidden(): ApiException {
   return new ApiException("CONTENT_POST_FORBIDDEN", "无权删除该社区帖子", HttpStatus.FORBIDDEN);
 }
 
+/** Creates a stable error when an author reports their own community post. */
+export function communityPostSelfReport(): ApiException {
+  return new ApiException(
+    "CONTENT_POST_REPORT_SELF",
+    "不能举报自己的社区帖子",
+    HttpStatus.FORBIDDEN,
+  );
+}
+
+/** Creates a stable error when a reporter already reported the same post. */
+export function communityPostDuplicateReport(): ApiException {
+  return new ApiException(
+    "CONTENT_POST_REPORT_DUPLICATE",
+    "你已举报过该社区帖子",
+    HttpStatus.CONFLICT,
+  );
+}
+
 /** Creates a stable error for a command that is invalid in the current post state. */
 export function communityPostStateConflict(): ApiException {
   return new ApiException(

@@ -55,8 +55,13 @@ describe("RBAC permission catalog", () => {
     expect(byCode.get("content.post.moderate")).toMatchObject({
       type: RBAC_PERMISSION_TYPES.BUTTON,
       parentCode: "content.post.view",
-      impliedApiCodes: ["content.post.read", "content.post.moderate_action"],
+      impliedApiCodes: [
+        "content.post.read",
+        "content.post.report_read",
+        "content.post.moderate_action",
+      ],
     });
+    expect(byCode.get("content.post.report_read")?.type).toBe(RBAC_PERMISSION_TYPES.API);
     expect(byCode.get("content.post.moderate_action")?.type).toBe(RBAC_PERMISSION_TYPES.API);
     expect(byCode.get("content.article.view")).toMatchObject({
       type: RBAC_PERMISSION_TYPES.MENU,

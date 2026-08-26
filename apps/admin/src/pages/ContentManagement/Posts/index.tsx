@@ -69,6 +69,7 @@ function PostRow({ post }: { post: AdminContentPostListItem }) {
           <span>赞 {post.likesCount}</span>
           <span>评 {post.commentsCount}</span>
           <span>转 {post.sharesCount}</span>
+          <span>举报 {post.reportsCount}</span>
         </div>
       </td>
       <td className="px-5 py-4">

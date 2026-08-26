@@ -16,6 +16,7 @@ const post: AdminContentPostListItem = {
   likesCount: 3,
   commentsCount: 2,
   sharesCount: 1,
+  reportsCount: 2,
   status: "published",
   createdAt: "2026-08-01T09:00:00.000Z",
   updatedAt: "2026-08-01T09:00:00.000Z",
@@ -51,6 +52,7 @@ describe("ContentPosts", () => {
 
     expect(await screen.findByText("这是一段帖子摘要")).toBeTruthy();
     expect(screen.getByText("赞 3")).toBeTruthy();
+    expect(screen.getByText("举报 2")).toBeTruthy();
     expect(within(screen.getByRole("table")).getByText("已发布")).toBeTruthy();
     expect(screen.getByText("共 1 条帖子")).toBeTruthy();
     expect(screen.getByRole("link", { name: "查看详情" })).toHaveAttribute(

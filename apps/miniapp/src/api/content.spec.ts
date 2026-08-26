@@ -10,6 +10,7 @@ import {
   getCommunityPost,
   getCommunityPosts,
   getMyCommunityPosts,
+  reportCommunityPost,
   uploadCommunityMedia,
 } from "./content";
 import { rawRequest } from "./request";
@@ -67,11 +68,16 @@ describe("miniapp content API", () => {
     await createCommunityPost({ content: "今天带旺财散步" });
     await getMyCommunityPosts({ page: 1, pageSize: 20 });
     await deleteCommunityPost("post/1");
+    await reportCommunityPost("post/1", { reason: "spam", description: "重复广告" });
 
     expect(authorizedRequestMock.mock.calls).toEqual([
       ["/community/posts", { method: "POST", data: { content: "今天带旺财散步" } }],
       ["/community/posts/mine", { data: { page: 1, pageSize: 20 } }],
       ["/community/posts/post%2F1", { method: "DELETE" }],
+      [
+        "/community/posts/post%2F1/reports",
+        { method: "POST", data: { reason: "spam", description: "重复广告" } },
+      ],
     ]);
   });
 

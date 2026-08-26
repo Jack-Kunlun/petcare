@@ -108,6 +108,10 @@ test("标准 Admin E2E 命令固定进入版本控制内的隔离 runner", async
     packageJson.scripts["test:e2e:classroom"],
     /e2e\/run-e2e\.mjs classroom-content\.spec\.ts/u,
   );
+  assert.match(
+    packageJson.scripts["test:e2e:community"],
+    /e2e\/run-e2e\.mjs community-content\.spec\.ts/u,
+  );
 });
 
 test("本地读取仓库 .env，CI 只使用注入的环境变量", () => {

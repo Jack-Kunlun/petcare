@@ -1,4 +1,5 @@
 import type {
+  AdminCommunityPostReportResponse,
   AdminContentPostDetail,
   AdminContentPostListQuery,
   AdminContentPostListResponse,
@@ -12,6 +13,8 @@ export const postQueryKeys = {
   all: ["admin-content-posts"] as const,
   /** 构造指定社区帖子详情的缓存键。 */
   detail: (id: string) => ["admin-content-posts", "detail", id] as const,
+  /** 构造指定社区帖子举报记录的缓存键。 */
+  reports: (id: string) => ["admin-content-posts", "reports", id] as const,
 };
 
 /** 分页查询后台帖子内容。 */
@@ -28,6 +31,17 @@ export async function fetchAdminContentPosts(
 /** 获取指定社区帖子的后台详情与审核历史。 */
 export async function fetchAdminContentPost(id: string): Promise<AdminContentPostDetail> {
   const response = await apiClient.get<AdminContentPostDetail>(`/admin/content/posts/${id}`);
+
+  return response.data;
+}
+
+/** 获取指定社区帖子的举报人与受控原因。 */
+export async function fetchAdminContentPostReports(
+  id: string,
+): Promise<AdminCommunityPostReportResponse> {
+  const response = await apiClient.get<AdminCommunityPostReportResponse>(
+    `/admin/content/posts/${id}/reports`,
+  );
 
   return response.data;
 }

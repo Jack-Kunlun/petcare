@@ -16,6 +16,7 @@ import {
 import { FileInterceptor } from "@nestjs/platform-express";
 import { ApiBearerAuth, ApiBody, ApiConsumes, ApiOperation, ApiTags } from "@nestjs/swagger";
 import type {
+  AdminCommunityPostReportResponse,
   AdminClassroomArticleDetail,
   AdminClassroomArticleListResponse,
   AdminContentPostDetail,
@@ -37,6 +38,7 @@ import { validateWebsiteMediaFile } from "../website-content/media/website-media
 import { websiteContentInvalidMedia } from "../website-content/website-content.errors";
 import { WebsiteMediaService } from "../website-content/website-media.service";
 import { ClassroomArticleService } from "./classroom-article.service";
+import { CommunityPostService } from "./community-post.service";
 import { ContentService } from "./content.service";
 import {
   AdminClassroomArticleStateDto,
@@ -52,6 +54,7 @@ import {
 import {
   AdminClassroomArticleDetailDto,
   AdminClassroomArticleListResponseDto,
+  AdminCommunityPostReportResponseDto,
   AdminContentPostDetailDto,
   AdminContentPostListResponseDto,
   AdminContentRewardListResponseDto,
@@ -72,6 +75,7 @@ type MultipartFile = {
 export class AdminContentController {
   constructor(
     private readonly contentService: ContentService,
+    private readonly communityPosts: CommunityPostService,
     private readonly articleService: ClassroomArticleService,
     private readonly media: WebsiteMediaService,
   ) {}
@@ -106,6 +110,16 @@ export class AdminContentController {
   @ApiStandardErrors(400, 401, 403, 404, 500)
   findPost(@Param("id") id: string): Promise<AdminContentPostDetail> {
     return this.contentService.findPostDetail(id);
+  }
+
+  /** Returns the reporter and reason context for one post. */
+  @Get("posts/:id/reports")
+  @RequirePermissions("content.post.report_read")
+  @ApiOperation({ summary: "获取社区帖子举报记录" })
+  @ApiSuccessResponse(AdminCommunityPostReportResponseDto)
+  @ApiStandardErrors(400, 401, 403, 404, 500)
+  findPostReports(@Param("id") id: string): Promise<AdminCommunityPostReportResponse> {
+    return this.communityPosts.findReportsForAdmin(id);
   }
 
   /** Publishes one pending community post. */

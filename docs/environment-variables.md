@@ -110,6 +110,18 @@ API 和独立 Worker 必须使用相同的 `QUEUE_PREFIX`；生产、预发和�
 `SMS_CODE_TTL_SECONDS` 映射为模板参数 `code`、`min` 及接口 `ValidTime`。
 服务商拒绝请求或通信失败时，接口只返回经脱敏的 `503 SMS_DELIVERY_FAILED`，不会暴露厂商详情。
 
+### 社区发布限流
+
+| 变量名                           | 必填 | 默认值 | 说明                               |
+| -------------------------------- | ---- | ------ | ---------------------------------- |
+| `COMMUNITY_POST_MAX_ATTEMPTS`    | 否   | `10`   | 单个用户在固定窗口内可提交动态数量 |
+| `COMMUNITY_POST_WINDOW_SECONDS`  | 否   | `3600` | 动态提交固定窗口秒数               |
+| `COMMUNITY_MEDIA_MAX_ATTEMPTS`   | 否   | `5`    | 单个用户在固定窗口内可上传图片数量 |
+| `COMMUNITY_MEDIA_WINDOW_SECONDS` | 否   | `60`   | 社区图片上传固定窗口秒数           |
+
+两个社区写入限流均复用 Redis 原子固定窗口。Redis 不可用时接口按失败关闭策略返回稳定的
+`503 COMMUNITY_RATE_LIMIT_UNAVAILABLE`，不会继续创建帖子、媒体记录或对象存储数据。
+
 真实 Aliyun AccessKey 值只保存在生产服务器 `root-owned`、权限为 `0600` 的根 `.env` 中；不得进入 Git、
 镜像、日志、文档示例或聊天。不得读取、复制或回传 `.env`、证书/私钥内容或真实凭据。
 

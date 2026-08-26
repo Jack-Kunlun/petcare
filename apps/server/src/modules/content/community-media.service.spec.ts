@@ -21,7 +21,8 @@ describe("CommunityMediaService", () => {
     put: jest.fn(),
     delete: jest.fn(),
   };
-  const service = new CommunityMediaService(prisma as never, storage as never);
+  const rateLimits = { assertMediaUploadAllowed: jest.fn() };
+  const service = new CommunityMediaService(prisma as never, storage as never, rateLimits as never);
   const file = {
     buffer: PNG_32X32,
     originalName: "pet.png",
@@ -30,6 +31,7 @@ describe("CommunityMediaService", () => {
 
   beforeEach(() => {
     jest.clearAllMocks();
+    rateLimits.assertMediaUploadAllowed.mockResolvedValue(undefined);
     storage.put.mockResolvedValue({
       storageKey: "public/community-media/2026/08/asset.png",
       publicUrl: "https://cdn.example/community/asset.png",
@@ -61,6 +63,19 @@ describe("CommunityMediaService", () => {
         status: COMMUNITY_MEDIA_STATUS.ACTIVE,
       }),
     });
+    expect(rateLimits.assertMediaUploadAllowed).toHaveBeenCalledWith("user-1");
+  });
+
+  it("does not validate, store, or register media after the upload window is exhausted", async () => {
+    rateLimits.assertMediaUploadAllowed.mockRejectedValue(
+      Object.assign(new Error("limited"), { code: "COMMUNITY_MEDIA_RATE_LIMITED" }),
+    );
+
+    await expect(service.upload("user-1", file)).rejects.toMatchObject({
+      code: "COMMUNITY_MEDIA_RATE_LIMITED",
+    });
+    expect(storage.put).not.toHaveBeenCalled();
+    expect(prisma.communityMediaAsset.create).not.toHaveBeenCalled();
   });
 
   it("rejects corrupt and oversized bytes with the community error contract", async () => {

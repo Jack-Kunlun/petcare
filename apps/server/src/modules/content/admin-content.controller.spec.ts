@@ -10,6 +10,7 @@ import { WebsiteContentModule } from "../website-content/website-content.module"
 import { WebsiteMediaService } from "../website-content/website-media.service";
 import { AdminContentController } from "./admin-content.controller";
 import { ClassroomArticleService } from "./classroom-article.service";
+import { CommunityPostService } from "./community-post.service";
 import { ContentModule } from "./content.module";
 import { ContentService } from "./content.service";
 
@@ -46,6 +47,9 @@ function createController() {
     updatedAt: "2026-08-24T00:00:00.000Z",
     bodyHtml: "<p>正文</p>",
   };
+  const communityPosts = {
+    findReportsForAdmin: jest.fn().mockResolvedValue({ list: [], total: 0 }),
+  };
   const articleService = {
     findArticlePage: jest.fn().mockResolvedValue({ list: [], total: 0, page: 1, pageSize: 20 }),
     findAdminArticle: jest.fn().mockResolvedValue(articleDetail),
@@ -69,10 +73,12 @@ function createController() {
   return {
     controller: new AdminContentController(
       contentService as never,
+      communityPosts as never,
       articleService as never,
       media as never,
     ),
     contentService,
+    communityPosts,
     articleService,
     media,
     articleDetail,
@@ -90,6 +96,7 @@ describe("AdminContentController", () => {
     expect(permissions("findRewards")).toEqual(["content.reward.read"]);
     expect(permissions("findPosts")).toEqual(["content.post.read"]);
     expect(permissions("findPost")).toEqual(["content.post.read"]);
+    expect(permissions("findPostReports")).toEqual(["content.post.report_read"]);
     expect(permissions("approvePost")).toEqual(["content.post.moderate_action"]);
     expect(permissions("rejectPost")).toEqual(["content.post.moderate_action"]);
     expect(permissions("offlinePost")).toEqual(["content.post.moderate_action"]);
@@ -115,11 +122,12 @@ describe("AdminContentController", () => {
   });
 
   it("delegates post detail and moderation commands with the authenticated operator", async () => {
-    const { controller, contentService } = createController();
+    const { controller, contentService, communityPosts } = createController();
     const request = { user: { sub: "admin-1" } } as never;
     const state = { expectedUpdatedAt: "2026-08-26T08:00:00.000Z" };
 
     await expect(controller.findPost("post-1")).resolves.toMatchObject({ status: "pending" });
+    await expect(controller.findPostReports("post-1")).resolves.toMatchObject({ total: 0 });
     await expect(controller.approvePost("post-1", state, request)).resolves.toMatchObject({
       status: "published",
     });
@@ -131,6 +139,7 @@ describe("AdminContentController", () => {
     ).resolves.toMatchObject({ status: "offline" });
 
     expect(contentService.findPostDetail).toHaveBeenCalledWith("post-1");
+    expect(communityPosts.findReportsForAdmin).toHaveBeenCalledWith("post-1");
     expect(contentService.approvePost).toHaveBeenCalledWith("post-1", "admin-1", state);
     expect(contentService.rejectPost).toHaveBeenCalledWith(
       "post-1",
@@ -213,6 +222,7 @@ describe("AdminContentController", () => {
       controllers: [AdminContentController],
       providers: [
         { provide: ContentService, useValue: {} },
+        { provide: CommunityPostService, useValue: {} },
         { provide: ClassroomArticleService, useValue: {} },
         { provide: WebsiteMediaService, useValue: {} },
         { provide: AuthService, useValue: {} },
@@ -236,6 +246,7 @@ describe("AdminContentController", () => {
         "/admin/content/rewards",
         "/admin/content/posts",
         "/admin/content/posts/{id}",
+        "/admin/content/posts/{id}/reports",
         "/admin/content/posts/{id}/approve",
         "/admin/content/posts/{id}/reject",
         "/admin/content/posts/{id}/offline",
@@ -266,6 +277,7 @@ describe("AdminContentController", () => {
 
     for (const path of [
       "/admin/content/posts/{id}",
+      "/admin/content/posts/{id}/reports",
       "/admin/content/posts/{id}/approve",
       "/admin/content/posts/{id}/reject",
       "/admin/content/posts/{id}/offline",

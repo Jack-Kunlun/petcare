@@ -20,6 +20,7 @@ import {
   ApiTags,
 } from "@nestjs/swagger";
 import type {
+  CommunityPostReportReceipt,
   MyCommunityPostListItem,
   MyCommunityPostListResponse,
   PublicCommunityPostDetail,
@@ -35,6 +36,8 @@ import {
 } from "../../common/swagger/api-response.decorators";
 import { CommunityPostService } from "./community-post.service";
 import {
+  CommunityPostReportReceiptDto,
+  CreateCommunityPostReportDto,
   CreateCommunityPostDto,
   MyCommunityPostListItemDto,
   MyCommunityPostListQueryDto,
@@ -58,7 +61,7 @@ export class CommunityPostController {
   @Post()
   @ApiOperation({ summary: "提交待审核社区动态" })
   @ApiSuccessResponse(MyCommunityPostListItemDto, { status: 201 })
-  @ApiStandardErrors(400, 401, 403, 500)
+  @ApiStandardErrors(400, 401, 403, 429, 500, 503)
   create(
     @Req() request: AuthRequest,
     @Body() dto: CreateCommunityPostDto,
@@ -76,6 +79,20 @@ export class CommunityPostController {
     @Query() query: MyCommunityPostListQueryDto,
   ): Promise<MyCommunityPostListResponse> {
     return this.posts.findMine(request.user.sub, query);
+  }
+
+  /** Reports one currently published community post. */
+  @Post(":id/reports")
+  @ApiParam({ name: "id", format: "uuid" })
+  @ApiOperation({ summary: "举报已发布社区动态" })
+  @ApiSuccessResponse(CommunityPostReportReceiptDto, { status: 201 })
+  @ApiStandardErrors(400, 401, 403, 404, 409, 500)
+  report(
+    @Req() request: AuthRequest,
+    @Param("id", new ParseUUIDPipe({ version: "4" })) id: string,
+    @Body() dto: CreateCommunityPostReportDto,
+  ): Promise<CommunityPostReportReceipt> {
+    return this.posts.report(request.user.sub, id, dto);
   }
 
   /** Soft-deletes one post owned by the current author. */

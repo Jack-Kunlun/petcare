@@ -1,7 +1,13 @@
 import { ApiProperty, ApiPropertyOptional } from "@nestjs/swagger";
-import { ADMIN_CONTENT_POST_STATUS } from "@petcare/shared-types";
+import {
+  ADMIN_CONTENT_POST_STATUS,
+  COMMUNITY_POST_REPORT_REASON,
+  COMMUNITY_POST_REPORT_STATUS,
+} from "@petcare/shared-types";
 import type {
+  CommunityPostReportReceipt,
   CommunityMediaAsset,
+  CreateCommunityPostReportRequest,
   CreateCommunityPostRequest,
   MyCommunityPostListItem,
   MyCommunityPostListQuery,
@@ -17,6 +23,7 @@ import {
   ArrayUnique,
   IsArray,
   IsInt,
+  IsIn,
   IsOptional,
   IsString,
   IsUUID,
@@ -41,6 +48,32 @@ export class CreateCommunityPostDto implements CreateCommunityPostRequest {
   @ArrayUnique()
   @IsUUID("4", { each: true })
   mediaAssetIds?: string[] = [];
+}
+
+/** Validated input for reporting one published community post. */
+export class CreateCommunityPostReportDto implements CreateCommunityPostReportRequest {
+  @ApiProperty({ enum: Object.values(COMMUNITY_POST_REPORT_REASON) })
+  @IsIn(Object.values(COMMUNITY_POST_REPORT_REASON))
+  reason: CreateCommunityPostReportRequest["reason"];
+
+  @ApiPropertyOptional({ maxLength: 500 })
+  @IsOptional()
+  @Transform(({ value }) => (typeof value === "string" ? value.trim() : value))
+  @IsString()
+  @MaxLength(500)
+  description?: string;
+}
+
+/** Receipt for one accepted community post report. */
+export class CommunityPostReportReceiptDto implements CommunityPostReportReceipt {
+  @ApiProperty({ format: "uuid" })
+  id: string;
+
+  @ApiProperty({ enum: Object.values(COMMUNITY_POST_REPORT_STATUS) })
+  status: CommunityPostReportReceipt["status"];
+
+  @ApiProperty({ format: "date-time" })
+  createdAt: string;
 }
 
 /** Public response for one validated community image upload. */

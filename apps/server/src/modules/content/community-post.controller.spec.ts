@@ -13,6 +13,7 @@ describe("CommunityPostController", () => {
     findMine: jest.fn(),
     findPublished: jest.fn(),
     findPublishedById: jest.fn(),
+    report: jest.fn(),
   };
   const controller = new CommunityPostController(posts as never);
 
@@ -26,6 +27,9 @@ describe("CommunityPostController", () => {
     ]);
     expect(Reflect.getMetadata("path", CommunityPostController.prototype.create)).toBe("/");
     expect(Reflect.getMetadata("path", CommunityPostController.prototype.findMine)).toBe("mine");
+    expect(Reflect.getMetadata("path", CommunityPostController.prototype.report)).toBe(
+      ":id/reports",
+    );
     expect(Reflect.getMetadata("path", CommunityPostController.prototype.deleteOwn)).toBe(":id");
   });
 
@@ -33,6 +37,7 @@ describe("CommunityPostController", () => {
     posts.create.mockResolvedValue({ id: "post-1", status: "pending" });
     posts.findMine.mockResolvedValue({ list: [], total: 0, page: 1, pageSize: 20 });
     posts.deleteOwn.mockResolvedValue(undefined);
+    posts.report.mockResolvedValue({ id: "report-1", status: "pending" });
     const request = { user: { sub: "user-1" } } as never;
 
     await expect(controller.create(request, { content: "动态正文" })).resolves.toMatchObject({
@@ -42,10 +47,14 @@ describe("CommunityPostController", () => {
       total: 0,
     });
     await expect(controller.deleteOwn(request, "post-1")).resolves.toBeUndefined();
+    await expect(controller.report(request, "post-1", { reason: "spam" })).resolves.toMatchObject({
+      id: "report-1",
+    });
 
     expect(posts.create).toHaveBeenCalledWith("user-1", { content: "动态正文" });
     expect(posts.findMine).toHaveBeenCalledWith("user-1", { page: 1, pageSize: 20 });
     expect(posts.deleteOwn).toHaveBeenCalledWith("user-1", "post-1");
+    expect(posts.report).toHaveBeenCalledWith("user-1", "post-1", { reason: "spam" });
   });
 
   it("exposes public published list and detail without authentication", async () => {

@@ -1,5 +1,7 @@
 import type {
   CommunityMediaAsset,
+  CommunityPostReportReceipt,
+  CreateCommunityPostReportRequest,
   CreateCommunityPostRequest,
   MyCommunityPostListItem,
   MyCommunityPostListQuery,
@@ -49,6 +51,17 @@ export function getMyCommunityPosts(
 /** Soft-deletes one post owned by the authenticated author. */
 export function deleteCommunityPost(id: string): Promise<void> {
   return authorizedRequest(`/community/posts/${encodeURIComponent(id)}`, { method: "DELETE" });
+}
+
+/** Reports one currently published community post as the authenticated user. */
+export function reportCommunityPost(
+  id: string,
+  request: CreateCommunityPostReportRequest,
+): Promise<CommunityPostReportReceipt> {
+  return authorizedRequest(`/community/posts/${encodeURIComponent(id)}/reports`, {
+    method: "POST",
+    data: request,
+  });
 }
 
 /** Reads a page of currently published community posts. */

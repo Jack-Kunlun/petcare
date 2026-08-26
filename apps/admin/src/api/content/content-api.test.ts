@@ -21,6 +21,7 @@ import {
 import {
   approveAdminContentPost,
   fetchAdminContentPost,
+  fetchAdminContentPostReports,
   fetchAdminContentPosts,
   offlineAdminContentPost,
   postQueryKeys,
@@ -112,11 +113,15 @@ describe("content api", () => {
       updatedAt: "2026-08-26T08:00:00.000Z",
     };
     const state = { expectedUpdatedAt: detail.updatedAt };
+    const reports = { list: [], total: 0 };
 
-    vi.mocked(apiClient.get).mockResolvedValue({ data: detail } as never);
+    vi.mocked(apiClient.get)
+      .mockResolvedValueOnce({ data: detail } as never)
+      .mockResolvedValueOnce({ data: reports } as never);
     vi.mocked(apiClient.post).mockResolvedValue({ data: detail } as never);
 
     await expect(fetchAdminContentPost("post-1")).resolves.toBe(detail);
+    await expect(fetchAdminContentPostReports("post-1")).resolves.toBe(reports);
     await expect(approveAdminContentPost("post-1", state)).resolves.toBe(detail);
     await expect(
       rejectAdminContentPost("post-1", { ...state, reason: "包含联系方式" }),
@@ -126,7 +131,9 @@ describe("content api", () => {
     ).resolves.toBe(detail);
 
     expect(postQueryKeys.detail("post-1")).toEqual(["admin-content-posts", "detail", "post-1"]);
-    expect(apiClient.get).toHaveBeenCalledWith("/admin/content/posts/post-1");
+    expect(postQueryKeys.reports("post-1")).toEqual(["admin-content-posts", "reports", "post-1"]);
+    expect(apiClient.get).toHaveBeenNthCalledWith(1, "/admin/content/posts/post-1");
+    expect(apiClient.get).toHaveBeenNthCalledWith(2, "/admin/content/posts/post-1/reports");
     expect(apiClient.post).toHaveBeenNthCalledWith(1, "/admin/content/posts/post-1/approve", state);
     expect(apiClient.post).toHaveBeenNthCalledWith(2, "/admin/content/posts/post-1/reject", {
       ...state,

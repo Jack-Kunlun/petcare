@@ -1,6 +1,7 @@
 import { plainToInstance } from "class-transformer";
 import { validate } from "class-validator";
 import {
+  CreateCommunityPostReportDto,
   CreateCommunityPostDto,
   MyCommunityPostListQueryDto,
   PublicCommunityPostListQueryDto,
@@ -39,6 +40,18 @@ describe("community post DTOs", () => {
     await expect(validate(valid)).resolves.toHaveLength(0);
     await expect(validate(tooMany)).resolves.not.toHaveLength(0);
     await expect(validate(duplicate)).resolves.not.toHaveLength(0);
+  });
+
+  it("accepts only controlled report reasons and trims optional context", async () => {
+    const valid = plainToInstance(CreateCommunityPostReportDto, {
+      reason: "spam",
+      description: "  重复广告  ",
+    });
+    const invalid = plainToInstance(CreateCommunityPostReportDto, { reason: "custom" });
+
+    await expect(validate(valid)).resolves.toHaveLength(0);
+    await expect(validate(invalid)).resolves.not.toHaveLength(0);
+    expect(valid.description).toBe("重复广告");
   });
 
   it("uses bounded pagination defaults", async () => {

@@ -66,3 +66,11 @@ pnpm --filter @petcare/admin test:e2e -- website-content.spec.ts
 ```bash
 pnpm --filter @petcare/admin test:e2e:classroom
 ```
+
+## 社区内容纵向端到端场景
+
+社区测试在隔离 schema 中验证发布限流、待审核隔离、后台通过、Miniapp 可见、用户举报、权限拒绝和后台从举报上下架。场景只发布文字动态，不访问生产对象存储。
+
+```bash
+pnpm --filter @petcare/admin test:e2e:community
+```

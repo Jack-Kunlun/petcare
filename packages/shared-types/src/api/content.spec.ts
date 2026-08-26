@@ -7,6 +7,8 @@ import {
   COMMUNITY_MEDIA_ERROR_CODE,
   COMMUNITY_MEDIA_STATUS,
   COMMUNITY_POST_MODERATION_ACTION,
+  COMMUNITY_POST_REPORT_REASON,
+  COMMUNITY_POST_REPORT_STATUS,
   type AdminClassroomArticleDetail,
   type AdminClassroomArticleListResponse,
   type AdminClassroomArticleStateRequest,
@@ -115,6 +117,7 @@ describe("content contracts", () => {
       likesCount: 0,
       commentsCount: 0,
       sharesCount: 0,
+      reportsCount: 1,
       status: ADMIN_CONTENT_POST_STATUS.REJECTED,
       createdAt: "2026-08-26T08:00:00.000Z",
       updatedAt: "2026-08-26T08:01:00.000Z",
@@ -146,6 +149,17 @@ describe("content contracts", () => {
       "offline",
     ]);
     expect(detail.moderationHistory[0].reason).toBe("包含联系方式");
+  });
+
+  it("defines controlled community report reasons and lifecycle states", () => {
+    expect(Object.values(COMMUNITY_POST_REPORT_REASON)).toEqual([
+      "spam",
+      "harassment",
+      "inappropriate",
+      "privacy",
+      "other",
+    ]);
+    expect(Object.values(COMMUNITY_POST_REPORT_STATUS)).toEqual(["pending", "resolved"]);
   });
 
   it("keeps public community posts free of private and unsupported interaction fields", () => {

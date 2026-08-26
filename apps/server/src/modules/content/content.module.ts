@@ -10,6 +10,7 @@ import {
   PublicCommunityPostController,
 } from "./community-post.controller";
 import { CommunityPostService } from "./community-post.service";
+import { CommunityRateLimitService } from "./community-rate-limit.service";
 import { ContentService } from "./content.service";
 import { PublicContentController } from "./public-content.controller";
 
@@ -23,6 +24,12 @@ import { PublicContentController } from "./public-content.controller";
     PublicCommunityPostController,
     PublicContentController,
   ],
-  providers: [ContentService, ClassroomArticleService, CommunityMediaService, CommunityPostService],
+  providers: [
+    ContentService,
+    ClassroomArticleService,
+    CommunityMediaService,
+    CommunityPostService,
+    CommunityRateLimitService,
+  ],
 })
 export class ContentModule {}

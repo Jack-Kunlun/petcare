@@ -11,6 +11,7 @@ import {
   communityMediaInvalid,
   communityMediaStorageUnavailable,
 } from "./community-media.errors";
+import { CommunityRateLimitService } from "./community-rate-limit.service";
 
 /** Raw multipart fields passed through server-side byte validation. */
 export interface CommunityMediaUploadFile {
@@ -25,10 +26,12 @@ export class CommunityMediaService {
   constructor(
     private readonly prisma: PrismaService,
     @Inject(WEBSITE_MEDIA_STORAGE) private readonly storage: WebsiteMediaStorage,
+    private readonly rateLimits: CommunityRateLimitService,
   ) {}
 
   /** Uploads one image under the community prefix and records its owner. */
   async upload(ownerId: string, file: CommunityMediaUploadFile): Promise<CommunityMediaAsset> {
+    await this.rateLimits.assertMediaUploadAllowed(ownerId);
     const valid = await validateWebsiteMediaFile(file.buffer, file.originalName, file.mimeType, {
       subject: "社区图片",
       errorFactory: communityMediaInvalid,

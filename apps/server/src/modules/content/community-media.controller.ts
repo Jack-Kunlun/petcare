@@ -62,7 +62,7 @@ export class CommunityMediaController {
   })
   @ApiOperation({ summary: "上传待绑定的社区图片" })
   @ApiSuccessResponse(CommunityMediaAssetDto, { status: 201 })
-  @ApiStandardErrors(400, 401, 403, 413, 503)
+  @ApiStandardErrors(400, 401, 403, 413, 429, 503)
   upload(
     @UploadedFile() file: Express.Multer.File | undefined,
     @Req() request: AuthRequest,

@@ -24,6 +24,11 @@ describe("community post reader", () => {
     expect(detail).toContain("getCommunityPost(postId.value)");
     expect(detail).toContain("post.author.displayName");
     expect(detail).toContain("post.mediaUrls");
+    expect(detail).toContain("reportCommunityPost(postId.value");
+    expect(detail).toContain("COMMUNITY_POST_REPORT_REASON_LABELS");
+    expect(detail).toContain("requireProfile(returnUrl)");
+    expect(detail).toContain(':disabled="reportSubmitting"');
+    expect(detail).toContain(':aria-disabled="reportSubmitting"');
     expect(detail).toContain("动态不存在、未公开或加载失败");
     expect(detail).not.toContain("const comments");
     expect(detail).not.toContain("postActions");

@@ -2,8 +2,13 @@ import { ApiProperty } from "@nestjs/swagger";
 import {
   CLASSROOM_ARTICLE_CATEGORY,
   COMMUNITY_POST_MODERATION_ACTION,
+  COMMUNITY_POST_REPORT_REASON,
+  COMMUNITY_POST_REPORT_STATUS,
 } from "@petcare/shared-types";
 import type {
+  AdminCommunityPostReport,
+  AdminCommunityPostReportPostSummary,
+  AdminCommunityPostReportResponse,
   AdminClassroomArticleDetail,
   AdminClassroomArticleListItem,
   AdminClassroomArticleListResponse,
@@ -116,6 +121,9 @@ export class AdminContentPostListItemDto implements AdminContentPostListItem {
   @ApiProperty({ example: 2 })
   sharesCount: number;
 
+  @ApiProperty({ example: 1 })
+  reportsCount: number;
+
   @ApiProperty({ example: "published" })
   status: AdminContentPostListItem["status"];
 
@@ -181,6 +189,51 @@ export class AdminContentPostDetailDto
 
   @ApiProperty({ type: [AdminContentPostModerationEventDto] })
   moderationHistory: AdminContentPostModerationEventDto[];
+}
+
+/** Related post fields shown in the administrator's report context. */
+export class AdminCommunityPostReportPostSummaryDto implements AdminCommunityPostReportPostSummary {
+  @ApiProperty({ format: "uuid" })
+  id: string;
+
+  @ApiProperty({ example: "published" })
+  status: AdminCommunityPostReportPostSummary["status"];
+}
+
+/** Administrator-visible report and reporter context. */
+export class AdminCommunityPostReportDto implements AdminCommunityPostReport {
+  @ApiProperty({ format: "uuid" })
+  id: string;
+
+  @ApiProperty({ type: AdminContentAuthorSummaryDto })
+  reporter: AdminContentAuthorSummaryDto;
+
+  @ApiProperty({ type: AdminCommunityPostReportPostSummaryDto })
+  post: AdminCommunityPostReportPostSummaryDto;
+
+  @ApiProperty({ enum: Object.values(COMMUNITY_POST_REPORT_REASON) })
+  reason: AdminCommunityPostReport["reason"];
+
+  @ApiProperty({ nullable: true })
+  description: string | null;
+
+  @ApiProperty({ enum: Object.values(COMMUNITY_POST_REPORT_STATUS) })
+  status: AdminCommunityPostReport["status"];
+
+  @ApiProperty({ format: "date-time" })
+  createdAt: string;
+
+  @ApiProperty({ format: "date-time", nullable: true })
+  resolvedAt: string | null;
+}
+
+/** Every report submitted for one administrator-visible post. */
+export class AdminCommunityPostReportResponseDto implements AdminCommunityPostReportResponse {
+  @ApiProperty({ type: [AdminCommunityPostReportDto] })
+  list: AdminCommunityPostReportDto[];
+
+  @ApiProperty()
+  total: number;
 }
 
 /** 后台课堂文章列表项响应。 */

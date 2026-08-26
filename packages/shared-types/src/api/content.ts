@@ -175,6 +175,8 @@ export interface AdminContentPostListItem {
   commentsCount: number;
   /** 分享数量。 */
   sharesCount: number;
+  /** 用户举报数量。 */
+  reportsCount: number;
   /** 帖子状态。 */
   status: AdminContentPostStatus;
   /** 帖子创建时间，ISO 8601 格式。 */
@@ -286,6 +288,116 @@ export interface MyCommunityPostListQuery {
 
 /** 作者自己的社区动态分页响应。 */
 export type MyCommunityPostListResponse = PaginatedResponse<MyCommunityPostListItem>;
+
+/** Controlled reasons accepted when reporting a published community post. */
+export const COMMUNITY_POST_REPORT_REASON = {
+  /** Repeated advertising, scams, or other spam. */
+  SPAM: "spam",
+  /** Harassment, threats, or abusive language. */
+  HARASSMENT: "harassment",
+  /** Sexual, violent, or otherwise inappropriate content. */
+  INAPPROPRIATE: "inappropriate",
+  /** Exposure of personal or sensitive information. */
+  PRIVACY: "privacy",
+  /** A report that does not match another controlled reason. */
+  OTHER: "other",
+} as const;
+
+/** Controlled community post report reason. */
+export type CommunityPostReportReason =
+  (typeof COMMUNITY_POST_REPORT_REASON)[keyof typeof COMMUNITY_POST_REPORT_REASON];
+
+/** User-facing labels for controlled community post report reasons. */
+export const COMMUNITY_POST_REPORT_REASON_LABELS: Readonly<
+  Record<CommunityPostReportReason, string>
+> = {
+  /** Spam reason label. */
+  spam: "垃圾广告或诈骗",
+  /** Harassment reason label. */
+  harassment: "骚扰或辱骂",
+  /** Inappropriate-content reason label. */
+  inappropriate: "不当或违规内容",
+  /** Privacy reason label. */
+  privacy: "泄露隐私",
+  /** Other reason label. */
+  other: "其他问题",
+};
+
+/** Lifecycle states for one community post report. */
+export const COMMUNITY_POST_REPORT_STATUS = {
+  /** The associated post remains public and awaits moderation. */
+  PENDING: "pending",
+  /** The associated post was taken offline or deleted. */
+  RESOLVED: "resolved",
+} as const;
+
+/** Community post report lifecycle state. */
+export type CommunityPostReportStatus =
+  (typeof COMMUNITY_POST_REPORT_STATUS)[keyof typeof COMMUNITY_POST_REPORT_STATUS];
+
+/** Stable machine-readable community publishing limiter failures. */
+export const COMMUNITY_RATE_LIMIT_ERROR_CODE = {
+  /** The author exhausted the post creation window. */
+  POST_RATE_LIMITED: "COMMUNITY_POST_RATE_LIMITED",
+  /** The uploader exhausted the media upload window. */
+  MEDIA_RATE_LIMITED: "COMMUNITY_MEDIA_RATE_LIMITED",
+  /** Redis could not enforce a publishing window, so the write failed closed. */
+  UNAVAILABLE: "COMMUNITY_RATE_LIMIT_UNAVAILABLE",
+} as const;
+
+/** Request for reporting one published community post. */
+export interface CreateCommunityPostReportRequest {
+  /** Selected controlled report reason. */
+  reason: CommunityPostReportReason;
+  /** Optional trimmed context, limited to 500 characters. */
+  description?: string;
+}
+
+/** Minimal receipt returned after a report is accepted. */
+export interface CommunityPostReportReceipt {
+  /** Report identifier. */
+  id: string;
+  /** Initial report state. */
+  status: CommunityPostReportStatus;
+  /** Report creation time in ISO 8601 format. */
+  createdAt: string;
+}
+
+/** Post fields attached to an administrator's report context. */
+export interface AdminCommunityPostReportPostSummary {
+  /** Related community post identifier. */
+  id: string;
+  /** Related post lifecycle state. */
+  status: CommunityPostStatus;
+}
+
+/** Administrator-visible community post report. */
+export interface AdminCommunityPostReport {
+  /** Report identifier. */
+  id: string;
+  /** User who submitted the report. */
+  reporter: AdminContentAuthorSummary;
+  /** Related post context. */
+  post: AdminCommunityPostReportPostSummary;
+  /** Controlled report reason. */
+  reason: CommunityPostReportReason;
+  /** Optional reporter-provided context. */
+  description: string | null;
+  /** Report handling state. */
+  status: CommunityPostReportStatus;
+  /** Report creation time in ISO 8601 format. */
+  createdAt: string;
+  /** Resolution time, or null while pending. */
+  resolvedAt: string | null;
+}
+
+/** Administrator response containing every report for one post. */
+export interface AdminCommunityPostReportResponse {
+  /** Reports ordered newest first. */
+  list: AdminCommunityPostReport[];
+  /** Total reports attached to the post. */
+  total: number;
+}
 
 /** Public community author fields safe for unauthenticated readers. */
 export interface PublicCommunityPostAuthor {

@@ -7,6 +7,7 @@ import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
 import {
   approveAdminContentPost,
   fetchAdminContentPost,
+  fetchAdminContentPostReports,
   offlineAdminContentPost,
   rejectAdminContentPost,
 } from "../../../api/content/posts";
@@ -18,8 +19,10 @@ vi.mock("../../../api/content/posts", () => ({
   postQueryKeys: {
     all: ["admin-content-posts"],
     detail: (id: string) => ["admin-content-posts", "detail", id],
+    reports: (id: string) => ["admin-content-posts", "reports", id],
   },
   fetchAdminContentPost: vi.fn(),
+  fetchAdminContentPostReports: vi.fn(),
   approveAdminContentPost: vi.fn(),
   rejectAdminContentPost: vi.fn(),
   offlineAdminContentPost: vi.fn(),
@@ -43,6 +46,7 @@ const post: AdminContentPostDetail = {
   likesCount: 3,
   commentsCount: 2,
   sharesCount: 1,
+  reportsCount: 1,
   status: "pending",
   createdAt: "2026-08-26T08:00:00.000Z",
   updatedAt: "2026-08-26T08:00:00.000Z",
@@ -89,6 +93,27 @@ describe("ContentPostDetail", () => {
     vi.clearAllMocks();
     permissionMocks.allowed = true;
     vi.mocked(fetchAdminContentPost).mockResolvedValue(post);
+    vi.mocked(fetchAdminContentPostReports).mockResolvedValue({
+      list: [
+        {
+          id: "report-1",
+          reporter: {
+            id: "reporter-1",
+            phone: "17679141880",
+            username: null,
+            nickname: "举报用户",
+            avatar: null,
+          },
+          post: { id: "post-1", status: "published" },
+          reason: "spam",
+          description: "重复广告",
+          status: "pending",
+          createdAt: "2026-08-26T09:00:00.000Z",
+          resolvedAt: null,
+        },
+      ],
+      total: 1,
+    });
     vi.mocked(approveAdminContentPost).mockResolvedValue({ ...post, status: "published" });
     vi.mocked(rejectAdminContentPost).mockResolvedValue({
       ...post,
@@ -117,6 +142,8 @@ describe("ContentPostDetail", () => {
       "https://cdn.example/community.png",
     );
     expect(screen.getByText(/运营/u)).toBeInTheDocument();
+    expect(await screen.findByText("垃圾广告或诈骗")).toBeInTheDocument();
+    expect(screen.getByText(/举报用户/u)).toBeInTheDocument();
     expect(screen.getByRole("button", { name: "审核通过" })).toBeInTheDocument();
 
     await user.click(screen.getByRole("button", { name: "驳回" }));
@@ -149,6 +176,8 @@ describe("ContentPostDetail", () => {
     expect(screen.queryByRole("button", { name: "审核通过" })).not.toBeInTheDocument();
     expect(screen.queryByRole("button", { name: "驳回" })).not.toBeInTheDocument();
     expect(screen.queryByRole("button", { name: "下架帖子" })).not.toBeInTheDocument();
+    expect(screen.queryByText("举报记录")).not.toBeInTheDocument();
+    expect(fetchAdminContentPostReports).not.toHaveBeenCalled();
   });
 
   it("requires a reason before taking a published post offline", async () => {
@@ -158,7 +187,7 @@ describe("ContentPostDetail", () => {
 
     renderPage();
 
-    await user.click(await screen.findByRole("button", { name: "下架帖子" }));
+    await user.click(await screen.findByRole("button", { name: "从举报下架帖子" }));
     const confirm = screen.getByRole("button", { name: "确认下架" });
 
     expect(confirm).toBeDisabled();

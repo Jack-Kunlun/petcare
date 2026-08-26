@@ -19,20 +19,29 @@ describe("CommunityPostService", () => {
       findMany: jest.fn(),
       updateMany: jest.fn(),
     },
+    communityPostReport: {
+      create: jest.fn(),
+      findMany: jest.fn(),
+      updateMany: jest.fn(),
+    },
     $transaction: jest.fn(),
   };
   const storage = {
     resolvePublicUrl: jest.fn((key: string) => `https://cdn.example/${key}`),
   };
-  const service = new CommunityPostService(prisma as never, storage as never);
+  const rateLimits = { assertPostCreateAllowed: jest.fn() };
+  const service = new CommunityPostService(prisma as never, storage as never, rateLimits as never);
 
   beforeEach(() => {
     jest.clearAllMocks();
+    rateLimits.assertPostCreateAllowed.mockResolvedValue(undefined);
     prisma.$transaction.mockImplementation(
       async (operation: (transaction: typeof prisma) => Promise<unknown>) => operation(prisma),
     );
     prisma.communityMediaAsset.findMany.mockResolvedValue([]);
     prisma.communityMediaAsset.updateMany.mockResolvedValue({ count: 0 });
+    prisma.communityPostReport.findMany.mockResolvedValue([]);
+    prisma.communityPostReport.updateMany.mockResolvedValue({ count: 0 });
   });
 
   it("trims text and creates a pending text-only post", async () => {
@@ -65,6 +74,19 @@ describe("CommunityPostService", () => {
         },
       }),
     );
+    expect(rateLimits.assertPostCreateAllowed).toHaveBeenCalledWith("user-1");
+  });
+
+  it("does not write a post when the publishing limiter rejects it", async () => {
+    rateLimits.assertPostCreateAllowed.mockRejectedValueOnce({
+      code: "COMMUNITY_POST_RATE_LIMITED",
+    });
+
+    await expect(service.create("user-1", { content: "受限动态" })).rejects.toMatchObject({
+      code: "COMMUNITY_POST_RATE_LIMITED",
+    });
+    expect(prisma.$transaction).not.toHaveBeenCalled();
+    expect(prisma.post.create).not.toHaveBeenCalled();
   });
 
   it("atomically binds owned active media in request order", async () => {
@@ -321,6 +343,90 @@ describe("CommunityPostService", () => {
     );
   });
 
+  it("accepts one trimmed report for a published post", async () => {
+    prisma.post.findFirst.mockResolvedValue({ authorId: "author-1" });
+    prisma.communityPostReport.create.mockResolvedValue({
+      id: "report-1",
+      status: "pending",
+      createdAt: new Date("2026-08-26T09:00:00.000Z"),
+    });
+
+    await expect(
+      service.report("reporter-1", "post-1", {
+        reason: "spam",
+        description: "  重复广告  ",
+      }),
+    ).resolves.toEqual({
+      id: "report-1",
+      status: "pending",
+      createdAt: "2026-08-26T09:00:00.000Z",
+    });
+    expect(prisma.communityPostReport.create).toHaveBeenCalledWith(
+      expect.objectContaining({
+        data: expect.objectContaining({
+          postId: "post-1",
+          reporterId: "reporter-1",
+          reason: "spam",
+          description: "重复广告",
+        }),
+      }),
+    );
+  });
+
+  it("rejects non-public, self, and duplicate reports without extra records", async () => {
+    prisma.post.findFirst.mockResolvedValueOnce(null);
+    await expect(service.report("reporter-1", "post-1", { reason: "spam" })).rejects.toMatchObject({
+      code: "CONTENT_POST_NOT_FOUND",
+    });
+
+    prisma.post.findFirst.mockResolvedValueOnce({ authorId: "reporter-1" });
+    await expect(service.report("reporter-1", "post-1", { reason: "spam" })).rejects.toMatchObject({
+      code: "CONTENT_POST_REPORT_SELF",
+    });
+
+    prisma.post.findFirst.mockResolvedValueOnce({ authorId: "author-1" });
+    prisma.communityPostReport.create.mockRejectedValueOnce({ code: "P2002" });
+    await expect(service.report("reporter-1", "post-1", { reason: "spam" })).rejects.toMatchObject({
+      code: "CONTENT_POST_REPORT_DUPLICATE",
+    });
+    expect(prisma.communityPostReport.create).toHaveBeenCalledTimes(1);
+  });
+
+  it("returns newest reports with reporter and related post context", async () => {
+    prisma.post.findUnique.mockResolvedValue({ id: "post-1" });
+    prisma.communityPostReport.findMany.mockResolvedValue([
+      {
+        id: "report-1",
+        reason: "harassment",
+        description: "辱骂",
+        status: "pending",
+        createdAt: new Date("2026-08-26T09:00:00.000Z"),
+        resolvedAt: null,
+        reporter: {
+          id: "reporter-1",
+          phone: "13800138000",
+          username: null,
+          nickname: "举报人",
+          avatar: null,
+        },
+        post: { id: "post-1", status: "published" },
+      },
+    ]);
+
+    await expect(service.findReportsForAdmin("post-1")).resolves.toMatchObject({
+      total: 1,
+      list: [
+        {
+          id: "report-1",
+          reason: "harassment",
+          reporter: { id: "reporter-1" },
+          post: { id: "post-1", status: "published" },
+          createdAt: "2026-08-26T09:00:00.000Z",
+        },
+      ],
+    });
+  });
+
   it("soft-deletes an owned post and treats a repeated delete as success", async () => {
     prisma.post.findUnique
       .mockResolvedValueOnce({ authorId: "user-1", status: "published" })
@@ -338,6 +444,10 @@ describe("CommunityPostService", () => {
         status: { not: ADMIN_CONTENT_POST_STATUS.DELETED },
       },
       data: { status: ADMIN_CONTENT_POST_STATUS.DELETED, moderationReason: null },
+    });
+    expect(prisma.communityPostReport.updateMany).toHaveBeenCalledWith({
+      where: { postId: "post-1", status: "pending" },
+      data: { status: "resolved", resolvedAt: expect.any(Date) },
     });
   });
 

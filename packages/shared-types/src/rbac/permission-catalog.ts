@@ -381,7 +381,23 @@ export const RBAC_PERMISSION_CATALOG: readonly RbacPermissionDefinition[] = [
     parentCode: "content.post.view",
     order: 10,
     icon: null,
-    impliedApiCodes: ["content.post.read", "content.post.moderate_action"],
+    impliedApiCodes: [
+      "content.post.read",
+      "content.post.report_read",
+      "content.post.moderate_action",
+    ],
+  },
+  /** 允许读取社区帖子举报人和举报原因。 */
+  {
+    code: "content.post.report_read",
+    type: "api",
+    label: "查看社区帖子举报",
+    module: "content",
+    path: null,
+    parentCode: null,
+    order: 30,
+    icon: null,
+    impliedApiCodes: [],
   },
   /** 允许通过后台接口执行社区帖子审核命令。 */
   {
@@ -391,7 +407,7 @@ export const RBAC_PERMISSION_CATALOG: readonly RbacPermissionDefinition[] = [
     module: "content",
     path: null,
     parentCode: null,
-    order: 30,
+    order: 40,
     icon: null,
     impliedApiCodes: [],
   },

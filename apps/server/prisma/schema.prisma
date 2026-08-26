@@ -52,6 +52,7 @@ model User {
   orderIntents                      OrderIntent[]
   posts                             Post[]
   communityMediaAssets              CommunityMediaAsset[]              @relation("CommunityMediaAssetOwner")
+  communityPostReports              CommunityPostReport[]              @relation("CommunityPostReportReporter")
   communityPostModerationEvents     CommunityPostModerationEvent[]     @relation("CommunityPostModerationOperator")
   classroomArticles                 ClassroomArticle[]
   favorites                         Favorite[]
@@ -1077,6 +1078,7 @@ model Post {
   favorites        Favorite[]
   comments         Comment[]
   mediaAssets      CommunityMediaAsset[]
+  reports          CommunityPostReport[]
   moderationEvents CommunityPostModerationEvent[]
 
   @@index([authorId])
@@ -1125,6 +1127,26 @@ model CommunityPostModerationEvent {
   @@index([postId, createdAt])
   @@index([operatorId, createdAt])
   @@map("community_post_moderation_events")
+}
+
+model CommunityPostReport {
+  id          String    @id @default(uuid())
+  postId      String    @map("post_id")
+  reporterId  String    @map("reporter_id")
+  reason      String
+  description String?
+  /// pending / resolved
+  status      String    @default("pending")
+  createdAt   DateTime  @default(now()) @map("created_at")
+  resolvedAt  DateTime? @map("resolved_at")
+
+  post     Post @relation(fields: [postId], references: [id], onDelete: Cascade)
+  reporter User @relation("CommunityPostReportReporter", fields: [reporterId], references: [id], onDelete: Restrict)
+
+  @@unique([postId, reporterId])
+  @@index([postId, status, createdAt])
+  @@index([reporterId, createdAt])
+  @@map("community_post_reports")
 }
 
 // ============================================

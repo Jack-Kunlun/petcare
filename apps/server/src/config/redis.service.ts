@@ -77,7 +77,7 @@ export class RedisService implements OnModuleInit, OnModuleDestroy {
     }
   }
 
-  /** 在固定窗口内原子地消耗一次认证尝试额度。 */
+  /** 在固定窗口内原子地消耗一次操作额度。 */
   async consumeFixedWindow(
     key: string,
     maxAttempts: number,

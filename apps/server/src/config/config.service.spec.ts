@@ -52,6 +52,10 @@ describe("ConfigService", () => {
     delete process.env.CAPTCHA_MAX_ATTEMPTS;
     delete process.env.AUTH_PASSWORD_MAX_ATTEMPTS;
     delete process.env.AUTH_PASSWORD_WINDOW_SECONDS;
+    delete process.env.COMMUNITY_POST_MAX_ATTEMPTS;
+    delete process.env.COMMUNITY_POST_WINDOW_SECONDS;
+    delete process.env.COMMUNITY_MEDIA_MAX_ATTEMPTS;
+    delete process.env.COMMUNITY_MEDIA_WINDOW_SECONDS;
     delete process.env.DEFAULT_ADMIN_USERNAME;
     delete process.env.DEFAULT_ADMIN_PHONE;
     delete process.env.DEFAULT_ADMIN_PASSWORD;
@@ -90,6 +94,10 @@ describe("ConfigService", () => {
     expect(config.captchaMaxAttempts).toBe(5);
     expect(config.authPasswordMaxAttempts).toBe(5);
     expect(config.authPasswordWindowSeconds).toBe(900);
+    expect(config.communityPostMaxAttempts).toBe(10);
+    expect(config.communityPostWindowSeconds).toBe(3600);
+    expect(config.communityMediaMaxAttempts).toBe(5);
+    expect(config.communityMediaWindowSeconds).toBe(60);
     expect(config.defaultAdminUsername).toBe("admin");
   });
 
@@ -311,6 +319,21 @@ describe("ConfigService", () => {
 
       expect(() => new ConfigService().validateForStartup()).toThrow(
         /AUTH_PASSWORD_MAX_ATTEMPTS.*AUTH_PASSWORD_WINDOW_SECONDS/s,
+      );
+    });
+
+    it("validates community publishing limiter configuration", () => {
+      process.env = {
+        ...originalEnv,
+        ...validStartupEnv,
+        COMMUNITY_POST_MAX_ATTEMPTS: "0",
+        COMMUNITY_POST_WINDOW_SECONDS: "hour",
+        COMMUNITY_MEDIA_MAX_ATTEMPTS: "-1",
+        COMMUNITY_MEDIA_WINDOW_SECONDS: "60s",
+      };
+
+      expect(() => new ConfigService().validateForStartup()).toThrow(
+        /COMMUNITY_POST_MAX_ATTEMPTS.*COMMUNITY_POST_WINDOW_SECONDS.*COMMUNITY_MEDIA_MAX_ATTEMPTS.*COMMUNITY_MEDIA_WINDOW_SECONDS/s,
       );
     });
 

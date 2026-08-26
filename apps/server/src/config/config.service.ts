@@ -82,6 +82,10 @@ export class ConfigService {
     check("REFRESH_TOKEN_TTL_SECONDS", () => this.refreshTokenTtlSeconds);
     check("AUTH_PASSWORD_MAX_ATTEMPTS", () => this.authPasswordMaxAttempts);
     check("AUTH_PASSWORD_WINDOW_SECONDS", () => this.authPasswordWindowSeconds);
+    check("COMMUNITY_POST_MAX_ATTEMPTS", () => this.communityPostMaxAttempts);
+    check("COMMUNITY_POST_WINDOW_SECONDS", () => this.communityPostWindowSeconds);
+    check("COMMUNITY_MEDIA_MAX_ATTEMPTS", () => this.communityMediaMaxAttempts);
+    check("COMMUNITY_MEDIA_WINDOW_SECONDS", () => this.communityMediaWindowSeconds);
     check("DEFAULT_ADMIN_PHONE", () => this.defaultAdminPhone);
     check("DEFAULT_ADMIN_PASSWORD", () => this.validateAdminPassword());
     check("ALLOWED_ORIGINS", () => this.validateAllowedOrigins());
@@ -325,6 +329,26 @@ export class ConfigService {
   /** 密码登录固定窗口的持续时间（秒）。 */
   get authPasswordWindowSeconds(): number {
     return this.getPositiveInteger("AUTH_PASSWORD_WINDOW_SECONDS", 900);
+  }
+
+  /** Community posts allowed per author in one fixed window. */
+  get communityPostMaxAttempts(): number {
+    return this.getPositiveInteger("COMMUNITY_POST_MAX_ATTEMPTS", 10);
+  }
+
+  /** Community post publishing fixed-window duration in seconds. */
+  get communityPostWindowSeconds(): number {
+    return this.getPositiveInteger("COMMUNITY_POST_WINDOW_SECONDS", 3600);
+  }
+
+  /** Community media uploads allowed per owner in one fixed window. */
+  get communityMediaMaxAttempts(): number {
+    return this.getPositiveInteger("COMMUNITY_MEDIA_MAX_ATTEMPTS", 5);
+  }
+
+  /** Community media upload fixed-window duration in seconds. */
+  get communityMediaWindowSeconds(): number {
+    return this.getPositiveInteger("COMMUNITY_MEDIA_WINDOW_SECONDS", 60);
   }
 
   get smsDevCode(): string | undefined {

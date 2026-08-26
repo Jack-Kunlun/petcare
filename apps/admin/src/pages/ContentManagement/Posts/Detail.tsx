@@ -1,7 +1,8 @@
-import type {
-  AdminContentPostStatus,
-  ApiErrorResponse,
-  CommunityPostModerationAction,
+import {
+  COMMUNITY_POST_REPORT_REASON_LABELS,
+  type AdminContentPostStatus,
+  type ApiErrorResponse,
+  type CommunityPostModerationAction,
 } from "@petcare/shared-types";
 import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
 import axios from "axios";
@@ -10,6 +11,7 @@ import {
   ArrowLeft,
   CheckCircle2,
   Clock3,
+  Flag,
   ImageIcon,
   MessageSquare,
   ShieldAlert,
@@ -21,6 +23,7 @@ import { Link, useParams } from "react-router-dom";
 import {
   approveAdminContentPost,
   fetchAdminContentPost,
+  fetchAdminContentPostReports,
   offlineAdminContentPost,
   postQueryKeys,
   rejectAdminContentPost,
@@ -82,6 +85,11 @@ export default function ContentPostDetail() {
     queryFn: () => fetchAdminContentPost(id),
     enabled: Boolean(id),
   });
+  const reportsQuery = useQuery({
+    queryKey: postQueryKeys.reports(id),
+    queryFn: () => fetchAdminContentPostReports(id),
+    enabled: Boolean(id) && canModerate,
+  });
 
   const moderationMutation = useMutation({
     mutationFn: async (command: {
@@ -111,7 +119,10 @@ export default function ContentPostDetail() {
       setFormError("");
       setActionError("");
       setActionSuccess(`${actionLabels[command.action]}成功`);
-      await queryClient.invalidateQueries({ queryKey: postQueryKeys.all });
+      await Promise.all([
+        queryClient.invalidateQueries({ queryKey: postQueryKeys.all }),
+        queryClient.invalidateQueries({ queryKey: postQueryKeys.reports(id) }),
+      ]);
     },
     onError: async (error) => {
       setActionSuccess("");
@@ -354,6 +365,12 @@ export default function ContentPostDetail() {
                 <dd className="mt-1 font-medium tabular-nums text-slate-900">{post.sharesCount}</dd>
               </div>
               <div>
+                <dt className="text-slate-500">举报</dt>
+                <dd className="mt-1 font-medium tabular-nums text-slate-900">
+                  {post.reportsCount}
+                </dd>
+              </div>
+              <div>
                 <dt className="text-slate-500">最后更新</dt>
                 <dd className="mt-1 font-medium text-slate-900">
                   {formatDateTime(post.updatedAt)}
@@ -395,6 +412,74 @@ export default function ContentPostDetail() {
             </div>
           )}
         </FormSection>
+
+        {canModerate ? (
+          <FormSection
+            title={
+              <span className="flex items-center gap-2">
+                <Flag aria-hidden="true" className="h-5 w-5 text-red-700" />
+                举报记录
+              </span>
+            }
+          >
+            {reportsQuery.isPending ? (
+              <div
+                aria-label="正在加载举报记录"
+                className="h-20 animate-pulse rounded-lg bg-slate-100"
+              />
+            ) : null}
+            {reportsQuery.isError ? (
+              <p role="alert" className="text-sm text-red-700">
+                举报记录加载失败，请稍后重试。
+              </p>
+            ) : null}
+            {reportsQuery.data?.list.length === 0 ? (
+              <p className="text-sm text-slate-500">暂无举报记录。</p>
+            ) : null}
+            {reportsQuery.data?.list.length ? (
+              <ol className="space-y-3">
+                {reportsQuery.data.list.map((report) => (
+                  <li
+                    key={report.id}
+                    className="rounded-lg border border-red-100 bg-red-50/40 p-4 text-sm"
+                  >
+                    <div className="flex flex-wrap items-center justify-between gap-2">
+                      <span className="font-semibold text-slate-900">
+                        {COMMUNITY_POST_REPORT_REASON_LABELS[report.reason]}
+                      </span>
+                      <span className="rounded-full bg-white px-2 py-1 text-xs text-slate-600 ring-1 ring-slate-200">
+                        {report.status === "pending" ? "待处理" : "已解决"}
+                      </span>
+                    </div>
+                    <p className="mt-2 text-slate-700">
+                      举报人：{report.reporter.nickname}（
+                      {report.reporter.phone ?? report.reporter.id}）
+                    </p>
+                    {report.description ? (
+                      <p className="mt-2 whitespace-pre-wrap text-slate-800">
+                        补充说明：{report.description}
+                      </p>
+                    ) : null}
+                    <div className="mt-3 flex flex-wrap items-center justify-between gap-3">
+                      <time className="text-xs text-slate-500" dateTime={report.createdAt}>
+                        {formatDateTime(report.createdAt)} · 帖子 {report.post.id}
+                      </time>
+                      {report.status === "pending" && post.status === "published" ? (
+                        <button
+                          type="button"
+                          className="min-h-11 cursor-pointer rounded-lg border border-red-300 px-3 text-sm font-semibold text-red-800 hover:bg-red-100 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-red-600"
+                          onClick={() => openAction("offline")}
+                        >
+                          从举报下架帖子
+                        </button>
+                      ) : null}
+                    </div>
+                  </li>
+                ))}
+              </ol>
+            ) : null}
+          </FormSection>
+        ) : null}
 
         <FormSection
           title={

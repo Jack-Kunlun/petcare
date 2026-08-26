@@ -4,6 +4,7 @@ describe("ContentService", () => {
   const transaction = {
     post: { updateMany: jest.fn() },
     communityPostModerationEvent: { create: jest.fn() },
+    communityPostReport: { updateMany: jest.fn() },
   };
   const prisma = {
     order: { findMany: jest.fn(), count: jest.fn() },
@@ -36,6 +37,7 @@ describe("ContentService", () => {
     likesCount: 0,
     commentsCount: 0,
     sharesCount: 0,
+    _count: { reports: 1 },
     status: "published",
     moderationReason: null,
     createdAt: observedAt,
@@ -58,6 +60,7 @@ describe("ContentService", () => {
     jest.clearAllMocks();
     transaction.post.updateMany.mockResolvedValue({ count: 1 });
     transaction.communityPostModerationEvent.create.mockResolvedValue({ id: "event-1" });
+    transaction.communityPostReport.updateMany.mockResolvedValue({ count: 0 });
     storage.head.mockResolvedValue(undefined);
   });
 
@@ -111,6 +114,7 @@ describe("ContentService", () => {
         likesCount: 3,
         commentsCount: 2,
         sharesCount: 1,
+        _count: { reports: 2 },
         status: "published",
         createdAt: new Date("2026-08-01T09:00:00.000Z"),
         updatedAt: new Date("2026-08-01T09:00:00.000Z"),
@@ -126,7 +130,7 @@ describe("ContentService", () => {
     prisma.post.count.mockResolvedValue(1);
 
     await expect(service.findPostPage({ page: 1, pageSize: 20 })).resolves.toMatchObject({
-      list: [{ contentExcerpt: "这是一段帖子正文", mediaCount: 2 }],
+      list: [{ contentExcerpt: "这是一段帖子正文", mediaCount: 2, reportsCount: 2 }],
     });
   });
 
@@ -139,6 +143,7 @@ describe("ContentService", () => {
         likesCount: 0,
         commentsCount: 0,
         sharesCount: 0,
+        _count: { reports: 0 },
         status: "draft",
         createdAt: new Date("2026-08-01T09:00:00.000Z"),
         updatedAt: new Date("2026-08-01T09:00:00.000Z"),
@@ -239,6 +244,9 @@ describe("ContentService", () => {
             reason,
           }),
         }),
+      );
+      expect(transaction.communityPostReport.updateMany).toHaveBeenCalledTimes(
+        method === "offlinePost" ? 1 : 0,
       );
     },
   );
