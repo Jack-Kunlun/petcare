@@ -1,5 +1,5 @@
 import { describe, expect, it } from "vitest";
-import { isMainlandChinaMobile, mergeProfileResponse } from "./profile-form";
+import { isMainlandChinaMobile, isProfileFormDirty, mergeProfileResponse } from "./profile-form";
 
 const current = {
   id: "user-1",
@@ -28,6 +28,15 @@ describe("profile form", () => {
     expect(isMainlandChinaMobile(" 13800138000 ")).toBe(false);
     expect(isMainlandChinaMobile("12679141878")).toBe(false);
     expect(isMainlandChinaMobile("1767914187")).toBe(false);
+  });
+
+  it("enables saving only after an editable profile field changes", () => {
+    const persisted = { nickname: "小白家长", region: "上海市", bio: "喜欢猫咪" };
+
+    expect(isProfileFormDirty({ ...persisted }, persisted)).toBe(false);
+    expect(isProfileFormDirty({ ...persisted, nickname: "小黑家长" }, persisted)).toBe(true);
+    expect(isProfileFormDirty({ ...persisted, region: "杭州市" }, persisted)).toBe(true);
+    expect(isProfileFormDirty({ ...persisted, bio: "喜欢狗狗" }, persisted)).toBe(true);
   });
 
   it("merges only fields owned by the completed operation", () => {

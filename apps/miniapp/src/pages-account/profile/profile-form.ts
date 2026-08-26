@@ -1,7 +1,25 @@
 import type { MiniappUserProfile } from "@petcare/shared-types";
 
+export interface EditableProfileForm {
+  nickname: string;
+  region: string;
+  bio: string;
+}
+
 export function isMainlandChinaMobile(value: string): boolean {
   return /^1[3-9]\d{9}$/.test(value);
+}
+
+/** Reports whether any text field differs from the last persisted profile. */
+export function isProfileFormDirty(
+  current: EditableProfileForm,
+  persisted: EditableProfileForm,
+): boolean {
+  return (
+    current.nickname !== persisted.nickname ||
+    current.region !== persisted.region ||
+    current.bio !== persisted.bio
+  );
 }
 
 export function mergeProfileResponse(
