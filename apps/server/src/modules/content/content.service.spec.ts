@@ -79,4 +79,37 @@ describe("ContentService", () => {
       list: [{ contentExcerpt: "这是一段帖子正文", mediaCount: 2 }],
     });
   });
+
+  it("treats legacy draft posts as pending in filters and responses", async () => {
+    prisma.post.findMany.mockResolvedValue([
+      {
+        id: "post-legacy",
+        content: "历史草稿",
+        mediaUrls: [],
+        likesCount: 0,
+        commentsCount: 0,
+        sharesCount: 0,
+        status: "draft",
+        createdAt: new Date("2026-08-01T09:00:00.000Z"),
+        updatedAt: new Date("2026-08-01T09:00:00.000Z"),
+        author: {
+          id: "user-1",
+          phone: "13800138000",
+          username: null,
+          nickname: "小明",
+          avatar: null,
+        },
+      },
+    ]);
+    prisma.post.count.mockResolvedValue(1);
+
+    await expect(
+      service.findPostPage({ page: 1, pageSize: 20, status: "pending" }),
+    ).resolves.toMatchObject({ list: [{ status: "pending" }] });
+    expect(prisma.post.findMany).toHaveBeenCalledWith(
+      expect.objectContaining({
+        where: { AND: [{ status: { in: ["pending", "draft"] } }] },
+      }),
+    );
+  });
 });

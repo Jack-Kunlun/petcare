@@ -9,6 +9,7 @@ import {
   CLASSROOM_ARTICLE_CATEGORY_LABELS,
 } from "@petcare/shared-types";
 import { computed, ref } from "vue";
+import { openCommunityPublishEntry } from "./publish-entry";
 import { getClassroomArticles } from "@/api/content";
 import MainTabLayout from "@/components/MainTabLayout.vue";
 
@@ -40,6 +41,7 @@ const classroomLoading = ref(false);
 const classroomLoadMoreError = ref(false);
 const classroomPage = ref(1);
 const classroomTotal = ref(0);
+const publishPending = ref(false);
 const classroomHasMore = computed(() => classroomArticles.value.length < classroomTotal.value);
 
 const posts = [
@@ -171,6 +173,10 @@ function openClassroomArticle(slug: string): void {
 
 function openCommunityArticle(id: string): void {
   uni.navigateTo({ url: `/pages-content/community/article?id=${encodeURIComponent(id)}` });
+}
+
+function openCommunityPublisher(): void {
+  void openCommunityPublishEntry(publishPending);
 }
 
 onLoad((query = {}) => {
@@ -487,13 +493,16 @@ onLoad((query = {}) => {
     </view>
 
     <template #floating>
-      <view
-        class="h-fab w-fab flex items-center justify-center rounded-full bg-brand opacity-50 shadow-float"
+      <button
+        class="pointer-events-auto h-fab w-fab flex items-center justify-center rounded-full bg-brand p-0 shadow-float"
+        :class="publishPending ? 'opacity-50' : ''"
+        :disabled="publishPending"
+        :aria-disabled="publishPending"
         aria-label="发布动态"
-        aria-disabled="true"
+        @click="openCommunityPublisher"
       >
         <image class="h-glyph w-glyph" src="/static/main/plus.svg" mode="aspectFit" />
-      </view>
+      </button>
     </template>
   </MainTabLayout>
 </template>

@@ -1054,18 +1054,21 @@ model DisputeMoneyRecord {
 // ============================================
 
 model Post {
-  id            String   @id @default(uuid())
-  authorId      String   @map("author_id")
-  content       String
-  mediaUrls     String[] @map("media_urls")
-  tags          String[]
-  petId         String?  @map("pet_id")
-  likesCount    Int      @default(0) @map("likes_count")
-  commentsCount Int      @default(0) @map("comments_count")
-  sharesCount   Int      @default(0) @map("shares_count")
-  status        String   @default("published") // published / draft / deleted
-  createdAt     DateTime @default(now()) @map("created_at")
-  updatedAt     DateTime @updatedAt @map("updated_at")
+  id               String   @id @default(uuid())
+  authorId         String   @map("author_id")
+  content          String
+  mediaUrls        String[] @map("media_urls")
+  tags             String[]
+  petId            String?  @map("pet_id")
+  likesCount       Int      @default(0) @map("likes_count")
+  commentsCount    Int      @default(0) @map("comments_count")
+  sharesCount      Int      @default(0) @map("shares_count")
+  /// pending / published / rejected / offline / deleted
+  status           String   @default("pending")
+  /// 审核驳回或下架原因；只通过受控作者和管理员响应返回。
+  moderationReason String?  @map("moderation_reason")
+  createdAt        DateTime @default(now()) @map("created_at")
+  updatedAt        DateTime @updatedAt @map("updated_at")
 
   author    User       @relation(fields: [authorId], references: [id], onDelete: Cascade)
   pet       Pet?       @relation(fields: [petId], references: [id])

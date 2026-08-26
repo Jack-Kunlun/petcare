@@ -1,11 +1,19 @@
 import { CLASSROOM_ARTICLE_CATEGORY } from "@petcare/shared-types";
 import { beforeEach, describe, expect, it, vi } from "vitest";
-import { getClassroomArticle, getClassroomArticles } from "./content";
+import { authorizedRequest } from "../state/session";
+import {
+  createCommunityPost,
+  getClassroomArticle,
+  getClassroomArticles,
+  getMyCommunityPosts,
+} from "./content";
 import { rawRequest } from "./request";
 
 vi.mock("./request", () => ({ rawRequest: vi.fn() }));
+vi.mock("../state/session", () => ({ authorizedRequest: vi.fn() }));
 
 const rawRequestMock = vi.mocked(rawRequest);
+const authorizedRequestMock = vi.mocked(authorizedRequest);
 
 describe("miniapp content API", () => {
   beforeEach(() => vi.clearAllMocks());
@@ -45,5 +53,17 @@ describe("miniapp content API", () => {
     const options = rawRequestMock.mock.calls[0]?.[1];
 
     expect(Object.keys(options?.data as object)).toEqual(["page", "pageSize"]);
+  });
+
+  it("uses authenticated community submission and author-only list endpoints", async () => {
+    authorizedRequestMock.mockResolvedValue({});
+
+    await createCommunityPost({ content: "今天带旺财散步" });
+    await getMyCommunityPosts({ page: 1, pageSize: 20 });
+
+    expect(authorizedRequestMock.mock.calls).toEqual([
+      ["/community/posts", { method: "POST", data: { content: "今天带旺财散步" } }],
+      ["/community/posts/mine", { data: { page: 1, pageSize: 20 } }],
+    ]);
   });
 });

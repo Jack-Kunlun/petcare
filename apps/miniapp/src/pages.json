@@ -253,6 +253,13 @@
           }
         },
         {
+          "path": "community/publish",
+          "style": {
+            "navigationBarTextStyle": "black",
+            "navigationStyle": "custom"
+          }
+        },
+        {
           "path": "coupons/index",
           "style": {
             "navigationBarTextStyle": "black",

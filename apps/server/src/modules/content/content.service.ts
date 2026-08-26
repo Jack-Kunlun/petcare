@@ -1,9 +1,11 @@
 import { Injectable } from "@nestjs/common";
+import { ADMIN_CONTENT_POST_STATUS } from "@petcare/shared-types";
 import type {
   AdminContentPostListResponse,
   AdminContentRewardListResponse,
 } from "@petcare/shared-types";
 import { PrismaService } from "../../prisma/prisma.service";
+import { normalizeCommunityPostStatus } from "./community-post-status";
 import {
   AdminContentPostListQueryDto,
   AdminContentRewardListQueryDto,
@@ -126,7 +128,11 @@ export class ContentService {
     }
 
     if (query.status) {
-      filters.push({ status: query.status });
+      filters.push(
+        query.status === ADMIN_CONTENT_POST_STATUS.PENDING
+          ? { status: { in: [ADMIN_CONTENT_POST_STATUS.PENDING, "draft"] } }
+          : { status: query.status },
+      );
     }
 
     const where = filters.length > 0 ? { AND: filters } : {};
@@ -161,7 +167,7 @@ export class ContentService {
         likesCount: post.likesCount,
         commentsCount: post.commentsCount,
         sharesCount: post.sharesCount,
-        status: post.status as AdminContentPostListResponse["list"][number]["status"],
+        status: normalizeCommunityPostStatus(post.status),
         createdAt: post.createdAt.toISOString(),
         updatedAt: post.updatedAt.toISOString(),
       })),

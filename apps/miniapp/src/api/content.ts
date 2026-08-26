@@ -1,11 +1,30 @@
 import type {
+  CreateCommunityPostRequest,
+  MyCommunityPostListItem,
+  MyCommunityPostListQuery,
+  MyCommunityPostListResponse,
   PublicClassroomArticleDetail,
   PublicClassroomArticleListQuery,
   PublicClassroomArticleListResponse,
   WebsiteContentKey,
   WebsitePublicContent,
 } from "@petcare/shared-types";
+import { authorizedRequest } from "../state/session";
 import { rawRequest } from "./request";
+
+/** Submits a text-only community post for moderation. */
+export function createCommunityPost(
+  request: CreateCommunityPostRequest,
+): Promise<MyCommunityPostListItem> {
+  return authorizedRequest("/community/posts", { method: "POST", data: request });
+}
+
+/** Reads the authenticated author's own posts and moderation states. */
+export function getMyCommunityPosts(
+  query: MyCommunityPostListQuery,
+): Promise<MyCommunityPostListResponse> {
+  return authorizedRequest("/community/posts/mine", { data: query });
+}
 
 /** Reads a filtered page of currently published classroom articles. */
 export function getClassroomArticles(

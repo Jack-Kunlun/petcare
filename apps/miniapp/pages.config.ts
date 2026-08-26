@@ -47,6 +47,7 @@ export default defineUniPages({
       pages: [
         "classroom/article",
         "community/article",
+        "community/publish",
         "coupons/index",
         "wallet/index",
         "help/index",

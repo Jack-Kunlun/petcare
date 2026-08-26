@@ -34,6 +34,7 @@ type _LocationUrl =
   "/pages-account/account/cancel" |
   "/pages-content/classroom/article" |
   "/pages-content/community/article" |
+  "/pages-content/community/publish" |
   "/pages-content/coupons/index" |
   "/pages-content/wallet/index" |
   "/pages-content/help/index" |

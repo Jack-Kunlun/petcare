@@ -9,7 +9,9 @@ import {
   type AdminClassroomArticleStateRequest,
   type AdminContentPostListResponse,
   type AdminContentRewardListResponse,
+  type CreateCommunityPostRequest,
   type CreateAdminClassroomArticleRequest,
+  type MyCommunityPostListResponse,
   type PublicClassroomArticleDetail,
   type PublicClassroomArticleListResponse,
   type UpdateAdminClassroomArticleRequest,
@@ -18,7 +20,13 @@ import {
 
 describe("content contracts", () => {
   it("exposes stable status values and unified pagination shapes", () => {
-    expect(Object.values(ADMIN_CONTENT_POST_STATUS)).toEqual(["published", "draft", "deleted"]);
+    expect(Object.values(ADMIN_CONTENT_POST_STATUS)).toEqual([
+      "pending",
+      "published",
+      "rejected",
+      "offline",
+      "deleted",
+    ]);
     expect(Object.values(ADMIN_CLASSROOM_ARTICLE_STATUS)).toEqual([
       "draft",
       "published",
@@ -41,6 +49,27 @@ describe("content contracts", () => {
     > = [];
 
     expect(responses).toEqual([]);
+  });
+
+  it("keeps community submission author-scoped and pending by contract", () => {
+    const create: CreateCommunityPostRequest = { content: "今天带旺财散步" };
+    const mine: MyCommunityPostListResponse = {
+      list: [
+        {
+          id: "post-1",
+          content: create.content,
+          status: ADMIN_CONTENT_POST_STATUS.PENDING,
+          moderationReason: null,
+          createdAt: "2026-08-26T08:00:00.000Z",
+          updatedAt: "2026-08-26T08:00:00.000Z",
+        },
+      ],
+      total: 1,
+      page: 1,
+      pageSize: 20,
+    };
+
+    expect(mine.list[0].status).toBe("pending");
   });
 
   it("keeps official website article contracts limited to public fields", () => {

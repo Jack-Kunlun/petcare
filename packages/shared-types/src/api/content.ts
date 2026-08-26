@@ -4,10 +4,14 @@ import type { WebsitePublicMediaAsset } from "./website-content";
 
 /** 内容管理帖子状态。 */
 export const ADMIN_CONTENT_POST_STATUS = {
+  /** 帖子已提交，等待运营审核。 */
+  PENDING: "pending",
   /** 帖子已经公开展示。 */
   PUBLISHED: "published",
-  /** 帖子尚未公开展示。 */
-  DRAFT: "draft",
+  /** 帖子审核未通过，仅作者和管理员可读取原因。 */
+  REJECTED: "rejected",
+  /** 帖子已由运营下架，不再公开展示。 */
+  OFFLINE: "offline",
   /** 帖子已被删除，不再对用户展示。 */
   DELETED: "deleted",
 } as const;
@@ -15,6 +19,9 @@ export const ADMIN_CONTENT_POST_STATUS = {
 /** 内容管理帖子状态类型。 */
 export type AdminContentPostStatus =
   (typeof ADMIN_CONTENT_POST_STATUS)[keyof typeof ADMIN_CONTENT_POST_STATUS];
+
+/** 社区帖子生命周期状态。 */
+export type CommunityPostStatus = AdminContentPostStatus;
 
 /** 课堂文章状态。 */
 export const ADMIN_CLASSROOM_ARTICLE_STATUS = {
@@ -150,6 +157,39 @@ export interface AdminContentPostListQuery {
 
 /** 后台帖子列表响应。 */
 export type AdminContentPostListResponse = PaginatedResponse<AdminContentPostListItem>;
+
+/** 登录用户提交文字社区动态的请求。 */
+export interface CreateCommunityPostRequest {
+  /** 去除首尾空白后的动态正文，长度为 1 至 1000 个字符。 */
+  content: string;
+}
+
+/** 作者查看的社区动态摘要。 */
+export interface MyCommunityPostListItem {
+  /** 社区动态唯一标识。 */
+  id: string;
+  /** 作者提交的完整文字正文。 */
+  content: string;
+  /** 当前审核和公开状态。 */
+  status: CommunityPostStatus;
+  /** 审核驳回原因；仅 rejected 状态返回，否则为 null。 */
+  moderationReason: string | null;
+  /** 动态创建时间，ISO 8601 格式。 */
+  createdAt: string;
+  /** 动态最后更新时间，ISO 8601 格式。 */
+  updatedAt: string;
+}
+
+/** 作者自己的社区动态分页查询。 */
+export interface MyCommunityPostListQuery {
+  /** 页码，从 1 开始。 */
+  page: number;
+  /** 每页条数，范围为 1 至 50。 */
+  pageSize: number;
+}
+
+/** 作者自己的社区动态分页响应。 */
+export type MyCommunityPostListResponse = PaginatedResponse<MyCommunityPostListItem>;
 
 /** 后台课堂文章列表项。 */
 export interface AdminClassroomArticleListItem {

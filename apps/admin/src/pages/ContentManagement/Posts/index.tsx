@@ -15,14 +15,18 @@ import { fetchAdminContentPosts } from "../../../api/content/posts";
 const PAGE_SIZE = 20;
 
 const statusLabels: Record<AdminContentPostStatus, string> = {
+  pending: "待审核",
   published: "已发布",
-  draft: "草稿",
+  rejected: "已驳回",
+  offline: "已下架",
   deleted: "已删除",
 };
 
 const statusClasses: Record<AdminContentPostStatus, string> = {
+  pending: "bg-amber-50 text-amber-700 ring-amber-600/20",
   published: "bg-emerald-50 text-emerald-700 ring-emerald-600/20",
-  draft: "bg-amber-50 text-amber-700 ring-amber-600/20",
+  rejected: "bg-red-50 text-red-700 ring-red-600/20",
+  offline: "bg-orange-50 text-orange-700 ring-orange-600/20",
   deleted: "bg-slate-100 text-slate-600 ring-slate-500/20",
 };
 
@@ -151,8 +155,10 @@ export default function ContentPosts() {
               className="h-11 w-full cursor-pointer rounded-lg border border-border bg-white px-3 text-sm text-text-secondary outline-none transition-colors hover:border-brand-primary/60 active:bg-page-background focus-visible:border-brand-primary focus-visible:ring-2 focus-visible:ring-brand-primary/20"
             >
               <option value="">全部帖子状态</option>
+              <option value="pending">待审核</option>
               <option value="published">已发布</option>
-              <option value="draft">草稿</option>
+              <option value="rejected">已驳回</option>
+              <option value="offline">已下架</option>
               <option value="deleted">已删除</option>
             </select>
           </label>
