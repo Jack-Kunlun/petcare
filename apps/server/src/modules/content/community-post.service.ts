@@ -4,6 +4,7 @@ import {
   COMMUNITY_MEDIA_STATUS,
   COMMUNITY_POST_COMMENT_STATUS,
   COMMUNITY_POST_REPORT_STATUS,
+  NOTIFICATION_TYPE,
 } from "@petcare/shared-types";
 import type {
   AdminCommunityPostComment,
@@ -407,7 +408,7 @@ export class CommunityPostService {
     return this.prisma.$transaction(async (transaction) => {
       const post = await transaction.post.findFirst({
         where: { id: postId, status: ADMIN_CONTENT_POST_STATUS.PUBLISHED },
-        select: { id: true },
+        select: { id: true, authorId: true },
       });
 
       if (!post) {
@@ -430,6 +431,21 @@ export class CommunityPostService {
 
       if (updated.count !== 1) {
         throw communityPostNotFound();
+      }
+
+      if (post.authorId !== commenterId) {
+        await transaction.notification.upsert({
+          where: { deduplicationKey: `community-comment:${comment.id}` },
+          update: {},
+          create: {
+            userId: post.authorId,
+            type: NOTIFICATION_TYPE.COMMUNITY_COMMENT,
+            title: "收到新评论",
+            content: comment.content.slice(0, 80),
+            referenceId: postId,
+            deduplicationKey: `community-comment:${comment.id}`,
+          },
+        });
       }
 
       return toPublicComment(comment, commenterId);
@@ -735,7 +751,7 @@ export class CommunityPostService {
     return this.prisma.$transaction(async (transaction) => {
       const post = await transaction.post.findFirst({
         where: { id, status: ADMIN_CONTENT_POST_STATUS.PUBLISHED },
-        select: { id: true },
+        select: { id: true, authorId: true },
       });
 
       if (!post) {
@@ -761,6 +777,21 @@ export class CommunityPostService {
 
         if (updated.count === 0) {
           throw communityPostNotFound();
+        }
+
+        if (liked && post.authorId !== userId) {
+          await transaction.notification.upsert({
+            where: { deduplicationKey: `community-like:${id}:${userId}` },
+            update: {},
+            create: {
+              userId: post.authorId,
+              type: NOTIFICATION_TYPE.COMMUNITY_LIKE,
+              title: "收到新的赞",
+              content: "有人赞了你的社区动态",
+              referenceId: id,
+              deduplicationKey: `community-like:${id}:${userId}`,
+            },
+          });
         }
       }
 

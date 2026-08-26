@@ -1248,7 +1248,7 @@ model Favorite {
 model Notification {
   id               String   @id @default(uuid())
   userId           String   @map("user_id")
-  type             String // message / order / system
+  type             String // community_like / community_comment / order / system
   title            String
   content          String
   referenceId      String?  @map("reference_id") // 关联的业务ID（订单ID、帖子ID等）

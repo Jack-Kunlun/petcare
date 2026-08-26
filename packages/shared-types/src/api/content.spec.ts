@@ -10,6 +10,8 @@ import {
   COMMUNITY_POST_MODERATION_ACTION,
   COMMUNITY_POST_REPORT_REASON,
   COMMUNITY_POST_REPORT_STATUS,
+  NOTIFICATION_CATEGORY,
+  NOTIFICATION_TYPE,
   type AdminClassroomArticleDetail,
   type AdminCommunityPostCommentListResponse,
   type AdminClassroomArticleListResponse,
@@ -24,6 +26,7 @@ import {
   type CreateCommunityPostRequest,
   type CreateAdminClassroomArticleRequest,
   type MyCommunityPostListResponse,
+  type NotificationListResponse,
   type PublicClassroomArticleDetail,
   type PublicClassroomArticleListResponse,
   type PublicCommunityPostDetail,
@@ -240,6 +243,36 @@ describe("content contracts", () => {
     ]);
     expect("phone" in publicComments.list[0].author).toBe(false);
     expect(adminComments.list[0].moderationReason).toBe("违反社区规范");
+  });
+
+  it("keeps user notifications recipient-safe and filterable by category", () => {
+    const notifications: NotificationListResponse = {
+      list: [
+        {
+          id: "notification-1",
+          type: NOTIFICATION_TYPE.COMMUNITY_COMMENT,
+          category: NOTIFICATION_CATEGORY.INTERACTION,
+          title: "收到新评论",
+          content: "好可爱",
+          referenceId: "post-1",
+          isRead: false,
+          createdAt: "2026-08-26T08:00:00.000Z",
+        },
+      ],
+      total: 1,
+      page: 1,
+      pageSize: 20,
+    };
+
+    expect(Object.values(NOTIFICATION_TYPE)).toEqual([
+      "community_like",
+      "community_comment",
+      "order",
+      "system",
+    ]);
+    expect(Object.values(NOTIFICATION_CATEGORY)).toEqual(["system", "order", "interaction"]);
+    expect(notifications.list[0]).not.toHaveProperty("userId");
+    expect(notifications.list[0]).not.toHaveProperty("phone");
   });
 
   it("keeps official website article contracts limited to public fields", () => {

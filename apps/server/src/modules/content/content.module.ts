@@ -12,6 +12,8 @@ import {
 import { CommunityPostService } from "./community-post.service";
 import { CommunityRateLimitService } from "./community-rate-limit.service";
 import { ContentService } from "./content.service";
+import { NotificationController } from "./notification.controller";
+import { NotificationService } from "./notification.service";
 import { PublicContentController } from "./public-content.controller";
 
 /** 内容管理模块，集中注册后台内容查询与课堂文章生命周期接口。 */
@@ -21,6 +23,7 @@ import { PublicContentController } from "./public-content.controller";
     AdminContentController,
     CommunityMediaController,
     CommunityPostController,
+    NotificationController,
     PublicCommunityPostController,
     PublicContentController,
   ],
@@ -30,6 +33,7 @@ import { PublicContentController } from "./public-content.controller";
     CommunityMediaService,
     CommunityPostService,
     CommunityRateLimitService,
+    NotificationService,
   ],
 })
 export class ContentModule {}

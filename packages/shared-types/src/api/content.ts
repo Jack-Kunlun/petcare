@@ -437,6 +437,74 @@ export interface AdminCommunityPostCommentOfflineRequest {
   reason: string;
 }
 
+/** Persisted notification event types currently exposed to PetCare users. */
+export const NOTIFICATION_TYPE = {
+  /** A different user liked one community post. */
+  COMMUNITY_LIKE: "community_like",
+  /** A different user commented on one community post. */
+  COMMUNITY_COMMENT: "community_comment",
+  /** An order lifecycle notification. */
+  ORDER: "order",
+  /** A platform-authored system notification. */
+  SYSTEM: "system",
+} as const;
+
+/** Persisted notification event type. */
+export type NotificationType = (typeof NOTIFICATION_TYPE)[keyof typeof NOTIFICATION_TYPE];
+
+/** User-facing notification categories used for filtering. */
+export const NOTIFICATION_CATEGORY = {
+  /** Platform notices. */
+  SYSTEM: "system",
+  /** Order lifecycle notices. */
+  ORDER: "order",
+  /** Community likes and comments. */
+  INTERACTION: "interaction",
+} as const;
+
+/** User-facing notification category. */
+export type NotificationCategory =
+  (typeof NOTIFICATION_CATEGORY)[keyof typeof NOTIFICATION_CATEGORY];
+
+/** Pagination and optional category filter for the authenticated user's notifications. */
+export interface NotificationListQuery {
+  /** One-based result page. */
+  page: number;
+  /** Number of notifications per page, from 1 through 50. */
+  pageSize: number;
+  /** Optional exact user-facing category. */
+  category?: NotificationCategory;
+}
+
+/** Notification fields safe for the receiving user. */
+export interface UserNotification {
+  /** Notification identifier used by the read command. */
+  id: string;
+  /** Controlled persisted event type. */
+  type: NotificationType;
+  /** User-facing category derived from the event type. */
+  category: NotificationCategory;
+  /** Short display title. */
+  title: string;
+  /** Minimal display preview. */
+  content: string;
+  /** Related post or order identifier, or null for an inert notice. */
+  referenceId: string | null;
+  /** Whether the receiving user has read this notification. */
+  isRead: boolean;
+  /** Notification creation time in ISO 8601 format. */
+  createdAt: string;
+}
+
+/** Paginated notifications belonging to the authenticated user. */
+export type NotificationListResponse = PaginatedResponse<UserNotification>;
+
+/** Result of an idempotent mark-all-read command. */
+export interface NotificationReadAllResult {
+  /** Number of unread notifications changed by this command. */
+  updatedCount: number;
+}
+
 /** Post fields attached to an administrator's report context. */
 export interface AdminCommunityPostReportPostSummary {
   /** Related community post identifier. */

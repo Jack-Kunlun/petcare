@@ -36,6 +36,9 @@ describe("CommunityPostService", () => {
       count: jest.fn(),
       updateMany: jest.fn(),
     },
+    notification: {
+      upsert: jest.fn(),
+    },
     $transaction: jest.fn(),
   };
   const storage = {
@@ -61,6 +64,7 @@ describe("CommunityPostService", () => {
     prisma.comment.findFirst.mockResolvedValue(null);
     prisma.comment.count.mockResolvedValue(0);
     prisma.comment.updateMany.mockResolvedValue({ count: 0 });
+    prisma.notification.upsert.mockResolvedValue({ id: "notification-1" });
   });
 
   it("trims text and creates a pending text-only post", async () => {
@@ -387,9 +391,9 @@ describe("CommunityPostService", () => {
 
   it("idempotently likes a published post and increments its count once", async () => {
     prisma.post.findFirst
-      .mockResolvedValueOnce({ id: "post-1" })
+      .mockResolvedValueOnce({ id: "post-1", authorId: "author-1" })
       .mockResolvedValueOnce({ likesCount: 4 })
-      .mockResolvedValueOnce({ id: "post-1" })
+      .mockResolvedValueOnce({ id: "post-1", authorId: "author-1" })
       .mockResolvedValueOnce({ likesCount: 4 });
     prisma.communityPostLike.createMany
       .mockResolvedValueOnce({ count: 1 })
@@ -413,6 +417,19 @@ describe("CommunityPostService", () => {
     expect(prisma.post.updateMany).toHaveBeenCalledWith({
       where: { id: "post-1", status: ADMIN_CONTENT_POST_STATUS.PUBLISHED },
       data: { likesCount: { increment: 1 } },
+    });
+    expect(prisma.notification.upsert).toHaveBeenCalledTimes(1);
+    expect(prisma.notification.upsert).toHaveBeenCalledWith({
+      where: { deduplicationKey: "community-like:post-1:user-1" },
+      update: {},
+      create: {
+        userId: "author-1",
+        type: "community_like",
+        title: "收到新的赞",
+        content: "有人赞了你的社区动态",
+        referenceId: "post-1",
+        deduplicationKey: "community-like:post-1:user-1",
+      },
     });
   });
 
@@ -466,7 +483,7 @@ describe("CommunityPostService", () => {
       commenter: { nickname: "旺财家长", avatar: null },
     };
 
-    prisma.post.findFirst.mockResolvedValue({ id: "post-1" });
+    prisma.post.findFirst.mockResolvedValue({ id: "post-1", authorId: "author-1" });
     prisma.comment.create.mockResolvedValue(row);
     prisma.comment.findMany.mockResolvedValue([row]);
     prisma.comment.count.mockResolvedValue(1);
@@ -506,6 +523,63 @@ describe("CommunityPostService", () => {
         where: { postId: "post-1", parentCommentId: null, status: "published" },
       }),
     );
+    expect(prisma.notification.upsert).toHaveBeenCalledWith({
+      where: { deduplicationKey: "community-comment:comment-1" },
+      update: {},
+      create: {
+        userId: "author-1",
+        type: "community_comment",
+        title: "收到新评论",
+        content: "好可爱",
+        referenceId: "post-1",
+        deduplicationKey: "community-comment:comment-1",
+      },
+    });
+  });
+
+  it("does not notify an author about their own like or comment", async () => {
+    const comment = {
+      id: "comment-1",
+      commenterId: "author-1",
+      content: "作者补充",
+      createdAt: new Date("2026-08-26T09:00:00.000Z"),
+      commenter: { nickname: "作者", avatar: null },
+    };
+
+    prisma.post.findFirst
+      .mockResolvedValueOnce({ id: "post-1", authorId: "author-1" })
+      .mockResolvedValueOnce({ likesCount: 1 })
+      .mockResolvedValueOnce({ id: "post-1", authorId: "author-1" });
+    prisma.communityPostLike.createMany.mockResolvedValueOnce({ count: 1 });
+    prisma.comment.create.mockResolvedValue(comment);
+    prisma.post.updateMany.mockResolvedValue({ count: 1 });
+
+    await expect(service.like("author-1", "post-1")).resolves.toEqual({
+      liked: true,
+      likesCount: 1,
+    });
+    await expect(
+      service.createComment("author-1", "post-1", { content: "作者补充" }),
+    ).resolves.toMatchObject({ id: "comment-1" });
+    expect(prisma.notification.upsert).not.toHaveBeenCalled();
+  });
+
+  it("fails the interaction transaction when notification persistence fails", async () => {
+    prisma.post.findFirst.mockResolvedValue({ id: "post-1", authorId: "author-1" });
+    prisma.comment.create.mockResolvedValue({
+      id: "comment-1",
+      commenterId: "user-1",
+      content: "通知失败",
+      createdAt: new Date("2026-08-26T09:00:00.000Z"),
+      commenter: { nickname: "互动用户", avatar: null },
+    });
+    prisma.post.updateMany.mockResolvedValue({ count: 1 });
+    prisma.notification.upsert.mockRejectedValue(new Error("notification unavailable"));
+
+    await expect(
+      service.createComment("user-1", "post-1", { content: "通知失败" }),
+    ).rejects.toThrow("notification unavailable");
+    expect(prisma.$transaction).toHaveBeenCalled();
   });
 
   it("hides missing and non-public posts from comment creation and reads", async () => {
