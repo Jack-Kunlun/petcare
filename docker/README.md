@@ -72,6 +72,17 @@ Redis 一并永久删除。
 基础 seed 不写入宠物、社区帖子、订单或资金数据。需要展示宠物档案和受控社区真实链路时运行
 `pnpm test:e2e:personal`；该命令使用一次性 Schema 和临时媒体目录，不污染长期本地数据。
 
+如需在长期本地库展示少量可识别样例，可显式执行：
+
+```bash
+docker compose -f docker-compose.yml -f docker-compose.local.yml --env-file .env exec -T server pnpm --filter @petcare/server prisma:seed:local-demo
+docker compose -f docker-compose.yml -f docker-compose.local.yml --env-file .env exec -T server pnpm --filter @petcare/server prisma:cleanup:local-demo
+```
+
+该样例只允许在 `NODE_ENV=development` 写入，使用固定保留 ID 幂等创建 2 个用户、2 只宠物、3 条已发布动态、
+3 篇课堂文章及少量互动通知；清理命令只删除这些保留 ID。它不会创建订单、支付或资金数据，也不会随基础 seed
+自动运行。
+
 默认不会启动 `edge-gateway`：它属于生产 TLS 边界，需要真实域名证书并占用 80/443。Admin、Website、Server、PostgreSQL 和 Redis 只绑定 `127.0.0.1`。不要执行 `down --volumes`，除非明确要永久清空本地监测数据。
 
 ### 可丢弃的本地诊断

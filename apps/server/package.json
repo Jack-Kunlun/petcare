@@ -34,6 +34,8 @@
     "prisma:migrate:deploy": "node --env-file-if-exists=../../.env node_modules/prisma/build/index.js migrate deploy",
     "prisma:migrate:status": "node --env-file-if-exists=../../.env node_modules/prisma/build/index.js migrate status",
     "prisma:seed": "node --env-file-if-exists=../../.env node_modules/tsx/dist/cli.mjs prisma/seed.ts",
+    "prisma:seed:local-demo": "node --env-file-if-exists=../../.env node_modules/tsx/dist/cli.mjs prisma/local-demo.ts seed",
+    "prisma:cleanup:local-demo": "node --env-file-if-exists=../../.env node_modules/tsx/dist/cli.mjs prisma/local-demo.ts cleanup",
     "clean": "node ../../scripts/clean.mjs dist coverage .turbo"
   },
   "dependencies": {

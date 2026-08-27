@@ -94,6 +94,16 @@ Admin 使用 `.env` 中的 `DEFAULT_ADMIN_USERNAME` 或 `DEFAULT_ADMIN_PHONE`，
 
 基础 seed 有意不创建“看起来像真实运营”的用户、宠物、帖子或业务指标。长期演示内容由本地使用者明确创建并负责清理。
 
+需要快速检查非空列表时，可显式写入带有 `[本地示例]` 标记的最小样例，并在验证后精确清理：
+
+```bash
+docker compose -f docker-compose.yml -f docker-compose.local.yml --env-file .env exec -T server pnpm --filter @petcare/server prisma:seed:local-demo
+docker compose -f docker-compose.yml -f docker-compose.local.yml --env-file .env exec -T server pnpm --filter @petcare/server prisma:cleanup:local-demo
+```
+
+命令只允许开发环境运行，不属于首次初始化或生产部署流程。样例使用固定保留 ID 幂等创建，清理不会按模糊文案匹配，
+也不会删除操作者自行创建的其他本地内容。
+
 ### 4.2 社区与宠物档案纵向演示
 
 安装依赖和 Chromium 后，从仓库根目录运行：
