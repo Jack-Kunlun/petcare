@@ -62,6 +62,16 @@ describe("Login", () => {
     auth.getCaptcha.mockResolvedValue(firstCaptcha);
   });
 
+  it("describes only the current personal administration scope", () => {
+    renderLogin();
+
+    expect(screen.getByRole("heading", { name: "管理真实可用的当前能力" })).toBeInTheDocument();
+    expect(screen.getByText("用户资料")).toBeInTheDocument();
+    expect(screen.getByText("内容治理")).toBeInTheDocument();
+    expect(screen.getByText("权限管理")).toBeInTheDocument();
+    expect(screen.queryByText("订单协同")).not.toBeInTheDocument();
+  });
+
   it("submits an account or phone with a password", async () => {
     const user = userEvent.setup();
 

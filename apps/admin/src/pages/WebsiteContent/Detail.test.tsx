@@ -57,7 +57,10 @@ const auth: AuthContextValue = {
   invalidateLocalSession: vi.fn(),
 };
 
-function renderDetail(permissions = auth.user?.permissions ?? []) {
+function renderDetail(
+  permissions = auth.user?.permissions ?? [],
+  initialEntry = "/website-content/home/history/version-1",
+) {
   const queryClient = new QueryClient({ defaultOptions: { queries: { retry: false } } });
   const context: AuthContextValue = {
     ...auth,
@@ -67,7 +70,7 @@ function renderDetail(permissions = auth.user?.permissions ?? []) {
   render(
     <AuthContext.Provider value={context}>
       <QueryClientProvider client={queryClient}>
-        <MemoryRouter initialEntries={["/website-content/home/history/version-1"]}>
+        <MemoryRouter initialEntries={[initialEntry]}>
           <Routes>
             <Route
               path="/website-content/:contentKey/history/:versionId"
@@ -103,6 +106,14 @@ describe("WebsiteContentDetail", () => {
       publishedAt: null,
       revision: 5,
     });
+  });
+
+  it("rejects historical commercial content keys before requesting history", () => {
+    renderDetail(auth.user?.permissions, "/website-content/trust/history/version-1");
+
+    expect(screen.getByRole("heading", { name: "历史版本路径无效" })).toBeInTheDocument();
+    expect(websiteApi.fetchWebsiteContentHistoryVersion).not.toHaveBeenCalled();
+    expect(websiteApi.fetchWebsiteContentDraft).not.toHaveBeenCalled();
   });
 
   it("uses the shared narrow layout and opens the same restore dialog from both actions", async () => {

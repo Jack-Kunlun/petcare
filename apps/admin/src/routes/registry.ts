@@ -10,21 +10,11 @@ const ContentArticleEdit = lazy(() => import("../pages/ContentManagement/Article
 const ContentPosts = lazy(() => import("../pages/ContentManagement/Posts"));
 const ContentPostDetail = lazy(() => import("../pages/ContentManagement/Posts/Detail"));
 const Dashboard = lazy(() => import("../pages/Dashboard"));
-const OrderManagement = lazy(() => import("../pages/OrderManagement"));
-const ComplaintWorkQueue = lazy(() => import("../pages/OrderManagement/Complaint"));
-const ComplaintDetail = lazy(() => import("../pages/OrderManagement/Complaint/Detail"));
 const Rbac = lazy(() => import("../pages/Rbac"));
 const RbacDetail = lazy(() => import("../pages/Rbac/Detail"));
 const RbacEdit = lazy(() => import("../pages/Rbac/Edit"));
 const RbacCatalog = lazy(() => import("../pages/Rbac/Catalog"));
-const Settings = lazy(() => import("../pages/Settings"));
-const SettingsDetail = lazy(() => import("../pages/Settings/Detail"));
-const SettingsEdit = lazy(() => import("../pages/Settings/Edit"));
 const UserManagement = lazy(() => import("../pages/UserManagement"));
-const ProviderCertificationList = lazy(() => import("../pages/UserManagement/Certification"));
-const ProviderCertificationDetail = lazy(
-  () => import("../pages/UserManagement/Certification/Detail"),
-);
 const WebsiteContent = lazy(() => import("../pages/WebsiteContent"));
 const WebsiteContentEdit = lazy(() => import("../pages/WebsiteContent/Edit"));
 const WebsiteContentDetail = lazy(() => import("../pages/WebsiteContent/Detail"));
@@ -128,36 +118,7 @@ export const ADMIN_ROUTE_REGISTRY: readonly AdminRouteDefinition[] = [
   },
   catalogMenuRoute("dashboard", "stats.view", Dashboard),
   catalogMenuRoute("users", "user.view", UserManagement, "用户列表"),
-  catalogMenuRoute(
-    "provider-certifications",
-    "provider_certification.view",
-    ProviderCertificationList,
-  ),
-  {
-    id: "provider-certification-detail",
-    path: "/users/certifications/:id",
-    element: lazyRoute(ProviderCertificationDetail, "服务者认证详情"),
-    menuPermission: null,
-    requiredPermissions: ["provider_certification.view"],
-    parentPath: "/users/certifications",
-    order: 0,
-    icon: null,
-    menuLabel: null,
-  },
-  catalogMenuRoute("orders", "order.view", OrderManagement, "订单管理"),
-  catalogMenuRoute("complaints", "dispute.view", ComplaintWorkQueue),
-  {
-    id: "complaint-detail",
-    path: "/orders/complaints/:id",
-    element: lazyRoute(ComplaintDetail, "投诉详情"),
-    menuPermission: null,
-    requiredPermissions: ["dispute.view"],
-    parentPath: "/orders/complaints",
-    order: 0,
-    icon: null,
-    menuLabel: null,
-  },
-  catalogMenuRoute("content", "content.view", ContentManagement, "悬赏管理"),
+  catalogMenuRoute("content", "content.view", ContentManagement, "内容概览"),
   catalogMenuRoute("content-posts", "content.post.view", ContentPosts),
   {
     id: "content-post-detail",
@@ -212,29 +173,6 @@ export const ADMIN_ROUTE_REGISTRY: readonly AdminRouteDefinition[] = [
     menuPermission: null,
     requiredPermissions: ["website.view"],
     parentPath: "/website-content",
-    order: 0,
-    icon: null,
-    menuLabel: null,
-  },
-  catalogMenuRoute("settings", "system.view", Settings, "系统设置"),
-  {
-    id: "settings-edit",
-    path: "/settings/:domain/edit",
-    element: lazyRoute(SettingsEdit, "系统设置编辑"),
-    menuPermission: null,
-    requiredPermissions: ["system.view"],
-    parentPath: "/settings",
-    order: 0,
-    icon: null,
-    menuLabel: null,
-  },
-  {
-    id: "settings-history",
-    path: "/settings/:domain/history/:versionId",
-    element: lazyRoute(SettingsDetail, "系统设置历史"),
-    menuPermission: null,
-    requiredPermissions: ["system.view"],
-    parentPath: "/settings",
     order: 0,
     icon: null,
     menuLabel: null,

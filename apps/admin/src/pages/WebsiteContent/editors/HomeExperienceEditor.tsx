@@ -455,13 +455,13 @@ export function HomeExperienceEditor({
   return (
     <div className="space-y-5">
       <HomeMediaGroupEditor
-        label="服务"
+        label="当前能力"
         group={section.content.services}
         disabled={disabled}
         onChange={(services) => updateContent((content) => ({ ...content, services }))}
       />
       <HomeTextGroupEditor
-        label="流程"
+        label="使用路径"
         group={section.content.journey}
         disabled={disabled}
         onChange={(journey) => updateContent((content) => ({ ...content, journey }))}
@@ -472,7 +472,7 @@ export function HomeExperienceEditor({
         onChange={(record) => updateContent((content) => ({ ...content, record }))}
       />
       <HomeTextGroupEditor
-        label="信任"
+        label="范围边界"
         group={section.content.trust}
         disabled={disabled}
         onChange={(trust) => updateContent((content) => ({ ...content, trust }))}

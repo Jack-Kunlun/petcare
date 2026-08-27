@@ -54,10 +54,31 @@ function createPublicService(
     media as never,
   );
 
-  return { service, repository, cache };
+  return { service, repository, cache, media };
 }
 
 describe("WebsiteContentPublicService", () => {
+  it("rejects historical commercial content keys before reading persistence or cache state", async () => {
+    const version = publishedVersion();
+    const { service, repository, cache, media } = createPublicService(version);
+
+    await expect(service.getPublished(WEBSITE_CONTENT_KEY.SERVICES)).rejects.toMatchObject({
+      code: "WEBSITE_CONTENT_NOT_FOUND",
+      status: 404,
+    });
+    expect(repository.getPublishedPointer).not.toHaveBeenCalled();
+    expect(cache.get).not.toHaveBeenCalled();
+
+    version.contentKey = WEBSITE_CONTENT_KEY.TRUST;
+
+    await expect(service.getPreview(version)).rejects.toMatchObject({
+      code: "WEBSITE_CONTENT_NOT_FOUND",
+      status: 404,
+    });
+    expect(repository.getPublishedVersion).not.toHaveBeenCalled();
+    expect(media.resolvePublicAssets).not.toHaveBeenCalled();
+  });
+
   it("returns enabled Help categories from the published pointer only", async () => {
     const version = publishedVersion(WEBSITE_CONTENT_KEY.HELP);
 

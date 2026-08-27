@@ -27,7 +27,6 @@ jest.mock("../website-content/media/website-media-file", () => ({
 
 function createController() {
   const contentService = {
-    findRewardPage: jest.fn().mockResolvedValue({ list: [], total: 0, page: 1, pageSize: 20 }),
     findPostPage: jest.fn().mockResolvedValue({ list: [], total: 0, page: 1, pageSize: 20 }),
     findPostDetail: jest.fn().mockResolvedValue({ id: "post-1", status: "pending" }),
     approvePost: jest.fn().mockResolvedValue({ id: "post-1", status: "published" }),
@@ -99,7 +98,6 @@ describe("AdminContentController", () => {
 
     expect(Reflect.getMetadata("path", AdminContentController)).toBe("admin/content");
     expect(guards).toEqual([AccessTokenGuard, PermissionGuard]);
-    expect(permissions("findRewards")).toEqual(["content.reward.read"]);
     expect(permissions("findPosts")).toEqual(["content.post.read"]);
     expect(permissions("findPost")).toEqual(["content.post.read"]);
     expect(permissions("findPostReports")).toEqual(["content.post.report_read"]);
@@ -264,7 +262,6 @@ describe("AdminContentController", () => {
 
     expect(Object.keys(document.paths)).toEqual(
       expect.arrayContaining([
-        "/admin/content/rewards",
         "/admin/content/posts",
         "/admin/content/posts/{id}",
         "/admin/content/posts/{id}/reports",
@@ -278,12 +275,9 @@ describe("AdminContentController", () => {
         "/admin/content/articles/media-assets",
       ]),
     );
+    expect(document.paths["/admin/content/rewards"]).toBeUndefined();
 
-    for (const path of [
-      "/admin/content/rewards",
-      "/admin/content/posts",
-      "/admin/content/articles",
-    ]) {
+    for (const path of ["/admin/content/posts", "/admin/content/articles"]) {
       const operation = document.paths[path]?.get;
 
       expect(operation?.responses).toHaveProperty("200");

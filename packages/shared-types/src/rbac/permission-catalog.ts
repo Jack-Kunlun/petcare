@@ -33,19 +33,19 @@ export interface RbacPermissionDefinition {
   impliedApiCodes: readonly string[];
 }
 
-/** The complete, code-defined RBAC permission catalog. */
-export const RBAC_PERMISSION_CATALOG: readonly RbacPermissionDefinition[] = [
-  /** Opens the operations dashboard in the administration console. */
+/** Permission definitions retained while paused domains remain isolated in repository history. */
+const RBAC_PERMISSION_DEFINITIONS: readonly RbacPermissionDefinition[] = [
+  /** Opens the current management overview in the administration console. */
   {
     code: "stats.view",
     type: "menu",
-    label: "运营概览",
+    label: "管理概览",
     module: "stats",
     path: "/",
     parentCode: null,
     order: 10,
     icon: "House",
-    impliedApiCodes: ["stats.dashboard"],
+    impliedApiCodes: [],
   },
   /** Allows reading aggregated operations dashboard metrics. */
   {
@@ -323,7 +323,7 @@ export const RBAC_PERMISSION_CATALOG: readonly RbacPermissionDefinition[] = [
     icon: null,
     impliedApiCodes: [],
   },
-  /** 打开内容管理并查看悬赏内容。 */
+  /** 打开当前内容管理入口。 */
   {
     code: "content.view",
     type: "menu",
@@ -333,7 +333,7 @@ export const RBAC_PERMISSION_CATALOG: readonly RbacPermissionDefinition[] = [
     parentCode: null,
     order: 40,
     icon: "FileText",
-    impliedApiCodes: ["content.reward.read"],
+    impliedApiCodes: [],
   },
   /** 允许读取后台悬赏内容列表。 */
   {
@@ -845,6 +845,50 @@ export const RBAC_PERMISSION_CATALOG: readonly RbacPermissionDefinition[] = [
   },
 ];
 
+const CURRENT_PERMISSION_CODES = new Set([
+  "stats.view",
+  "user.view",
+  "user.read",
+  "user.create",
+  "user.update",
+  "user.delete",
+  "content.view",
+  "content.post.view",
+  "content.post.read",
+  "content.post.moderate",
+  "content.post.report_read",
+  "content.post.moderate_action",
+  "content.article.view",
+  "content.article.read",
+  "content.article.write",
+  "content.article.write_action",
+  "content.article.publish",
+  "content.article.publish_action",
+  "website.view",
+  "website.read",
+  "website.edit",
+  "website.edit_action",
+  "website.publish",
+  "website.publish_action",
+  "rbac.view",
+  "rbac.catalog.view",
+  "rbac.role.read",
+  "rbac.role.create",
+  "rbac.role.create_action",
+  "rbac.role.update",
+  "rbac.role.update_action",
+  "rbac.role.delete",
+  "rbac.role.delete_action",
+  "rbac.permission.read",
+  "rbac.assign_role",
+  "rbac.assign_role_action",
+]);
+
+/** The code-defined RBAC permission catalog enabled by the current personal-version runtime. */
+export const RBAC_PERMISSION_CATALOG = RBAC_PERMISSION_DEFINITIONS.filter((permission) =>
+  CURRENT_PERMISSION_CODES.has(permission.code),
+);
+
 /** Looks up a catalog permission by its stable authorization code. */
 export function getRbacPermission(code: string): RbacPermissionDefinition | undefined {
   return RBAC_PERMISSION_CATALOG.find((permission) => permission.code === code);
@@ -852,7 +896,7 @@ export function getRbacPermission(code: string): RbacPermissionDefinition | unde
 
 /** Returns the current catalog version identifier. */
 export function getRbacCatalogVersion(): string {
-  return "2026-08-02";
+  return "2026-08-27";
 }
 
 /** Returns the menu and button codes that role editors may assign. */

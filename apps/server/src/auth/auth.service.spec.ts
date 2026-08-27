@@ -183,6 +183,7 @@ describe("AuthService", () => {
             ...activeAdmin.roles[0].role,
             roleName: "config_admin",
             permissions: [
+              { permission: { permissionCode: "website.view" } },
               { permission: { permissionCode: "system.view" } },
               { permission: { permissionCode: "retired.permission" } },
             ],
@@ -194,7 +195,7 @@ describe("AuthService", () => {
     await expect(
       service.loginWithPassword("admin", "Correct-Horse-Battery-Staple!42"),
     ).resolves.toMatchObject({
-      user: { permissions: ["system.view"] },
+      user: { permissions: ["website.view"] },
     });
   });
 
@@ -205,7 +206,7 @@ describe("AuthService", () => {
         {
           role: {
             ...activeAdmin.roles[0].role,
-            permissions: [{ permission: { permissionCode: "system.view" } }],
+            permissions: [{ permission: { permissionCode: "website.view" } }],
           },
         },
       ],
@@ -306,8 +307,8 @@ describe("AuthService", () => {
           role: {
             roleName: "config_admin",
             permissions: [
-              { permission: { permissionCode: "system.view" } },
-              { permission: { permissionCode: "system.publish" } },
+              { permission: { permissionCode: "website.view" } },
+              { permission: { permissionCode: "website.publish" } },
             ],
           },
         },
@@ -316,7 +317,7 @@ describe("AuthService", () => {
 
     await expect(service.getCurrentUserAuthorization("user-1")).resolves.toEqual({
       roles: ["config_admin"],
-      permissions: ["system.view", "system.publish"],
+      permissions: ["website.view", "website.publish"],
     });
     expect(prisma.user.findFirst).toHaveBeenCalledWith({
       where: {
@@ -349,6 +350,7 @@ describe("AuthService", () => {
           role: {
             roleName: "config_admin",
             permissions: [
+              { permission: { permissionCode: "website.view" } },
               { permission: { permissionCode: "system.view" } },
               { permission: { permissionCode: "retired.permission" } },
             ],
@@ -357,7 +359,7 @@ describe("AuthService", () => {
         {
           role: {
             roleName: "config_admin",
-            permissions: [{ permission: { permissionCode: "system.view" } }],
+            permissions: [{ permission: { permissionCode: "website.view" } }],
           },
         },
       ],
@@ -365,7 +367,7 @@ describe("AuthService", () => {
 
     await expect(service.getCurrentUserAuthorization("user-1")).resolves.toEqual({
       roles: ["config_admin", "config_admin"],
-      permissions: ["system.view"],
+      permissions: ["website.view"],
     });
   });
 });

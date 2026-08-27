@@ -1,4 +1,9 @@
-import type { WebsiteContentKey } from "@petcare/shared-types";
+import {
+  CURRENT_WEBSITE_CONTENT_KEYS,
+  isCurrentWebsiteContentKey,
+  type CurrentWebsiteContentKey,
+  type WebsiteContentOverviewResponse,
+} from "@petcare/shared-types";
 import { useQuery } from "@tanstack/react-query";
 import { AlertCircle, FilePenLine, FileText, RefreshCw } from "lucide-react";
 import { Link } from "react-router-dom";
@@ -8,22 +13,30 @@ import { PermissionGate } from "../../auth/PermissionGate";
 const contentLabels = {
   site_shell: "全站导航与页脚",
   home: "官网首页",
-  services: "服务模式",
-  trust: "信任保障",
-  companions: "成为宠托师",
   about: "关于我们",
   contact: "联系客服",
   help: "帮助中心",
   privacy: "隐私协议",
   terms: "服务条款",
-} satisfies Record<WebsiteContentKey, string>;
+} satisfies Record<CurrentWebsiteContentKey, string>;
 
-/** Lists every fixed Website Content unit and routes authorized operators to its structured editor. */
+type CurrentWebsiteContentOverviewItem = WebsiteContentOverviewResponse[number] & {
+  contentKey: CurrentWebsiteContentKey;
+};
+
+function isCurrentOverviewItem(
+  item: WebsiteContentOverviewResponse[number],
+): item is CurrentWebsiteContentOverviewItem {
+  return isCurrentWebsiteContentKey(item.contentKey);
+}
+
+/** Lists current Website Content units and routes authorized operators to their structured editor. */
 export default function WebsiteContent() {
   const overviewQuery = useQuery({
     queryKey: websiteContentQueryKeys.overview(),
     queryFn: fetchWebsiteContentOverview,
   });
+  const currentOverview = overviewQuery.data?.filter(isCurrentOverviewItem);
 
   return (
     <section className="mx-auto w-full max-w-[1280px]">
@@ -42,12 +55,14 @@ export default function WebsiteContent() {
           aria-label="正在加载官网内容"
           className="mt-6 grid gap-4 sm:grid-cols-2 lg:grid-cols-3"
         >
-          {Array.from({ length: 10 }, (_, index) => index).map((item) => (
-            <div
-              key={item}
-              className="h-44 rounded-xl bg-slate-200 animate-[pc-skeleton-shimmer_220ms_linear_infinite] motion-reduce:animate-none"
-            />
-          ))}
+          {Array.from({ length: CURRENT_WEBSITE_CONTENT_KEYS.length }, (_, index) => index).map(
+            (item) => (
+              <div
+                key={item}
+                className="h-44 rounded-xl bg-slate-200 animate-[pc-skeleton-shimmer_220ms_linear_infinite] motion-reduce:animate-none"
+              />
+            ),
+          )}
         </div>
       ) : null}
 
@@ -70,9 +85,9 @@ export default function WebsiteContent() {
         </div>
       ) : null}
 
-      {overviewQuery.data ? (
+      {currentOverview ? (
         <ul className="mt-6 grid gap-4 sm:grid-cols-2 lg:grid-cols-3" aria-label="官网内容单元">
-          {overviewQuery.data.map((item) => (
+          {currentOverview.map((item) => (
             <li
               key={item.contentKey}
               className="rounded-xl border border-slate-200 bg-white p-5 shadow-sm"

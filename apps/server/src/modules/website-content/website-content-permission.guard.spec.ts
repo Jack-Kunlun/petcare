@@ -20,9 +20,27 @@ describe("WebsiteContentPermissionGuard", () => {
       reflector as never,
     );
 
-    await expect(guard.canActivate(contextFor({ user: { sub: "operator-1" } }))).resolves.toBe(
-      true,
+    await expect(
+      guard.canActivate(
+        contextFor({ user: { sub: "operator-1" }, params: { contentKey: "home" } }),
+      ),
+    ).resolves.toBe(true);
+    expect(audit.record).not.toHaveBeenCalled();
+  });
+
+  it("rejects Website Content keys outside the current personal-version scope", async () => {
+    const permission = { canActivate: jest.fn().mockResolvedValue(true) };
+    const audit = { record: jest.fn() };
+    const reflector = { getAllAndOverride: jest.fn().mockReturnValue(["website.read"]) };
+    const guard = new WebsiteContentPermissionGuard(
+      permission as never,
+      audit as never,
+      reflector as never,
     );
+
+    await expect(
+      guard.canActivate(contextFor({ params: { contentKey: "services" } })),
+    ).rejects.toMatchObject({ code: "WEBSITE_CONTENT_NOT_FOUND", status: 404 });
     expect(audit.record).not.toHaveBeenCalled();
   });
 

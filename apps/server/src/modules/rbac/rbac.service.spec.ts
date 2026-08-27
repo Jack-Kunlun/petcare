@@ -11,9 +11,10 @@ describe("RbacService", () => {
             {
               role: {
                 permissions: [
+                  { permission: { permissionCode: "website.publish" } },
                   { permission: { permissionCode: "system.publish" } },
                   { permission: { permissionCode: "retired.permission" } },
-                  { permission: { permissionCode: "system.publish" } },
+                  { permission: { permissionCode: "website.publish" } },
                 ],
               },
             },
@@ -27,7 +28,7 @@ describe("RbacService", () => {
     );
 
     await expect(service.getEffectiveAuthorizationCodes("user-1")).resolves.toEqual([
-      "system.publish",
+      "website.publish",
     ]);
   });
 });

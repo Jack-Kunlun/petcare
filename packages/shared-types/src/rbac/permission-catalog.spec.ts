@@ -19,17 +19,18 @@ describe("RBAC permission catalog", () => {
     expect(menuPaths).toEqual([
       "/",
       "/users",
-      "/users/certifications",
-      "/orders",
-      "/orders/complaints",
       "/content",
       "/content/posts",
       "/content/articles",
       "/website-content",
-      "/settings",
       "/rbac",
       "/rbac/catalog",
     ]);
+
+    expect(byCode.get("stats.view")).toMatchObject({
+      label: "管理概览",
+      impliedApiCodes: [],
+    });
 
     expect(byCode.get("rbac.view")?.impliedApiCodes).toContain("rbac.permission.read");
     expect(byCode.get("rbac.view")?.parentCode).toBeNull();
@@ -44,7 +45,7 @@ describe("RBAC permission catalog", () => {
       type: RBAC_PERMISSION_TYPES.MENU,
       path: "/content",
       parentCode: null,
-      impliedApiCodes: ["content.reward.read"],
+      impliedApiCodes: [],
     });
     expect(byCode.get("content.post.view")).toMatchObject({
       type: RBAC_PERMISSION_TYPES.MENU,
@@ -100,6 +101,17 @@ describe("RBAC permission catalog", () => {
       parentCode: "website.view",
       impliedApiCodes: ["website.read", "website.publish_action"],
     });
+
+    for (const pausedCode of [
+      "stats.dashboard",
+      "provider_certification.view",
+      "order.view",
+      "dispute.view",
+      "content.reward.read",
+      "system.view",
+    ]) {
+      expect(byCode.has(pausedCode)).toBe(false);
+    }
 
     for (const permission of RBAC_PERMISSION_CATALOG) {
       if (permission.type === RBAC_PERMISSION_TYPES.MENU) {

@@ -24,7 +24,6 @@ import type {
   AdminClassroomArticleListResponse,
   AdminContentPostDetail,
   AdminContentPostListResponse,
-  AdminContentRewardListResponse,
   UploadAdminClassroomArticleMediaResponse,
 } from "@petcare/shared-types";
 import type { Request } from "express";
@@ -52,7 +51,6 @@ import { AdminContentPostStateDto } from "./dto/admin-community-post.dto";
 import {
   AdminClassroomArticleListQueryDto,
   AdminContentPostListQueryDto,
-  AdminContentRewardListQueryDto,
 } from "./dto/admin-content-query.dto";
 import {
   AdminCommunityPostCommentOfflineDto,
@@ -66,7 +64,6 @@ import {
   AdminCommunityPostReportResponseDto,
   AdminContentPostDetailDto,
   AdminContentPostListResponseDto,
-  AdminContentRewardListResponseDto,
 } from "./dto/content-response.dto";
 
 type AuthRequest = Request & { user: AccessTokenPayload };
@@ -88,18 +85,6 @@ export class AdminContentController {
     private readonly articleService: ClassroomArticleService,
     private readonly media: WebsiteMediaService,
   ) {}
-
-  /** 返回后台悬赏内容列表。 */
-  @Get("rewards")
-  @RequirePermissions("content.reward.read")
-  @ApiOperation({ summary: "获取后台悬赏内容列表" })
-  @ApiSuccessResponse(AdminContentRewardListResponseDto)
-  @ApiStandardErrors(400, 401, 403, 500)
-  findRewards(
-    @Query() query: AdminContentRewardListQueryDto,
-  ): Promise<AdminContentRewardListResponse> {
-    return this.contentService.findRewardPage(query);
-  }
 
   /** 返回后台社区帖子列表。 */
   @Get("posts")

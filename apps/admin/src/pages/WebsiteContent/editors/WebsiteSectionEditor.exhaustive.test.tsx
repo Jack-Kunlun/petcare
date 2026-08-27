@@ -171,7 +171,7 @@ const fieldLabelByType: Record<WebsiteContentSection["sectionType"], string> = {
   cta: "行动标题",
   rich_text: "正文标题",
   contact_panel: "联系区标题",
-  home_experience: "服务眉题",
+  home_experience: "当前能力眉题",
 };
 
 describe("WebsiteSectionEditor exhaustive section support", () => {
@@ -192,7 +192,7 @@ describe("WebsiteSectionEditor exhaustive section support", () => {
       </QueryClientProvider>,
     );
 
-    expect(screen.getByRole("textbox", { name: "服务眉题" })).toBeInTheDocument();
+    expect(screen.getByRole("textbox", { name: "当前能力眉题" })).toBeInTheDocument();
     expect(
       screen.queryByRole("button", { name: /新增区块|删除区块|更换区块类型|拖拽排序/ }),
     ).toBeNull();

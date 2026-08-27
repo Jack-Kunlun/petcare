@@ -1,10 +1,12 @@
 import { describe, expect, it } from "vitest";
 import {
+  CURRENT_WEBSITE_CONTENT_KEYS,
   WEBSITE_CONTENT_ERROR_CODE,
   WEBSITE_CONTENT_KEY,
   WEBSITE_CONTENT_STATUS,
   WEBSITE_MEDIA_STATUS,
   WEBSITE_SECTION_TYPE,
+  isCurrentWebsiteContentKey,
   type WebsiteContactChannel,
   type WebsiteContentSection,
   type WebsiteSectionType,
@@ -54,6 +56,17 @@ describe("website content contract", () => {
       ACTIVE: "active",
       ARCHIVED: "archived",
     });
+    expect(CURRENT_WEBSITE_CONTENT_KEYS).toEqual([
+      "site_shell",
+      "home",
+      "about",
+      "contact",
+      "help",
+      "privacy",
+      "terms",
+    ]);
+    expect(isCurrentWebsiteContentKey("home")).toBe(true);
+    expect(isCurrentWebsiteContentKey("services")).toBe(false);
   });
 
   it("keeps every section discriminator stable and exhaustively consumable", () => {
@@ -77,9 +90,9 @@ describe("website content contract", () => {
       schemaVersion: 1,
       content: {
         eyebrow: "PetCare",
-        title: "安心托付",
-        description: "可信赖的宠物服务",
-        primaryAction: { label: "了解服务", href: "/services" },
+        title: "记录每一次陪伴",
+        description: "管理宠物档案并阅读养宠内容",
+        primaryAction: { label: "阅读萌宠课堂", href: "/articles" },
         secondaryAction: null,
         image: { assetId: null, altText: "宠物陪伴" },
       },
@@ -92,10 +105,10 @@ describe("website content contract", () => {
   it("supports explicitly disabling one fixed contact channel", () => {
     const channel = {
       channelKey: "customer_service",
-      label: "客服电话",
-      value: "待运营配置",
+      label: "项目邮箱",
+      value: "未启用",
       href: "/contact",
-      availability: "工作时间待运营配置",
+      availability: "未启用",
       isEnabled: false,
     } satisfies WebsiteContactChannel;
 

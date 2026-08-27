@@ -1,6 +1,7 @@
 import {
-  WEBSITE_CONTENT_KEY,
+  isCurrentWebsiteContentKey,
   type ApiErrorResponse,
+  type CurrentWebsiteContentKey,
   type WebsiteContentKey,
   type WebsiteContentSection,
   type WebsiteContentVersion,
@@ -35,14 +36,9 @@ import { MediaAssetPicker } from "./MediaAssetPicker";
 import { PublishDialog } from "./PublishDialog";
 import { WebsiteMediaLibrary } from "./WebsiteMediaLibrary";
 
-const WEBSITE_CONTENT_KEYS = new Set<WebsiteContentKey>(Object.values(WEBSITE_CONTENT_KEY));
-
-const REQUIRED_SECTION_KEYS: Record<WebsiteContentKey, readonly string[]> = {
+const REQUIRED_SECTION_KEYS: Record<CurrentWebsiteContentKey, readonly string[]> = {
   site_shell: ["site_header", "site_footer"],
   home: ["hero", "home_experience"],
-  services: ["hero"],
-  trust: ["hero"],
-  companions: ["hero"],
   about: ["hero"],
   contact: ["hero", "contact_channels"],
   help: [],
@@ -56,10 +52,6 @@ interface DraftEditorState {
   seo: WebsiteSeoContent;
   sections: WebsiteContentSection[];
   changeSummary: string;
-}
-
-function isWebsiteContentKey(value: string | undefined): value is WebsiteContentKey {
-  return value !== undefined && WEBSITE_CONTENT_KEYS.has(value as WebsiteContentKey);
 }
 
 function isRevisionConflict(error: unknown): boolean {
@@ -168,7 +160,7 @@ export default function WebsiteContentEdit() {
   const { contentKey: contentKeyParam } = useParams();
   const auth = useAuth();
   const queryClient = useQueryClient();
-  const contentKey = isWebsiteContentKey(contentKeyParam) ? contentKeyParam : null;
+  const contentKey = isCurrentWebsiteContentKey(contentKeyParam) ? contentKeyParam : null;
   const canEdit = auth.user?.permissions.includes("website.edit") ?? false;
   const canPublish = auth.user?.permissions.includes("website.publish") ?? false;
   const canReadDraft = canEdit || canPublish;

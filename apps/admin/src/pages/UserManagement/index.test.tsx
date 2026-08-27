@@ -51,7 +51,7 @@ describe("UserManagement", () => {
   it("从真实用户接口展示分页列表", async () => {
     renderPage();
 
-    expect(screen.getByRole("heading", { name: "用户管理" })).toBeInTheDocument();
+    expect(screen.getByRole("heading", { name: "用户资料" })).toBeInTheDocument();
     expect((await screen.findAllByText("小宠家长"))[0]).toBeInTheDocument();
     expect(screen.getByRole("cell", { name: "13800138000" })).toBeInTheDocument();
     expect(screen.getByText("共 1 位用户")).toBeInTheDocument();
@@ -62,6 +62,8 @@ describe("UserManagement", () => {
       userType: undefined,
       status: undefined,
     });
+    expect(screen.queryByText("宠托师")).not.toBeInTheDocument();
+    expect(screen.queryByText("认证状态")).not.toBeInTheDocument();
   });
 
   it("提交关键词后重新查询第一页", async () => {

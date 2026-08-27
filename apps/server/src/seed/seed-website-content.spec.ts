@@ -1,3 +1,4 @@
+import { CURRENT_WEBSITE_CONTENT_KEYS } from "@petcare/shared-types";
 import { PrismaClient } from "../generated/prisma/client";
 import { WEBSITE_CONTENT_SEED_TEMPLATES, seedWebsiteContent } from "./seed-website-content";
 
@@ -300,6 +301,9 @@ describe("seedWebsiteContent", () => {
       "privacy",
       "terms",
     ]);
+    expect(WEBSITE_CONTENT_SEED_TEMPLATES.map((template) => template.contentKey)).toEqual(
+      CURRENT_WEBSITE_CONTENT_KEYS,
+    );
     expect(state.contents).toHaveLength(7);
     expect(state.versions).toHaveLength(14);
 

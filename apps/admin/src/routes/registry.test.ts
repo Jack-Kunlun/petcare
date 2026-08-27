@@ -81,20 +81,18 @@ describe("ADMIN_ROUTE_REGISTRY", () => {
 
   it("returns only menu routes allowed by the current permission codes in catalog order", () => {
     expect(
-      getVisibleMenuRoutes(["stats.view", "dispute.view", "system.view"]).map(
+      getVisibleMenuRoutes(["stats.view", "content.view", "content.post.view", "website.view"]).map(
         (route) => route.path,
       ),
-    ).toEqual(["/", "/orders/complaints", "/settings"]);
+    ).toEqual(["/", "/content/posts", "/content", "/website-content"]);
   });
 
   it("returns root and child menu routes in catalog order", () => {
     expect(
-      getVisibleRootMenuRoutes(["system.view", "rbac.view", "rbac.catalog.view"]).map(
-        (route) => route.path,
-      ),
-    ).toEqual(["/rbac", "/settings"]);
+      getVisibleRootMenuRoutes(["rbac.view", "rbac.catalog.view"]).map((route) => route.path),
+    ).toEqual(["/rbac"]);
     expect(
-      getVisibleChildMenuRoutes("/rbac", ["system.view", "rbac.view", "rbac.catalog.view"]).map(
+      getVisibleChildMenuRoutes("/rbac", ["rbac.view", "rbac.catalog.view"]).map(
         (route) => route.path,
       ),
     ).toEqual(["/rbac/catalog"]);
@@ -140,7 +138,7 @@ describe("ADMIN_ROUTE_REGISTRY", () => {
     ]);
   });
 
-  it("registers content management with three child pages", () => {
+  it("registers the current content overview with two child pages", () => {
     expect(
       ADMIN_ROUTE_REGISTRY.filter(
         (route) => route.path.startsWith("/content") && route.menuPermission !== null,
@@ -155,7 +153,7 @@ describe("ADMIN_ROUTE_REGISTRY", () => {
         path: "/content",
         menuPermission: "content.view",
         parentPath: null,
-        menuLabel: "悬赏管理",
+        menuLabel: "内容概览",
       },
       {
         path: "/content/posts",
@@ -178,6 +176,23 @@ describe("ADMIN_ROUTE_REGISTRY", () => {
       "/content/posts",
       "/content/articles",
     ]);
+  });
+
+  it("does not register paused commercial administration routes", () => {
+    const paths = ADMIN_ROUTE_REGISTRY.map((route) => route.path);
+
+    for (const pausedPath of [
+      "/users/certifications",
+      "/users/certifications/:id",
+      "/orders",
+      "/orders/complaints",
+      "/orders/complaints/:id",
+      "/settings",
+      "/settings/:domain/edit",
+      "/settings/:domain/history/:versionId",
+    ]) {
+      expect(paths).not.toContain(pausedPath);
+    }
   });
 
   it("registers article create and edit routes with write permission", () => {

@@ -27,6 +27,27 @@ export const WEBSITE_CONTENT_KEY = {
 /** Stable key of an independently published Website Content unit. */
 export type WebsiteContentKey = (typeof WEBSITE_CONTENT_KEY)[keyof typeof WEBSITE_CONTENT_KEY];
 
+/** Website Content units enabled by the current personal-version runtime. */
+export const CURRENT_WEBSITE_CONTENT_KEYS = [
+  WEBSITE_CONTENT_KEY.SITE_SHELL,
+  WEBSITE_CONTENT_KEY.HOME,
+  WEBSITE_CONTENT_KEY.ABOUT,
+  WEBSITE_CONTENT_KEY.CONTACT,
+  WEBSITE_CONTENT_KEY.HELP,
+  WEBSITE_CONTENT_KEY.PRIVACY,
+  WEBSITE_CONTENT_KEY.TERMS,
+] as const satisfies readonly WebsiteContentKey[];
+
+/** Website Content key accepted by the current personal-version runtime. */
+export type CurrentWebsiteContentKey = (typeof CURRENT_WEBSITE_CONTENT_KEYS)[number];
+
+const currentWebsiteContentKeySet = new Set<WebsiteContentKey>(CURRENT_WEBSITE_CONTENT_KEYS);
+
+/** Returns whether an unknown value is enabled by the current Website Content scope. */
+export function isCurrentWebsiteContentKey(value: unknown): value is CurrentWebsiteContentKey {
+  return typeof value === "string" && currentWebsiteContentKeySet.has(value as WebsiteContentKey);
+}
+
 /** Supported Website Content section renderer types. */
 export const WEBSITE_SECTION_TYPE = {
   /** Shared site navigation header. */

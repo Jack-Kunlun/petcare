@@ -1,4 +1,4 @@
-import type { WebsiteContentKey } from "@petcare/shared-types";
+import { isCurrentWebsiteContentKey } from "@petcare/shared-types";
 import * as Dialog from "@radix-ui/react-dialog";
 import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
 import { AlertCircle, ArrowLeft, Copy, History, LoaderCircle, X } from "lucide-react";
@@ -23,14 +23,10 @@ function formatDate(value: string | null): string {
   );
 }
 
-function isWebsiteContentKey(value: string | undefined): value is WebsiteContentKey {
-  return Boolean(value);
-}
-
 /** Displays one immutable Website Content history version and restores it only as a new draft. */
 export default function WebsiteContentDetail() {
   const { contentKey: contentKeyParam, versionId } = useParams();
-  const contentKey = isWebsiteContentKey(contentKeyParam) ? contentKeyParam : null;
+  const contentKey = isCurrentWebsiteContentKey(contentKeyParam) ? contentKeyParam : null;
   const navigate = useNavigate();
   const queryClient = useQueryClient();
   const [dialogOpen, setDialogOpen] = useState(false);

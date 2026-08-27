@@ -26,7 +26,7 @@ jest.mock("./media/website-media-file", () => ({
 
 function createController() {
   const repository = {
-    getOverview: jest.fn().mockResolvedValue([]),
+    getOverview: jest.fn().mockResolvedValue([] as Array<{ contentKey: string }>),
   };
   const drafts = {
     getDraft: jest.fn().mockResolvedValue({ id: "draft-1" }),
@@ -169,6 +169,23 @@ describe("AdminWebsiteContentController", () => {
     });
     expect(media.list).toHaveBeenCalledWith(mediaQuery);
     expect(media.archive).toHaveBeenCalledWith("asset-1", "operator-1", "request-1");
+  });
+
+  it("lists only Website Content units enabled by the current personal-version scope", async () => {
+    const { controller, repository } = createController();
+
+    repository.getOverview.mockResolvedValue([
+      { contentKey: "home" },
+      { contentKey: "services" },
+      { contentKey: "trust" },
+      { contentKey: "companions" },
+      { contentKey: "help" },
+    ]);
+
+    await expect(controller.getOverview()).resolves.toEqual([
+      { contentKey: "home" },
+      { contentKey: "help" },
+    ]);
   });
 
   it("validates the multipart image bytes before forwarding the fixed file field", async () => {

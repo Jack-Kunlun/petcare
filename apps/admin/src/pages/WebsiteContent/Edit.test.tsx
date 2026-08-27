@@ -265,6 +265,13 @@ describe("WebsiteContentEdit", () => {
     ]);
   });
 
+  it("rejects historical commercial content keys before requesting a draft", () => {
+    renderEditor(authenticated.user?.permissions, undefined, "/website-content/services/edit");
+
+    expect(screen.getByRole("heading", { name: "官网内容不存在" })).toBeInTheDocument();
+    expect(websiteContentApi.fetchWebsiteContentDraft).not.toHaveBeenCalled();
+  });
+
   it("edits all four fixed Help categories and allows each category to be disabled", async () => {
     const user = userEvent.setup();
     const queryClient = new QueryClient({ defaultOptions: { queries: { retry: false } } });
@@ -341,7 +348,7 @@ describe("WebsiteContentEdit", () => {
     expect(await screen.findByText("草稿已保存，当前修订版为 r3。")).toBeInTheDocument();
   });
 
-  it("saves homepage experience fields as part of complete sections", async () => {
+  it("saves homepage current-capability fields as part of complete sections", async () => {
     const user = userEvent.setup();
 
     vi.mocked(websiteContentApi.fetchWebsiteContentDraft).mockResolvedValue(draft);
@@ -349,17 +356,17 @@ describe("WebsiteContentEdit", () => {
       ...draft,
       id: "draft-home-r3",
       revision: 3,
-      changeSummary: "更新首页体验服务",
+      changeSummary: "更新首页当前能力",
     });
 
     renderEditor();
 
-    const serviceTitle = await screen.findByRole("textbox", { name: "服务标题" });
+    const capabilityTitle = await screen.findByRole("textbox", { name: "当前能力标题" });
 
-    await user.clear(serviceTitle);
-    await user.type(serviceTitle, "更新后的服务标题");
+    await user.clear(capabilityTitle);
+    await user.type(capabilityTitle, "更新后的能力标题");
     await user.clear(screen.getByRole("textbox", { name: "变更摘要" }));
-    await user.type(screen.getByRole("textbox", { name: "变更摘要" }), "更新首页体验服务");
+    await user.type(screen.getByRole("textbox", { name: "变更摘要" }), "更新首页当前能力");
     await user.click(screen.getAllByRole("button", { name: "保存草稿" })[0]);
 
     await waitFor(() =>
@@ -372,7 +379,7 @@ describe("WebsiteContentEdit", () => {
               sectionType: "home_experience",
               sortOrder: 3,
               content: expect.objectContaining({
-                services: expect.objectContaining({ title: "更新后的服务标题" }),
+                services: expect.objectContaining({ title: "更新后的能力标题" }),
               }),
             }),
           ]),

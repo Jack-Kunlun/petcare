@@ -17,8 +17,8 @@ describe("PermissionCatalogService", () => {
   it("rejects API permissions submitted from the role editing UI", () => {
     const service = new PermissionCatalogService();
 
-    expect(() => service.validateUiPermissionCodes(["system.read"])).toThrow(
-      "API 权限不能由角色编辑界面直接授权：system.read",
+    expect(() => service.validateUiPermissionCodes(["website.read"])).toThrow(
+      "API 权限不能由角色编辑界面直接授权：website.read",
     );
   });
 
@@ -29,7 +29,7 @@ describe("PermissionCatalogService", () => {
       label: "Invalid button",
       module: "invalid",
       path: null,
-      parentCode: "system.read",
+      parentCode: "website.read",
       order: 1,
       icon: null,
       impliedApiCodes: [],
@@ -65,7 +65,7 @@ describe("PermissionCatalogService", () => {
       label: "Nested API",
       module: "invalid",
       path: null,
-      parentCode: "system.view",
+      parentCode: "website.view",
       order: 1,
       icon: null,
       impliedApiCodes: [],
@@ -80,8 +80,8 @@ describe("PermissionCatalogService", () => {
     const service = new PermissionCatalogService();
 
     expect(
-      service.expandToEffectiveCodes(["system.publish", "system.view", "system.publish"]),
-    ).toEqual(["system.publish", "system.publish_action", "system.read", "system.view"]);
+      service.expandToEffectiveCodes(["website.publish", "website.view", "website.publish"]),
+    ).toEqual(["website.publish", "website.publish_action", "website.read", "website.view"]);
   });
 
   it("expands the RBAC menu permission to the catalog API needed to read its directory", () => {
@@ -98,6 +98,7 @@ describe("PermissionCatalogService", () => {
     const findMany = jest
       .fn()
       .mockResolvedValue([
+        { permissionCode: "website.view" },
         { permissionCode: "system.view" },
         { permissionCode: "retired.permission" },
         { permissionCode: "retired.permission" },
@@ -116,7 +117,7 @@ describe("PermissionCatalogService", () => {
     expect(findMany).toHaveBeenCalledWith({ select: { permissionCode: true } });
     expect(write).toHaveBeenCalledWith("warn", "rbac.permission_catalog_orphans", {
       catalogVersion: service.getVersion(),
-      permissionCodes: ["retired.permission"],
+      permissionCodes: ["retired.permission", "system.view"],
     });
   });
 });

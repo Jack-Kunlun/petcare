@@ -205,20 +205,20 @@ export default function Login() {
           </div>
           <div className="relative z-10 mt-10 animate-[pc-page-enter_220ms_ease-out_both] motion-reduce:animate-none">
             <h1 className="max-w-[320px] text-3xl font-bold leading-tight tracking-tight">
-              让每一次照护都有回应
+              管理真实可用的当前能力
             </h1>
             <p className="mt-4 max-w-[384px] text-sm leading-6 text-white/80">
-              安全登录后，继续管理宠物服务与用户体验。
+              安全登录后，继续管理用户资料、养宠内容与社区互动。
             </p>
             <div className="mt-7 flex flex-wrap gap-2 text-xs font-medium text-white/90">
               <span className="rounded-full border border-white/20 bg-white/10 px-3 py-1.5">
-                用户管理
+                用户资料
               </span>
               <span className="rounded-full border border-white/20 bg-white/10 px-3 py-1.5">
-                订单协同
+                内容治理
               </span>
               <span className="rounded-full border border-white/20 bg-white/10 px-3 py-1.5">
-                权限控制
+                权限管理
               </span>
             </div>
           </div>

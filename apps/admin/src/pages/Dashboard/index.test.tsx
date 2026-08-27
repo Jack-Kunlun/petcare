@@ -4,23 +4,30 @@ import { describe, expect, it } from "vitest";
 import Dashboard from ".";
 
 describe("Dashboard", () => {
-  it("展示运营核心指标和待办事项", () => {
+  it("只展示当前真实管理能力及对应入口", () => {
     render(
       <MemoryRouter>
         <Dashboard />
       </MemoryRouter>,
     );
 
-    expect(screen.getByRole("heading", { name: "运营概览" })).toBeInTheDocument();
-    expect(screen.getByText("累计用户")).toBeInTheDocument();
-    expect(screen.getByText("今日订单")).toBeInTheDocument();
-    expect(screen.getByText("本月成交额")).toBeInTheDocument();
-    expect(screen.getByText("待处理事项")).toBeInTheDocument();
-    expect(screen.getByRole("link", { name: "查看待审核宠托师" })).toHaveAttribute(
+    expect(screen.getByRole("heading", { name: "管理概览" })).toBeInTheDocument();
+    expect(screen.getByRole("link", { name: "查看用户资料" })).toHaveAttribute("href", "/users");
+    expect(screen.getByRole("link", { name: "进入社区审核" })).toHaveAttribute(
       "href",
-      "/users",
+      "/content/posts",
     );
-    expect(screen.getByRole("link", { name: "查看待处理纠纷" })).toHaveAttribute("href", "/orders");
+    expect(screen.getByRole("link", { name: "管理课堂文章" })).toHaveAttribute(
+      "href",
+      "/content/articles",
+    );
+    expect(screen.getByRole("link", { name: "管理官网内容" })).toHaveAttribute(
+      "href",
+      "/website-content",
+    );
+    expect(screen.queryByText("今日订单")).not.toBeInTheDocument();
+    expect(screen.queryByText("本月成交额")).not.toBeInTheDocument();
+    expect(screen.queryByText("待审核宠托师")).not.toBeInTheDocument();
   });
 
   it("applies keyboard and pointer states to dashboard actions", () => {

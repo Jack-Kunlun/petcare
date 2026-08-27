@@ -55,6 +55,8 @@ describe("Header", () => {
     );
 
     expect(screen.getByText("系统管理员")).toBeInTheDocument();
+    expect(screen.getByText("PetCare 管理后台")).toBeInTheDocument();
+    expect(screen.queryByRole("button", { name: /通知/ })).not.toBeInTheDocument();
     await user.click(screen.getByRole("button", { name: "退出登录" }));
 
     expect(logout).toHaveBeenCalledTimes(1);
@@ -102,7 +104,7 @@ describe("Header", () => {
       </MemoryRouter>,
     );
 
-    for (const name of ["打开导航", /^通知，\d+ 条未读$/, "退出登录"]) {
+    for (const name of ["打开导航", "退出登录"]) {
       const control = screen.getByRole("button", { name });
 
       expect(control).toHaveClass("h-11", "w-11", "cursor-pointer");

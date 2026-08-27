@@ -1,7 +1,7 @@
 import { act, render, screen } from "@testing-library/react";
 import { isValidElement, StrictMode, type ElementType, type ReactNode } from "react";
 import { matchRoutes } from "react-router-dom";
-import { beforeEach, describe, expect, it, vi } from "vitest";
+import { describe, expect, it, vi } from "vitest";
 import App, { createAdminRouter } from "./App";
 import { PermissionRoute } from "./auth/PermissionRoute";
 import { ProtectedRoute } from "./auth/ProtectedRoute";
@@ -48,39 +48,10 @@ vi.mock("./components/Layout", async () => {
   return { default: Outlet };
 });
 
-vi.mock("./pages/OrderManagement/Complaint", () => ({
-  default: () => "投诉工作队列路由",
-}));
-
-vi.mock("./pages/OrderManagement/Complaint/Detail", () => ({
-  default: () => "投诉卷宗详情路由",
-}));
-
-vi.mock("./pages/Settings", () => ({ default: () => "系统设置概览路由" }));
-vi.mock("./pages/Settings/Edit", () => ({ default: () => "系统设置编辑路由" }));
-vi.mock("./pages/Settings/Detail", () => ({ default: () => "系统设置历史详情路由" }));
 vi.mock("./pages/Account", () => ({ default: () => "个人中心路由" }));
 vi.mock("./pages/ContentManagement/Articles/Edit", () => ({
   default: () => "课堂文章编辑路由",
 }));
-
-describe("App complaint routes", () => {
-  beforeEach(() => {
-    window.history.replaceState({}, "", "/orders/complaints");
-  });
-
-  it("registers the complaint list route without requiring the detail page", async () => {
-    renderApp();
-
-    expect(await screen.findByText("投诉工作队列路由")).toBeInTheDocument();
-  });
-
-  it("注册投诉卷宗详情路由", async () => {
-    window.history.replaceState({}, "", "/orders/complaints/complaint-1");
-    renderApp();
-    expect(await screen.findByText("投诉卷宗详情路由")).toBeInTheDocument();
-  });
-});
 
 describe("createAdminRouter", () => {
   it("keeps login, the protected layout, and every registry route reachable through the Data Router", () => {
@@ -95,7 +66,6 @@ describe("createAdminRouter", () => {
       const path = route.path
         .replace(":contentKey", "home")
         .replace(":versionId", "version-1")
-        .replace(":domain", "fee")
         .replace(":id", "record-1");
 
       const match = matchRoutes(router.routes, path);
@@ -127,19 +97,6 @@ describe("createAdminRouter", () => {
     }
 
     router.dispose();
-  });
-});
-
-describe("App system settings routes", () => {
-  it.each([
-    ["/settings", "系统设置概览路由"],
-    ["/settings/fee/edit", "系统设置编辑路由"],
-    ["/settings/fee/history/fee-v1", "系统设置历史详情路由"],
-  ])("注册 %s", async (path, expected) => {
-    window.history.replaceState({}, "", path);
-    renderApp();
-
-    expect(await screen.findByText(expected)).toBeInTheDocument();
   });
 });
 

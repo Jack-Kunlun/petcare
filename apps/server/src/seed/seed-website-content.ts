@@ -3,7 +3,7 @@ import {
   WEBSITE_CONTENT_KEY,
   WEBSITE_CONTENT_STATUS,
   WEBSITE_SECTION_TYPE,
-  type WebsiteContentKey,
+  type CurrentWebsiteContentKey,
   type WebsiteContentSection,
   type WebsiteContactChannel,
   type WebsiteRichTextPart,
@@ -13,7 +13,7 @@ import {
 import { Prisma, PrismaClient } from "../generated/prisma/client";
 
 interface WebsiteSeedTemplate {
-  contentKey: WebsiteContentKey;
+  contentKey: CurrentWebsiteContentKey;
   contentType: "global" | "page";
   seo: WebsiteSeoContent;
   sections: WebsiteContentSection[];

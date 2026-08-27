@@ -278,12 +278,12 @@ describe("AdminComplaintController", () => {
     );
   });
 
-  it("registers the complaint module and exposes its execution task routes", async () => {
+  it("keeps the isolated complaint module testable without registering it by default", async () => {
     const complaintId = "11111111-1111-4111-8111-111111111111";
     const taskId = "22222222-2222-4222-8222-222222222222";
     let app: INestApplication | undefined;
 
-    expect(Reflect.getMetadata(MODULE_METADATA.IMPORTS, AppModule) as unknown[]).toContain(
+    expect(Reflect.getMetadata(MODULE_METADATA.IMPORTS, AppModule) as unknown[]).not.toContain(
       ComplaintDisputeModule,
     );
     expect(

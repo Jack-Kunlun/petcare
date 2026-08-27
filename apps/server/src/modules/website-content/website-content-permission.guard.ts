@@ -1,12 +1,15 @@
 import { CanActivate, ExecutionContext, ForbiddenException, Injectable } from "@nestjs/common";
 import { Reflector } from "@nestjs/core";
+import { isCurrentWebsiteContentKey } from "@petcare/shared-types";
 import { PermissionGuard } from "../../auth/permission.guard";
 import { PERMISSIONS_METADATA_KEY } from "../../auth/permissions.decorator";
 import { WebsiteContentAuditService } from "./website-content-audit.service";
+import { websiteContentNotFound } from "./website-content.errors";
 
 type WebsiteContentRequest = {
   user?: { sub?: string };
   requestId?: string;
+  params?: { contentKey?: string };
 };
 
 /** Adds best-effort Website Content audit recording around the shared central permission evaluator. */
@@ -21,7 +24,20 @@ export class WebsiteContentPermissionGuard implements CanActivate {
   /** Delegates authorization and records forbidden Website commands without altering their 403 result. */
   async canActivate(context: ExecutionContext): Promise<boolean> {
     try {
-      return await this.permissionGuard.canActivate(context);
+      const permitted = await this.permissionGuard.canActivate(context);
+
+      if (!permitted) {
+        return false;
+      }
+
+      const contentKey = context.switchToHttp().getRequest<WebsiteContentRequest>()
+        .params?.contentKey;
+
+      if (contentKey !== undefined && !isCurrentWebsiteContentKey(contentKey)) {
+        throw websiteContentNotFound(contentKey);
+      }
+
+      return true;
     } catch (error) {
       if (error instanceof ForbiddenException) {
         await this.recordDenied(context).catch(() => undefined);

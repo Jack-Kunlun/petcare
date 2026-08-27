@@ -1,14 +1,10 @@
 import { RBAC_PERMISSION_CATALOG, RBAC_PERMISSION_TYPES } from "@petcare/shared-types";
 import {
-  BadgeCheck,
   ChevronDown,
   FileText,
   Globe2,
   House,
-  MessageSquareWarning,
-  Settings,
   ShieldCheck,
-  ShoppingBag,
   Users,
   X,
   type LucideIcon,
@@ -31,11 +27,7 @@ const allMenuPermissionCodes = [...menuPermissionByCode.keys()];
 const icons: Record<string, LucideIcon> = {
   House,
   Users,
-  ShoppingBag,
-  Settings,
-  BadgeCheck,
   FileText,
-  MessageSquareWarning,
   Globe2,
   ShieldCheck,
 };
@@ -183,14 +175,10 @@ export function Sidebar({ open = false, onClose, permissions }: SidebarProps) {
       >
         <div className="flex h-[var(--admin-header-height)] shrink-0 items-center justify-between border-b border-white/10 px-5">
           <div className="flex min-w-0 items-center gap-3">
-            <BrandLogo
-              variant="color"
-              label="PetCare 运营管理中心"
-              className="h-10 w-10 shrink-0"
-            />
+            <BrandLogo variant="color" label="PetCare 管理后台" className="h-10 w-10 shrink-0" />
             <div className="min-w-0">
               <p className="truncate text-base font-semibold tracking-wide text-white">PetCare</p>
-              <p className="truncate text-xs text-slate-400">运营管理中心</p>
+              <p className="truncate text-xs text-slate-400">个人版管理后台</p>
             </div>
           </div>
           <button
@@ -316,7 +304,7 @@ export function Sidebar({ open = false, onClose, permissions }: SidebarProps) {
             <p className="text-xs font-medium text-slate-300">系统状态</p>
             <p className="mt-1.5 flex items-center gap-2 text-xs text-slate-400">
               <span className="h-2 w-2 rounded-full bg-emerald-400" />
-              所有服务运行正常
+              本地管理功能可用
             </p>
           </div>
         </div>

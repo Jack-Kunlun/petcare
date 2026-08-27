@@ -22,15 +22,16 @@ import {
   ApiParam,
   ApiTags,
 } from "@nestjs/swagger";
-import type {
-  PublishWebsiteContentResponse,
-  WebsiteContentDiffResponse,
-  WebsiteContentDraftResponse,
-  WebsiteContentHistoryResponse,
-  WebsiteContentKey,
-  WebsiteContentOverviewResponse,
-  WebsiteMediaListResponse,
-  WebsiteMediaAsset,
+import {
+  isCurrentWebsiteContentKey,
+  type PublishWebsiteContentResponse,
+  type WebsiteContentDiffResponse,
+  type WebsiteContentDraftResponse,
+  type WebsiteContentHistoryResponse,
+  type WebsiteContentKey,
+  type WebsiteContentOverviewResponse,
+  type WebsiteMediaListResponse,
+  type WebsiteMediaAsset,
 } from "@petcare/shared-types";
 import type { Request } from "express";
 import { AccessTokenGuard } from "../../auth/access-token.guard";
@@ -98,8 +99,10 @@ export class AdminWebsiteContentController {
   @ApiOperation({ summary: "List Website Content overview" })
   @ApiSuccessResponse(WebsiteContentOverviewItemDto, { isArray: true })
   @ApiStandardErrors(401, 403, 500)
-  getOverview(): Promise<WebsiteContentOverviewResponse> {
-    return this.repository.getOverview();
+  async getOverview(): Promise<WebsiteContentOverviewResponse> {
+    const overview = await this.repository.getOverview();
+
+    return overview.filter(({ contentKey }) => isCurrentWebsiteContentKey(contentKey));
   }
 
   /** Reads the current immutable draft for one fixed content unit. */

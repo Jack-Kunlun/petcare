@@ -2,6 +2,7 @@ import { Injectable } from "@nestjs/common";
 import {
   WEBSITE_CONTENT_STATUS,
   WEBSITE_SECTION_TYPE,
+  isCurrentWebsiteContentKey,
   type WebsiteContentKey,
   type WebsiteContentVersion,
   type WebsitePublicContent,
@@ -89,6 +90,7 @@ export function toWebsitePublicContent(
   assets: ReadonlyMap<string, WebsitePublicMediaAsset> = new Map(),
 ): WebsitePublicContent {
   if (
+    !isCurrentWebsiteContentKey(version.contentKey) ||
     version.status !== WEBSITE_CONTENT_STATUS.PUBLISHED ||
     version.businessVersion === null ||
     version.publishedAt === null
@@ -115,6 +117,10 @@ export function toWebsitePreviewContent(
   version: WebsiteContentVersion,
   assets: ReadonlyMap<string, WebsitePublicMediaAsset> = new Map(),
 ): Omit<WebsitePublicContent, "businessVersion" | "publishedAt"> & { revision: number } {
+  if (!isCurrentWebsiteContentKey(version.contentKey)) {
+    throw websiteContentNotFound(version.contentKey);
+  }
+
   return {
     contentKey: version.contentKey,
     revision: version.revision,
@@ -139,6 +145,10 @@ export class WebsiteContentPublicService {
 
   /** Resolves a current public pointer through Redis and PostgreSQL fallbacks. */
   async getPublished(contentKey: WebsiteContentKey): Promise<WebsitePublicContent> {
+    if (!isCurrentWebsiteContentKey(contentKey)) {
+      throw websiteContentNotFound(contentKey);
+    }
+
     const pointer = await this.repository.getPublishedPointer(contentKey);
 
     if (!pointer.publishedVersionId) {
@@ -167,6 +177,10 @@ export class WebsiteContentPublicService {
   async getPreview(
     version: WebsiteContentVersion,
   ): Promise<Omit<WebsitePublicContent, "businessVersion" | "publishedAt"> & { revision: number }> {
+    if (!isCurrentWebsiteContentKey(version.contentKey)) {
+      throw websiteContentNotFound(version.contentKey);
+    }
+
     const assets = await this.media.resolvePublicAssets([...collectImageAssetIds(version)]);
 
     return toWebsitePreviewContent(version, assets);
