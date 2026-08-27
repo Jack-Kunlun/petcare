@@ -12,6 +12,7 @@ import { AdminAccountModule } from "./modules/admin-account/admin-account.module
 import { ComplaintDisputeModule } from "./modules/complaint-dispute/complaint-dispute.module";
 import { ContentModule } from "./modules/content/content.module";
 import { OrderModule } from "./modules/order/order.module";
+import { PetModule } from "./modules/pet/pet.module";
 import { ProviderModule } from "./modules/provider/provider.module";
 import { ProviderCertificationModule } from "./modules/provider-certification/provider-certification.module";
 import { RbacModule } from "./modules/rbac/rbac.module";
@@ -29,6 +30,7 @@ import { PrismaModule } from "./prisma/prisma.module";
     HealthModule,
     UserModule,
     OrderModule,
+    PetModule,
     ContentModule,
     ComplaintDisputeModule,
     ProviderCertificationModule,

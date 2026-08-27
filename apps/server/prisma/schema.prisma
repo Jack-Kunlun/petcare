@@ -168,19 +168,23 @@ model ProviderCertificationApplication {
 // ============================================
 
 model Pet {
-  id         String   @id @default(uuid())
-  ownerId    String   @map("owner_id")
+  id         String    @id @default(uuid())
+  ownerId    String    @map("owner_id")
   name       String
+  species    String    @default("other")
   breed      String
-  age        Float
+  gender     String    @default("unknown")
+  birthDate  DateTime? @map("birth_date") @db.Date
+  /// Compatibility-only value retained while existing rows move to exact birth dates.
+  legacyAge  Float?    @map("age")
   weight     Float?
-  gender     String // male / female
-  sterilized Boolean  @default(false)
-  habits     String? // 特殊习性
-  allergies  String? // 过敏史
+  sterilized Boolean   @default(false)
+  habits     String?
+  allergies  String?
+  tabooFoods String?   @map("taboo_foods")
   photos     String[]
-  createdAt  DateTime @default(now()) @map("created_at")
-  updatedAt  DateTime @updatedAt @map("updated_at")
+  createdAt  DateTime  @default(now()) @map("created_at")
+  updatedAt  DateTime  @updatedAt @map("updated_at")
 
   owner  User    @relation(fields: [ownerId], references: [id], onDelete: Cascade)
   orders Order[]

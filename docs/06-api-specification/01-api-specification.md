@@ -774,13 +774,47 @@ Token 获取，客户端不得传入。接口只返回脱敏姓名、脱敏身�
 
 ### 宠物模块 (/pets)
 
-| 方法   | 路径         | 说明         | 权限       |
-| ------ | ------------ | ------------ | ---------- |
-| GET    | `/pets`      | 我的宠物列表 | 认证       |
-| POST   | `/pets`      | 添加宠物     | 认证       |
-| GET    | `/pets/{id}` | 宠物详情     | 本人/ADMIN |
-| PUT    | `/pets/{id}` | 更新宠物信息 | 本人       |
-| DELETE | `/pets/{id}` | 删除宠物     | 本人       |
+| 方法   | 路径         | 说明         | 权限 |
+| ------ | ------------ | ------------ | ---- |
+| GET    | `/pets`      | 我的宠物列表 | 认证 |
+| POST   | `/pets`      | 添加宠物     | 认证 |
+| GET    | `/pets/{id}` | 宠物详情     | 本人 |
+| PUT    | `/pets/{id}` | 更新宠物信息 | 本人 |
+| DELETE | `/pets/{id}` | 删除宠物     | 本人 |
+
+所有接口均从 Access Token 获取当前用户，客户端不得传入或修改 `ownerId`。详情、更新和删除只查询当前用户拥有的宠物；记录不存在与跨用户访问统一返回 HTTP 404 和 `PET_NOT_FOUND`，避免泄露其他用户的宠物是否存在。
+
+`POST /pets` 与 `PUT /pets/{id}` 使用完整字段请求体；`PUT` 会整体替换可编辑字段：
+
+```json
+{
+  "name": "团团",
+  "species": "dog",
+  "breed": "中华田园犬",
+  "gender": "female",
+  "birthDate": "2023-05-01",
+  "weightKg": 12.4,
+  "sterilized": true,
+  "habits": null,
+  "allergies": null,
+  "tabooFoods": "巧克力"
+}
+```
+
+`species` 可取 `cat`、`dog`、`rabbit`、`hamster`、`bird`、`other`；`gender` 可取 `male`、`female`、`unknown`。`birthDate` 为 `YYYY-MM-DD` 或 `null`，`weightKg` 为 0.1–200 且最多两位小数，或为 `null`。单个用户最多创建 5 个宠物档案，并发创建通过用户行锁串行化。
+
+列表返回 `id`、`name`、`species`、`breed`、`gender`、`birthDate` 和 `coverImage`。详情额外返回 `weightKg`、`sterilized`、`habits`、`allergies`、`tabooFoods`、`photoUrls`、`createdAt` 和 `updatedAt`。照护文本和完整照片列表仅对本人可见；兼容保留的旧 `age` 字段不通过 API 暴露。
+
+宠物图片上传尚未接入本组接口：新建档案的 `photoUrls` 初始为空，`photoUrls` 也不是创建或更新请求字段。`DELETE` 成功返回 `204 No Content`；宠物被订单引用时拒绝删除。
+
+| HTTP 状态 | 错误码                    | 适用场景                        |
+| --------- | ------------------------- | ------------------------------- |
+| 400       | `VALIDATION_FAILED`       | 请求字段、日期或数值范围无效    |
+| 401       | `AUTH_SESSION_EXPIRED`    | Access Token 无效、过期或已失效 |
+| 403       | `AUTH_ACCOUNT_DISABLED`   | 写入期间发现当前账户已停用      |
+| 404       | `PET_NOT_FOUND`           | 记录不存在或不属于当前用户      |
+| 409       | `PET_LIMIT_REACHED`       | 当前用户已有 5 个宠物档案       |
+| 409       | `PET_REFERENCED_BY_ORDER` | 宠物仍被订单引用，不能删除      |
 
 ### 订单模块 (/orders)
 
@@ -1309,6 +1343,6 @@ POST /orders
 
 ---
 
-**最后更新**: 2026-07-23
+**最后更新**: 2026-08-27
 **维护者**: PetCare 后端团队  
 **版本**: v1.0
