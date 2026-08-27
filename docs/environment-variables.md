@@ -161,8 +161,9 @@ ALIYUN_SMS_TEMPLATE_CODE=
 HTTPS API 网关，不能使用本地 HTTP 示例或 Docker 内网服务名。
 
 Miniapp 的 Vite 环境根目录是 `apps/miniapp`。仓库内的 `.env.development` 和 `.env.production` 分别提供开发与
-生产构建值；开发者若要覆盖本地地址，应创建不提交的 `apps/miniapp/.env.local`。根 `.env.example` 中的同名项
-仅作配置清单参考，复制得到的根 `.env` 不会被 Miniapp 构建加载。
+生产构建值；开发者若要覆盖本地开发地址，应创建不提交的 `apps/miniapp/.env.development.local`。Vite 会在
+`.env.development` 之后加载该文件，因此它能覆盖仓库默认值；通用 `.env.local` 的优先级不足以覆盖模式文件。
+根 `.env.example` 中的同名项仅作配置清单参考，复制得到的根 `.env` 不会被 Miniapp 构建加载。
 
 本地运行 Miniapp H5 时，Server 的 `ALLOWED_ORIGINS` 必须同时包含 `http://localhost:5173` 和
 `http://127.0.0.1:5173`；仓库默认配置已包含这两个开发源。生产环境仍只配置实际 HTTPS 域名，不得沿用本地源。
@@ -268,8 +269,8 @@ JavaScript、构建参数或 CDN 配置中。Astro 通过它在 Docker 内网调
    # pnpm dev:miniapp（已删除）
    ```
 
-5. Miniapp 默认按模式读取 `apps/miniapp/.env.development` 或 `.env.production`。如需覆盖本地 API 地址，在
-   `apps/miniapp/.env.local` 中配置 `VITE_MINIAPP_API_BASE_URL` 后启动 UniApp 微信端构建；不再使用旧的
+5. Miniapp 默认按模式读取 `apps/miniapp/.env.development` 或 `.env.production`。如需覆盖本地开发 API 地址，在
+   `apps/miniapp/.env.development.local` 中配置 `VITE_MINIAPP_API_BASE_URL` 后启动 UniApp 微信端构建；不再使用旧的
    `VITE_API_BASE_URL` 或 `TARO_APP_API_BASE_URL`。
 
 ## 注意事项

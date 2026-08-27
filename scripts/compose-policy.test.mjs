@@ -32,6 +32,14 @@ test("Server 容器使用依赖就绪探针", async () => {
   assert.doesNotMatch(server, /http:\/\/localhost:3000\/health/);
 });
 
+test("Server 容器接收可调密码登录限流配置", async () => {
+  const compose = await readFile(resolve(root, "docker-compose.yml"), "utf8");
+  const server = serviceBlock(compose, "server");
+
+  assert.match(server, /AUTH_PASSWORD_MAX_ATTEMPTS: \$\{AUTH_PASSWORD_MAX_ATTEMPTS:-5\}/);
+  assert.match(server, /AUTH_PASSWORD_WINDOW_SECONDS: \$\{AUTH_PASSWORD_WINDOW_SECONDS:-900\}/);
+});
+
 test("环境模板指向根目录 .env", async () => {
   const example = await readFile(resolve(root, ".env.example"), "utf8");
 
@@ -210,6 +218,25 @@ test("开发覆盖只把数据库和 Redis 绑定到本机回环", async () => {
   assert.match(override, /127\.0\.0\.1:\$\{EXPOSE_DB_PORT:-5432\}:5432/);
   assert.match(override, /127\.0\.0\.1:\$\{EXPOSE_REDIS_PORT:-6379\}:6379/);
   assert.doesNotMatch(override, /(?:^|["'])0\.0\.0\.0:/m);
+});
+
+test("长期本地监测 Compose 隔离容器、数据卷、端口和生产 TLS", async () => {
+  const compose = await readFile(resolve(root, "docker-compose.local.yml"), "utf8");
+
+  assert.match(compose, /^name: petcare-local$/m);
+  assert.match(compose, /127\.0\.0\.1:\$\{EXPOSE_DB_PORT:-55432\}:5432/);
+  assert.match(compose, /127\.0\.0\.1:\$\{EXPOSE_REDIS_PORT:-56379\}:6379/);
+  assert.match(compose, /127\.0\.0\.1:\$\{EXPOSE_SERVER_PORT:-3300\}:3000/);
+  assert.match(compose, /127\.0\.0\.1:\$\{EXPOSE_ADMIN_PORT:-8986\}:80/);
+  assert.doesNotMatch(compose, /(?:^|["'])0\.0\.0\.0:/m);
+
+  const migrate = serviceBlock(compose, "migrate");
+  assert.match(migrate, /prisma:migrate:deploy/);
+  assert.match(migrate, /condition: service_healthy/);
+  assert.match(serviceBlock(compose, "server"), /condition: service_completed_successfully/);
+  assert.match(serviceBlock(compose, "edge-gateway"), /profiles: \["production-tls"\]/);
+  assert.match(compose, /name: petcare-local-postgres-data/);
+  assert.match(compose, /name: petcare-local-redis-data/);
 });
 
 test("Website 镜像以非 root 身份运行独立 SSR 并提供健康检查", async () => {

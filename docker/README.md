@@ -4,6 +4,7 @@
 
 - `docker-compose.yml`：生产 Compose 定义（含 HTTPS 边缘网关）
 - `docker-compose.dev.yml`：本地开发覆盖，只把 PostgreSQL、Redis 绑定到本机回环
+- `docker-compose.local.yml`：长期本地监测覆盖，使用独立容器名、持久卷、自动迁移和回环端口
 - `Dockerfile.server`：NestJS 服务镜像
 - `Dockerfile.admin`：后台管理镜像
 - `docker/nginx.conf`：Admin 静态资源与 API 代理配置
@@ -30,6 +31,36 @@ Miniapp 仍由独立 GitHub Actions 工作流上传微信，不使用 Docker、T
 `GHCR_PULL_USER`、`GHCR_PULL_TOKEN` 与服务器 GitHub Deploy Key。
 
 ## 常用命令
+
+### 长期本地监测栈
+
+根目录 `.env` 保留在本机且不提交。首次使用从 `.env.example` 准备本地值，并为已经被其他项目占用的端口选择空闲回环端口。推荐使用：Server `3300`、PostgreSQL `55432`、Redis `56379`、Admin `8986`、Website `8180`。
+
+```bash
+# 校验合并后的本地配置
+docker compose -f docker-compose.yml -f docker-compose.local.yml --env-file .env config
+
+# 构建三个 PetCare 应用镜像
+docker compose -f docker-compose.yml -f docker-compose.local.yml --env-file .env build server admin website
+
+# 首次启动会先等待 PostgreSQL，再运行 migrate，最后启动应用与内部网关
+docker compose -f docker-compose.yml -f docker-compose.local.yml --env-file .env up -d
+
+# 查看全部容器和最近日志
+docker compose -f docker-compose.yml -f docker-compose.local.yml --env-file .env ps -a
+docker compose -f docker-compose.yml -f docker-compose.local.yml --env-file .env logs --tail=200 server
+
+# 后续 Schema 变更显式复用同一个 PostgreSQL，再刷新应用
+docker compose -f docker-compose.yml -f docker-compose.local.yml --env-file .env run --rm migrate
+docker compose -f docker-compose.yml -f docker-compose.local.yml --env-file .env up -d --build server admin website website-gateway
+
+# 停止应用但保留 petcare-local-postgres-data 与 petcare-local-redis-data
+docker compose -f docker-compose.yml -f docker-compose.local.yml --env-file .env down
+```
+
+默认不会启动 `edge-gateway`：它属于生产 TLS 边界，需要真实域名证书并占用 80/443。Admin、Website、Server、PostgreSQL 和 Redis 只绑定 `127.0.0.1`。不要执行 `down --volumes`，除非明确要永久清空本地监测数据。
+
+### 可丢弃的本地诊断
 
 ```bash
 # 校验最终 Compose 配置
