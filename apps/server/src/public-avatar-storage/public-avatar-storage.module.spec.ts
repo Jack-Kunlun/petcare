@@ -5,12 +5,12 @@ import { PublicAvatarStorageModule } from "./public-avatar-storage.module";
 import { PUBLIC_AVATAR_STORAGE, PublicAvatarStorage } from "./public-avatar-storage.types";
 
 describe("PublicAvatarStorageModule", () => {
-  it("provides a disabled storage adapter when Tencent COS is not configured", async () => {
+  it("provides a disabled storage adapter when public media storage is disabled", async () => {
     const module = await Test.createTestingModule({
       imports: [PublicAvatarStorageModule],
     })
       .overrideProvider(ConfigService)
-      .useValue({ tencentCosEnabled: false })
+      .useValue({ publicMediaStorageProvider: "disabled" })
       .compile();
     const storage = module.get<PublicAvatarStorage>(PUBLIC_AVATAR_STORAGE);
 

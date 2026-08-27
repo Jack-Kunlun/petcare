@@ -1,5 +1,6 @@
 import { ValidationPipe } from "@nestjs/common";
 import { NestFactory } from "@nestjs/core";
+import type { NestExpressApplication } from "@nestjs/platform-express";
 import { SwaggerModule, DocumentBuilder } from "@nestjs/swagger";
 import cookieParser from "cookie-parser";
 import { AppModule } from "./app.module";
@@ -7,7 +8,7 @@ import { ConfigService } from "./config/config.service";
 import { AppLogger } from "./logging/app-logger.service";
 
 async function bootstrap() {
-  const app = await NestFactory.create(AppModule, { bufferLogs: true });
+  const app = await NestFactory.create<NestExpressApplication>(AppModule, { bufferLogs: true });
   const appLogger = app.get(AppLogger);
   const configService = app.get(ConfigService);
 
@@ -33,6 +34,20 @@ async function bootstrap() {
     origin: allowedOrigins,
     credentials: true,
   });
+
+  if (configService.publicMediaStorageProvider === "local") {
+    app.useStaticAssets(configService.localMediaPublicDirectory, {
+      prefix: "/media/public",
+      dotfiles: "deny",
+      etag: true,
+      fallthrough: true,
+      immutable: true,
+      index: false,
+      maxAge: "1y",
+      redirect: false,
+      setHeaders: (response) => response.setHeader("X-Content-Type-Options", "nosniff"),
+    });
+  }
 
   // Swagger文档（仅开发环境启用）
   if (configService.nodeEnv !== "production") {

@@ -53,21 +53,21 @@
 
 ### 1.3 后端API服务
 
-| 技术领域      | 技术选型                            | 版本   | 说明                                 |
-| ------------- | ----------------------------------- | ------ | ------------------------------------ |
-| **框架**      | Nest.js                             | 10.x   | 企业级Node.js框架                    |
-| **语言**      | TypeScript                          | 5.x    | 类型安全                             |
-| **ORM**       | **Prisma**                          | 7.8.x  | 类型安全的数据库工具链               |
-| **数据库**    | PostgreSQL                          | 15.x   | 关系型数据库，JSONB支持              |
-| **缓存**      | Redis                               | 7.x    | 会话、缓存、消息队列                 |
-| **API文档**   | Swagger (OpenAPI)                   | 最新版 | 自动生成API文档                      |
-| **认证授权**  | Passport.js + JWT                   | 最新版 | RBAC权限控制                         |
-| **验证**      | class-validator + class-transformer | 最新版 | DTO验证                              |
-| **日志**      | Winston + Pino                      | 最新版 | 结构化日志，高性能                   |
-| **任务队列**  | BullMQ                              | 最新版 | 基于Redis的异步任务处理              |
-| **文件存储**  | 腾讯云 COS（`cos-nodejs-sdk-v5`）   | -      | 管理员公开头像与官网公开素材对象存储 |
-| **WebSocket** | @nestjs/websockets                  | -      | 实时通知、SOP进度推送                |
-| **错误追踪**  | Sentry                              | 最新版 | 生产环境错误监控                     |
+| 技术领域      | 技术选型                            | 版本   | 说明                           |
+| ------------- | ----------------------------------- | ------ | ------------------------------ |
+| **框架**      | Nest.js                             | 10.x   | 企业级Node.js框架              |
+| **语言**      | TypeScript                          | 5.x    | 类型安全                       |
+| **ORM**       | **Prisma**                          | 7.8.x  | 类型安全的数据库工具链         |
+| **数据库**    | PostgreSQL                          | 15.x   | 关系型数据库，JSONB支持        |
+| **缓存**      | Redis                               | 7.x    | 会话、缓存、消息队列           |
+| **API文档**   | Swagger (OpenAPI)                   | 最新版 | 自动生成API文档                |
+| **认证授权**  | Passport.js + JWT                   | 最新版 | RBAC权限控制                   |
+| **验证**      | class-validator + class-transformer | 最新版 | DTO验证                        |
+| **日志**      | Winston + Pino                      | 最新版 | 结构化日志，高性能             |
+| **任务队列**  | BullMQ                              | 最新版 | 基于Redis的异步任务处理        |
+| **文件存储**  | 本地持久卷 / 腾讯云 COS（可选）     | -      | 服务端管理的公开头像与业务图片 |
+| **WebSocket** | @nestjs/websockets                  | -      | 实时通知、SOP进度推送          |
+| **错误追踪**  | Sentry                              | 最新版 | 生产环境错误监控               |
 
 ---
 
@@ -111,7 +111,7 @@
 | **部署**     | Docker Compose（当前）/ Kubernetes（后续） | 当前以单区域容器化部署为主；服务拆分和多副本运行成熟后再引入 Kubernetes |
 | **官网 SSR** | Astro SSR + `@astrojs/node`                | 独立 Website 容器；内部 `4321`，由独立 Nginx 网关公开                   |
 | **静态托管** | Nginx                                      | Admin 静态前端独立部署，不与官网网关复用                                |
-| **对象存储** | 腾讯云 COS                                 | 公开素材通过 `TENCENT_COS_PUBLIC_BASE_URL` 提供；密钥仅注入 Server      |
+| **对象存储** | 本地文件 provider / 腾讯云 COS（可选）     | 本地通过 `/media/` 读取；COS 密钥仅在显式选择后注入 Server              |
 | **监控**     | Prometheus + Grafana                       | 后端指标监控                                                            |
 | **日志聚合** | ELK Stack                                  | 日志收集分析                                                            |
 | **域名解析** | 阿里云DNS / Cloudflare                     | DNS管理                                                                 |
@@ -125,12 +125,12 @@ Prisma 模型和字段在 TypeScript 中使用 PascalCase / camelCase，例如 `
 
 新建或调整数据库结构时，使用 Prisma CLI 执行 schema 同步或生成迁移；已有生产数据时必须先评估并执行迁移，不可直接重置数据库。
 
-## 管理员公开头像存储
+## 公开媒体存储
 
-当前实现仅提供管理员个人中心的公开头像存储：Server 使用腾讯云 COS 将经过字节校验的 JPEG、PNG 或 WebP
-文件（最大 2 MiB）写入 `public/admin-avatars/{userId}/`。COS 五项配置均留空时采取 fail-closed 策略：头像上传返回
-`503 STORAGE_UNAVAILABLE`，但个人资料和密码接口继续可用；部分配置会使 Server 在启动前失败。
+Server 通过 provider-independent 边界管理管理员/用户头像、宠物、社区和官网的 JPEG、PNG 或 WebP 图片。
+长期本地 Compose 使用持久化文件 provider，文件写入独立 named volume 并由只读 `/media/` 路由访问；默认禁用状态下上传返回
+稳定的 `503` 存储错误，但资料和内容读取继续可用。
 
-生产环境使用独立的公开读、私有写 Bucket 与最小权限子账号。Bucket 使用 `BucketName-APPID` 格式，Region 使用
-`ap-guangzhou` 等 COS 代码；可选的公开基础 URL 可替代 COS 默认访问域名。此能力不是通用图片上传服务，未提供
-`/uploads/images` 或客户端直传接口。
+腾讯云 COS 仅是显式选择的生产可选 provider；选择后使用公开读、私有写 Bucket 与最小权限子账号。Bucket 使用
+`BucketName-APPID` 格式，Region 使用 `ap-guangzhou` 等 COS 代码，可选公开基础 URL 可替代 COS 默认访问域名。
+客户端不接触存储凭据或自行指定对象键；系统也不提供通用 `/uploads/images` 或客户端直传接口。

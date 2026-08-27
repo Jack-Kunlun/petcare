@@ -1017,6 +1017,7 @@ async function runMain(playwrightArgs, signal) {
     TENCENT_COS_BUCKET: "admin-e2e-media-1250000000",
     TENCENT_COS_REGION: "ap-guangzhou",
     TENCENT_COS_PUBLIC_BASE_URL: `http://127.0.0.1:${websitePort}`,
+    PUBLIC_MEDIA_STORAGE_PROVIDER: "tencent-cos",
     RBAC_E2E_RESTRICTED_USERNAME: rbacRestrictedAdmin.username,
     RBAC_E2E_RESTRICTED_PASSWORD: rbacRestrictedAdmin.password,
     COMMUNITY_POST_MAX_ATTEMPTS: "1",

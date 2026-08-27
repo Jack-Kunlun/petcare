@@ -21,6 +21,9 @@ describe("ConfigService", () => {
     ALLOWED_ORIGINS: "http://localhost:8986",
     WECHAT_APP_ID: "",
     WECHAT_APP_SECRET: "",
+    PUBLIC_MEDIA_STORAGE_PROVIDER: "disabled",
+    LOCAL_MEDIA_DIRECTORY: "",
+    LOCAL_MEDIA_PUBLIC_BASE_URL: "",
     TENCENT_COS_SECRET_ID: "",
     TENCENT_COS_SECRET_KEY: "",
     TENCENT_COS_BUCKET: "",
@@ -67,6 +70,9 @@ describe("ConfigService", () => {
     delete process.env.TENCENT_COS_BUCKET;
     delete process.env.TENCENT_COS_REGION;
     delete process.env.TENCENT_COS_PUBLIC_BASE_URL;
+    delete process.env.PUBLIC_MEDIA_STORAGE_PROVIDER;
+    delete process.env.LOCAL_MEDIA_DIRECTORY;
+    delete process.env.LOCAL_MEDIA_PUBLIC_BASE_URL;
     delete process.env.BACKUP_COS_SECRET_ID;
     delete process.env.BACKUP_COS_SECRET_KEY;
     delete process.env.BACKUP_COS_BUCKET;
@@ -219,6 +225,51 @@ describe("ConfigService", () => {
       expect(config.tencentCosEnabled).toBe(false);
     });
 
+    it("accepts local media storage with a repository-relative directory and website URL", () => {
+      process.env = {
+        ...originalEnv,
+        ...validStartupEnv,
+        PUBLIC_MEDIA_STORAGE_PROVIDER: "local",
+        LOCAL_MEDIA_DIRECTORY: "data/test-media",
+        WEBSITE_PUBLIC_URL: "http://localhost:8180",
+        TENCENT_COS_SECRET_ID: "not-yet-complete",
+      };
+      const config = new ConfigService();
+
+      expect(() => config.validateForStartup()).not.toThrow();
+      expect(config.localMediaDirectory.replaceAll("\\", "/")).toMatch(/\/data\/test-media$/u);
+      expect(config.localMediaPublicDirectory.replaceAll("\\", "/")).toMatch(
+        /\/data\/test-media\/public$/u,
+      );
+      expect(config.localMediaPublicBaseUrl).toBe("http://localhost:8180/media");
+    });
+
+    it.each([
+      ["unsupported provider", { PUBLIC_MEDIA_STORAGE_PROVIDER: "s3" }, "must be one of"],
+      [
+        "production local provider",
+        { PUBLIC_MEDIA_STORAGE_PROVIDER: "local", NODE_ENV: "production" },
+        "is not allowed in production",
+      ],
+      [
+        "filesystem root",
+        { PUBLIC_MEDIA_STORAGE_PROVIDER: "local", LOCAL_MEDIA_DIRECTORY: "/" },
+        "must not be a filesystem root",
+      ],
+      [
+        "unsafe public URL",
+        {
+          PUBLIC_MEDIA_STORAGE_PROVIDER: "local",
+          LOCAL_MEDIA_PUBLIC_BASE_URL: "http://user:password@localhost:3000/media",
+        },
+        "must not contain credentials",
+      ],
+    ])("rejects local media configuration with an %s", (_name, overrides, message) => {
+      process.env = { ...originalEnv, ...validStartupEnv, ...overrides };
+
+      expect(() => new ConfigService().validateForStartup()).toThrow(message);
+    });
+
     it("reports all missing required startup variables without exposing values", () => {
       process.env = { NODE_ENV: "development" };
 
@@ -232,6 +283,7 @@ describe("ConfigService", () => {
         ...originalEnv,
         ...validStartupEnv,
         WECHAT_APP_ID: "wx3bdad4ab652f0d1d",
+        PUBLIC_MEDIA_STORAGE_PROVIDER: "tencent-cos",
         TENCENT_COS_BUCKET: "petcare-1250000000",
       };
 
@@ -244,6 +296,7 @@ describe("ConfigService", () => {
       process.env = {
         ...originalEnv,
         ...validStartupEnv,
+        PUBLIC_MEDIA_STORAGE_PROVIDER: "tencent-cos",
         TENCENT_COS_SECRET_ID: "test-secret-id",
         TENCENT_COS_SECRET_KEY: "test-secret-key",
         TENCENT_COS_BUCKET: "petcare-media-1250000000",
@@ -273,6 +326,7 @@ describe("ConfigService", () => {
       process.env = {
         ...originalEnv,
         ...validStartupEnv,
+        PUBLIC_MEDIA_STORAGE_PROVIDER: "tencent-cos",
         TENCENT_COS_SECRET_ID: "test-secret-id",
         TENCENT_COS_SECRET_KEY: "test-secret-key",
         TENCENT_COS_BUCKET: "petcare-media-1250000000",
@@ -283,15 +337,16 @@ describe("ConfigService", () => {
       expect(() => new ConfigService().validateForStartup()).toThrow(errorName);
     });
 
-    it("rejects an unconfigured Tencent COS public base URL", () => {
+    it("rejects selecting Tencent COS without the required credentials", () => {
       process.env = {
         ...originalEnv,
         ...validStartupEnv,
+        PUBLIC_MEDIA_STORAGE_PROVIDER: "tencent-cos",
         TENCENT_COS_PUBLIC_BASE_URL: "https://cdn.example.com/petcare",
       };
 
       expect(() => new ConfigService().validateForStartup()).toThrow(
-        "TENCENT_COS_PUBLIC_BASE_URL requires Tencent COS configuration",
+        /TENCENT_COS_SECRET_ID.*TENCENT_COS_REGION/s,
       );
     });
 

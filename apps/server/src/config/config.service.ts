@@ -1,9 +1,11 @@
-import { isAbsolute, resolve } from "node:path";
+import { isAbsolute, parse, resolve } from "node:path";
 import { Injectable } from "@nestjs/common";
 
 export const LOG_LEVELS = ["error", "warn", "info", "http", "verbose", "debug", "silly"] as const;
+export const PUBLIC_MEDIA_STORAGE_PROVIDERS = ["disabled", "local", "tencent-cos"] as const;
 
 export type LogLevel = (typeof LOG_LEVELS)[number];
+export type PublicMediaStorageProvider = (typeof PUBLIC_MEDIA_STORAGE_PROVIDERS)[number];
 
 const monorepoRoot = resolve(__dirname, "../../../..");
 
@@ -90,7 +92,7 @@ export class ConfigService {
     check("DEFAULT_ADMIN_PASSWORD", () => this.validateAdminPassword());
     check("ALLOWED_ORIGINS", () => this.validateAllowedOrigins());
     check("WECHAT", () => this.validateWechatConfiguration());
-    check("TENCENT_COS", () => this.validateTencentCosConfiguration());
+    check("PUBLIC_MEDIA_STORAGE", () => this.validatePublicMediaStorageConfiguration());
     check("WEBSITE_PUBLIC_URL", () => this.websitePublicUrl);
     check("WEBSITE_PREVIEW_TTL_SECONDS", () => this.websitePreviewTtlSeconds);
     check("WEBSITE_CONTENT_CACHE_TTL_SECONDS", () => this.websiteContentCacheTtlSeconds);
@@ -200,20 +202,35 @@ export class ConfigService {
     }
   }
 
-  private validateTencentCosConfiguration(): void {
-    if (
-      !this.validateOptionalGroup([
-        "TENCENT_COS_SECRET_ID",
-        "TENCENT_COS_SECRET_KEY",
-        "TENCENT_COS_BUCKET",
-        "TENCENT_COS_REGION",
-      ])
-    ) {
-      if (this.tencentCosPublicBaseUrl) {
-        throw new Error("TENCENT_COS_PUBLIC_BASE_URL requires Tencent COS configuration");
+  private validatePublicMediaStorageConfiguration(): void {
+    if (this.publicMediaStorageProvider === "disabled") {
+      return;
+    }
+
+    if (this.publicMediaStorageProvider === "local") {
+      if (this.nodeEnv === "production") {
+        throw new Error("PUBLIC_MEDIA_STORAGE_PROVIDER=local is not allowed in production");
       }
 
+      void this.localMediaDirectory;
+      void this.localMediaPublicBaseUrl;
+
       return;
+    }
+
+    this.validateTencentCosConfiguration();
+  }
+
+  private validateTencentCosConfiguration(): void {
+    const required = [
+      "TENCENT_COS_SECRET_ID",
+      "TENCENT_COS_SECRET_KEY",
+      "TENCENT_COS_BUCKET",
+      "TENCENT_COS_REGION",
+    ] as const;
+
+    if (!this.validateOptionalGroup(required)) {
+      throw new Error(`${required.join(", ")} are required when Tencent COS is selected`);
     }
 
     if (!/^[a-z0-9][a-z0-9-]*-\d{10,}$/.test(this.tencentCosBucket)) {
@@ -455,6 +472,58 @@ export class ConfigService {
     return this.getPositiveInteger("WEBSITE_CONTENT_CACHE_TTL_SECONDS", 86400);
   }
 
+  /** Explicit public-media backend used by avatars, pets, community posts, and website content. */
+  get publicMediaStorageProvider(): PublicMediaStorageProvider {
+    const provider = process.env.PUBLIC_MEDIA_STORAGE_PROVIDER?.trim() || "disabled";
+
+    if (!PUBLIC_MEDIA_STORAGE_PROVIDERS.includes(provider as PublicMediaStorageProvider)) {
+      throw new Error(
+        `PUBLIC_MEDIA_STORAGE_PROVIDER must be one of ${PUBLIC_MEDIA_STORAGE_PROVIDERS.join(", ")}`,
+      );
+    }
+
+    return provider as PublicMediaStorageProvider;
+  }
+
+  /** Filesystem root for the development-only local public-media provider. */
+  get localMediaDirectory(): string {
+    const configured = process.env.LOCAL_MEDIA_DIRECTORY?.trim() || "data/media";
+
+    if (configured.includes("\0")) {
+      throw new Error("LOCAL_MEDIA_DIRECTORY contains an invalid null byte");
+    }
+
+    const directory = isAbsolute(configured)
+      ? resolve(configured)
+      : resolve(monorepoRoot, configured);
+
+    if (directory === parse(directory).root) {
+      throw new Error("LOCAL_MEDIA_DIRECTORY must not be a filesystem root");
+    }
+
+    return directory;
+  }
+
+  /** Only this subtree is exposed by the local media static route. */
+  get localMediaPublicDirectory(): string {
+    return resolve(this.localMediaDirectory, "public");
+  }
+
+  /** Browser-visible base URL backed by the Server's immutable `/media` static route. */
+  get localMediaPublicBaseUrl(): string {
+    const configured = process.env.LOCAL_MEDIA_PUBLIC_BASE_URL?.trim();
+    const value = configured || `${this.websitePublicUrl.replace(/\/+$/u, "")}/media`;
+    const url = new URL(this.validateAbsoluteHttpUrl("LOCAL_MEDIA_PUBLIC_BASE_URL", value));
+
+    if (url.username || url.password || url.search || url.hash) {
+      throw new Error(
+        "LOCAL_MEDIA_PUBLIC_BASE_URL must not contain credentials, a query, or a fragment",
+      );
+    }
+
+    return value.replace(/\/+$/u, "");
+  }
+
   // 服务器配置
   get port(): number {
     return this.getPositiveInteger("PORT", 3000);
@@ -550,6 +619,7 @@ export class ConfigService {
 
   get tencentCosEnabled(): boolean {
     return Boolean(
+      this.publicMediaStorageProvider === "tencent-cos" &&
       this.tencentCosSecretId &&
       this.tencentCosSecretKey &&
       this.tencentCosBucket &&

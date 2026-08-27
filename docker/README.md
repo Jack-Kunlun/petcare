@@ -54,9 +54,14 @@ docker compose -f docker-compose.yml -f docker-compose.local.yml --env-file .env
 docker compose -f docker-compose.yml -f docker-compose.local.yml --env-file .env run --rm migrate
 docker compose -f docker-compose.yml -f docker-compose.local.yml --env-file .env up -d --build server admin website website-gateway
 
-# 停止应用但保留 petcare-local-postgres-data 与 petcare-local-redis-data
+# 停止应用但保留 PostgreSQL、Redis 与本地媒体 named volumes
 docker compose -f docker-compose.yml -f docker-compose.local.yml --env-file .env down
 ```
+
+`docker-compose.local.yml` 会把公开媒体 provider 固定为 `local`，将头像、宠物、社区和官网素材写入
+`petcare-local-media-data`，并由 Website 网关的 `/media/` 路径读取。公开 URL 默认从 `WEBSITE_PUBLIC_URL` 派生，因此修改
+`WEBSITE_PORT` 时必须同步修改 `WEBSITE_PUBLIC_URL`。普通容器重建或 `down` 会保留媒体；`down --volumes` 才会将它与数据库、
+Redis 一并永久删除。
 
 默认不会启动 `edge-gateway`：它属于生产 TLS 边界，需要真实域名证书并占用 80/443。Admin、Website、Server、PostgreSQL 和 Redis 只绑定 `127.0.0.1`。不要执行 `down --volumes`，除非明确要永久清空本地监测数据。
 

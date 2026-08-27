@@ -32,6 +32,17 @@ test("Server 容器使用依赖就绪探针", async () => {
   assert.doesNotMatch(server, /http:\/\/localhost:3000\/health/);
 });
 
+test("本地媒体静态出口使用不可变缓存并让缺失对象落入标准 404", async () => {
+  const main = await readFile(resolve(root, "apps/server/src/main.ts"), "utf8");
+
+  assert.match(main, /publicMediaStorageProvider === "local"/);
+  assert.match(main, /useStaticAssets\(configService\.localMediaPublicDirectory/);
+  assert.match(main, /prefix: "\/media\/public"/);
+  assert.match(main, /fallthrough: true/);
+  assert.match(main, /immutable: true/);
+  assert.match(main, /X-Content-Type-Options", "nosniff"/);
+});
+
 test("Server 容器接收可调密码登录限流配置", async () => {
   const compose = await readFile(resolve(root, "docker-compose.yml"), "utf8");
   const server = serviceBlock(compose, "server");
@@ -45,6 +56,16 @@ test("环境模板指向根目录 .env", async () => {
 
   assert.match(example, /复制此文件为根目录 `.env`/);
   assert.doesNotMatch(example, /复制此文件为 `.env\.local`/);
+});
+
+test("宿主机本地媒体不会进入 Git 或 Docker 构建上下文", async () => {
+  const [gitignore, dockerignore] = await Promise.all([
+    readFile(resolve(root, ".gitignore"), "utf8"),
+    readFile(resolve(root, ".dockerignore"), "utf8"),
+  ]);
+
+  assert.match(gitignore, /^data\/media\/$/m);
+  assert.match(dockerignore, /^data\/media$/m);
 });
 
 test("Server 运行镜像保留 Prisma seed 所需源码", async () => {
@@ -234,9 +255,12 @@ test("长期本地监测 Compose 隔离容器、数据卷、端口和生产 TLS"
   assert.match(migrate, /prisma:migrate:deploy/);
   assert.match(migrate, /condition: service_healthy/);
   assert.match(serviceBlock(compose, "server"), /condition: service_completed_successfully/);
+  assert.match(serviceBlock(compose, "server"), /PUBLIC_MEDIA_STORAGE_PROVIDER: local/);
+  assert.match(serviceBlock(compose, "server"), /media-data:\/app\/data\/media/);
   assert.match(serviceBlock(compose, "edge-gateway"), /profiles: \["production-tls"\]/);
   assert.match(compose, /name: petcare-local-postgres-data/);
   assert.match(compose, /name: petcare-local-redis-data/);
+  assert.match(compose, /name: petcare-local-media-data/);
 });
 
 test("Website 镜像以非 root 身份运行独立 SSR 并提供健康检查", async () => {
@@ -270,6 +294,8 @@ test("官网网关只暴露 Website 页面和已发布公共内容接口", async
   assert.match(nginx, /location \^~ \/website-content\/[\s\S]*?proxy_pass http:\/\/server:3000/);
   assert.match(nginx, /location = \/content\/articles[\s\S]*?proxy_pass http:\/\/server:3000/);
   assert.match(nginx, /location \^~ \/content\/articles\/[\s\S]*?proxy_pass http:\/\/server:3000/);
+  assert.match(nginx, /location \^~ \/media\/[\s\S]*?proxy_pass http:\/\/server:3000/);
+  assert.match(nginx, /location \^~ \/media\/[\s\S]*?X-Content-Type-Options "nosniff"/);
   assert.doesNotMatch(nginx, /location\s+(?:=\s*)?(?:\^~\s*)?\/(?:admin|api-docs|api(?:\/|\s))/);
   assert.match(nginx, /location \^~ \/_astro\/[\s\S]*?max-age=31536000, immutable/);
   assert.match(nginx, /location \/ \{[\s\S]*?add_header Cache-Control "no-store" always/);
@@ -292,6 +318,11 @@ test("Compose 将官网 SSR 保持在内部网络并仅传递所需运行变量"
     /WEBSITE_CONTENT_API_BASE_URL: \$\{WEBSITE_CONTENT_API_BASE_URL:-http:\/\/server:3000\}/,
   );
   assert.doesNotMatch(server, /WEBSITE_CONTENT_API_BASE_URL/);
+  assert.match(
+    server,
+    /PUBLIC_MEDIA_STORAGE_PROVIDER: \$\{PUBLIC_MEDIA_STORAGE_PROVIDER:-disabled\}/,
+  );
+  assert.match(server, /LOCAL_MEDIA_DIRECTORY: \$\{LOCAL_MEDIA_DIRECTORY:-\/app\/data\/media\}/);
   assert.match(gateway, /- "127\.0\.0\.1:\$\{WEBSITE_PORT:-8080\}:80"/);
   assert.match(gateway, /website-nginx\.conf/);
   assert.doesNotMatch(

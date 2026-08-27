@@ -5,6 +5,7 @@ import { ConfigService } from "../../config/config.service";
 import { PrismaService } from "../../prisma/prisma.service";
 import { AdminWebsiteContentController } from "./admin-website-content.controller";
 import { DisabledWebsiteMediaStorage } from "./media/disabled-website-media.storage";
+import { LocalWebsiteMediaStorage } from "./media/local-website-media.storage";
 import { TencentCosWebsiteMediaStorage } from "./media/tencent-cos-website-media.storage";
 import type { WebsiteMediaStorage } from "./media/website-media-storage.types";
 import { PublicWebsiteContentController } from "./public-website-content.controller";
@@ -23,8 +24,12 @@ import { WebsitePreviewService, WEBSITE_PREVIEW_CONFIG } from "./website-preview
 import { WebsiteSectionTypeRegistry } from "./website-section-type.registry";
 
 function createWebsiteMediaStorage(config: ConfigService): WebsiteMediaStorage {
-  if (!config.tencentCosEnabled) {
+  if (config.publicMediaStorageProvider === "disabled") {
     return new DisabledWebsiteMediaStorage();
+  }
+
+  if (config.publicMediaStorageProvider === "local") {
+    return new LocalWebsiteMediaStorage(config.localMediaDirectory, config.localMediaPublicBaseUrl);
   }
 
   const client = new COS({

@@ -21,5 +21,6 @@ certs/
 apps/server/src/generated
 .turbo
 logs
+data/media
 playwright-report
 test-results

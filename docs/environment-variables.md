@@ -168,17 +168,20 @@ Miniapp 的 Vite 环境根目录是 `apps/miniapp`。仓库内的 `.env.developm
 本地运行 Miniapp H5 时，Server 的 `ALLOWED_ORIGINS` 必须同时包含 `http://localhost:5173` 和
 `http://127.0.0.1:5173`；仓库默认配置已包含这两个开发源。生产环境仍只配置实际 HTTPS 域名，不得沿用本地源。
 
-### 第三方服务（可选）
+### 公开媒体存储与第三方服务（可选）
 
-| 变量名                        | 说明                                                  |
-| ----------------------------- | ----------------------------------------------------- |
-| `WECHAT_APP_ID`               | 微信小程序 AppID                                      |
-| `WECHAT_APP_SECRET`           | 微信小程序 AppSecret                                  |
-| `TENCENT_COS_SECRET_ID`       | 腾讯云 COS 最小权限子账号的 SecretId；仅 Server 读取  |
-| `TENCENT_COS_SECRET_KEY`      | 腾讯云 COS 最小权限子账号的 SecretKey；仅 Server 读取 |
-| `TENCENT_COS_BUCKET`          | 公开素材 Bucket，格式为 `BucketName-APPID`            |
-| `TENCENT_COS_REGION`          | COS 区域代码，例如 `ap-guangzhou`                     |
-| `TENCENT_COS_PUBLIC_BASE_URL` | 可选的公开素材访问基础 URL；留空时使用 COS 默认域名   |
+| 变量名                          | 说明                                                                     |
+| ------------------------------- | ------------------------------------------------------------------------ |
+| `PUBLIC_MEDIA_STORAGE_PROVIDER` | `disabled`、`local` 或 `tencent-cos`；默认 `disabled`                    |
+| `LOCAL_MEDIA_DIRECTORY`         | `local` provider 的服务端目录；相对路径从仓库根目录解析                  |
+| `LOCAL_MEDIA_PUBLIC_BASE_URL`   | `local` provider 的公开基础 URL；留空时使用 `WEBSITE_PUBLIC_URL/media`   |
+| `WECHAT_APP_ID`                 | 微信小程序 AppID                                                         |
+| `WECHAT_APP_SECRET`             | 微信小程序 AppSecret                                                     |
+| `TENCENT_COS_SECRET_ID`         | 腾讯云 COS 最小权限子账号的 SecretId；仅 Server 读取                     |
+| `TENCENT_COS_SECRET_KEY`        | 腾讯云 COS 最小权限子账号的 SecretKey；仅 Server 读取                    |
+| `TENCENT_COS_BUCKET`            | 公开素材 Bucket，格式为 `BucketName-APPID`                               |
+| `TENCENT_COS_REGION`            | COS 区域代码，例如 `ap-guangzhou`                                        |
+| `TENCENT_COS_PUBLIC_BASE_URL`   | 可选的公开素材访问基础 URL；选择 `tencent-cos` 且留空时使用 COS 默认域名 |
 
 微信配置必须同时留空或同时提供。启用时，`WECHAT_APP_ID` 必须符合 `wx` 加 16 位字符的格式，
 `WECHAT_APP_SECRET` 必须为 32 位十六进制字符串。
@@ -190,16 +193,22 @@ Miniapp 的 Vite 环境根目录是 `apps/miniapp`。仓库内的 `.env.developm
 `WECHAT_APP_ID` 和 `WECHAT_APP_SECRET` 只由 Server 使用，任何客户端都不得包含或读取 AppSecret。Miniapp
 业务请求只读取公开的 `VITE_MINIAPP_API_BASE_URL`，不会读取微信或 Server 凭据。
 
-腾讯云 COS 采用三态配置：
+公开媒体采用显式 provider 配置：
 
-- `TENCENT_COS_SECRET_ID`、`TENCENT_COS_SECRET_KEY`、`TENCENT_COS_BUCKET`、`TENCENT_COS_REGION` 和
-  `TENCENT_COS_PUBLIC_BASE_URL` 都为空时，禁用管理员公开头像和官网素材上传；其他功能仍可用，上传接口返回
-  `503 STORAGE_UNAVAILABLE`。
-- 前四项中任一项已配置但未完整提供，或只有 `TENCENT_COS_PUBLIC_BASE_URL` 被配置时，Server 会在监听端口前启动失败。
-- 前四项完整提供时启用 COS；`TENCENT_COS_PUBLIC_BASE_URL` 可选，若提供必须是绝对 HTTP(S) URL。
+- `disabled`：默认值。资料、宠物和内容读取仍可使用已有 URL；新的头像、宠物、社区和官网素材上传返回稳定的
+  `503` 存储不可用错误。
+- `local`：仅允许 `development` 或 `test`。Server 将文件写入 `LOCAL_MEDIA_DIRECTORY`，通过只读 `/media/` 路由提供
+  版本化对象；长期本地 Compose 将该目录挂载到 `petcare-local-media-data` named volume，普通 `down` 和容器重建不会删除文件。
+- `tencent-cos`：选择后必须同时提供四个核心 `TENCENT_COS_*` 值；缺少任一项会在监听端口前失败。
+  `TENCENT_COS_PUBLIC_BASE_URL` 可选，若提供必须是绝对 HTTP(S) URL。
+
+`LOCAL_MEDIA_DIRECTORY` 不能指向文件系统根目录；`LOCAL_MEDIA_PUBLIC_BASE_URL` 不能包含凭据、查询参数或 fragment。
+生产环境禁止选择 `local`，避免把容器临时文件系统误当成持久对象存储。未选择 `tencent-cos` 时，其凭据字段不会被读取为
+当前媒体能力；准备到一半的外部凭据不阻塞本地 provider。
 
 生产环境应使用公开读、私有写素材 Bucket，并为 Server 配置仅能操作该 Bucket 中
-`public/admin-avatars/` 和 `public/website-media/` 前缀的最小权限子账号凭据。不要将 SecretId、SecretKey 或根账号凭据写入客户端、仓库或
+`public/admin-avatars/`、`public/user-avatars/`、`public/website-media/`、`public/community-media/` 和
+`public/pet-media/` 前缀的最小权限子账号凭据。不要将 SecretId、SecretKey 或根账号凭据写入客户端、仓库或
 文档示例；任何根 `.env` 均不提交，生产文件仅由 root 在服务器上持有。
 
 ### 数据库异地备份（仅生产 Linux/systemd）

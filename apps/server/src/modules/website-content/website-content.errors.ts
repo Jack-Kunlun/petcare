@@ -74,7 +74,7 @@ export function websiteContentPersistenceFailed(): ApiException {
   );
 }
 
-/** Creates a stable error for an unavailable Tencent COS website-media operation. */
+/** Creates a stable error for an unavailable website-media storage operation. */
 export function websiteContentStorageUnavailable(): ApiException {
   return new ApiException(
     WEBSITE_CONTENT_ERROR_CODE.STORAGE_UNAVAILABLE,

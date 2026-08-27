@@ -1,9 +1,8 @@
 import { randomUUID } from "node:crypto";
-import { HttpStatus } from "@nestjs/common";
 import type COS from "cos-nodejs-sdk-v5";
-import { ApiException } from "../common/http/api-exception";
 import { ConfigService } from "../config/config.service";
 import { AppLogger } from "../logging/app-logger.service";
+import { publicAvatarStorageUnavailable } from "./public-avatar-storage.errors";
 import { PublicAvatarStorage, PublicAvatarUpload } from "./public-avatar-storage.types";
 
 /** Tencent COS implementation for server-owned public avatar objects. */
@@ -32,7 +31,7 @@ export class TencentCosPublicAvatarStorage implements PublicAvatarStorage {
       });
     } catch (error) {
       this.logFailure("public_avatar_storage.upload_failed", error);
-      throw this.storageUnavailable();
+      throw publicAvatarStorageUnavailable();
     }
 
     return { objectKey, publicUrl: this.publicUrlFor(objectKey) };
@@ -52,7 +51,7 @@ export class TencentCosPublicAvatarStorage implements PublicAvatarStorage {
       });
     } catch (error) {
       this.logFailure("public_avatar_storage.delete_failed", error);
-      throw this.storageUnavailable();
+      throw publicAvatarStorageUnavailable();
     }
   }
 
@@ -74,13 +73,5 @@ export class TencentCosPublicAvatarStorage implements PublicAvatarStorage {
     this.logger.write("error", event, {
       ...(typeof cosRequestId === "string" ? { cosRequestId } : {}),
     });
-  }
-
-  private storageUnavailable(): ApiException {
-    return new ApiException(
-      "STORAGE_UNAVAILABLE",
-      "头像存储服务暂时不可用，请稍后重试",
-      HttpStatus.SERVICE_UNAVAILABLE,
-    );
   }
 }

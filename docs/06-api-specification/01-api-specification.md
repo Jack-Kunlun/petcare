@@ -326,7 +326,7 @@ Authorization: Bearer eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9...
 | `POST` | `/admin/website-content/:contentKey/previews`           | `website.edit_action`    | 创建短期预览令牌。                   |
 | `POST` | `/admin/website-content/:contentKey/publish`            | `website.publish_action` | 显式发布当前草稿。                   |
 | `POST` | `/admin/website-content/:contentKey/restore`            | `website.edit_action`    | 将历史版本恢复为新草稿，不自动发布。 |
-| `GET`  | `/admin/website-content/media-assets`                   | `website.read`           | 查询腾讯云 COS 官网素材。            |
+| `GET`  | `/admin/website-content/media-assets`                   | `website.read`           | 查询受管理的官网素材。               |
 | `POST` | `/admin/website-content/media-assets`                   | `website.edit_action`    | 创建素材记录并签发上传信息。         |
 | `POST` | `/admin/website-content/media-assets/:assetId/archive`  | `website.edit_action`    | 归档素材。                           |
 | `GET`  | `/website-content/:contentKey`                          | 公开                     | 读取指定页面或站点外壳的已发布内容。 |
@@ -334,7 +334,7 @@ Authorization: Bearer eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9...
 | `GET`  | `/content/articles`                                     | 公开                     | 读取已发布课堂文章列表。             |
 | `GET`  | `/content/articles/:slug`                               | 公开                     | 按 slug 读取已发布课堂文章详情。     |
 
-当前 Admin 只编辑已注册的预设区块，区块数据仍使用带 `sectionType` 与 `schemaVersion` 的共享契约保存，后续新增、删除和排序能力无需改变页面版本模型。发布是独立动作；保存草稿、恢复历史版本和创建预览均不会改变线上内容。素材内容只保存 COS 对象标识和公开 URL，不保存或下发 COS 管理密钥。
+当前 Admin 只编辑已注册的预设区块，区块数据仍使用带 `sectionType` 与 `schemaVersion` 的共享契约保存，后续新增、删除和排序能力无需改变页面版本模型。发布是独立动作；保存草稿、恢复历史版本和创建预览均不会改变线上内容。素材内容只保存服务端生成的对象标识和公开 URL，不保存或下发任何存储 provider 凭据。
 
 ---
 
@@ -720,8 +720,8 @@ JPEG、PNG 或 WebP，文件最大 2 MiB；成功响应为：
 ```
 
 上传先写入新对象，再以可串行化事务切换数据库中的当前头像，随后尽力清理旧对象；失败或并发冲突不会让新的未关联对象
-成为活跃头像。`DELETE` 清空当前头像并返回 `204 No Content`。COS 五项配置均留空（上传功能禁用）或运行中的存储服务
-不可用时，资料和密码接口仍可用，但上传返回 `503 STORAGE_UNAVAILABLE`；COS 部分配置会使 Server 在启动前失败。
+成为活跃头像。`DELETE` 清空当前头像并返回 `204 No Content`。媒体 provider 被禁用或运行中的存储服务不可用时，
+资料和密码接口仍可用，但上传返回 `503 STORAGE_UNAVAILABLE`；选择 COS 后凭据不完整会使 Server 在启动前失败。
 
 #### `PUT /admin/account/password`
 
@@ -749,7 +749,7 @@ JPEG、PNG 或 WebP，文件最大 2 MiB；成功响应为：
 | 403       | `FORBIDDEN`                        | 当前用户没有活跃后台角色                       |
 | 409       | `ACCOUNT_CONCURRENT_UPDATE`        | 密码或头像被并发更新                           |
 | 413       | `AVATAR_FILE_TOO_LARGE`            | 文件超过 2 MiB                                 |
-| 503       | `STORAGE_UNAVAILABLE`              | COS 未启用或存储服务不可用                     |
+| 503       | `STORAGE_UNAVAILABLE`              | 媒体 provider 未启用或存储服务不可用           |
 
 ### 宠托师认证审核模块 (/admin/provider-certifications)
 

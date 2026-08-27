@@ -172,7 +172,8 @@ pnpm clean:modules
 - **Redis配置**：`REDIS_HOST`, `REDIS_PORT`, `REDIS_PASSWORD`
 - **JWT配置**：`JWT_SECRET`, `JWT_ACCESS_EXPIRES_IN`, `JWT_REFRESH_EXPIRES_IN`
 - **管理员认证**：`DEFAULT_ADMIN_USERNAME`, `DEFAULT_ADMIN_PHONE`, `DEFAULT_ADMIN_PASSWORD`, `SMS_DEV_CODE`, `CAPTCHA_TTL_SECONDS`, `CAPTCHA_MAX_ATTEMPTS`
-- **第三方服务**：微信、腾讯云 COS；管理员公开头像与官网公开素材共享同一套 COS 配置
+- **公开媒体**：本地开发可使用持久化文件 provider；腾讯云 COS 是显式启用的可选 provider
+- **第三方服务**：微信、腾讯云 COS；外部凭据仅由 Server 读取
 - **官网 SSR**：`WEBSITE_PUBLIC_URL`、仅服务端使用的 `WEBSITE_CONTENT_API_BASE_URL`、预览/缓存 TTL 与网关端口
 - ~~**小程序 API**：`TARO_APP_API_BASE_URL`（已随 Taro 项目移除）~~
 
@@ -299,7 +300,7 @@ const jwtSecret = this.configService.jwtSecret;
 - ✅ 易于测试 - 可以mock ConfigService
 - ✅ 统一入口 - 所有配置访问都通过ConfigService
 - ✅ 启动失败快 - 监听端口前集中校验必填值、端口、JWT 和允许来源
-- ✅ 可选集成成组校验 - 微信与腾讯云 COS 未启用时允许为空，启用后必须提供完整合法配置；COS 五项均留空时禁用公开头像和官网素材上传
+- ✅ 媒体 provider 显式选择 - 默认禁用；长期本地 Compose 使用持久化本地目录；选择腾讯云 COS 后才要求完整合法凭据
 
 详见：[环境变量配置指南](./docs/environment-variables.md)
 

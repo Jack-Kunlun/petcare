@@ -23,7 +23,7 @@ export interface WebsiteMediaUploadFile {
   operatorId: string;
 }
 
-/** Coordinates validated media persistence, references, and COS object availability. */
+/** Coordinates validated media persistence, references, and object availability. */
 @Injectable()
 export class WebsiteMediaService {
   constructor(
@@ -31,7 +31,7 @@ export class WebsiteMediaService {
     @Inject(WEBSITE_MEDIA_STORAGE) private readonly storage: WebsiteMediaStorage,
   ) {}
 
-  /** Registers a validated object, returns its public contract, and compensates COS on failure. */
+  /** Registers a validated object, returns its public contract, and compensates storage on failure. */
   async upload(
     file: WebsiteMediaUploadFile,
     valid: ValidatedWebsiteMediaFile,

@@ -79,14 +79,15 @@ Copy-Item .env.example .env
 生产 Docker 缺少任一上述变量都会在 Compose 解析或 Server 启动阶段失败。生产环境不得设置
 `SMS_DEV_CODE`；Compose 会强制覆盖为空。
 
-微信配置必须同时留空或同时提供 `WECHAT_APP_ID`、`WECHAT_APP_SECRET`。腾讯云 COS 配置的
+微信配置必须同时留空或同时提供 `WECHAT_APP_ID`、`WECHAT_APP_SECRET`。公开媒体由
+`PUBLIC_MEDIA_STORAGE_PROVIDER` 显式选择：生产默认 `disabled`，仅在选择 `tencent-cos` 时要求同时提供
 `TENCENT_COS_SECRET_ID`、`TENCENT_COS_SECRET_KEY`、`TENCENT_COS_BUCKET`（`BucketName-APPID`）和
-`TENCENT_COS_REGION`（例如 `ap-guangzhou`）必须同时提供或同时留空；可选
-`TENCENT_COS_PUBLIC_BASE_URL` 只能在前四项完整时设置。五项均为空时禁用管理员头像与官网素材上传，其他功能
-仍可用；任一不完整组合会使 Server 在监听端口前退出。详细规则参见[环境变量配置指南](../environment-variables.md)。
+`TENCENT_COS_REGION`（例如 `ap-guangzhou`）；可选 `TENCENT_COS_PUBLIC_BASE_URL` 必须是绝对 HTTP(S) URL。
+开发专用的 `local` provider 在生产环境会被启动校验拒绝。详细规则参见[环境变量配置指南](../environment-variables.md)。
 
 生产环境使用公开读、私有写 COS Bucket，并向 Server 注入仅允许读写
-`public/admin-avatars/` 与 `public/website-media/` 前缀的最小权限子账号凭据。不要将 COS 凭据写入镜像、工作流、客户端或仓库的 `.env`；
+`public/admin-avatars/`、`public/user-avatars/`、`public/website-media/`、`public/community-media/` 与
+`public/pet-media/` 前缀的最小权限子账号凭据。不要将 COS 凭据写入镜像、工作流、客户端或仓库的 `.env`；
 根 `.env` 不提交。
 
 ### 3.1 生产 Aliyun 短信认证
