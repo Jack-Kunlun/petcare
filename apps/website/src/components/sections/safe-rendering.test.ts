@@ -13,7 +13,7 @@ describe("safe Website section rendering values", () => {
 
   it("uses a dimensioned approved fallback when public media is absent or malformed", () => {
     expect(getPublicImage(null, "hero")).toEqual({
-      src: "/brand/hero-trusted-care-desktop-v1.webp",
+      src: "/brand/hero-community-companion-desktop-v1.webp",
       width: 1920,
       height: 720,
     });
@@ -24,8 +24,8 @@ describe("safe Website section rendering values", () => {
       width: 1600,
       height: 900,
     });
-    expect(getPublicImage(null, "professionalCare")).toEqual({
-      src: "/brand/hero-professional-care-desktop-v1.webp",
+    expect(getPublicImage(null, "communityCompanion")).toEqual({
+      src: "/brand/hero-community-companion-desktop-v1.webp",
       width: 1920,
       height: 720,
     });

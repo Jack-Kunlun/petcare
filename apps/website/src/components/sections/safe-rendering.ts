@@ -3,7 +3,7 @@ import type { WebsitePublicMediaAsset } from "@petcare/shared-types";
 /** Approved bundled media used only when a public managed image is unavailable. */
 const FALLBACK_IMAGES = {
   hero: {
-    src: "/brand/hero-trusted-care-desktop-v1.webp",
+    src: "/brand/hero-community-companion-desktop-v1.webp",
     width: 1920,
     height: 720,
   },
@@ -11,11 +11,6 @@ const FALLBACK_IMAGES = {
     src: "/brand/petcare-placeholder-light.svg",
     width: 1600,
     height: 900,
-  },
-  professionalCare: {
-    src: "/brand/hero-professional-care-desktop-v1.webp",
-    width: 1920,
-    height: 720,
   },
   communityCompanion: {
     src: "/brand/hero-community-companion-desktop-v1.webp",

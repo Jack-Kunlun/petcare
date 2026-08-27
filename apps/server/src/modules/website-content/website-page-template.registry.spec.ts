@@ -34,7 +34,7 @@ function invalidContentError(callback: () => void): unknown {
 describe("WebsitePageTemplateRegistry", () => {
   const registry = new WebsitePageTemplateRegistry(new WebsiteSectionTypeRegistry());
 
-  it("creates a deep-cloned default section snapshot from the Task 2 seed templates", () => {
+  it("creates a deep-cloned default section snapshot from the seed templates", () => {
     const first = registry.createDefaultSections(WEBSITE_CONTENT_KEY.HOME);
     const second = registry.createDefaultSections(WEBSITE_CONTENT_KEY.HOME);
 

@@ -23,60 +23,60 @@ const bundledImage = (src: string, alt: string, width = 512, height = 512) => ({
 const staticServices = [
   {
     number: "01",
-    title: "上门喂养",
-    description: "按约定完成喂食、换水与环境整理，让熟悉的家仍是它最安心的地方。",
-    image: bundledImage("/brand/pet-life-feeding.jpg", "猫咪在家中进食"),
+    title: "宠物档案",
+    description: "维护本人宠物的基础资料、日常备注与照片，让信息持续可查。",
+    image: bundledImage("/brand/pet-life-feeding.jpg", "猫咪的日常档案照片"),
   },
   {
     number: "02",
-    title: "上门遛狗",
-    description: "根据宠物习惯完成外出活动，并把关键过程清楚记录下来。",
-    image: bundledImage("/brand/pet-life-walking.jpg", "照护者在社区内遛狗"),
+    title: "萌宠课堂",
+    description: "阅读已经发布的养宠文章，并通过分类与搜索找到需要的内容。",
+    image: bundledImage("/brand/pet-life-grooming.jpg", "主人为猫咪梳理毛发"),
   },
   {
     number: "03",
-    title: "陪伴玩耍",
-    description: "用合适的互动与观察，认真回应宠物独处时的陪伴需要。",
+    title: "受控社区",
+    description: "发布真实养宠日常，浏览审核通过的动态并参与受控互动。",
     image: bundledImage("/brand/pet-life-playing.jpg", "两只狗在户外轻松玩耍"),
   },
 ];
 
 const staticServiceJourney = [
-  { itemKey: "request", title: "发布需求", description: "说明时间、地点与照护要求" },
-  { itemKey: "match", title: "匹配宠托师", description: "查看资料、能力与评价记录" },
-  { itemKey: "service", title: "上门服务", description: "按订单约定与 SOP 完成照护" },
-  { itemKey: "records", title: "查看记录", description: "了解时间、步骤与服务媒体" },
-  { itemKey: "review", title: "完成评价", description: "留下真实反馈，沉淀长期信任" },
+  { itemKey: "account", title: "登录账户", description: "建立本地会话并维护个人资料" },
+  { itemKey: "pet", title: "记录宠物", description: "创建档案并管理本人宠物照片" },
+  { itemKey: "classroom", title: "浏览课堂", description: "按分类或关键词阅读已发布文章" },
+  { itemKey: "community", title: "分享日常", description: "提交文字或图片动态等待审核" },
+  { itemKey: "interaction", title: "参与互动", description: "使用点赞、评论、举报与站内通知" },
 ];
 
 const staticSopRecords = [
-  { itemKey: "sanitize", time: "14:02", label: "进门消毒", state: "complete" as const },
-  { itemKey: "check_in", time: "14:06", label: "拍照打卡", state: "complete" as const },
-  { itemKey: "service", time: "14:12", label: "执行服务", state: "current" as const },
-  { itemKey: "clean", time: "14:36", label: "清理现场", state: "pending" as const },
-  { itemKey: "check_out", time: "14:42", label: "离开拍照", state: "pending" as const },
+  { itemKey: "basics", time: "01", label: "基本资料", state: "complete" as const },
+  { itemKey: "habits", time: "02", label: "日常习惯", state: "complete" as const },
+  { itemKey: "health", time: "03", label: "健康备注", state: "complete" as const },
+  { itemKey: "photos", time: "04", label: "照片管理", state: "current" as const },
+  { itemKey: "save", time: "05", label: "确认保存", state: "pending" as const },
 ];
 
 const staticTrustDetails = [
   {
-    itemKey: "identity",
-    title: "身份与资料",
-    description: "查看宠托师身份认证、服务资料与历史评价。",
+    itemKey: "scope",
+    title: "个人版边界",
+    description: "只呈现账户、宠物档案、课堂与受控社区等当前能力。",
   },
   {
-    itemKey: "records",
-    title: "标准与记录",
-    description: "服务步骤、时间、图片与视频共同形成照护证据。",
+    itemKey: "ownership",
+    title: "本人数据",
+    description: "宠物档案和受管理图片由当前账户维护，并校验所有权。",
   },
   {
-    itemKey: "communication",
-    title: "沟通与状态",
-    description: "围绕订单持续沟通，并清楚了解当前服务进度。",
+    itemKey: "governance",
+    title: "内容治理",
+    description: "社区动态经过审核，并提供举报、下架和互动边界。",
   },
   {
-    itemKey: "appeal",
-    title: "评价与申诉",
-    description: "服务完成后可以评价；发生争议时有明确处理路径。",
+    itemKey: "local",
+    title: "本地验收",
+    description: "当前版本用于本地开发与演示，所有能力以可运行链路为准。",
   },
 ];
 
@@ -101,27 +101,27 @@ const staticCommunityStories = [
     itemKey: "companionship",
     label: "陪伴故事",
     category: "陪伴故事",
-    title: "认真相处，是服务之外更长久的连接",
+    title: "认真相处，让每一段日常都值得记录",
     description: "",
     image: bundledImage("/brand/pet-life-playing.jpg", "两只狗在户外自在互动"),
   },
 ];
 
 const staticRecordImages = [
-  bundledImage("/brand/pet-life-feeding.jpg", "猫咪进食记录"),
-  bundledImage("/brand/pet-life-grooming.jpg", "猫咪状态记录"),
+  bundledImage("/brand/pet-life-feeding.jpg", "猫咪宠物档案照片"),
+  bundledImage("/brand/pet-life-grooming.jpg", "猫咪日常状态照片"),
 ];
 
 const staticEvidence = [
-  { itemKey: "visible", title: "过程可见", description: "关键步骤按顺序留下记录" },
-  { itemKey: "traceable", title: "信息可查", description: "时间与服务媒体共同说明结果" },
-  { itemKey: "feedback", title: "异常可反馈", description: "发现问题时进入清楚的沟通与处理路径" },
+  { itemKey: "owned", title: "本人维护", description: "跨账户访问会被拒绝" },
+  { itemKey: "editable", title: "持续更新", description: "资料、备注与照片可以维护" },
+  { itemKey: "protected", title: "关联保护", description: "受保护记录存在时拒绝误删" },
 ];
 
 const staticBrand = {
-  eyebrow: "陪伴每一次托付",
-  title: "因为它是家人，所以每一次托付都值得被认真对待。",
-  description: "专业不是冰冷的流程，而是把关心变成清楚、稳定、可以被验证的行动。",
+  eyebrow: "记录每一次陪伴",
+  title: "因为它是家人，所以每一段日常都值得被认真记录。",
+  description: "PetCare 个人版把宠物档案、养宠内容和受控社区放在一个可本地验收的原型里。",
   image: bundledImage(
     "/brand/hero-community-companion-desktop-v1.webp",
     "猫和狗在自然光下安心相伴",
@@ -196,13 +196,13 @@ const record = content
       }),
     }
   : {
-      eyebrow: "照护记录",
-      title: "不在家，也知道它今天过得怎么样",
+      eyebrow: "宠物档案示例",
+      title: "把重要资料整理在一个地方",
       description:
-        "服务不是一句「已经照顾好了」。PetCare 用标准步骤串起时间、图片、视频与服务反馈，让主人看见每一次认真完成的照护。",
-      action: { label: "了解信任保障", href: "/trust" },
-      demoTitle: "今日上门喂养",
-      statusLabel: "服务进行中",
+        "从基本信息、日常习惯到照片管理，PetCare 让本人宠物资料保持清楚，并在删除时保护仍有关联的记录。",
+      action: { label: "了解当前范围", href: "/about" },
+      demoTitle: "宠物档案示例",
+      statusLabel: "资料维护中",
       steps: staticSopRecords,
       images: staticRecordImages,
       extraImageCount: 3,
@@ -217,12 +217,12 @@ const brand = content
   : staticBrand;
 
 const servicesAction =
-  content?.services.action ?? (content ? null : { label: "了解服务模式", href: "/services" });
+  content?.services.action ?? (content ? null : { label: "阅读萌宠课堂", href: "/articles" });
 const journeyAction = content?.journey.action ?? null;
 const recordAction =
-  content?.record.action ?? (content ? null : { label: "了解信任保障", href: "/trust" });
+  content?.record.action ?? (content ? null : { label: "了解当前范围", href: "/about" });
 const trustAction =
-  content?.trust.action ?? (content ? null : { label: "查看完整保障说明", href: "/trust" });
+  content?.trust.action ?? (content ? null : { label: "查看个人版说明", href: "/about" });
 const communityAction =
   content?.community.action ?? (content ? null : { label: "阅读宠物课堂", href: "/articles" });
 
@@ -237,14 +237,14 @@ const communityHref = communityAction ? getSafeWebsiteHref(communityAction.href)
   <div class="content-container">
     <header class="section-heading section-heading--split">
       <div>
-        <p class="eyebrow">{content?.services.eyebrow ?? "日常照护服务"}</p>
-        <h2 id="home-services-title">{content?.services.title ?? "从一顿饭，到一段认真陪伴"}</h2>
+        <p class="eyebrow">{content?.services.eyebrow ?? "当前个人版能力"}</p>
+        <h2 id="home-services-title">{content?.services.title ?? "从宠物档案，到真实养宠内容"}</h2>
       </div>
       <div>
         <p>
           {
             content?.services.description ??
-              "PetCare 围绕真实养宠场景提供上门喂养、遛狗与陪玩服务，让熟悉的环境、清楚的要求和可查看的过程一起降低托付的不确定。"
+              "PetCare 当前提供本人宠物档案、萌宠课堂与受控社区，并明确保持个人、本地原型边界。"
           }
         </p>
         {
@@ -282,12 +282,12 @@ const communityHref = communityAction ? getSafeWebsiteHref(communityAction.href)
 <section class="service-journey-section" aria-labelledby="service-journey-title">
   <div class="content-container">
     <header class="section-heading">
-      <p class="eyebrow">{content?.journey.eyebrow ?? "标准服务流程"}</p>
-      <h2 id="service-journey-title">{content?.journey.title ?? "每一步都清楚，托付才更安心"}</h2>
+      <p class="eyebrow">{content?.journey.eyebrow ?? "当前使用路径"}</p>
+      <h2 id="service-journey-title">{content?.journey.title ?? "每一步都有真实页面和状态"}</h2>
       <p>
         {
           content?.journey.description ??
-            "从提出需要到留下评价，关键动作有明确顺序，也有可以回看的服务记录。"
+            "从账户与宠物档案，到课堂、社区和互动通知，当前能力都由真实数据与明确状态支撑。"
         }
       </p>
       {
@@ -345,7 +345,7 @@ const communityHref = communityAction ? getSafeWebsiteHref(communityAction.href)
           ))
         }
       </ol>
-      <div class="service-record-demo__media" aria-label="已上传的服务照片">
+      <div class="service-record-demo__media" aria-label="已上传的宠物照片">
         {
           record.images.map((image) => (
             <img
@@ -392,12 +392,12 @@ const communityHref = communityAction ? getSafeWebsiteHref(communityAction.href)
 <section class="safety-section" aria-labelledby="safety-title">
   <div class="content-container safety-section__inner">
     <header class="section-heading">
-      <p class="eyebrow">{content?.trust.eyebrow ?? "信任体系"}</p>
-      <h2 id="safety-title">{content?.trust.title ?? "真正的安心，来自可以验证的细节"}</h2>
+      <p class="eyebrow">{content?.trust.eyebrow ?? "范围与数据边界"}</p>
+      <h2 id="safety-title">{content?.trust.title ?? "只陈述当前已经具备的能力"}</h2>
       <p>
         {
           content?.trust.description ??
-            "不使用空泛口号。把身份、标准、过程和反馈放在用户需要判断的位置。"
+            "当前只呈现账户、宠物档案、内容阅读和受控互动，并让权限与状态边界保持可验证。"
         }
       </p>
       {
@@ -430,14 +430,14 @@ const communityHref = communityAction ? getSafeWebsiteHref(communityAction.href)
       <div>
         <p class="eyebrow">{content?.community.eyebrow ?? "宠物生活"}</p>
         <h2 id="community-preview-title">
-          {content?.community.title ?? "这里不只有服务，还有认真爱宠物的人"}
+          {content?.community.title ?? "记录真实日常，也分享可靠的养宠内容"}
         </h2>
       </div>
       <div>
         <p>
           {
             content?.community.description ??
-              "从日常相处到照护经验，让真实内容帮助更多宠物家庭做出更安心的选择。"
+              "从日常相处到养宠经验，已发布的课堂文章与审核通过的社区动态共同组成当前内容空间。"
           }
         </p>
         {

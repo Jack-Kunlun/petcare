@@ -1,5 +1,5 @@
 import { PrismaClient } from "../generated/prisma/client";
-import { seedWebsiteContent } from "./seed-website-content";
+import { WEBSITE_CONTENT_SEED_TEMPLATES, seedWebsiteContent } from "./seed-website-content";
 
 interface StoredContent extends Record<string, unknown> {
   id: string;
@@ -177,6 +177,12 @@ function requireContactSeed(state: ReturnType<typeof createFakePrisma>) {
 
 function restoreLegacyContactSeed(state: ReturnType<typeof createFakePrisma>) {
   const contact = requireContactSeed(state);
+  const legacySeo = {
+    title: "联系我们｜PetCare 宠伴",
+    description: "联系 PetCare 客服或商务合作团队。",
+    canonicalPath: "/contact",
+    image: null,
+  };
   const legacyChannels = [
     {
       channelKey: "customer_service",
@@ -195,17 +201,41 @@ function restoreLegacyContactSeed(state: ReturnType<typeof createFakePrisma>) {
   ];
 
   for (const versionId of [contact.publishedId, contact.draftId]) {
+    const version = state.versions.find((candidate) => candidate.id === versionId);
+    const hero = state.sections.find(
+      (section) => section.versionId === versionId && section.sectionKey === "hero",
+    );
     const panel = state.sections.find(
       (section) => section.versionId === versionId && section.sectionKey === "contact_channels",
     );
+    const cta = state.sections.find(
+      (section) => section.versionId === versionId && section.sectionKey === "contact_cta",
+    );
 
-    if (!panel) {
-      throw new Error("Legacy contact panel is required for this test");
+    if (!version || !hero || !panel || !cta) {
+      throw new Error("Legacy contact snapshot is required for this test");
     }
 
-    const content = panel.content as { channels: typeof legacyChannels };
-
-    content.channels = structuredClone(legacyChannels);
+    version.seo = structuredClone(legacySeo);
+    hero.content = {
+      eyebrow: "联系我们",
+      title: "我们愿意倾听你的需要",
+      description: "通过公开渠道获取客服与商务合作支持。",
+      primaryAction: null,
+      secondaryAction: null,
+      image: { assetId: null, altText: "PetCare 联系支持" },
+    };
+    panel.content = {
+      title: "联系渠道",
+      description: "以下信息为初始占位内容，发布前请由运营确认。",
+      channels: structuredClone(legacyChannels),
+    };
+    cta.content = {
+      title: "先了解我们的服务",
+      description: "查看服务模式与信任保障。",
+      primaryAction: { label: "服务模式", href: "/services" },
+      secondaryAction: { label: "信任保障", href: "/trust" },
+    };
   }
 
   return contact;
@@ -264,17 +294,14 @@ describe("seedWebsiteContent", () => {
     expect(state.contents.map((content) => content.contentKey)).toEqual([
       "site_shell",
       "home",
-      "services",
-      "trust",
-      "companions",
       "about",
       "contact",
       "help",
       "privacy",
       "terms",
     ]);
-    expect(state.contents).toHaveLength(10);
-    expect(state.versions).toHaveLength(20);
+    expect(state.contents).toHaveLength(7);
+    expect(state.versions).toHaveLength(14);
 
     for (const content of state.contents) {
       const publishedVersions = state.versions.filter(
@@ -352,12 +379,16 @@ describe("seedWebsiteContent", () => {
 
     expect(helpDraft).toBeDefined();
     expect(getOrderedSections(state, helpDraft!.id).map((section) => section.sectionKey)).toEqual([
-      "account_and_identity",
-      "bounty_and_orders",
-      "care_records",
-      "fees_and_benefits",
+      "account_and_profile",
+      "pet_profiles",
+      "classroom",
+      "community",
     ]);
-    expect(state.sections).toHaveLength(60);
+    expect(state.sections).toHaveLength(40);
+
+    expect(JSON.stringify(WEBSITE_CONTENT_SEED_TEMPLATES)).not.toMatch(
+      /\/services|\/trust|\/companions|悬赏|宠托师|服务进行中|优惠券|订单/,
+    );
   });
 
   it("seeds safe configurable contact defaults without replacing operator-owned contact content", async () => {
@@ -381,18 +412,18 @@ describe("seedWebsiteContent", () => {
       {
         channelKey: "customer_service",
         isEnabled: false,
-        label: "客服电话",
-        value: "待运营配置",
+        label: "项目邮箱",
+        value: "未启用",
         href: "/contact",
-        availability: "工作时间待运营配置",
+        availability: "未启用",
       },
       {
         channelKey: "business",
         isEnabled: false,
-        label: "客服邮箱",
-        value: "待运营配置",
+        label: "问题反馈",
+        value: "未启用",
         href: "/contact",
-        availability: "工作时间待运营配置",
+        availability: "未启用",
       },
     ];
 
@@ -422,9 +453,9 @@ describe("seedWebsiteContent", () => {
       publishedVersionId: "operator-published",
     });
     expect(publishedPanel.content).toEqual({ operatorOwned: true });
-    expect(state.contents).toHaveLength(10);
-    expect(state.versions).toHaveLength(20);
-    expect(state.sections).toHaveLength(60);
+    expect(state.contents).toHaveLength(7);
+    expect(state.versions).toHaveLength(14);
+    expect(state.sections).toHaveLength(40);
   });
 
   it("seeds usable help and privacy content instead of a review placeholder", async () => {
@@ -438,9 +469,14 @@ describe("seedWebsiteContent", () => {
       effectiveDate: string | null;
       parts: Array<{ partKey: string }>;
     };
+    const terms = state.contents.find((content) => content.contentKey === "terms");
+    const termsContent = getOrderedSections(state, terms!.publishedVersionId!)[0]?.content as {
+      effectiveDate: string | null;
+      parts: Array<{ partKey: string }>;
+    };
 
     expect(help?.publishedVersionId).not.toBeNull();
-    expect(privacyContent.effectiveDate).toBe("2026-08-25");
+    expect(privacyContent.effectiveDate).toBe("2026-08-27");
     expect(privacyContent.parts.map((part) => part.partKey)).toEqual([
       "scope",
       "information_collected",
@@ -450,6 +486,14 @@ describe("seedWebsiteContent", () => {
       "your_rights",
       "minors",
       "updates_and_contact",
+    ]);
+    expect(termsContent.effectiveDate).toBe("2026-08-27");
+    expect(termsContent.parts.map((part) => part.partKey)).toEqual([
+      "scope_and_acceptance",
+      "account_and_data",
+      "content_rules",
+      "availability",
+      "account_closure",
     ]);
   });
 
@@ -498,8 +542,8 @@ describe("seedWebsiteContent", () => {
 
     await seedWebsiteContent(state.prisma, "admin-2");
 
-    expect(state.versions).toHaveLength(22);
-    expect(state.sections).toHaveLength(62);
+    expect(state.versions).toHaveLength(16);
+    expect(state.sections).toHaveLength(42);
   });
 
   it("does not replace operator-edited legacy privacy content", async () => {
@@ -518,8 +562,8 @@ describe("seedWebsiteContent", () => {
       currentDraftVersionId: legacy.draftId,
       publishedVersionId: legacy.publishedId,
     });
-    expect(state.versions).toHaveLength(20);
-    expect(state.sections).toHaveLength(60);
+    expect(state.versions).toHaveLength(14);
+    expect(state.sections).toHaveLength(40);
   });
 
   it("upgrades only the untouched legacy contact seed with immutable safe versions", async () => {
@@ -573,13 +617,13 @@ describe("seedWebsiteContent", () => {
         expect.objectContaining({ channelKey: "business", isEnabled: false }),
       ],
     });
-    expect(state.versions).toHaveLength(22);
-    expect(state.sections).toHaveLength(66);
+    expect(state.versions).toHaveLength(16);
+    expect(state.sections).toHaveLength(46);
 
     await seedWebsiteContent(state.prisma, "admin-2");
 
-    expect(state.versions).toHaveLength(22);
-    expect(state.sections).toHaveLength(66);
+    expect(state.versions).toHaveLength(16);
+    expect(state.sections).toHaveLength(46);
   });
 
   it("never reuses a legacy safe-version key owned by another content", async () => {
@@ -669,8 +713,8 @@ describe("seedWebsiteContent", () => {
       currentDraftVersionId: modification === "content pointer" ? "operator-draft" : legacy.draftId,
       publishedVersionId: legacy.publishedId,
     });
-    expect(state.versions).toHaveLength(20);
-    expect(state.sections).toHaveLength(60);
+    expect(state.versions).toHaveLength(14);
+    expect(state.sections).toHaveLength(40);
   });
 
   it("does not replace an existing operator-owned website pointer", async () => {

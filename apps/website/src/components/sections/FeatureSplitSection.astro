@@ -8,11 +8,7 @@ interface Props {
 }
 
 const { section } = Astro.props;
-const fallbackImage =
-  section.sectionKey === "brand_story" || section.sectionKey === "companion_growth"
-    ? "communityCompanion"
-    : "professionalCare";
-const image = getPublicImage(section.content.image.asset, fallbackImage);
+const image = getPublicImage(section.content.image.asset, "communityCompanion");
 const href = section.content.action ? getSafeWebsiteHref(section.content.action.href) : null;
 ---
 

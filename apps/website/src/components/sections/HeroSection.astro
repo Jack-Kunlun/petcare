@@ -1,5 +1,5 @@
 ---
-import { getPublicImage, getSafeWebsiteHref, hasPublicImage } from "./safe-rendering";
+import { getPublicImage, getSafeWebsiteHref } from "./safe-rendering";
 import type { WebsitePublicHeroSection } from "./public-section-types";
 
 interface Props {
@@ -13,7 +13,6 @@ interface Props {
 
 const { section, isPageHeading = false, showProductPreview = false } = Astro.props;
 const image = getPublicImage(section.content.image.asset, "hero");
-const usesFallbackImage = !hasPublicImage(section.content.image.asset);
 const Heading = isPageHeading ? "h1" : "h2";
 const hasBackgroundImage = section.settings.imagePosition === "background";
 const alignment = section.settings.alignment === "center" ? "section--centered" : "";
@@ -32,36 +31,15 @@ const actions = [section.content.primaryAction, section.content.secondaryAction]
 >
   {
     hasBackgroundImage ? (
-      usesFallbackImage ? (
-        <picture class="hero-section__background-media">
-          <source
-            media="(max-width: 48rem)"
-            srcset="/brand/hero-trusted-care-miniapp-v1.webp"
-            width="750"
-            height="340"
-            type="image/webp"
-          />
-          <source srcset="/brand/hero-trusted-care-desktop-v1.webp" type="image/webp" />
-          <img
-            src="/brand/hero-trusted-care-desktop-v1.png"
-            width={image.width}
-            height={image.height}
-            alt={section.content.image.altText}
-            loading="eager"
-            fetchpriority="high"
-          />
-        </picture>
-      ) : (
-        <img
-          class="hero-section__background-media"
-          src={image.src}
-          width={image.width}
-          height={image.height}
-          alt={section.content.image.altText}
-          loading="eager"
-          fetchpriority="high"
-        />
-      )
+      <img
+        class="hero-section__background-media"
+        src={image.src}
+        width={image.width}
+        height={image.height}
+        alt={section.content.image.altText}
+        loading="eager"
+        fetchpriority="high"
+      />
     ) : null
   }
   <div class="hero-section__inner">
@@ -86,10 +64,10 @@ const actions = [section.content.primaryAction, section.content.secondaryAction]
       {
         showProductPreview ? (
           <p class="hero-section__trust-line">
-            <span>身份认证</span>
-            <span>标准服务流程</span>
-            <span>过程记录</span>
-            <span>评价与申诉</span>
+            <span>宠物档案</span>
+            <span>萌宠课堂</span>
+            <span>受控社区</span>
+            <span>本地可验收</span>
           </p>
         ) : null
       }
@@ -97,58 +75,37 @@ const actions = [section.content.primaryAction, section.content.secondaryAction]
     {
       !hasBackgroundImage ? (
         <div class="hero-section__visual">
-          {usesFallbackImage ? (
-            <picture class="hero-section__media">
-              <source
-                media="(max-width: 48rem)"
-                srcset="/brand/hero-trusted-care-miniapp-v1.webp"
-                width="750"
-                height="340"
-                type="image/webp"
-              />
-              <source srcset="/brand/hero-trusted-care-desktop-v1.webp" type="image/webp" />
-              <img
-                src="/brand/hero-trusted-care-desktop-v1.png"
-                width={image.width}
-                height={image.height}
-                alt={section.content.image.altText}
-                loading="eager"
-                fetchpriority="high"
-              />
-            </picture>
-          ) : (
-            <img
-              class="hero-section__media"
-              src={image.src}
-              width={image.width}
-              height={image.height}
-              alt={section.content.image.altText}
-              loading="eager"
-              fetchpriority="high"
-            />
-          )}
+          <img
+            class="hero-section__media"
+            src={image.src}
+            width={image.width}
+            height={image.height}
+            alt={section.content.image.altText}
+            loading="eager"
+            fetchpriority="high"
+          />
           {showProductPreview ? (
-            <figure class="hero-product-preview" aria-label="PetCare 服务进度界面预览">
+            <figure class="hero-product-preview" aria-label="PetCare 个人版功能预览">
               <figcaption>
                 <img src="/brand/petcare-symbol-color.svg" width="24" height="24" alt="" />
-                <span>PetCare 服务记录</span>
+                <span>PetCare 宠物档案</span>
               </figcaption>
               <div class="hero-product-preview__status">
                 <div>
-                  <span>服务进行中</span>
-                  <strong>今日上门喂养</strong>
+                  <span>档案已保存</span>
+                  <strong>宠物资料与生活记录</strong>
                 </div>
-                <b>3 / 5</b>
+                <b>3 / 3</b>
               </div>
               <ol>
                 <li class="is-complete">
-                  <span>14:02</span>进门消毒
+                  <span>01</span>基本信息
                 </li>
                 <li class="is-complete">
-                  <span>14:06</span>拍照打卡
+                  <span>02</span>日常备注
                 </li>
                 <li class="is-current">
-                  <span>14:12</span>执行服务
+                  <span>03</span>照片管理
                 </li>
               </ol>
               <div class="hero-product-preview__proof">
@@ -156,11 +113,11 @@ const actions = [section.content.primaryAction, section.content.secondaryAction]
                   src="/brand/pet-life-feeding.jpg"
                   width="512"
                   height="512"
-                  alt="猫咪进食服务记录"
+                  alt="猫咪宠物档案照片"
                 />
                 <p>
-                  <strong>服务照片已上传</strong>
-                  <span>过程清楚可查看</span>
+                  <strong>宠物照片已保存</strong>
+                  <span>仅由本人账户管理</span>
                 </p>
               </div>
             </figure>

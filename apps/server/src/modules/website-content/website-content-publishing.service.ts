@@ -17,7 +17,7 @@ import {
 import { WebsitePageTemplateRegistry } from "./website-page-template.registry";
 import { WebsiteSectionTypeRegistry } from "./website-section-type.registry";
 
-/** Narrow preflight boundary for Task 7 COS object checks outside the transaction. */
+/** Narrow preflight boundary for COS object checks outside the transaction. */
 export interface WebsiteContentPublishPreflight {
   verify(
     version: WebsiteContentVersion,

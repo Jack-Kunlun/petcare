@@ -15,7 +15,7 @@ interface TemplateSectionDefinition {
   sectionKey: string;
   /** Immutable renderer discriminator for the preset section. */
   sectionType: WebsiteSectionType;
-  /** Immutable first-release display order. */
+  /** Immutable template display order. */
   sortOrder: number;
   /** Whether this section must remain visible in the first release. */
   isRequired: boolean;
@@ -128,7 +128,7 @@ function formatIssues(issues: readonly ValidationIssue[]): string {
     : "官网内容未通过校验";
 }
 
-/** Protects first-release pages from section composition mutations while preserving future seams. */
+/** Protects current pages from section composition mutations while preserving extension seams. */
 @Injectable()
 export class WebsitePageTemplateRegistry {
   /** Creates a template registry backed by the exhaustive section-schema validator. */
@@ -268,7 +268,7 @@ export class WebsitePageTemplateRegistry {
     }
   }
 
-  /** Returns a deep-cloned editable default snapshot without mutating Task 2 seed data. */
+  /** Returns a deep-cloned editable default snapshot without mutating seed data. */
   createDefaultSections(contentKey: WebsiteContentKey): WebsiteContentSection[] {
     return structuredClone(templateFor(contentKey).sections);
   }

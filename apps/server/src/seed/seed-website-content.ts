@@ -39,6 +39,13 @@ const LEGACY_CONTACT_CHANNELS = [
   },
 ] satisfies readonly WebsiteContactChannel[];
 
+const LEGACY_CONTACT_SEO = {
+  title: "联系我们｜PetCare 宠伴",
+  description: "联系 PetCare 客服或商务合作团队。",
+  canonicalPath: "/contact",
+  image: null,
+} satisfies WebsiteSeoContent;
+
 function helpSection(
   sectionKey: string,
   sortOrder: number,
@@ -63,7 +70,7 @@ export const WEBSITE_CONTENT_SEED_TEMPLATES: readonly WebsiteSeedTemplate[] = [
     contentType: "global",
     seo: {
       title: "PetCare 宠伴",
-      description: "透明、专业、可信赖的宠物照护服务平台。",
+      description: "用于管理宠物档案、阅读养宠内容和分享真实日常的个人版原型。",
       canonicalPath: "/",
       image: null,
     },
@@ -77,12 +84,11 @@ export const WEBSITE_CONTENT_SEED_TEMPLATES: readonly WebsiteSeedTemplate[] = [
         content: {
           brandLabel: "PetCare 宠伴",
           navigation: [
-            { itemKey: "services", label: "服务模式", href: "/services" },
-            { itemKey: "trust", label: "信任保障", href: "/trust" },
-            { itemKey: "companions", label: "成为宠托师", href: "/companions" },
+            { itemKey: "home", label: "首页", href: "/" },
+            { itemKey: "articles", label: "萌宠课堂", href: "/articles" },
             { itemKey: "about", label: "关于我们", href: "/about" },
           ],
-          action: action("联系我们", "/contact"),
+          action: action("了解当前范围", "/about"),
         },
         settings: { sticky: true },
       },
@@ -93,7 +99,7 @@ export const WEBSITE_CONTENT_SEED_TEMPLATES: readonly WebsiteSeedTemplate[] = [
         isEnabled: true,
         schemaVersion: 1,
         content: {
-          description: "陪伴每一次托付。",
+          description: "记录真实的养宠日常。",
           groups: [
             {
               groupKey: "company",
@@ -122,10 +128,10 @@ export const WEBSITE_CONTENT_SEED_TEMPLATES: readonly WebsiteSeedTemplate[] = [
     contentKey: WEBSITE_CONTENT_KEY.HOME,
     contentType: "page",
     seo: {
-      title: "PetCare 宠伴｜陪伴每一次托付",
-      description: "发现透明、专业、可信赖的宠物照护服务。",
+      title: "PetCare 宠伴｜记录真实养宠日常",
+      description: "管理本人宠物档案，阅读萌宠课堂，并参与受控社区。",
       canonicalPath: "/",
-      image: image("宠物与照护者安心相伴"),
+      image: image("猫和狗在自然光下安心相伴"),
     },
     sections: [
       {
@@ -136,11 +142,11 @@ export const WEBSITE_CONTENT_SEED_TEMPLATES: readonly WebsiteSeedTemplate[] = [
         schemaVersion: 1,
         content: {
           eyebrow: "PetCare 宠伴",
-          title: "陪伴每一次托付",
-          description: "让每一次宠物照护都更加透明、专业、可信赖。",
-          primaryAction: action("了解服务", "/services"),
-          secondaryAction: action("信任保障", "/trust"),
-          image: image("宠物与照护者安心相伴"),
+          title: "记录每一次陪伴",
+          description: "从宠物档案到养宠内容，把真实日常整理在一个可本地验收的个人版原型中。",
+          primaryAction: action("阅读萌宠课堂", "/articles"),
+          secondaryAction: action("了解当前范围", "/about"),
+          image: image("猫和狗在自然光下安心相伴"),
         },
         settings: { alignment: "left", imagePosition: "right" },
       },
@@ -151,25 +157,25 @@ export const WEBSITE_CONTENT_SEED_TEMPLATES: readonly WebsiteSeedTemplate[] = [
         isEnabled: true,
         schemaVersion: 1,
         content: {
-          title: "每一次托付，都值得信赖",
-          description: "从身份认证到照护记录，让服务过程清晰可见。",
+          title: "当前能力，清楚可见",
+          description: "只呈现已经具备真实数据、权限和状态处理的个人版能力。",
           items: [
             {
-              itemKey: "certification",
-              title: "身份认证",
-              description: "宠托师通过平台认证后提供服务。",
-              icon: "certificate",
-            },
-            {
-              itemKey: "records",
-              title: "照护记录",
-              description: "每一次照护，都有记录。",
+              itemKey: "pet_profiles",
+              title: "宠物档案",
+              description: "本人维护宠物资料、日常备注与受管理图片。",
               icon: "clipboard",
             },
             {
-              itemKey: "support",
-              title: "申诉与处理",
-              description: "服务争议进入清晰的平台处理流程。",
+              itemKey: "classroom",
+              title: "萌宠课堂",
+              description: "按分类和关键词浏览已经发布的养宠文章。",
+              icon: "star",
+            },
+            {
+              itemKey: "community",
+              title: "受控社区",
+              description: "动态经过审核，并提供点赞、评论、举报与通知。",
               icon: "support",
             },
           ],
@@ -183,11 +189,11 @@ export const WEBSITE_CONTENT_SEED_TEMPLATES: readonly WebsiteSeedTemplate[] = [
         isEnabled: true,
         schemaVersion: 1,
         content: {
-          eyebrow: "两种服务模式",
-          title: "按需要选择悬赏服务或平台服务",
-          description: "灵活发布照护需求，也可以选择规则清晰的平台定价服务。",
-          action: action("查看服务模式", "/services"),
-          image: image("宠物照护服务场景"),
+          eyebrow: "个人开发版",
+          title: "围绕宠物资料与内容体验保持小而真实",
+          description: "当前范围聚焦账户、宠物档案、课堂和受控社区，不用未来设想代替可运行能力。",
+          action: action("查看范围说明", "/about"),
+          image: image("主人陪伴宠物的日常场景"),
         },
         settings: { imagePosition: "left", tone: "soft" },
       },
@@ -199,111 +205,126 @@ export const WEBSITE_CONTENT_SEED_TEMPLATES: readonly WebsiteSeedTemplate[] = [
         schemaVersion: 1,
         content: {
           services: {
-            eyebrow: "日常照护服务",
-            title: "从一顿饭，到一段认真陪伴",
+            eyebrow: "当前个人版能力",
+            title: "从宠物档案，到真实养宠内容",
             description:
-              "PetCare 围绕真实养宠场景提供上门喂养、遛狗与陪玩服务，让熟悉的环境、清楚的要求和可查看的过程一起降低托付的不确定。",
-            action: action("了解服务模式", "/services"),
+              "PetCare 当前提供本人宠物档案、萌宠课堂与受控社区，并明确保持个人、本地原型边界。",
+            action: action("阅读萌宠课堂", "/articles"),
             items: [
               {
-                itemKey: "feeding",
+                itemKey: "pet_profiles",
                 label: "01",
-                title: "上门喂养",
-                description: "按约定完成喂食、换水与环境整理，让熟悉的家仍是它最安心的地方。",
-                image: image("猫咪在家中进食"),
+                title: "宠物档案",
+                description: "维护本人宠物的基础资料、日常备注与照片，让信息持续可查。",
+                image: image("猫咪的日常档案照片"),
               },
               {
-                itemKey: "walking",
+                itemKey: "classroom",
                 label: "02",
-                title: "上门遛狗",
-                description: "根据宠物习惯完成外出活动，并把关键过程清楚记录下来。",
-                image: image("照护者在社区内遛狗"),
+                title: "萌宠课堂",
+                description: "阅读已经发布的养宠文章，并通过分类与搜索找到需要的内容。",
+                image: image("主人为猫咪梳理毛发"),
               },
               {
-                itemKey: "playing",
+                itemKey: "community",
                 label: "03",
-                title: "陪伴玩耍",
-                description: "用合适的互动与观察，认真回应宠物独处时的陪伴需要。",
+                title: "受控社区",
+                description: "发布真实养宠日常，浏览审核通过的动态并参与受控互动。",
                 image: image("两只狗在户外轻松玩耍"),
               },
             ],
           },
           journey: {
-            eyebrow: "标准服务流程",
-            title: "每一步都清楚，托付才更安心",
-            description: "从提出需要到留下评价，关键动作有明确顺序，也有可以回看的服务记录。",
+            eyebrow: "当前使用路径",
+            title: "每一步都有真实页面和状态",
+            description:
+              "从账户与宠物档案，到课堂、社区和互动通知，当前能力都由真实数据与明确状态支撑。",
             action: null,
             items: [
-              { itemKey: "request", title: "发布需求", description: "说明时间、地点与照护要求" },
-              { itemKey: "match", title: "匹配宠托师", description: "查看资料、能力与评价记录" },
-              { itemKey: "service", title: "上门服务", description: "按订单约定与 SOP 完成照护" },
-              { itemKey: "records", title: "查看记录", description: "了解时间、步骤与服务媒体" },
-              { itemKey: "review", title: "完成评价", description: "留下真实反馈，沉淀长期信任" },
+              { itemKey: "account", title: "登录账户", description: "建立本地会话并维护个人资料" },
+              { itemKey: "pet", title: "记录宠物", description: "创建档案并管理本人宠物照片" },
+              {
+                itemKey: "classroom",
+                title: "浏览课堂",
+                description: "按分类或关键词阅读已发布文章",
+              },
+              {
+                itemKey: "community",
+                title: "分享日常",
+                description: "提交文字或图片动态等待审核",
+              },
+              {
+                itemKey: "interaction",
+                title: "参与互动",
+                description: "使用点赞、评论、举报与站内通知",
+              },
             ],
           },
           record: {
-            eyebrow: "照护记录",
-            title: "不在家，也知道它今天过得怎么样",
+            eyebrow: "宠物档案示例",
+            title: "把重要资料整理在一个地方",
             description:
-              "服务不是一句「已经照顾好了」。PetCare 用标准步骤串起时间、图片、视频与服务反馈，让主人看见每一次认真完成的照护。",
-            action: action("了解信任保障", "/trust"),
-            demoTitle: "今日上门喂养",
-            statusLabel: "服务进行中",
+              "从基本信息、日常习惯到照片管理，PetCare 让本人宠物资料保持清楚，并在删除时保护仍有关联的记录。",
+            action: action("了解当前范围", "/about"),
+            demoTitle: "宠物档案示例",
+            statusLabel: "资料维护中",
             steps: [
-              { itemKey: "sanitize", time: "14:02", label: "进门消毒", state: "complete" },
-              { itemKey: "check_in", time: "14:06", label: "拍照打卡", state: "complete" },
-              { itemKey: "service", time: "14:12", label: "执行服务", state: "current" },
-              { itemKey: "clean", time: "14:36", label: "清理现场", state: "pending" },
-              { itemKey: "check_out", time: "14:42", label: "离开拍照", state: "pending" },
+              { itemKey: "basics", time: "01", label: "基本资料", state: "complete" },
+              { itemKey: "habits", time: "02", label: "日常习惯", state: "complete" },
+              { itemKey: "health", time: "03", label: "健康备注", state: "complete" },
+              { itemKey: "photos", time: "04", label: "照片管理", state: "current" },
+              { itemKey: "save", time: "05", label: "确认保存", state: "pending" },
             ],
-            images: [image("猫咪进食记录"), image("猫咪状态记录")],
+            images: [image("猫咪宠物档案照片"), image("猫咪日常状态照片")],
             extraImageCount: 3,
             evidence: [
-              { itemKey: "visible", title: "过程可见", description: "关键步骤按顺序留下记录" },
+              { itemKey: "owned", title: "本人维护", description: "跨账户访问会被拒绝" },
               {
-                itemKey: "traceable",
-                title: "信息可查",
-                description: "时间与服务媒体共同说明结果",
+                itemKey: "editable",
+                title: "持续更新",
+                description: "资料、备注与照片可以维护",
               },
               {
-                itemKey: "feedback",
-                title: "异常可反馈",
-                description: "发现问题时进入清楚的沟通与处理路径",
+                itemKey: "protected",
+                title: "关联保护",
+                description: "受保护记录存在时拒绝误删",
               },
             ],
           },
           trust: {
-            eyebrow: "信任体系",
-            title: "真正的安心，来自可以验证的细节",
-            description: "不使用空泛口号。把身份、标准、过程和反馈放在用户需要判断的位置。",
-            action: action("查看完整保障说明", "/trust"),
+            eyebrow: "范围与数据边界",
+            title: "只陈述当前已经具备的能力",
+            description:
+              "当前只呈现账户、宠物档案、内容阅读和受控互动，并让权限与状态边界保持可验证。",
+            action: action("查看个人版说明", "/about"),
             items: [
               {
-                itemKey: "identity",
-                title: "身份与资料",
-                description: "查看宠托师身份认证、服务资料与历史评价。",
+                itemKey: "scope",
+                title: "个人版边界",
+                description: "只呈现账户、宠物档案、课堂与受控社区等当前能力。",
               },
               {
-                itemKey: "records",
-                title: "标准与记录",
-                description: "服务步骤、时间、图片与视频共同形成照护证据。",
+                itemKey: "ownership",
+                title: "本人数据",
+                description: "宠物档案和受管理图片由当前账户维护，并校验所有权。",
               },
               {
-                itemKey: "communication",
-                title: "沟通与状态",
-                description: "围绕订单持续沟通，并清楚了解当前服务进度。",
+                itemKey: "governance",
+                title: "内容治理",
+                description: "社区动态经过审核，并提供举报、下架和互动边界。",
               },
               {
-                itemKey: "appeal",
-                title: "评价与申诉",
-                description: "服务完成后可以评价；发生争议时有明确处理路径。",
+                itemKey: "local",
+                title: "本地验收",
+                description: "当前版本用于本地开发与演示，所有能力以可运行链路为准。",
               },
             ],
           },
           community: {
             eyebrow: "宠物生活",
-            title: "这里不只有服务，还有认真爱宠物的人",
-            description: "从日常相处到照护经验，让真实内容帮助更多宠物家庭做出更安心的选择。",
+            title: "记录真实日常，也分享可靠的养宠内容",
+            description:
+              "从日常相处到养宠经验，已发布的课堂文章与审核通过的社区动态共同组成当前内容空间。",
             action: action("阅读宠物课堂", "/articles"),
             items: [
               {
@@ -323,16 +344,16 @@ export const WEBSITE_CONTENT_SEED_TEMPLATES: readonly WebsiteSeedTemplate[] = [
               {
                 itemKey: "companionship",
                 label: "陪伴故事",
-                title: "认真相处，是服务之外更长久的连接",
+                title: "认真相处，让每一段日常都值得记录",
                 description: "",
                 image: image("两只狗在户外自在互动"),
               },
             ],
           },
           brand: {
-            eyebrow: "陪伴每一次托付",
-            title: "因为它是家人，所以每一次托付都值得被认真对待。",
-            description: "专业不是冰冷的流程，而是把关心变成清楚、稳定、可以被验证的行动。",
+            eyebrow: "记录每一次陪伴",
+            title: "因为它是家人，所以每一段日常都值得被认真记录。",
+            description: "PetCare 个人版把宠物档案、养宠内容和受控社区放在一个可本地验收的原型里。",
             image: image("猫和狗在自然光下安心相伴"),
           },
         },
@@ -345,204 +366,10 @@ export const WEBSITE_CONTENT_SEED_TEMPLATES: readonly WebsiteSeedTemplate[] = [
         isEnabled: true,
         schemaVersion: 1,
         content: {
-          title: "安心托付，不止于服务",
-          description: "了解 PetCare 如何守护每一次照护。",
-          primaryAction: action("了解信任保障", "/trust"),
-          secondaryAction: action("联系我们", "/contact"),
-        },
-        settings: { tone: "brand", alignment: "center" },
-      },
-    ],
-  },
-  {
-    contentKey: WEBSITE_CONTENT_KEY.SERVICES,
-    contentType: "page",
-    seo: {
-      title: "服务模式｜PetCare 宠伴",
-      description: "了解 PetCare 悬赏服务与平台服务。",
-      canonicalPath: "/services",
-      image: null,
-    },
-    sections: [
-      {
-        sectionKey: "hero",
-        sectionType: WEBSITE_SECTION_TYPE.HERO,
-        sortOrder: 1,
-        isEnabled: true,
-        schemaVersion: 1,
-        content: {
-          eyebrow: "服务模式",
-          title: "为不同照护需要提供合适选择",
-          description: "悬赏服务强调灵活匹配，平台服务提供清晰定价。",
-          primaryAction: action("了解信任保障", "/trust"),
-          secondaryAction: null,
-          image: image("多样化宠物照护服务"),
-        },
-        settings: { alignment: "left", imagePosition: "right" },
-      },
-      {
-        sectionKey: "service_modes",
-        sectionType: WEBSITE_SECTION_TYPE.FEATURE_SPLIT,
-        sortOrder: 2,
-        isEnabled: true,
-        schemaVersion: 1,
-        content: {
-          eyebrow: "悬赏服务与平台服务",
-          title: "灵活匹配，也有标准选择",
-          description: "根据时间、场景和预算选择更适合的服务方式。",
-          action: action("联系我们", "/contact"),
-          image: image("宠托师提供专业照护"),
-        },
-        settings: { imagePosition: "left", tone: "plain" },
-      },
-      {
-        sectionKey: "services_cta",
-        sectionType: WEBSITE_SECTION_TYPE.CTA,
-        sortOrder: 3,
-        isEnabled: true,
-        schemaVersion: 1,
-        content: {
-          title: "需要进一步了解？",
-          description: "联系我们获取服务说明。",
-          primaryAction: action("联系我们", "/contact"),
-          secondaryAction: null,
-        },
-        settings: { tone: "soft", alignment: "center" },
-      },
-    ],
-  },
-  {
-    contentKey: WEBSITE_CONTENT_KEY.TRUST,
-    contentType: "page",
-    seo: {
-      title: "信任保障｜PetCare 宠伴",
-      description: "了解认证、SOP、照护记录、评价及申诉处理机制。",
-      canonicalPath: "/trust",
-      image: null,
-    },
-    sections: [
-      {
-        sectionKey: "hero",
-        sectionType: WEBSITE_SECTION_TYPE.HERO,
-        sortOrder: 1,
-        isEnabled: true,
-        schemaVersion: 1,
-        content: {
-          eyebrow: "信任保障",
-          title: "每一次托付，都值得信赖",
-          description: "以认证、标准、记录和反馈机制建立透明服务体验。",
-          primaryAction: action("联系我们", "/contact"),
-          secondaryAction: null,
-          image: image("安心可信的宠物照护"),
-        },
-        settings: { alignment: "left", imagePosition: "background" },
-      },
-      {
-        sectionKey: "trust_evidence",
-        sectionType: WEBSITE_SECTION_TYPE.TRUST_GRID,
-        sortOrder: 2,
-        isEnabled: true,
-        schemaVersion: 1,
-        content: {
-          title: "透明的服务保障",
-          description: "关键环节有依据、有记录、有反馈。",
-          items: [
-            {
-              itemKey: "verified",
-              title: "认证",
-              description: "核验服务身份。",
-              icon: "certificate",
-            },
-            { itemKey: "sop", title: "SOP", description: "明确照护步骤。", icon: "clipboard" },
-            { itemKey: "review", title: "评价", description: "积累真实反馈。", icon: "star" },
-            { itemKey: "appeal", title: "申诉", description: "提供处理路径。", icon: "support" },
-          ],
-        },
-        settings: { columns: 4 },
-      },
-      {
-        sectionKey: "trust_process",
-        sectionType: WEBSITE_SECTION_TYPE.FEATURE_SPLIT,
-        sortOrder: 3,
-        isEnabled: true,
-        schemaVersion: 1,
-        content: {
-          eyebrow: "照护过程",
-          title: "每一次照护，都有记录",
-          description: "服务过程中的关键步骤形成可查看的照护记录。",
-          action: null,
-          image: image("记录宠物照护过程"),
-        },
-        settings: { imagePosition: "right", tone: "soft" },
-      },
-      {
-        sectionKey: "trust_cta",
-        sectionType: WEBSITE_SECTION_TYPE.CTA,
-        sortOrder: 4,
-        isEnabled: true,
-        schemaVersion: 1,
-        content: {
-          title: "了解适合你的服务",
-          description: "从服务模式开始认识 PetCare。",
-          primaryAction: action("查看服务模式", "/services"),
-          secondaryAction: null,
-        },
-        settings: { tone: "brand", alignment: "center" },
-      },
-    ],
-  },
-  {
-    contentKey: WEBSITE_CONTENT_KEY.COMPANIONS,
-    contentType: "page",
-    seo: {
-      title: "成为宠托师｜PetCare 宠伴",
-      description: "了解宠托师加入条件、成长路径和公平机会。",
-      canonicalPath: "/companions",
-      image: null,
-    },
-    sections: [
-      {
-        sectionKey: "hero",
-        sectionType: WEBSITE_SECTION_TYPE.HERO,
-        sortOrder: 1,
-        isEnabled: true,
-        schemaVersion: 1,
-        content: {
-          eyebrow: "成为宠托师",
-          title: "用专业照护，守护每一次托付",
-          description: "通过认证与学习，在清晰规则下获得公平服务机会。",
-          primaryAction: action("联系我们", "/contact"),
-          secondaryAction: null,
-          image: image("宠托师陪伴宠物"),
-        },
-        settings: { alignment: "left", imagePosition: "right" },
-      },
-      {
-        sectionKey: "companion_growth",
-        sectionType: WEBSITE_SECTION_TYPE.FEATURE_SPLIT,
-        sortOrder: 2,
-        isEnabled: true,
-        schemaVersion: 1,
-        content: {
-          eyebrow: "成长路径",
-          title: "从认证到持续成长",
-          description: "以服务标准、真实评价和持续学习建立专业能力。",
-          action: action("了解信任保障", "/trust"),
-          image: image("宠托师专业成长"),
-        },
-        settings: { imagePosition: "left", tone: "soft" },
-      },
-      {
-        sectionKey: "companions_cta",
-        sectionType: WEBSITE_SECTION_TYPE.CTA,
-        sortOrder: 3,
-        isEnabled: true,
-        schemaVersion: 1,
-        content: {
-          title: "准备了解宠托师机会？",
-          description: "联系我们获取加入说明。",
-          primaryAction: action("联系我们", "/contact"),
-          secondaryAction: null,
+          title: "从真实能力开始了解 PetCare",
+          description: "阅读萌宠课堂，或查看个人开发版的当前范围与限制。",
+          primaryAction: action("阅读萌宠课堂", "/articles"),
+          secondaryAction: action("了解当前范围", "/about"),
         },
         settings: { tone: "brand", alignment: "center" },
       },
@@ -553,7 +380,7 @@ export const WEBSITE_CONTENT_SEED_TEMPLATES: readonly WebsiteSeedTemplate[] = [
     contentType: "page",
     seo: {
       title: "关于我们｜PetCare 宠伴",
-      description: "认识 PetCare 的使命、价值观与品牌故事。",
+      description: "了解 PetCare 个人开发版的当前范围、原则与实现边界。",
       canonicalPath: "/about",
       image: null,
     },
@@ -566,11 +393,11 @@ export const WEBSITE_CONTENT_SEED_TEMPLATES: readonly WebsiteSeedTemplate[] = [
         schemaVersion: 1,
         content: {
           eyebrow: "关于 PetCare",
-          title: "让照护关系更值得信赖",
-          description: "连接宠物家庭与专业宠托师，建立透明、专业的照护体验。",
-          primaryAction: action("了解服务", "/services"),
+          title: "一个聚焦宠物档案与内容体验的个人项目",
+          description: "当前围绕账户、宠物档案、萌宠课堂和受控社区，维护真实可运行的本地原型。",
+          primaryAction: action("阅读萌宠课堂", "/articles"),
           secondaryAction: null,
-          image: image("PetCare 团队与宠物"),
+          image: image("主人与宠物相伴的日常"),
         },
         settings: { alignment: "left", imagePosition: "right" },
       },
@@ -586,8 +413,10 @@ export const WEBSITE_CONTENT_SEED_TEMPLATES: readonly WebsiteSeedTemplate[] = [
           parts: [
             {
               partKey: "mission",
-              heading: "透明、专业、可信赖",
-              paragraphs: ["让每一次宠物照护都更加透明、专业、可信赖。"],
+              heading: "小而真实，清楚可验收",
+              paragraphs: [
+                "只呈现已经具备页面、数据与权限边界的当前能力，并把未来设想留在路线图中。",
+              ],
             },
           ],
         },
@@ -600,11 +429,11 @@ export const WEBSITE_CONTENT_SEED_TEMPLATES: readonly WebsiteSeedTemplate[] = [
         isEnabled: true,
         schemaVersion: 1,
         content: {
-          eyebrow: "品牌承诺",
-          title: "陪伴每一次托付",
-          description: "我们关注的不只是一次服务，而是长期可信赖的照护关系。",
+          eyebrow: "项目原则",
+          title: "记录每一次陪伴",
+          description: "从本人宠物档案和养宠内容开始，让每一项功能都保持可理解、可验证和可维护。",
           action: null,
-          image: image("PetCare 品牌陪伴"),
+          image: image("宠物与主人一起生活的温暖画面"),
         },
         settings: { imagePosition: "left", tone: "plain" },
       },
@@ -615,10 +444,10 @@ export const WEBSITE_CONTENT_SEED_TEMPLATES: readonly WebsiteSeedTemplate[] = [
         isEnabled: true,
         schemaVersion: 1,
         content: {
-          title: "与我们建立联系",
-          description: "了解合作与服务信息。",
-          primaryAction: action("联系我们", "/contact"),
-          secondaryAction: null,
+          title: "继续了解当前内容",
+          description: "阅读已经发布的萌宠课堂内容，或查看当前启用的联系渠道。",
+          primaryAction: action("阅读萌宠课堂", "/articles"),
+          secondaryAction: action("查看联系渠道", "/contact"),
         },
         settings: { tone: "soft", alignment: "center" },
       },
@@ -629,7 +458,7 @@ export const WEBSITE_CONTENT_SEED_TEMPLATES: readonly WebsiteSeedTemplate[] = [
     contentType: "page",
     seo: {
       title: "联系我们｜PetCare 宠伴",
-      description: "联系 PetCare 客服或商务合作团队。",
+      description: "查看 PetCare 当前已启用的项目联系渠道。",
       canonicalPath: "/contact",
       image: null,
     },
@@ -641,12 +470,12 @@ export const WEBSITE_CONTENT_SEED_TEMPLATES: readonly WebsiteSeedTemplate[] = [
         isEnabled: true,
         schemaVersion: 1,
         content: {
-          eyebrow: "联系我们",
-          title: "我们愿意倾听你的需要",
-          description: "通过公开渠道获取客服与商务合作支持。",
+          eyebrow: "项目联系",
+          title: "联系信息以当前页面为准",
+          description: "只有已经启用并公开显示的渠道，才是 PetCare 当前可用的联系方式。",
           primaryAction: null,
           secondaryAction: null,
-          image: image("PetCare 联系支持"),
+          image: image("主人记录宠物日常"),
         },
         settings: { alignment: "center", imagePosition: "background" },
       },
@@ -658,23 +487,23 @@ export const WEBSITE_CONTENT_SEED_TEMPLATES: readonly WebsiteSeedTemplate[] = [
         schemaVersion: 1,
         content: {
           title: "联系渠道",
-          description: "以下信息为初始占位内容，发布前请由运营确认。",
+          description: "当前没有启用的公开联系渠道。",
           channels: [
             {
               channelKey: "customer_service",
               isEnabled: false,
-              label: "客服电话",
-              value: "待运营配置",
+              label: "项目邮箱",
+              value: "未启用",
               href: "/contact",
-              availability: "工作时间待运营配置",
+              availability: "未启用",
             },
             {
               channelKey: "business",
               isEnabled: false,
-              label: "客服邮箱",
-              value: "待运营配置",
+              label: "问题反馈",
+              value: "未启用",
               href: "/contact",
-              availability: "工作时间待运营配置",
+              availability: "未启用",
             },
           ],
         },
@@ -687,10 +516,10 @@ export const WEBSITE_CONTENT_SEED_TEMPLATES: readonly WebsiteSeedTemplate[] = [
         isEnabled: true,
         schemaVersion: 1,
         content: {
-          title: "先了解我们的服务",
-          description: "查看服务模式与信任保障。",
-          primaryAction: action("服务模式", "/services"),
-          secondaryAction: action("信任保障", "/trust"),
+          title: "先了解当前项目",
+          description: "查看个人开发版的当前范围，或阅读已经发布的养宠内容。",
+          primaryAction: action("了解当前范围", "/about"),
+          secondaryAction: action("阅读萌宠课堂", "/articles"),
         },
         settings: { tone: "soft", alignment: "center" },
       },
@@ -706,11 +535,11 @@ export const WEBSITE_CONTENT_SEED_TEMPLATES: readonly WebsiteSeedTemplate[] = [
       image: null,
     },
     sections: [
-      helpSection("account_and_identity", 1, "账号与认证", [
+      helpSection("account_and_profile", 1, "账户与资料", [
         {
           partKey: "complete_profile",
           heading: "如何完善个人信息？",
-          paragraphs: ["进入“我的－个人信息－编辑个人信息”，验证手机号后即可完成资料。"],
+          paragraphs: ["登录后进入“我的”页面打开个人资料，按页面提示补充并保存当前支持的信息。"],
         },
         {
           partKey: "wechat_profile",
@@ -718,40 +547,42 @@ export const WEBSITE_CONTENT_SEED_TEMPLATES: readonly WebsiteSeedTemplate[] = [
           paragraphs: ["在编辑个人信息页主动选择微信头像并填写微信昵称，保存后即可更新。"],
         },
       ]),
-      helpSection("bounty_and_orders", 2, "悬赏与订单", [
+      helpSection("pet_profiles", 2, "宠物档案", [
         {
-          partKey: "publish_bounty",
-          heading: "如何发布悬赏？",
-          paragraphs: ["进入悬赏大厅并点击发布按钮，资料完善后按页面步骤填写需求。"],
+          partKey: "create_pet",
+          heading: "如何创建或更新宠物档案？",
+          paragraphs: [
+            "进入宠物档案页面新增宠物，填写当前支持的资料与备注；之后可从档案详情继续更新。",
+          ],
         },
         {
-          partKey: "publish_blocked",
-          heading: "为什么暂时无法发布？",
-          paragraphs: ["请先确认已经登录并通过短信验证手机号；页面会引导你完善资料。"],
-        },
-      ]),
-      helpSection("care_records", 3, "服务记录", [
-        {
-          partKey: "service_progress",
-          heading: "怎样查看服务进度？",
-          paragraphs: ["从订单列表进入订单详情，可查看该订单已经开放的服务进度与照护记录。"],
-        },
-        {
-          partKey: "service_issue",
-          heading: "遇到服务问题怎么办？",
-          paragraphs: ["请保留订单编号和相关记录，再通过“联系客服”页面选择已配置的渠道。"],
+          partKey: "delete_pet",
+          heading: "为什么暂时不能删除档案？",
+          paragraphs: ["当档案仍有关联记录时，系统会拒绝误删并提示先处理对应记录。"],
         },
       ]),
-      helpSection("fees_and_benefits", 4, "费用与优惠", [
+      helpSection("classroom", 3, "萌宠课堂", [
         {
-          partKey: "coupon_location",
-          heading: "优惠券在哪里查看？",
-          paragraphs: ["进入“我的”页面并点击“优惠券”即可查看当前页面提供的优惠信息。"],
+          partKey: "browse_articles",
+          heading: "如何查找养宠文章？",
+          paragraphs: ["进入萌宠课堂后，可按分类浏览或使用关键词搜索已经发布的文章。"],
         },
         {
-          partKey: "fee_reference",
-          heading: "服务费用以哪里为准？",
-          paragraphs: ["实际费用以提交订单前的确认页面和最终订单记录为准。"],
+          partKey: "article_unavailable",
+          heading: "为什么文章暂时无法查看？",
+          paragraphs: ["文章可能尚未发布或已经下架；返回列表后可继续阅读当前可见内容。"],
+        },
+      ]),
+      helpSection("community", 4, "受控社区", [
+        {
+          partKey: "publish_post",
+          heading: "如何分享养宠日常？",
+          paragraphs: ["完善个人资料后可提交文字或图片动态；内容通过审核后才会出现在公开列表。"],
+        },
+        {
+          partKey: "community_interactions",
+          heading: "社区支持哪些互动？",
+          paragraphs: ["当前支持点赞、评论、举报和站内通知；违规内容可被拒绝、下架或限制互动。"],
         },
       ]),
     ],
@@ -774,13 +605,13 @@ export const WEBSITE_CONTENT_SEED_TEMPLATES: readonly WebsiteSeedTemplate[] = [
         schemaVersion: 1,
         content: {
           title: "隐私政策",
-          effectiveDate: "2026-08-25",
+          effectiveDate: "2026-08-27",
           parts: [
             {
               partKey: "scope",
               heading: "一、适用范围",
               paragraphs: [
-                "本政策适用于 PetCare 宠伴小程序及其提供的账号、宠物照护和客户支持服务。我们遵循合法、正当、必要和诚信原则处理个人信息，并尽量将处理范围限制在实现功能所必需的最小范围。",
+                "本政策适用于 PetCare 个人版网站及跨端客户端当前提供的账户、宠物档案、萌宠课堂、受控社区与问题反馈功能。我们遵循合法、正当、必要和诚信原则处理个人信息，并尽量将处理范围限制在实现功能所必需的最小范围。",
               ],
             },
             {
@@ -788,22 +619,22 @@ export const WEBSITE_CONTENT_SEED_TEMPLATES: readonly WebsiteSeedTemplate[] = [
               heading: "二、我们处理的信息",
               paragraphs: [
                 "为完成微信登录，我们会处理微信登录临时凭证并保存用于识别账号的微信 OpenID；首次登录后会分配随机昵称和默认头像。",
-                "当你主动完善资料时，我们会处理经短信验证的手机号码，以及你选择提交的头像、昵称、所在地区和个人简介。",
-                "当你使用宠物档案、悬赏、订单、照护记录、评价或客服功能时，我们会处理你主动提交的相应业务内容和操作记录。",
+                "当你主动完善资料时，我们会处理你选择提交的头像、昵称、所在地区和个人简介；启用短信验证时，还会处理经验证的手机号码。",
+                "当你使用宠物档案和受控社区时，我们会处理你主动提交的宠物资料、图片、动态、评论、点赞、举报、通知状态及相应操作记录。",
               ],
             },
             {
               partKey: "information_use",
               heading: "三、信息使用目的",
               paragraphs: [
-                "我们使用上述信息完成账号识别和安全校验、提供和履行宠物照护服务、展示订单与服务进度、处理咨询和争议，并维护系统安全与服务质量。",
+                "我们使用上述信息完成账号识别和安全校验、维护本人宠物档案、展示已发布内容、处理受控社区互动与问题反馈，并维护系统安全。",
               ],
             },
             {
               partKey: "service_providers",
               heading: "四、第三方服务",
               paragraphs: [
-                "为提供必要功能，我们会使用微信登录、阿里云短信验证和对象存储等服务。仅在实现对应功能所需的范围内传递信息，相关服务也可能依据其公开规则处理信息。",
+                "当前会使用微信登录；只有在相应配置启用时，才会使用短信验证和对象存储。我们仅在实现对应功能所需的范围内传递信息，相关提供方也可能依据其公开规则处理信息。",
               ],
             },
             {
@@ -817,21 +648,21 @@ export const WEBSITE_CONTENT_SEED_TEMPLATES: readonly WebsiteSeedTemplate[] = [
               partKey: "your_rights",
               heading: "六、你的权利",
               paragraphs: [
-                "你可以在“我的”页面查看和修改个人资料、退出登录或申请注销账户，也可以通过“联系客服”页面提出查阅、更正、删除个人信息或解释本政策的请求。法律法规另有规定的除外。",
+                "你可以在“我的”页面查看和修改个人资料、退出登录或申请注销账户，也可以通过联系页面已启用的渠道提出查阅、更正、删除个人信息或解释本政策的请求。法律法规另有规定的除外。",
               ],
             },
             {
               partKey: "minors",
               heading: "七、未成年人保护",
               paragraphs: [
-                "未满十四周岁的用户应在父母或其他监护人同意和指导下使用本服务。若监护人发现相关个人信息未经同意被处理，可通过客服渠道联系我们。",
+                "未满十四周岁的用户应在父母或其他监护人同意和指导下使用本项目。若监护人发现相关个人信息未经同意被处理，可通过当前已启用的联系渠道提出请求。",
               ],
             },
             {
               partKey: "updates_and_contact",
               heading: "八、政策更新与联系",
               paragraphs: [
-                "政策更新后会通过本页面发布。若处理目的、方式或信息种类发生重要变化，我们会依法重新履行告知或取得同意义务。联系渠道和工作时间以“联系客服”页面发布的配置为准。",
+                "政策更新后会通过本页面发布。若处理目的、方式或信息种类发生重要变化，我们会依法重新履行告知或取得同意义务。联系渠道以联系页面当前启用的配置为准。",
               ],
             },
           ],
@@ -858,12 +689,42 @@ export const WEBSITE_CONTENT_SEED_TEMPLATES: readonly WebsiteSeedTemplate[] = [
         schemaVersion: 1,
         content: {
           title: "服务条款",
-          effectiveDate: null,
+          effectiveDate: "2026-08-27",
           parts: [
             {
-              partKey: "review_required",
-              heading: "内容待审核",
-              paragraphs: ["本页正式内容需经业务与法务审核后显式发布。"],
+              partKey: "scope_and_acceptance",
+              heading: "一、适用范围",
+              paragraphs: [
+                "本条款适用于 PetCare 个人版网站及跨端客户端当前已经提供的功能。使用本项目即表示你已阅读并同意遵守本条款；不同意时请停止使用。",
+              ],
+            },
+            {
+              partKey: "account_and_data",
+              heading: "二、账户与本人数据",
+              paragraphs: [
+                "你应妥善使用自己的账户，并保证主动提交的信息真实、合法。宠物档案和受管理图片仅供对应账户维护，不得尝试访问或修改他人数据。",
+              ],
+            },
+            {
+              partKey: "content_rules",
+              heading: "三、内容与互动规则",
+              paragraphs: [
+                "发布动态、评论或其他内容时，不得侵犯他人权益、传播违法有害信息或干扰正常使用。内容可能经过审核，并可因违反规则被拒绝、下架或限制互动。",
+              ],
+            },
+            {
+              partKey: "availability",
+              heading: "四、可用性与限制",
+              paragraphs: [
+                "PetCare 当前用于个人开发、本地演示和功能验证，不承诺持续可用或对外运营。实际能力以当前界面和已发布说明为准。",
+              ],
+            },
+            {
+              partKey: "account_closure",
+              heading: "五、停止使用与联系",
+              paragraphs: [
+                "你可以退出登录，并在产品提供相应入口时申请注销账户。需要查询条款或个人信息处理情况时，请使用联系页面当前已启用的渠道。",
+              ],
             },
           ],
         },
@@ -911,18 +772,52 @@ function sectionSnapshots(sections: StoredSeedVersion["sections"]) {
   );
 }
 
-function legacyContactSections(template: WebsiteSeedTemplate): WebsiteContentSection[] {
-  return template.sections.map((section) =>
-    section.sectionType === WEBSITE_SECTION_TYPE.CONTACT_PANEL
-      ? {
-          ...structuredClone(section),
-          content: {
-            ...structuredClone(section.content),
-            channels: structuredClone(LEGACY_CONTACT_CHANNELS),
-          },
-        }
-      : structuredClone(section),
-  );
+function legacyContactSections(): WebsiteContentSection[] {
+  return [
+    {
+      sectionKey: "hero",
+      sectionType: WEBSITE_SECTION_TYPE.HERO,
+      sortOrder: 1,
+      isEnabled: true,
+      schemaVersion: 1,
+      content: {
+        eyebrow: "联系我们",
+        title: "我们愿意倾听你的需要",
+        description: "通过公开渠道获取客服与商务合作支持。",
+        primaryAction: null,
+        secondaryAction: null,
+        image: image("PetCare 联系支持"),
+      },
+      settings: { alignment: "center", imagePosition: "background" },
+    },
+    {
+      sectionKey: "contact_channels",
+      sectionType: WEBSITE_SECTION_TYPE.CONTACT_PANEL,
+      sortOrder: 2,
+      isEnabled: true,
+      schemaVersion: 1,
+      content: {
+        title: "联系渠道",
+        description: "以下信息为初始占位内容，发布前请由运营确认。",
+        channels: structuredClone(LEGACY_CONTACT_CHANNELS),
+      },
+      settings: { columns: 2 },
+    },
+    {
+      sectionKey: "contact_cta",
+      sectionType: WEBSITE_SECTION_TYPE.CTA,
+      sortOrder: 3,
+      isEnabled: true,
+      schemaVersion: 1,
+      content: {
+        title: "先了解我们的服务",
+        description: "查看服务模式与信任保障。",
+        primaryAction: action("服务模式", "/services"),
+        secondaryAction: action("信任保障", "/trust"),
+      },
+      settings: { tone: "soft", alignment: "center" },
+    },
+  ];
 }
 
 function legacyPrivacySections(template: WebsiteSeedTemplate): WebsiteContentSection[] {
@@ -956,6 +851,7 @@ function isUntouchedInitialSeed(
   versions: StoredSeedVersion[],
   template: WebsiteSeedTemplate,
   originalSections: WebsiteContentSection[],
+  originalSeo: WebsiteSeoContent = template.seo,
 ): boolean {
   if (
     content.contentType !== template.contentType ||
@@ -996,7 +892,7 @@ function isUntouchedInitialSeed(
       status: WEBSITE_CONTENT_STATUS.PUBLISHED,
       revision: 1,
       businessVersion: 1,
-      seo: template.seo,
+      seo: originalSeo,
       sourceVersionId: null,
       idempotencyKey: `seed:${template.contentKey}:published:v1`,
       changeSummary: "初始化官网内容",
@@ -1011,7 +907,7 @@ function isUntouchedInitialSeed(
       status: WEBSITE_CONTENT_STATUS.DRAFT,
       revision: 2,
       businessVersion: null,
-      seo: template.seo,
+      seo: originalSeo,
       sourceVersionId: published.id,
       idempotencyKey: null,
       changeSummary: "从初始发布版本创建可编辑草稿",
@@ -1067,6 +963,7 @@ async function upgradeUntouchedInitialSeed(
   operatorId: string,
   originalSections: WebsiteContentSection[],
   changeSummary: string,
+  originalSeo: WebsiteSeoContent = template.seo,
 ): Promise<void> {
   const storedVersions = (await tx.websiteContentVersion.findMany({
     where: { websiteContentId: content.id },
@@ -1074,7 +971,7 @@ async function upgradeUntouchedInitialSeed(
     orderBy: { revision: "asc" },
   })) as unknown as StoredSeedVersion[];
 
-  if (!isUntouchedInitialSeed(content, storedVersions, template, originalSections)) {
+  if (!isUntouchedInitialSeed(content, storedVersions, template, originalSections, originalSeo)) {
     return;
   }
 
@@ -1174,8 +1071,9 @@ async function seedTemplate(
         content,
         template,
         operatorId,
-        legacyContactSections(template),
+        legacyContactSections(),
         "停用待运营配置的联系渠道",
+        LEGACY_CONTACT_SEO,
       );
     } else if (template.contentKey === WEBSITE_CONTENT_KEY.PRIVACY) {
       await upgradeUntouchedInitialSeed(
