@@ -23,8 +23,13 @@ describe("PetService", () => {
     order: {
       count: jest.fn(),
     },
+    petMediaAsset: {
+      findMany: jest.fn(),
+      updateMany: jest.fn(),
+    },
   };
-  const service = new PetService(prisma as unknown as PrismaService);
+  const storage = { delete: jest.fn() };
+  const service = new PetService(prisma as unknown as PrismaService, storage as never);
   const petId = "11111111-1111-4111-8111-111111111111";
   const createdAt = new Date("2026-08-27T01:00:00.000Z");
   const updatedAt = new Date("2026-08-27T02:00:00.000Z");
@@ -41,6 +46,16 @@ describe("PetService", () => {
     allergies: null,
     tabooFoods: "葡萄",
     photos: ["https://cdn.example/pet.jpg"],
+    mediaAssets: [
+      {
+        id: "photo-1",
+        publicUrl: "https://cdn.example/pet.jpg",
+        mimeType: "image/jpeg",
+        width: 640,
+        height: 640,
+        sizeBytes: 1024,
+      },
+    ],
     createdAt,
     updatedAt,
   };
@@ -61,6 +76,9 @@ describe("PetService", () => {
     jest.clearAllMocks();
     prisma.$transaction.mockImplementation((operation) => operation(transaction));
     transaction.$queryRaw.mockResolvedValue([{ status: "active", phone: null }]);
+    transaction.petMediaAsset.findMany.mockResolvedValue([]);
+    transaction.petMediaAsset.updateMany.mockResolvedValue({ count: 0 });
+    storage.delete.mockResolvedValue(undefined);
   });
 
   it("lists only owner-scoped pets and maps private storage fields", async () => {
@@ -99,6 +117,16 @@ describe("PetService", () => {
       allergies: null,
       tabooFoods: "葡萄",
       photoUrls: ["https://cdn.example/pet.jpg"],
+      photoAssets: [
+        {
+          id: "photo-1",
+          url: "https://cdn.example/pet.jpg",
+          mimeType: "image/jpeg",
+          width: 640,
+          height: 640,
+          sizeBytes: 1024,
+        },
+      ],
       createdAt: createdAt.toISOString(),
       updatedAt: updatedAt.toISOString(),
     });
@@ -211,9 +239,31 @@ describe("PetService", () => {
   it("deletes an unreferenced owner-matched profile", async () => {
     transaction.pet.findFirst.mockResolvedValue({ id: petId });
     transaction.order.count.mockResolvedValue(0);
+    transaction.petMediaAsset.findMany.mockResolvedValue([
+      { storageKey: "public/pet-media/2026/08/photo.jpg" },
+    ]);
+    transaction.petMediaAsset.updateMany.mockResolvedValue({ count: 1 });
     transaction.pet.delete.mockResolvedValue({ id: petId });
 
     await expect(service.delete("user-1", petId)).resolves.toBeUndefined();
+    expect(transaction.petMediaAsset.updateMany).toHaveBeenCalledWith({
+      where: { ownerId: "user-1", petId, status: "active" },
+      data: { status: "discarded", petId: null, discardedAt: expect.any(Date) },
+    });
     expect(transaction.pet.delete).toHaveBeenCalledWith({ where: { id: petId } });
+    expect(storage.delete).toHaveBeenCalledWith("public/pet-media/2026/08/photo.jpg");
+  });
+
+  it("keeps pet deletion successful when managed object cleanup must be retried", async () => {
+    transaction.pet.findFirst.mockResolvedValue({ id: petId });
+    transaction.order.count.mockResolvedValue(0);
+    transaction.petMediaAsset.findMany.mockResolvedValue([
+      { storageKey: "public/pet-media/2026/08/photo.jpg" },
+    ]);
+    transaction.petMediaAsset.updateMany.mockResolvedValue({ count: 1 });
+    transaction.pet.delete.mockResolvedValue({ id: petId });
+    storage.delete.mockRejectedValue(new Error("offline"));
+
+    await expect(service.delete("user-1", petId)).resolves.toBeUndefined();
   });
 });

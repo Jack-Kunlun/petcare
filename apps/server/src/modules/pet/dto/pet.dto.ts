@@ -7,6 +7,7 @@ import {
   type MyPetDetail,
   type MyPetListItem,
   type PetGender,
+  type PetPhotoAsset,
   type PetSpecies,
   type UpdatePetRequest,
 } from "@petcare/shared-types";
@@ -124,6 +125,33 @@ export class MyPetListItemDto implements MyPetListItem {
   coverImage: string | null;
 }
 
+/** Owner-visible metadata for one validated and managed pet photo. */
+export class PetPhotoAssetDto implements PetPhotoAsset {
+  @ApiProperty({ format: "uuid" })
+  id: string;
+
+  @ApiProperty({ format: "uri" })
+  url: string;
+
+  @ApiProperty({ enum: ["image/jpeg", "image/png", "image/webp"] })
+  mimeType: PetPhotoAsset["mimeType"];
+
+  @ApiProperty({
+    minimum: PET_PROFILE_LIMITS.PHOTO_MIN_DIMENSION_PX,
+    maximum: PET_PROFILE_LIMITS.PHOTO_MAX_DIMENSION_PX,
+  })
+  width: number;
+
+  @ApiProperty({
+    minimum: PET_PROFILE_LIMITS.PHOTO_MIN_DIMENSION_PX,
+    maximum: PET_PROFILE_LIMITS.PHOTO_MAX_DIMENSION_PX,
+  })
+  height: number;
+
+  @ApiProperty({ minimum: 1, maximum: PET_PROFILE_LIMITS.PHOTO_MAX_BYTES })
+  sizeBytes: number;
+}
+
 /** Full private pet profile returned only to its authenticated owner. */
 export class MyPetDetailDto extends MyPetListItemDto implements MyPetDetail {
   @ApiProperty({ nullable: true })
@@ -143,6 +171,9 @@ export class MyPetDetailDto extends MyPetListItemDto implements MyPetDetail {
 
   @ApiProperty({ type: [String], format: "uri" })
   photoUrls: string[];
+
+  @ApiProperty({ type: [PetPhotoAssetDto] })
+  photoAssets: PetPhotoAsset[];
 
   @ApiProperty({ format: "date-time" })
   createdAt: string;

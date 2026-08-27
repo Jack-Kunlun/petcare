@@ -3,7 +3,7 @@ export interface WebsiteMediaStorageUpload {
   body: Buffer;
   mimeType: "image/jpeg" | "image/png" | "image/webp";
   extension: "jpg" | "png" | "webp";
-  area?: "website-media" | "community-media";
+  area?: "website-media" | "community-media" | "pet-media";
 }
 
 /** Result of a managed object upload. */

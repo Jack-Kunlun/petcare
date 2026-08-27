@@ -774,13 +774,15 @@ Token 获取，客户端不得传入。接口只返回脱敏姓名、脱敏身�
 
 ### 宠物模块 (/pets)
 
-| 方法   | 路径         | 说明         | 权限 |
-| ------ | ------------ | ------------ | ---- |
-| GET    | `/pets`      | 我的宠物列表 | 认证 |
-| POST   | `/pets`      | 添加宠物     | 认证 |
-| GET    | `/pets/{id}` | 宠物详情     | 本人 |
-| PUT    | `/pets/{id}` | 更新宠物信息 | 本人 |
-| DELETE | `/pets/{id}` | 删除宠物     | 本人 |
+| 方法   | 路径                                | 说明             | 权限 |
+| ------ | ----------------------------------- | ---------------- | ---- |
+| GET    | `/pets`                             | 我的宠物列表     | 认证 |
+| POST   | `/pets`                             | 添加宠物         | 认证 |
+| GET    | `/pets/{id}`                        | 宠物详情         | 本人 |
+| PUT    | `/pets/{id}`                        | 更新宠物信息     | 本人 |
+| DELETE | `/pets/{id}`                        | 删除宠物         | 本人 |
+| POST   | `/pets/{id}/media-assets`           | 上传并绑定宠物图 | 本人 |
+| DELETE | `/pets/{id}/media-assets/{assetId}` | 删除宠物图片     | 本人 |
 
 所有接口均从 Access Token 获取当前用户，客户端不得传入或修改 `ownerId`。详情、更新和删除只查询当前用户拥有的宠物；记录不存在与跨用户访问统一返回 HTTP 404 和 `PET_NOT_FOUND`，避免泄露其他用户的宠物是否存在。
 
@@ -803,18 +805,27 @@ Token 获取，客户端不得传入。接口只返回脱敏姓名、脱敏身�
 
 `species` 可取 `cat`、`dog`、`rabbit`、`hamster`、`bird`、`other`；`gender` 可取 `male`、`female`、`unknown`。`birthDate` 为 `YYYY-MM-DD` 或 `null`，`weightKg` 为 0.1–200 且最多两位小数，或为 `null`。单个用户最多创建 5 个宠物档案，并发创建通过用户行锁串行化。
 
-列表返回 `id`、`name`、`species`、`breed`、`gender`、`birthDate` 和 `coverImage`。详情额外返回 `weightKg`、`sterilized`、`habits`、`allergies`、`tabooFoods`、`photoUrls`、`createdAt` 和 `updatedAt`。照护文本和完整照片列表仅对本人可见；兼容保留的旧 `age` 字段不通过 API 暴露。
+列表返回 `id`、`name`、`species`、`breed`、`gender`、`birthDate` 和 `coverImage`。详情额外返回 `weightKg`、`sterilized`、`habits`、`allergies`、`tabooFoods`、`photoUrls`、`photoAssets`、`createdAt` 和 `updatedAt`。`photoAssets` 为本人可见的受管理图片元数据，包含 `id`、`url`、服务端检测的 `mimeType`、`width`、`height` 和 `sizeBytes`；照护文本、完整照片列表和媒体标识均不进入公开宠物摘要。兼容保留的旧 `age` 字段不通过 API 暴露。
 
-宠物图片上传尚未接入本组接口：新建档案的 `photoUrls` 初始为空，`photoUrls` 也不是创建或更新请求字段。`DELETE` 成功返回 `204 No Content`；宠物被订单引用时拒绝删除。
+`POST /pets/{id}/media-assets` 使用 `multipart/form-data` 的 `file` 字段。图片类型只接受服务端从字节检测出的 JPEG、PNG 或 WebP，大小为 1 字节到 10 MiB，宽高均为 32–8192 像素；客户端声明的扩展名和 MIME 类型不作为信任来源。每个宠物最多保留 5 张图片，数量会在上传前和所有者行锁事务内重复检查。`photoUrls` 与 `photoAssets` 不是创建或更新宠物档案的请求字段。
 
-| HTTP 状态 | 错误码                    | 适用场景                        |
-| --------- | ------------------------- | ------------------------------- |
-| 400       | `VALIDATION_FAILED`       | 请求字段、日期或数值范围无效    |
-| 401       | `AUTH_SESSION_EXPIRED`    | Access Token 无效、过期或已失效 |
-| 403       | `AUTH_ACCOUNT_DISABLED`   | 写入期间发现当前账户已停用      |
-| 404       | `PET_NOT_FOUND`           | 记录不存在或不属于当前用户      |
-| 409       | `PET_LIMIT_REACHED`       | 当前用户已有 5 个宠物档案       |
-| 409       | `PET_REFERENCED_BY_ORDER` | 宠物仍被订单引用，不能删除      |
+上传对象使用独立的 `public/pet-media/` 存储前缀，并在同一数据库事务中登记所有者、宠物、对象键、校验和、真实类型、大小和尺寸，再写入兼容的 `photos` URL 投影。数据库登记失败会补偿删除已上传对象。删除单图或整个宠物时先在事务内解除引用并记录清理状态，再尝试删除对象；对象存储暂时不可用不会让已删除图片重新出现在宠物响应中。
+
+图片删除和宠物删除成功均返回 `204 No Content`。宠物被订单引用时仍拒绝删除；不存在、跨用户或跨宠物的媒体标识不会返回其他所有者信息。
+
+| HTTP 状态 | 错误码                          | 适用场景                        |
+| --------- | ------------------------------- | ------------------------------- |
+| 400       | `VALIDATION_FAILED`             | 请求字段、日期或数值范围无效    |
+| 401       | `AUTH_SESSION_EXPIRED`          | Access Token 无效、过期或已失效 |
+| 403       | `AUTH_ACCOUNT_DISABLED`         | 写入期间发现当前账户已停用      |
+| 404       | `PET_NOT_FOUND`                 | 记录不存在或不属于当前用户      |
+| 409       | `PET_LIMIT_REACHED`             | 当前用户已有 5 个宠物档案       |
+| 409       | `PET_REFERENCED_BY_ORDER`       | 宠物仍被订单引用，不能删除      |
+| 400       | `PET_PHOTO_INVALID`             | 图片缺失、损坏、类型或尺寸无效  |
+| 404       | `PET_PHOTO_NOT_FOUND`           | 图片不存在或不属于本人的该宠物  |
+| 409       | `PET_PHOTO_LIMIT_REACHED`       | 宠物已有 5 张图片               |
+| 413       | `PET_PHOTO_INVALID`             | multipart 文件超过 10 MiB       |
+| 503       | `PET_PHOTO_STORAGE_UNAVAILABLE` | 对象存储暂时无法接受上传        |
 
 ### 订单模块 (/orders)
 

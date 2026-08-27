@@ -9,6 +9,7 @@ import {
   type CreatePetRequest,
   type MyPetDetail,
   type MyPetListResponse,
+  type PetPhotoAsset,
   type PublicPetSummary,
   type UpdatePetRequest,
 } from "./pet";
@@ -36,12 +37,19 @@ describe("pet contracts", () => {
     expect(PET_PROFILE_LIMITS).toMatchObject({
       MAX_PETS_PER_OWNER: 5,
       MAX_PHOTOS_PER_PET: 5,
+      PHOTO_MAX_BYTES: 10 * 1024 * 1024,
+      PHOTO_MIN_DIMENSION_PX: 32,
+      PHOTO_MAX_DIMENSION_PX: 8192,
       NAME_MAX_LENGTH: 10,
     });
     expect(PET_ERROR_CODE).toEqual({
       NOT_FOUND: "PET_NOT_FOUND",
       LIMIT_REACHED: "PET_LIMIT_REACHED",
       REFERENCED_BY_ORDER: "PET_REFERENCED_BY_ORDER",
+      PHOTO_INVALID: "PET_PHOTO_INVALID",
+      PHOTO_LIMIT_REACHED: "PET_PHOTO_LIMIT_REACHED",
+      PHOTO_NOT_FOUND: "PET_PHOTO_NOT_FOUND",
+      PHOTO_STORAGE_UNAVAILABLE: "PET_PHOTO_STORAGE_UNAVAILABLE",
     });
   });
 
@@ -50,6 +58,14 @@ describe("pet contracts", () => {
       name: "旺财",
       breed: "金毛",
       coverImage: null,
+    };
+    const photo: PetPhotoAsset = {
+      id: "photo-1",
+      url: "https://cdn.example/pets/photo-1.png",
+      mimeType: "image/png",
+      width: 640,
+      height: 640,
+      sizeBytes: 1024,
     };
     const detail: MyPetDetail = {
       id: "pet-1",
@@ -63,7 +79,8 @@ describe("pet contracts", () => {
       habits: "怕生",
       allergies: "鸡肉",
       tabooFoods: "葡萄",
-      photoUrls: [],
+      photoUrls: [photo.url],
+      photoAssets: [photo],
       coverImage: publicSummary.coverImage,
       createdAt: "2026-08-26T00:00:00.000Z",
       updatedAt: "2026-08-26T00:00:00.000Z",
@@ -72,7 +89,7 @@ describe("pet contracts", () => {
 
     expect(Object.keys(publicSummary).sort()).toEqual(["breed", "coverImage", "name"]);
     expect(list).toHaveLength(1);
-    expect(detail).toMatchObject({ allergies: "鸡肉", tabooFoods: "葡萄" });
+    expect(detail).toMatchObject({ allergies: "鸡肉", tabooFoods: "葡萄", photoAssets: [photo] });
     expectTypeOf<UpdatePetRequest>().toEqualTypeOf<CreatePetRequest>();
   });
 });

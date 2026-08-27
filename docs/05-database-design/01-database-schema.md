@@ -118,31 +118,61 @@ erDiagram
 
 存储用户宠物信息。
 
-| 字段       | 类型          | 约束                | 说明                |
-| ---------- | ------------- | ------------------- | ------------------- |
-| id         | String (UUID) | PK, default(uuid()) | 宠物唯一标识        |
-| ownerId    | String        | FK → User.id        | 主人ID              |
-| name       | String        | NOT NULL            | 宠物名称            |
-| breed      | String        | NOT NULL            | 品种                |
-| age        | Float         | NOT NULL            | 年龄（岁）          |
-| weight     | Float         | nullable            | 体重（kg）          |
-| gender     | String        | NOT NULL            | 性别：male / female |
-| sterilized | Boolean       | default(false)      | 是否绝育            |
-| habits     | String        | nullable            | 特殊习性            |
-| allergies  | String        | nullable            | 过敏史              |
-| photos     | String[]      | Array               | 照片URL数组         |
-| createdAt  | DateTime      | default(now())      | 创建时间            |
-| updatedAt  | DateTime      | @updatedAt          | 更新时间            |
+| 字段       | 类型          | 约束                | 说明                                    |
+| ---------- | ------------- | ------------------- | --------------------------------------- |
+| id         | String (UUID) | PK, default(uuid()) | 宠物唯一标识                            |
+| ownerId    | String        | FK → User.id        | 主人ID                                  |
+| name       | String        | NOT NULL            | 宠物名称                                |
+| species    | String        | default(other)      | 受控宠物种类                            |
+| breed      | String        | NOT NULL            | 品种                                    |
+| birthDate  | Date          | nullable            | 精确出生日期                            |
+| age        | Float         | nullable            | 仅用于旧数据兼容，不通过当前 API 暴露   |
+| weight     | Float         | nullable            | 体重（kg）                              |
+| gender     | String        | default(unknown)    | 性别：male / female / unknown           |
+| sterilized | Boolean       | default(false)      | 是否绝育                                |
+| habits     | String        | nullable            | 特殊习性                                |
+| allergies  | String        | nullable            | 过敏史                                  |
+| tabooFoods | String        | nullable            | 忌口信息                                |
+| photos     | String[]      | Array               | 旧数据与订单读取兼容的有序照片 URL 投影 |
+| createdAt  | DateTime      | default(now())      | 创建时间                                |
+| updatedAt  | DateTime      | @updatedAt          | 更新时间                                |
 
 **关系：**
 
 - 与User：多对一（一个用户可以有多个宠物）
 - 与Order：一对多（一个宠物可以有多个订单）
 - 与Post：一对多（帖子可关联宠物）
+- 与PetMediaAsset：一对多（受管理图片可在删除后解除宠物绑定）
 
 **索引：**
 
 - `ownerId` - 加速按主人查询宠物
+
+---
+
+#### 4.1 PetMediaAsset（宠物媒体表）
+
+记录领域专用宠物图片的所有者、对象存储位置、服务端检测元数据和清理状态。客户端只能通过本人宠物接口取得公开 URL，不接触对象存储凭证或对象键。
+
+| 字段         | 类型          | 约束                  | 说明                                    |
+| ------------ | ------------- | --------------------- | --------------------------------------- |
+| id           | String (UUID) | PK, default(uuid())   | 受管理图片标识                          |
+| ownerId      | String        | FK → User.id          | 上传所有者                              |
+| petId        | String        | nullable, FK → Pet.id | 当前绑定宠物；清理时置空                |
+| storageKey   | String        | UNIQUE                | `public/pet-media/` 下的服务端对象键    |
+| publicUrl    | String        | NOT NULL              | 兼容现有宠物照片读取的公开 URL          |
+| originalName | String        | NOT NULL              | 原始文件名                              |
+| mimeType     | String        | NOT NULL              | 从图片字节检测的 JPEG、PNG 或 WebP 类型 |
+| sizeBytes    | Int           | NOT NULL              | 服务端接收的字节数                      |
+| width        | Int           | NOT NULL              | 解码宽度                                |
+| height       | Int           | NOT NULL              | 解码高度                                |
+| checksum     | String        | indexed               | SHA-256 校验和                          |
+| status       | String        | default(active)       | active / discarded                      |
+| discardedAt  | DateTime      | nullable              | 解除引用并进入对象清理状态的时间        |
+| createdAt    | DateTime      | default(now())        | 创建时间                                |
+| updatedAt    | DateTime      | @updatedAt            | 更新时间                                |
+
+`ownerId + status + createdAt` 与 `petId + status + createdAt` 用于本人媒体和清理查询。删除单图或宠物时先事务性标记 `discarded` 并解除 `petId`，再尽力删除对象；对象存储失败时记录会保留，供后续清理能力识别待处理对象。
 
 ---
 

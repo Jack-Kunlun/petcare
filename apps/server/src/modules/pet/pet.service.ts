@@ -1,4 +1,4 @@
-import { Injectable } from "@nestjs/common";
+import { Inject, Injectable } from "@nestjs/common";
 import {
   PET_GENDER,
   PET_PROFILE_LIMITS,
@@ -11,6 +11,9 @@ import {
 import type { Prisma } from "../../generated/prisma/client";
 import { PrismaService } from "../../prisma/prisma.service";
 import { lockUserRow } from "../../prisma/user-row-lock";
+import type { WebsiteMediaStorage } from "../website-content/media/website-media-storage.types";
+import { WEBSITE_MEDIA_STORAGE } from "../website-content/website-media.service";
+import { PET_MEDIA_STATUS } from "./pet-media.constants";
 import {
   petAccountDisabled,
   petLimitReached,
@@ -38,7 +41,19 @@ const petDetailSelect = {
   tabooFoods: true,
   createdAt: true,
   updatedAt: true,
-} as const;
+  mediaAssets: {
+    where: { status: PET_MEDIA_STATUS.ACTIVE },
+    orderBy: [{ createdAt: "asc" }, { id: "asc" }],
+    select: {
+      id: true,
+      publicUrl: true,
+      mimeType: true,
+      width: true,
+      height: true,
+      sizeBytes: true,
+    },
+  },
+} satisfies Prisma.PetSelect;
 
 type PetListRow = Prisma.PetGetPayload<{ select: typeof petListSelect }>;
 type PetDetailRow = Prisma.PetGetPayload<{ select: typeof petDetailSelect }>;
@@ -46,7 +61,10 @@ type PetDetailRow = Prisma.PetGetPayload<{ select: typeof petDetailSelect }>;
 /** Owns authenticated pet-profile reads and mutations. */
 @Injectable()
 export class PetService {
-  constructor(private readonly prisma: PrismaService) {}
+  constructor(
+    private readonly prisma: PrismaService,
+    @Inject(WEBSITE_MEDIA_STORAGE) private readonly storage: WebsiteMediaStorage,
+  ) {}
 
   /** Lists only pets owned by the authenticated account. */
   async findMine(ownerId: string): Promise<MyPetListItem[]> {
@@ -126,8 +144,10 @@ export class PetService {
 
   /** Deletes an owned pet unless an order still holds the restrictive reference. */
   async delete(ownerId: string, id: string): Promise<void> {
+    let storageKeys: string[];
+
     try {
-      await this.prisma.$transaction(async (transaction) => {
+      storageKeys = await this.prisma.$transaction(async (transaction) => {
         await this.assertActiveOwner(transaction, ownerId);
         const existing = await transaction.pet.findFirst({
           where: { id, ownerId },
@@ -144,7 +164,25 @@ export class PetService {
           throw petReferencedByOrder();
         }
 
+        const mediaAssets = await transaction.petMediaAsset.findMany({
+          where: { ownerId, petId: id, status: PET_MEDIA_STATUS.ACTIVE },
+          select: { storageKey: true },
+        });
+
+        if (mediaAssets.length > 0) {
+          await transaction.petMediaAsset.updateMany({
+            where: { ownerId, petId: id, status: PET_MEDIA_STATUS.ACTIVE },
+            data: {
+              status: PET_MEDIA_STATUS.DISCARDED,
+              petId: null,
+              discardedAt: new Date(),
+            },
+          });
+        }
+
         await transaction.pet.delete({ where: { id } });
+
+        return mediaAssets.map((asset) => asset.storageKey);
       });
     } catch (error) {
       if (this.isPrismaError(error, "P2003")) {
@@ -157,6 +195,8 @@ export class PetService {
 
       throw error;
     }
+
+    await Promise.all(storageKeys.map((storageKey) => this.deleteStoredObject(storageKey)));
   }
 
   private async assertActiveOwner(
@@ -292,6 +332,14 @@ export class PetService {
       allergies: row.allergies,
       tabooFoods: row.tabooFoods,
       photoUrls: [...row.photos],
+      photoAssets: row.mediaAssets.map((asset) => ({
+        id: asset.id,
+        url: asset.publicUrl,
+        mimeType: asset.mimeType as MyPetDetail["photoAssets"][number]["mimeType"],
+        width: asset.width,
+        height: asset.height,
+        sizeBytes: asset.sizeBytes,
+      })),
       createdAt: row.createdAt.toISOString(),
       updatedAt: row.updatedAt.toISOString(),
     };
@@ -299,5 +347,9 @@ export class PetService {
 
   private isPrismaError(error: unknown, code: string): boolean {
     return typeof error === "object" && error !== null && "code" in error && error.code === code;
+  }
+
+  private async deleteStoredObject(storageKey: string): Promise<void> {
+    await this.storage.delete(storageKey).catch(() => undefined);
   }
 }

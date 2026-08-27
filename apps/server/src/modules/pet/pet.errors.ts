@@ -25,6 +25,34 @@ export function petReferencedByOrder(): ApiException {
   );
 }
 
+/** Rejects missing, corrupt, unsupported, or oversized pet-photo input. */
+export function petPhotoInvalid(message = "宠物图片不可用"): ApiException {
+  return new ApiException(PET_ERROR_CODE.PHOTO_INVALID, message, HttpStatus.BAD_REQUEST);
+}
+
+/** Rejects uploads after the owner has filled every photo slot on the pet. */
+export function petPhotoLimitReached(): ApiException {
+  return new ApiException(
+    PET_ERROR_CODE.PHOTO_LIMIT_REACHED,
+    `每个宠物最多只能上传 ${PET_PROFILE_LIMITS.MAX_PHOTOS_PER_PET} 张图片`,
+    HttpStatus.CONFLICT,
+  );
+}
+
+/** Hides missing, cross-owner, and cross-pet managed photo identities. */
+export function petPhotoNotFound(): ApiException {
+  return new ApiException(PET_ERROR_CODE.PHOTO_NOT_FOUND, "宠物图片不存在", HttpStatus.NOT_FOUND);
+}
+
+/** Creates a retryable failure when the managed object store cannot accept an upload. */
+export function petPhotoStorageUnavailable(): ApiException {
+  return new ApiException(
+    PET_ERROR_CODE.PHOTO_STORAGE_UNAVAILABLE,
+    "宠物图片存储暂时不可用，请稍后重试",
+    HttpStatus.SERVICE_UNAVAILABLE,
+  );
+}
+
 /** Rejects malformed pet data even when the service is called without the HTTP validation pipe. */
 export function petValidationFailed(message = "宠物档案参数无效"): ApiException {
   return new ApiException("VALIDATION_FAILED", message, HttpStatus.BAD_REQUEST);

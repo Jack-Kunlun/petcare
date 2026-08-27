@@ -117,6 +117,20 @@ describe("ApiExceptionFilter", () => {
     );
   });
 
+  it("maps a pet media upload limit to the pet-photo error contract", () => {
+    request.path = "/api/pets/11111111-1111-4111-8111-111111111111/media-assets";
+
+    filter.catch(new MulterError("LIMIT_FILE_SIZE"), host);
+
+    expect(response.status).toHaveBeenCalledWith(413);
+    expect(response.json).toHaveBeenCalledWith(
+      expect.objectContaining({
+        code: "PET_PHOTO_INVALID",
+        message: "宠物图片不能超过 10 MiB",
+      }),
+    );
+  });
+
   it("maps the fixed article upload path from a query-stripped request.url", () => {
     request.url = "/api/admin/content/articles/media-assets?file=article.png";
 

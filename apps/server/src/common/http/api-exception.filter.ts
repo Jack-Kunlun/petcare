@@ -1,4 +1,5 @@
 import { ArgumentsHost, Catch, ExceptionFilter, HttpException } from "@nestjs/common";
+import { PET_ERROR_CODE } from "@petcare/shared-types";
 import { Response } from "express";
 import { MulterError } from "multer";
 import { AppLogger } from "../../logging/app-logger.service";
@@ -51,6 +52,10 @@ export class ApiExceptionFilter implements ExceptionFilter {
 
   private mapException(exception: unknown, status: number, requestPath: string): MappedException {
     if (exception instanceof MulterError && exception.code === "LIMIT_FILE_SIZE") {
+      if (requestPath.includes("/pets/") && requestPath.endsWith("/media-assets")) {
+        return { code: PET_ERROR_CODE.PHOTO_INVALID, message: "宠物图片不能超过 10 MiB" };
+      }
+
       if (requestPath.includes("/admin/content/articles/media-assets")) {
         return { code: "CONTENT_ARTICLE_MEDIA_TOO_LARGE", message: "文章图片不能超过 10 MiB" };
       }
