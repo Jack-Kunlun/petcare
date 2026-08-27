@@ -48,13 +48,6 @@ const adminUserSelect = {
   status: true,
   createdAt: true,
   updatedAt: true,
-  provider: {
-    select: {
-      idCardVerified: true,
-      trainingPassed: true,
-      certifiedSitter: true,
-    },
-  },
 } as const;
 
 /** Owns role CRUD, permission assignment, administrator assignment, and RBAC audit writes. */

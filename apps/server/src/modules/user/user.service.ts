@@ -26,16 +26,7 @@ const registerUserSelect = {
   updatedAt: true,
 } as const;
 
-const adminUserListSelect = {
-  ...registerUserSelect,
-  provider: {
-    select: {
-      idCardVerified: true,
-      trainingPassed: true,
-      certifiedSitter: true,
-    },
-  },
-} as const;
+const adminUserListSelect = registerUserSelect;
 
 @Injectable()
 export class UserService {
@@ -83,7 +74,7 @@ export class UserService {
     };
   }
 
-  /** 根据后台筛选条件查询用户和宠托师认证摘要。 */
+  /** 根据后台筛选条件查询账户资料。 */
   async findAdminPage(query: AdminUserListQueryDto) {
     const keyword = query.keyword?.trim();
     const filters: object[] = [];

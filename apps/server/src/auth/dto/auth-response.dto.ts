@@ -44,7 +44,7 @@ export class AdminUserResponseDto implements AdminSessionUser {
   @ApiProperty({ type: [String], example: ["super_admin"] })
   roles: string[];
 
-  @ApiProperty({ type: [String], example: ["system.view", "system.publish"] })
+  @ApiProperty({ type: [String], example: ["website.view", "website.publish"] })
   permissions: string[];
 }
 

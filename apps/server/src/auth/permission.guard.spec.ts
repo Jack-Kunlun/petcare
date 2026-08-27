@@ -28,24 +28,24 @@ describe("PermissionGuard", () => {
   });
 
   it("允许拥有全部声明权限的管理员", async () => {
-    reflector.getAllAndOverride.mockReturnValue(["system.view", "system.publish"]);
+    reflector.getAllAndOverride.mockReturnValue(["website.view", "website.publish"]);
     authService.getCurrentUserAuthorization.mockResolvedValue({
-      roles: ["config_admin"],
-      permissions: ["system.view", "system.publish"],
+      roles: ["content_admin"],
+      permissions: ["website.view", "website.publish"],
     });
 
     await expect(guard.canActivate(contextFor({ sub: "admin-1" }))).resolves.toBe(true);
   });
 
   it("拒绝缺少任意声明权限的管理员", async () => {
-    reflector.getAllAndOverride.mockReturnValue(["system.publish"]);
+    reflector.getAllAndOverride.mockReturnValue(["website.publish"]);
     authService.getCurrentUserAuthorization.mockResolvedValue({
-      roles: ["config_admin"],
-      permissions: ["system.view"],
+      roles: ["content_admin"],
+      permissions: ["website.view"],
     });
 
     await expect(guard.canActivate(contextFor({ sub: "admin-1" }))).rejects.toThrow(
-      "缺少系统设置操作权限",
+      "缺少所需操作权限",
     );
   });
 
@@ -65,7 +65,7 @@ describe("PermissionGuard", () => {
   });
 
   it("将无效或无权限的当前用户拒绝为禁止访问", async () => {
-    reflector.getAllAndOverride.mockReturnValue(["system.view"]);
+    reflector.getAllAndOverride.mockReturnValue(["website.view"]);
     authService.getCurrentUserAuthorization.mockResolvedValue(null);
 
     await expect(guard.canActivate(contextFor({ sub: "admin-1" }))).rejects.toBeInstanceOf(

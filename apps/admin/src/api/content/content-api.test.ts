@@ -29,7 +29,6 @@ import {
   postQueryKeys,
   rejectAdminContentPost,
 } from "./posts";
-import { fetchAdminContentRewards } from "./rewards";
 
 vi.mock("../auth", () => ({
   apiClient: { get: vi.fn(), post: vi.fn(), put: vi.fn() },
@@ -76,21 +75,6 @@ const publicAsset: UploadAdminClassroomArticleMediaResponse = {
 
 describe("content api", () => {
   beforeEach(() => vi.clearAllMocks());
-
-  it("calls the rewards endpoint with shared query types", async () => {
-    vi.mocked(apiClient.get).mockResolvedValue({
-      data: { list: [], total: 0, page: 1, pageSize: 20 },
-    });
-    const query = { page: 1, pageSize: 20, status: "pending_confirm" as const };
-
-    await expect(fetchAdminContentRewards(query)).resolves.toEqual({
-      list: [],
-      total: 0,
-      page: 1,
-      pageSize: 20,
-    });
-    expect(apiClient.get).toHaveBeenCalledWith("/admin/content/rewards", { params: query });
-  });
 
   it("calls post and article endpoints", async () => {
     vi.mocked(apiClient.get).mockResolvedValue({

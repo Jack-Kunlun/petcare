@@ -1,6 +1,5 @@
 import { ApiProperty } from "@nestjs/swagger";
 import type {
-  AdminProviderSummary,
   AdminUserListItem,
   AdminUserStatus,
   AdminUserType,
@@ -76,21 +75,7 @@ export class UserRegisterResponseDto {
   refreshToken: string;
 }
 
-export class AdminProviderSummaryDto implements AdminProviderSummary {
-  @ApiProperty()
-  idCardVerified: boolean;
-
-  @ApiProperty()
-  trainingPassed: boolean;
-
-  @ApiProperty()
-  certifiedSitter: boolean;
-}
-
-export class AdminUserListItemDto extends RegisteredUserResponseDto implements AdminUserListItem {
-  @ApiProperty({ type: AdminProviderSummaryDto, nullable: true })
-  provider: AdminProviderSummaryDto | null;
-}
+export class AdminUserListItemDto extends RegisteredUserResponseDto implements AdminUserListItem {}
 
 export class AdminUserListResponseDto {
   @ApiProperty({ type: [AdminUserListItemDto] })

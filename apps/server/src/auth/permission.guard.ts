@@ -40,7 +40,7 @@ export class PermissionGuard implements CanActivate {
     const permissionSet = new Set(authorization?.permissions);
 
     if (!authorization || !requiredPermissions.every((code) => permissionSet.has(code))) {
-      throw new ForbiddenException("缺少系统设置操作权限");
+      throw new ForbiddenException("缺少所需操作权限");
     }
 
     return true;

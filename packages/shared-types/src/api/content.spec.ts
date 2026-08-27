@@ -20,7 +20,6 @@ import {
   type AdminContentPostDetail,
   type AdminContentPostListResponse,
   type AdminContentPostStateRequest,
-  type AdminContentRewardListResponse,
   type CommunityMediaAsset,
   type CommunityPostLikeState,
   type CreateCommunityPostCommentRequest,
@@ -61,11 +60,7 @@ describe("content contracts", () => {
       "喂养指南",
     );
 
-    const responses: Array<
-      | AdminContentRewardListResponse
-      | AdminContentPostListResponse
-      | AdminClassroomArticleListResponse
-    > = [];
+    const responses: Array<AdminContentPostListResponse | AdminClassroomArticleListResponse> = [];
 
     expect(responses).toEqual([]);
   });

@@ -17,12 +17,9 @@ import type {
   AdminClassroomArticleListResponse,
   AdminContentAuthorSummary,
   AdminContentPostDetail,
-  AdminContentPetSummary,
   AdminContentPostListItem,
   AdminContentPostListResponse,
   AdminContentPostModerationEvent,
-  AdminContentRewardListItem,
-  AdminContentRewardListResponse,
   PublicClassroomArticleAuthor,
   PublicClassroomArticleDetail,
   PublicClassroomArticleListItem,
@@ -45,60 +42,6 @@ export class AdminContentAuthorSummaryDto implements AdminContentAuthorSummary {
 
   @ApiProperty({ nullable: true })
   avatar: string | null;
-}
-
-/** 内容宠物摘要响应。 */
-export class AdminContentPetSummaryDto implements AdminContentPetSummary {
-  @ApiProperty({ format: "uuid" })
-  id: string;
-
-  @ApiProperty()
-  name: string;
-
-  @ApiProperty()
-  breed: string;
-}
-
-/** 后台悬赏列表项响应。 */
-export class AdminContentRewardListItemDto implements AdminContentRewardListItem {
-  @ApiProperty({ format: "uuid" })
-  id: string;
-
-  @ApiProperty({ example: "feeding" })
-  serviceType: AdminContentRewardListItem["serviceType"];
-
-  @ApiProperty({ type: AdminContentAuthorSummaryDto })
-  owner: AdminContentAuthorSummaryDto;
-
-  @ApiProperty({ type: AdminContentPetSummaryDto })
-  pet: AdminContentPetSummaryDto;
-
-  @ApiProperty({ example: 120.5 })
-  rewardAmount: number;
-
-  @ApiProperty({ example: "pending_confirm" })
-  status: AdminContentRewardListItem["status"];
-
-  @ApiProperty({ format: "date-time" })
-  serviceTime: string;
-
-  @ApiProperty({ format: "date-time" })
-  createdAt: string;
-}
-
-/** 后台悬赏列表响应。 */
-export class AdminContentRewardListResponseDto implements AdminContentRewardListResponse {
-  @ApiProperty({ type: [AdminContentRewardListItemDto] })
-  list: AdminContentRewardListItemDto[];
-
-  @ApiProperty({ example: 120 })
-  total: number;
-
-  @ApiProperty({ example: 1 })
-  page: number;
-
-  @ApiProperty({ example: 20 })
-  pageSize: number;
 }
 
 /** 后台帖子列表项响应。 */

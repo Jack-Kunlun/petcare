@@ -10,9 +10,6 @@ import { WechatAuthController } from "../../auth/wechat-auth.controller";
 import { WechatAuthService } from "../../auth/wechat-auth.service";
 import { ConfigService } from "../../config/config.service";
 import { HealthController } from "../../health/health.controller";
-import { AdminOrderController } from "../../modules/order/admin-order.controller";
-import { OrderController } from "../../modules/order/order.controller";
-import { OrderService } from "../../modules/order/order.service";
 import { AdminUserController } from "../../modules/user/admin-user.controller";
 import { MiniappAccountController } from "../../modules/user/miniapp-account.controller";
 import { MiniappAccountService } from "../../modules/user/miniapp-account.service";
@@ -28,11 +25,9 @@ beforeAll(async () => {
       AuthController,
       WechatAuthController,
       HealthController,
-      AdminOrderController,
       AdminUserController,
       UserController,
       MiniappAccountController,
-      OrderController,
     ],
     providers: [
       { provide: AuthService, useValue: {} },
@@ -41,7 +36,6 @@ beforeAll(async () => {
       { provide: ConfigService, useValue: {} },
       { provide: UserService, useValue: {} },
       { provide: MiniappAccountService, useValue: {} },
-      { provide: OrderService, useValue: {} },
     ],
   })
     .overrideGuard(AccessTokenGuard)
@@ -73,35 +67,12 @@ describe("Swagger response documentation", () => {
     expect(responseSchema("/users/register", "post", "201")).toMatchObject({
       allOf: expect.any(Array),
     });
-    expect(responseSchema("/orders", "get", "200")).toMatchObject({
-      allOf: expect.any(Array),
-    });
     expect(responseSchema("/admin/users", "get", "200")).toMatchObject({
       allOf: expect.any(Array),
     });
-    expect(responseSchema("/admin/orders", "get", "200")).toMatchObject({
-      allOf: expect.any(Array),
-    });
   });
 
-  it("documents the unified order pagination data fields", () => {
-    const schema = document.components?.schemas?.OrderListResponseDto as {
-      properties?: Record<string, unknown>;
-    };
-
-    expect(schema.properties).toMatchObject({
-      list: {
-        type: "array",
-        items: { $ref: "#/components/schemas/PublicOrderResponseDto" },
-      },
-      total: { type: "number", example: 1 },
-      page: { type: "number", example: 1 },
-      pageSize: { type: "number", example: 20 },
-    });
-    expect(schema.properties).not.toHaveProperty("orders");
-  });
-
-  it("documents only anonymous-safe public user and order fields", () => {
+  it("documents only anonymous-safe public user fields", () => {
     expect(schemaPropertyNames("UserResponseDto")).toEqual([
       "avatar",
       "id",
@@ -111,22 +82,6 @@ describe("Swagger response documentation", () => {
       "userType",
     ]);
     expect(schemaPropertyNames("PublicUserProfileDto")).toEqual(["bio", "region"]);
-    expect(schemaPropertyNames("PublicOrderResponseDto")).toEqual([
-      "amount",
-      "id",
-      "orderType",
-      "owner",
-      "pet",
-      "serviceTime",
-      "serviceType",
-      "status",
-    ]);
-    expect(schemaPropertyNames("PublicOrderOwnerResponseDto")).toEqual(["avatar", "nickname"]);
-    expect(schemaPropertyNames("PublicOrderPetResponseDto")).toEqual([
-      "breed",
-      "coverImage",
-      "name",
-    ]);
   });
 
   it("documents the unified admin user pagination data fields", () => {
@@ -145,26 +100,9 @@ describe("Swagger response documentation", () => {
     });
   });
 
-  it("documents the unified admin order pagination data fields", () => {
-    const schema = document.components?.schemas?.AdminOrderListResponseDto as {
-      properties?: Record<string, unknown>;
-    };
-
-    expect(schema.properties).toMatchObject({
-      list: {
-        type: "array",
-        items: { $ref: "#/components/schemas/AdminOrderListItemDto" },
-      },
-      total: { type: "number", example: 120 },
-      page: { type: "number", example: 1 },
-      pageSize: { type: "number", example: 20 },
-    });
-  });
-
   it("documents logout and standard errors", () => {
     expect(document.paths["/auth/logout"]?.post?.responses?.["204"]).toBeDefined();
     expect(document.paths["/users/{id}"]?.get?.responses?.["404"]).toBeDefined();
-    expect(document.paths["/orders/{id}"]?.get?.responses?.["404"]).toBeDefined();
     expect(document.paths["/auth/login/password"]?.post?.responses?.["401"]).toBeDefined();
     expect(document.paths["/auth/wechat/bind-phone"]).toBeUndefined();
     expect(document.paths["/auth/wechat/login"]?.post?.responses?.["503"]).toBeDefined();

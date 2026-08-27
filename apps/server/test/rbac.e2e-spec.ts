@@ -116,14 +116,14 @@ describe("RBAC authorization boundary (e2e)", () => {
     const createRole = await request(app.getHttpServer())
       .post("/admin/rbac/roles")
       .set("Authorization", `Bearer ${superAdminToken}`)
-      .send({ roleName: "rbac_e2e_restricted", description: "仅系统查看的验收角色" })
+      .send({ roleName: "rbac_e2e_restricted", description: "仅官网内容查看的验收角色" })
       .expect(201);
     restrictedRoleId = createRole.body.data.id as string;
 
     await request(app.getHttpServer())
       .put(`/admin/rbac/roles/${restrictedRoleId}/permissions`)
       .set("Authorization", `Bearer ${superAdminToken}`)
-      .send({ permissionCodes: ["system.view"] })
+      .send({ permissionCodes: ["website.view"] })
       .expect(200);
 
     const restrictedAdmin = await prisma.user.create({
@@ -154,14 +154,14 @@ describe("RBAC authorization boundary (e2e)", () => {
     return response.body.data.accessToken as string;
   }
 
-  it("allows system read but rejects publishing and permission replacement until rbac.role.update is granted", async () => {
+  it("allows website reads but rejects publishing and permission replacement until rbac.role.update is granted", async () => {
     await request(app.getHttpServer())
-      .get("/admin/system-settings/overview")
+      .get("/admin/website-content")
       .set("Authorization", `Bearer ${restrictedAdminToken}`)
       .expect(200);
 
     const publish = await request(app.getHttpServer())
-      .post("/admin/system-settings/fee/publish")
+      .post("/admin/website-content/home/publish")
       .set("Authorization", `Bearer ${restrictedAdminToken}`)
       .send({ revision: 0, idempotencyKey: "rbac-e2e-forbidden-publish" })
       .expect(403);
@@ -170,22 +170,22 @@ describe("RBAC authorization boundary (e2e)", () => {
     const replaceBeforeGrant = await request(app.getHttpServer())
       .put(`/admin/rbac/roles/${restrictedRoleId}/permissions`)
       .set("Authorization", `Bearer ${restrictedAdminToken}`)
-      .send({ permissionCodes: ["system.view"] })
+      .send({ permissionCodes: ["website.view"] })
       .expect(403);
     expect(replaceBeforeGrant.body.code).toBe("FORBIDDEN");
 
     await request(app.getHttpServer())
       .put(`/admin/rbac/roles/${restrictedRoleId}/permissions`)
       .set("Authorization", `Bearer ${superAdminToken}`)
-      .send({ permissionCodes: ["system.view", "rbac.role.update"] })
+      .send({ permissionCodes: ["website.view", "rbac.role.update"] })
       .expect(200);
     restrictedAdminToken = await login(restrictedAdminCredentials);
 
     const replaceAfterGrant = await request(app.getHttpServer())
       .put(`/admin/rbac/roles/${restrictedRoleId}/permissions`)
       .set("Authorization", `Bearer ${restrictedAdminToken}`)
-      .send({ permissionCodes: ["system.view"] })
+      .send({ permissionCodes: ["website.view"] })
       .expect(200);
-    expect(replaceAfterGrant.body.data.permissionCodes).toContain("system.view");
+    expect(replaceAfterGrant.body.data.permissionCodes).toContain("website.view");
   }, 60_000);
 });

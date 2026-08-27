@@ -156,7 +156,6 @@ describe("UserService public responses", () => {
         userType: "pet_owner",
         status: "inactive",
         createdAt: new Date("2026-07-29T00:00:00.000Z"),
-        provider: null,
       },
     ]);
     prisma.user.count.mockResolvedValue(1);

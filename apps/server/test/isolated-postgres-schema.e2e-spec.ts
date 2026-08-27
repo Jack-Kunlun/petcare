@@ -13,7 +13,7 @@ describe("IsolatedPostgresSchemaLifecycle", () => {
     const calls: string[] = [];
     const failure = new Error("db push failed after partial creation");
     const lifecycle = new IsolatedPostgresSchemaLifecycle({
-      schemaName: "system_settings_e2e_42_1000",
+      schemaName: "isolated_e2e_42_1000",
       environment,
       overrides: { JWT_SECRET: "e2e-secret", NODE_ENV: "test" },
       initialize: async () => {
@@ -26,9 +26,9 @@ describe("IsolatedPostgresSchemaLifecycle", () => {
 
     await expect(lifecycle.setup()).rejects.toBe(failure);
     expect(calls).toEqual([
-      "push:system_settings_e2e_42_1000",
+      "push:isolated_e2e_42_1000",
       "close",
-      "drop-if-exists:system_settings_e2e_42_1000",
+      "drop-if-exists:isolated_e2e_42_1000",
     ]);
     expect(environment).toEqual({
       DB_SCHEMA: "public",
@@ -42,7 +42,7 @@ describe("IsolatedPostgresSchemaLifecycle", () => {
     const calls: string[] = [];
     const closeFailure = new Error("app close failed");
     const lifecycle = new IsolatedPostgresSchemaLifecycle({
-      schemaName: "system_settings_e2e_42_1000",
+      schemaName: "isolated_e2e_42_1000",
       environment,
       overrides: { JWT_SECRET: "e2e-secret", NODE_ENV: "test" },
       initialize: async () => calls.push("push"),
@@ -55,15 +55,15 @@ describe("IsolatedPostgresSchemaLifecycle", () => {
 
     await lifecycle.setup();
     await expect(lifecycle.teardown()).rejects.toBe(closeFailure);
-    expect(calls).toEqual(["push", "close", "drop-if-exists:system_settings_e2e_42_1000"]);
+    expect(calls).toEqual(["push", "close", "drop-if-exists:isolated_e2e_42_1000"]);
     expect(environment.DB_SCHEMA).toBeUndefined();
     expect(environment.JWT_SECRET).toBeUndefined();
     expect(environment.NODE_ENV).toBeUndefined();
   });
 
   it("DROP 语句只接受约定前缀并始终使用 IF EXISTS", () => {
-    expect(buildDropSchemaIfExistsStatement("system_settings_e2e_42_1000")).toBe(
-      'DROP SCHEMA IF EXISTS "system_settings_e2e_42_1000" CASCADE',
+    expect(buildDropSchemaIfExistsStatement("isolated_e2e_42_1000")).toBe(
+      'DROP SCHEMA IF EXISTS "isolated_e2e_42_1000" CASCADE',
     );
     expect(buildDropSchemaIfExistsStatement("rbac_e2e_42_1000")).toBe(
       'DROP SCHEMA IF EXISTS "rbac_e2e_42_1000" CASCADE',
@@ -71,7 +71,7 @@ describe("IsolatedPostgresSchemaLifecycle", () => {
     expect(() => buildDropSchemaIfExistsStatement("public")).toThrow(
       "requires an isolated disposable schema",
     );
-    expect(() => buildDropSchemaIfExistsStatement("system_settings_e2e_42_1000;DROP")).toThrow(
+    expect(() => buildDropSchemaIfExistsStatement("isolated_e2e_42_1000;DROP")).toThrow(
       "requires an isolated disposable schema",
     );
   });

@@ -3,7 +3,7 @@
   "version": "1.0.0",
   "private": true,
   "type": "module",
-  "description": "PetCare宠伴 - 双模式O2O宠物服务平台",
+  "description": "PetCare宠伴 - 个人非商业养宠内容与档案原型",
   "scripts": {
     "build": "turbo run build",
     "build:admin": "pnpm --filter @petcare/admin build",

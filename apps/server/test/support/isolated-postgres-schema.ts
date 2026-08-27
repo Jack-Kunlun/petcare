@@ -8,18 +8,18 @@ interface IsolatedPostgresSchemaLifecycleOptions {
 }
 
 function assertDisposableSchema(schemaName: string): void {
-  if (!/^(?:system_settings|rbac)_e2e_\d+_\d+$/u.test(schemaName) || schemaName === "public") {
+  if (!/^(?:isolated|rbac)_e2e_\d+_\d+$/u.test(schemaName) || schemaName === "public") {
     throw new Error("E2E requires an isolated disposable schema");
   }
 }
 
-/** 构造仅允许系统设置 E2E 临时 schema 的幂等删除语句。 */
+/** 构造仅允许约定 E2E 临时 schema 的幂等删除语句。 */
 export function buildDropSchemaIfExistsStatement(schemaName: string): string {
   assertDisposableSchema(schemaName);
   return `DROP SCHEMA IF EXISTS "${schemaName}" CASCADE`;
 }
 
-/** 管理系统设置 E2E 临时 schema 与进程环境的完整 setup/teardown 生命周期。 */
+/** 管理隔离 E2E 临时 schema 与进程环境的完整 setup/teardown 生命周期。 */
 export class IsolatedPostgresSchemaLifecycle {
   private readonly originalEnvironment = new Map<string, string | undefined>();
   private environmentApplied = false;
@@ -106,7 +106,7 @@ export class IsolatedPostgresSchemaLifecycle {
     }
 
     if (errors.length > 1) {
-      throw new AggregateError(errors, "System settings E2E lifecycle cleanup failed");
+      throw new AggregateError(errors, "Isolated E2E lifecycle cleanup failed");
     }
   }
 }

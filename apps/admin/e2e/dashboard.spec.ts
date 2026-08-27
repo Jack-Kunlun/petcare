@@ -16,28 +16,26 @@ test.describe("PetCare Admin Dashboard", () => {
     await page.getByLabel("手机号或账号").fill(requiredEnv("DEFAULT_ADMIN_USERNAME"));
     await page.getByLabel("密码").fill(requiredEnv("DEFAULT_ADMIN_PASSWORD"));
     await page.getByRole("button", { name: "登录" }).click();
-    await expect(page.getByRole("heading", { name: "运营概览" })).toBeVisible();
+    await expect(page.getByRole("heading", { name: "管理概览" })).toBeVisible();
   });
 
-  test("显示控制台统计数据", async ({ page }) => {
+  test("显示当前个人版管理能力", async ({ page }) => {
     await expect(page).toHaveTitle(/PetCare/);
     await expect(page.locator("aside")).toBeVisible();
-    await expect(page.getByText("累计用户")).toBeVisible();
-    await expect(page.getByText("今日订单")).toBeVisible();
-    await expect(page.getByText("本月成交额")).toBeVisible();
-    await expect(page.getByText("订单完成率")).toBeVisible();
+    await expect(page.getByText("当前范围已收窄")).toBeVisible();
+    await expect(page.getByRole("heading", { name: "用户资料" })).toBeVisible();
+    await expect(page.getByRole("heading", { name: "社区审核" })).toBeVisible();
+    await expect(page.getByRole("heading", { name: "萌宠课堂" })).toBeVisible();
+    await expect(page.getByRole("heading", { name: "官网内容" })).toBeVisible();
   });
 
   for (const destination of [
-    { menu: "用户管理菜单", link: "用户列表", path: /\/users$/, heading: "用户管理" },
-    { menu: "订单管理菜单", link: "订单管理", path: /\/orders$/, heading: "订单管理" },
-    { link: "系统设置", path: /\/settings$/, heading: "系统设置" },
+    { link: "查看用户资料", path: /\/users$/, heading: "用户资料" },
+    { link: "进入社区审核", path: /\/content\/posts$/, heading: "帖子管理" },
+    { link: "管理课堂文章", path: /\/content\/articles$/, heading: "文章管理" },
+    { link: "管理官网内容", path: /\/website-content$/, heading: "官网与小程序内容" },
   ]) {
     test(`导航到${destination.heading}`, async ({ page }) => {
-      if (destination.menu) {
-        await page.getByRole("button", { name: destination.menu }).click();
-      }
-
       await page.getByRole("link", { name: destination.link }).click();
       await expect(page).toHaveURL(destination.path);
       await expect(page.getByRole("heading", { name: destination.heading })).toBeVisible();

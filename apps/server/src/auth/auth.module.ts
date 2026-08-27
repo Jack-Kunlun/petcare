@@ -9,7 +9,6 @@ import { AdminGuard } from "./admin.guard";
 import { AuthController } from "./auth.controller";
 import { AuthService } from "./auth.service";
 import { CaptchaService } from "./captcha.service";
-import { DisputeResolverGuard } from "./dispute-resolver.guard";
 import { JwtStrategy } from "./jwt.strategy";
 import { PasswordLoginAttemptService } from "./password-login-attempt.service";
 import { PasswordService } from "./password.service";
@@ -63,7 +62,6 @@ export function createSmsSender(configService: ConfigService): SmsSender {
     AdminGuard,
     PermissionGuard,
     ProfileCompleteGuard,
-    DisputeResolverGuard,
     {
       provide: SMS_SENDER,
       inject: [ConfigService],
@@ -77,7 +75,6 @@ export function createSmsSender(configService: ConfigService): SmsSender {
     AdminGuard,
     PermissionGuard,
     ProfileCompleteGuard,
-    DisputeResolverGuard,
     PasswordService,
     TokenService,
     SessionValidationService,

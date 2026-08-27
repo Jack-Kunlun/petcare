@@ -86,10 +86,12 @@ async function forceKillTestProcess(processId) {
   try {
     process.kill(-processId, "SIGKILL");
   } catch (groupError) {
-    if (groupError?.code !== "ESRCH") {
+    if (groupError?.code !== "ESRCH" && groupError?.code !== "EPERM") {
       throw groupError;
     }
 
+    // The detached group may already have disappeared or its numeric id may have been reused.
+    // Fall back to the owned root PID before deciding whether cleanup actually failed.
     try {
       process.kill(processId, "SIGKILL");
     } catch (processError) {
@@ -356,6 +358,35 @@ test("受管进程已正常退出时 stopProcess 是幂等 no-op", async () => {
       signalCode: null,
     }),
   );
+});
+
+test("POSIX 受管根进程退出后不再向无权限的旧进程组发信号", async () => {
+  const platformDescriptor = Object.getOwnPropertyDescriptor(process, "platform");
+  const originalKill = process.kill;
+  const child = {
+    pid: 424_242,
+    exitCode: null,
+    signalCode: null,
+  };
+
+  try {
+    Object.defineProperty(process, "platform", { ...platformDescriptor, value: "linux" });
+    process.kill = (_processId, signal) => {
+      if (signal === "SIGTERM") {
+        child.exitCode = 0;
+        return true;
+      }
+
+      const error = new Error("operation not permitted");
+      error.code = "EPERM";
+      throw error;
+    };
+
+    await assert.doesNotReject(stopProcess(child));
+  } finally {
+    process.kill = originalKill;
+    Object.defineProperty(process, "platform", platformDescriptor);
+  }
 });
 
 test("POSIX fixture 强制清理对已消失的进程组和 PID 可重复执行", async () => {

@@ -16,30 +16,6 @@ type EditorScenario = {
   action: string;
 };
 
-const certificationApplication = {
-  id: "editor-layout-e2e",
-  applicant: {
-    id: "user-editor-layout-e2e",
-    phone: "13800138000",
-    username: "editor-layout-e2e",
-    nickname: "安心宠托",
-    avatar: null,
-  },
-  realNameMasked: "张*",
-  idCardVerified: true,
-  idCardMasked: "3601********1234",
-  idCardFrontUrl: "https://example.com/front",
-  idCardBackUrl: "https://example.com/back",
-  trainingPassed: true,
-  wechatScore: 680,
-  status: "pending",
-  rejectReason: null,
-  reviewedBy: null,
-  createdAt: "2026-07-29T00:00:00.000Z",
-  reviewedAt: null,
-  updatedAt: "2026-07-29T00:00:00.000Z",
-};
-
 function requiredEnv(name: "DEFAULT_ADMIN_USERNAME" | "DEFAULT_ADMIN_PASSWORD"): string {
   const value = process.env[name]?.trim();
 
@@ -55,7 +31,7 @@ async function loginAsDefaultAdmin(page: Page): Promise<void> {
   await page.getByLabel("手机号或账号").fill(requiredEnv("DEFAULT_ADMIN_USERNAME"));
   await page.getByLabel("密码").fill(requiredEnv("DEFAULT_ADMIN_PASSWORD"));
   await page.getByRole("button", { name: "登录" }).click();
-  await expect(page.getByRole("heading", { name: "运营概览" })).toBeVisible();
+  await expect(page.getByRole("heading", { name: "管理概览" })).toBeVisible();
 }
 
 async function openRoute(page: Page, path: string): Promise<void> {
@@ -158,19 +134,6 @@ async function assertStickyAfterLongScroll(page: Page, viewport: Viewport): Prom
 for (const viewport of viewports) {
   test(`编辑页布局在 ${viewport.width}x${viewport.height} 保持桌面契约`, async ({ page }) => {
     await page.setViewportSize(viewport);
-    await page.route("**/api/admin/provider-certifications/editor-layout-e2e", async (route) => {
-      await route.fulfill({
-        json: {
-          code: "SUCCESS",
-          message: "操作成功",
-          data: certificationApplication,
-          meta: {
-            requestId: "editor-layout-e2e",
-            timestamp: "2026-08-26T00:00:00.000Z",
-          },
-        },
-      });
-    });
     await loginAsDefaultAdmin(page);
 
     await openAndAssert(
@@ -185,39 +148,9 @@ for (const viewport of viewports) {
     );
     await openAndAssert(
       page,
-      { path: "/settings/fee/edit", title: "编辑费率设置", action: "顶部保存草稿" },
-      viewport,
-    );
-
-    const historyLink = page
-      .locator(".editor-page__header")
-      .getByRole("link", { name: "历史版本", exact: true });
-    const historyHref = await historyLink.getAttribute("href");
-
-    if (!historyHref?.startsWith("/settings/fee/history/")) {
-      throw new Error("Loaded fee editor did not expose its current history URL");
-    }
-
-    await historyLink.click();
-    await assertEditorLayout(
-      page,
-      { title: /^费率设置 v\d+$/u, action: "顶部复制为新草稿" },
-      viewport,
-    );
-    await openAndAssert(
-      page,
       { path: "/rbac/new", title: "新建角色", action: "顶部保存角色" },
       viewport,
     );
     await assertStickyAfterLongScroll(page, viewport);
-    await openAndAssert(
-      page,
-      {
-        path: "/users/certifications/editor-layout-e2e",
-        title: "安心宠托",
-        action: "顶部审核通过",
-      },
-      viewport,
-    );
   });
 }

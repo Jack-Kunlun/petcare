@@ -9,7 +9,6 @@ import type {
   AdminContentPostDetail,
   AdminContentPostListResponse,
   AdminContentPostStateRequest,
-  AdminContentRewardListResponse,
   CommunityPostModerationAction,
 } from "@petcare/shared-types";
 import type { Prisma } from "../../generated/prisma/client";
@@ -24,10 +23,7 @@ import {
   communityPostReasonRequired,
   communityPostStateConflict,
 } from "./community-post.errors";
-import {
-  AdminContentPostListQueryDto,
-  AdminContentRewardListQueryDto,
-} from "./dto/admin-content-query.dto";
+import { AdminContentPostListQueryDto } from "./dto/admin-content-query.dto";
 
 const authorSelect = {
   id: true,
@@ -35,12 +31,6 @@ const authorSelect = {
   username: true,
   nickname: true,
   avatar: true,
-} as const;
-
-const petSelect = {
-  id: true,
-  name: true,
-  breed: true,
 } as const;
 
 const postListSelect = {
@@ -142,71 +132,6 @@ export class ContentService {
     private readonly prisma: PrismaService,
     @Inject(WEBSITE_MEDIA_STORAGE) private readonly storage: WebsiteMediaStorage,
   ) {}
-
-  /** 查询悬赏订单列表，并固定限制为 reward 类型。 */
-  async findRewardPage(
-    query: AdminContentRewardListQueryDto,
-  ): Promise<AdminContentRewardListResponse> {
-    const keyword = query.keyword?.trim();
-    const filters: object[] = [{ orderType: "reward" }];
-
-    if (keyword) {
-      filters.push({
-        OR: [
-          { id: { contains: keyword, mode: "insensitive" } },
-          { owner: { phone: { contains: keyword } } },
-          { owner: { nickname: { contains: keyword, mode: "insensitive" } } },
-          { pet: { name: { contains: keyword, mode: "insensitive" } } },
-        ],
-      });
-    }
-
-    if (query.serviceType) {
-      filters.push({ serviceType: query.serviceType });
-    }
-
-    if (query.status) {
-      filters.push({ status: query.status });
-    }
-
-    const where = { AND: filters };
-    const [list, total] = await Promise.all([
-      this.prisma.order.findMany({
-        where,
-        orderBy: { createdAt: "desc" },
-        skip: (query.page - 1) * query.pageSize,
-        take: query.pageSize,
-        select: {
-          id: true,
-          serviceType: true,
-          status: true,
-          serviceTime: true,
-          createdAt: true,
-          reward: { select: { rewardAmount: true } },
-          owner: { select: authorSelect },
-          pet: { select: petSelect },
-        },
-      }),
-      this.prisma.order.count({ where }),
-    ]);
-
-    return {
-      list: list.map((order) => ({
-        id: order.id,
-        serviceType:
-          order.serviceType as AdminContentRewardListResponse["list"][number]["serviceType"],
-        owner: asAuthor(order.owner),
-        pet: order.pet,
-        rewardAmount: (order.reward?.rewardAmount ?? 0) / 100,
-        status: order.status as AdminContentRewardListResponse["list"][number]["status"],
-        serviceTime: order.serviceTime.toISOString(),
-        createdAt: order.createdAt.toISOString(),
-      })),
-      total,
-      page: query.page,
-      pageSize: query.pageSize,
-    };
-  }
 
   /** 查询社区帖子列表，仅返回后台表格所需摘要字段。 */
   async findPostPage(query: AdminContentPostListQueryDto): Promise<AdminContentPostListResponse> {

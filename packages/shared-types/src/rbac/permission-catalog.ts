@@ -33,8 +33,8 @@ export interface RbacPermissionDefinition {
   impliedApiCodes: readonly string[];
 }
 
-/** Permission definitions retained while paused domains remain isolated in repository history. */
-const RBAC_PERMISSION_DEFINITIONS: readonly RbacPermissionDefinition[] = [
+/** The code-defined permission catalog enabled by the current personal-version runtime. */
+export const RBAC_PERMISSION_CATALOG: readonly RbacPermissionDefinition[] = [
   /** Opens the current management overview in the administration console. */
   {
     code: "stats.view",
@@ -45,18 +45,6 @@ const RBAC_PERMISSION_DEFINITIONS: readonly RbacPermissionDefinition[] = [
     parentCode: null,
     order: 10,
     icon: "House",
-    impliedApiCodes: [],
-  },
-  /** Allows reading aggregated operations dashboard metrics. */
-  {
-    code: "stats.dashboard",
-    type: "api",
-    label: "查看运营数据",
-    module: "stats",
-    path: null,
-    parentCode: null,
-    order: 10,
-    icon: null,
     impliedApiCodes: [],
   },
   /** Opens the user management section in the administration console. */
@@ -119,210 +107,6 @@ const RBAC_PERMISSION_DEFINITIONS: readonly RbacPermissionDefinition[] = [
     icon: null,
     impliedApiCodes: [],
   },
-  /** Shows the action for approving a service provider application. */
-  {
-    code: "user.approve_provider",
-    type: "button",
-    label: "审核服务提供者",
-    module: "user",
-    path: null,
-    parentCode: "user.view",
-    order: 10,
-    icon: null,
-    impliedApiCodes: ["provider_certification.approve"],
-  },
-  /** Shows the action for rejecting a service provider application. */
-  {
-    code: "user.reject_provider",
-    type: "button",
-    label: "驳回服务提供者",
-    module: "user",
-    path: null,
-    parentCode: "user.view",
-    order: 20,
-    icon: null,
-    impliedApiCodes: ["provider_certification.reject"],
-  },
-  /** Opens the provider certification review page under user management. */
-  {
-    code: "provider_certification.view",
-    type: "menu",
-    label: "认证审核",
-    module: "provider_certification",
-    path: "/users/certifications",
-    parentCode: "user.view",
-    order: 30,
-    icon: "BadgeCheck",
-    impliedApiCodes: ["provider_certification.read"],
-  },
-  /** Allows reading provider certification applications. */
-  {
-    code: "provider_certification.read",
-    type: "api",
-    label: "查看认证申请",
-    module: "provider_certification",
-    path: null,
-    parentCode: null,
-    order: 10,
-    icon: null,
-    impliedApiCodes: [],
-  },
-  /** Allows approving a provider certification application. */
-  {
-    code: "provider_certification.approve",
-    type: "api",
-    label: "通过认证申请",
-    module: "provider_certification",
-    path: null,
-    parentCode: null,
-    order: 20,
-    icon: null,
-    impliedApiCodes: [],
-  },
-  /** Allows rejecting a provider certification application. */
-  {
-    code: "provider_certification.reject",
-    type: "api",
-    label: "驳回认证申请",
-    module: "provider_certification",
-    path: null,
-    parentCode: null,
-    order: 30,
-    icon: null,
-    impliedApiCodes: [],
-  },
-  /** Opens the order management section in the administration console. */
-  {
-    code: "order.view",
-    type: "menu",
-    label: "订单管理",
-    module: "order",
-    path: "/orders",
-    parentCode: null,
-    order: 30,
-    icon: "ShoppingBag",
-    impliedApiCodes: ["order.read"],
-  },
-  /** Allows reading order lists and order details. */
-  {
-    code: "order.read",
-    type: "api",
-    label: "查看订单列表",
-    module: "order",
-    path: null,
-    parentCode: null,
-    order: 10,
-    icon: null,
-    impliedApiCodes: [],
-  },
-  /** Allows creating an order through the administration API. */
-  {
-    code: "order.create",
-    type: "api",
-    label: "创建订单",
-    module: "order",
-    path: null,
-    parentCode: null,
-    order: 20,
-    icon: null,
-    impliedApiCodes: [],
-  },
-  /** Allows updating order state and order data. */
-  {
-    code: "order.update",
-    type: "api",
-    label: "更新订单",
-    module: "order",
-    path: null,
-    parentCode: null,
-    order: 30,
-    icon: null,
-    impliedApiCodes: [],
-  },
-  /** Shows the action for cancelling an order. */
-  {
-    code: "order.cancel",
-    type: "button",
-    label: "取消订单",
-    module: "order",
-    path: null,
-    parentCode: "order.view",
-    order: 10,
-    icon: null,
-    impliedApiCodes: ["order.update"],
-  },
-  /** Shows the action for exporting order data. */
-  {
-    code: "order.export",
-    type: "button",
-    label: "导出订单数据",
-    module: "order",
-    path: null,
-    parentCode: "order.view",
-    order: 20,
-    icon: null,
-    impliedApiCodes: ["order.export_data"],
-  },
-  /** Allows the server to generate and return an order export. */
-  {
-    code: "order.export_data",
-    type: "api",
-    label: "导出订单数据接口",
-    module: "order",
-    path: null,
-    parentCode: null,
-    order: 40,
-    icon: null,
-    impliedApiCodes: [],
-  },
-  /** Opens complaint and dispute handling under order management. */
-  {
-    code: "dispute.view",
-    type: "menu",
-    label: "投诉与纠纷",
-    module: "dispute",
-    path: "/orders/complaints",
-    parentCode: "order.view",
-    order: 30,
-    icon: "MessageSquareWarning",
-    impliedApiCodes: ["dispute.read"],
-  },
-  /** Allows reading complaint and dispute records. */
-  {
-    code: "dispute.read",
-    type: "api",
-    label: "查看投诉列表",
-    module: "dispute",
-    path: null,
-    parentCode: null,
-    order: 10,
-    icon: null,
-    impliedApiCodes: [],
-  },
-  /** Shows the action for resolving a complaint or dispute. */
-  {
-    code: "dispute.resolve",
-    type: "button",
-    label: "处理投诉纠纷",
-    module: "dispute",
-    path: null,
-    parentCode: "dispute.view",
-    order: 10,
-    icon: null,
-    impliedApiCodes: ["dispute.resolve_action"],
-  },
-  /** Allows submitting a complaint or dispute resolution. */
-  {
-    code: "dispute.resolve_action",
-    type: "api",
-    label: "处理投诉纠纷接口",
-    module: "dispute",
-    path: null,
-    parentCode: null,
-    order: 20,
-    icon: null,
-    impliedApiCodes: [],
-  },
   /** 打开当前内容管理入口。 */
   {
     code: "content.view",
@@ -333,18 +117,6 @@ const RBAC_PERMISSION_DEFINITIONS: readonly RbacPermissionDefinition[] = [
     parentCode: null,
     order: 40,
     icon: "FileText",
-    impliedApiCodes: [],
-  },
-  /** 允许读取后台悬赏内容列表。 */
-  {
-    code: "content.reward.read",
-    type: "api",
-    label: "查看悬赏内容",
-    module: "content",
-    path: null,
-    parentCode: null,
-    order: 10,
-    icon: null,
     impliedApiCodes: [],
   },
   /** 打开社区帖子管理页面。 */
@@ -555,151 +327,7 @@ const RBAC_PERMISSION_DEFINITIONS: readonly RbacPermissionDefinition[] = [
     icon: null,
     impliedApiCodes: [],
   },
-  /** Opens the system settings section in the administration console. */
-  {
-    code: "system.view",
-    type: "menu",
-    label: "系统设置",
-    module: "system",
-    path: "/settings",
-    parentCode: null,
-    order: 60,
-    icon: "Settings",
-    impliedApiCodes: ["system.read"],
-  },
-  /** Allows reading effective system settings and configuration drafts. */
-  {
-    code: "system.read",
-    type: "api",
-    label: "查看系统设置",
-    module: "system",
-    path: null,
-    parentCode: null,
-    order: 10,
-    icon: null,
-    impliedApiCodes: [],
-  },
-  /** Shows the general system configuration action. */
-  {
-    code: "system.config",
-    type: "button",
-    label: "系统配置",
-    module: "system",
-    path: null,
-    parentCode: "system.view",
-    order: 10,
-    icon: null,
-    impliedApiCodes: ["system.config_action"],
-  },
-  /** Allows saving general system configuration changes. */
-  {
-    code: "system.config_action",
-    type: "api",
-    label: "系统配置接口",
-    module: "system",
-    path: null,
-    parentCode: null,
-    order: 20,
-    icon: null,
-    impliedApiCodes: [],
-  },
-  /** Shows the service SOP configuration action. */
-  {
-    code: "system.sop_config",
-    type: "button",
-    label: "SOP 配置",
-    module: "system",
-    path: null,
-    parentCode: "system.view",
-    order: 20,
-    icon: null,
-    impliedApiCodes: ["system.sop_config_action"],
-  },
-  /** Allows saving service SOP configuration changes. */
-  {
-    code: "system.sop_config_action",
-    type: "api",
-    label: "SOP 配置接口",
-    module: "system",
-    path: null,
-    parentCode: null,
-    order: 30,
-    icon: null,
-    impliedApiCodes: [],
-  },
-  /** Shows the rating threshold configuration action. */
-  {
-    code: "system.threshold_config",
-    type: "button",
-    label: "评分阈值配置",
-    module: "system",
-    path: null,
-    parentCode: "system.view",
-    order: 30,
-    icon: null,
-    impliedApiCodes: ["system.threshold_config_action"],
-  },
-  /** Allows saving rating threshold configuration changes. */
-  {
-    code: "system.threshold_config_action",
-    type: "api",
-    label: "评分阈值配置接口",
-    module: "system",
-    path: null,
-    parentCode: null,
-    order: 40,
-    icon: null,
-    impliedApiCodes: [],
-  },
-  /** Shows the service fee configuration action. */
-  {
-    code: "system.fee_config",
-    type: "button",
-    label: "费率配置",
-    module: "system",
-    path: null,
-    parentCode: "system.view",
-    order: 40,
-    icon: null,
-    impliedApiCodes: ["system.fee_config_action"],
-  },
-  /** Allows saving service fee configuration changes. */
-  {
-    code: "system.fee_config_action",
-    type: "api",
-    label: "费率配置接口",
-    module: "system",
-    path: null,
-    parentCode: null,
-    order: 50,
-    icon: null,
-    impliedApiCodes: [],
-  },
-  /** Shows the action for publishing system configuration drafts. */
-  {
-    code: "system.publish",
-    type: "button",
-    label: "发布系统设置",
-    module: "system",
-    path: null,
-    parentCode: "system.view",
-    order: 50,
-    icon: null,
-    impliedApiCodes: ["system.publish_action"],
-  },
-  /** Allows publishing a system configuration version. */
-  {
-    code: "system.publish_action",
-    type: "api",
-    label: "发布系统设置接口",
-    module: "system",
-    path: null,
-    parentCode: null,
-    order: 60,
-    icon: null,
-    impliedApiCodes: [],
-  },
-  /** Opens role and permission management under system settings. */
+  /** Opens role and permission management in the administration console. */
   {
     code: "rbac.view",
     type: "menu",
@@ -711,7 +339,7 @@ const RBAC_PERMISSION_DEFINITIONS: readonly RbacPermissionDefinition[] = [
     icon: "ShieldCheck",
     impliedApiCodes: ["rbac.permission.read", "rbac.role.read"],
   },
-  /** Opens the read-only permission catalog under system settings. */
+  /** Opens the read-only permission catalog under role management. */
   {
     code: "rbac.catalog.view",
     type: "menu",
@@ -844,50 +472,6 @@ const RBAC_PERMISSION_DEFINITIONS: readonly RbacPermissionDefinition[] = [
     impliedApiCodes: [],
   },
 ];
-
-const CURRENT_PERMISSION_CODES = new Set([
-  "stats.view",
-  "user.view",
-  "user.read",
-  "user.create",
-  "user.update",
-  "user.delete",
-  "content.view",
-  "content.post.view",
-  "content.post.read",
-  "content.post.moderate",
-  "content.post.report_read",
-  "content.post.moderate_action",
-  "content.article.view",
-  "content.article.read",
-  "content.article.write",
-  "content.article.write_action",
-  "content.article.publish",
-  "content.article.publish_action",
-  "website.view",
-  "website.read",
-  "website.edit",
-  "website.edit_action",
-  "website.publish",
-  "website.publish_action",
-  "rbac.view",
-  "rbac.catalog.view",
-  "rbac.role.read",
-  "rbac.role.create",
-  "rbac.role.create_action",
-  "rbac.role.update",
-  "rbac.role.update_action",
-  "rbac.role.delete",
-  "rbac.role.delete_action",
-  "rbac.permission.read",
-  "rbac.assign_role",
-  "rbac.assign_role_action",
-]);
-
-/** The code-defined RBAC permission catalog enabled by the current personal-version runtime. */
-export const RBAC_PERMISSION_CATALOG = RBAC_PERMISSION_DEFINITIONS.filter((permission) =>
-  CURRENT_PERMISSION_CODES.has(permission.code),
-);
 
 /** Looks up a catalog permission by its stable authorization code. */
 export function getRbacPermission(code: string): RbacPermissionDefinition | undefined {

@@ -1,4 +1,4 @@
-import type { AdminOrderStatus, AdminServiceType, AdminUserListItem } from "./admin";
+import type { AdminUserListItem } from "./admin";
 import type { PaginatedResponse } from "./response";
 import type { WebsitePublicMediaAsset } from "./website-content";
 
@@ -111,53 +111,6 @@ export type AdminContentAuthorSummary = Pick<
   AdminUserListItem,
   "id" | "phone" | "username" | "nickname" | "avatar"
 >;
-
-/** 后台悬赏列表中的宠物摘要。 */
-export interface AdminContentPetSummary {
-  /** 宠物唯一标识。 */
-  id: string;
-  /** 宠物名称。 */
-  name: string;
-  /** 宠物品种。 */
-  breed: string;
-}
-
-/** 后台悬赏管理列表项。金额单位为元。 */
-export interface AdminContentRewardListItem {
-  /** 悬赏订单唯一标识。 */
-  id: string;
-  /** 服务类型。 */
-  serviceType: AdminServiceType;
-  /** 发布悬赏的用户。 */
-  owner: AdminContentAuthorSummary;
-  /** 悬赏关联宠物。 */
-  pet: AdminContentPetSummary;
-  /** 悬赏金额，单位为元。 */
-  rewardAmount: number;
-  /** 订单当前履约状态。 */
-  status: AdminOrderStatus;
-  /** 计划服务时间，ISO 8601 格式。 */
-  serviceTime: string;
-  /** 悬赏创建时间，ISO 8601 格式。 */
-  createdAt: string;
-}
-
-/** 后台悬赏列表查询参数。 */
-export interface AdminContentRewardListQuery {
-  /** 页码，从 1 开始。 */
-  page: number;
-  /** 每页条数，范围为 1 至 100。 */
-  pageSize: number;
-  /** 匹配订单号、发布人手机号、昵称或宠物名称的关键词。 */
-  keyword?: string;
-  /** 服务类型筛选。 */
-  serviceType?: AdminServiceType;
-  /** 履约状态筛选。 */
-  status?: AdminOrderStatus;
-}
-
-/** 后台悬赏列表响应。 */
-export type AdminContentRewardListResponse = PaginatedResponse<AdminContentRewardListItem>;
 
 /** 后台帖子列表项。 */
 export interface AdminContentPostListItem {

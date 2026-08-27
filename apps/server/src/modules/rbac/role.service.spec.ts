@@ -174,7 +174,6 @@ describe("RoleService", () => {
         status: "active",
         createdAt: timestamp,
         updatedAt: timestamp,
-        provider: null,
       },
       {
         id: "user-2",
@@ -186,7 +185,6 @@ describe("RoleService", () => {
         status: "active",
         createdAt: timestamp,
         updatedAt: timestamp,
-        provider: null,
       },
     ]);
     const service = new RoleService(prisma as never, new PermissionCatalogService());

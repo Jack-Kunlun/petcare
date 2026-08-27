@@ -273,7 +273,7 @@ function requireProcessId(child) {
   return child.pid;
 }
 
-function waitForProcessGroupExit(processId, timeoutMilliseconds) {
+function waitForProcessGroupExit(child, processId, timeoutMilliseconds) {
   const deadline = Date.now() + timeoutMilliseconds;
 
   return new Promise((resolve) => {
@@ -281,7 +281,7 @@ function waitForProcessGroupExit(processId, timeoutMilliseconds) {
       try {
         process.kill(-processId, 0);
       } catch (error) {
-        if (error?.code === "ESRCH") {
+        if (error?.code === "ESRCH" || (error?.code === "EPERM" && hasExited(child))) {
           resolve(true);
           return;
         }
@@ -302,14 +302,22 @@ function waitForProcessGroupExit(processId, timeoutMilliseconds) {
   });
 }
 
-function signalProcessGroup(processId, signal) {
+async function signalProcessGroup(child, processId, signal) {
   try {
     process.kill(-processId, signal);
   } catch (error) {
-    if (error?.code !== "ESRCH") {
-      throw error;
+    if (error?.code === "ESRCH") {
+      return false;
     }
+
+    if (error?.code === "EPERM" && (await waitForProcessExit(child, 250))) {
+      return false;
+    }
+
+    throw error;
   }
+
+  return true;
 }
 
 function taskkillProcessTree(processId) {
@@ -347,15 +355,19 @@ export async function stopProcess(child) {
     return;
   }
 
-  signalProcessGroup(processId, "SIGTERM");
-
-  if (await waitForProcessGroupExit(processId, 3_000)) {
+  if (!(await signalProcessGroup(child, processId, "SIGTERM"))) {
     return;
   }
 
-  signalProcessGroup(processId, "SIGKILL");
+  if (await waitForProcessGroupExit(child, processId, 3_000)) {
+    return;
+  }
 
-  if (!(await waitForProcessGroupExit(processId, 5_000))) {
+  if (!(await signalProcessGroup(child, processId, "SIGKILL"))) {
+    return;
+  }
+
+  if (!(await waitForProcessGroupExit(child, processId, 5_000))) {
     throw new Error("Admin E2E could not stop an isolated process tree");
   }
 }
@@ -643,9 +655,6 @@ async function seedCompiledServer(env) {
   const { seedInitialData } = serverRequire(
     path.join(serverDirectory, "dist", "seed", "seed-initial-data.js"),
   );
-  const { seedSystemSettings } = serverRequire(
-    path.join(serverDirectory, "dist", "seed", "seed-system-settings.js"),
-  );
   const { seedWebsiteContent } = serverRequire(
     path.join(serverDirectory, "dist", "seed", "seed-website-content.js"),
   );
@@ -673,7 +682,6 @@ async function seedCompiledServer(env) {
       select: { id: true },
     });
 
-    await seedSystemSettings(prisma, administrator.id);
     await seedWebsiteContent(prisma, administrator.id);
     await prisma.websiteMediaAsset.upsert({
       where: { storageKey: "public/website-media/e2e/website-e2e-selection.png" },
@@ -771,8 +779,6 @@ async function seedCompiledServer(env) {
     env.PET_E2E_OWNER_TOKEN = accessToken(petOwner);
     env.PET_E2E_OTHER_OWNER_TOKEN = accessToken(otherPetOwner);
     const [
-      systemViewPermission,
-      systemFeeConfigPermission,
       websiteViewPermission,
       websiteReadPermission,
       websiteEditPermission,
@@ -784,8 +790,6 @@ async function seedCompiledServer(env) {
       websiteEditorRole,
       websitePublisherRole,
     ] = await Promise.all([
-      prisma.permission.findUniqueOrThrow({ where: { permissionCode: "system.view" } }),
-      prisma.permission.findUniqueOrThrow({ where: { permissionCode: "system.fee_config" } }),
       prisma.permission.findUniqueOrThrow({ where: { permissionCode: "website.view" } }),
       prisma.permission.findUniqueOrThrow({ where: { permissionCode: "website.read" } }),
       prisma.permission.findUniqueOrThrow({ where: { permissionCode: "website.edit" } }),
@@ -793,11 +797,11 @@ async function seedCompiledServer(env) {
       prisma.permission.findUniqueOrThrow({ where: { permissionCode: "website.publish" } }),
       prisma.permission.findUniqueOrThrow({ where: { permissionCode: "website.publish_action" } }),
       prisma.role.upsert({
-        where: { roleName: "rbac_e2e_system_viewer" },
-        update: { description: "Admin RBAC E2E restricted session" },
+        where: { roleName: "rbac_e2e_website_editor_no_publish" },
+        update: { description: "Website Content editor without publish permission" },
         create: {
-          roleName: "rbac_e2e_system_viewer",
-          description: "Admin RBAC E2E restricted session",
+          roleName: "rbac_e2e_website_editor_no_publish",
+          description: "Website Content editor without publish permission",
           isActive: true,
         },
       }),
@@ -830,7 +834,12 @@ async function seedCompiledServer(env) {
       }),
     ]);
     await Promise.all(
-      [systemViewPermission, systemFeeConfigPermission].map((permission) =>
+      [
+        websiteViewPermission,
+        websiteReadPermission,
+        websiteEditPermission,
+        websiteEditActionPermission,
+      ].map((permission) =>
         prisma.rolePermission.upsert({
           where: {
             roleId_permissionId: {
@@ -884,7 +893,12 @@ async function seedCompiledServer(env) {
         phone: rbacRestrictedAdmin.phone,
         nickname: "RBAC E2E restricted administrator",
         role: restrictedRole,
-        permissions: [systemViewPermission, systemFeeConfigPermission],
+        permissions: [
+          websiteViewPermission,
+          websiteReadPermission,
+          websiteEditPermission,
+          websiteEditActionPermission,
+        ],
       },
       ...websiteRoles,
     ]) {

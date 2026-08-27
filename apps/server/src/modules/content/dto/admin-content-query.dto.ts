@@ -1,24 +1,14 @@
 import { ApiPropertyOptional } from "@nestjs/swagger";
-import {
-  ADMIN_CLASSROOM_ARTICLE_STATUS,
-  ADMIN_CONTENT_POST_STATUS,
-  ADMIN_ORDER_STATUS,
-  ADMIN_SERVICE_TYPE,
-} from "@petcare/shared-types";
+import { ADMIN_CLASSROOM_ARTICLE_STATUS, ADMIN_CONTENT_POST_STATUS } from "@petcare/shared-types";
 import type {
   AdminClassroomArticleListQuery,
   AdminClassroomArticleStatus,
   AdminContentPostListQuery,
   AdminContentPostStatus,
-  AdminContentRewardListQuery,
-  AdminOrderStatus,
-  AdminServiceType,
 } from "@petcare/shared-types";
 import { Type } from "class-transformer";
 import { IsIn, IsInt, IsOptional, IsString, Max, MaxLength, Min } from "class-validator";
 
-const serviceTypes = Object.values(ADMIN_SERVICE_TYPE);
-const orderStatuses = Object.values(ADMIN_ORDER_STATUS);
 const postStatuses = Object.values(ADMIN_CONTENT_POST_STATUS);
 const articleStatuses = Object.values(ADMIN_CLASSROOM_ARTICLE_STATUS);
 
@@ -47,24 +37,6 @@ abstract class ContentPaginationQuery {
   @IsString()
   @MaxLength(50)
   keyword?: string;
-}
-
-/** 后台悬赏分页查询参数。 */
-export class AdminContentRewardListQueryDto
-  extends ContentPaginationQuery
-  implements AdminContentRewardListQuery
-{
-  /** 服务类型筛选。 */
-  @ApiPropertyOptional({ enum: serviceTypes })
-  @IsOptional()
-  @IsIn(serviceTypes)
-  serviceType?: AdminServiceType;
-
-  /** 履约状态筛选。 */
-  @ApiPropertyOptional({ enum: orderStatuses })
-  @IsOptional()
-  @IsIn(orderStatuses)
-  status?: AdminOrderStatus;
 }
 
 /** 后台帖子分页查询参数。 */
