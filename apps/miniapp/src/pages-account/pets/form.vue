@@ -9,7 +9,6 @@ import {
   createPetForm,
   PET_GENDER_OPTIONS,
   PET_SPECIES_OPTIONS,
-  petCoverImage,
   serializePetForm,
   validatePetForm,
 } from "./pet-profile";
@@ -17,6 +16,7 @@ import { createPet, deletePetPhoto, getMyPet, updatePet, uploadPetPhoto } from "
 import { MiniappApiError } from "@/api/request";
 import SubPageLayout from "@/components/SubPageLayout.vue";
 import { miniappDesignTokens } from "@/config/design-tokens";
+import { petCoverImage } from "@/domain/pet-display";
 import type { SessionUserRevision } from "@/state/session";
 import { captureSessionUserRevision, isSessionUserRevisionCurrent, session } from "@/state/session";
 

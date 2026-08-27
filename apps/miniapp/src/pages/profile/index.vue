@@ -6,8 +6,8 @@ import { computed, ref } from "vue";
 import { getMyPets } from "@/api/pets";
 import { getProfile } from "@/api/user";
 import MainTabLayout from "@/components/MainTabLayout.vue";
+import { formatPetSummary, petCoverImage } from "@/domain/pet-display";
 import { runLogoutFlow } from "@/pages/profile/logout";
-import { formatPetSummary, petCoverImage } from "@/pages-account/pets/pet-profile";
 import { getDefaultAvatar } from "@/state/default-avatar";
 import {
   captureSessionUserRevision,

@@ -1,12 +1,14 @@
 import { PET_GENDER, PET_SPECIES } from "@petcare/shared-types";
 import { describe, expect, it } from "vitest";
 import {
-  createEmptyPetForm,
-  createPetForm,
   formatPetAge,
   formatPetBirthDate,
   formatPetSummary,
   petCoverImage,
+} from "../../domain/pet-display";
+import {
+  createEmptyPetForm,
+  createPetForm,
   serializePetForm,
   validatePetForm,
 } from "./pet-profile";

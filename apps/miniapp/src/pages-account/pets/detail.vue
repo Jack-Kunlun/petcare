@@ -3,11 +3,11 @@ import { onLoad, onShow } from "@dcloudio/uni-app";
 import { PET_GENDER_LABELS, PET_SPECIES_LABELS } from "@petcare/shared-types";
 import type { MyPetDetail } from "@petcare/shared-types";
 import { computed, ref } from "vue";
-import { formatPetAge, formatPetBirthDate, petCoverImage } from "./pet-profile";
 import { deletePet, getMyPet } from "@/api/pets";
 import { MiniappApiError } from "@/api/request";
 import SubPageLayout from "@/components/SubPageLayout.vue";
 import { miniappDesignTokens } from "@/config/design-tokens";
+import { formatPetAge, formatPetBirthDate, petCoverImage } from "@/domain/pet-display";
 import { captureSessionUserRevision, isSessionUserRevisionCurrent } from "@/state/session";
 
 const petId = ref("");

@@ -3,11 +3,11 @@ import { onShow } from "@dcloudio/uni-app";
 import { PET_PROFILE_LIMITS } from "@petcare/shared-types";
 import type { MyPetListItem } from "@petcare/shared-types";
 import { computed, ref } from "vue";
-import { formatPetSummary, petCoverImage } from "./pet-profile";
 import { deletePet, getMyPets } from "@/api/pets";
 import { MiniappApiError } from "@/api/request";
 import SubPageLayout from "@/components/SubPageLayout.vue";
 import { miniappDesignTokens } from "@/config/design-tokens";
+import { formatPetSummary, petCoverImage } from "@/domain/pet-display";
 import { captureSessionUserRevision, isSessionUserRevisionCurrent } from "@/state/session";
 
 const pets = ref<MyPetListItem[]>([]);

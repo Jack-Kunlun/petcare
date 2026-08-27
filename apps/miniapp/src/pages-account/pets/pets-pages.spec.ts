@@ -51,6 +51,8 @@ describe("real Miniapp pet pages", () => {
 
   it("replaces profile fixtures with owner API cards", () => {
     expect(profile).toContain("getMyPets");
+    expect(profile).toContain('from "@/domain/pet-display"');
+    expect(profile).not.toContain('from "@/pages-account/');
     expect(profile).toContain('v-for="pet in featuredPets"');
     expect(profile).toContain("petCoverImage(pet)");
     expect(profile).not.toContain("petStatValue");
