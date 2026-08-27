@@ -1,11 +1,21 @@
 <script setup lang="ts">
 import { onShow } from "@dcloudio/uni-app";
+import { PET_PROFILE_LIMITS } from "@petcare/shared-types";
+import type { MyPetListItem } from "@petcare/shared-types";
 import { computed, ref } from "vue";
+import { getMyPets } from "@/api/pets";
 import { getProfile } from "@/api/user";
 import MainTabLayout from "@/components/MainTabLayout.vue";
 import { runLogoutFlow } from "@/pages/profile/logout";
+import { formatPetSummary, petCoverImage } from "@/pages-account/pets/pet-profile";
 import { getDefaultAvatar } from "@/state/default-avatar";
-import { captureSessionUserRevision, logout, session, updateSessionUser } from "@/state/session";
+import {
+  captureSessionUserRevision,
+  isSessionUserRevisionCurrent,
+  logout,
+  session,
+  updateSessionUser,
+} from "@/state/session";
 
 definePage({
   style: {
@@ -13,13 +23,6 @@ definePage({
     navigationStyle: "custom",
   },
 });
-
-const profileStats: { value: string; label: string; route?: string }[] = [
-  { value: "12笔", label: "我的订单", route: "/pages-care/orders/index" },
-  { value: "2只", label: "我的宠物", route: "/pages-account/pets/index" },
-  { value: "3张", label: "优惠券", route: "/pages-content/coupons/index" },
-  { value: "856元", label: "余额收入", route: "/pages-content/wallet/index" },
-];
 
 const contentItems = [
   {
@@ -64,9 +67,27 @@ const supportItems = [
 ] as const;
 
 const loadingProfile = ref(false);
+const loadingPets = ref(false);
 const logoutPending = ref(false);
 const profileError = ref("");
+const petError = ref("");
+const pets = ref<MyPetListItem[]>([]);
+const petStatus = ref<"idle" | "loading" | "ready" | "error">("idle");
 const profile = computed(() => session.user);
+const featuredPets = computed(() => pets.value.slice(0, 2));
+const petStatValue = computed(() => {
+  if (petStatus.value === "loading") {
+    return "…";
+  }
+
+  return petStatus.value === "ready" ? `${pets.value.length}只` : "—";
+});
+const profileStats = computed<{ value: string; label: string; route?: string }[]>(() => [
+  { value: "12笔", label: "我的订单", route: "/pages-care/orders/index" },
+  { value: petStatValue.value, label: "我的宠物", route: "/pages-account/pets/index" },
+  { value: "3张", label: "优惠券", route: "/pages-content/coupons/index" },
+  { value: "856元", label: "余额收入", route: "/pages-content/wallet/index" },
+]);
 const avatarUrl = computed(() => {
   const user = profile.value;
 
@@ -91,7 +112,50 @@ async function refreshProfile() {
   }
 }
 
-onShow(() => void refreshProfile());
+async function refreshPets(): Promise<void> {
+  if (!session.user) {
+    pets.value = [];
+    petStatus.value = "idle";
+
+    return;
+  }
+
+  if (loadingPets.value) {
+    return;
+  }
+
+  loadingPets.value = true;
+  petStatus.value = "loading";
+  petError.value = "";
+  const startedAt = captureSessionUserRevision();
+
+  try {
+    const response = await getMyPets();
+
+    if (!isSessionUserRevisionCurrent(startedAt)) {
+      pets.value = [];
+      petStatus.value = "idle";
+
+      return;
+    }
+
+    pets.value = response;
+    petStatus.value = "ready";
+  } catch {
+    if (isSessionUserRevisionCurrent(startedAt)) {
+      pets.value = [];
+      petStatus.value = "error";
+      petError.value = "宠物档案加载失败";
+    }
+  } finally {
+    loadingPets.value = false;
+  }
+}
+
+onShow(() => {
+  void refreshProfile();
+  void refreshPets();
+});
 
 function openStat(route?: string) {
   if (route) {
@@ -101,6 +165,20 @@ function openStat(route?: string) {
 
 function openPage(route: string) {
   uni.navigateTo({ url: route });
+}
+
+function openPet(id: string): void {
+  openPage(`/pages-account/pets/detail?id=${encodeURIComponent(id)}`);
+}
+
+function addPet(): void {
+  if (
+    profile.value &&
+    petStatus.value === "ready" &&
+    pets.value.length < PET_PROFILE_LIMITS.MAX_PETS_PER_OWNER
+  ) {
+    openPage("/pages-account/pets/form");
+  }
 }
 
 function openCancellation() {
@@ -222,44 +300,69 @@ async function logoutCurrentDevice(): Promise<void> {
         </view>
       </view>
 
-      <view class="mt-copy flex items-stretch gap-sm px-page-horizontal pb-sm">
-        <view
-          class="min-w-0 flex flex-1 flex-col items-center gap-caption main-card p-sm"
-          hover-class="opacity-80"
-          @click="openPage('/pages-account/pets/detail?id=mimi')"
-        >
-          <image
-            class="h-avatar-lg w-avatar-lg shrink-0 rounded-control"
-            src="/static/main/profile-cat.png"
-            mode="aspectFill"
-          />
-          <view class="min-w-0 w-full flex flex-col items-center gap-caption">
-            <text class="card-heading">咪咪</text>
-            <text class="w-full truncate text-center meta-text">英国短毛猫 · 3岁</text>
-          </view>
+      <view class="mt-copy px-page-horizontal pb-sm">
+        <view v-if="petStatus === 'loading'" class="main-card p-action" aria-live="polite">
+          <text class="text-body text-muted leading-body">宠物档案加载中…</text>
         </view>
+
         <view
-          class="min-w-0 flex flex-1 flex-col items-center gap-caption main-card p-sm"
-          hover-class="opacity-80"
-          @click="openPage('/pages-account/pets/detail?id=wangcai')"
+          v-else-if="petStatus === 'error'"
+          class="flex items-center justify-between gap-copy rounded-card bg-danger-soft p-copy"
+          role="alert"
         >
-          <image
-            class="h-avatar-lg w-avatar-lg shrink-0 rounded-control"
-            src="/static/main/profile-dog.png"
-            mode="aspectFill"
-          />
-          <view class="min-w-0 w-full flex flex-col items-center gap-caption">
-            <text class="card-heading">旺财</text>
-            <text class="w-full truncate text-center meta-text">金毛寻回犬 · 4岁</text>
-          </view>
+          <text class="text-caption text-danger leading-caption">{{ petError }}</text>
+          <button
+            class="h-control bg-transparent px-copy text-caption text-brand"
+            :class="loadingPets ? 'opacity-50' : ''"
+            :disabled="loadingPets"
+            :aria-disabled="loadingPets"
+            @click="refreshPets"
+          >
+            重试
+          </button>
         </view>
+
         <view
-          class="w-pet flex shrink-0 flex-col items-center justify-center gap-caption border border-border rounded-card border-dashed bg-surface"
-          hover-class="opacity-80"
-          @click="openPage('/pages-account/pets/form')"
+          v-else-if="petStatus === 'idle'"
+          class="flex items-center justify-center main-card p-action"
         >
-          <text class="text-page text-brand font-medium leading-page">+</text>
-          <text class="text-caption text-muted leading-caption">添加</text>
+          <text class="text-body text-muted leading-body">登录后管理宠物档案</text>
+        </view>
+
+        <view v-else class="flex items-stretch gap-sm">
+          <view
+            v-for="pet in featuredPets"
+            :key="pet.id"
+            class="min-w-0 flex flex-1 flex-col items-center gap-caption main-card p-sm"
+            hover-class="opacity-80"
+            :aria-label="`查看${pet.name}的宠物档案`"
+            @click="openPet(pet.id)"
+          >
+            <image
+              class="h-avatar-lg w-avatar-lg shrink-0 rounded-control bg-divider"
+              :src="petCoverImage(pet)"
+              mode="aspectFill"
+            />
+            <view class="min-w-0 w-full flex flex-col items-center gap-caption">
+              <text class="w-full truncate text-center card-heading">{{ pet.name }}</text>
+              <text class="w-full truncate text-center meta-text">
+                {{ pet.breed }} · {{ formatPetSummary(pet) }}
+              </text>
+            </view>
+          </view>
+
+          <view
+            v-if="pets.length < PET_PROFILE_LIMITS.MAX_PETS_PER_OWNER"
+            class="w-pet flex shrink-0 flex-col items-center justify-center gap-caption border border-border rounded-card border-dashed bg-surface"
+            hover-class="opacity-80"
+            aria-label="添加宠物"
+            @click="addPet"
+          >
+            <text class="text-page text-brand font-medium leading-page">+</text>
+            <text class="text-caption text-muted leading-caption">
+              {{ pets.length === 0 ? "添加宠物" : "添加" }}
+            </text>
+          </view>
         </view>
       </view>
 

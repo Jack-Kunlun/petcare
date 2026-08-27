@@ -7,6 +7,7 @@ import {
   captureSessionUserRevision,
   clearSession,
   completeCancellation,
+  isSessionUserRevisionCurrent,
   loginInteractively,
   logout,
   parseReturnUrl,
@@ -677,6 +678,17 @@ describe("miniapp session", () => {
 
     expect(session.user).toEqual(updatedUser);
     expect(storage.get(STORAGE_KEY.user)).toEqual(updatedUser);
+  });
+
+  it("identifies only the still-active owner revision for private page responses", () => {
+    seedStoredSession();
+    const revision = captureSessionUserRevision();
+
+    expect(isSessionUserRevisionCurrent(revision)).toBe(true);
+
+    clearSession(true);
+
+    expect(isSessionUserRevisionCurrent(revision)).toBe(false);
   });
 
   it("rejects a profile response that finishes after logout", () => {

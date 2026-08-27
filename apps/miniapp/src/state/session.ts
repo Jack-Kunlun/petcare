@@ -405,16 +405,20 @@ export function captureSessionUserRevision(): SessionUserRevision {
   return { revision: sessionRevision, userId: session.user?.id ?? null };
 }
 
+/** Reports whether an owner-scoped response still belongs to the active account revision. */
+export function isSessionUserRevisionCurrent(startedAt: SessionUserRevision): boolean {
+  return (
+    startedAt.revision === sessionRevision &&
+    startedAt.userId !== null &&
+    session.user?.id === startedAt.userId
+  );
+}
+
 export function updateSessionUser(
   user: MiniappUserProfile,
   startedAt: SessionUserRevision,
 ): boolean {
-  if (
-    startedAt.revision !== sessionRevision ||
-    !startedAt.userId ||
-    session.user?.id !== startedAt.userId ||
-    user.id !== startedAt.userId
-  ) {
+  if (!isSessionUserRevisionCurrent(startedAt) || user.id !== startedAt.userId) {
     return false;
   }
 
