@@ -15,6 +15,7 @@ const miniappDirectory = path.resolve(adminDirectory, "../miniapp");
 const serverDirectory = path.resolve(adminDirectory, "../server");
 const websiteDirectory = path.resolve(adminDirectory, "../website");
 const repositoryDirectory = path.resolve(adminDirectory, "../..");
+const fakeCosPreload = path.join(adminDirectory, "e2e", "support", "fake-cos.mjs");
 const serverRequire = createRequire(path.join(serverDirectory, "package.json"));
 const rbacRestrictedAdmin = {
   username: "rbac-e2e-restricted-admin",
@@ -414,13 +415,17 @@ export async function startApplicationServers(
   const children = [];
 
   try {
-    const server = spawnProcess(process.execPath, [path.join(serverDirectory, "dist", "main.js")], {
-      cwd: serverDirectory,
-      detached: process.platform !== "win32",
-      env,
-      shell: false,
-      stdio: "inherit",
-    });
+    const server = spawnProcess(
+      process.execPath,
+      ["--import", fakeCosPreload, path.join(serverDirectory, "dist", "main.js")],
+      {
+        cwd: serverDirectory,
+        detached: process.platform !== "win32",
+        env,
+        shell: false,
+        stdio: "inherit",
+      },
+    );
 
     children.push(server);
     await waitForServer("Server", `http://127.0.0.1:${serverPort}/health`, server, signal);
@@ -695,7 +700,7 @@ async function seedCompiledServer(env) {
         createdById: administrator.id,
       },
     });
-    const [communityAuthor, communityReporter] = await Promise.all([
+    const [communityAuthor, communityReporter, petOwner, otherPetOwner] = await Promise.all([
       prisma.user.upsert({
         where: { phone: "13900000095" },
         update: { username: "community-e2e-author", nickname: "社区 E2E 作者", status: "active" },
@@ -720,6 +725,30 @@ async function seedCompiledServer(env) {
           status: "active",
         },
       }),
+      prisma.user.upsert({
+        where: { phone: "13900000097" },
+        update: { username: "pet-e2e-owner", nickname: "宠物 E2E 主人", status: "active" },
+        create: {
+          phone: "13900000097",
+          username: "pet-e2e-owner",
+          nickname: "宠物 E2E 主人",
+          status: "active",
+        },
+      }),
+      prisma.user.upsert({
+        where: { phone: "13900000098" },
+        update: {
+          username: "pet-e2e-other-owner",
+          nickname: "宠物 E2E 其他用户",
+          status: "active",
+        },
+        create: {
+          phone: "13900000098",
+          username: "pet-e2e-other-owner",
+          nickname: "宠物 E2E 其他用户",
+          status: "active",
+        },
+      }),
     ]);
     const jwtSecret = requireEnvironmentValue(env, "JWT_SECRET");
     const jwt = new JwtService();
@@ -738,6 +767,9 @@ async function seedCompiledServer(env) {
 
     env.COMMUNITY_E2E_AUTHOR_TOKEN = accessToken(communityAuthor);
     env.COMMUNITY_E2E_REPORTER_TOKEN = accessToken(communityReporter);
+    env.PET_E2E_OWNER_ID = petOwner.id;
+    env.PET_E2E_OWNER_TOKEN = accessToken(petOwner);
+    env.PET_E2E_OTHER_OWNER_TOKEN = accessToken(otherPetOwner);
     const [
       systemViewPermission,
       systemFeeConfigPermission,
@@ -958,13 +990,14 @@ async function runMain(playwrightArgs, signal) {
     ADMIN_E2E_WEBSITE_URL: `http://127.0.0.1:${websitePort}`,
     ADMIN_E2E_VITE_CACHE_DIR: path.join(temporaryDirectory, "vite-cache"),
     ADMIN_E2E_MINIAPP_VITE_CACHE_DIR: path.join(temporaryDirectory, "miniapp-vite-cache"),
+    ADMIN_E2E_MEDIA_DIR: path.join(temporaryDirectory, "media"),
     LOG_DIR: path.join(temporaryDirectory, "server-logs"),
     ALLOWED_ORIGINS: `http://127.0.0.1:${adminPort},http://127.0.0.1:${websitePort},http://127.0.0.1:${miniappPort}`,
     VITE_MINIAPP_API_BASE_URL: `http://127.0.0.1:${serverPort}`,
     WEBSITE_PUBLIC_URL: `http://127.0.0.1:${websitePort}`,
     WEBSITE_CONTENT_API_BASE_URL: `http://127.0.0.1:${serverPort}`,
-    // Fake, isolated configuration makes the list adapter resolve the seeded asset URL locally.
-    // This flow never uploads, reads, or verifies a Tencent COS object.
+    // Fake, isolated coordinates are intercepted by the E2E-only preload and stored in the
+    // disposable temporary directory. No request reaches Tencent COS.
     TENCENT_COS_SECRET_ID: "admin-e2e-fake-secret-id",
     TENCENT_COS_SECRET_KEY: "admin-e2e-fake-secret-key",
     TENCENT_COS_BUCKET: "admin-e2e-media-1250000000",

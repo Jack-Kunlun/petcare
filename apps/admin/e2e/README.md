@@ -1,6 +1,6 @@
 # Admin 端到端测试
 
-本目录使用 Playwright Chromium 验证真实管理员登录、控制台统计与核心导航。
+本目录使用 Playwright Chromium 验证真实应用边界中的 Admin、Website 与 Miniapp 纵向场景。
 
 ## 首次准备
 
@@ -74,3 +74,13 @@ pnpm --filter @petcare/admin test:e2e:classroom
 ```bash
 pnpm --filter @petcare/admin test:e2e:community
 ```
+
+## 宠物档案纵向端到端场景
+
+宠物档案测试在一次性 schema 中创建两名独立用户，贯通真实 Server 与 Miniapp H5，验证本人创建、两张图片上传、页面编辑与读取、跨用户统一隐藏、重复更新/删除，以及显式删图和随档案删除的对象清理。
+
+```bash
+pnpm --filter @petcare/admin test:e2e:pets
+```
+
+runner 仅为 E2E Server 进程预加载 `support/fake-cos.mjs`，把对象写入本次运行的临时目录并在退出时整体清理。该替身不会访问腾讯云，也不提供生产存储能力；真实 COS 的凭据、网络、权限和桶策略必须在对应环境另行验收。
