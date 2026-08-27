@@ -16,6 +16,7 @@ import {
 import { createPet, deletePetPhoto, getMyPet, updatePet, uploadPetPhoto } from "@/api/pets";
 import { MiniappApiError } from "@/api/request";
 import SubPageLayout from "@/components/SubPageLayout.vue";
+import { miniappDesignTokens } from "@/config/design-tokens";
 import type { SessionUserRevision } from "@/state/session";
 import { captureSessionUserRevision, isSessionUserRevisionCurrent, session } from "@/state/session";
 
@@ -298,7 +299,7 @@ async function removeExistingPhoto(asset: PetPhotoAsset): Promise<void> {
       title: "删除宠物图片",
       content: "删除后该图片将不再显示，确定继续吗？",
       confirmText: "删除",
-      confirmColor: "#f04438",
+      confirmColor: miniappDesignTokens.colors.danger,
     })
     .catch(() => null);
 
@@ -445,7 +446,7 @@ onLoad((query = {}) => {
 
       <view
         v-else-if="status === 'unavailable'"
-        class="flex flex-col items-center gap-copy rounded-card bg-warning-soft p-card"
+        class="flex flex-col items-center gap-copy border border-border rounded-card bg-surface p-card"
         role="alert"
       >
         <text class="text-body text-ink leading-body">宠物档案不存在或当前不可编辑</text>
@@ -687,7 +688,7 @@ onLoad((query = {}) => {
                 <text class="quiet-text">{{ form.sterilized ? "已绝育" : "未绝育" }}</text>
               </view>
               <switch
-                color="#4a6cf7"
+                :color="miniappDesignTokens.colors.brand"
                 :checked="form.sterilized"
                 :disabled="controlsDisabled"
                 aria-label="绝育状态"

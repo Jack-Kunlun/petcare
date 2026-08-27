@@ -63,7 +63,7 @@ function editProfile() {
         <text class="mt-copy card-heading">{{ profile.nickname }}</text>
         <text
           class="mt-caption text-caption leading-caption"
-          :class="profile.profileComplete ? 'text-success' : 'text-warning'"
+          :class="profile.profileComplete ? 'text-success' : 'text-muted'"
         >
           {{ profile.profileComplete ? "手机号已完善" : "手机号未完善" }}
         </text>

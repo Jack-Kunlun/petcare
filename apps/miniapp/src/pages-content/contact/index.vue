@@ -88,9 +88,9 @@ onLoad(() => {
       </view>
 
       <template v-else>
-        <view class="rounded-card from-brand to-brand-active bg-gradient-to-r p-card text-surface">
-          <text class="text-page font-semibold leading-page">{{ panel.title }}</text>
-          <text v-if="panel.description" class="mt-sm block text-body leading-body">
+        <view class="border border-border rounded-card bg-surface p-card">
+          <text class="text-page text-ink font-semibold leading-page">{{ panel.title }}</text>
+          <text v-if="panel.description" class="mt-sm block text-body text-muted leading-body">
             {{ panel.description }}
           </text>
         </view>

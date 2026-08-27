@@ -447,11 +447,13 @@ onLoad((query = {}) => {
 
       <template v-else>
         <view
-          class="mx-page-horizontal mt-copy rounded-card from-brand to-brand-active bg-gradient-to-r p-card-padding text-surface shadow-card"
+          class="mx-page-horizontal mt-copy border border-border rounded-card bg-surface p-card-padding shadow-card"
         >
           <view class="flex flex-col gap-caption">
-            <text class="text-card font-semibold leading-card">真实养宠生活</text>
-            <text class="text-caption leading-caption">这里仅展示审核通过的社区动态</text>
+            <text class="text-card text-ink font-semibold leading-card">真实养宠生活</text>
+            <text class="text-caption text-muted leading-caption">
+              这里仅展示审核通过的社区动态
+            </text>
           </view>
         </view>
 

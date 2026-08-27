@@ -97,19 +97,13 @@ onShow(() => void loadHomeClassroom());
         class="relative mx-page-horizontal h-hero-main overflow-hidden rounded-card bg-surface shadow-card"
       >
         <image
-          class="absolute inset-0 h-full w-full"
+          class="absolute inset-y-0 right-0 h-full w-hero-media"
           src="/static/main/community-pet-5.jpg"
           mode="aspectFill"
         />
-        <view
-          class="absolute inset-0 from-surface via-surface/85 to-transparent bg-gradient-to-r"
-          aria-hidden="true"
-        />
         <view class="absolute left-card-padding top-card w-hero-copy flex flex-col gap-sm">
           <text class="text-amount text-ink font-semibold leading-section">记录宠物日常</text>
-          <text class="text-caption text-muted leading-caption">
-            管理宠物档案，浏览课堂与社区内容
-          </text>
+          <text class="text-caption text-muted leading-caption"> 管理档案，发现养宠内容 </text>
           <view
             class="mt-caption self-start rounded-pill bg-brand px-copy py-compact"
             hover-class="opacity-80"

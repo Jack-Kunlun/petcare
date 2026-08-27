@@ -7,7 +7,7 @@ const home = readFileSync(resolve(import.meta.dirname, "index.vue"), "utf8");
 describe("home classroom section", () => {
   it("presents only current personal features without commercial service fixtures", () => {
     expect(home).toContain("管理宠物档案");
-    expect(home).toContain("浏览课堂与社区内容");
+    expect(home).toContain("管理档案，发现养宠内容");
     expect(home).not.toContain("pages-bounty");
     expect(home).not.toContain("pages-care");
     expect(home).not.toContain("服务进行中");

@@ -7,6 +7,7 @@ import { formatPetAge, formatPetBirthDate, petCoverImage } from "./pet-profile";
 import { deletePet, getMyPet } from "@/api/pets";
 import { MiniappApiError } from "@/api/request";
 import SubPageLayout from "@/components/SubPageLayout.vue";
+import { miniappDesignTokens } from "@/config/design-tokens";
 import { captureSessionUserRevision, isSessionUserRevisionCurrent } from "@/state/session";
 
 const petId = ref("");
@@ -102,7 +103,7 @@ async function removePet(): Promise<void> {
       title: `删除${value.name}`,
       content: "删除后宠物档案和受管理图片将不再显示；存在受保护的关联记录时系统会拒绝删除。",
       confirmText: "删除",
-      confirmColor: "#f04438",
+      confirmColor: miniappDesignTokens.colors.danger,
     })
     .catch(() => null);
 
@@ -171,7 +172,7 @@ onShow(() => {
 
       <view
         v-else-if="status === 'unavailable'"
-        class="flex flex-col items-center gap-copy rounded-card bg-warning-soft p-card"
+        class="flex flex-col items-center gap-copy border border-border rounded-card bg-surface p-card"
         role="alert"
       >
         <text class="text-body text-ink leading-body">宠物档案不存在或当前不可用</text>

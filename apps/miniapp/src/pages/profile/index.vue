@@ -189,7 +189,7 @@ async function logoutCurrentDevice(): Promise<void> {
             <text class="mt-caption meta-text">{{ profile.region || "未填写所在地区" }}</text>
             <text
               class="mt-caption text-caption leading-caption"
-              :class="profile.profileComplete ? 'text-success' : 'text-warning'"
+              :class="profile.profileComplete ? 'text-success' : 'text-muted'"
             >
               {{ profile.profileComplete ? profile.phoneMasked : "请完善手机号以维护账户资料" }}
             </text>
