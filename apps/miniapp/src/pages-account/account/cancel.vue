@@ -92,11 +92,9 @@ onUnload(() => {
           账户注销后不可恢复
         </text>
         <text class="text-body text-ink leading-body">所有设备上的登录会话将立即失效。</text>
+        <text class="text-body text-ink leading-body"> 历史业务与必要审计记录会按规则保留。 </text>
         <text class="text-body text-ink leading-body">
-          历史订单、投诉及必要审计记录会按规则保留。
-        </text>
-        <text class="text-body text-ink leading-body">
-          进行中的订单会阻止注销，请先完成或取消相关订单。
+          受保护的进行中业务记录会阻止注销，请先处理相关记录。
         </text>
       </view>
 

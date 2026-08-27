@@ -26,5 +26,7 @@ describe("published classroom article page", () => {
     expect(article).not.toContain("const related");
     expect(article).not.toContain("community-pet-4.jpg");
     expect(article).not.toContain("v-html");
+    expect(article).not.toContain("articleActions");
+    expect(article).not.toContain("<template #actions>");
   });
 });

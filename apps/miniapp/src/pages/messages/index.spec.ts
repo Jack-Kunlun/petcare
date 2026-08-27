@@ -15,6 +15,8 @@ describe("messages page", () => {
     expect(source).toContain("loadNotifications(false)");
     expect(source).not.toContain('id: "notice-1"');
     expect(source).not.toContain("仅展示最近 30 天的消息");
+    expect(source).not.toContain("订单消息");
+    expect(source).toContain("category: activeCategory.value");
   });
 
   it("keeps read state and navigation behavior aligned", () => {

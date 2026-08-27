@@ -11,7 +11,6 @@ function readSource(relativePath: string) {
 
 const rootPagePaths = [
   "pages/index/index.vue",
-  "pages/bounty/index.vue",
   "pages/community/index.vue",
   "pages/messages/index.vue",
   "pages/profile/index.vue",
@@ -32,15 +31,14 @@ describe("main tab layout root header contract", () => {
   it("switches custom tabs without native tab bar APIs", () => {
     const layoutSource = readSource("components/MainTabLayout.vue");
     const homeSource = readSource("pages/index/index.vue");
-    const publishSuccessSource = readSource("pages-bounty/publish/success.vue");
 
     expect(layoutSource).toContain("uni.redirectTo");
     expect(layoutSource).not.toContain("uni.hideTabBar");
     expect(layoutSource).not.toContain("uni.switchTab");
     expect(homeSource).toContain("uni.redirectTo");
     expect(homeSource).not.toContain("uni.switchTab");
-    expect(publishSuccessSource).toContain("uni.reLaunch");
-    expect(publishSuccessSource).not.toContain("uni.switchTab");
+    expect(layoutSource).not.toContain('key: "bounty"');
+    expect(layoutSource).not.toContain("badge: 3");
   });
 
   it.each(rootPagePaths)("moves %s header into the shared root header slot", (pagePath) => {

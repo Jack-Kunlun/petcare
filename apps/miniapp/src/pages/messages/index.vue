@@ -21,16 +21,14 @@ definePage({
 const PAGE_SIZE = 20;
 const categoryTabs: ReadonlyArray<{
   label: string;
-  value: NotificationCategory | null;
+  value: NotificationCategory;
 }> = [
-  { label: "全部", value: null },
   { label: "系统通知", value: NOTIFICATION_CATEGORY.SYSTEM },
-  { label: "订单消息", value: NOTIFICATION_CATEGORY.ORDER },
   { label: "互动消息", value: NOTIFICATION_CATEGORY.INTERACTION },
 ];
 
 const notifications = ref<UserNotification[]>([]);
-const activeCategory = ref<NotificationCategory | null>(null);
+const activeCategory = ref<NotificationCategory>(NOTIFICATION_CATEGORY.INTERACTION);
 const status = ref<"idle" | "loading" | "ready" | "error">("idle");
 const loading = ref(false);
 const loadMoreError = ref(false);
@@ -47,9 +45,7 @@ function notificationIcon(item: UserNotification): string {
     return "/static/main/heart.svg";
   }
 
-  return item.category === NOTIFICATION_CATEGORY.ORDER
-    ? "/static/main/check.svg"
-    : "/static/main/bell.svg";
+  return "/static/main/bell.svg";
 }
 
 function notificationTone(item: UserNotification): string {
@@ -57,7 +53,7 @@ function notificationTone(item: UserNotification): string {
     return "bg-danger-soft";
   }
 
-  return item.category === NOTIFICATION_CATEGORY.ORDER ? "bg-success-soft" : "bg-soft";
+  return "bg-soft";
 }
 
 function notificationTime(value: string): string {
@@ -85,7 +81,7 @@ async function loadNotifications(reset = true): Promise<void> {
     const response = await getNotifications({
       page: nextPage,
       pageSize: PAGE_SIZE,
-      category: activeCategory.value ?? undefined,
+      category: activeCategory.value,
     });
 
     notifications.value = reset ? response.list : [...notifications.value, ...response.list];
@@ -105,7 +101,7 @@ async function loadNotifications(reset = true): Promise<void> {
   }
 }
 
-function selectCategory(category: NotificationCategory | null): void {
+function selectCategory(category: NotificationCategory): void {
   if (loading.value || activeCategory.value === category) {
     return;
   }

@@ -28,7 +28,7 @@ export function updatePet(id: string, request: UpdatePetRequest): Promise<MyPetD
   return authorizedRequest(`/pets/${encodeURIComponent(id)}`, { method: "PUT", data: request });
 }
 
-/** Deletes one owned pet when no order still references it. */
+/** Deletes one owned pet when no protected relation still references it. */
 export function deletePet(id: string): Promise<void> {
   return authorizedRequest(`/pets/${encodeURIComponent(id)}`, { method: "DELETE" });
 }

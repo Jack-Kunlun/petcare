@@ -106,7 +106,9 @@ describe("cancellation code flow", () => {
     const state = createState();
     const sendCancellationCode = vi
       .fn()
-      .mockRejectedValue(new MiniappApiError(409, "ACTIVE_ORDER_EXISTS", "存在进行中的订单"));
+      .mockRejectedValue(
+        new MiniappApiError(409, "ACTIVE_ORDER_EXISTS", "存在受保护的进行中业务记录"),
+      );
     const startCountdown = vi.fn();
     const showToast = vi.fn().mockResolvedValue(undefined);
 
@@ -128,7 +130,7 @@ describe("cancellation code flow", () => {
     });
 
     expect(startCountdown).not.toHaveBeenCalled();
-    expect(state.errorMessage).toBe("存在进行中的订单，完成或取消后才能注销");
+    expect(state.errorMessage).toBe("存在受保护的进行中业务记录，处理完成后才能注销");
   });
 
   it("ignores a pending code result after the page unloads", async () => {
@@ -370,7 +372,9 @@ describe("account cancellation flow", () => {
 
     await vi.waitFor(() => expect(failureDeps.cancelAccount).toHaveBeenCalledTimes(1));
     active = false;
-    failureRequest.reject(new MiniappApiError(409, "ACTIVE_ORDER_EXISTS", "存在进行中的订单"));
+    failureRequest.reject(
+      new MiniappApiError(409, "ACTIVE_ORDER_EXISTS", "存在受保护的进行中业务记录"),
+    );
     await failure;
 
     expect(failureDeps.completeCancellation).not.toHaveBeenCalled();
@@ -393,7 +397,11 @@ describe("account cancellation flow", () => {
     await vi.waitFor(() => expect(deps.cancelAccount).toHaveBeenCalledTimes(1));
     currentUserId = "user-2";
     request.reject(
-      new MiniappApiError(409, MINIAPP_ACCOUNT_ERROR_CODE.ACTIVE_ORDER_EXISTS, "存在进行中的订单"),
+      new MiniappApiError(
+        409,
+        MINIAPP_ACCOUNT_ERROR_CODE.ACTIVE_ORDER_EXISTS,
+        "存在受保护的进行中业务记录",
+      ),
     );
     await pending;
 
@@ -408,7 +416,11 @@ describe("account cancellation flow", () => {
     const deps = dependencies();
 
     deps.cancelAccount.mockRejectedValue(
-      new MiniappApiError(409, MINIAPP_ACCOUNT_ERROR_CODE.ACTIVE_ORDER_EXISTS, "存在进行中的订单"),
+      new MiniappApiError(
+        409,
+        MINIAPP_ACCOUNT_ERROR_CODE.ACTIVE_ORDER_EXISTS,
+        "存在受保护的进行中业务记录",
+      ),
     );
 
     await runCancellationFlow(state, { requiresCode: false, code: "" }, deps);
@@ -416,7 +428,7 @@ describe("account cancellation flow", () => {
     expect(deps.completeCancellation).not.toHaveBeenCalled();
     expect(deps.showToast).not.toHaveBeenCalled();
     expect(deps.reLaunch).not.toHaveBeenCalled();
-    expect(state.errorMessage).toBe("存在进行中的订单，完成或取消后才能注销");
+    expect(state.errorMessage).toBe("存在受保护的进行中业务记录，处理完成后才能注销");
   });
 
   it.each([

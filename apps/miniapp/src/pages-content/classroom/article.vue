@@ -10,11 +10,6 @@ const articleSlug = ref("");
 const article = ref<PublicClassroomArticleDetail | null>(null);
 const status = ref<"loading" | "ready" | "error" | "unavailable">("loading");
 const loading = ref(false);
-const articleActions = [
-  { label: "评论", icon: "/static/main/community-comment.svg" },
-  { label: "收藏", icon: "/static/main/favorite.svg" },
-  { label: "分享", icon: "/static/main/community-share.svg" },
-] as const;
 const byline = computed(() => {
   if (!article.value) {
     return "";
@@ -121,18 +116,5 @@ onLoad((query = {}) => {
         </view>
       </template>
     </view>
-
-    <template #actions>
-      <view class="flex opacity-50" aria-disabled="true">
-        <view
-          v-for="action in articleActions"
-          :key="action.label"
-          class="h-control flex flex-1 items-center justify-center gap-sm"
-        >
-          <image class="h-icon-sm w-icon-sm" :src="action.icon" mode="aspectFit" />
-          <text class="text-caption text-muted leading-caption">{{ action.label }}</text>
-        </view>
-      </view>
-    </template>
   </SubPageLayout>
 </template>

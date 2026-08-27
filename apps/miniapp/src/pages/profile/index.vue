@@ -24,27 +24,6 @@ definePage({
   },
 });
 
-const contentItems = [
-  {
-    icon: "/static/main/favorite.svg",
-    label: "我的收藏",
-    detail: "文章、动态与服务",
-    route: "/pages-account/favorites/index",
-  },
-  {
-    icon: "/static/main/follow.svg",
-    label: "我的关注",
-    detail: "8 位养宠伙伴",
-    route: "/pages-account/follows/index",
-  },
-  {
-    icon: "/static/main/review.svg",
-    label: "我的评价",
-    detail: "信用评价与服务反馈",
-    route: "/pages-account/reviews/index",
-  },
-] as const;
-
 const supportItems = [
   {
     icon: "/static/main/help.svg",
@@ -75,19 +54,6 @@ const pets = ref<MyPetListItem[]>([]);
 const petStatus = ref<"idle" | "loading" | "ready" | "error">("idle");
 const profile = computed(() => session.user);
 const featuredPets = computed(() => pets.value.slice(0, 2));
-const petStatValue = computed(() => {
-  if (petStatus.value === "loading") {
-    return "…";
-  }
-
-  return petStatus.value === "ready" ? `${pets.value.length}只` : "—";
-});
-const profileStats = computed<{ value: string; label: string; route?: string }[]>(() => [
-  { value: "12笔", label: "我的订单", route: "/pages-care/orders/index" },
-  { value: petStatValue.value, label: "我的宠物", route: "/pages-account/pets/index" },
-  { value: "3张", label: "优惠券", route: "/pages-content/coupons/index" },
-  { value: "856元", label: "余额收入", route: "/pages-content/wallet/index" },
-]);
 const avatarUrl = computed(() => {
   const user = profile.value;
 
@@ -157,12 +123,6 @@ onShow(() => {
   void refreshPets();
 });
 
-function openStat(route?: string) {
-  if (route) {
-    uni.navigateTo({ url: route });
-  }
-}
-
 function openPage(route: string) {
   uni.navigateTo({ url: route });
 }
@@ -231,7 +191,7 @@ async function logoutCurrentDevice(): Promise<void> {
               class="mt-caption text-caption leading-caption"
               :class="profile.profileComplete ? 'text-success' : 'text-warning'"
             >
-              {{ profile.profileComplete ? profile.phoneMasked : "请完善手机号后使用发布等功能" }}
+              {{ profile.profileComplete ? profile.phoneMasked : "请完善手机号以维护账户资料" }}
             </text>
           </view>
           <image class="h-icon-sm w-icon-sm" src="/static/main/chevron.svg" mode="aspectFit" />
@@ -267,20 +227,6 @@ async function logoutCurrentDevice(): Promise<void> {
           >
             重试
           </button>
-        </view>
-      </view>
-
-      <view class="mx-page-horizontal mt-copy flex main-card py-action">
-        <view
-          v-for="(stat, index) in profileStats"
-          :key="stat.label"
-          class="flex flex-1 flex-col items-center gap-caption"
-          :class="index < profileStats.length - 1 ? 'border-r border-divider' : ''"
-          :hover-class="stat.route ? 'opacity-80' : 'none'"
-          @click="openStat(stat.route)"
-        >
-          <text class="text-card text-ink font-semibold leading-card">{{ stat.value }}</text>
-          <text class="quiet-text">{{ stat.label }}</text>
         </view>
       </view>
 
@@ -367,32 +313,7 @@ async function logoutCurrentDevice(): Promise<void> {
       </view>
 
       <view class="mt-card px-page-horizontal">
-        <text class="section-heading">我的内容</text>
-      </view>
-      <view class="mx-page-horizontal mt-copy overflow-hidden main-card">
-        <view
-          v-for="(item, index) in contentItems"
-          :key="item.label"
-          class="flex items-center gap-copy px-card-padding py-action"
-          :class="index < contentItems.length - 1 ? 'border-b border-divider' : ''"
-          hover-class="opacity-80"
-          @click="openPage(item.route)"
-        >
-          <view
-            class="h-icon w-icon flex shrink-0 items-center justify-center rounded-control bg-soft"
-          >
-            <image class="h-glyph w-glyph" :src="item.icon" mode="aspectFit" />
-          </view>
-          <view class="min-w-0 flex flex-1 flex-col">
-            <text class="text-body text-ink font-medium leading-label">{{ item.label }}</text>
-            <text class="mt-caption quiet-text">{{ item.detail }}</text>
-          </view>
-          <image class="h-icon-xs w-icon-xs" src="/static/main/chevron.svg" mode="aspectFit" />
-        </view>
-      </view>
-
-      <view class="mt-card px-page-horizontal">
-        <text class="section-heading">服务与帮助</text>
+        <text class="section-heading">帮助与协议</text>
       </view>
       <view class="mx-page-horizontal mt-copy overflow-hidden main-card">
         <navigator

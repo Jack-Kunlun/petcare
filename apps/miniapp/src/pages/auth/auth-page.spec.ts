@@ -5,6 +5,15 @@ import { describe, expect, it } from "vitest";
 const source = readFileSync(resolve(import.meta.dirname, "index.vue"), "utf8");
 
 describe("auth page login control", () => {
+  it("describes only current personal capabilities", () => {
+    expect(source).toContain("宠物档案");
+    expect(source).toContain("萌宠课堂");
+    expect(source).toContain("受控社区");
+    expect(source).not.toContain("实名认证");
+    expect(source).not.toContain("平台保障");
+    expect(source).not.toContain("照护者");
+  });
+
   it("uses a natively disabled button while login is pending", () => {
     expect(source).toMatch(/<button\b/);
     expect(source).not.toContain("<wd-button");

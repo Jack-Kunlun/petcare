@@ -21,6 +21,15 @@ function deferred<T>(): {
 }
 
 describe("profile logout control", () => {
+  it("keeps the personal center within account, pet, and support capabilities", () => {
+    expect(source).toContain("我的宠物");
+    expect(source).toContain("帮助与协议");
+    expect(source).not.toContain("pages-care");
+    expect(source).not.toContain("优惠券");
+    expect(source).not.toContain("余额收入");
+    expect(source).not.toContain("我的评价");
+  });
+
   it("runs only one logout and home relaunch while pending", async () => {
     const pending = { value: false };
     const operation = deferred<void>();

@@ -5,6 +5,16 @@ import { describe, expect, it } from "vitest";
 const home = readFileSync(resolve(import.meta.dirname, "index.vue"), "utf8");
 
 describe("home classroom section", () => {
+  it("presents only current personal features without commercial service fixtures", () => {
+    expect(home).toContain("管理宠物档案");
+    expect(home).toContain("浏览课堂与社区内容");
+    expect(home).not.toContain("pages-bounty");
+    expect(home).not.toContain("pages-care");
+    expect(home).not.toContain("服务进行中");
+    expect(home).not.toContain("附近热门悬赏");
+    expect(home).not.toContain("¥68/次");
+  });
+
   it("renders the latest published articles and routes to real list and detail pages", () => {
     expect(home).toContain("getClassroomArticles({ page: 1, pageSize: HOME_CLASSROOM_PAGE_SIZE })");
     expect(home).toContain('url: "/pages/community/index?tab=classroom"');

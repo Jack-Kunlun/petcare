@@ -10,7 +10,8 @@ const detail = readFileSync(
 
 describe("community post reader", () => {
   it("loads, refreshes, pages, retries, and opens only API-backed posts", () => {
-    expect(list).toContain("getCommunityPosts({ page, pageSize: COMMUNITY_PAGE_SIZE })");
+    expect(list).toContain("getCommunityPosts({");
+    expect(list).toContain("pageSize: COMMUNITY_PAGE_SIZE");
     expect(list).toContain("featuredPage.value + 1");
     expect(list).toContain("featuredLoadMoreError");
     expect(list).toContain("featuredPosts.length === 0");

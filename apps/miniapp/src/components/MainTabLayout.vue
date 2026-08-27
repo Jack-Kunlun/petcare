@@ -3,7 +3,7 @@ import { computed } from "vue";
 import { getBottomSafeAreaStyle, usePlatformLayout } from "./platform-layout";
 import { miniappDesignTokens } from "@/config/design-tokens";
 
-type MainTabKey = "home" | "bounty" | "community" | "messages" | "profile";
+type MainTabKey = "home" | "community" | "messages" | "profile";
 
 defineProps<{
   active: MainTabKey;
@@ -32,14 +32,6 @@ const tabs = [
     badge: undefined,
   },
   {
-    key: "bounty",
-    label: "悬赏",
-    route: "/pages/bounty/index",
-    icon: "/static/main/tab-bounty.svg",
-    activeIcon: "/static/main/tab-bounty-active.svg",
-    badge: undefined,
-  },
-  {
     key: "community",
     label: "社区",
     route: "/pages/community/index",
@@ -53,7 +45,7 @@ const tabs = [
     route: "/pages/messages/index",
     icon: "/static/main/tab-messages.svg",
     activeIcon: "/static/main/tab-messages-active.svg",
-    badge: 3,
+    badge: undefined,
   },
   {
     key: "profile",

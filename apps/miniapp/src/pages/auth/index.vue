@@ -30,9 +30,9 @@ const loginButtonStyle = [
 ].join("; ");
 
 const trustItems = [
-  { icon: "/static/auth/check.svg", label: "实名认证" },
-  { icon: "/static/auth/heart.svg", label: "平台保障" },
-  { icon: "/static/auth/camera.svg", label: "全程记录" },
+  { icon: "/static/auth/check.svg", label: "宠物档案" },
+  { icon: "/static/auth/heart.svg", label: "萌宠课堂" },
+  { icon: "/static/auth/camera.svg", label: "受控社区" },
 ] as const;
 
 async function handleLogin(): Promise<void> {
@@ -86,7 +86,7 @@ async function handleLogin(): Promise<void> {
     >
       <image
         class="absolute right-hero-bleed top-0 h-full w-hero-image"
-        src="/static/auth/trusted-care.png"
+        src="/static/main/community-pet-5.jpg"
         mode="aspectFill"
       />
 
@@ -103,9 +103,9 @@ async function handleLogin(): Promise<void> {
     >
       <view class="flex flex-col">
         <view class="flex flex-col gap-copy">
-          <text class="block text-title font-medium leading-title"> 让每一次照护，都更安心 </text>
+          <text class="block text-title font-medium leading-title"> 认真记录每一份陪伴 </text>
           <text class="block text-body text-muted leading-body">
-            连接值得信赖的照护者，安心记录每一次陪伴。
+            管理宠物档案，浏览养宠知识，分享真实日常。
           </text>
         </view>
 
@@ -134,11 +134,11 @@ async function handleLogin(): Promise<void> {
           </view>
           <view class="min-w-0 flex flex-1 flex-col">
             <view class="flex flex-col text-body font-medium leading-label">
-              <text>每一次上门，都有记录。</text>
-              <text>每一次托付，都值得安心。</text>
+              <text>每一份档案，都由你维护。</text>
+              <text>每一条动态，都经过内容治理。</text>
             </view>
             <text class="mt-caption block text-caption text-muted leading-caption">
-              PetCare 陪你认真对待每一次照护
+              PetCare 陪你记录真实的养宠生活
             </text>
           </view>
         </view>

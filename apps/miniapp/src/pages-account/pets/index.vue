@@ -83,7 +83,7 @@ async function removePet(pet: MyPetListItem): Promise<void> {
   const confirmation = await uni
     .showModal({
       title: `删除${pet.name}`,
-      content: "删除后宠物档案和受管理图片将不再显示；被订单引用时系统会拒绝删除。",
+      content: "删除后宠物档案和受管理图片将不再显示；存在受保护的关联记录时系统会拒绝删除。",
       confirmText: "删除",
       confirmColor: "#f04438",
     })

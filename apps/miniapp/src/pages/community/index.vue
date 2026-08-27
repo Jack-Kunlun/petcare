@@ -27,9 +27,8 @@ definePage({
 const CLASSROOM_PAGE_SIZE = 10;
 const COMMUNITY_PAGE_SIZE = 10;
 const channelTabs = [
-  { value: "featured", label: "社区精选", disabled: false },
-  { value: "classroom", label: "萌宠课堂", disabled: false },
-  { value: "nearby", label: "附近动态", disabled: true },
+  { value: "featured", label: "社区精选" },
+  { value: "classroom", label: "萌宠课堂" },
 ] as const;
 const categoryOptions = Object.values(CLASSROOM_ARTICLE_CATEGORY).map((value) => ({
   value,
@@ -157,10 +156,6 @@ async function loadClassroom(reset = true): Promise<void> {
 }
 
 function selectChannel(tab: (typeof channelTabs)[number]): void {
-  if (tab.disabled) {
-    return;
-  }
-
   activeChannel.value = tab.value;
 
   if (tab.value === "classroom" && classroomStatus.value === "idle") {
@@ -267,13 +262,9 @@ onLoad((query = {}) => {
           :key="tab.value"
           role="tab"
           :aria-selected="activeChannel === tab.value"
-          :aria-disabled="tab.disabled"
           class="flex flex-1 items-center justify-center rounded-chip"
-          :class="[
-            activeChannel === tab.value ? 'bg-surface shadow-card' : '',
-            tab.disabled ? 'opacity-50' : '',
-          ]"
-          :hover-class="tab.disabled ? 'none' : 'opacity-80'"
+          :class="activeChannel === tab.value ? 'bg-surface shadow-card' : ''"
+          hover-class="opacity-80"
           @click="selectChannel(tab)"
         >
           <text
@@ -635,7 +626,6 @@ onLoad((query = {}) => {
                 <text class="quiet-text">赞 {{ post.likesCount }}</text>
                 <text class="quiet-text">评论 {{ post.commentsCount }}</text>
               </view>
-              <text class="mt-caption block quiet-text">关注与分享功能暂未开放</text>
             </view>
           </view>
 

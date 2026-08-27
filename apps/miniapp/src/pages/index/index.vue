@@ -20,49 +20,6 @@ const classroomArticles = ref<PublicClassroomArticleListItem[]>([]);
 const classroomStatus = ref<"loading" | "ready" | "error">("loading");
 const classroomLoading = ref(false);
 
-const bountyCards = [
-  {
-    id: "reward-2",
-    image: "/static/main/community-pet-2.jpg",
-    pet: "旺财 · 金毛",
-    service: "周末遛狗 · 2次",
-    location: "静安区 · 1.2km",
-    price: "¥68/次",
-  },
-  {
-    id: "reward-1",
-    image: "/static/main/community-pet-1.jpg",
-    pet: "咪咪 · 英短",
-    service: "上门喂养 · 今天",
-    location: "长宁区 · 2.6km",
-    price: "¥58/次",
-  },
-  {
-    id: "reward-3",
-    image: "/static/main/community-pet-3.jpg",
-    pet: "团团 · 布偶",
-    service: "上门梳毛 · 明天",
-    location: "普陀区 · 3.1km",
-    price: "¥80/次",
-  },
-] as const;
-
-function openOrders() {
-  uni.navigateTo({ url: "/pages-care/orders/index" });
-}
-
-function openOrder() {
-  uni.navigateTo({ url: "/pages-care/order/detail?id=order-1" });
-}
-
-function openChat() {
-  uni.navigateTo({ url: "/pages-care/chat/index?userId=caregiver-1" });
-}
-
-function openReward(id: string) {
-  uni.navigateTo({ url: `/pages-bounty/reward/detail?id=${encodeURIComponent(id)}` });
-}
-
 function openClassroomArticle(slug: string) {
   uni.navigateTo({ url: `/pages-content/classroom/article?id=${encodeURIComponent(slug)}` });
 }
@@ -75,8 +32,8 @@ function openCommunityList() {
   uni.redirectTo({ url: "/pages/community/index" });
 }
 
-function openBountyTab() {
-  uni.redirectTo({ url: "/pages/bounty/index" });
+function openPetProfiles() {
+  uni.redirectTo({ url: "/pages/profile/index" });
 }
 
 function classroomCategoryLabel(article: PublicClassroomArticleListItem): string {
@@ -119,19 +76,18 @@ onShow(() => void loadHomeClassroom());
           <view
             class="h-avatar w-avatar flex shrink-0 items-center justify-center rounded-full bg-brand text-body text-surface font-semibold"
           >
-            郑
+            宠
           </view>
           <view class="min-w-0 flex flex-col">
-            <text class="text-caption text-muted leading-caption">早上好</text>
-            <text class="truncate text-card text-ink font-semibold leading-card">郑先生</text>
+            <text class="text-caption text-muted leading-caption">个人开发版</text>
+            <text class="truncate text-card text-ink font-semibold leading-card">PetCare 宠伴</text>
           </view>
         </view>
 
         <view
           class="ml-copy min-w-0 flex shrink items-center gap-caption rounded-pill bg-surface px-copy py-sm shadow-card"
         >
-          <image class="h-icon-xs w-icon-xs" src="/static/main/location.svg" mode="aspectFit" />
-          <text class="truncate text-caption text-muted leading-caption">上海市 · 静安区</text>
+          <text class="truncate text-caption text-muted leading-caption">内容 · 社区 · 档案</text>
         </view>
       </view>
     </template>
@@ -142,126 +98,85 @@ onShow(() => void loadHomeClassroom());
       >
         <image
           class="absolute inset-0 h-full w-full"
-          src="/static/main/home-hero-trusted.png"
+          src="/static/main/community-pet-5.jpg"
           mode="aspectFill"
         />
+        <view
+          class="absolute inset-0 from-surface via-surface/85 to-transparent bg-gradient-to-r"
+          aria-hidden="true"
+        />
         <view class="absolute left-card-padding top-card w-hero-copy flex flex-col gap-sm">
-          <text class="text-amount text-ink font-semibold leading-section">专业照护，就在身边</text>
-          <text class="text-caption text-muted leading-caption"
-            >实名认证照护者，让每次托付更安心</text
-          >
+          <text class="text-amount text-ink font-semibold leading-section">记录宠物日常</text>
+          <text class="text-caption text-muted leading-caption">
+            管理宠物档案，浏览课堂与社区内容
+          </text>
           <view
             class="mt-caption self-start rounded-pill bg-brand px-copy py-compact"
             hover-class="opacity-80"
-            @click="openBountyTab"
+            @click="openPetProfiles"
           >
-            <text class="text-caption text-surface font-medium leading-caption">立即发现</text>
-          </view>
-        </view>
-        <view class="absolute bottom-sm left-0 right-0 flex justify-center gap-caption">
-          <view class="h-dot w-indicator rounded-pill bg-brand" />
-          <view class="h-dot w-dot rounded-full bg-border" />
-          <view class="h-dot w-dot rounded-full bg-border" />
-        </view>
-      </view>
-
-      <view class="mt-card flex items-center justify-between px-page-horizontal">
-        <text class="section-heading">我的服务</text>
-        <view class="flex items-center gap-caption" hover-class="opacity-80" @click="openOrders">
-          <text class="text-caption text-brand leading-caption">查看全部</text>
-          <image
-            class="h-icon-xs w-icon-xs"
-            src="/static/main/chevron-brand.svg"
-            mode="aspectFit"
-          />
-        </view>
-      </view>
-
-      <view class="mx-page-horizontal mt-copy main-card p-card-padding">
-        <view class="flex items-center justify-between">
-          <view class="flex items-center gap-copy">
-            <image
-              class="h-avatar w-avatar rounded-full"
-              src="/static/main/home-pet-avatar.png"
-              mode="aspectFill"
-            />
-            <view class="flex flex-col">
-              <text class="card-heading">咪咪 · 英短蓝猫</text>
-              <text class="meta-text">上门喂养 · 第 2 次服务</text>
-            </view>
-          </view>
-          <view class="rounded-pill bg-success-soft px-sm py-caption">
-            <text class="text-caption text-success font-medium leading-caption">服务进行中</text>
-          </view>
-        </view>
-
-        <view class="mt-action flex items-center justify-between">
-          <text class="meta-text">预计 12:30 到达</text>
-          <text class="text-caption text-brand font-medium leading-caption">已完成 65%</text>
-        </view>
-        <view class="mt-sm h-progress overflow-hidden rounded-pill bg-divider">
-          <view class="h-full rounded-pill bg-brand" style="width: 65%" />
-        </view>
-
-        <view class="mt-action flex gap-copy">
-          <view
-            class="h-segment flex flex-1 items-center justify-center border border-border rounded-control bg-surface"
-            hover-class="opacity-80"
-            @click="openChat"
-          >
-            <text class="text-body text-muted font-medium leading-label">联系照护者</text>
-          </view>
-          <view
-            class="h-segment flex flex-1 items-center justify-center rounded-control bg-brand"
-            hover-class="opacity-80"
-            @click="openOrder"
-          >
-            <text class="text-body text-surface font-medium leading-label">查看服务记录</text>
+            <text class="text-caption text-surface font-medium leading-caption">管理宠物档案</text>
           </view>
         </view>
       </view>
 
-      <view class="mt-section flex items-center justify-between px-page-horizontal">
-        <text class="section-heading">附近热门悬赏</text>
-        <text
-          class="text-caption text-brand leading-caption"
+      <view class="mt-card px-page-horizontal">
+        <text class="section-heading">从这里开始</text>
+      </view>
+
+      <view class="grid grid-cols-3 mx-page-horizontal mt-copy gap-copy">
+        <view
+          class="flex flex-col items-center gap-copy main-card p-copy text-center"
+          role="button"
+          aria-label="管理宠物档案"
           hover-class="opacity-80"
-          @click="openBountyTab"
+          @click="openPetProfiles"
         >
-          更多
-        </text>
-      </view>
-
-      <scroll-view class="mt-copy w-full" scroll-x :show-scrollbar="false">
-        <view class="flex gap-copy px-page-horizontal pb-sm">
-          <view
-            v-for="item in bountyCards"
-            :key="item.pet"
-            class="w-feed-card shrink-0 main-card p-copy"
-            hover-class="opacity-80"
-            @click="openReward(item.id)"
-          >
-            <view class="flex gap-copy">
-              <image
-                class="h-mini-cover w-mini-cover shrink-0 rounded-control"
-                :src="item.image"
-                mode="aspectFill"
-              />
-              <view class="min-w-0 flex flex-1 flex-col">
-                <text class="truncate card-heading">{{ item.pet }}</text>
-                <text class="mt-caption truncate meta-text">{{ item.service }}</text>
-                <text class="mt-caption truncate quiet-text">{{ item.location }}</text>
-              </view>
-            </view>
-            <view class="mt-copy flex items-center justify-between border-t border-divider pt-copy">
-              <text class="text-amount text-danger font-semibold leading-card">{{
-                item.price
-              }}</text>
-              <text class="text-caption text-brand leading-caption">查看详情</text>
-            </view>
+          <view class="h-icon w-icon flex items-center justify-center rounded-full bg-soft">
+            <image class="h-glyph w-glyph" src="/static/main/profile-cat.png" mode="aspectFit" />
+          </view>
+          <view class="flex flex-col gap-caption">
+            <text class="text-body text-ink font-medium leading-label">宠物档案</text>
+            <text class="quiet-text">记录资料</text>
           </view>
         </view>
-      </scroll-view>
+
+        <view
+          class="flex flex-col items-center gap-copy main-card p-copy text-center"
+          role="button"
+          aria-label="浏览萌宠课堂"
+          hover-class="opacity-80"
+          @click="openClassroomList"
+        >
+          <view class="h-icon w-icon flex items-center justify-center rounded-full bg-soft">
+            <image class="h-glyph w-glyph" src="/static/main/about.svg" mode="aspectFit" />
+          </view>
+          <view class="flex flex-col gap-caption">
+            <text class="text-body text-ink font-medium leading-label">萌宠课堂</text>
+            <text class="quiet-text">学习知识</text>
+          </view>
+        </view>
+
+        <view
+          class="flex flex-col items-center gap-copy main-card p-copy text-center"
+          role="button"
+          aria-label="浏览社区精选"
+          hover-class="opacity-80"
+          @click="openCommunityList"
+        >
+          <view class="h-icon w-icon flex items-center justify-center rounded-full bg-soft">
+            <image
+              class="h-glyph w-glyph"
+              src="/static/main/tab-community-active.svg"
+              mode="aspectFit"
+            />
+          </view>
+          <view class="flex flex-col gap-caption">
+            <text class="text-body text-ink font-medium leading-label">社区精选</text>
+            <text class="quiet-text">分享日常</text>
+          </view>
+        </view>
+      </view>
 
       <view class="mt-section flex items-center justify-between px-page-horizontal">
         <text class="section-heading">萌宠课堂</text>

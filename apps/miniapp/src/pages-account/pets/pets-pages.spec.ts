@@ -49,11 +49,11 @@ describe("real Miniapp pet pages", () => {
     expect(form).not.toContain("getPetById");
   });
 
-  it("replaces the profile fixture count and cards with owner API data", () => {
+  it("replaces profile fixtures with owner API cards", () => {
     expect(profile).toContain("getMyPets");
-    expect(profile).toContain("petStatValue");
     expect(profile).toContain('v-for="pet in featuredPets"');
     expect(profile).toContain("petCoverImage(pet)");
+    expect(profile).not.toContain("petStatValue");
     expect(profile).not.toContain('{ value: "2只", label: "我的宠物"');
     expect(profile).not.toContain("detail?id=mimi");
     expect(profile).not.toContain("detail?id=wangcai");

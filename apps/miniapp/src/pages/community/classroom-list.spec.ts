@@ -15,14 +15,15 @@ describe("community classroom list", () => {
     expect(community).toContain("openClassroomArticle(article.slug)");
   });
 
-  it("keeps list states and unavailable controls behaviorally explicit", () => {
+  it("keeps list states explicit without advertising unavailable channels", () => {
     expect(community).toContain("classroomStatus === 'loading'");
     expect(community).toContain("classroomStatus === 'error'");
     expect(community).toContain("classroomArticles.length === 0");
     expect(community).toContain("classroomLoadMoreError");
     expect(community).toContain(':disabled="classroomLoading"');
     expect(community).toContain(':aria-disabled="classroomLoading"');
-    expect(community).toContain('{ value: "nearby", label: "附近动态", disabled: true }');
+    expect(community).not.toContain("附近动态");
+    expect(community).not.toContain("tab.disabled");
   });
 });
 
@@ -45,5 +46,9 @@ describe("community featured list", () => {
     expect(community).toContain("selectFeaturedContentType(option.value)");
     expect(community).toContain(':aria-disabled="featuredLoading"');
     expect(community).toContain(":hover-class=\"featuredLoading ? 'none' : 'opacity-80'\"");
+  });
+
+  it("does not advertise follow or share placeholders", () => {
+    expect(community).not.toContain("关注与分享功能暂未开放");
   });
 });

@@ -640,7 +640,7 @@ describe("miniapp session", () => {
   });
 
   it("routes anonymous and incomplete users while allowing a complete profile", async () => {
-    await expect(requireProfile("/pages-bounty/publish/step1")).resolves.toBe(false);
+    await expect(requireProfile("/pages-content/community/publish")).resolves.toBe(false);
     expect(navigateTo).toHaveBeenLastCalledWith({ url: "/pages/auth/index" });
 
     Object.assign(session, storedSession);
@@ -650,11 +650,13 @@ describe("miniapp session", () => {
     });
 
     session.user = { ...storedSession.user, profileComplete: true };
-    await expect(requireProfile("/pages-bounty/publish/step1")).resolves.toBe(true);
+    await expect(requireProfile("/pages-content/community/publish")).resolves.toBe(true);
   });
 
   it("decodes one safe internal return path and rejects malformed or external values", () => {
-    expect(parseReturnUrl("%2Fpages-bounty%2Fpublish%2Fstep1")).toBe("/pages-bounty/publish/step1");
+    expect(parseReturnUrl("%2Fpages-content%2Fcommunity%2Fpublish")).toBe(
+      "/pages-content/community/publish",
+    );
     expect(parseReturnUrl("/pages/profile/index")).toBe("/pages/profile/index");
     expect(parseReturnUrl("javascript:alert(1)")).toBeNull();
     expect(parseReturnUrl("https://outside.example/path")).toBeNull();

@@ -5,10 +5,10 @@ import { describe, expect, it } from "vitest";
 const source = readFileSync(resolve(import.meta.dirname, "cancel.vue"), "utf8");
 
 describe("account cancellation page wiring", () => {
-  it("shows the irreversible, retained-history, and active-order notices", () => {
+  it("shows the irreversible, retained-history, and protected-record notices", () => {
     expect(source).toContain("账户注销后不可恢复");
-    expect(source).toContain("历史订单、投诉及必要审计记录会按规则保留");
-    expect(source).toContain("进行中的订单会阻止注销");
+    expect(source).toContain("历史业务与必要审计记录会按规则保留");
+    expect(source).toContain("受保护的进行中业务记录会阻止注销");
   });
 
   it("renders SMS controls only for a server-profile bound phone", () => {

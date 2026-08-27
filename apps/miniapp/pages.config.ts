@@ -11,32 +11,11 @@ export default defineUniPages({
   pages: [],
   subPackages: [
     {
-      root: "pages-bounty",
-      pages: [
-        "publish/step1",
-        "publish/step2",
-        "publish/step3",
-        "publish/success",
-        "reward/detail",
-      ].map(createPage),
-    },
-    {
-      root: "pages-care",
-      pages: ["orders/index", "order/detail", "monitor/index", "chat/index"].map(createPage),
-    },
-    {
       root: "pages-account",
       pages: [
         "pets/index",
         "pets/form",
         "pets/detail",
-        "favorites/index",
-        "follows/index",
-        "reviews/index",
-        "services/detail",
-        "caregivers/detail",
-        "stores/detail",
-        "creators/detail",
         "profile/info",
         "profile/edit",
         "account/cancel",
@@ -48,8 +27,6 @@ export default defineUniPages({
         "classroom/article",
         "community/article",
         "community/publish",
-        "coupons/index",
-        "wallet/index",
         "help/index",
         "contact/index",
         "legal/index",

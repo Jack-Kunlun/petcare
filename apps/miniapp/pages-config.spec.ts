@@ -2,32 +2,15 @@ import { describe, expect, it } from "vitest";
 import pagesConfig from "./pages.config";
 
 const expectedSubPages = [
-  "pages-bounty/publish/step1",
-  "pages-bounty/publish/step2",
-  "pages-bounty/publish/step3",
-  "pages-bounty/publish/success",
-  "pages-bounty/reward/detail",
-  "pages-care/orders/index",
-  "pages-care/order/detail",
-  "pages-care/monitor/index",
-  "pages-care/chat/index",
   "pages-account/pets/index",
   "pages-account/pets/form",
   "pages-account/pets/detail",
-  "pages-account/favorites/index",
-  "pages-account/follows/index",
-  "pages-account/reviews/index",
-  "pages-account/services/detail",
-  "pages-account/caregivers/detail",
-  "pages-account/stores/detail",
-  "pages-account/creators/detail",
   "pages-account/profile/info",
   "pages-account/profile/edit",
   "pages-account/account/cancel",
   "pages-content/classroom/article",
   "pages-content/community/article",
-  "pages-content/coupons/index",
-  "pages-content/wallet/index",
+  "pages-content/community/publish",
   "pages-content/help/index",
   "pages-content/contact/index",
   "pages-content/legal/index",
@@ -47,7 +30,12 @@ describe("miniapp page contract", () => {
     expect(new Set(actual).size).toBe(expectedSubPages.length);
   });
 
-  it("delivers 37 formal pages or states including auth", () => {
-    expect(6 + expectedSubPages.length + 2).toBe(37);
+  it("does not register paused commercial route groups", () => {
+    const registered = JSON.stringify(pagesConfig.subPackages ?? []);
+
+    expect(registered).not.toContain("pages-bounty");
+    expect(registered).not.toContain("pages-care");
+    expect(registered).not.toContain("wallet");
+    expect(registered).not.toContain("coupons");
   });
 });

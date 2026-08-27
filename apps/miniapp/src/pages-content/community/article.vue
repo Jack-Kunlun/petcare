@@ -469,7 +469,6 @@ onShow(() => {
           <text v-if="likeError" class="mt-copy block text-small text-danger" role="alert">
             {{ likeError }}
           </text>
-          <text class="mt-copy block quiet-text">关注与分享功能暂未开放</text>
         </view>
 
         <view class="mt-copy border-t border-divider pt-copy">
