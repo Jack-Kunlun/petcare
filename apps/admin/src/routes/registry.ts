@@ -14,6 +14,7 @@ const Rbac = lazy(() => import("../pages/Rbac"));
 const RbacDetail = lazy(() => import("../pages/Rbac/Detail"));
 const RbacEdit = lazy(() => import("../pages/Rbac/Edit"));
 const RbacCatalog = lazy(() => import("../pages/Rbac/Catalog"));
+const SharedContent = lazy(() => import("../pages/SharedContent"));
 const UserManagement = lazy(() => import("../pages/UserManagement"));
 const WebsiteContent = lazy(() => import("../pages/WebsiteContent"));
 const WebsiteContentEdit = lazy(() => import("../pages/WebsiteContent/Edit"));
@@ -154,7 +155,7 @@ export const ADMIN_ROUTE_REGISTRY: readonly AdminRouteDefinition[] = [
     icon: null,
     menuLabel: null,
   },
-  catalogMenuRoute("website-content", "website.view", WebsiteContent),
+  catalogMenuRoute("website-content", "website.view", WebsiteContent, "官网管理"),
   {
     id: "website-content-edit",
     path: "/website-content/:contentKey/edit",
@@ -173,6 +174,39 @@ export const ADMIN_ROUTE_REGISTRY: readonly AdminRouteDefinition[] = [
     menuPermission: null,
     requiredPermissions: ["website.view"],
     parentPath: "/website-content",
+    order: 0,
+    icon: null,
+    menuLabel: null,
+  },
+  {
+    id: "shared-content",
+    path: "/shared-content",
+    element: lazyRoute(SharedContent, "公共内容配置"),
+    menuPermission: "website.view",
+    requiredPermissions: ["website.view"],
+    parentPath: null,
+    order: 55,
+    icon: "Settings2",
+    menuLabel: "公共内容配置",
+  },
+  {
+    id: "shared-content-edit",
+    path: "/shared-content/:contentKey/edit",
+    element: lazyRoute(WebsiteContentEdit, "公共内容编辑"),
+    menuPermission: null,
+    requiredPermissions: ["website.view"],
+    parentPath: "/shared-content",
+    order: 0,
+    icon: null,
+    menuLabel: null,
+  },
+  {
+    id: "shared-content-history",
+    path: "/shared-content/:contentKey/history/:versionId",
+    element: lazyRoute(WebsiteContentDetail, "公共内容历史"),
+    menuPermission: null,
+    requiredPermissions: ["website.view"],
+    parentPath: "/shared-content",
     order: 0,
     icon: null,
     menuLabel: null,

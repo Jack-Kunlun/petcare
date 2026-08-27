@@ -25,6 +25,10 @@ describe("Dashboard", () => {
       "href",
       "/website-content",
     );
+    expect(screen.getByRole("link", { name: "管理公共内容" })).toHaveAttribute(
+      "href",
+      "/shared-content",
+    );
     expect(screen.queryByText("今日订单")).not.toBeInTheDocument();
     expect(screen.queryByText("本月成交额")).not.toBeInTheDocument();
     expect(screen.queryByText("待审核宠托师")).not.toBeInTheDocument();

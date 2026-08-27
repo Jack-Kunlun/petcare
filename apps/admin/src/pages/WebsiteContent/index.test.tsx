@@ -79,28 +79,27 @@ function renderOverview(permissions = authenticated.user?.permissions ?? []) {
 describe("WebsiteContent overview", () => {
   beforeEach(() => vi.clearAllMocks());
 
-  it("filters historical commercial units and renders the seven current content units", async () => {
+  it("renders only the three Website-owned content units", async () => {
     vi.mocked(websiteContentApi.fetchWebsiteContentOverview).mockResolvedValue(overview);
     renderOverview();
 
     expect(await screen.findByRole("list", { name: "官网内容单元" })).toBeInTheDocument();
-    expect(screen.getByRole("heading", { name: "官网与小程序内容" })).toBeInTheDocument();
-    expect(screen.getByRole("heading", { name: "帮助中心" })).toBeInTheDocument();
-    expect(screen.getByRole("heading", { name: "隐私协议" })).toBeInTheDocument();
-    expect(screen.getAllByRole("listitem")).toHaveLength(7);
+    expect(screen.getByRole("heading", { name: "官网内容" })).toBeInTheDocument();
+    expect(screen.getByRole("heading", { name: "全站导航与页脚" })).toBeInTheDocument();
+    expect(screen.getByRole("heading", { name: "关于我们" })).toBeInTheDocument();
+    expect(screen.queryByRole("heading", { name: "帮助中心" })).not.toBeInTheDocument();
+    expect(screen.queryByRole("heading", { name: "隐私协议" })).not.toBeInTheDocument();
+    expect(screen.getAllByRole("listitem")).toHaveLength(3);
     expect(screen.getByText("草稿 r2")).toBeInTheDocument();
     expect(screen.getByText("已发布 v1")).toBeInTheDocument();
-    expect(screen.getAllByText("运营主管")).toHaveLength(7);
+    expect(screen.getAllByText("运营主管")).toHaveLength(3);
     expect(screen.getAllByText("有未发布变更")).toHaveLength(1);
-    expect(screen.getAllByRole("link", { name: /编辑.+草稿/ })).toHaveLength(7);
+    expect(screen.getAllByRole("link", { name: /编辑.+草稿/ })).toHaveLength(3);
     expect(screen.getByRole("link", { name: "编辑全站导航与页脚草稿" })).toHaveAttribute(
       "href",
       "/website-content/site_shell/edit",
     );
-    expect(screen.getByRole("link", { name: "编辑帮助中心草稿" })).toHaveAttribute(
-      "href",
-      "/website-content/help/edit",
-    );
+    expect(screen.queryByRole("link", { name: "编辑帮助中心草稿" })).not.toBeInTheDocument();
     expect(screen.queryByRole("heading", { name: "服务模式" })).not.toBeInTheDocument();
     expect(screen.queryByRole("heading", { name: "信任保障" })).not.toBeInTheDocument();
     expect(screen.queryByRole("heading", { name: "成为宠托师" })).not.toBeInTheDocument();

@@ -84,7 +84,7 @@ describe("ADMIN_ROUTE_REGISTRY", () => {
       getVisibleMenuRoutes(["stats.view", "content.view", "content.post.view", "website.view"]).map(
         (route) => route.path,
       ),
-    ).toEqual(["/", "/content/posts", "/content", "/website-content"]);
+    ).toEqual(["/", "/content/posts", "/content", "/website-content", "/shared-content"]);
   });
 
   it("returns root and child menu routes in catalog order", () => {
@@ -134,6 +134,42 @@ describe("ADMIN_ROUTE_REGISTRY", () => {
         menuPermission: null,
         requiredPermissions: ["website.view"],
         parentPath: "/website-content",
+      },
+    ]);
+  });
+
+  it("registers shared content as a separate navigation and route family", () => {
+    expect(
+      ADMIN_ROUTE_REGISTRY.filter((route) => route.path.startsWith("/shared-content")).map(
+        (route) => ({
+          path: route.path,
+          menuPermission: route.menuPermission,
+          requiredPermissions: route.requiredPermissions,
+          parentPath: route.parentPath,
+          menuLabel: route.menuLabel,
+        }),
+      ),
+    ).toEqual([
+      {
+        path: "/shared-content",
+        menuPermission: "website.view",
+        requiredPermissions: ["website.view"],
+        parentPath: null,
+        menuLabel: "公共内容配置",
+      },
+      {
+        path: "/shared-content/:contentKey/edit",
+        menuPermission: null,
+        requiredPermissions: ["website.view"],
+        parentPath: "/shared-content",
+        menuLabel: null,
+      },
+      {
+        path: "/shared-content/:contentKey/history/:versionId",
+        menuPermission: null,
+        requiredPermissions: ["website.view"],
+        parentPath: "/shared-content",
+        menuLabel: null,
       },
     ]);
   });

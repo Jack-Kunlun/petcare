@@ -4,6 +4,7 @@ import {
   FileText,
   Globe2,
   House,
+  Settings2,
   ShieldCheck,
   Users,
   X,
@@ -29,6 +30,7 @@ const icons: Record<string, LucideIcon> = {
   Users,
   FileText,
   Globe2,
+  Settings2,
   ShieldCheck,
 };
 
@@ -44,9 +46,17 @@ interface MenuTreeNode {
 }
 
 function getMenuLabel(route: AdminRouteDefinition) {
-  return route.menuPermission
-    ? (menuPermissionByCode.get(route.menuPermission)?.label ?? route.menuLabel ?? route.id)
-    : (route.menuLabel ?? route.id);
+  if (!route.menuPermission) {
+    return route.menuLabel ?? route.id;
+  }
+
+  const catalogPermission = menuPermissionByCode.get(route.menuPermission);
+
+  if (route.menuLabel && catalogPermission?.path !== route.path) {
+    return route.menuLabel;
+  }
+
+  return catalogPermission?.label ?? route.menuLabel ?? route.id;
 }
 
 function getIcon(route: AdminRouteDefinition) {

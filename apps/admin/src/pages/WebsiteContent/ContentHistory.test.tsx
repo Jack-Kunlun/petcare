@@ -35,6 +35,19 @@ describe("ContentHistory", () => {
     expect(screen.queryByText(/回滚/)).not.toBeInTheDocument();
   });
 
+  it("links shared content versions inside the separate shared route family", () => {
+    render(
+      <MemoryRouter>
+        <ContentHistory contentKey="help" items={[{ ...version, contentKey: "help" }]} />
+      </MemoryRouter>,
+    );
+
+    expect(screen.getByRole("link", { name: /已发布 v2/ })).toHaveAttribute(
+      "href",
+      "/shared-content/help/history/version-1",
+    );
+  });
+
   it("exposes loading, empty, and retry states", () => {
     const { rerender } = render(<ContentHistory contentKey="home" items={[]} loading />);
 

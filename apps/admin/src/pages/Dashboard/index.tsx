@@ -3,6 +3,7 @@ import {
   BookOpenText,
   Globe2,
   MessageSquareText,
+  Settings2,
   ShieldCheck,
   Users,
 } from "lucide-react";
@@ -41,10 +42,17 @@ const managementAreas: ManagementArea[] = [
   },
   {
     title: "官网内容",
-    description: "编辑个人版官网当前公开的页面内容。",
+    description: "维护官网框架、首页和关于页。",
     path: "/website-content",
     action: "管理官网内容",
     icon: Globe2,
+  },
+  {
+    title: "公共内容",
+    description: "维护官网与小程序共用的客服、帮助和协议内容。",
+    path: "/shared-content",
+    action: "管理公共内容",
+    icon: Settings2,
   },
 ];
 
@@ -65,7 +73,7 @@ export default function Dashboard() {
         </div>
       </section>
 
-      <section aria-label="当前管理能力" className="grid gap-4 sm:grid-cols-2 xl:grid-cols-4">
+      <section aria-label="当前管理能力" className="grid gap-4 sm:grid-cols-2 xl:grid-cols-5">
         {managementAreas.map((area) => {
           const Icon = area.icon;
 

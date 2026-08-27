@@ -77,6 +77,11 @@ function renderDetail(
               element={<WebsiteContentDetail />}
             />
             <Route path="/website-content/:contentKey/edit" element={<h1>官网内容编辑</h1>} />
+            <Route
+              path="/shared-content/:contentKey/history/:versionId"
+              element={<WebsiteContentDetail />}
+            />
+            <Route path="/shared-content/:contentKey/edit" element={<h1>公共内容编辑</h1>} />
           </Routes>
         </MemoryRouter>
       </QueryClientProvider>
@@ -128,7 +133,7 @@ describe("WebsiteContentDetail", () => {
     const header = within(page?.querySelector("header.editor-page__header") as HTMLElement);
     const content = within(page?.querySelector("div.editor-page__content") as HTMLElement);
 
-    expect(header.getByRole("link", { name: "返回官网内容编辑" })).toBeInTheDocument();
+    expect(header.getByRole("link", { name: "返回官网管理编辑" })).toBeInTheDocument();
     expect(header.getByText("历史版本")).toBeInTheDocument();
     expect(header.getByRole("button", { name: "顶部恢复为新草稿" })).toBeEnabled();
     expect(content.getByRole("button", { name: "恢复为新草稿" })).toBeEnabled();
@@ -138,6 +143,16 @@ describe("WebsiteContentDetail", () => {
     await user.click(screen.getByRole("button", { name: "取消" }));
     await user.click(content.getByRole("button", { name: "恢复为新草稿" }));
     expect(screen.getByRole("dialog", { name: "确认创建恢复草稿" })).toBeInTheDocument();
+  });
+
+  it("returns shared content history to the separate shared editor route", async () => {
+    renderDetail(auth.user?.permissions, "/shared-content/help/history/version-1");
+
+    expect(await screen.findByRole("heading", { name: "历史版本 v2" })).toBeInTheDocument();
+    expect(screen.getByRole("link", { name: "返回公共内容配置编辑" })).toHaveAttribute(
+      "href",
+      "/shared-content/help/edit",
+    );
   });
 
   it("keeps top and lower restore actions unavailable when the current draft cannot be read", async () => {

@@ -29,6 +29,11 @@ import { useAuth } from "../../auth/auth.context";
 import { PermissionGate } from "../../auth/PermissionGate";
 import { EditorPageLayout, FormSection } from "../../components/EditorPageLayout";
 import { useUnsavedChanges } from "../../hooks/useUnsavedChanges";
+import {
+  getContentAreaLabel,
+  getContentOverviewPath,
+  MANAGED_CONTENT_LABELS,
+} from "./content-registry";
 import { ContentHistory } from "./ContentHistory";
 import { TextField } from "./editors/fields";
 import { WebsiteSectionEditor } from "./editors/WebsiteSectionEditor";
@@ -161,6 +166,8 @@ export default function WebsiteContentEdit() {
   const auth = useAuth();
   const queryClient = useQueryClient();
   const contentKey = isCurrentWebsiteContentKey(contentKeyParam) ? contentKeyParam : null;
+  const overviewPath = contentKey ? getContentOverviewPath(contentKey) : "/website-content";
+  const areaLabel = contentKey ? getContentAreaLabel(contentKey) : "官网管理";
   const canEdit = auth.user?.permissions.includes("website.edit") ?? false;
   const canPublish = auth.user?.permissions.includes("website.publish") ?? false;
   const canReadDraft = canEdit || canPublish;
@@ -212,7 +219,7 @@ export default function WebsiteContentEdit() {
   const saveMutation = useMutation({
     mutationFn: async () => {
       if (!contentKey || !editorState) {
-        throw new Error("官网内容草稿不可用");
+        throw new Error("页面内容草稿不可用");
       }
 
       return saveWebsiteContentDraft(contentKey, {
@@ -371,19 +378,19 @@ export default function WebsiteContentEdit() {
   }
 
   if (!contentKey) {
-    return <PageMessage title="官网内容不存在" message="请从官网内容列表选择有效的内容单元。" />;
+    return <PageMessage title="页面内容不存在" message="请从内容列表选择有效的内容单元。" />;
   }
 
   if (!canReadDraft) {
     return (
-      <PageMessage title="没有官网内容编辑权限" message="请联系管理员授予 website.edit 权限。" />
+      <PageMessage title="没有页面内容编辑权限" message="请联系管理员授予 website.edit 权限。" />
     );
   }
 
   if (draftQuery.isPending) {
     return (
       <section
-        aria-label="正在加载官网内容草稿"
+        aria-label="正在加载页面内容草稿"
         className="mx-auto h-96 w-full max-w-[1080px] animate-pulse rounded-xl bg-slate-200 motion-reduce:animate-none"
       />
     );
@@ -395,7 +402,7 @@ export default function WebsiteContentEdit() {
         role="alert"
         className="mx-auto w-full max-w-[960px] rounded-xl border border-red-200 bg-red-50 p-6 text-red-950"
       >
-        <h1 className="font-bold">官网内容草稿加载失败</h1>
+        <h1 className="font-bold">页面内容草稿加载失败</h1>
         <p className="mt-2">无法读取当前草稿，请重试后再编辑。</p>
         <button
           type="button"
@@ -412,7 +419,7 @@ export default function WebsiteContentEdit() {
   if (!editorState) {
     return (
       <section
-        aria-label="正在加载官网内容草稿"
+        aria-label="正在加载页面内容草稿"
         className="mx-auto h-96 w-full max-w-[1080px] animate-pulse rounded-xl bg-slate-200 motion-reduce:animate-none"
       />
     );
@@ -421,15 +428,15 @@ export default function WebsiteContentEdit() {
   return (
     <EditorPageLayout
       width="default"
-      title={`编辑 ${contentKey}`}
+      title={`编辑 ${MANAGED_CONTENT_LABELS[contentKey]}`}
       description="预设区块编辑：仅可编辑预设区块的内容、有限展示设置和允许的显示状态。保存会创建新的不可变草稿，不会直接发布；预览和发布始终使用最近一次保存的草稿修订版。"
       back={
         <Link
-          to="/website-content"
+          to={overviewPath}
           className="inline-flex h-10 cursor-pointer items-center gap-2 rounded-lg px-2 font-medium text-blue-800 outline-none hover:bg-blue-50 focus-visible:ring-2 focus-visible:ring-blue-800"
         >
           <ArrowLeft aria-hidden="true" className="h-4 w-4" />
-          返回官网内容
+          返回{areaLabel}
         </Link>
       }
       status={
@@ -690,7 +697,7 @@ export default function WebsiteContentEdit() {
   );
 }
 
-/** Presents a route-level Website Content editor error with a safe return link. */
+/** Presents a route-level managed-content editor error with a safe return link. */
 function PageMessage({ title, message }: { title: string; message: string }) {
   return (
     <section className="mx-auto w-full max-w-[960px] rounded-xl border border-slate-200 bg-white p-6">
@@ -700,7 +707,7 @@ function PageMessage({ title, message }: { title: string; message: string }) {
         to="/website-content"
         className="mt-5 inline-flex h-10 cursor-pointer items-center rounded-lg px-3 font-semibold text-blue-800 outline-none hover:bg-blue-50 focus-visible:ring-2 focus-visible:ring-blue-800"
       >
-        返回官网内容
+        返回官网管理
       </Link>
     </section>
   );

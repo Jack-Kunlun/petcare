@@ -12,6 +12,11 @@ import {
 } from "../../api/website-content";
 import { PermissionGate } from "../../auth/PermissionGate";
 import { EditorPageLayout, FormSection } from "../../components/EditorPageLayout";
+import {
+  getContentAreaLabel,
+  getContentEditPath,
+  getContentOverviewPath,
+} from "./content-registry";
 
 function formatDate(value: string | null): string {
   if (!value) {
@@ -27,6 +32,8 @@ function formatDate(value: string | null): string {
 export default function WebsiteContentDetail() {
   const { contentKey: contentKeyParam, versionId } = useParams();
   const contentKey = isCurrentWebsiteContentKey(contentKeyParam) ? contentKeyParam : null;
+  const overviewPath = contentKey ? getContentOverviewPath(contentKey) : "/website-content";
+  const areaLabel = contentKey ? getContentAreaLabel(contentKey) : "官网管理";
   const navigate = useNavigate();
   const queryClient = useQueryClient();
   const [dialogOpen, setDialogOpen] = useState(false);
@@ -58,6 +65,10 @@ export default function WebsiteContentDetail() {
       });
     },
     onSuccess: async () => {
+      if (!contentKey) {
+        return;
+      }
+
       setDialogOpen(false);
       setChangeSummary("");
       await Promise.all([
@@ -66,7 +77,7 @@ export default function WebsiteContentDetail() {
         queryClient.invalidateQueries({ queryKey: websiteContentQueryKeys.diff(contentKey!) }),
         queryClient.invalidateQueries({ queryKey: ["website-content", contentKey!, "history"] }),
       ]);
-      navigate(`/website-content/${contentKey}/edit`);
+      navigate(getContentEditPath(contentKey));
     },
     onError: () => {
       setDialogOpen(false);
@@ -75,16 +86,16 @@ export default function WebsiteContentDetail() {
   });
 
   if (!contentKey || !versionId) {
-    return <Message title="历史版本路径无效" message="请返回官网内容并选择一个有效的历史版本。" />;
+    return <Message title="历史版本路径无效" message="请返回内容列表并选择一个有效的历史版本。" />;
   }
 
   const backLink = (
     <Link
-      to={`/website-content/${contentKey}/edit`}
+      to={getContentEditPath(contentKey)}
       className="inline-flex min-h-11 items-center gap-2 rounded-lg px-2 font-medium text-blue-800 outline-none hover:bg-blue-50 focus-visible:ring-2 focus-visible:ring-blue-800"
     >
       <ArrowLeft aria-hidden="true" className="h-4 w-4" />
-      返回官网内容编辑
+      返回{areaLabel}编辑
     </Link>
   );
   const restoreDisabled = draftQuery.isPending || draftQuery.isError || !draftQuery.data;
@@ -133,7 +144,12 @@ export default function WebsiteContentDetail() {
           </p>
         ) : null}
         {versionQuery.isError ? (
-          <Message title="历史版本加载失败" message="请检查网络连接后重试。" />
+          <Message
+            title="历史版本加载失败"
+            message="请检查网络连接后重试。"
+            returnPath={overviewPath}
+            returnLabel={`返回${areaLabel}`}
+          />
         ) : null}
       </section>
     );
@@ -308,7 +324,17 @@ export default function WebsiteContentDetail() {
   );
 }
 
-function Message({ title, message }: { title: string; message: string }) {
+function Message({
+  title,
+  message,
+  returnPath = "/website-content",
+  returnLabel = "返回官网管理",
+}: {
+  title: string;
+  message: string;
+  returnPath?: string;
+  returnLabel?: string;
+}) {
   return (
     <div
       role="alert"
@@ -318,10 +344,10 @@ function Message({ title, message }: { title: string; message: string }) {
       <h1 className="mt-3 text-xl font-semibold">{title}</h1>
       <p className="mt-2">{message}</p>
       <Link
-        to="/website-content"
+        to={returnPath}
         className="mt-4 inline-flex min-h-11 items-center rounded-lg border border-amber-700 px-4 py-2 font-semibold outline-none focus-visible:ring-2 focus-visible:ring-amber-800"
       >
-        返回官网内容
+        {returnLabel}
       </Link>
     </div>
   );

@@ -1,9 +1,10 @@
-import type { WebsiteContentVersion } from "@petcare/shared-types";
+import type { CurrentWebsiteContentKey, WebsiteContentVersion } from "@petcare/shared-types";
 import { Link } from "react-router-dom";
+import { getContentHistoryPath } from "./content-registry";
 
 interface ContentHistoryProps {
   /** Independently managed Website Content identity. */
-  contentKey: string;
+  contentKey: CurrentWebsiteContentKey;
   /** Immutable published versions ordered by the Server response. */
   items: readonly WebsiteContentVersion[];
   /** Version currently open in the detail route. */
@@ -62,12 +63,12 @@ export function ContentHistory({
   }
 
   return (
-    <nav aria-label="官网内容历史版本">
+    <nav aria-label="内容历史版本">
       <ol className="space-y-2">
         {items.map((version) => (
           <li key={version.id}>
             <Link
-              to={`/website-content/${contentKey}/history/${version.id}`}
+              to={getContentHistoryPath(contentKey, version.id)}
               aria-current={version.id === selectedVersionId ? "page" : undefined}
               className="block rounded-lg border border-slate-200 bg-white p-4 outline-none transition-colors hover:border-blue-300 hover:bg-blue-50 focus-visible:ring-2 focus-visible:ring-blue-800"
             >
