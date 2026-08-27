@@ -51,7 +51,7 @@ async function loginAdmin(page: Page): Promise<void> {
   await page.getByLabel("手机号或账号").fill(requiredEnv("DEFAULT_ADMIN_USERNAME"));
   await page.getByLabel("密码").fill(requiredEnv("DEFAULT_ADMIN_PASSWORD"));
   await page.getByRole("button", { name: "登录" }).click();
-  await expect(page.getByRole("heading", { name: "运营概览" })).toBeVisible();
+  await expect(page.getByRole("heading", { name: "管理概览" })).toBeVisible();
 }
 
 async function refreshAccessToken(page: Page): Promise<string> {
@@ -204,15 +204,7 @@ test("受控社区动态从发布、举报到后台下架保持纵向一致", as
 
   expect(publicPost).toBeDefined();
   expect(Object.keys(publicPost!).sort()).toEqual(
-    [
-      "author",
-      "commentsCount",
-      "content",
-      "createdAt",
-      "id",
-      "likesCount",
-      "mediaUrls",
-    ].sort(),
+    ["author", "commentsCount", "content", "createdAt", "id", "likesCount", "mediaUrls"].sort(),
   );
   expect(Object.keys(publicPost!.author).sort()).toEqual(["avatar", "displayName"]);
   const searchedTextPosts = await responseData<PublicCommunityPostListResponse>(
@@ -405,9 +397,7 @@ test("受控社区动态从发布、举报到后台下架保持纵向一致", as
     referenceId: pending.id,
     isRead: false,
   });
-  expect(
-    Object.keys(authorNotifications.list[0]).sort(),
-  ).toEqual(
+  expect(Object.keys(authorNotifications.list[0]).sort()).toEqual(
     ["category", "content", "createdAt", "id", "isRead", "referenceId", "title", "type"].sort(),
   );
   const commentNotification = authorNotifications.list.find(

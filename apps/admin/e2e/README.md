@@ -21,6 +21,15 @@ pnpm --filter @petcare/admin exec playwright install chromium
 pnpm --filter @petcare/admin test:e2e
 ```
 
+个人版当前受影响的社区与宠物档案链路可合并在同一个隔离生命周期中运行：
+
+```bash
+pnpm test:e2e:personal
+```
+
+该入口只选择 `community-content.spec.ts` 和 `pet-profile.spec.ts`，共享同一个一次性 Schema、
+临时端口与媒体目录；它不是完整 Admin E2E 套件。
+
 版本控制内的 E2E runner 会为每次运行生成唯一的 `admin_e2e_*` PostgreSQL
 schema，并按 `db push → build → seed → 启动临时 Server/Admin → Playwright →
 关闭服务 → DROP SCHEMA IF EXISTS` 完成完整生命周期。Server 与 Admin 使用每次

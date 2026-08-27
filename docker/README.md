@@ -36,6 +36,9 @@ Miniapp 仍由独立 GitHub Actions 工作流上传微信，不使用 Docker、T
 
 根目录 `.env` 保留在本机且不提交。首次使用从 `.env.example` 准备本地值，并为已经被其他项目占用的端口选择空闲回环端口。推荐使用：Server `3300`、PostgreSQL `55432`、Redis `56379`、Admin `8986`、Website `8180`。
 
+面向个人版的完整首次启动、演示与验收顺序见
+[个人版本地启动与演示指南](../docs/08-deployment/local-personal-demo.md)。
+
 ```bash
 # 校验合并后的本地配置
 docker compose -f docker-compose.yml -f docker-compose.local.yml --env-file .env config
@@ -45,6 +48,9 @@ docker compose -f docker-compose.yml -f docker-compose.local.yml --env-file .env
 
 # 首次启动会先等待 PostgreSQL，再运行 migrate，最后启动应用与内部网关
 docker compose -f docker-compose.yml -f docker-compose.local.yml --env-file .env up -d
+
+# 新数据库显式初始化管理员、权限目录和安全的官网内容模板；重复执行不会覆盖已有管理员或操作者内容
+docker compose -f docker-compose.yml -f docker-compose.local.yml --env-file .env exec -T server pnpm --filter @petcare/server prisma:seed
 
 # 查看全部容器和最近日志
 docker compose -f docker-compose.yml -f docker-compose.local.yml --env-file .env ps -a
@@ -62,6 +68,9 @@ docker compose -f docker-compose.yml -f docker-compose.local.yml --env-file .env
 `petcare-local-media-data`，并由 Website 网关的 `/media/` 路径读取。公开 URL 默认从 `WEBSITE_PUBLIC_URL` 派生，因此修改
 `WEBSITE_PORT` 时必须同步修改 `WEBSITE_PUBLIC_URL`。普通容器重建或 `down` 会保留媒体；`down --volumes` 才会将它与数据库、
 Redis 一并永久删除。
+
+基础 seed 不写入宠物、社区帖子、订单或资金数据。需要展示宠物档案和受控社区真实链路时运行
+`pnpm test:e2e:personal`；该命令使用一次性 Schema 和临时媒体目录，不污染长期本地数据。
 
 默认不会启动 `edge-gateway`：它属于生产 TLS 边界，需要真实域名证书并占用 80/443。Admin、Website、Server、PostgreSQL 和 Redis 只绑定 `127.0.0.1`。不要执行 `down --volumes`，除非明确要永久清空本地监测数据。
 

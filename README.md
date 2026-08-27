@@ -47,10 +47,30 @@ petcare-monorepo/
 
 - Node.js 24.19.x（使用 `.nvmrc` 锁定，最低支持 24.12.0）
 - pnpm 11.x（项目锁定 `pnpm@11.15.1`）
+- Docker Desktop 或其他支持 Docker Compose v2 的本地 Docker 环境
 - PostgreSQL >= 15.0
 - Redis >= 7.0
 
-### 首次启动
+### 推荐：个人版长期本地运行
+
+个人版演示和持续运行优先使用 `docker-compose.local.yml`。它会复用固定的 PostgreSQL、Redis
+和本地媒体 named volumes，普通停止或容器重建不会清空数据：
+
+```bash
+cp .env.example .env
+docker compose -f docker-compose.yml -f docker-compose.local.yml --env-file .env config --quiet
+docker compose -f docker-compose.yml -f docker-compose.local.yml --env-file .env up -d --build
+docker compose -f docker-compose.yml -f docker-compose.local.yml --env-file .env exec -T server pnpm --filter @petcare/server prisma:seed
+```
+
+执行前必须替换 `.env` 中的本地密码和 JWT 密钥。微信、阿里云短信和腾讯云 COS 配置可以留空；
+本地 Compose 会使用固定短信验证码和持久化文件存储。seed 只初始化管理员、权限目录和安全的官网内容模板，
+不会创建虚构的宠物、社区帖子、订单或资金数据。
+
+完整的访问入口、演示顺序、Miniapp 外部登录限制、隔离验收和数据保留说明见
+[个人版本地启动与演示指南](./docs/08-deployment/local-personal-demo.md)。
+
+### 宿主机混合开发首次启动
 
 1. 启用 Corepack，并安装项目 `packageManager` 字段声明的 pnpm 版本：
 
@@ -120,6 +140,17 @@ pnpm dev:miniapp:mp-weixin
 ```
 
 然后在微信开发者工具中导入 `apps/miniapp/dist/dev/mp-weixin`。
+
+### 个人版纵向验收
+
+社区和宠物档案在无微信生产账号时使用隔离 E2E 验收。该命令会启动真实 Server、Admin 与
+Miniapp H5，生成一次性测试账号、业务数据和媒体文件，并在结束时删除对应 Schema 和临时目录：
+
+```bash
+pnpm test:e2e:personal
+```
+
+该命令不会读取或 seed 长期本地库的 `public` Schema，也不会访问腾讯云 COS。
 
 ### 日常启动
 

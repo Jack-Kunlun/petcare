@@ -12,13 +12,14 @@
 
 1. [README.md](../README.md) - 项目概览和快速开始
 2. [环境变量配置](./environment-variables.md) - 开发环境设置
-3. [产品需求文档](./01-requirements/01-prd.md) - 了解业务背景
-4. [当前状态与开发路线图](./01-requirements/05-development-roadmap.md) - 确认当前周期和任务顺序
-5. [个人版范围与代码清理规范](./09-development-guidelines/06-personal-scope-and-code-cleanup.md) - 确认允许开发、必须清理和必须隔离的代码
-6. [技术架构](./03-technical-architecture/01-tech-stack.md) - 理解技术选型
-7. [API接口规范](./06-api-specification/01-api-specification.md) - 前后端协作基础
-8. [开发规范](./09-development-guidelines/02-development-standards.md) - 编码标准
-9. [部署指南](./08-deployment/deployment.md) - 上线部署流程
+3. [个人版本地启动与演示](./08-deployment/local-personal-demo.md) - 启动长期 Compose 并复现当前能力
+4. [产品需求文档](./01-requirements/01-prd.md) - 了解业务背景
+5. [当前状态与开发路线图](./01-requirements/05-development-roadmap.md) - 确认当前周期和任务顺序
+6. [个人版范围与代码清理规范](./09-development-guidelines/06-personal-scope-and-code-cleanup.md) - 确认允许开发、必须清理和必须隔离的代码
+7. [技术架构](./03-technical-architecture/01-tech-stack.md) - 理解技术选型
+8. [API接口规范](./06-api-specification/01-api-specification.md) - 前后端协作基础
+9. [开发规范](./09-development-guidelines/02-development-standards.md) - 编码标准
+10. [部署指南](./08-deployment/deployment.md) - 上线部署流程
 
 ---
 
@@ -166,10 +167,11 @@ Docker容器化部署和运维指南。
 
 | 文档                                                                         | 说明                              | 适合人群         |
 | ---------------------------------------------------------------------------- | --------------------------------- | ---------------- |
+| [local-personal-demo.md](./08-deployment/local-personal-demo.md)             | 个人版本地启动、演示与验收        | 全体开发         |
 | [deployment.md](./08-deployment/deployment.md)                               | 完整部署指南 ⭐                   | DevOps、后端开发 |
 | [github-actions-deploy.md](./08-deployment/github-actions-deploy.md)         | GitHub Actions 手动部署（轻量云） | DevOps           |
 | [deployment-architecture.html](./08-deployment/deployment-architecture.html) | 交互式架构图 🎨                   | 全体技术         |
-| [env-example.md](./08-deployment/env-example.md)                             | 环境变量示例                      | DevOps           |
+| [01-env-example.md](./08-deployment/01-env-example.md)                       | 环境变量示例                      | DevOps           |
 
 **核心内容**:
 

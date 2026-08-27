@@ -95,8 +95,18 @@ test("pnpm 自动使用项目版本并严格校验 Node 兼容性", async () => 
   assert.match(workspace, /^nodeVersion: "24\.19\.0"$/m);
 });
 
-test("README 覆盖首次启动和 pnpm 升级路径", async () => {
+test("README 覆盖个人版、宿主机首次启动和 pnpm 升级路径", async () => {
   const readme = await readFile(resolve(root, "README.md"), "utf8");
+  const startupHeading = "### 宿主机混合开发首次启动";
+  const startupStart = readme.indexOf(startupHeading);
+
+  assert.ok(startupStart >= 0, `README 缺少章节: ${startupHeading}`);
+
+  const startupEnd = readme.indexOf("\n### ", startupStart + startupHeading.length);
+
+  assert.ok(startupEnd > startupStart, `README 章节未正常结束: ${startupHeading}`);
+
+  const startupSection = readme.slice(startupStart, startupEnd);
   const startupCommands = [
     "corepack enable",
     "corepack install",
@@ -109,11 +119,17 @@ test("README 覆盖首次启动和 pnpm 升级路径", async () => {
   let previousIndex = -1;
 
   for (const command of startupCommands) {
-    const index = readme.indexOf(command);
+    const index = startupSection.indexOf(command);
     assert.ok(index > previousIndex, `README 缺少或顺序错误: ${command}`);
     previousIndex = index;
   }
 
+  assert.match(readme, /### 推荐：个人版长期本地运行/);
+  assert.match(
+    readme,
+    /docker compose -f docker-compose\.yml -f docker-compose\.local\.yml --env-file \.env up -d --build/,
+  );
+  assert.match(readme, /pnpm test:e2e:personal/);
   assert.match(readme, /corepack use pnpm@<目标版本>/);
   assert.match(readme, /packageManager/);
 });

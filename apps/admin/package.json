@@ -23,6 +23,7 @@
     "test:e2e:classroom": "node e2e/run-e2e.mjs classroom-content.spec.ts",
     "test:e2e:community": "node e2e/run-e2e.mjs community-content.spec.ts",
     "test:e2e:pets": "node e2e/run-e2e.mjs pet-profile.spec.ts",
+    "test:e2e:personal": "node e2e/run-e2e.mjs community-content.spec.ts pet-profile.spec.ts",
     "test:e2e:ui": "node e2e/run-e2e.mjs --ui",
     "test:e2e:debug": "node e2e/run-e2e.mjs --debug",
     "clean": "node ../../scripts/clean.mjs dist coverage playwright-report test-results .turbo"

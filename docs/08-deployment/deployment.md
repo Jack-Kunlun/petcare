@@ -4,6 +4,9 @@
 先运行 `scripts/server-init.sh`，再从 GitHub Actions 手动触发 `deploy.yml`；完整操作见
 [GitHub Actions 手动发布指南](./github-actions-deploy.md)。
 
+个人版首次启动、无外部供应商账号的演示和隔离纵向验收优先使用
+[个人版本地启动与演示指南](./local-personal-demo.md)。
+
 生产服务器是无源码运行节点：Compose 项目名固定为 `petcare`，全部六个镜像族都从同一私有 TCR 命名空间拉取，
 不会在服务器构建镜像或获取仓库。
 

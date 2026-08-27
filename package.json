@@ -30,6 +30,7 @@
     "test:ci": "pnpm test:tooling && turbo run test --concurrency=1",
     "test:coverage": "turbo run test:coverage",
     "test:e2e": "pnpm --filter @petcare/server test:e2e && pnpm --filter @petcare/admin test:e2e",
+    "test:e2e:personal": "pnpm --filter @petcare/admin test:e2e:personal",
     "commit:check": "node scripts/commit-check.mjs",
     "check": "pnpm format:check && pnpm lint && pnpm typecheck && pnpm test && pnpm build",
     "clean": "turbo run clean && node scripts/clean.mjs node_modules .turbo",

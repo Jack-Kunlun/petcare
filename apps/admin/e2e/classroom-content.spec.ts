@@ -19,7 +19,7 @@ async function loginAdmin(page: Page): Promise<void> {
   await page.getByLabel("手机号或账号").fill(requiredEnv("DEFAULT_ADMIN_USERNAME"));
   await page.getByLabel("密码").fill(requiredEnv("DEFAULT_ADMIN_PASSWORD"));
   await page.getByRole("button", { name: "登录" }).click();
-  await expect(page.getByRole("heading", { name: "运营概览" })).toBeVisible();
+  await expect(page.getByRole("heading", { name: "管理概览" })).toBeVisible();
 }
 
 async function refreshAccessToken(page: Page): Promise<string> {
