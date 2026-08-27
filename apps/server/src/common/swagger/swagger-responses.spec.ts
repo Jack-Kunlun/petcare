@@ -64,9 +64,6 @@ describe("Swagger response documentation", () => {
     expect(responseSchema("/health", "get", "200")).toMatchObject({
       allOf: expect.any(Array),
     });
-    expect(responseSchema("/users/register", "post", "201")).toMatchObject({
-      allOf: expect.any(Array),
-    });
     expect(responseSchema("/admin/users", "get", "200")).toMatchObject({
       allOf: expect.any(Array),
     });
@@ -105,6 +102,7 @@ describe("Swagger response documentation", () => {
     expect(document.paths["/users/{id}"]?.get?.responses?.["404"]).toBeDefined();
     expect(document.paths["/auth/login/password"]?.post?.responses?.["401"]).toBeDefined();
     expect(document.paths["/auth/wechat/bind-phone"]).toBeUndefined();
+    expect(document.paths["/users/register"]).toBeUndefined();
     expect(document.paths["/auth/wechat/login"]?.post?.responses?.["503"]).toBeDefined();
     expect(document.paths["/auth/wechat/logout"]?.post?.responses?.["204"]).toBeDefined();
     expect(document.paths["/users/me/phone/code"]?.post?.responses?.["503"]).toBeDefined();

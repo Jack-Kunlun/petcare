@@ -1,10 +1,8 @@
 import { HttpStatus, Injectable } from "@nestjs/common";
 import type { PublicUser } from "@petcare/shared-types";
 import { ApiException } from "../../common/http/api-exception";
-import { ConfigService } from "../../config/config.service";
 import { PrismaService } from "../../prisma/prisma.service";
 import { AdminUserListQueryDto } from "./dto/admin-user-list-query.dto";
-import { RegisterDto } from "./dto/register.dto";
 
 const publicUserSelect = {
   id: true,
@@ -14,7 +12,7 @@ const publicUserSelect = {
   profile: { select: { bio: true } },
 } as const;
 
-const registerUserSelect = {
+const adminUserListSelect = {
   id: true,
   phone: true,
   username: true,
@@ -26,32 +24,9 @@ const registerUserSelect = {
   updatedAt: true,
 } as const;
 
-const adminUserListSelect = registerUserSelect;
-
 @Injectable()
 export class UserService {
-  constructor(
-    private prisma: PrismaService,
-    private configService: ConfigService,
-  ) {}
-
-  /** Registers a user through the legacy public registration endpoint. */
-  async register(dto: RegisterDto) {
-    const user = await this.prisma.user.create({
-      data: {
-        phone: dto.phone,
-        nickname: dto.nickname,
-        avatar: dto.avatar,
-      },
-      select: registerUserSelect,
-    });
-
-    return {
-      user,
-      token: "mock-token",
-      refreshToken: "mock-refresh-token",
-    };
-  }
+  constructor(private readonly prisma: PrismaService) {}
 
   /** Returns the privacy-safe public profile for one active user. */
   async findOne(id: string): Promise<PublicUser> {

@@ -35,7 +35,7 @@ export class UserResponseDto implements PublicUser {
   profile: PublicUserProfileDto | null;
 }
 
-export class RegisteredUserResponseDto {
+export class AdminUserListItemFieldsDto {
   @ApiProperty({ format: "uuid" })
   id: string;
 
@@ -64,18 +64,7 @@ export class RegisteredUserResponseDto {
   updatedAt: string;
 }
 
-export class UserRegisterResponseDto {
-  @ApiProperty({ type: RegisteredUserResponseDto })
-  user: RegisteredUserResponseDto;
-
-  @ApiProperty()
-  token: string;
-
-  @ApiProperty()
-  refreshToken: string;
-}
-
-export class AdminUserListItemDto extends RegisteredUserResponseDto implements AdminUserListItem {}
+export class AdminUserListItemDto extends AdminUserListItemFieldsDto implements AdminUserListItem {}
 
 export class AdminUserListResponseDto {
   @ApiProperty({ type: [AdminUserListItemDto] })

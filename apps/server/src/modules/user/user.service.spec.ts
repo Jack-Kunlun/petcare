@@ -1,60 +1,19 @@
 import { HttpStatus } from "@nestjs/common";
 import { ApiException } from "../../common/http/api-exception";
-import { ConfigService } from "../../config/config.service";
 import { PrismaService } from "../../prisma/prisma.service";
 import { UserService } from "./user.service";
 
 describe("UserService public responses", () => {
   const prisma = {
     user: {
-      create: jest.fn(),
       count: jest.fn(),
       findFirst: jest.fn(),
       findMany: jest.fn(),
     },
   };
-  const service = new UserService(prisma as unknown as PrismaService, {} as ConfigService);
+  const service = new UserService(prisma as unknown as PrismaService);
 
   beforeEach(() => jest.clearAllMocks());
-
-  it("preserves the legacy registration user shape without public profile fields", async () => {
-    const registeredUser = {
-      id: "user-1",
-      phone: "13800138000",
-      username: null,
-      nickname: "小白家长",
-      avatar: null,
-      userType: "pet_owner",
-      status: "active",
-      createdAt: new Date("2026-08-24T00:00:00.000Z"),
-      updatedAt: new Date("2026-08-24T00:00:00.000Z"),
-    };
-
-    prisma.user.create.mockResolvedValue(registeredUser);
-
-    await expect(
-      service.register({ phone: "13800138000", code: "123456", nickname: "小白家长" }),
-    ).resolves.toEqual({
-      user: registeredUser,
-      token: "mock-token",
-      refreshToken: "mock-refresh-token",
-    });
-    expect(prisma.user.create).toHaveBeenCalledWith({
-      data: { phone: "13800138000", nickname: "小白家长", avatar: undefined },
-      select: {
-        id: true,
-        phone: true,
-        username: true,
-        nickname: true,
-        avatar: true,
-        userType: true,
-        status: true,
-        createdAt: true,
-        updatedAt: true,
-      },
-    });
-    expect(registeredUser).not.toHaveProperty("profile");
-  });
 
   it("returns only explicitly public user fields without exposing a stored address", async () => {
     prisma.user.findFirst.mockResolvedValue({

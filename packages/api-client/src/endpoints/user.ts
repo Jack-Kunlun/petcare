@@ -1,36 +1,10 @@
 // packages/api-client/src/endpoints/user.ts
 
-import {
-  RegisterRequest,
-  RegisterResponse,
-  LoginRequest,
-  LoginResponse,
-  PublicUser,
-  UpdateUserRequest,
-  RealNameVerifyRequest,
-} from "@petcare/shared-types";
+import type { PublicUser } from "@petcare/shared-types";
 import type { AxiosInstance } from "axios";
 
 export class UserAPI {
   constructor(private http: AxiosInstance) {}
-
-  /**
-   * 用户注册
-   */
-  async register(data: RegisterRequest): Promise<RegisterResponse> {
-    const response = await this.http.post<RegisterResponse>("/users/register", data);
-
-    return response.data;
-  }
-
-  /**
-   * 用户登录
-   */
-  async login(data: LoginRequest): Promise<LoginResponse> {
-    const response = await this.http.post<LoginResponse>("/users/login", data);
-
-    return response.data;
-  }
 
   /**
    * 获取用户详情
@@ -39,19 +13,5 @@ export class UserAPI {
     const response = await this.http.get<PublicUser>(`/users/${userId}`);
 
     return response.data;
-  }
-
-  /**
-   * 更新用户资料
-   */
-  async updateUser(userId: string, data: UpdateUserRequest): Promise<void> {
-    await this.http.put(`/users/${userId}`, data);
-  }
-
-  /**
-   * 实名认证
-   */
-  async verifyRealName(userId: string, data: RealNameVerifyRequest): Promise<void> {
-    await this.http.post(`/users/${userId}/realname-verify`, data);
   }
 }

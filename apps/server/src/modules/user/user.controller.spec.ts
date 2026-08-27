@@ -61,4 +61,21 @@ describe("UserController public profile", () => {
 
     await app.close();
   });
+
+  it("does not expose the removed legacy registration endpoint", async () => {
+    const moduleRef = await Test.createTestingModule({
+      controllers: [UserController],
+      providers: [{ provide: UserService, useValue: { findOne: jest.fn() } }],
+    }).compile();
+    const app = moduleRef.createNestApplication();
+
+    await app.init();
+
+    await request(app.getHttpServer())
+      .post("/users/register")
+      .send({ phone: "13800138000", code: "123456", nickname: "未验证账户" })
+      .expect(404);
+
+    await app.close();
+  });
 });

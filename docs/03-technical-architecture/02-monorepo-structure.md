@@ -66,80 +66,28 @@ petcare/
 
 ### 3.2 类型定义示例
 
-#### 示例1：用户相关类型
+#### 示例1：公开用户资料类型
 
 ```typescript
 // packages/shared-types/src/api/user.ts
 
-/**
- * 用户角色枚举
- */
-export enum UserRole {
-  PET_OWNER = "pet_owner",
-  SERVICE_PROVIDER = "service_provider",
-  ADMIN = "admin",
-}
-
-/**
- * 用户基本信息
- */
-export interface User {
+/** 公开资料中可安全展示的用户字段。 */
+export interface PublicUser {
   id: string;
   nickname: string;
-  avatar?: string;
-  phone: string;
-  role: UserRole;
-  createdAt: string;
-  updatedAt: string;
-}
-
-/**
- * 注册请求
- */
-export interface RegisterRequest {
-  phone: string;
-  code: string; // 短信验证码
-  nickname: string;
-  avatar?: string;
-}
-
-/**
- * 注册响应
- */
-export interface RegisterResponse {
-  user: User;
-  token: string;
-  refreshToken: string;
-}
-
-/**
- * 登录请求
- */
-export interface LoginRequest {
-  phone: string;
-  code: string;
-}
-
-/**
- * 登录响应（同注册响应）
- */
-export type LoginResponse = RegisterResponse;
-
-/**
- * 获取用户详情响应
- */
-export interface GetUserResponse {
-  user: User;
-}
-
-/**
- * 更新用户资料请求
- */
-export interface UpdateUserRequest {
-  nickname?: string;
-  avatar?: string;
+  avatar: string | null;
+  userType: string;
+  status: "active";
+  profile: {
+    region: string | null;
+    bio: string | null;
+  } | null;
 }
 ```
+
+个人版不提供通用手机号注册契约。Admin 使用 `/auth/login/password` 或
+`/auth/login/sms`，Miniapp 使用 `/auth/wechat/login` 建立会话；手机号绑定由受保护的
+`/users/me/phone` 完成。
 
 #### 示例2：订单相关类型
 
@@ -281,43 +229,16 @@ export interface PaginatedResponse<T> {
 ### 3.3 后端使用共享类型
 
 ```typescript
-// apps/api/src/modules/user/dto/register.dto.ts
+// apps/server/src/modules/user/user.controller.ts
 
-import { RegisterRequest } from "@petcare/shared-types";
-import { IsString, IsMobilePhone, Length } from "class-validator";
-
-// 继承共享类型，添加验证装饰器
-export class RegisterDto implements RegisterRequest {
-  @IsMobilePhone("zh-CN")
-  phone: string;
-
-  @IsString()
-  @Length(6, 6)
-  code: string;
-
-  @IsString()
-  @Length(2, 20)
-  nickname: string;
-
-  @IsString()
-  @Length(0, 200)
-  avatar?: string;
-}
-```
-
-```typescript
-// apps/api/src/modules/user/user.controller.ts
-
-import { Controller, Post, Body } from "@nestjs/common";
-import { RegisterRequest, RegisterResponse, ApiResponse } from "@petcare/shared-types";
-import { successResponse } from "@petcare/shared-types";
+import { Controller, Get, Param } from "@nestjs/common";
+import type { PublicUser } from "@petcare/shared-types";
 
 @Controller("users")
 export class UserController {
-  @Post("register")
-  async register(@Body() dto: RegisterRequest): Promise<ApiResponse<RegisterResponse>> {
-    const result = await this.userService.register(dto);
-    return successResponse(result);
+  @Get(":id")
+  findOne(@Param("id") id: string): Promise<PublicUser> {
+    return this.userService.findOne(id);
   }
 }
 ```
@@ -327,61 +248,12 @@ export class UserController {
 ### 3.4 前端使用共享类型
 
 ```typescript
-// apps/admin/src/services/user.service.ts
+// packages/api-client/src/endpoints/user.ts
 
-import axios from "axios";
-import { RegisterRequest, RegisterResponse, ApiResponse } from "@petcare/shared-types";
+import type { PublicUser } from "@petcare/shared-types";
 
-const apiClient = axios.create({
-  baseURL: import.meta.env.VITE_API_BASE_URL,
-});
-
-export async function register(data: RegisterRequest): Promise<RegisterResponse> {
-  const response = await apiClient.post<ApiResponse<RegisterResponse>>("/users/register", data);
-
-  if (response.data.code !== 200) {
-    throw new Error(response.data.message);
-  }
-
-  return response.data.data!;
-}
-```
-
-```typescript
-// apps/admin/src/pages/RegisterPage.tsx
-
-import { useState } from 'react';
-import { useForm } from 'react-hook-form';
-import { zodResolver } from '@hookform/resolvers/zod';
-import { z } from 'zod';
-import { register } from '@/services/user.service';
-import type { RegisterRequest } from '@petcare/shared-types';
-
-const schema = z.object({
-  phone: z.string().regex(/^1[3-9]\d{9}$/),
-  code: z.string().length(6),
-  nickname: z.string().min(2).max(20),
-});
-
-export default function RegisterPage() {
-  const { register: formRegister, handleSubmit } = useForm<RegisterRequest>({
-    resolver: zodResolver(schema),
-  });
-
-  const onSubmit = async (data: RegisterRequest) => {
-    try {
-      const result = await register(data);
-      console.log('注册成功', result);
-    } catch (error) {
-      console.error('注册失败', error);
-    }
-  };
-
-  return (
-    <form onSubmit={handleSubmit(onSubmit)}>
-      {/* 表单内容 */}
-    </form>
-  );
+export async function getUserDetail(userId: string): Promise<PublicUser> {
+  return apiClient.get(`/users/${userId}`);
 }
 ```
 

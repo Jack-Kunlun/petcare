@@ -644,23 +644,30 @@ Retry-After: 30
 
 ### 认证模块 (/auth)
 
-| 方法 | 路径             | 说明             | 权限 |
-| ---- | ---------------- | ---------------- | ---- |
-| POST | `/auth/login`    | 用户登录         | 公开 |
-| POST | `/auth/register` | 用户注册         | 公开 |
-| POST | `/auth/refresh`  | 刷新Token        | 公开 |
-| POST | `/auth/logout`   | 退出登录         | 认证 |
-| GET  | `/auth/profile`  | 获取当前用户信息 | 认证 |
+| 方法 | 路径                   | 说明                 | 权限 |
+| ---- | ---------------------- | -------------------- | ---- |
+| POST | `/auth/login/password` | 管理员密码登录       | 公开 |
+| POST | `/auth/login/sms`      | 管理员短信验证码登录 | 公开 |
+| POST | `/auth/wechat/login`   | 小程序微信登录       | 公开 |
+| POST | `/auth/refresh`        | 刷新管理员会话       | 公开 |
+| POST | `/auth/logout`         | 退出管理员会话       | 公开 |
+| GET  | `/auth/me`             | 获取当前管理员资料   | 认证 |
+
+个人版不提供通用公开注册端点。小程序首次微信登录会按受控的微信身份创建账户；绑定手机号必须在有效会话中完成。
 
 ### 用户模块 (/users)
 
-| 方法   | 路径                 | 说明         | 权限       |
-| ------ | -------------------- | ------------ | ---------- |
-| GET    | `/admin/users`       | 后台用户列表 | ADMIN      |
-| GET    | `/users/{id}`        | 公开用户资料 | 公开       |
-| PUT    | `/users/{id}`        | 更新用户信息 | 本人/ADMIN |
-| DELETE | `/users/{id}`        | 删除用户     | ADMIN      |
-| PATCH  | `/users/{id}/avatar` | 更新头像     | 本人       |
+| 方法 | 路径                          | 说明                 | 权限        |
+| ---- | ----------------------------- | -------------------- | ----------- |
+| GET  | `/admin/users`                | 后台用户列表         | `user.read` |
+| GET  | `/users/{id}`                 | 公开用户资料         | 公开        |
+| GET  | `/users/me`                   | 当前小程序用户资料   | 小程序会话  |
+| PUT  | `/users/me`                   | 更新当前用户资料     | 小程序会话  |
+| POST | `/users/me/avatar`            | 替换当前用户头像     | 小程序会话  |
+| POST | `/users/me/phone/code`        | 发送手机号绑定验证码 | 小程序会话  |
+| PUT  | `/users/me/phone`             | 验证并绑定手机号     | 小程序会话  |
+| POST | `/users/me/cancellation/code` | 发送账户注销验证码   | 小程序会话  |
+| POST | `/users/me/cancel`            | 注销当前账户         | 小程序会话  |
 
 `GET /admin/users` 支持 `page`、`pageSize`、`keyword`、`userType` 和 `status`
 查询参数，分页数据统一返回 `list`、`total`、`page`、`pageSize`。
