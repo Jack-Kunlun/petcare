@@ -112,6 +112,14 @@ REDIS_PASSWORD=  # 可选
 
 详见：[前端目录与 API 契约规范](./docs/09-development-guidelines/05-frontend-structure-and-api-contracts.md)
 
+### 个人开发版范围与代码清理
+
+- 当前任务只能来自 `docs/01-requirements/05-development-roadmap.md` 的个人开发版队列；未来 PRD、历史原型、已有页面或 Server 模块不能自行授权扩展商业能力。
+- 服务者认证、悬赏/接单、SOP、支付退款、结算提现、钱包和 B2C 派单属于暂停范围，不得重新加入当前导航、公开路由、默认种子内容或演示数据。
+- 商业残留先移除入口和默认运行时注册，再删除无消费者代码；Prisma Schema、已提交 migration 与运行数据必须单独审计和迁移，禁止在普通清理中顺带删除。
+
+详见：[个人开发版范围与代码清理规范](./docs/09-development-guidelines/06-personal-scope-and-code-cleanup.md)
+
 ### Git Hooks
 
 - **Husky**: 自动执行 pre-commit hooks
@@ -252,6 +260,7 @@ pnpm test:e2e              # E2E测试
 8. **[docs/01-requirements/04-prototype-specification.md](./docs/01-requirements/04-prototype-specification.md)** - 原型规格文档(v47)
 9. **[docs/03-technical-architecture/01-tech-stack.md](./docs/03-technical-architecture/01-tech-stack.md)** - 技术架构说明
 10. **[docs/09-development-guidelines/02-development-standards.md](./docs/09-development-guidelines/02-development-standards.md)** - 开发规范详细版
+11. **[docs/09-development-guidelines/06-personal-scope-and-code-cleanup.md](./docs/09-development-guidelines/06-personal-scope-and-code-cleanup.md)** - 个人版范围、代码清理和验收边界
 
 ### 安全相关
 
@@ -272,6 +281,8 @@ pnpm test:e2e              # E2E测试
 3. **不要跳过 lint 检查** - 提交前必须通过 lint
 4. **不要硬编码配置值** - 所有配置应从环境变量读取
 5. **不要手动修改 prisma/migrations/** - 使用 Prisma CLI 生成
+6. **不要从未来 PRD 或历史页面恢复商业需求** - 任务必须先进入当前路线图
+7. **不要在普通代码清理中删除 Schema、migration 或运行数据** - 必须单独审计和迁移
 
 ## 🔧 Docker 部署
 
@@ -352,5 +363,5 @@ docker compose --env-file .env up -d
 
 ---
 
-**最后更新**: 2026-08-15
+**最后更新**: 2026-08-27
 **维护者**: PetCare 开发团队

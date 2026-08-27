@@ -2,7 +2,7 @@
 
 本文档提供PetCare项目所有文档的分类索引，便于快速查找所需信息。
 
-**最后更新**: 2026-08-15
+**最后更新**: 2026-08-27
 
 ---
 
@@ -14,10 +14,11 @@
 2. [环境变量配置](./environment-variables.md) - 开发环境设置
 3. [产品需求文档](./01-requirements/01-prd.md) - 了解业务背景
 4. [当前状态与开发路线图](./01-requirements/05-development-roadmap.md) - 确认当前周期和任务顺序
-5. [技术架构](./03-technical-architecture/01-tech-stack.md) - 理解技术选型
-6. [API接口规范](./06-api-specification/01-api-specification.md) - 前后端协作基础
-7. [开发规范](./09-development-guidelines/02-development-standards.md) - 编码标准
-8. [部署指南](./08-deployment/deployment.md) - 上线部署流程
+5. [个人版范围与代码清理规范](./09-development-guidelines/06-personal-scope-and-code-cleanup.md) - 确认允许开发、必须清理和必须隔离的代码
+6. [技术架构](./03-technical-architecture/01-tech-stack.md) - 理解技术选型
+7. [API接口规范](./06-api-specification/01-api-specification.md) - 前后端协作基础
+8. [开发规范](./09-development-guidelines/02-development-standards.md) - 编码标准
+9. [部署指南](./08-deployment/deployment.md) - 上线部署流程
 
 ---
 
@@ -198,6 +199,7 @@ Docker容器化部署和运维指南。
 | [02-development-standards.md](./09-development-guidelines/02-development-standards.md)                               | 开发规范详细版                            | 全体开发   |
 | [04-styling-standards.md](./09-development-guidelines/04-styling-standards.md)                                       | Admin、Website 与 Miniapp 样式规范        | 前端开发   |
 | [05-frontend-structure-and-api-contracts.md](./09-development-guidelines/05-frontend-structure-and-api-contracts.md) | 前端目录与 API 契约规范（含官网内容管理） | 前后端开发 |
+| [06-personal-scope-and-code-cleanup.md](./09-development-guidelines/06-personal-scope-and-code-cleanup.md)           | 个人版范围、商业残留清理与验收规范        | 全体开发   |
 
 **核心内容**:
 
@@ -208,6 +210,7 @@ Docker容器化部署和运维指南。
 - ConfigService使用规范
 - Docker开发环境配置
 - 系统设置的共享契约、无障碍错误关联和路由分包约定
+- 个人版允许范围、商业代码删除/隔离顺序、数据边界和清理验收
 
 **使用场景**:
 
