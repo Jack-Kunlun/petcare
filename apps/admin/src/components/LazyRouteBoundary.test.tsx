@@ -19,7 +19,7 @@ describe("LazyRouteBoundary", () => {
     vi.spyOn(console, "error").mockImplementation(() => undefined);
 
     render(
-      <LazyRouteBoundary onRetry={retry}>
+      <LazyRouteBoundary label="系统设置" onRetry={retry}>
         <Suspense fallback={<p>正在加载测试路由</p>}>
           <RejectedLazyChunk />
         </Suspense>
@@ -50,8 +50,9 @@ describe("LazyRouteBoundary", () => {
       </LazyRouteBoundary>,
     );
 
+    expect(await screen.findByRole("heading", { name: "页面加载失败" })).toBeInTheDocument();
     await user.click(
-      await screen.findByRole("button", {
+      screen.getByRole("button", {
         name: "重新加载页面",
       }),
     );

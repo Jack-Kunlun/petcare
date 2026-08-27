@@ -1,5 +1,7 @@
 import { RBAC_PERMISSION_CATALOG, RBAC_PERMISSION_TYPES } from "@petcare/shared-types";
+import { isValidElement, Suspense, type ReactElement, type ReactNode } from "react";
 import { describe, expect, it } from "vitest";
+import { LazyRouteBoundary } from "../components/LazyRouteBoundary";
 import {
   ADMIN_ROUTE_REGISTRY,
   getVisibleChildMenuRoutes,
@@ -46,6 +48,17 @@ describe("ADMIN_ROUTE_REGISTRY", () => {
       for (const permission of route.requiredPermissions) {
         expect(catalogCodes).toContain(permission);
       }
+    }
+  });
+
+  it("wraps every protected business page in a recoverable lazy route boundary", () => {
+    for (const route of ADMIN_ROUTE_REGISTRY) {
+      const boundary = requireElement(route.element);
+      const suspense = requireElement(boundary.props.children);
+
+      expect(boundary.type).toBe(LazyRouteBoundary);
+      expect(boundary.props.label).toEqual(expect.any(String));
+      expect(suspense.type).toBe(Suspense);
     }
   });
 
@@ -235,3 +248,11 @@ describe("ADMIN_ROUTE_REGISTRY", () => {
     ]);
   });
 });
+
+function requireElement(node: ReactNode): ReactElement<{ children?: ReactNode; label?: string }> {
+  if (!isValidElement(node)) {
+    throw new Error("Expected route metadata to contain a React element");
+  }
+
+  return node as ReactElement<{ children?: ReactNode; label?: string }>;
+}

@@ -2,6 +2,7 @@ import { Component, type ReactNode } from "react";
 
 interface LazyRouteBoundaryProps {
   children: ReactNode;
+  label?: string;
   onRetry?: () => void;
 }
 
@@ -29,13 +30,15 @@ export class LazyRouteBoundary extends Component<LazyRouteBoundaryProps, LazyRou
 
   render() {
     if (this.state.failed) {
+      const label = this.props.label?.trim() || "页面";
+
       return (
         <section
           role="alert"
           aria-label="页面资源加载失败"
           className="rounded-xl border border-red-200 bg-red-50 p-6 text-red-950"
         >
-          <h1 className="text-xl font-semibold">系统设置加载失败</h1>
+          <h1 className="text-xl font-semibold">{label}加载失败</h1>
           <p className="mt-2 leading-6">页面资源暂时无法获取，网络恢复后可重新加载页面。</p>
           <button
             type="button"

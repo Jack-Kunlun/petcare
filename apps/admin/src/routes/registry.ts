@@ -1,31 +1,35 @@
 import { RBAC_PERMISSION_CATALOG, RBAC_PERMISSION_TYPES } from "@petcare/shared-types";
-import type { ReactNode } from "react";
+import type { ComponentType, LazyExoticComponent, ReactNode } from "react";
 import { createElement, lazy, Suspense } from "react";
 import { LazyRouteBoundary } from "../components/LazyRouteBoundary";
-import ContentManagement from "../pages/ContentManagement";
-import ContentArticles from "../pages/ContentManagement/Articles";
-import ContentArticleEdit from "../pages/ContentManagement/Articles/Edit";
-import ContentPosts from "../pages/ContentManagement/Posts";
-import ContentPostDetail from "../pages/ContentManagement/Posts/Detail";
-import Dashboard from "../pages/Dashboard";
-import OrderManagement from "../pages/OrderManagement";
-import ComplaintWorkQueue from "../pages/OrderManagement/Complaint";
-import ComplaintDetail from "../pages/OrderManagement/Complaint/Detail";
-import Rbac from "../pages/Rbac";
-import RbacDetail from "../pages/Rbac/Detail";
-import RbacEdit from "../pages/Rbac/Edit";
-import UserManagement from "../pages/UserManagement";
-import ProviderCertificationList from "../pages/UserManagement/Certification";
-import ProviderCertificationDetail from "../pages/UserManagement/Certification/Detail";
 
+const Account = lazy(() => import("../pages/Account"));
+const ContentManagement = lazy(() => import("../pages/ContentManagement"));
+const ContentArticles = lazy(() => import("../pages/ContentManagement/Articles"));
+const ContentArticleEdit = lazy(() => import("../pages/ContentManagement/Articles/Edit"));
+const ContentPosts = lazy(() => import("../pages/ContentManagement/Posts"));
+const ContentPostDetail = lazy(() => import("../pages/ContentManagement/Posts/Detail"));
+const Dashboard = lazy(() => import("../pages/Dashboard"));
+const OrderManagement = lazy(() => import("../pages/OrderManagement"));
+const ComplaintWorkQueue = lazy(() => import("../pages/OrderManagement/Complaint"));
+const ComplaintDetail = lazy(() => import("../pages/OrderManagement/Complaint/Detail"));
+const Rbac = lazy(() => import("../pages/Rbac"));
+const RbacDetail = lazy(() => import("../pages/Rbac/Detail"));
+const RbacEdit = lazy(() => import("../pages/Rbac/Edit"));
+const RbacCatalog = lazy(() => import("../pages/Rbac/Catalog"));
 const Settings = lazy(() => import("../pages/Settings"));
 const SettingsDetail = lazy(() => import("../pages/Settings/Detail"));
 const SettingsEdit = lazy(() => import("../pages/Settings/Edit"));
-const RbacCatalog = lazy(() => import("../pages/Rbac/Catalog"));
-const Account = lazy(() => import("../pages/Account"));
+const UserManagement = lazy(() => import("../pages/UserManagement"));
+const ProviderCertificationList = lazy(() => import("../pages/UserManagement/Certification"));
+const ProviderCertificationDetail = lazy(
+  () => import("../pages/UserManagement/Certification/Detail"),
+);
 const WebsiteContent = lazy(() => import("../pages/WebsiteContent"));
 const WebsiteContentEdit = lazy(() => import("../pages/WebsiteContent/Edit"));
 const WebsiteContentDetail = lazy(() => import("../pages/WebsiteContent/Detail"));
+
+type LazyRouteComponent = LazyExoticComponent<ComponentType>;
 
 /** A protected administration route, including its menu metadata when it has a menu entry. */
 export interface AdminRouteDefinition {
@@ -57,7 +61,7 @@ const catalogByCode = new Map(
 function catalogMenuRoute(
   id: string,
   permissionCode: string,
-  element: ReactNode,
+  component: LazyRouteComponent,
   menuLabel?: string,
 ): AdminRouteDefinition {
   const permission = catalogByCode.get(permissionCode);
@@ -69,56 +73,40 @@ function catalogMenuRoute(
     throw new Error(`Admin menu route ${id} references an invalid catalog permission.`);
   }
 
+  const label = menuLabel ?? permission.label;
+
   return {
     id,
     path: permission.path,
-    element,
+    element: lazyRoute(component, label),
     menuPermission: permission.code,
     requiredPermissions: [permission.code],
     parentPath: parentPermission?.path ?? null,
     order: permission.order,
     icon: permission.icon,
-    menuLabel: menuLabel ?? permission.label,
+    menuLabel: label,
   };
 }
 
-function settingsRoute(element: ReactNode) {
-  return createElement(
-    LazyRouteBoundary,
-    null,
-    createElement(
+function lazyRoute(component: LazyRouteComponent, label: string): ReactNode {
+  return createElement(LazyRouteBoundary, {
+    label,
+    children: createElement(
       Suspense,
       {
         fallback: createElement(
           "p",
           {
             "aria-live": "polite",
+            "aria-label": `正在加载${label}`,
             className: "rounded-xl border border-slate-200 bg-white p-8 text-center text-slate-600",
           },
-          "正在加载系统设置…",
+          `正在加载${label}…`,
         ),
       },
-      element,
+      createElement(component),
     ),
-  );
-}
-
-function accountRoute(element: ReactNode) {
-  return createElement(
-    LazyRouteBoundary,
-    null,
-    createElement(
-      Suspense,
-      {
-        fallback: createElement(
-          "p",
-          { "aria-live": "polite", className: "p-8 text-center text-slate-600" },
-          "正在加载个人中心…",
-        ),
-      },
-      element,
-    ),
-  );
+  });
 }
 
 /**
@@ -130,7 +118,7 @@ export const ADMIN_ROUTE_REGISTRY: readonly AdminRouteDefinition[] = [
   {
     id: "account",
     path: "/account",
-    element: accountRoute(createElement(Account)),
+    element: lazyRoute(Account, "个人中心"),
     menuPermission: null,
     requiredPermissions: [],
     parentPath: null,
@@ -138,17 +126,17 @@ export const ADMIN_ROUTE_REGISTRY: readonly AdminRouteDefinition[] = [
     icon: null,
     menuLabel: null,
   },
-  catalogMenuRoute("dashboard", "stats.view", createElement(Dashboard)),
-  catalogMenuRoute("users", "user.view", createElement(UserManagement), "用户列表"),
+  catalogMenuRoute("dashboard", "stats.view", Dashboard),
+  catalogMenuRoute("users", "user.view", UserManagement, "用户列表"),
   catalogMenuRoute(
     "provider-certifications",
     "provider_certification.view",
-    createElement(ProviderCertificationList),
+    ProviderCertificationList,
   ),
   {
     id: "provider-certification-detail",
     path: "/users/certifications/:id",
-    element: createElement(ProviderCertificationDetail),
+    element: lazyRoute(ProviderCertificationDetail, "服务者认证详情"),
     menuPermission: null,
     requiredPermissions: ["provider_certification.view"],
     parentPath: "/users/certifications",
@@ -156,12 +144,12 @@ export const ADMIN_ROUTE_REGISTRY: readonly AdminRouteDefinition[] = [
     icon: null,
     menuLabel: null,
   },
-  catalogMenuRoute("orders", "order.view", createElement(OrderManagement), "订单管理"),
-  catalogMenuRoute("complaints", "dispute.view", createElement(ComplaintWorkQueue)),
+  catalogMenuRoute("orders", "order.view", OrderManagement, "订单管理"),
+  catalogMenuRoute("complaints", "dispute.view", ComplaintWorkQueue),
   {
     id: "complaint-detail",
     path: "/orders/complaints/:id",
-    element: createElement(ComplaintDetail),
+    element: lazyRoute(ComplaintDetail, "投诉详情"),
     menuPermission: null,
     requiredPermissions: ["dispute.view"],
     parentPath: "/orders/complaints",
@@ -169,12 +157,12 @@ export const ADMIN_ROUTE_REGISTRY: readonly AdminRouteDefinition[] = [
     icon: null,
     menuLabel: null,
   },
-  catalogMenuRoute("content", "content.view", createElement(ContentManagement), "悬赏管理"),
-  catalogMenuRoute("content-posts", "content.post.view", createElement(ContentPosts)),
+  catalogMenuRoute("content", "content.view", ContentManagement, "悬赏管理"),
+  catalogMenuRoute("content-posts", "content.post.view", ContentPosts),
   {
     id: "content-post-detail",
     path: "/content/posts/:id",
-    element: createElement(ContentPostDetail),
+    element: lazyRoute(ContentPostDetail, "帖子详情"),
     menuPermission: null,
     requiredPermissions: ["content.post.view"],
     parentPath: "/content/posts",
@@ -182,11 +170,11 @@ export const ADMIN_ROUTE_REGISTRY: readonly AdminRouteDefinition[] = [
     icon: null,
     menuLabel: null,
   },
-  catalogMenuRoute("content-articles", "content.article.view", createElement(ContentArticles)),
+  catalogMenuRoute("content-articles", "content.article.view", ContentArticles),
   {
     id: "content-articles-new",
     path: "/content/articles/new",
-    element: createElement(ContentArticleEdit),
+    element: lazyRoute(ContentArticleEdit, "文章编辑"),
     menuPermission: null,
     requiredPermissions: ["content.article.write"],
     parentPath: "/content/articles",
@@ -197,7 +185,7 @@ export const ADMIN_ROUTE_REGISTRY: readonly AdminRouteDefinition[] = [
   {
     id: "content-articles-edit",
     path: "/content/articles/:id/edit",
-    element: createElement(ContentArticleEdit),
+    element: lazyRoute(ContentArticleEdit, "文章编辑"),
     menuPermission: null,
     requiredPermissions: ["content.article.write"],
     parentPath: "/content/articles",
@@ -205,11 +193,11 @@ export const ADMIN_ROUTE_REGISTRY: readonly AdminRouteDefinition[] = [
     icon: null,
     menuLabel: null,
   },
-  catalogMenuRoute("website-content", "website.view", settingsRoute(createElement(WebsiteContent))),
+  catalogMenuRoute("website-content", "website.view", WebsiteContent),
   {
     id: "website-content-edit",
     path: "/website-content/:contentKey/edit",
-    element: settingsRoute(createElement(WebsiteContentEdit)),
+    element: lazyRoute(WebsiteContentEdit, "官网内容编辑"),
     menuPermission: null,
     requiredPermissions: ["website.view"],
     parentPath: "/website-content",
@@ -220,7 +208,7 @@ export const ADMIN_ROUTE_REGISTRY: readonly AdminRouteDefinition[] = [
   {
     id: "website-content-history",
     path: "/website-content/:contentKey/history/:versionId",
-    element: settingsRoute(createElement(WebsiteContentDetail)),
+    element: lazyRoute(WebsiteContentDetail, "官网内容历史"),
     menuPermission: null,
     requiredPermissions: ["website.view"],
     parentPath: "/website-content",
@@ -228,11 +216,11 @@ export const ADMIN_ROUTE_REGISTRY: readonly AdminRouteDefinition[] = [
     icon: null,
     menuLabel: null,
   },
-  catalogMenuRoute("settings", "system.view", settingsRoute(createElement(Settings)), "系统设置"),
+  catalogMenuRoute("settings", "system.view", Settings, "系统设置"),
   {
     id: "settings-edit",
     path: "/settings/:domain/edit",
-    element: settingsRoute(createElement(SettingsEdit)),
+    element: lazyRoute(SettingsEdit, "系统设置编辑"),
     menuPermission: null,
     requiredPermissions: ["system.view"],
     parentPath: "/settings",
@@ -243,7 +231,7 @@ export const ADMIN_ROUTE_REGISTRY: readonly AdminRouteDefinition[] = [
   {
     id: "settings-history",
     path: "/settings/:domain/history/:versionId",
-    element: settingsRoute(createElement(SettingsDetail)),
+    element: lazyRoute(SettingsDetail, "系统设置历史"),
     menuPermission: null,
     requiredPermissions: ["system.view"],
     parentPath: "/settings",
@@ -251,12 +239,12 @@ export const ADMIN_ROUTE_REGISTRY: readonly AdminRouteDefinition[] = [
     icon: null,
     menuLabel: null,
   },
-  catalogMenuRoute("rbac", "rbac.view", createElement(Rbac), "角色管理"),
-  catalogMenuRoute("rbac-catalog", "rbac.catalog.view", createElement(RbacCatalog), "菜单目录"),
+  catalogMenuRoute("rbac", "rbac.view", Rbac, "角色管理"),
+  catalogMenuRoute("rbac-catalog", "rbac.catalog.view", RbacCatalog, "菜单目录"),
   {
     id: "rbac-new",
     path: "/rbac/new",
-    element: createElement(RbacEdit),
+    element: lazyRoute(RbacEdit, "角色编辑"),
     menuPermission: null,
     requiredPermissions: ["rbac.view"],
     parentPath: "/rbac",
@@ -267,7 +255,7 @@ export const ADMIN_ROUTE_REGISTRY: readonly AdminRouteDefinition[] = [
   {
     id: "rbac-edit",
     path: "/rbac/:id/edit",
-    element: createElement(RbacEdit),
+    element: lazyRoute(RbacEdit, "角色编辑"),
     menuPermission: null,
     requiredPermissions: ["rbac.view"],
     parentPath: "/rbac",
@@ -278,7 +266,7 @@ export const ADMIN_ROUTE_REGISTRY: readonly AdminRouteDefinition[] = [
   {
     id: "rbac-detail",
     path: "/rbac/:id",
-    element: createElement(RbacDetail),
+    element: lazyRoute(RbacDetail, "角色详情"),
     menuPermission: null,
     requiredPermissions: ["rbac.view"],
     parentPath: "/rbac",
