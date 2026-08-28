@@ -173,12 +173,18 @@ test("受控社区动态从发布、举报到后台下架保持纵向一致", as
   await loginAdmin(page);
   const adminAuthorization = `Bearer ${await refreshAccessToken(page)}`;
 
-  await responseData<MyCommunityPostListItem>(
+  const mineBeforeLimit = await responseData<MyCommunityPostListResponse>(
+    await page.request.get("/api/community/posts/mine?page=1&pageSize=20", {
+      headers: { Authorization: authorAuthorization },
+    }),
+  );
+  const rateLimitProbe = await responseData<MyCommunityPostListItem>(
     await page.request.post("/api/community/posts", {
       headers: { Authorization: authorAuthorization },
       data: { content: `${content} 限流探针` },
     }),
   );
+
   await expectFailure(
     await page.request.post("/api/community/posts", {
       headers: { Authorization: authorAuthorization },
@@ -193,7 +199,9 @@ test("受控社区动态从发布、举报到后台下架保持纵向一致", as
     }),
   );
 
-  expect(mineAfterLimit.total).toBe(1);
+  expect(mineAfterLimit.total).toBe(mineBeforeLimit.total + 1);
+  expect(mineAfterLimit.list.map((post) => post.id)).toContain(rateLimitProbe.id);
+  expect(mineAfterLimit.list.map((post) => post.content)).not.toContain(`${content} 不应落库`);
   await page.waitForTimeout(1_100);
   const pending = await responseData<MyCommunityPostListItem>(
     await page.request.post("/api/community/posts", {
@@ -328,7 +336,7 @@ test("受控社区动态从发布、举报到后台下架保持纵向一致", as
     }),
     401,
   );
-  const commentContent = "评".repeat(200);
+  const commentContent = `${content} ${"评".repeat(200)}`.slice(0, 200);
   const reporterComment = await responseData<PublicCommunityPostComment>(
     await page.request.post(`/api/community/posts/${pending.id}/comments`, {
       headers: { Authorization: reporterAuthorization },
@@ -421,25 +429,30 @@ test("受控社区动态从发布、举报到后台下架保持纵向一致", as
   );
 
   expect(reporterNotifications.total).toBe(0);
-  expect(notificationPage).toMatchObject({ total: 2, page: 1, pageSize: 1 });
+  expect(notificationPage).toMatchObject({ page: 1, pageSize: 1 });
+  expect(notificationPage.total).toBeGreaterThanOrEqual(2);
   expect(notificationPage.list).toHaveLength(1);
-  expect(authorNotifications.total).toBe(2);
-  expect(authorNotifications.list.map((notification) => notification.type).sort()).toEqual(
+  const currentAuthorNotifications = authorNotifications.list.filter(
+    (notification) => notification.referenceId === pending.id,
+  );
+
+  expect(currentAuthorNotifications).toHaveLength(2);
+  expect(currentAuthorNotifications.map((notification) => notification.type).sort()).toEqual(
     [NOTIFICATION_TYPE.COMMUNITY_COMMENT, NOTIFICATION_TYPE.COMMUNITY_LIKE].sort(),
   );
   expect(
-    authorNotifications.list.find(
+    currentAuthorNotifications.find(
       (notification) => notification.type === NOTIFICATION_TYPE.COMMUNITY_COMMENT,
     ),
   ).toMatchObject({
-    content: "评".repeat(80),
+    content: commentContent.slice(0, 80),
     referenceId: pending.id,
     isRead: false,
   });
-  expect(Object.keys(authorNotifications.list[0]).sort()).toEqual(
+  expect(Object.keys(currentAuthorNotifications[0]).sort()).toEqual(
     ["category", "content", "createdAt", "id", "isRead", "referenceId", "title", "type"].sort(),
   );
-  const commentNotification = authorNotifications.list.find(
+  const commentNotification = currentAuthorNotifications.find(
     (notification) => notification.type === NOTIFICATION_TYPE.COMMUNITY_COMMENT,
   );
 
@@ -559,12 +572,21 @@ test("受控社区动态从发布、举报到后台下架保持纵向一致", as
 
     await seedMiniappSession(miniappPage, requiredEnv("COMMUNITY_E2E_AUTHOR_TOKEN"));
     await miniappPage.goto(`${miniappUrl}/#/pages/messages/index`);
-    await expect(miniappPage.getByText("收到新评论", { exact: true })).toBeVisible();
-    await expect(miniappPage.getByText("收到新的赞", { exact: true })).toBeVisible();
-    await expect(miniappPage.getByLabel("未读")).toHaveCount(2);
+    const commentNotificationRow = miniappPage
+      .getByRole("button")
+      .filter({ hasText: commentContent.slice(0, 80) });
+    const likeNotificationRow = miniappPage
+      .getByRole("button")
+      .filter({ has: miniappPage.getByText("收到新的赞", { exact: true }) })
+      .first();
+
+    await expect(commentNotificationRow).toBeVisible();
+    await expect(likeNotificationRow).toBeVisible();
+    await expect(commentNotificationRow.getByLabel("未读")).toHaveCount(1);
+    await expect(likeNotificationRow.getByLabel("未读")).toHaveCount(1);
     await miniappPage.getByRole("button", { name: "互动消息" }).click();
-    await expect(miniappPage.getByText("收到新评论", { exact: true })).toBeVisible();
-    await miniappPage.getByText("收到新评论", { exact: true }).click();
+    await expect(commentNotificationRow).toBeVisible();
+    await commentNotificationRow.click();
     await expect(miniappPage).toHaveURL(
       new RegExp(`/pages-content/community/article\\?id=${pending.id}$`, "u"),
     );
@@ -695,8 +717,12 @@ test("受控社区动态从发布、举报到后台下架保持纵向一致", as
     await expect(miniappPage.getByText(content, { exact: true })).toHaveCount(0);
     await seedMiniappSession(miniappPage, requiredEnv("COMMUNITY_E2E_AUTHOR_TOKEN"));
     await miniappPage.goto(`${miniappUrl}/#/pages/messages/index`);
-    await miniappPage.getByText("收到新的赞", { exact: true }).click();
-    await expect(miniappPage.getByText("动态不存在、未公开或加载失败")).toBeVisible();
+    await miniappPage
+      .getByRole("button")
+      .filter({ has: miniappPage.getByText("收到新的赞", { exact: true }) })
+      .first()
+      .click();
+    await expect(miniappPage.getByText("动态不存在或暂不可见")).toBeVisible();
   } finally {
     await miniappContext.close();
   }

@@ -1,4 +1,10 @@
+import type { CurrentWebsiteContentKey } from "@petcare/shared-types";
 import { expect, type Page } from "@playwright/test";
+import {
+  getContentAreaLabel,
+  getContentEditPath,
+  getContentOverviewPath,
+} from "../../src/pages/WebsiteContent/content-registry";
 
 export const websiteContentFixtures = {
   home: {
@@ -37,27 +43,47 @@ export async function loginWebsiteOperator(
   await expect(page).toHaveURL(/\/$/u);
 }
 
+/** Opens the Admin overview that owns one managed content unit. */
+export async function openContentOverview(
+  page: Page,
+  contentKey: CurrentWebsiteContentKey,
+): Promise<void> {
+  const overviewPath = getContentOverviewPath(contentKey);
+
+  await page
+    .getByTestId("desktop-menu-tree")
+    .getByRole("link", { name: getContentAreaLabel(contentKey), exact: true })
+    .click();
+  await expect(page).toHaveURL(new RegExp(`${overviewPath}$`, "u"));
+}
+
 /** Opens one fixed Website Content editor after the overview navigation is available. */
-export async function openContentEditor(page: Page, contentKey: string): Promise<void> {
-  await page.getByTestId("desktop-menu-tree").getByRole("link", { name: "内容配置" }).click();
-  await expect(page.getByRole("heading", { name: "官网与小程序内容" })).toBeVisible();
+export async function openContentEditor(
+  page: Page,
+  contentKey: CurrentWebsiteContentKey,
+): Promise<void> {
+  await openContentOverview(page, contentKey);
   const card = page.getByRole("listitem").filter({
     has: page.getByText(contentKey, { exact: true }),
   });
 
   await card.getByRole("link", { name: /编辑.+草稿/u }).click();
-  await expect(page).toHaveURL(new RegExp(`/website-content/${contentKey}/edit$`, "u"));
+  await expect(page).toHaveURL(new RegExp(`${getContentEditPath(contentKey)}$`, "u"));
 }
 
 /** Opens one protected content editor through the SPA when its edit-card link is unavailable. */
-export async function openContentEditorRoute(page: Page, contentKey: string): Promise<void> {
-  await page.getByTestId("desktop-menu-tree").getByRole("link", { name: "内容配置" }).click();
-  await expect(page).toHaveURL(/\/website-content$/u);
-  await page.evaluate((key) => {
-    globalThis.history.pushState({}, "", `/website-content/${key}/edit`);
+export async function openContentEditorRoute(
+  page: Page,
+  contentKey: CurrentWebsiteContentKey,
+): Promise<void> {
+  await openContentOverview(page, contentKey);
+  const editPath = getContentEditPath(contentKey);
+
+  await page.evaluate((path) => {
+    globalThis.history.pushState({}, "", path);
     globalThis.dispatchEvent(new PopStateEvent("popstate"));
-  }, contentKey);
-  await expect(page).toHaveURL(new RegExp(`/website-content/${contentKey}/edit$`, "u"));
+  }, editPath);
+  await expect(page).toHaveURL(new RegExp(`${editPath}$`, "u"));
 }
 
 /** Creates a predictable title that remains unique across parallel retries. */
