@@ -49,7 +49,7 @@ interface CancellationDependencies {
 function cancellationErrorMessage(error: unknown, fallback: string): string {
   if (error instanceof MiniappApiError) {
     if (error.code === MINIAPP_ACCOUNT_ERROR_CODE.ACTIVE_ORDER_EXISTS) {
-      return "存在受保护的进行中业务记录，处理完成后才能注销";
+      return "存在受保护的关联数据，请处理后再注销";
     }
 
     if (

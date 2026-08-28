@@ -28,6 +28,7 @@ describe("messages page", () => {
     );
     expect(source).toContain('v-if="!item.isRead"');
     expect(source).toContain(':disabled="markAllDisabled"');
-    expect(source).toContain(':aria-disabled="markAllDisabled"');
+    expect(source).toContain(':loading="markingAll"');
+    expect(source).toContain("PcButton");
   });
 });

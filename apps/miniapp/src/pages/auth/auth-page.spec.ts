@@ -14,12 +14,21 @@ describe("auth page login control", () => {
     expect(source).not.toContain("照护者");
   });
 
-  it("uses a natively disabled button while login is pending", () => {
-    expect(source).toMatch(/<button\b/);
+  it("uses the shared native button while login is pending", () => {
+    expect(source).toContain("<PcButton");
+    expect(source).toContain('size="control"');
+    expect(source).toContain('<view class="w-agreement">');
     expect(source).not.toContain("<wd-button");
     expect(source).toContain(':disabled="loginPending"');
-    expect(source).toContain(':aria-disabled="loginPending"');
+    expect(source).toContain(':loading="loginPending"');
     expect(source).toContain('"登录中…"');
+  });
+
+  it("restores the approved hero and keeps legal links compact", () => {
+    expect(source).toContain(':src="MINIAPP_TRUSTED_CARE_HERO"');
+    expect(source).toContain("mt-actions flex flex-col items-center gap-copy");
+    expect(source).toContain("flex items-center py-caption text-brand-active");
+    expect(source).not.toContain("h-control flex items-center text-brand-active");
   });
 
   it("retries only navigation after authentication has already succeeded", () => {

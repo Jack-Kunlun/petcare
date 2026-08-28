@@ -18,6 +18,7 @@ export default defineUniPages({
         "pets/detail",
         "profile/info",
         "profile/edit",
+        "account/settings",
         "account/cancel",
       ].map(createPage),
     },

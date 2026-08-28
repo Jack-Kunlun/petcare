@@ -3,7 +3,11 @@ import { resolve } from "node:path";
 import { describe, expect, it, vi } from "vitest";
 import { runLogoutFlow } from "./logout";
 
-const source = readFileSync(resolve(import.meta.dirname, "index.vue"), "utf8");
+const profileSource = readFileSync(resolve(import.meta.dirname, "index.vue"), "utf8");
+const settingsSource = readFileSync(
+  resolve(import.meta.dirname, "../../pages-account/account/settings.vue"),
+  "utf8",
+);
 
 function deferred<T>(): {
   promise: Promise<T>;
@@ -22,12 +26,21 @@ function deferred<T>(): {
 
 describe("profile logout control", () => {
   it("keeps the personal center within account, pet, and support capabilities", () => {
-    expect(source).toContain("我的宠物");
-    expect(source).toContain("帮助与协议");
-    expect(source).not.toContain("pages-care");
-    expect(source).not.toContain("优惠券");
-    expect(source).not.toContain("余额收入");
-    expect(source).not.toContain("我的评价");
+    expect(profileSource).toContain("我的宠物");
+    expect(profileSource).toContain("帮助与协议");
+    expect(profileSource).not.toContain("pages-care");
+    expect(profileSource).not.toContain("优惠券");
+    expect(profileSource).not.toContain("余额收入");
+    expect(profileSource).not.toContain("我的评价");
+  });
+
+  it("gives anonymous profile and pet content distinct visual states", () => {
+    expect(profileSource.match(/status="unauthenticated"/g)).toHaveLength(1);
+    expect(profileSource).toContain("登录后可查看和维护你的个人资料。");
+    expect(profileSource).toContain("建立宠物档案");
+    expect(profileSource).toContain("登录后可添加和管理宠物资料");
+    expect(profileSource).toContain("/static/main/profile-dog.png");
+    expect(profileSource).not.toContain("登录后管理宠物档案");
   });
 
   it("runs only one logout and home relaunch while pending", async () => {
@@ -78,27 +91,29 @@ describe("profile logout control", () => {
     expect(pending.value).toBe(false);
   });
 
-  it("keeps only the native-button wiring assertion", () => {
-    expect(source).toMatch(/<button\b/);
-    expect(source).toContain('v-if="profile"');
-    expect(source).toContain(':disabled="logoutPending"');
-    expect(source).toContain(':aria-disabled="logoutPending"');
-    expect(source).toContain('@click="logoutCurrentDevice"');
-    expect(source).toContain('logoutPending ? "退出中…" : "退出登录"');
+  it("moves logout and cancellation out of My into settings", () => {
+    expect(profileSource).toContain('url="/pages-account/account/settings"');
+    expect(profileSource).toContain("/static/main/settings.svg");
+    expect(profileSource).not.toContain("logoutCurrentDevice");
+    expect(profileSource).not.toContain("openCancellation");
+    expect(profileSource).not.toContain("退出登录");
+    expect(profileSource).not.toContain("注销账号");
   });
 
-  it("shows a separate low-emphasis cancellation entry only for a signed-in profile", () => {
-    expect(source).toContain("function openCancellation()");
-    expect(source).toContain('url: "/pages-account/account/cancel"');
-    expect(source).toMatch(
-      /<button[\s\S]*?v-if="profile"[\s\S]*?@click="openCancellation"[\s\S]*?注销账户[\s\S]*?<\/button>/,
-    );
+  it("keeps logout and cancellation as explicit settings actions", () => {
+    expect(settingsSource).toContain("function openCancellation(): void");
+    expect(settingsSource).toContain('url: "/pages-account/account/cancel"');
+    expect(settingsSource).toContain('@click="logoutCurrentDevice"');
+    expect(settingsSource).toContain('@click="openCancellation"');
+    expect(settingsSource).toContain('logoutPending ? "退出中…" : "退出登录"');
+    expect(settingsSource).toContain("注销账号");
+    expect(settingsSource).toContain('variant="danger"');
   });
 
-  it("offers an explicit native login entry after anonymous bootstrap", () => {
-    expect(source).toContain('v-if="session.bootstrapped"');
-    expect(source).toContain('aria-label="微信登录"');
-    expect(source).toContain("@click=\"openPage('/pages/auth/index')\"");
-    expect(source).toMatch(/<button[\s\S]*?h-control[\s\S]*?微信登录[\s\S]*?<\/button>/);
+  it("keeps anonymous settings recoverable without destructive controls", () => {
+    expect(settingsSource).toContain('v-else-if="!profile"');
+    expect(settingsSource).toContain('status="unauthenticated"');
+    expect(settingsSource).toContain('primary-label="微信登录"');
+    expect(settingsSource).toContain("<template v-else>");
   });
 });

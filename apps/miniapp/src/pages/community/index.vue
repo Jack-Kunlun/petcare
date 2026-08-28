@@ -15,6 +15,8 @@ import { computed, ref } from "vue";
 import { openCommunityPublishEntry } from "./publish-entry";
 import { getClassroomArticles, getCommunityPosts } from "@/api/content";
 import MainTabLayout from "@/components/MainTabLayout.vue";
+import PcButton from "@/components/PcButton.vue";
+import PcStatePanel from "@/components/PcStatePanel.vue";
 import { getDefaultAvatar } from "@/state/default-avatar";
 
 definePage({
@@ -54,6 +56,9 @@ const classroomPage = ref(1);
 const classroomTotal = ref(0);
 const publishPending = ref(false);
 const classroomHasMore = computed(() => classroomArticles.value.length < classroomTotal.value);
+const classroomHasFilters = computed(
+  () => Boolean(classroomAppliedKeyword.value) || classroomCategory.value !== null,
+);
 const featuredPosts = ref<PublicCommunityPostListItem[]>([]);
 const featuredKeyword = ref("");
 const featuredAppliedKeyword = ref("");
@@ -64,6 +69,9 @@ const featuredLoadMoreError = ref(false);
 const featuredPage = ref(1);
 const featuredTotal = ref(0);
 const featuredHasMore = computed(() => featuredPosts.value.length < featuredTotal.value);
+const featuredHasFilters = computed(
+  () => Boolean(featuredAppliedKeyword.value) || featuredContentType.value !== null,
+);
 
 async function loadFeatured(reset = true): Promise<void> {
   if (featuredLoading.value) {
@@ -197,6 +205,20 @@ function searchFeatured(): void {
   }
 }
 
+function clearClassroomFilters(): void {
+  classroomKeyword.value = "";
+  classroomAppliedKeyword.value = "";
+  classroomCategory.value = null;
+  void loadClassroom();
+}
+
+function clearFeaturedFilters(): void {
+  featuredKeyword.value = "";
+  featuredAppliedKeyword.value = "";
+  featuredContentType.value = null;
+  void loadFeatured();
+}
+
 function loadMoreClassroom(): void {
   if (!classroomLoading.value && classroomHasMore.value) {
     void loadClassroom(false);
@@ -298,16 +320,13 @@ onLoad((query = {}) => {
               @confirm="searchClassroom"
             />
           </view>
-          <button
-            class="h-control rounded-control bg-brand-active px-action text-body text-surface font-medium"
-            :class="classroomLoading ? 'opacity-50' : ''"
+          <PcButton
             :disabled="classroomLoading"
-            :aria-disabled="classroomLoading"
             :loading="classroomLoading"
             @click="searchClassroom"
           >
             搜索
-          </button>
+          </PcButton>
         </view>
 
         <scroll-view class="mt-copy w-full" scroll-x :show-scrollbar="false">
@@ -347,36 +366,36 @@ onLoad((query = {}) => {
           </view>
         </scroll-view>
 
-        <view
-          v-if="classroomStatus === 'loading'"
-          class="mx-page-horizontal mt-copy main-card p-action"
-          aria-live="polite"
-        >
-          <text class="text-body text-muted leading-body">课堂文章加载中…</text>
+        <view v-if="classroomStatus === 'loading'" class="mx-page-horizontal mt-copy">
+          <PcStatePanel status="loading" title="课堂内容加载中…" />
         </view>
 
-        <view
-          v-else-if="classroomStatus === 'error'"
-          class="mx-page-horizontal mt-copy flex flex-col gap-copy rounded-card bg-danger-soft p-action"
-          role="alert"
-        >
-          <text class="text-body text-ink leading-body">课堂文章加载失败，请稍后重试</text>
-          <button
-            class="h-control rounded-control bg-brand-active px-action text-body text-surface font-medium"
-            :disabled="classroomLoading"
-            :aria-disabled="classroomLoading"
-            :loading="classroomLoading"
-            @click="loadClassroom()"
-          >
-            重新加载
-          </button>
+        <view v-else-if="classroomStatus === 'error'" class="mx-page-horizontal mt-copy">
+          <PcStatePanel
+            status="error"
+            title="课堂内容加载失败"
+            description="请检查网络后重试。"
+            primary-label="重新加载"
+            :primary-disabled="classroomLoading"
+            @primary="loadClassroom()"
+          />
         </view>
 
         <view
           v-else-if="classroomStatus === 'ready' && classroomArticles.length === 0"
-          class="mx-page-horizontal mt-copy main-card p-action"
+          class="mx-page-horizontal mt-copy"
         >
-          <text class="text-body text-muted leading-body">未找到符合条件的课堂文章</text>
+          <PcStatePanel
+            status="empty"
+            :title="classroomHasFilters ? '未找到符合条件的课堂文章' : '暂无课堂文章'"
+            :description="
+              classroomHasFilters
+                ? '可以清除搜索与分类后再看看。'
+                : '有新的课堂内容时会显示在这里。'
+            "
+            :primary-label="classroomHasFilters ? '清除筛选' : ''"
+            @primary="clearClassroomFilters"
+          />
         </view>
 
         <view v-else-if="classroomStatus === 'ready'" class="mx-page-horizontal mt-copy">
@@ -421,27 +440,27 @@ onLoad((query = {}) => {
             <text class="text-center text-caption text-danger leading-caption">
               更多文章加载失败
             </text>
-            <button
-              class="h-control border border-brand rounded-control bg-surface px-action text-body text-brand font-medium"
+            <PcButton
+              block
+              variant="secondary"
               :disabled="classroomLoading"
-              :aria-disabled="classroomLoading"
               :loading="classroomLoading"
               @click="loadMoreClassroom"
             >
               重试加载更多
-            </button>
+            </PcButton>
           </view>
-          <button
+          <PcButton
             v-else-if="classroomHasMore"
-            class="mt-copy h-control w-full border border-brand rounded-control bg-surface px-action text-body text-brand font-medium"
-            :class="classroomLoading ? 'opacity-50' : ''"
+            class="mt-copy"
+            block
+            variant="secondary"
             :disabled="classroomLoading"
-            :aria-disabled="classroomLoading"
             :loading="classroomLoading"
             @click="loadMoreClassroom"
           >
             加载更多
-          </button>
+          </PcButton>
         </view>
       </template>
 
@@ -479,16 +498,9 @@ onLoad((query = {}) => {
               @confirm="searchFeatured"
             />
           </view>
-          <button
-            class="h-control rounded-control bg-brand-active px-action text-body text-surface font-medium"
-            :class="featuredLoading ? 'opacity-50' : ''"
-            :disabled="featuredLoading"
-            :aria-disabled="featuredLoading"
-            :loading="featuredLoading"
-            @click="searchFeatured"
-          >
+          <PcButton :disabled="featuredLoading" :loading="featuredLoading" @click="searchFeatured">
             搜索
-          </button>
+          </PcButton>
         </view>
 
         <scroll-view class="mt-copy w-full" scroll-x :show-scrollbar="false">
@@ -535,48 +547,44 @@ onLoad((query = {}) => {
               {{ featuredTotal }} 条动态
             </text>
           </view>
-          <button
-            class="h-control rounded-control bg-transparent px-copy text-caption text-brand leading-caption"
-            :class="featuredLoading ? 'opacity-50' : ''"
+          <PcButton
+            variant="ghost"
             :disabled="featuredLoading"
-            :aria-disabled="featuredLoading"
             :loading="featuredLoading"
             @click="loadFeatured()"
           >
             刷新
-          </button>
+          </PcButton>
         </view>
 
-        <view
-          v-if="featuredStatus === 'loading'"
-          class="mx-page-horizontal mt-copy main-card p-action"
-          aria-live="polite"
-        >
-          <text class="text-body text-muted leading-body">社区动态加载中…</text>
+        <view v-if="featuredStatus === 'loading'" class="mx-page-horizontal mt-copy">
+          <PcStatePanel status="loading" title="社区动态加载中…" />
         </view>
 
-        <view
-          v-else-if="featuredStatus === 'error'"
-          class="mx-page-horizontal mt-copy flex flex-col gap-copy rounded-card bg-danger-soft p-action"
-          role="alert"
-        >
-          <text class="text-body text-ink leading-body">社区动态加载失败，请稍后重试</text>
-          <button
-            class="h-control rounded-control bg-brand-active px-action text-body text-surface font-medium"
-            :disabled="featuredLoading"
-            :aria-disabled="featuredLoading"
-            :loading="featuredLoading"
-            @click="loadFeatured()"
-          >
-            重新加载
-          </button>
+        <view v-else-if="featuredStatus === 'error'" class="mx-page-horizontal mt-copy">
+          <PcStatePanel
+            status="error"
+            title="社区动态加载失败"
+            description="请检查网络后重试。"
+            primary-label="重新加载"
+            :primary-disabled="featuredLoading"
+            @primary="loadFeatured()"
+          />
         </view>
 
         <view
           v-else-if="featuredStatus === 'ready' && featuredPosts.length === 0"
-          class="mx-page-horizontal mt-copy main-card p-action"
+          class="mx-page-horizontal mt-copy"
         >
-          <text class="text-body text-muted leading-body">未找到符合条件的社区动态</text>
+          <PcStatePanel
+            status="empty"
+            :title="featuredHasFilters ? '未找到符合条件的社区动态' : '暂无社区动态'"
+            :description="
+              featuredHasFilters ? '可以清除搜索与类型后再看看。' : '新的公开动态会显示在这里。'
+            "
+            :primary-label="featuredHasFilters ? '清除筛选' : ''"
+            @primary="clearFeaturedFilters"
+          />
         </view>
 
         <view
@@ -635,32 +643,31 @@ onLoad((query = {}) => {
             <text class="text-center text-caption text-danger leading-caption">
               更多动态加载失败
             </text>
-            <button
-              class="h-control border border-brand rounded-control bg-surface px-action text-body text-brand font-medium"
+            <PcButton
+              block
+              variant="secondary"
               :disabled="featuredLoading"
-              :aria-disabled="featuredLoading"
               :loading="featuredLoading"
               @click="loadMoreFeatured"
             >
               重试加载更多
-            </button>
+            </PcButton>
           </view>
-          <button
+          <PcButton
             v-else-if="featuredHasMore"
-            class="h-control w-full border border-brand rounded-control bg-surface px-action text-body text-brand font-medium"
-            :class="featuredLoading ? 'opacity-50' : ''"
+            block
+            variant="secondary"
             :disabled="featuredLoading"
-            :aria-disabled="featuredLoading"
             :loading="featuredLoading"
             @click="loadMoreFeatured"
           >
             加载更多
-          </button>
+          </PcButton>
         </view>
       </template>
     </view>
 
-    <template #floating>
+    <template v-if="activeChannel === 'featured'" #floating>
       <button
         class="pointer-events-auto h-fab w-fab flex items-center justify-center rounded-full bg-brand p-0 shadow-float"
         :class="publishPending ? 'opacity-50' : ''"

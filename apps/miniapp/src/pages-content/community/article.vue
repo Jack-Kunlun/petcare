@@ -22,7 +22,9 @@ import {
   reportCommunityPost,
   unlikeCommunityPost,
 } from "@/api/content";
-import { MiniappApiError } from "@/api/request";
+import { getSafeRequestErrorMessage, MiniappApiError } from "@/api/request";
+import PcButton from "@/components/PcButton.vue";
+import PcStatePanel from "@/components/PcStatePanel.vue";
 import SubPageLayout from "@/components/SubPageLayout.vue";
 import { getDefaultAvatar } from "@/state/default-avatar";
 import { requireProfile, session } from "@/state/session";
@@ -31,7 +33,7 @@ const COMMENT_PAGE_SIZE = 20;
 
 const postId = ref("");
 const post = ref<PublicCommunityPostDetail | null>(null);
-const status = ref<"loading" | "ready" | "error">("loading");
+const status = ref<"loading" | "ready" | "error" | "unavailable">("loading");
 const loading = ref(false);
 const checkingProfile = ref(false);
 const liked = ref(false);
@@ -74,6 +76,14 @@ const commentSubmittable = computed(
 
 function formatDate(value: string): string {
   return value.slice(0, 16).replace("T", " ");
+}
+
+function errorMessage(error: unknown, fallback: string): string {
+  return getSafeRequestErrorMessage(error, fallback);
+}
+
+function returnToCommunity(): void {
+  uni.redirectTo({ url: "/pages/community/index" });
 }
 
 function applyLikeState(state: CommunityPostLikeState): void {
@@ -125,7 +135,7 @@ async function loadLikeState(): Promise<boolean> {
     return true;
   } catch (error) {
     likeStateStatus.value = "error";
-    likeError.value = error instanceof MiniappApiError ? error.message : "点赞状态加载失败，请重试";
+    likeError.value = errorMessage(error, "点赞状态加载失败，请重试");
 
     return false;
   }
@@ -151,9 +161,12 @@ async function loadPost(): Promise<void> {
     }
 
     void loadComments(true);
-  } catch {
+  } catch (error) {
     post.value = null;
-    status.value = "error";
+    status.value =
+      error instanceof MiniappApiError && [403, 404].includes(error.statusCode)
+        ? "unavailable"
+        : "error";
   } finally {
     loading.value = false;
   }
@@ -186,7 +199,7 @@ async function loadComments(reset: boolean): Promise<void> {
     commentsViewerId.value = session.user?.id ?? null;
     commentsStatus.value = "ready";
   } catch (error) {
-    const message = error instanceof MiniappApiError ? error.message : "评论加载失败，请重试";
+    const message = errorMessage(error, "评论加载失败，请重试");
 
     if (reset) {
       comments.value = [];
@@ -229,7 +242,7 @@ async function submitComment(): Promise<void> {
     commentContent.value = "";
     commentSuccess.value = "评论已发布";
   } catch (error) {
-    commentError.value = error instanceof MiniappApiError ? error.message : "评论发布失败，请重试";
+    commentError.value = errorMessage(error, "评论发布失败，请重试");
   } finally {
     commentCheckingProfile.value = false;
     commentSubmitting.value = false;
@@ -263,7 +276,7 @@ async function deleteComment(comment: PublicCommunityPostComment): Promise<void>
     post.value = { ...post.value, commentsCount: Math.max(0, post.value.commentsCount - 1) };
     commentSuccess.value = "评论已删除";
   } catch (error) {
-    commentError.value = error instanceof MiniappApiError ? error.message : "评论删除失败，请重试";
+    commentError.value = errorMessage(error, "评论删除失败，请重试");
   } finally {
     commentDeletingId.value = "";
   }
@@ -300,7 +313,7 @@ async function toggleLike(): Promise<void> {
         await (liked.value ? unlikeCommunityPost(postId.value) : likeCommunityPost(postId.value)),
       );
     } catch (error) {
-      likeError.value = error instanceof MiniappApiError ? error.message : "点赞操作失败，请重试";
+      likeError.value = errorMessage(error, "点赞操作失败，请重试");
     } finally {
       likePending.value = false;
     }
@@ -358,10 +371,9 @@ async function submitReport(): Promise<void> {
     });
     reportVisible.value = false;
     reportDescription.value = "";
-    reportSuccess.value = "举报已提交，运营人员会尽快处理";
+    reportSuccess.value = "举报已提交，我们会尽快处理";
   } catch (error) {
-    reportError.value =
-      error instanceof MiniappApiError ? error.message : "举报提交失败，请稍后重试";
+    reportError.value = errorMessage(error, "举报提交失败，请稍后重试");
   } finally {
     reportSubmitting.value = false;
   }
@@ -369,7 +381,7 @@ async function submitReport(): Promise<void> {
 
 onLoad((query = {}) => {
   if (typeof query.id !== "string" || !query.id) {
-    status.value = "error";
+    status.value = "unavailable";
 
     return;
   }
@@ -399,26 +411,26 @@ onShow(() => {
 <template>
   <SubPageLayout title="社区动态">
     <view class="px-action py-card">
-      <view v-if="status === 'loading'" class="main-card p-action" aria-live="polite">
-        <text class="text-body text-muted leading-body">社区动态加载中…</text>
-      </view>
+      <PcStatePanel v-if="status === 'loading'" status="loading" title="社区动态加载中…" />
 
-      <view
+      <PcStatePanel
+        v-else-if="status === 'unavailable'"
+        status="unavailable"
+        title="动态不存在或暂不可见"
+        description="请返回社区选择其他公开动态。"
+        primary-label="返回社区"
+        @primary="returnToCommunity"
+      />
+
+      <PcStatePanel
         v-else-if="status === 'error'"
-        class="flex flex-col gap-copy rounded-card bg-danger-soft p-action"
-        role="alert"
-      >
-        <text class="text-body text-ink leading-body">动态不存在、未公开或加载失败</text>
-        <button
-          class="h-control rounded-control bg-brand-active px-action text-body text-surface font-medium"
-          :disabled="loading || !postId"
-          :aria-disabled="loading || !postId"
-          :loading="loading"
-          @click="loadPost"
-        >
-          重新加载
-        </button>
-      </view>
+        status="error"
+        title="社区动态加载失败"
+        description="请检查网络后重试。"
+        primary-label="重新加载"
+        :primary-disabled="loading || !postId"
+        @primary="loadPost"
+      />
 
       <view v-else-if="post" class="main-card p-action">
         <view class="flex items-center gap-copy">
@@ -444,18 +456,9 @@ onShow(() => {
 
         <view class="mt-action border-t border-divider pt-copy">
           <view class="flex items-center gap-copy">
-            <button
-              class="min-h-control border rounded-control px-action text-body font-medium"
-              :class="[
-                liked
-                  ? 'border-brand bg-soft text-brand-active'
-                  : 'border-divider bg-surface text-muted',
-                likePending || checkingProfile || likeStateStatus === 'loading' ? 'opacity-50' : '',
-              ]"
+            <PcButton
+              :variant="liked ? 'secondary' : 'ghost'"
               :disabled="
-                likePending || checkingProfile || reportSubmitting || likeStateStatus === 'loading'
-              "
-              :aria-disabled="
                 likePending || checkingProfile || reportSubmitting || likeStateStatus === 'loading'
               "
               :aria-pressed="liked"
@@ -463,7 +466,7 @@ onShow(() => {
               @click="toggleLike"
             >
               {{ likeButtonLabel() }} · {{ post.likesCount }}
-            </button>
+            </PcButton>
             <text class="quiet-text">评论 {{ post.commentsCount }}</text>
           </view>
           <text v-if="likeError" class="mt-copy block text-small text-danger" role="alert">
@@ -475,15 +478,16 @@ onShow(() => {
           <text v-if="reportSuccess" class="block text-small text-success" role="status">
             {{ reportSuccess }}
           </text>
-          <button
+          <PcButton
             v-if="!reportVisible"
-            class="mt-copy h-control w-full border border-divider rounded-control bg-surface text-body text-muted"
+            class="mt-copy"
+            block
+            variant="secondary"
             :disabled="checkingProfile || likePending || reportSubmitting"
-            :aria-disabled="checkingProfile || likePending || reportSubmitting"
             @click="openReport"
           >
             {{ checkingProfile ? "正在检查账号" : "举报该动态" }}
-          </button>
+          </PcButton>
 
           <view
             v-else
@@ -523,23 +527,17 @@ onShow(() => {
               {{ reportError }}
             </text>
             <view class="grid grid-cols-2 gap-copy">
-              <button
-                class="h-control border border-divider rounded-control bg-surface text-body text-muted"
-                :disabled="reportSubmitting"
-                :aria-disabled="reportSubmitting"
-                @click="closeReport"
-              >
+              <PcButton block variant="secondary" :disabled="reportSubmitting" @click="closeReport">
                 取消
-              </button>
-              <button
-                class="h-control rounded-control bg-brand-active text-body text-surface font-medium"
+              </PcButton>
+              <PcButton
+                block
                 :disabled="reportSubmitting"
-                :aria-disabled="reportSubmitting"
                 :loading="reportSubmitting"
                 @click="submitReport"
               >
                 {{ reportSubmitting ? "提交中" : "提交举报" }}
-              </button>
+              </PcButton>
             </view>
           </view>
         </view>
@@ -547,14 +545,14 @@ onShow(() => {
         <view class="mt-action border-t border-divider pt-action">
           <view class="flex items-center justify-between gap-copy">
             <text class="text-body text-ink font-semibold">评论 {{ commentsTotal }}</text>
-            <button
-              class="min-h-control border border-divider rounded-control bg-surface px-copy text-small text-muted"
+            <PcButton
+              variant="ghost"
               :disabled="commentsLoading || commentSubmitting || Boolean(commentDeletingId)"
-              :aria-disabled="commentsLoading || commentSubmitting || Boolean(commentDeletingId)"
+              :loading="commentsLoading"
               @click="loadComments(true)"
             >
               {{ commentsLoading ? "刷新中" : "刷新" }}
-            </button>
+            </PcButton>
           </view>
 
           <view class="mt-copy flex flex-col gap-copy rounded-control bg-page-bg p-copy">
@@ -568,10 +566,8 @@ onShow(() => {
             />
             <view class="flex items-center justify-between gap-copy">
               <text class="quiet-text">{{ commentContent.length }}/200</text>
-              <button
-                class="min-h-control rounded-control bg-brand-active px-action text-body text-surface font-medium"
+              <PcButton
                 :disabled="!commentSubmittable"
-                :aria-disabled="!commentSubmittable"
                 :loading="commentSubmitting"
                 @click="submitComment"
               >
@@ -584,7 +580,7 @@ onShow(() => {
                         ? "发表评论"
                         : "登录后评论"
                 }}
-              </button>
+              </PcButton>
             </view>
           </view>
 
@@ -604,14 +600,9 @@ onShow(() => {
             role="alert"
           >
             <text class="text-small text-danger">评论暂时不可用</text>
-            <button
-              class="h-control rounded-control bg-brand-active text-body text-surface font-medium"
-              :disabled="commentsLoading"
-              :aria-disabled="commentsLoading"
-              @click="loadComments(true)"
-            >
+            <PcButton block :disabled="commentsLoading" @click="loadComments(true)">
               重试加载评论
-            </button>
+            </PcButton>
           </view>
           <text
             v-else-if="comments.length === 0"
@@ -638,16 +629,15 @@ onShow(() => {
                   </text>
                   <text class="quiet-text">{{ formatDate(comment.createdAt) }}</text>
                 </view>
-                <button
+                <PcButton
                   v-if="comment.canDelete"
-                  class="min-h-control border border-danger rounded-control bg-surface px-copy text-small text-danger"
+                  variant="danger"
                   :disabled="commentBusy"
-                  :aria-disabled="commentBusy"
                   :loading="commentDeletingId === comment.id"
                   @click="deleteComment(comment)"
                 >
                   {{ commentDeletingId === comment.id ? "删除中" : "删除" }}
-                </button>
+                </PcButton>
               </view>
               <text class="mt-copy block text-body text-ink leading-body">
                 {{ comment.content }}
@@ -662,16 +652,17 @@ onShow(() => {
           >
             {{ commentLoadMoreError }}
           </text>
-          <button
+          <PcButton
             v-if="comments.length < commentsTotal && commentsStatus === 'ready'"
-            class="mt-copy h-control w-full border border-divider rounded-control bg-surface text-body text-muted"
+            class="mt-copy"
+            block
+            variant="secondary"
             :disabled="commentsLoading || commentBusy"
-            :aria-disabled="commentsLoading || commentBusy"
             :loading="commentsLoading"
             @click="loadComments(false)"
           >
             {{ commentsLoading ? "加载中" : "加载更多评论" }}
-          </button>
+          </PcButton>
         </view>
       </view>
     </view>

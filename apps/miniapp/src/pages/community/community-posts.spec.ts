@@ -47,7 +47,8 @@ describe("community post reader", () => {
     expect(detail).toContain("requireProfile(returnUrl)");
     expect(detail).toContain(':disabled="reportSubmitting"');
     expect(detail).toContain(':aria-disabled="reportSubmitting"');
-    expect(detail).toContain("动态不存在、未公开或加载失败");
+    expect(detail).toContain("动态不存在或暂不可见");
+    expect(detail).toContain("社区动态加载失败");
     expect(detail).not.toContain("postActions");
     expect(detail).not.toContain("286 赞");
   });

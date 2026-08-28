@@ -2,17 +2,19 @@
 import { onLoad, onShow } from "@dcloudio/uni-app";
 import { PET_GENDER_LABELS, PET_SPECIES_LABELS } from "@petcare/shared-types";
 import type { MyPetDetail } from "@petcare/shared-types";
-import { computed, ref } from "vue";
+import { computed, ref, watch } from "vue";
 import { deletePet, getMyPet } from "@/api/pets";
-import { MiniappApiError } from "@/api/request";
+import { getSafeRequestErrorMessage, MiniappApiError } from "@/api/request";
+import PcButton from "@/components/PcButton.vue";
+import PcStatePanel from "@/components/PcStatePanel.vue";
 import SubPageLayout from "@/components/SubPageLayout.vue";
 import { miniappDesignTokens } from "@/config/design-tokens";
 import { formatPetAge, formatPetBirthDate, petCoverImage } from "@/domain/pet-display";
-import { captureSessionUserRevision, isSessionUserRevisionCurrent } from "@/state/session";
+import { captureSessionUserRevision, isSessionUserRevisionCurrent, session } from "@/state/session";
 
 const petId = ref("");
 const pet = ref<MyPetDetail | null>(null);
-const status = ref<"loading" | "ready" | "error" | "unavailable">("loading");
+const status = ref<"loading" | "ready" | "error" | "unavailable" | "unauthenticated">("loading");
 const loading = ref(false);
 const deleting = ref(false);
 const deleteError = ref("");
@@ -46,10 +48,17 @@ const careNotes = computed(() => {
 });
 
 function errorMessage(error: unknown, fallback: string): string {
-  return error instanceof MiniappApiError ? error.message : fallback;
+  return getSafeRequestErrorMessage(error, fallback);
 }
 
 async function loadPet(): Promise<void> {
+  if (!session.user) {
+    pet.value = null;
+    status.value = session.bootstrapped ? "unauthenticated" : "loading";
+
+    return;
+  }
+
   if (!petId.value || loading.value || deleting.value) {
     return;
   }
@@ -64,7 +73,7 @@ async function loadPet(): Promise<void> {
 
     if (!isSessionUserRevisionCurrent(startedAt)) {
       pet.value = null;
-      status.value = "unavailable";
+      status.value = "unauthenticated";
 
       return;
     }
@@ -73,14 +82,28 @@ async function loadPet(): Promise<void> {
     status.value = "ready";
   } catch (error) {
     pet.value = null;
-    status.value =
+
+    if (
       !isSessionUserRevisionCurrent(startedAt) ||
-      (error instanceof MiniappApiError && [401, 403, 404].includes(error.statusCode))
-        ? "unavailable"
-        : "error";
+      (error instanceof MiniappApiError && error.statusCode === 401)
+    ) {
+      status.value = "unauthenticated";
+    } else if (error instanceof MiniappApiError && [403, 404].includes(error.statusCode)) {
+      status.value = "unavailable";
+    } else {
+      status.value = "error";
+    }
   } finally {
     loading.value = false;
   }
+}
+
+function openLogin(): void {
+  uni.navigateTo({ url: "/pages/auth/index" });
+}
+
+function returnToPets(): void {
+  uni.redirectTo({ url: "/pages-account/pets/index" });
 }
 
 function editPet(): void {
@@ -120,7 +143,7 @@ async function removePet(): Promise<void> {
 
     if (!isSessionUserRevisionCurrent(startedAt)) {
       pet.value = null;
-      status.value = "unavailable";
+      status.value = "unauthenticated";
 
       return;
     }
@@ -152,6 +175,15 @@ onLoad((query = {}) => {
   void loadPet();
 });
 
+watch(
+  () => session.bootstrapped,
+  (bootstrapped) => {
+    if (bootstrapped && petId.value && !pet.value) {
+      void loadPet();
+    }
+  },
+);
+
 onShow(() => {
   if (skipInitialShow) {
     skipInitialShow = false;
@@ -166,35 +198,35 @@ onShow(() => {
 <template>
   <SubPageLayout title="宠物档案">
     <view class="flex flex-col gap-card px-action py-card">
-      <view v-if="status === 'loading'" class="main-card p-action" aria-live="polite">
-        <text class="text-body text-muted leading-body">宠物档案加载中…</text>
-      </view>
+      <PcStatePanel v-if="status === 'loading'" status="loading" title="宠物档案加载中…" />
 
-      <view
+      <PcStatePanel
+        v-else-if="status === 'unauthenticated'"
+        status="unauthenticated"
+        title="登录后查看宠物档案"
+        description="登录后可查看和维护自己的宠物资料。"
+        primary-label="微信登录"
+        @primary="openLogin"
+      />
+
+      <PcStatePanel
         v-else-if="status === 'unavailable'"
-        class="flex flex-col items-center gap-copy border border-border rounded-card bg-surface p-card"
-        role="alert"
-      >
-        <text class="text-body text-ink leading-body">宠物档案不存在或当前不可用</text>
-      </view>
+        status="unavailable"
+        title="宠物档案不存在或无权查看"
+        description="请返回我的宠物后重新选择一个档案。"
+        primary-label="返回我的宠物"
+        @primary="returnToPets"
+      />
 
-      <view
+      <PcStatePanel
         v-else-if="status === 'error'"
-        class="flex flex-col items-center gap-copy rounded-card bg-danger-soft p-card"
-        role="alert"
-      >
-        <text class="text-body text-ink leading-body">宠物档案加载失败，请稍后重试</text>
-        <button
-          class="h-control rounded-control bg-brand px-action text-body text-surface"
-          :class="loading ? 'opacity-50' : ''"
-          :disabled="loading"
-          :aria-disabled="loading"
-          :loading="loading"
-          @click="loadPet"
-        >
-          重新加载
-        </button>
-      </view>
+        status="error"
+        title="宠物档案加载失败"
+        description="请检查网络后重试。"
+        primary-label="重新加载"
+        :primary-disabled="loading"
+        @primary="loadPet"
+      />
 
       <template v-else-if="pet">
         <view class="flex flex-col items-center main-card p-card">
@@ -265,25 +297,17 @@ onShow(() => {
 
     <template v-if="status === 'ready' && pet" #actions>
       <view class="flex gap-copy">
-        <button
-          class="h-button flex flex-1 items-center justify-center rounded-control bg-danger-soft text-button text-danger font-semibold"
-          :class="deleting ? 'opacity-50' : ''"
-          :disabled="deleting"
-          :aria-disabled="deleting"
+        <PcButton block class="flex-[2]" :disabled="deleting" @click="editPet"> 编辑档案 </PcButton>
+        <PcButton
+          block
+          class="flex-1"
+          variant="danger"
           :loading="deleting"
+          :disabled="deleting"
           @click="removePet"
         >
           {{ deleting ? "删除中…" : "删除档案" }}
-        </button>
-        <button
-          class="h-button flex flex-1 items-center justify-center rounded-control bg-brand text-button text-surface font-semibold"
-          :class="deleting ? 'opacity-50' : ''"
-          :disabled="deleting"
-          :aria-disabled="deleting"
-          @click="editPet"
-        >
-          编辑档案
-        </button>
+        </PcButton>
       </view>
     </template>
   </SubPageLayout>

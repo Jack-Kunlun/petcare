@@ -2,15 +2,18 @@
 import { onLoad, onUnload } from "@dcloudio/uni-app";
 import { MINIAPP_ACCOUNT_ERROR_CODE } from "@petcare/shared-types";
 import type { MiniappUserProfile } from "@petcare/shared-types";
-import { computed, reactive, ref } from "vue";
+import { computed, reactive, ref, watch } from "vue";
 import { isMainlandChinaMobile, isProfileFormDirty, mergeProfileResponse } from "./profile-form";
-import { MiniappApiError } from "@/api/request";
+import { getSafeRequestErrorMessage, MiniappApiError } from "@/api/request";
 import { bindPhone, getProfile, sendPhoneCode, updateProfile, uploadAvatar } from "@/api/user";
+import PcButton from "@/components/PcButton.vue";
+import PcStatePanel from "@/components/PcStatePanel.vue";
 import SubPageLayout from "@/components/SubPageLayout.vue";
 import { miniappDesignTokens } from "@/config/design-tokens";
 import { getDefaultAvatar } from "@/state/default-avatar";
 import {
   captureSessionUserRevision,
+  isSessionUserRevisionCurrent,
   parseReturnUrl,
   session,
   updateSessionUser,
@@ -31,6 +34,7 @@ const form = reactive({
   bio: session.user?.bio ?? "",
 });
 const persistedForm = ref({ ...form });
+const profileFieldErrors = reactive({ nickname: "", region: "", bio: "" });
 const phone = ref("");
 const code = ref("");
 const phoneError = ref("");
@@ -39,6 +43,9 @@ const phoneSheetOpen = ref(false);
 const codeSent = ref(false);
 const busy = ref<"load" | "avatar" | "save" | "code" | "bind" | null>(null);
 const loadError = ref("");
+const pageStatus = ref<"loading" | "ready" | "error" | "unauthenticated">(
+  profile.value ? "ready" : "loading",
+);
 const countdown = ref(0);
 const returnUrl = ref<string | null>(null);
 let countdownTimer: ReturnType<typeof setInterval> | undefined;
@@ -58,16 +65,6 @@ const primaryButtonStyle = {
   backgroundColor: miniappDesignTokens.colors.brand,
   color: miniappDesignTokens.colors.surface,
 };
-const saveButtonStyle = computed(() => {
-  if (!saveDisabled.value || busy.value === "save") {
-    return primaryButtonStyle;
-  }
-
-  return {
-    backgroundColor: miniappDesignTokens.colors["brand-disabled"],
-    color: miniappDesignTokens.colors["text-disabled"],
-  };
-});
 const phoneCodeButtonText = computed(() => {
   if (busy.value === "code") {
     return "发送中…";
@@ -81,7 +78,11 @@ const phoneCodeButtonText = computed(() => {
 });
 
 function errorText(error: unknown, fallback: string): string {
-  return error instanceof MiniappApiError ? error.message : fallback;
+  return getSafeRequestErrorMessage(error, fallback);
+}
+
+function openLogin(): void {
+  uni.navigateTo({ url: "/pages/auth/index" });
 }
 
 function syncEditableProfile(user: MiniappUserProfile) {
@@ -92,11 +93,24 @@ function syncEditableProfile(user: MiniappUserProfile) {
 }
 
 async function loadProfile() {
+  if (!session.user) {
+    profile.value = null;
+    pageStatus.value = session.bootstrapped ? "unauthenticated" : "loading";
+    loadError.value = "";
+
+    return;
+  }
+
   if (busy.value !== null) {
     return;
   }
 
   busy.value = "load";
+
+  if (!profile.value) {
+    pageStatus.value = "loading";
+  }
+
   loadError.value = "";
   const startedAt = captureSessionUserRevision();
 
@@ -106,13 +120,20 @@ async function loadProfile() {
     if (updateSessionUser(response, startedAt)) {
       profile.value = response;
       syncEditableProfile(response);
+      pageStatus.value = "ready";
     } else {
       profile.value = session.user;
+      pageStatus.value = profile.value ? "ready" : "unauthenticated";
     }
   } catch (error) {
-    if (profile.value) {
-      await uni.showToast({ title: errorText(error, "个人资料加载失败"), icon: "none" });
+    if (!isSessionUserRevisionCurrent(startedAt)) {
+      profile.value = null;
+      pageStatus.value = "unauthenticated";
+    } else if (profile.value) {
+      pageStatus.value = "ready";
+      loadError.value = errorText(error, "个人资料刷新失败，请重试");
     } else {
+      pageStatus.value = "error";
       loadError.value = errorText(error, "个人资料加载失败，请重试");
     }
   } finally {
@@ -129,15 +150,25 @@ async function save() {
   const region = form.region.trim();
   const bio = form.bio.trim();
 
-  if (!nickname || nickname.length > 24 || /\p{Cc}/u.test(nickname)) {
-    await uni.showToast({ title: "昵称应为 1 至 24 个字符", icon: "none" });
+  clearProfileFieldErrors();
+  let valid = true;
 
-    return;
+  if (!nickname || nickname.length > 24 || /\p{Cc}/u.test(nickname)) {
+    profileFieldErrors.nickname = "昵称应为 1 至 24 个字符";
+    valid = false;
   }
 
-  if (region.length > 80 || bio.length > 200 || /\p{Cc}/u.test(region) || /\p{Cc}/u.test(bio)) {
-    await uni.showToast({ title: "所在地区或个人简介过长", icon: "none" });
+  if (region.length > 80 || /\p{Cc}/u.test(region)) {
+    profileFieldErrors.region = "所在地区不能超过 80 个字符";
+    valid = false;
+  }
 
+  if (bio.length > 200 || /\p{Cc}/u.test(bio)) {
+    profileFieldErrors.bio = "个人简介不能超过 200 个字符";
+    valid = false;
+  }
+
+  if (!valid) {
     return;
   }
 
@@ -168,6 +199,16 @@ async function save() {
       await uni.showToast({ title: "资料已保存，请手动返回", icon: "none" });
     }
   }
+}
+
+function clearProfileFieldErrors(): void {
+  profileFieldErrors.nickname = "";
+  profileFieldErrors.region = "";
+  profileFieldErrors.bio = "";
+}
+
+function clearProfileFieldError(field: keyof typeof profileFieldErrors): void {
+  profileFieldErrors[field] = "";
 }
 
 async function uploadChosenAvatar(
@@ -301,6 +342,7 @@ function handleRegionChange(event: unknown) {
 
   if (Array.isArray(value)) {
     form.region = value.filter(Boolean).join(" · ");
+    clearProfileFieldError("region");
   }
 }
 
@@ -446,6 +488,15 @@ onLoad((query = {}) => {
   void loadProfile();
 });
 
+watch(
+  () => session.bootstrapped,
+  (bootstrapped) => {
+    if (bootstrapped && !profile.value) {
+      void loadProfile();
+    }
+  },
+);
+
 onUnload(() => {
   clearCountdown();
 });
@@ -454,24 +505,34 @@ onUnload(() => {
 <template>
   <SubPageLayout class="profile-edit-page" title="编辑个人信息">
     <view class="min-h-full bg-canvas px-action pb-section pt-screen">
-      <view v-if="loadError && !profile" class="flex flex-col items-center gap-copy py-section">
-        <text class="text-caption text-danger leading-caption">{{ loadError }}</text>
-        <button
-          class="h-control rounded-control bg-brand px-action text-surface"
-          :class="busy !== null ? 'cursor-not-allowed opacity-50' : 'cursor-pointer'"
-          :style="primaryButtonStyle"
-          :disabled="busy !== null"
-          :aria-disabled="busy !== null"
-          @click="loadProfile"
-        >
-          重试
-        </button>
-      </view>
-      <view v-else-if="!profile" class="flex items-center justify-center py-section">
-        <text class="text-body text-muted leading-body">正在加载个人资料…</text>
-      </view>
+      <PcStatePanel v-if="pageStatus === 'loading'" status="loading" title="个人资料加载中…" />
+      <PcStatePanel
+        v-else-if="pageStatus === 'unauthenticated'"
+        status="unauthenticated"
+        title="登录后编辑个人资料"
+        description="登录后可维护昵称、地区、简介和手机号。"
+        primary-label="微信登录"
+        @primary="openLogin"
+      />
+      <PcStatePanel
+        v-else-if="pageStatus === 'error'"
+        status="error"
+        title="个人资料加载失败"
+        :description="loadError || '请检查网络后重试。'"
+        primary-label="重新加载"
+        :primary-disabled="busy !== null"
+        @primary="loadProfile"
+      />
 
-      <template v-if="profile">
+      <template v-else-if="pageStatus === 'ready' && profile">
+        <view
+          v-if="loadError"
+          class="mb-card flex items-center justify-between gap-copy rounded-control bg-divider p-copy"
+          role="status"
+        >
+          <text class="text-caption text-muted leading-caption">{{ loadError }}</text>
+          <PcButton variant="ghost" :disabled="busy !== null" @click="loadProfile">刷新</PcButton>
+        </view>
         <view class="h-[120px] flex justify-center">
           <!-- #ifdef MP-WEIXIN -->
           <button
@@ -557,9 +618,11 @@ onUnload(() => {
                 type="nickname"
                 :maxlength="24"
                 :disabled="busy !== null"
+                :aria-invalid="Boolean(profileFieldErrors.nickname)"
                 aria-label="昵称"
                 placeholder="请输入昵称"
                 placeholder-class="text-subtle"
+                @input="clearProfileFieldError('nickname')"
               />
               <!-- #endif -->
               <!-- #ifndef MP-WEIXIN -->
@@ -569,11 +632,20 @@ onUnload(() => {
                 type="text"
                 :maxlength="24"
                 :disabled="busy !== null"
+                :aria-invalid="Boolean(profileFieldErrors.nickname)"
                 aria-label="昵称"
                 placeholder="请输入昵称"
                 placeholder-class="text-subtle"
+                @input="clearProfileFieldError('nickname')"
               />
               <!-- #endif -->
+              <text
+                v-if="profileFieldErrors.nickname"
+                class="mt-caption block text-caption text-danger leading-caption"
+                role="alert"
+              >
+                {{ profileFieldErrors.nickname }}
+              </text>
             </label>
 
             <view class="h-[72px]">
@@ -614,6 +686,7 @@ onUnload(() => {
                 mode="region"
                 :disabled="busy !== null"
                 aria-label="选择地区"
+                :aria-invalid="Boolean(profileFieldErrors.region)"
                 @change="handleRegionChange"
               >
                 <view
@@ -638,6 +711,13 @@ onUnload(() => {
                   />
                 </view>
               </picker>
+              <text
+                v-if="profileFieldErrors.region"
+                class="mt-caption block text-caption text-danger leading-caption"
+                role="alert"
+              >
+                {{ profileFieldErrors.region }}
+              </text>
             </view>
 
             <label class="block min-h-[72px]">
@@ -648,10 +728,19 @@ onUnload(() => {
                 auto-height
                 :maxlength="200"
                 :disabled="busy !== null"
+                :aria-invalid="Boolean(profileFieldErrors.bio)"
                 aria-label="个人简介"
                 placeholder="介绍一下自己"
                 placeholder-class="text-subtle"
+                @input="clearProfileFieldError('bio')"
               />
+              <text
+                v-if="profileFieldErrors.bio"
+                class="mt-caption block text-caption text-danger leading-caption"
+                role="alert"
+              >
+                {{ profileFieldErrors.bio }}
+              </text>
             </label>
           </view>
         </view>
@@ -779,19 +868,16 @@ onUnload(() => {
     </wd-popup>
 
     <template #actions>
-      <button
-        class="h-header flex items-center justify-center rounded-control"
-        :class="saveDisabled ? 'cursor-not-allowed' : 'cursor-pointer'"
-        :style="saveButtonStyle"
+      <PcButton
+        block
+        class="h-header"
+        :variant="saveDisabled ? 'secondary' : 'primary'"
         :disabled="saveDisabled"
-        :aria-disabled="saveDisabled"
-        :aria-busy="busy === 'save'"
+        :loading="busy === 'save'"
         @click="save"
       >
-        <text class="text-body font-medium leading-label">
-          {{ busy === "save" ? "保存中…" : "保存" }}
-        </text>
-      </button>
+        {{ busy === "save" ? "保存中…" : "保存" }}
+      </PcButton>
     </template>
   </SubPageLayout>
 </template>

@@ -18,7 +18,9 @@ describe("community publisher", () => {
     expect(source).toContain('@click="removeMedia(item)"');
     expect(source).toContain('@click="deletePost(post)"');
     expect(source).toContain(':disabled="!canSubmit"');
-    expect(source).toContain(':aria-disabled="!canSubmit"');
+    expect(source).toContain(':loading="submitting"');
+    expect(source).toContain("PcButton");
+    expect(source).toContain("PcStatePanel");
     expect(source).toContain(':disabled="submitting"');
     expect(source).toContain("未通过原因");
     expect(source).toContain("删除失败，动态仍保留，请重试");

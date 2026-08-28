@@ -44,11 +44,13 @@ describe("miniapp visual system", () => {
   });
 
   it("uses the shared palette for native confirmations and controls", () => {
-    for (const page of [petList, petDetail, petForm]) {
+    for (const page of [petDetail, petForm]) {
       expect(page).toContain("miniappDesignTokens.colors.danger");
       expect(page).not.toMatch(/#(?:4a6cf7|f04438)/iu);
     }
 
+    expect(petList).toContain("PcButton");
+    expect(petList).not.toMatch(/#(?:4a6cf7|f04438)/iu);
     expect(petForm).toContain(':color="miniappDesignTokens.colors.brand"');
   });
 });

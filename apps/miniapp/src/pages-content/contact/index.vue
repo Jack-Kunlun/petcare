@@ -4,6 +4,8 @@ import type { WebsiteContactChannel, WebsiteContactPanelContent } from "@petcare
 import { WEBSITE_CONTENT_KEY } from "@petcare/shared-types";
 import { ref } from "vue";
 import { getPublishedContent } from "@/api/content";
+import PcButton from "@/components/PcButton.vue";
+import PcStatePanel from "@/components/PcStatePanel.vue";
 import SubPageLayout from "@/components/SubPageLayout.vue";
 import { getContactAction, toContactPanel } from "@/pages-content/content-mappers";
 
@@ -61,31 +63,24 @@ onLoad(() => {
 <template>
   <SubPageLayout title="联系客服">
     <view class="flex flex-col gap-copy px-action py-card">
-      <view v-if="status === 'loading'" class="main-card p-action">
-        <text class="text-body text-muted leading-body">客服信息加载中…</text>
-      </view>
+      <PcStatePanel v-if="status === 'loading'" status="loading" title="客服信息加载中…" />
 
-      <view
+      <PcStatePanel
         v-else-if="status === 'error'"
-        class="flex flex-col gap-copy rounded-card bg-danger-soft p-action"
-        role="alert"
-      >
-        <text class="text-body text-ink leading-body">客服信息加载失败，请稍后重试</text>
-        <button
-          class="h-control rounded-control bg-brand-active px-action text-body text-surface font-medium"
-          :class="loading ? 'opacity-50' : ''"
-          :disabled="loading"
-          :aria-disabled="loading"
-          :loading="loading"
-          @click="load"
-        >
-          重新加载
-        </button>
-      </view>
+        status="error"
+        title="客服信息加载失败"
+        description="请检查网络后重试。"
+        primary-label="重新加载"
+        :primary-disabled="loading"
+        @primary="load"
+      />
 
-      <view v-else-if="!panel" class="main-card p-action">
-        <text class="text-body text-muted leading-body">客服信息暂未配置</text>
-      </view>
+      <PcStatePanel
+        v-else-if="!panel"
+        status="empty"
+        title="暂无联系方式"
+        description="已发布的联系方式会显示在这里。"
+      />
 
       <template v-else>
         <view class="border border-border rounded-card bg-surface p-card">
@@ -95,9 +90,12 @@ onLoad(() => {
           </text>
         </view>
 
-        <view v-if="panel.channels.length === 0" class="main-card p-action">
-          <text class="text-body text-muted leading-body">客服渠道暂未配置</text>
-        </view>
+        <PcStatePanel
+          v-if="panel.channels.length === 0"
+          status="empty"
+          title="暂无可用联系渠道"
+          description="已发布的电话或邮箱会显示在这里。"
+        />
 
         <view
           v-for="channel in panel.channels"
@@ -111,20 +109,17 @@ onLoad(() => {
           <text v-if="channel.availability" class="mt-sm block meta-text">
             {{ channel.availability }}
           </text>
-          <button
+          <PcButton
             v-if="getContactAction(channel.href).kind !== 'none'"
-            class="mt-action h-control flex items-center justify-center rounded-control bg-brand-active"
-            :class="actionPending !== null ? 'opacity-50' : ''"
+            class="mt-action"
+            block
             :disabled="actionPending !== null"
-            :aria-disabled="actionPending !== null"
             :loading="actionPending === channel.channelKey"
             :aria-label="`${getContactAction(channel.href).kind === 'phone' ? '拨打' : '复制'}${channel.label}`"
             @click="activateChannel(channel)"
           >
-            <text class="text-body text-surface font-medium leading-label">
-              {{ getContactAction(channel.href).kind === "phone" ? "拨打电话" : "复制邮箱" }}
-            </text>
-          </button>
+            {{ getContactAction(channel.href).kind === "phone" ? "拨打电话" : "复制邮箱" }}
+          </PcButton>
         </view>
       </template>
     </view>

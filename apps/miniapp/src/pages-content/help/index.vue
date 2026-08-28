@@ -3,6 +3,7 @@ import { onLoad } from "@dcloudio/uni-app";
 import { WEBSITE_CONTENT_KEY } from "@petcare/shared-types";
 import { computed, ref } from "vue";
 import { getPublishedContent } from "@/api/content";
+import PcStatePanel from "@/components/PcStatePanel.vue";
 import SubPageLayout from "@/components/SubPageLayout.vue";
 import { filterHelpCategories, toHelpCategories } from "@/pages-content/content-mappers";
 import type { HelpCategory } from "@/pages-content/content-mappers";
@@ -31,6 +32,10 @@ async function load(): Promise<void> {
   }
 }
 
+function clearQuery(): void {
+  query.value = "";
+}
+
 onLoad(() => {
   void load();
 });
@@ -39,27 +44,17 @@ onLoad(() => {
 <template>
   <SubPageLayout title="帮助中心">
     <view class="flex flex-col gap-card px-action py-card">
-      <view v-if="status === 'loading'" class="main-card p-action">
-        <text class="text-body text-muted leading-body">帮助内容加载中…</text>
-      </view>
+      <PcStatePanel v-if="status === 'loading'" status="loading" title="帮助内容加载中…" />
 
-      <view
+      <PcStatePanel
         v-else-if="status === 'error'"
-        class="flex flex-col gap-copy rounded-card bg-danger-soft p-action"
-        role="alert"
-      >
-        <text class="text-body text-ink leading-body">帮助内容加载失败，请稍后重试</text>
-        <button
-          class="h-control rounded-control bg-brand-active px-action text-body text-surface font-medium"
-          :class="loading ? 'opacity-50' : ''"
-          :disabled="loading"
-          :aria-disabled="loading"
-          :loading="loading"
-          @click="load"
-        >
-          重新加载
-        </button>
-      </view>
+        status="error"
+        title="帮助内容加载失败"
+        description="请检查网络后重试。"
+        primary-label="重新加载"
+        :primary-disabled="loading"
+        @primary="load"
+      />
 
       <template v-else>
         <view
@@ -81,13 +76,21 @@ onLoad(() => {
           />
         </view>
 
-        <view v-if="categories.length === 0" class="main-card p-action">
-          <text class="text-body text-muted leading-body">帮助内容暂未配置</text>
-        </view>
+        <PcStatePanel
+          v-if="categories.length === 0"
+          status="empty"
+          title="暂无帮助内容"
+          description="有新的使用说明时会显示在这里。"
+        />
 
-        <view v-else-if="filtered.length === 0" class="main-card p-action">
-          <text class="text-body text-muted leading-body">未找到相关问题</text>
-        </view>
+        <PcStatePanel
+          v-else-if="filtered.length === 0"
+          status="empty"
+          title="未找到相关问题"
+          description="可以换个关键词，或清除搜索后查看全部问题。"
+          primary-label="清除搜索"
+          @primary="clearQuery"
+        />
 
         <view v-else class="flex flex-col gap-card">
           <view v-for="category in filtered" :key="category.key" class="main-card p-action">

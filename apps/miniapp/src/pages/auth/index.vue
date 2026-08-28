@@ -1,7 +1,9 @@
 <script setup lang="ts">
 import { ref } from "vue";
+import { getSafeRequestErrorMessage } from "@/api/request";
+import PcButton from "@/components/PcButton.vue";
 import { usePlatformLayout } from "@/components/platform-layout";
-import { miniappDesignTokens } from "@/config/design-tokens";
+import { MINIAPP_TRUSTED_CARE_HERO } from "@/config/brand-assets";
 import { loginInteractively } from "@/state/session";
 
 definePage({
@@ -14,20 +16,6 @@ definePage({
 const { layout } = usePlatformLayout();
 const loginPending = ref(false);
 const loginComplete = ref(false);
-const { colors, radii, sizes, fontSizes, lineHeights } = miniappDesignTokens;
-const loginButtonStyle = [
-  "width: 100%",
-  `height: ${sizes.button}`,
-  "margin: 0",
-  "padding: 0",
-  "border: none",
-  `border-radius: ${radii.control}`,
-  `background: ${colors.brand}`,
-  `color: ${colors.surface}`,
-  `font-size: ${fontSizes.button}`,
-  "font-weight: 500",
-  `line-height: ${lineHeights.button}`,
-].join("; ");
 
 const trustItems = [
   { icon: "/static/auth/check.svg", label: "宠物档案" },
@@ -47,8 +35,11 @@ async function handleLogin(): Promise<void> {
       try {
         await loginInteractively();
         loginComplete.value = true;
-      } catch {
-        await uni.showToast({ title: "登录失败，请稍后重试", icon: "none" });
+      } catch (error) {
+        await uni.showToast({
+          title: getSafeRequestErrorMessage(error, "登录未完成，请重试"),
+          icon: "none",
+        });
 
         return;
       }
@@ -86,7 +77,7 @@ async function handleLogin(): Promise<void> {
     >
       <image
         class="absolute right-hero-bleed top-0 h-full w-hero-image"
-        src="/static/main/community-pet-5.jpg"
+        :src="MINIAPP_TRUSTED_CARE_HERO"
         mode="aspectFill"
       />
 
@@ -144,26 +135,26 @@ async function handleLogin(): Promise<void> {
         </view>
       </view>
 
-      <view class="mt-actions flex flex-col items-center gap-action">
-        <button
-          :aria-disabled="loginPending"
-          :disabled="loginPending"
-          :loading="loginPending"
-          :style="loginPending ? `${loginButtonStyle}; opacity: 0.6` : loginButtonStyle"
-          class="box-border w-full flex items-center justify-center"
-          hover-class="opacity-80"
-          @click="handleLogin"
-        >
-          {{
-            loginPending
-              ? loginComplete
-                ? "进入中…"
-                : "登录中…"
-              : loginComplete
-                ? "进入首页"
-                : "微信一键登录"
-          }}
-        </button>
+      <view class="mt-actions flex flex-col items-center gap-copy">
+        <view class="w-agreement">
+          <PcButton
+            block
+            size="control"
+            :disabled="loginPending"
+            :loading="loginPending"
+            @click="handleLogin"
+          >
+            {{
+              loginPending
+                ? loginComplete
+                  ? "进入中…"
+                  : "登录中…"
+                : loginComplete
+                  ? "进入首页"
+                  : "微信一键登录"
+            }}
+          </PcButton>
+        </view>
 
         <view
           class="w-agreement flex flex-col items-center overflow-hidden whitespace-nowrap text-caption text-muted leading-caption"
@@ -171,7 +162,7 @@ async function handleLogin(): Promise<void> {
           <view class="flex items-center">
             <text>登录即代表你已阅读并同意</text>
             <navigator
-              class="h-control flex items-center text-brand-active"
+              class="flex items-center py-caption text-brand-active"
               url="/pages-content/legal/index?key=terms"
               aria-label="查看服务协议"
               hover-class="opacity-80"
@@ -182,7 +173,7 @@ async function handleLogin(): Promise<void> {
           <view class="flex items-center">
             <text>和</text>
             <navigator
-              class="h-control flex items-center text-brand-active"
+              class="flex items-center py-caption text-brand-active"
               url="/pages-content/legal/index?key=privacy"
               aria-label="查看隐私政策"
               hover-class="opacity-80"

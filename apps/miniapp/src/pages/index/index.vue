@@ -5,6 +5,8 @@ import { CLASSROOM_ARTICLE_CATEGORY_LABELS } from "@petcare/shared-types";
 import { ref } from "vue";
 import { getClassroomArticles } from "@/api/content";
 import MainTabLayout from "@/components/MainTabLayout.vue";
+import PcStatePanel from "@/components/PcStatePanel.vue";
+import { MINIAPP_TRUSTED_CARE_HERO } from "@/config/brand-assets";
 
 definePage({
   style: {
@@ -71,23 +73,15 @@ onShow(() => void loadHomeClassroom());
 <template>
   <MainTabLayout active="home">
     <template #header>
-      <view class="min-w-0 flex items-center justify-between">
-        <view class="min-w-0 flex flex-1 items-center gap-copy">
-          <view
-            class="h-avatar w-avatar flex shrink-0 items-center justify-center rounded-full bg-brand text-body text-surface font-semibold"
-          >
-            宠
-          </view>
-          <view class="min-w-0 flex flex-col">
-            <text class="text-caption text-muted leading-caption">个人开发版</text>
-            <text class="truncate text-card text-ink font-semibold leading-card">PetCare 宠伴</text>
-          </view>
-        </view>
-
+      <view class="min-w-0 flex items-center gap-sm">
         <view
-          class="ml-copy min-w-0 flex shrink items-center gap-caption rounded-pill bg-surface px-copy py-sm shadow-card"
+          class="h-icon-md w-icon-md flex shrink-0 items-center justify-center rounded-full bg-brand text-caption text-surface font-semibold"
         >
-          <text class="truncate text-caption text-muted leading-caption">内容 · 社区 · 档案</text>
+          宠
+        </view>
+        <view class="min-w-0 flex flex-col">
+          <text class="truncate text-card text-ink font-semibold leading-card">PetCare 宠伴</text>
+          <text class="truncate quiet-text">记录每一份陪伴</text>
         </view>
       </view>
     </template>
@@ -97,20 +91,13 @@ onShow(() => void loadHomeClassroom());
         class="relative mx-page-horizontal h-hero-main overflow-hidden rounded-card bg-surface shadow-card"
       >
         <image
-          class="absolute inset-y-0 right-0 h-full w-hero-media"
-          src="/static/main/community-pet-5.jpg"
+          class="absolute inset-0 h-full w-full"
+          :src="MINIAPP_TRUSTED_CARE_HERO"
           mode="aspectFill"
         />
         <view class="absolute left-card-padding top-card w-hero-copy flex flex-col gap-sm">
           <text class="text-amount text-ink font-semibold leading-section">记录宠物日常</text>
           <text class="text-caption text-muted leading-caption"> 管理档案，发现养宠内容 </text>
-          <view
-            class="mt-caption self-start rounded-pill bg-brand px-copy py-compact"
-            hover-class="opacity-80"
-            @click="openPetProfiles"
-          >
-            <text class="text-caption text-surface font-medium leading-caption">管理宠物档案</text>
-          </view>
         </view>
       </view>
 
@@ -192,48 +179,29 @@ onShow(() => void loadHomeClassroom());
       </view>
 
       <view
-        v-if="classroomStatus === 'loading'"
-        class="mx-page-horizontal mt-copy flex flex-col gap-copy"
-        aria-label="课堂文章加载中"
-        aria-live="polite"
+        v-if="classroomStatus !== 'ready' || classroomArticles.length === 0"
+        class="mx-page-horizontal mt-copy"
       >
-        <view
-          v-for="index in HOME_CLASSROOM_PAGE_SIZE"
-          :key="index"
-          class="flex gap-copy main-card p-copy"
-        >
-          <view class="h-card-cover w-card-cover shrink-0 rounded-control bg-divider" />
-          <view class="min-w-0 flex flex-1 flex-col gap-copy py-caption">
-            <view class="h-icon-xs w-indicator rounded-pill bg-divider" />
-            <view class="h-icon-xs w-full rounded-pill bg-divider" />
-            <view class="h-icon-xs w-hero-copy rounded-pill bg-divider" />
-          </view>
-        </view>
-      </view>
-
-      <view
-        v-else-if="classroomStatus === 'error'"
-        class="mx-page-horizontal mt-copy flex flex-col gap-copy rounded-card bg-danger-soft p-action"
-        role="alert"
-      >
-        <text class="text-body text-ink leading-body">课堂文章加载失败，请稍后重试</text>
-        <button
-          class="h-control rounded-control bg-brand-active px-action text-body text-surface font-medium"
-          :class="classroomLoading ? 'opacity-50' : ''"
-          :disabled="classroomLoading"
-          :aria-disabled="classroomLoading"
-          :loading="classroomLoading"
-          @click="loadHomeClassroom"
-        >
-          重新加载
-        </button>
-      </view>
-
-      <view
-        v-else-if="classroomArticles.length === 0"
-        class="mx-page-horizontal mt-copy main-card p-action"
-      >
-        <text class="text-body text-muted leading-body">暂无已发布的课堂文章</text>
+        <PcStatePanel
+          v-if="classroomStatus === 'loading'"
+          status="loading"
+          title="课堂内容加载中…"
+        />
+        <PcStatePanel
+          v-else-if="classroomStatus === 'error'"
+          status="error"
+          title="课堂内容加载失败"
+          description="请检查网络后重试。"
+          primary-label="重新加载"
+          :primary-disabled="classroomLoading"
+          @primary="loadHomeClassroom"
+        />
+        <PcStatePanel
+          v-else-if="classroomArticles.length === 0"
+          status="empty"
+          title="暂无已发布的课堂文章"
+          description="有新的课堂内容时会在这里展示。"
+        />
       </view>
 
       <view v-else class="mx-page-horizontal mt-copy flex flex-col gap-copy">

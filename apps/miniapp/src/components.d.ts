@@ -8,6 +8,8 @@ export {}
 declare module 'vue' {
   export interface GlobalComponents {
     MainTabLayout: typeof import('./components/MainTabLayout.vue')['default']
+    PcButton: typeof import('./components/PcButton.vue')['default']
+    PcStatePanel: typeof import('./components/PcStatePanel.vue')['default']
     SubPageLayout: typeof import('./components/SubPageLayout.vue')['default']
     WdIcon: typeof import('@wot-ui/ui/components/wd-icon/wd-icon.vue')['default']
     WdPopup: typeof import('@wot-ui/ui/components/wd-popup/wd-popup.vue')['default']

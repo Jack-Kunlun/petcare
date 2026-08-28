@@ -223,6 +223,21 @@ describe("miniapp session", () => {
     expect(session.user).toEqual(refreshedSession.user);
   });
 
+  it("does not report a superseded interactive login as successful", async () => {
+    resolveUniLogin();
+    const response = deferred<typeof interactiveSession>();
+
+    loginWithWechatMock.mockReturnValueOnce(response.promise);
+    const pendingLogin = loginInteractively();
+
+    await vi.waitFor(() => expect(loginWithWechatMock).toHaveBeenCalledWith("wechat-code"));
+    clearSession(false);
+    response.resolve(interactiveSession);
+
+    await expect(pendingLogin).rejects.toThrow("登录状态未能生效，请重试");
+    expect(session).toMatchObject({ accessToken: null, refreshToken: null, user: null });
+  });
+
   it("revokes the current refresh token once before clearing the local session", async () => {
     seedStoredSession();
 

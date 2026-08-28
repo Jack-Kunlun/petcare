@@ -1,5 +1,5 @@
 import { beforeEach, describe, expect, it, vi } from "vitest";
-import { rawRequest, rawUpload } from "./request";
+import { getSafeRequestErrorMessage, MiniappApiError, rawRequest, rawUpload } from "./request";
 
 interface RequestCallbacks {
   success?: (response: {
@@ -150,5 +150,41 @@ describe("native Miniapp request boundary", () => {
 
     await pending;
     expect(onProgress).toHaveBeenCalledWith(42);
+  });
+
+  it("keeps native failure details out of page-visible messages", async () => {
+    const pending = rawRequest("/users/me");
+    const options = request.mock.calls.at(-1)?.[0] as {
+      fail?: (error: { errMsg: string }) => void;
+    };
+
+    options.fail?.({ errMsg: "request:fail url not found" });
+
+    await expect(pending).rejects.toMatchObject({
+      statusCode: 0,
+      code: "NETWORK_ERROR",
+      message: "网络请求失败，请检查网络后重试",
+    });
+    expect(getSafeRequestErrorMessage(new Error("request:fail"), "操作失败，请重试")).toBe(
+      "操作失败，请重试",
+    );
+  });
+
+  it("maps known transport and configuration errors without changing their contract", () => {
+    expect(
+      getSafeRequestErrorMessage(
+        new MiniappApiError(0, "NETWORK_ERROR", "request:fail"),
+        "操作失败",
+      ),
+    ).toBe("网络请求失败，请检查网络后重试");
+    expect(
+      getSafeRequestErrorMessage(
+        new MiniappApiError(0, "CONFIG_ERROR", "internal config"),
+        "操作失败",
+      ),
+    ).toBe("服务暂不可用，请稍后重试");
+    expect(
+      getSafeRequestErrorMessage(new MiniappApiError(400, "BAD_INPUT", "请检查输入"), "操作失败"),
+    ).toBe("请检查输入");
   });
 });

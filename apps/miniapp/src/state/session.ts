@@ -302,10 +302,12 @@ export async function bootstrapSession(): Promise<void> {
 export async function loginInteractively(): Promise<void> {
   const revision = ++sessionRevision;
 
-  if (await createWechatSession(revision, true)) {
-    interactiveLoginCommitRevision += 1;
-    session.bootstrapped = true;
+  if (!(await createWechatSession(revision, true))) {
+    throw new Error("登录状态未能生效，请重试");
   }
+
+  interactiveLoginCommitRevision += 1;
+  session.bootstrapped = true;
 }
 
 function authorizationHeaders(

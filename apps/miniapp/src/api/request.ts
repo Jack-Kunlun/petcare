@@ -80,8 +80,25 @@ function unwrapResponse<T>(statusCode: number, value: unknown): T {
   throw new MiniappApiError(statusCode, "INVALID_RESPONSE", "服务器响应格式无效");
 }
 
-function networkError(message: string): MiniappApiError {
-  return new MiniappApiError(0, "NETWORK_ERROR", message || "网络请求失败");
+function networkError(): MiniappApiError {
+  return new MiniappApiError(0, "NETWORK_ERROR", "网络请求失败，请检查网络后重试");
+}
+
+/** Maps transport/configuration failures to text safe for direct page rendering. */
+export function getSafeRequestErrorMessage(error: unknown, fallback: string): string {
+  if (!(error instanceof MiniappApiError)) {
+    return fallback;
+  }
+
+  if (error.code === "NETWORK_ERROR") {
+    return "网络请求失败，请检查网络后重试";
+  }
+
+  if (error.code === "CONFIG_ERROR") {
+    return "服务暂不可用，请稍后重试";
+  }
+
+  return error.message || fallback;
 }
 
 /** Sends an unauthenticated Miniapp API request and unwraps the shared response envelope. */
@@ -97,8 +114,8 @@ export function rawRequest<T>(path: string, options: RawRequestOptions = {}): Pr
           reject(error);
         }
       },
-      fail(error) {
-        reject(networkError(error.errMsg));
+      fail() {
+        reject(networkError());
       },
     });
   });
@@ -125,8 +142,8 @@ export function rawUpload<T>(
           reject(error);
         }
       },
-      fail(error) {
-        reject(networkError(error.errMsg));
+      fail() {
+        reject(networkError());
       },
     });
 

@@ -2,7 +2,7 @@
 import { onShow } from "@dcloudio/uni-app";
 import { NOTIFICATION_CATEGORY, NOTIFICATION_TYPE } from "@petcare/shared-types";
 import type { NotificationCategory, UserNotification } from "@petcare/shared-types";
-import { computed, ref } from "vue";
+import { computed, ref, watch } from "vue";
 import { getMessageTarget } from "./message-route";
 import {
   getNotifications,
@@ -10,6 +10,9 @@ import {
   markNotificationRead,
 } from "@/api/notifications";
 import MainTabLayout from "@/components/MainTabLayout.vue";
+import PcButton from "@/components/PcButton.vue";
+import PcStatePanel from "@/components/PcStatePanel.vue";
+import { captureSessionUserRevision, isSessionUserRevisionCurrent, session } from "@/state/session";
 
 definePage({
   style: {
@@ -29,7 +32,7 @@ const categoryTabs: ReadonlyArray<{
 
 const notifications = ref<UserNotification[]>([]);
 const activeCategory = ref<NotificationCategory>(NOTIFICATION_CATEGORY.INTERACTION);
-const status = ref<"idle" | "loading" | "ready" | "error">("idle");
+const status = ref<"loading" | "ready" | "error" | "unauthenticated">("loading");
 const loading = ref(false);
 const loadMoreError = ref(false);
 const page = ref(1);
@@ -60,11 +63,23 @@ function notificationTime(value: string): string {
   return value.slice(0, 16).replace("T", " ");
 }
 
+function openLogin(): void {
+  uni.navigateTo({ url: "/pages/auth/index" });
+}
+
 function isActionable(item: UserNotification): boolean {
   return Boolean(getMessageTarget(item.category, item.referenceId));
 }
 
 async function loadNotifications(reset = true): Promise<void> {
+  if (!session.user) {
+    notifications.value = [];
+    total.value = 0;
+    status.value = session.bootstrapped ? "unauthenticated" : "loading";
+
+    return;
+  }
+
   if (loading.value) {
     return;
   }
@@ -76,6 +91,8 @@ async function loadNotifications(reset = true): Promise<void> {
     status.value = "loading";
   }
 
+  const startedAt = captureSessionUserRevision();
+
   try {
     const nextPage = reset ? 1 : page.value + 1;
     const response = await getNotifications({
@@ -84,11 +101,27 @@ async function loadNotifications(reset = true): Promise<void> {
       category: activeCategory.value,
     });
 
+    if (!isSessionUserRevisionCurrent(startedAt)) {
+      notifications.value = [];
+      total.value = 0;
+      status.value = "unauthenticated";
+
+      return;
+    }
+
     notifications.value = reset ? response.list : [...notifications.value, ...response.list];
     page.value = response.page;
     total.value = response.total;
     status.value = "ready";
   } catch {
+    if (!isSessionUserRevisionCurrent(startedAt)) {
+      notifications.value = [];
+      total.value = 0;
+      status.value = "unauthenticated";
+
+      return;
+    }
+
     if (reset) {
       notifications.value = [];
       total.value = 0;
@@ -111,7 +144,7 @@ function selectCategory(category: NotificationCategory): void {
 }
 
 async function markAllRead(): Promise<void> {
-  if (markAllDisabled.value) {
+  if (!session.user || markAllDisabled.value) {
     return;
   }
 
@@ -121,6 +154,12 @@ async function markAllRead(): Promise<void> {
     await markAllNotificationsRead();
     notifications.value = notifications.value.map((item) => ({ ...item, isRead: true }));
   } catch {
+    if (!session.user) {
+      status.value = "unauthenticated";
+
+      return;
+    }
+
     uni.showToast({ title: "全部已读失败，请重试", icon: "none" });
   } finally {
     markingAll.value = false;
@@ -128,6 +167,12 @@ async function markAllRead(): Promise<void> {
 }
 
 async function openNotification(item: UserNotification): Promise<void> {
+  if (!session.user) {
+    status.value = "unauthenticated";
+
+    return;
+  }
+
   const target = getMessageTarget(item.category, item.referenceId);
 
   if (!target || openingId.value) {
@@ -146,13 +191,26 @@ async function openNotification(item: UserNotification): Promise<void> {
 
     uni.navigateTo({ url: target });
   } catch {
-    uni.showToast({ title: "消息暂时无法打开", icon: "none" });
+    if (!session.user) {
+      status.value = "unauthenticated";
+    } else {
+      uni.showToast({ title: "消息暂时无法打开", icon: "none" });
+    }
   } finally {
     openingId.value = null;
   }
 }
 
 onShow(() => void loadNotifications());
+
+watch(
+  () => session.bootstrapped,
+  (bootstrapped) => {
+    if (bootstrapped) {
+      void loadNotifications();
+    }
+  },
+);
 </script>
 
 <template>
@@ -160,16 +218,17 @@ onShow(() => void loadNotifications());
     <template #header>
       <view class="flex items-center justify-between">
         <text class="page-heading">消息</text>
-        <button
-          class="min-h-control m-0 bg-transparent p-0 text-caption text-brand leading-caption after:border-none"
-          :class="markAllDisabled ? 'opacity-50' : ''"
-          :disabled="markAllDisabled"
-          :aria-disabled="markAllDisabled"
+        <PcButton
+          v-if="hasUnread"
+          variant="ghost"
+          size="control"
           :loading="markingAll"
+          :disabled="markAllDisabled"
+          aria-label="全部已读"
           @click="markAllRead"
         >
           {{ markingAll ? "处理中" : "全部已读" }}
-        </button>
+        </PcButton>
       </view>
     </template>
 
@@ -197,30 +256,34 @@ onShow(() => void loadNotifications());
         </view>
       </view>
 
-      <view v-if="status === 'loading'" class="mx-page-horizontal mt-card" aria-live="polite">
-        <text class="quiet-text">消息加载中…</text>
-      </view>
-
       <view
-        v-else-if="status === 'error'"
-        class="mx-page-horizontal mt-card flex flex-col gap-copy rounded-control bg-danger-soft p-card-padding"
-        role="alert"
+        v-if="status !== 'ready' || notifications.length === 0"
+        class="mx-page-horizontal mt-card"
       >
-        <text class="text-body text-danger leading-body">消息加载失败，请稍后重试</text>
-        <button
-          class="h-control rounded-control bg-brand-active text-body text-surface font-medium"
-          :disabled="loading"
-          :aria-disabled="loading"
-          @click="loadNotifications()"
-        >
-          重试
-        </button>
-      </view>
-
-      <view v-else-if="notifications.length === 0" class="mx-page-horizontal mt-card main-card">
-        <text class="block p-card-padding text-center text-body text-muted leading-body">
-          暂无消息
-        </text>
+        <PcStatePanel v-if="status === 'loading'" status="loading" title="消息加载中…" />
+        <PcStatePanel
+          v-else-if="status === 'unauthenticated'"
+          status="unauthenticated"
+          title="登录后查看消息"
+          description="登录后可查看与你相关的互动与系统通知。"
+          primary-label="微信登录"
+          @primary="openLogin"
+        />
+        <PcStatePanel
+          v-else-if="status === 'error'"
+          status="error"
+          title="消息加载失败"
+          description="请检查网络后重试，已有消息不会被删除。"
+          primary-label="重新加载"
+          :primary-disabled="loading"
+          @primary="loadNotifications()"
+        />
+        <PcStatePanel
+          v-else-if="notifications.length === 0"
+          status="empty"
+          title="暂无消息"
+          description="新的互动和系统通知会显示在这里。"
+        />
       </view>
 
       <template v-else>
@@ -271,16 +334,17 @@ onShow(() => void loadNotifications());
         <text v-if="loadMoreError" class="mt-copy block text-center text-small text-danger">
           更多消息加载失败
         </text>
-        <button
+        <PcButton
           v-if="hasMore"
-          class="mx-page-horizontal mt-copy h-control border border-divider rounded-control bg-surface text-body text-muted"
+          class="mx-page-horizontal mt-copy"
+          block
+          variant="secondary"
           :disabled="loading || Boolean(openingId)"
-          :aria-disabled="loading || Boolean(openingId)"
           :loading="loading"
           @click="loadNotifications(false)"
         >
           {{ loading ? "加载中" : "加载更多消息" }}
-        </button>
+        </PcButton>
       </template>
     </view>
   </MainTabLayout>

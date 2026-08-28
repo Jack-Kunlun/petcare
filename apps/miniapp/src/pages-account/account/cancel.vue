@@ -8,6 +8,8 @@ import {
 } from "./cancellation";
 import type { CancellationFlowState } from "./cancellation";
 import { cancelAccount, sendCancellationCode } from "@/api/user";
+import PcButton from "@/components/PcButton.vue";
+import PcStatePanel from "@/components/PcStatePanel.vue";
 import SubPageLayout from "@/components/SubPageLayout.vue";
 import { completeCancellation, session } from "@/state/session";
 
@@ -74,6 +76,14 @@ function requestCancellation(): void {
   );
 }
 
+function openLogin(): void {
+  uni.navigateTo({ url: "/pages/auth/index" });
+}
+
+function returnToSettings(): void {
+  uni.redirectTo({ url: "/pages-account/account/settings" });
+}
+
 onUnload(() => {
   active = false;
 
@@ -92,15 +102,22 @@ onUnload(() => {
           账户注销后不可恢复
         </text>
         <text class="text-body text-ink leading-body">所有设备上的登录会话将立即失效。</text>
-        <text class="text-body text-ink leading-body"> 历史业务与必要审计记录会按规则保留。 </text>
-        <text class="text-body text-ink leading-body">
-          受保护的进行中业务记录会阻止注销，请先处理相关记录。
-        </text>
+        <text class="text-body text-ink leading-body">必要的安全与审计记录会按规则保留。</text>
+        <text class="text-body text-ink leading-body"
+          >存在受保护的关联数据时，系统会暂时拒绝注销。</text
+        >
       </view>
 
-      <view v-if="!session.user" class="main-card p-action">
-        <text class="text-body text-danger leading-body">登录状态已失效，请返回后重新登录</text>
-      </view>
+      <PcStatePanel
+        v-if="!session.user"
+        status="unauthenticated"
+        title="登录状态已失效"
+        description="请重新登录后再管理账号。"
+        primary-label="微信登录"
+        secondary-label="返回设置"
+        @primary="openLogin"
+        @secondary="returnToSettings"
+      />
 
       <view v-else class="flex flex-col gap-copy main-card p-action">
         <view v-if="requirement.requiresCode" class="flex flex-col gap-copy">
@@ -119,16 +136,15 @@ onUnload(() => {
               :disabled="busy"
               placeholder="请输入 6 位验证码"
             />
-            <button
-              class="h-control shrink-0 border border-danger rounded-control bg-surface px-copy text-caption text-danger"
-              :class="sendDisabled ? 'opacity-50' : ''"
+            <PcButton
+              class="shrink-0"
+              variant="secondary"
               :disabled="sendDisabled"
-              :aria-disabled="sendDisabled"
               :loading="flow.sending"
               @click="requestCode"
             >
               {{ countdown > 0 ? `${countdown}s 后重试` : flow.sending ? "发送中…" : "获取验证码" }}
-            </button>
+            </PcButton>
           </view>
         </view>
         <text v-else class="text-body text-muted leading-body"> 未绑定手机号，无需短信验证码 </text>
@@ -139,19 +155,17 @@ onUnload(() => {
       </view>
     </view>
 
-    <template #actions>
-      <button
-        class="h-button flex items-center justify-center rounded-control bg-danger"
-        :class="cancelDisabled ? 'opacity-50' : ''"
+    <template v-if="session.user" #actions>
+      <PcButton
+        block
+        size="action"
+        variant="danger"
         :disabled="cancelDisabled"
-        :aria-disabled="cancelDisabled"
         :loading="flow.cancelling"
         @click="requestCancellation"
       >
-        <text class="text-button text-surface font-semibold leading-button">
-          {{ flow.cancelling ? "注销中…" : "永久注销账户" }}
-        </text>
-      </button>
+        {{ flow.cancelling ? "注销中…" : "永久注销账户" }}
+      </PcButton>
     </template>
   </SubPageLayout>
 </template>

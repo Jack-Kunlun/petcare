@@ -22,8 +22,10 @@ describe("profile edit interaction boundary", () => {
 
   it("shows a retryable initial error instead of an empty profile", () => {
     expect(source).toContain('const loadError = ref("")');
-    expect(source).toContain('v-if="loadError && !profile"');
-    expect(source).toContain('@click="loadProfile"');
+    expect(source).toContain("pageStatus === 'error'");
+    expect(source).toContain(':description="loadError ||');
+    expect(source).toContain('@primary="loadProfile"');
+    expect(source).toContain("PcStatePanel");
   });
 
   it("uses a native disabled button for the H5 and App avatar fallback", () => {
@@ -77,8 +79,8 @@ describe("profile edit interaction boundary", () => {
     expect(source).toContain(':disabled="busy !== null"');
     expect(source).toContain(':aria-disabled="busy !== null"');
     expect(source).toContain(':disabled="saveDisabled"');
-    expect(source).toContain(':aria-disabled="saveDisabled"');
-    expect(source).toContain(":aria-busy=\"busy === 'save'\"");
-    expect(source).toContain('saveDisabled.value || busy.value === "save"');
+    expect(source).toContain(":loading=\"busy === 'save'\"");
+    expect(source).toContain("import PcButton");
+    expect(source).toContain("busy.value !== null || !profile.value || !hasProfileChanges.value");
   });
 });

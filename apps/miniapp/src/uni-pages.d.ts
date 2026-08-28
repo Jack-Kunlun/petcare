@@ -14,6 +14,7 @@ type _LocationUrl =
   "/pages-account/pets/detail" |
   "/pages-account/profile/info" |
   "/pages-account/profile/edit" |
+  "/pages-account/account/settings" |
   "/pages-account/account/cancel" |
   "/pages-content/classroom/article" |
   "/pages-content/community/article" |

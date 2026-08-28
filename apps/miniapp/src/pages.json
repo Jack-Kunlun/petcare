@@ -97,6 +97,15 @@
             "navigationBarTextStyle": "black",
             "navigationStyle": "custom"
           }
+        },
+        // #endif
+        // #ifdef H5 || MP-WEIXIN
+        {
+          "path": "account/settings",
+          "style": {
+            "navigationBarTextStyle": "black",
+            "navigationStyle": "custom"
+          }
         }
         // #endif
       ]

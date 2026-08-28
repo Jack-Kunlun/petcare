@@ -2,17 +2,17 @@
 import { onShow } from "@dcloudio/uni-app";
 import { PET_PROFILE_LIMITS } from "@petcare/shared-types";
 import type { MyPetListItem } from "@petcare/shared-types";
-import { computed, ref } from "vue";
+import { computed, ref, watch } from "vue";
 import { getMyPets } from "@/api/pets";
 import { getProfile } from "@/api/user";
 import MainTabLayout from "@/components/MainTabLayout.vue";
+import PcButton from "@/components/PcButton.vue";
+import PcStatePanel from "@/components/PcStatePanel.vue";
 import { formatPetSummary, petCoverImage } from "@/domain/pet-display";
-import { runLogoutFlow } from "@/pages/profile/logout";
 import { getDefaultAvatar } from "@/state/default-avatar";
 import {
   captureSessionUserRevision,
   isSessionUserRevisionCurrent,
-  logout,
   session,
   updateSessionUser,
 } from "@/state/session";
@@ -47,7 +47,6 @@ const supportItems = [
 
 const loadingProfile = ref(false);
 const loadingPets = ref(false);
-const logoutPending = ref(false);
 const profileError = ref("");
 const petError = ref("");
 const pets = ref<MyPetListItem[]>([]);
@@ -72,7 +71,9 @@ async function refreshProfile() {
   try {
     updateSessionUser(await getProfile(), startedAt);
   } catch {
-    profileError.value = "个人资料加载失败";
+    if (isSessionUserRevisionCurrent(startedAt)) {
+      profileError.value = "个人资料加载失败";
+    }
   } finally {
     loadingProfile.value = false;
   }
@@ -81,7 +82,7 @@ async function refreshProfile() {
 async function refreshPets(): Promise<void> {
   if (!session.user) {
     pets.value = [];
-    petStatus.value = "idle";
+    petStatus.value = session.bootstrapped ? "idle" : "loading";
 
     return;
   }
@@ -123,6 +124,16 @@ onShow(() => {
   void refreshPets();
 });
 
+watch(
+  () => session.bootstrapped,
+  (bootstrapped) => {
+    if (bootstrapped) {
+      void refreshProfile();
+      void refreshPets();
+    }
+  },
+);
+
 function openPage(route: string) {
   uni.navigateTo({ url: route });
 }
@@ -140,22 +151,6 @@ function addPet(): void {
     openPage("/pages-account/pets/form");
   }
 }
-
-function openCancellation() {
-  if (logoutPending.value) {
-    return;
-  }
-
-  uni.navigateTo({ url: "/pages-account/account/cancel" });
-}
-
-async function logoutCurrentDevice(): Promise<void> {
-  await runLogoutFlow(logoutPending, {
-    logout,
-    reLaunch: (options) => uni.reLaunch(options),
-    showToast: (options) => uni.showToast(options),
-  });
-}
 </script>
 
 <template>
@@ -163,7 +158,14 @@ async function logoutCurrentDevice(): Promise<void> {
     <template #header>
       <view class="flex items-center justify-between">
         <text class="page-heading">我的</text>
-        <text class="text-amount text-muted leading-card">···</text>
+        <navigator
+          class="h-control w-control flex items-center justify-center rounded-full"
+          url="/pages-account/account/settings"
+          aria-label="设置"
+          hover-class="opacity-80"
+        >
+          <image class="h-icon-sm w-icon-sm" src="/static/main/settings.svg" mode="aspectFit" />
+        </navigator>
       </view>
     </template>
 
@@ -197,21 +199,16 @@ async function logoutCurrentDevice(): Promise<void> {
           <image class="h-icon-sm w-icon-sm" src="/static/main/chevron.svg" mode="aspectFit" />
         </view>
 
-        <view v-else class="flex flex-col items-center gap-sm py-action">
-          <text class="text-body text-muted leading-body">
-            {{
-              !session.bootstrapped || loadingProfile ? "正在加载个人资料…" : "登录后查看个人资料"
-            }}
-          </text>
-          <button
-            v-if="session.bootstrapped"
-            class="m-0 h-control flex items-center justify-center border-0 rounded-control bg-brand px-action"
-            aria-label="微信登录"
-            hover-class="opacity-80"
-            @click="openPage('/pages/auth/index')"
-          >
-            <text class="text-body text-white font-medium leading-label">微信登录</text>
-          </button>
+        <PcStatePanel
+          v-else-if="session.bootstrapped"
+          status="unauthenticated"
+          title="登录后查看个人资料"
+          description="登录后可查看和维护你的个人资料。"
+          primary-label="微信登录"
+          @primary="openPage('/pages/auth/index')"
+        />
+        <view v-else class="py-action text-center" aria-live="polite">
+          <text class="text-body text-muted leading-body">正在加载个人资料…</text>
         </view>
 
         <view
@@ -219,20 +216,21 @@ async function logoutCurrentDevice(): Promise<void> {
           class="mt-copy flex items-center justify-between bg-danger-soft p-sm"
         >
           <text class="text-caption text-danger leading-caption">{{ profileError }}</text>
-          <button
-            class="text-caption text-brand leading-caption"
-            :class="loadingProfile ? 'opacity-50' : ''"
+          <PcButton
+            variant="ghost"
+            size="control"
             :disabled="loadingProfile"
             @click.stop="refreshProfile"
           >
             重试
-          </button>
+          </PcButton>
         </view>
       </view>
 
       <view class="mt-card flex items-center justify-between px-page-horizontal">
         <text class="section-heading">我的宠物</text>
         <view
+          v-if="profile"
           class="flex items-center gap-caption"
           hover-class="opacity-80"
           @click="openPage('/pages-account/pets/index')"
@@ -257,23 +255,36 @@ async function logoutCurrentDevice(): Promise<void> {
           role="alert"
         >
           <text class="text-caption text-danger leading-caption">{{ petError }}</text>
-          <button
-            class="h-control bg-transparent px-copy text-caption text-brand"
-            :class="loadingPets ? 'opacity-50' : ''"
-            :disabled="loadingPets"
-            :aria-disabled="loadingPets"
-            @click="refreshPets"
-          >
-            重试
-          </button>
+          <PcButton variant="ghost" :disabled="loadingPets" @click="refreshPets"> 重试 </PcButton>
         </view>
 
-        <view
-          v-else-if="petStatus === 'idle'"
-          class="flex items-center justify-center main-card p-action"
-        >
-          <text class="text-body text-muted leading-body">登录后管理宠物档案</text>
+        <view v-else-if="petStatus === 'idle'" class="flex items-center gap-copy main-card p-copy">
+          <view class="flex shrink-0 items-center gap-caption">
+            <image
+              class="h-avatar-sm w-avatar-sm rounded-full bg-divider"
+              src="/static/main/profile-cat.png"
+              mode="aspectFill"
+            />
+            <image
+              class="h-avatar-sm w-avatar-sm rounded-full bg-divider"
+              src="/static/main/profile-dog.png"
+              mode="aspectFill"
+            />
+          </view>
+          <view class="min-w-0 flex flex-1 flex-col gap-caption">
+            <text class="card-heading">建立宠物档案</text>
+            <text class="meta-text">登录后可添加和管理宠物资料</text>
+          </view>
         </view>
+
+        <PcStatePanel
+          v-else-if="pets.length === 0"
+          status="empty"
+          title="还没有宠物档案"
+          description="添加档案后，可随时查看和维护宠物资料。"
+          primary-label="添加宠物"
+          @primary="addPet"
+        />
 
         <view v-else class="flex items-stretch gap-sm">
           <view
@@ -336,32 +347,6 @@ async function logoutCurrentDevice(): Promise<void> {
           <image class="h-icon-xs w-icon-xs" src="/static/main/chevron.svg" mode="aspectFit" />
         </navigator>
       </view>
-
-      <button
-        v-if="profile"
-        class="mx-page-horizontal mt-card h-control flex items-center justify-center rounded-control bg-danger-soft"
-        :class="logoutPending ? 'opacity-50' : ''"
-        :aria-disabled="logoutPending"
-        :disabled="logoutPending"
-        :loading="logoutPending"
-        hover-class="opacity-80"
-        @click="logoutCurrentDevice"
-      >
-        <text class="text-body text-danger font-medium leading-label">
-          {{ logoutPending ? "退出中…" : "退出登录" }}
-        </text>
-      </button>
-      <button
-        v-if="profile"
-        class="mx-page-horizontal mt-copy h-control flex items-center justify-center bg-transparent"
-        :class="logoutPending ? 'opacity-50' : ''"
-        :aria-disabled="logoutPending"
-        :disabled="logoutPending"
-        hover-class="opacity-80"
-        @click="openCancellation"
-      >
-        <text class="text-caption text-danger leading-caption">注销账户</text>
-      </button>
     </view>
   </MainTabLayout>
 </template>

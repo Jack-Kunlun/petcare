@@ -11,9 +11,10 @@ describe("published classroom article page", () => {
     expect(article).toContain("v-if=\"status === 'loading'\"");
     expect(article).toContain("v-else-if=\"status === 'unavailable'\"");
     expect(article).toContain("v-else-if=\"status === 'error'\"");
-    expect(article).toContain(':disabled="loading"');
-    expect(article).toContain(':aria-disabled="loading"');
-    expect(article).toContain('@click="load"');
+    expect(article).toContain(':primary-disabled="loading"');
+    expect(article).toContain('@primary="load"');
+    expect(article).toContain('@primary="returnToClassroom"');
+    expect(article).toContain("PcStatePanel");
   });
 
   it("renders only server-provided article content", () => {

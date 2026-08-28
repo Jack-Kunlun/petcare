@@ -18,13 +18,14 @@ describe("published support pages", () => {
     expect(help).toContain("v-else-if=\"status === 'error'\"");
     expect(help).toContain('v-if="categories.length === 0"');
     expect(help).toContain('v-else-if="filtered.length === 0"');
-    expect(help).toContain('class="text-body text-ink leading-body">帮助内容加载失败');
-    expect(help).toContain("bg-brand-active");
+    expect(help).toContain('title="帮助内容加载失败"');
+    expect(help).toContain('primary-label="清除搜索"');
+    expect(help).toContain("PcStatePanel");
   });
 
   it("records the Contact source-wiring contract for validated native action buttons", () => {
     const actionButton = contact.match(
-      /<button\s+v-if="getContactAction\(channel\.href\)\.kind !== 'none'"[\s\S]*?<\/button>/u,
+      /<PcButton\s+v-if="getContactAction\(channel\.href\)\.kind !== 'none'"[\s\S]*?<\/PcButton>/u,
     )?.[0];
 
     expect(contact).toContain("getPublishedContent(WEBSITE_CONTENT_KEY.CONTACT)");
@@ -36,8 +37,9 @@ describe("published support pages", () => {
     expect(actionButton).toContain('@click="activateChannel(channel)"');
     expect(contact.match(/@click="activateChannel\(channel\)"/gu)).toHaveLength(1);
     expect(contact).toContain("text-section text-ink font-semibold");
-    expect(contact).toContain('class="text-body text-ink leading-body">客服信息加载失败');
-    expect(contact).toContain("bg-brand-active");
+    expect(contact).toContain('title="客服信息加载失败"');
+    expect(contact).toContain('title="暂无联系方式"');
+    expect(contact).toContain("PcStatePanel");
     expect(contact).not.toContain("400-888-6288");
     expect(contact).not.toContain("support@petcare.example");
     expect(contact).not.toContain("在线客服");
@@ -53,8 +55,9 @@ describe("published support pages", () => {
     expect(legal).toContain("section.effectiveDate");
     expect(legal).toContain("part.heading");
     expect(legal).toContain("paragraph");
-    expect(legal).toContain("bg-danger-soft");
-    expect(legal).toContain("bg-brand-active");
+    expect(legal).toContain('title="协议内容加载失败"');
+    expect(legal).toContain('title="暂无已发布的协议内容"');
+    expect(legal).toContain("PcStatePanel");
     expect(legal).not.toContain("v-html");
     expect(legal).not.toContain("openPrivacyContract");
   });

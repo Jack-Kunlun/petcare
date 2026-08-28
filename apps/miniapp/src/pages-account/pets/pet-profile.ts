@@ -22,8 +22,19 @@ export interface PetProfileForm {
   tabooFoods: string;
 }
 
+export type PetProfileField =
+  | "name"
+  | "species"
+  | "breed"
+  | "gender"
+  | "birthDate"
+  | "weightKg"
+  | "habits"
+  | "allergies"
+  | "tabooFoods";
+
 export type PetFormValidation =
-  { ok: true; request: CreatePetRequest } | { ok: false; message: string };
+  { ok: true; request: CreatePetRequest } | { ok: false; message: string; field: PetProfileField };
 
 export const PET_SPECIES_OPTIONS = Object.values(PET_SPECIES).map((value) => ({
   value,
@@ -73,26 +84,31 @@ export function validatePetForm(form: PetProfileForm): PetFormValidation {
   const breed = form.breed.trim();
 
   if (!validText(name, PET_PROFILE_LIMITS.NAME_MAX_LENGTH)) {
-    return { ok: false, message: `宠物名字应为 1 至 ${PET_PROFILE_LIMITS.NAME_MAX_LENGTH} 个字符` };
+    return {
+      ok: false,
+      field: "name",
+      message: `宠物名字应为 1 至 ${PET_PROFILE_LIMITS.NAME_MAX_LENGTH} 个字符`,
+    };
   }
 
   if (!form.species || !Object.values(PET_SPECIES).includes(form.species)) {
-    return { ok: false, message: "请选择宠物种类" };
+    return { ok: false, field: "species", message: "请选择宠物种类" };
   }
 
   if (!validText(breed, PET_PROFILE_LIMITS.BREED_MAX_LENGTH)) {
     return {
       ok: false,
+      field: "breed",
       message: `宠物品种应为 1 至 ${PET_PROFILE_LIMITS.BREED_MAX_LENGTH} 个字符`,
     };
   }
 
   if (!form.gender || !Object.values(PET_GENDER).includes(form.gender)) {
-    return { ok: false, message: "请选择宠物性别" };
+    return { ok: false, field: "gender", message: "请选择宠物性别" };
   }
 
   if (form.birthDate && !isValidPetBirthDate(form.birthDate)) {
-    return { ok: false, message: "请选择有效的宠物生日" };
+    return { ok: false, field: "birthDate", message: "请选择有效的宠物生日" };
   }
 
   const weight = parseWeight(form.weightKg);
@@ -100,20 +116,22 @@ export function validatePetForm(form: PetProfileForm): PetFormValidation {
   if (weight === undefined) {
     return {
       ok: false,
+      field: "weightKg",
       message: `体重应为 ${PET_PROFILE_LIMITS.WEIGHT_MIN_KG} 至 ${PET_PROFILE_LIMITS.WEIGHT_MAX_KG} kg，最多两位小数`,
     };
   }
 
-  for (const [value, label] of [
-    [form.habits, "生活习惯"],
-    [form.allergies, "过敏信息"],
-    [form.tabooFoods, "忌口信息"],
+  for (const [value, label, field] of [
+    [form.habits, "生活习惯", "habits"],
+    [form.allergies, "过敏信息", "allergies"],
+    [form.tabooFoods, "忌口信息", "tabooFoods"],
   ] as const) {
     const normalized = value.trim();
 
     if (!validOptionalText(normalized, PET_PROFILE_LIMITS.CARE_TEXT_MAX_LENGTH)) {
       return {
         ok: false,
+        field,
         message: `${label}不能超过 ${PET_PROFILE_LIMITS.CARE_TEXT_MAX_LENGTH} 个字符`,
       };
     }

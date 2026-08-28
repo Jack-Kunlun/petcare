@@ -8,17 +8,16 @@ const form = readFileSync(resolve(import.meta.dirname, "form.vue"), "utf8");
 const profile = readFileSync(resolve(import.meta.dirname, "../../pages/profile/index.vue"), "utf8");
 
 describe("real Miniapp pet pages", () => {
-  it("renders a retryable owner list with empty, unavailable, and deleting states", () => {
+  it("renders a retryable owner list with empty and unavailable states", () => {
     expect(list).toContain("getMyPets");
-    expect(list).toContain("deletePet");
     expect(list).toContain("v-if=\"status === 'loading'\"");
     expect(list).toContain("v-else-if=\"status === 'unavailable'\"");
     expect(list).toContain("v-else-if=\"status === 'error'\"");
     expect(list).toContain("pets.length === 0");
-    expect(list).toContain('@click="loadPets"');
-    expect(list).toContain('@click.stop="removePet(pet)"');
-    expect(list).toContain(':disabled="Boolean(deletingId)"');
-    expect(list).toContain(':aria-disabled="Boolean(deletingId)"');
+    expect(list).toContain('@primary="loadPets"');
+    expect(list).toContain('status="empty"');
+    expect(list).not.toContain("deletePet");
+    expect(list).not.toContain("removePet");
     expect(list).not.toContain("petFixtures");
   });
 
@@ -27,9 +26,10 @@ describe("real Miniapp pet pages", () => {
     expect(detail).toContain("deletePet(value.id)");
     expect(detail).toContain("PET_SPECIES_LABELS[value.species]");
     expect(detail).toContain("pet.photoUrls");
-    expect(detail).toContain('@click="loadPet"');
+    expect(detail).toContain('@primary="loadPet"');
     expect(detail).toContain(':disabled="deleting"');
-    expect(detail).toContain(':aria-disabled="deleting"');
+    expect(detail).toContain(':loading="deleting"');
+    expect(detail).toContain('variant="danger"');
     expect(detail).not.toContain("疫苗已完成");
     expect(detail).not.toContain("getPetById");
   });
@@ -43,8 +43,8 @@ describe("real Miniapp pet pages", () => {
     expect(form).toContain('formMode.value = "edit"');
     expect(form).toMatch(/档案已保存，\$\{failedUploads\} 张图片上传失败/u);
     expect(form).toContain(':disabled="saveDisabled"');
-    expect(form).toContain(':aria-disabled="saveDisabled"');
-    expect(form).toContain(":aria-busy=\"busy === 'save'\"");
+    expect(form).toContain(":loading=\"busy === 'save'\"");
+    expect(form).toContain("PcStatePanel");
     expect(form).not.toContain("静态预览不支持上传");
     expect(form).not.toContain("getPetById");
   });

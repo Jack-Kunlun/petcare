@@ -4,6 +4,7 @@ import type { PublicClassroomArticleDetail } from "@petcare/shared-types";
 import { computed, ref } from "vue";
 import { getClassroomArticle } from "@/api/content";
 import { MiniappApiError } from "@/api/request";
+import PcStatePanel from "@/components/PcStatePanel.vue";
 import SubPageLayout from "@/components/SubPageLayout.vue";
 
 const articleSlug = ref("");
@@ -41,6 +42,10 @@ async function load(): Promise<void> {
   }
 }
 
+function returnToClassroom(): void {
+  uni.redirectTo({ url: "/pages/community/index?tab=classroom" });
+}
+
 onLoad((query = {}) => {
   if (typeof query.id === "string" && query.id) {
     articleSlug.value = query.id;
@@ -56,31 +61,26 @@ onLoad((query = {}) => {
 <template>
   <SubPageLayout title="萌宠课堂">
     <view class="flex flex-col gap-card px-action py-card">
-      <view v-if="status === 'loading'" class="main-card p-action" aria-live="polite">
-        <text class="text-body text-muted leading-body">文章加载中…</text>
-      </view>
+      <PcStatePanel v-if="status === 'loading'" status="loading" title="文章加载中…" />
 
-      <view v-else-if="status === 'unavailable'" class="rounded-card bg-soft p-action" role="alert">
-        <text class="text-body text-ink leading-body">文章已下线或不存在</text>
-      </view>
+      <PcStatePanel
+        v-else-if="status === 'unavailable'"
+        status="unavailable"
+        title="文章已下线或不存在"
+        description="请返回萌宠课堂选择其他文章。"
+        primary-label="返回萌宠课堂"
+        @primary="returnToClassroom"
+      />
 
-      <view
+      <PcStatePanel
         v-else-if="status === 'error'"
-        class="flex flex-col gap-copy rounded-card bg-danger-soft p-action"
-        role="alert"
-      >
-        <text class="text-body text-ink leading-body">文章加载失败，请稍后重试</text>
-        <button
-          class="h-control rounded-control bg-brand-active px-action text-body text-surface font-medium"
-          :class="loading ? 'opacity-50' : ''"
-          :disabled="loading"
-          :aria-disabled="loading"
-          :loading="loading"
-          @click="load"
-        >
-          重新加载
-        </button>
-      </view>
+        status="error"
+        title="文章加载失败"
+        description="请检查网络后重试。"
+        primary-label="重新加载"
+        :primary-disabled="loading"
+        @primary="load"
+      />
 
       <template v-else-if="article">
         <image

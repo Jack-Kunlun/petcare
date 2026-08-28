@@ -2,7 +2,7 @@
 import { onLoad } from "@dcloudio/uni-app";
 import { PET_PROFILE_LIMITS, PET_SPECIES } from "@petcare/shared-types";
 import type { MyPetDetail, PetPhotoAsset } from "@petcare/shared-types";
-import { computed, reactive, ref } from "vue";
+import { computed, reactive, ref, watch } from "vue";
 import { getPetFormMode } from "./pet-form-mode";
 import {
   createEmptyPetForm,
@@ -12,8 +12,11 @@ import {
   serializePetForm,
   validatePetForm,
 } from "./pet-profile";
+import type { PetProfileField } from "./pet-profile";
 import { createPet, deletePetPhoto, getMyPet, updatePet, uploadPetPhoto } from "@/api/pets";
-import { MiniappApiError } from "@/api/request";
+import { getSafeRequestErrorMessage, MiniappApiError } from "@/api/request";
+import PcButton from "@/components/PcButton.vue";
+import PcStatePanel from "@/components/PcStatePanel.vue";
 import SubPageLayout from "@/components/SubPageLayout.vue";
 import { miniappDesignTokens } from "@/config/design-tokens";
 import { petCoverImage } from "@/domain/pet-display";
@@ -47,13 +50,15 @@ const petId = ref("");
 const pet = ref<MyPetDetail | null>(null);
 const form = reactive(createEmptyPetForm());
 const persistedSnapshot = ref("");
-const status = ref<"loading" | "ready" | "error" | "unavailable">("ready");
+const status = ref<"loading" | "ready" | "error" | "unavailable" | "unauthenticated">("ready");
 const busy = ref<"load" | "choose" | "save" | null>(null);
 const deletingAssetId = ref("");
 const draftPhotos = ref<DraftPhoto[]>([]);
 const loadError = ref("");
 const saveError = ref("");
 const photoError = ref("");
+const validationField = ref<PetProfileField | null>(null);
+const validationMessage = ref("");
 const title = computed(() => (formMode.value === "edit" ? "编辑宠物" : "添加宠物"));
 const today = new Date();
 const maximumDate = [
@@ -104,7 +109,22 @@ const existingPhotos = computed(() =>
 );
 
 function errorMessage(error: unknown, fallback: string): string {
-  return error instanceof MiniappApiError ? error.message : fallback;
+  return getSafeRequestErrorMessage(error, fallback);
+}
+
+function openLogin(): void {
+  uni.navigateTo({ url: "/pages/auth/index" });
+}
+
+function returnToPets(): void {
+  uni.redirectTo({ url: "/pages-account/pets/index" });
+}
+
+function clearValidation(field?: PetProfileField): void {
+  if (!field || validationField.value === field) {
+    validationField.value = null;
+    validationMessage.value = "";
+  }
 }
 
 function applyDetail(detail: MyPetDetail): void {
@@ -141,11 +161,16 @@ async function loadPet(): Promise<void> {
       loadError.value = errorMessage(error, "宠物档案加载失败，请稍后重试");
     }
 
-    status.value =
+    if (
       !isSessionUserRevisionCurrent(startedAt) ||
-      (error instanceof MiniappApiError && [401, 403, 404].includes(error.statusCode))
-        ? "unavailable"
-        : "error";
+      (error instanceof MiniappApiError && error.statusCode === 401)
+    ) {
+      status.value = "unauthenticated";
+    } else if (error instanceof MiniappApiError && [403, 404].includes(error.statusCode)) {
+      status.value = "unavailable";
+    } else {
+      status.value = "error";
+    }
   } finally {
     busy.value = null;
   }
@@ -346,10 +371,13 @@ async function save(): Promise<void> {
   const validation = validatePetForm(form);
 
   if (!validation.ok) {
-    await uni.showToast({ title: validation.message, icon: "none" }).catch(() => undefined);
+    validationField.value = validation.field;
+    validationMessage.value = validation.message;
 
     return;
   }
+
+  clearValidation();
 
   busy.value = "save";
   saveError.value = "";
@@ -409,14 +437,12 @@ async function save(): Promise<void> {
   }
 }
 
-onLoad((query = {}) => {
+function initializeForm(): void {
   if (!session.user) {
-    status.value = "unavailable";
+    status.value = session.bootstrapped ? "unauthenticated" : "loading";
 
     return;
   }
-
-  formMode.value = getPetFormMode(query);
 
   if (formMode.value === "add") {
     persistedSnapshot.value = serializePetForm(form);
@@ -425,8 +451,6 @@ onLoad((query = {}) => {
     return;
   }
 
-  petId.value = typeof query.id === "string" ? query.id : "";
-
   if (!petId.value) {
     status.value = "unavailable";
 
@@ -434,41 +458,56 @@ onLoad((query = {}) => {
   }
 
   void loadPet();
+}
+
+onLoad((query = {}) => {
+  formMode.value = getPetFormMode(query);
+  petId.value = typeof query.id === "string" ? query.id : "";
+  initializeForm();
 });
+
+watch(
+  () => session.bootstrapped,
+  (bootstrapped) => {
+    if (bootstrapped && status.value !== "ready") {
+      initializeForm();
+    }
+  },
+);
 </script>
 
 <template>
   <SubPageLayout :title="title">
     <view class="flex flex-col gap-card px-action py-card">
-      <view v-if="status === 'loading'" class="main-card p-action" aria-live="polite">
-        <text class="text-body text-muted leading-body">宠物档案加载中…</text>
-      </view>
+      <PcStatePanel v-if="status === 'loading'" status="loading" title="宠物档案加载中…" />
 
-      <view
+      <PcStatePanel
+        v-else-if="status === 'unauthenticated'"
+        status="unauthenticated"
+        title="登录后管理宠物档案"
+        description="登录后可添加或编辑自己的宠物资料。"
+        primary-label="微信登录"
+        @primary="openLogin"
+      />
+
+      <PcStatePanel
         v-else-if="status === 'unavailable'"
-        class="flex flex-col items-center gap-copy border border-border rounded-card bg-surface p-card"
-        role="alert"
-      >
-        <text class="text-body text-ink leading-body">宠物档案不存在或当前不可编辑</text>
-      </view>
+        status="unavailable"
+        title="宠物档案不存在或当前不可编辑"
+        description="请返回我的宠物后重新选择一个档案。"
+        primary-label="返回我的宠物"
+        @primary="returnToPets"
+      />
 
-      <view
+      <PcStatePanel
         v-else-if="status === 'error'"
-        class="flex flex-col items-center gap-copy rounded-card bg-danger-soft p-card"
-        role="alert"
-      >
-        <text class="text-body text-ink leading-body">{{ loadError }}</text>
-        <button
-          class="h-control rounded-control bg-brand px-action text-body text-surface"
-          :class="busy === 'load' ? 'opacity-50' : ''"
-          :disabled="busy === 'load'"
-          :aria-disabled="busy === 'load'"
-          :loading="busy === 'load'"
-          @click="loadPet"
-        >
-          重新加载
-        </button>
-      </view>
+        status="error"
+        title="宠物档案加载失败"
+        :description="loadError || '请检查网络后重试。'"
+        primary-label="重新加载"
+        :primary-disabled="busy === 'load'"
+        @primary="loadPet"
+      />
 
       <template v-else>
         <view class="flex flex-col items-center gap-sm main-card p-action">
@@ -477,15 +516,14 @@ onLoad((query = {}) => {
             :src="coverImage"
             mode="aspectFill"
           />
-          <button
-            class="h-control rounded-control bg-soft px-action text-body text-brand"
-            :class="canChoosePhotos ? '' : 'opacity-50'"
+          <PcButton
+            variant="secondary"
             :disabled="!canChoosePhotos"
-            :aria-disabled="!canChoosePhotos"
+            :loading="busy === 'choose'"
             @click="choosePhotos"
           >
             {{ busy === "choose" ? "选择中…" : "选择宠物图片" }}
-          </button>
+          </PcButton>
           <text class="text-center quiet-text">
             {{ photoCount }}/{{ PET_PROFILE_LIMITS.MAX_PHOTOS_PER_PET }} 张；支持
             JPEG、PNG、WebP，单张不超过 10 MiB
@@ -508,18 +546,18 @@ onLoad((query = {}) => {
                 :src="photo.url"
                 mode="aspectFill"
               />
-              <button
+              <PcButton
                 v-if="photo.asset"
-                class="mt-sm h-control w-full rounded-control bg-danger-soft text-caption text-danger"
-                :class="controlsDisabled ? 'opacity-50' : ''"
+                class="mt-sm"
+                block
+                variant="danger"
                 :disabled="controlsDisabled"
-                :aria-disabled="controlsDisabled"
                 :loading="deletingAssetId === photo.asset.id"
                 :aria-label="`删除第 ${index + 1} 张宠物图片`"
                 @click="removeExistingPhoto(photo.asset)"
               >
                 {{ deletingAssetId === photo.asset.id ? "删除中…" : "删除" }}
-              </button>
+              </PcButton>
               <text v-else class="mt-sm block text-center quiet-text">历史图片</text>
             </view>
 
@@ -543,16 +581,16 @@ onLoad((query = {}) => {
                   </text>
                 </view>
               </view>
-              <button
-                class="mt-sm h-control w-full rounded-control bg-divider text-caption text-muted"
-                :class="controlsDisabled ? 'opacity-50' : ''"
+              <PcButton
+                class="mt-sm"
+                block
+                variant="secondary"
                 :disabled="controlsDisabled"
-                :aria-disabled="controlsDisabled"
                 :aria-label="`移除待上传的第 ${index + 1} 张图片`"
                 @click="removeDraftPhoto(photo)"
               >
                 移除
-              </button>
+              </PcButton>
             </view>
           </view>
           <text v-if="photoError" class="mt-copy block text-caption text-danger" role="alert">
@@ -573,7 +611,15 @@ onLoad((query = {}) => {
                 :disabled="controlsDisabled"
                 aria-label="宠物名字"
                 placeholder="请输入宠物名字"
+                @input="clearValidation('name')"
               />
+              <text
+                v-if="validationField === 'name'"
+                class="mt-caption block text-caption text-danger leading-caption"
+                role="alert"
+              >
+                {{ validationMessage }}
+              </text>
             </label>
 
             <view>
@@ -596,6 +642,13 @@ onLoad((query = {}) => {
                   />
                 </view>
               </picker>
+              <text
+                v-if="validationField === 'species'"
+                class="mt-caption block text-caption text-danger leading-caption"
+                role="alert"
+              >
+                {{ validationMessage }}
+              </text>
             </view>
 
             <label>
@@ -608,7 +661,15 @@ onLoad((query = {}) => {
                 :disabled="controlsDisabled"
                 aria-label="宠物品种"
                 placeholder="例如：英国短毛猫"
+                @input="clearValidation('breed')"
               />
+              <text
+                v-if="validationField === 'breed'"
+                class="mt-caption block text-caption text-danger leading-caption"
+                role="alert"
+              >
+                {{ validationMessage }}
+              </text>
             </label>
 
             <view>
@@ -631,6 +692,13 @@ onLoad((query = {}) => {
                   />
                 </view>
               </picker>
+              <text
+                v-if="validationField === 'gender'"
+                class="mt-caption block text-caption text-danger leading-caption"
+                role="alert"
+              >
+                {{ validationMessage }}
+              </text>
             </view>
 
             <view>
@@ -658,16 +726,21 @@ onLoad((query = {}) => {
                     />
                   </view>
                 </picker>
-                <button
-                  class="h-control rounded-control bg-divider px-copy text-caption text-muted"
-                  :class="!form.birthDate || controlsDisabled ? 'opacity-50' : ''"
+                <PcButton
+                  variant="ghost"
                   :disabled="!form.birthDate || controlsDisabled"
-                  :aria-disabled="!form.birthDate || controlsDisabled"
                   @click="clearBirthDate"
                 >
                   清除
-                </button>
+                </PcButton>
               </view>
+              <text
+                v-if="validationField === 'birthDate'"
+                class="mt-caption block text-caption text-danger leading-caption"
+                role="alert"
+              >
+                {{ validationMessage }}
+              </text>
             </view>
 
             <label>
@@ -679,7 +752,15 @@ onLoad((query = {}) => {
                 :disabled="controlsDisabled"
                 aria-label="宠物体重"
                 placeholder="0.1 至 200，最多两位小数"
+                @input="clearValidation('weightKg')"
               />
+              <text
+                v-if="validationField === 'weightKg'"
+                class="mt-caption block text-caption text-danger leading-caption"
+                role="alert"
+              >
+                {{ validationMessage }}
+              </text>
             </label>
 
             <view class="h-control flex items-center justify-between">
@@ -711,7 +792,15 @@ onLoad((query = {}) => {
                 :disabled="controlsDisabled"
                 :aria-label="field.label"
                 placeholder="选填，最多 200 字"
+                @input="clearValidation(field.key)"
               />
+              <text
+                v-if="validationField === field.key"
+                class="mt-caption block text-caption text-danger leading-caption"
+                role="alert"
+              >
+                {{ validationMessage }}
+              </text>
             </label>
           </view>
         </view>
@@ -722,18 +811,16 @@ onLoad((query = {}) => {
       </template>
     </view>
 
-    <template #actions>
-      <button
-        class="h-button w-full flex items-center justify-center rounded-control text-button font-semibold"
-        :class="saveDisabled ? 'bg-brand-disabled text-disabled' : 'bg-brand text-surface'"
+    <template v-if="status === 'ready'" #actions>
+      <PcButton
+        block
+        size="action"
         :disabled="saveDisabled"
-        :aria-disabled="saveDisabled"
         :loading="busy === 'save'"
-        :aria-busy="busy === 'save'"
         @click="save"
       >
         {{ busy === "save" ? "保存中…" : formMode === "edit" ? "保存修改" : "完成添加" }}
-      </button>
+      </PcButton>
     </template>
   </SubPageLayout>
 </template>

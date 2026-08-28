@@ -130,7 +130,7 @@ describe("cancellation code flow", () => {
     });
 
     expect(startCountdown).not.toHaveBeenCalled();
-    expect(state.errorMessage).toBe("存在受保护的进行中业务记录，处理完成后才能注销");
+    expect(state.errorMessage).toBe("存在受保护的关联数据，请处理后再注销");
   });
 
   it("ignores a pending code result after the page unloads", async () => {
@@ -428,7 +428,7 @@ describe("account cancellation flow", () => {
     expect(deps.completeCancellation).not.toHaveBeenCalled();
     expect(deps.showToast).not.toHaveBeenCalled();
     expect(deps.reLaunch).not.toHaveBeenCalled();
-    expect(state.errorMessage).toBe("存在受保护的进行中业务记录，处理完成后才能注销");
+    expect(state.errorMessage).toBe("存在受保护的关联数据，请处理后再注销");
   });
 
   it.each([
