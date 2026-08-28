@@ -152,7 +152,8 @@ test("本人宠物档案在隔离环境完成管理、权限与图片清理闭�
   const otherAuthorization = `Bearer ${requiredEnv("PET_E2E_OTHER_OWNER_TOKEN")}`;
   const originalName = `团团${Date.now().toString().slice(-4)}`;
   const updatedName = `圆圆${Date.now().toString().slice(-4)}`;
-  const updatedHabits = "每天早晚散步，怕突然的响声";
+  const initialNotes = "喜欢散步；不能吃鸡肉和葡萄";
+  const updatedNotes = "每天早晚散步，怕突然的响声";
   const input: CreatePetRequest = {
     name: originalName,
     species: PET_SPECIES.DOG,
@@ -161,7 +162,7 @@ test("本人宠物档案在隔离环境完成管理、权限与图片清理闭�
     birthDate: "2023-05-12",
     weightKg: 10.6,
     sterilized: true,
-    notes: "喜欢散步；不能吃鸡肉和葡萄",
+    notes: initialNotes,
   };
 
   await expectFailure(await page.request.get("/api/pets"), 401, "AUTH_SESSION_EXPIRED");
@@ -253,18 +254,18 @@ test("本人宠物档案在隔离环境完成管理、权限与图片清理闭�
     );
     await expect(miniappPage.getByText(originalName, { exact: true })).toBeVisible();
     await expect(miniappPage.getByText("2 张", { exact: true })).toBeVisible();
-    await expect(miniappPage.getByText("鸡肉", { exact: true })).toBeVisible();
+    await expect(miniappPage.getByText(initialNotes, { exact: true })).toBeVisible();
     await miniappPage.getByText("编辑档案", { exact: true }).click();
     await expect(miniappPage).toHaveURL(
       new RegExp(`/pages-account/pets/form[?]mode=edit&id=${created.id}$`, "u"),
     );
     await miniappPage.getByLabel("宠物名字").locator("input").fill(updatedName);
-    await miniappPage.getByLabel("宠物备注").locator("textarea").fill(updatedHabits);
+    await miniappPage.getByLabel("宠物备注").locator("textarea").fill(updatedNotes);
     await miniappPage.getByText("保存修改", { exact: true }).click();
     await expect(miniappPage.getByText(updatedName, { exact: true })).toBeVisible();
-    await expect(miniappPage.getByText(updatedHabits, { exact: true })).toBeVisible();
+    await expect(miniappPage.getByText(updatedNotes, { exact: true })).toBeVisible();
 
-    const repeatedInput: CreatePetRequest = { ...input, name: updatedName, notes: updatedHabits };
+    const repeatedInput: CreatePetRequest = { ...input, name: updatedName, notes: updatedNotes };
     const firstRepeatedUpdate = await responseData<MyPetDetail>(
       await page.request.put(`/api/pets/${created.id}`, {
         headers: { Authorization: ownerAuthorization },
