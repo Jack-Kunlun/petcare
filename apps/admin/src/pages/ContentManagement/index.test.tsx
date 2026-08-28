@@ -12,6 +12,7 @@ describe("ContentManagement", () => {
     );
 
     expect(screen.getByRole("heading", { name: "内容概览" })).toBeInTheDocument();
+    expect(screen.getByText("2 个已启用模块")).toBeInTheDocument();
     expect(screen.getByRole("link", { name: "管理社区帖子" })).toHaveAttribute(
       "href",
       "/content/posts",
@@ -22,5 +23,6 @@ describe("ContentManagement", () => {
     );
     expect(screen.queryByText("悬赏管理")).not.toBeInTheDocument();
     expect(screen.queryByText(/履约状态/)).not.toBeInTheDocument();
+    expect(screen.queryByText(/个人版|仅当前内容域/)).not.toBeInTheDocument();
   });
 });

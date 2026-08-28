@@ -65,7 +65,7 @@ describe("Login", () => {
   it("describes only the current personal administration scope", () => {
     renderLogin();
 
-    expect(screen.getByRole("heading", { name: "管理真实可用的当前能力" })).toBeInTheDocument();
+    expect(screen.getByRole("heading", { name: "管理当前已启用的能力" })).toBeInTheDocument();
     expect(screen.getByText("用户资料")).toBeInTheDocument();
     expect(screen.getByText("内容治理")).toBeInTheDocument();
     expect(screen.getByText("权限管理")).toBeInTheDocument();
@@ -170,11 +170,12 @@ describe("Login", () => {
     expect(background).toHaveAttribute("src", loginBackgroundUrl);
     expect(background).toHaveAttribute("aria-hidden", "true");
     expect(background).toHaveClass("pointer-events-none", "absolute", "inset-0", "object-cover");
-    expect(screen.getByTestId("login-card")).toHaveClass("min-h-[520px]", "md:h-[662px]");
+    expect(screen.getByTestId("login-card")).toHaveClass("md:min-h-[600px]");
+    expect(screen.getByTestId("login-card")).not.toHaveClass("md:h-[662px]");
     expect(screen.getByTestId("login-form")).toHaveClass("flex-1");
     expect(screen.getByTestId("login-welcome-label")).toHaveClass("text-text-secondary");
     expect(screen.getByTestId("login-form-panels")).toHaveClass("min-h-[284px]");
-    expect(screen.queryByText("PetCare 管理后台")).not.toBeInTheDocument();
+    expect(screen.getAllByRole("img", { name: "PetCare 管理后台" })).toHaveLength(2);
 
     await user.click(screen.getAllByRole("tab")[1]);
 

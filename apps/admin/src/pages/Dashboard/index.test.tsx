@@ -12,6 +12,7 @@ describe("Dashboard", () => {
     );
 
     expect(screen.getByRole("heading", { name: "管理概览" })).toBeInTheDocument();
+    expect(screen.getByText("5 个已启用模块")).toBeInTheDocument();
     expect(screen.getByRole("link", { name: "查看用户资料" })).toHaveAttribute("href", "/users");
     expect(screen.getByRole("link", { name: "进入社区审核" })).toHaveAttribute(
       "href",
@@ -32,6 +33,7 @@ describe("Dashboard", () => {
     expect(screen.queryByText("今日订单")).not.toBeInTheDocument();
     expect(screen.queryByText("本月成交额")).not.toBeInTheDocument();
     expect(screen.queryByText("待审核宠托师")).not.toBeInTheDocument();
+    expect(screen.queryByText(/本地个人版|可本地验证|当前范围已收窄/)).not.toBeInTheDocument();
   });
 
   it("applies keyboard and pointer states to dashboard actions", () => {
@@ -46,5 +48,18 @@ describe("Dashboard", () => {
     expect(action.className).toContain("hover:");
     expect(action.className).toContain("active:");
     expect(action.className).toContain("focus-visible:");
+  });
+
+  it("delays the five-column layout until the widest desktop breakpoint", () => {
+    render(
+      <MemoryRouter>
+        <Dashboard />
+      </MemoryRouter>,
+    );
+
+    expect(screen.getByRole("region", { name: "当前管理能力" })).toHaveClass(
+      "xl:grid-cols-3",
+      "2xl:grid-cols-5",
+    );
   });
 });

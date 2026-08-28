@@ -57,7 +57,9 @@ describe("Header", () => {
     expect(screen.getByText("系统管理员")).toBeInTheDocument();
     expect(screen.getByText("PetCare 管理后台")).toBeInTheDocument();
     expect(screen.queryByRole("button", { name: /通知/ })).not.toBeInTheDocument();
-    await user.click(screen.getByRole("button", { name: "退出登录" }));
+    expect(screen.queryByRole("button", { name: "退出登录" })).not.toBeInTheDocument();
+    await user.click(screen.getByRole("button", { name: "账户菜单" }));
+    await user.click(screen.getByRole("menuitem", { name: "退出登录" }));
 
     expect(logout).toHaveBeenCalledTimes(1);
     expect(await screen.findByText("/login")).toBeInTheDocument();
@@ -104,14 +106,12 @@ describe("Header", () => {
       </MemoryRouter>,
     );
 
-    for (const name of ["打开导航", "退出登录"]) {
-      const control = screen.getByRole("button", { name });
+    const menuControl = screen.getByRole("button", { name: "打开导航" });
 
-      expect(control).toHaveClass("h-11", "w-11", "cursor-pointer");
-      expect(control.className).toContain("hover:");
-      expect(control.className).toContain("active:");
-      expect(control.className).toContain("focus-visible:");
-    }
+    expect(menuControl).toHaveClass("h-11", "w-11", "cursor-pointer");
+    expect(menuControl.className).toContain("hover:");
+    expect(menuControl.className).toContain("active:");
+    expect(menuControl.className).toContain("focus-visible:");
 
     const userInfo = screen.getByRole("button", { name: "账户菜单" });
 
@@ -119,6 +119,7 @@ describe("Header", () => {
     expect(userInfo.className).toContain("hover:");
     expect(userInfo.className).toContain("active:");
     expect(userInfo.className).toContain("focus-visible:");
+    expect(screen.queryByRole("button", { name: "退出登录" })).not.toBeInTheDocument();
   });
 
   it("opens an accessible account menu with profile and password navigation", async () => {

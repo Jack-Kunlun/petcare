@@ -1,5 +1,6 @@
 import type { CaptchaChallenge } from "@petcare/shared-types";
 import * as Dialog from "@radix-ui/react-dialog";
+import { Button, Input } from "../../components/ui";
 
 interface CaptchaDialogProps {
   open: boolean;
@@ -39,34 +40,34 @@ export function CaptchaDialog({
   return (
     <Dialog.Root open={open} onOpenChange={onOpenChange}>
       <Dialog.Portal>
-        <Dialog.Overlay className="fixed inset-0 z-40 bg-slate-950/45" />
-        <Dialog.Content className="fixed left-1/2 top-1/2 z-50 w-[calc(100vw-32px)] max-w-[448px] -translate-x-1/2 -translate-y-1/2 rounded-xl bg-white p-6 shadow-2xl outline-none focus-visible:ring-2 focus-visible:ring-brand-primary">
-          <Dialog.Title className="text-lg font-semibold text-slate-950">
+        <Dialog.Overlay className="fixed inset-0 z-40 bg-slate-950/45 backdrop-blur-[1px]" />
+        <Dialog.Content className="fixed left-1/2 top-1/2 z-50 w-[calc(100vw-32px)] max-w-[448px] -translate-x-1/2 -translate-y-1/2 rounded-xl border border-border bg-surface p-6 shadow-float outline-none focus-visible:ring-2 focus-visible:ring-brand-primary">
+          <Dialog.Title className="text-lg font-semibold text-text-primary">
             发送短信验证码
           </Dialog.Title>
-          <Dialog.Description className="mt-1 text-sm text-slate-600">
+          <Dialog.Description className="mt-1 text-sm text-text-secondary">
             输入图形验证码后再发送短信。
           </Dialog.Description>
 
-          <label className="mt-5 block text-sm font-medium text-slate-700">
+          <label className="mt-5 block text-sm font-medium text-text-primary">
             图形验证码
-            <input
+            <Input
               inputMode="numeric"
               maxLength={4}
               autoComplete="off"
               disabled={sending || loading || challenge === null}
               value={code}
               onChange={(event) => onCodeChange(event.target.value)}
-              className="mt-2 h-11 w-full rounded-lg border border-slate-300 px-3 outline-none focus-visible:border-brand-primary focus-visible:ring-2 focus-visible:ring-brand-primary/20 disabled:cursor-not-allowed disabled:bg-slate-100"
+              className="mt-2 h-11"
             />
           </label>
 
-          <button
-            type="button"
+          <Button
             aria-label={captchaButtonLabel}
+            className="mt-3 h-14 w-full overflow-hidden p-0"
             disabled={loading || sending || (!challenge && !loadError)}
+            intent="secondary"
             onClick={onRefresh}
-            className="mt-3 h-14 w-full cursor-pointer rounded-lg border border-slate-300 disabled:cursor-not-allowed disabled:opacity-70"
           >
             {challenge ? (
               <img
@@ -78,26 +79,22 @@ export function CaptchaDialog({
             ) : null}
             {!challenge && loadError ? "加载失败，点击重试" : null}
             {!challenge && !loadError ? "正在加载…" : null}
-          </button>
+          </Button>
 
           <div className="mt-5 flex justify-end gap-2">
             <Dialog.Close asChild>
-              <button
-                type="button"
-                disabled={sending}
-                className="min-h-11 cursor-pointer rounded-lg border border-slate-300 px-4 text-slate-800 outline-none transition-colors duration-150 hover:bg-slate-50 focus-visible:ring-2 focus-visible:ring-brand-primary disabled:cursor-not-allowed disabled:opacity-50"
-              >
+              <Button disabled={sending} intent="secondary" size="lg">
                 取消
-              </button>
+              </Button>
             </Dialog.Close>
-            <button
-              type="button"
+            <Button
               disabled={sending || !canConfirm}
+              loading={sending}
               onClick={onConfirm}
-              className="min-h-11 cursor-pointer rounded-lg bg-brand-primary px-4 text-white outline-none transition-colors duration-150 hover:bg-brand-primary-hover focus-visible:ring-2 focus-visible:ring-brand-primary focus-visible:ring-offset-2 disabled:cursor-not-allowed disabled:bg-slate-400"
+              size="lg"
             >
               {sending ? "发送中…" : "确认发送"}
-            </button>
+            </Button>
           </div>
         </Dialog.Content>
       </Dialog.Portal>

@@ -37,8 +37,9 @@ describe("Sidebar", () => {
     );
     expect(screen.getByRole("img", { name: "PetCare 管理后台" })).toHaveClass("h-10", "w-10");
     expect(screen.getByText("PetCare")).toBeInTheDocument();
-    expect(screen.getByText("个人版管理后台")).toBeInTheDocument();
-    expect(screen.getByText("本地管理功能可用")).toBeInTheDocument();
+    expect(screen.getByText("内容与账户管理")).toBeInTheDocument();
+    expect(screen.getByText("仅显示当前可用的管理入口")).toBeInTheDocument();
+    expect(screen.queryByText("本地管理功能可用")).not.toBeInTheDocument();
   });
 
   it("renders current content routes as one expandable navigation tree", () => {
@@ -55,8 +56,8 @@ describe("Sidebar", () => {
     expect(getNavigationHrefs(desktopTree)).toEqual(
       expect.arrayContaining(["/", "/content", "/content/posts", "/content/articles"]),
     );
-    expect(tree.getByRole("button", { name: "内容管理菜单" })).toHaveClass("bg-blue-600/40");
-    expect(tree.getByRole("link", { name: "帖子管理" })).toHaveClass("bg-blue-600");
+    expect(tree.getByRole("button", { name: "内容管理菜单" })).toHaveClass("bg-brand-primary/20");
+    expect(tree.getByRole("link", { name: "帖子管理" })).toHaveClass("bg-brand-primary");
     expect(tree.getByRole("link", { name: "帖子管理" })).toHaveAttribute("aria-current", "page");
   });
 
@@ -74,7 +75,7 @@ describe("Sidebar", () => {
     expect(toggle).toHaveAttribute("aria-expanded", "true");
     expect(toggle).toHaveClass("cursor-pointer");
     expect(toggle.className).toContain("focus-visible:");
-    expect(tree.getByRole("link", { name: "内容概览" })).toHaveClass("bg-blue-600");
+    expect(tree.getByRole("link", { name: "内容概览" })).toHaveClass("bg-brand-primary");
     expect(tree.getByRole("link", { name: "帖子管理" })).toBeInTheDocument();
 
     fireEvent.click(toggle);

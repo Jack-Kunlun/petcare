@@ -4,6 +4,7 @@ import { Navigate, useLocation, useNavigate } from "react-router-dom";
 import loginBackgroundUrl from "../../assets/brand/petcare-background-soft.svg";
 import { useAuth } from "../../auth/auth.context";
 import { BrandLogo } from "../../components/BrandLogo";
+import { Button, Input } from "../../components/ui";
 import { showApiError } from "../../lib/global-error";
 import { CaptchaDialog } from "./CaptchaDialog";
 
@@ -78,7 +79,11 @@ export default function Login() {
   }
 
   if (auth.status === "loading") {
-    return <div className="min-h-screen grid place-items-center">正在恢复登录状态…</div>;
+    return (
+      <div className="grid min-h-screen place-items-center bg-page-background text-text-secondary">
+        正在恢复登录状态…
+      </div>
+    );
   }
 
   async function handleSubmit(event: FormEvent<HTMLFormElement>) {
@@ -168,11 +173,8 @@ export default function Login() {
     }
   }
 
-  const inputClassName =
-    "h-12 w-full rounded-lg border border-border bg-white px-3 text-text-primary outline-none transition duration-150 ease-out placeholder:text-text-secondary hover:border-brand-primary/60 focus-visible:border-brand-primary focus-visible:ring-2 focus-visible:ring-brand-primary/20 disabled:cursor-not-allowed disabled:bg-slate-100 disabled:text-text-secondary";
-
   return (
-    <main className="relative isolate grid min-h-screen place-items-center overflow-x-hidden bg-linear-to-br from-page-background via-white to-blue-50 p-4 sm:p-6">
+    <main className="relative isolate grid min-h-screen place-items-center overflow-x-hidden bg-linear-to-br from-page-background via-surface to-brand-soft/50 p-4 sm:p-6">
       <img
         src={loginBackgroundUrl}
         alt=""
@@ -187,9 +189,9 @@ export default function Login() {
 
       <section
         data-testid="login-card"
-        className="relative z-10 grid min-h-[520px] w-full max-w-[896px] overflow-hidden rounded-2xl border border-border bg-white shadow-xl md:h-[662px] md:grid-cols-[minmax(280px,0.9fr)_minmax(320px,1.1fr)]"
+        className="relative z-10 grid w-full max-w-[896px] overflow-hidden rounded-2xl border border-border bg-surface shadow-float md:min-h-[600px] md:grid-cols-[minmax(280px,0.9fr)_minmax(320px,1.1fr)]"
       >
-        <aside className="relative flex min-h-72 flex-col justify-between overflow-hidden bg-linear-to-br from-brand-primary via-brand-primary-hover to-slate-950 p-6 text-white sm:p-8 md:min-h-[520px]">
+        <aside className="relative hidden flex-col justify-between overflow-hidden bg-linear-to-br from-brand-primary via-brand-primary-hover to-slate-950 p-8 text-white md:flex md:min-h-[600px]">
           <div aria-hidden="true" className="pointer-events-none absolute inset-0 opacity-40">
             <span className="absolute -right-16 -top-20 h-64 w-64 rounded-full border border-white/20" />
             <span className="absolute -right-8 -top-12 h-48 w-48 rounded-full border border-white/15" />
@@ -205,7 +207,7 @@ export default function Login() {
           </div>
           <div className="relative z-10 mt-10 animate-[pc-page-enter_220ms_ease-out_both] motion-reduce:animate-none">
             <h1 className="max-w-[320px] text-3xl font-bold leading-tight tracking-tight">
-              管理真实可用的当前能力
+              管理当前已启用的能力
             </h1>
             <p className="mt-4 max-w-[384px] text-sm leading-6 text-white/80">
               安全登录后，继续管理用户资料、养宠内容与社区互动。
@@ -224,7 +226,12 @@ export default function Login() {
           </div>
         </aside>
 
-        <div className="flex h-[662px] flex-col bg-white p-6 sm:p-8 md:p-10">
+        <div className="flex min-h-[600px] flex-col bg-surface p-6 sm:p-8 md:p-10">
+          <BrandLogo
+            className="mb-6 h-12 w-auto self-start md:hidden"
+            label="PetCare 管理后台"
+            variant="color"
+          />
           <div className="mb-6">
             <p
               data-testid="login-welcome-label"
@@ -240,7 +247,7 @@ export default function Login() {
             typeof location.state.message === "string" ? (
               <p
                 role="status"
-                className="mt-3 rounded-lg border border-emerald-200 bg-emerald-50 px-3 py-2 text-sm text-emerald-800"
+                className="mt-3 rounded-lg border border-success-border bg-success-soft px-3 py-2 text-sm text-success"
               >
                 {location.state.message}
               </p>
@@ -248,20 +255,20 @@ export default function Login() {
           </div>
 
           <div
-            className="relative mb-6 grid grid-cols-2 rounded-lg bg-slate-100 p-1"
+            className="relative mb-6 grid grid-cols-2 rounded-lg bg-surface-muted p-1"
             role="tablist"
           >
             <span
               aria-hidden="true"
               data-testid="login-mode-indicator"
-              className={`pointer-events-none absolute inset-y-1 left-1 w-[calc(50%-4px)] rounded-md bg-white shadow-sm transition-transform duration-[220ms] ease-out ${mode === "sms" ? "translate-x-full" : "translate-x-0"}`}
+              className={`pointer-events-none absolute inset-y-1 left-1 w-[calc(50%-4px)] rounded-md bg-surface shadow-sm transition-transform duration-[220ms] ease-out ${mode === "sms" ? "translate-x-full" : "translate-x-0"}`}
             />
             <button
               type="button"
               role="tab"
               aria-controls="password-login-panel"
               aria-selected={mode === "password"}
-              className={`relative z-10 min-h-11 cursor-pointer rounded-md px-3 py-2 text-sm font-medium transition-colors duration-150 ease-out hover:text-slate-900 active:scale-[0.98] focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-brand-primary ${mode === "password" ? "text-slate-900" : "text-slate-500"}`}
+              className={`relative z-10 min-h-11 cursor-pointer rounded-md px-3 py-2 text-sm font-medium outline-none transition-colors duration-150 ease-out hover:text-text-primary focus-visible:ring-2 focus-visible:ring-brand-primary ${mode === "password" ? "text-text-primary" : "text-text-secondary"}`}
               onClick={() => {
                 setMode("password");
                 setError(null);
@@ -274,7 +281,7 @@ export default function Login() {
               role="tab"
               aria-controls="sms-login-panel"
               aria-selected={mode === "sms"}
-              className={`relative z-10 min-h-11 cursor-pointer rounded-md px-3 py-2 text-sm font-medium transition-colors duration-150 ease-out hover:text-slate-900 active:scale-[0.98] focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-brand-primary ${mode === "sms" ? "text-slate-900" : "text-slate-500"}`}
+              className={`relative z-10 min-h-11 cursor-pointer rounded-md px-3 py-2 text-sm font-medium outline-none transition-colors duration-150 ease-out hover:text-text-primary focus-visible:ring-2 focus-visible:ring-brand-primary ${mode === "sms" ? "text-text-primary" : "text-text-secondary"}`}
               onClick={() => {
                 setMode("sms");
                 setError(null);
@@ -294,8 +301,8 @@ export default function Login() {
                 >
                   <label className="block text-sm font-medium text-text-secondary">
                     手机号或账号
-                    <input
-                      className={`mt-2 ${inputClassName}`}
+                    <Input
+                      className="mt-2 h-12"
                       autoComplete="username"
                       value={identifier}
                       onChange={(event) => setIdentifier(event.target.value)}
@@ -303,9 +310,9 @@ export default function Login() {
                   </label>
                   <label className="block text-sm font-medium text-text-secondary">
                     密码
-                    <input
+                    <Input
                       type="password"
-                      className={`mt-2 ${inputClassName}`}
+                      className="mt-2 h-12"
                       autoComplete="current-password"
                       value={password}
                       onChange={(event) => setPassword(event.target.value)}
@@ -321,9 +328,9 @@ export default function Login() {
                 >
                   <label className="block text-sm font-medium text-text-secondary">
                     手机号
-                    <input
+                    <Input
                       inputMode="numeric"
-                      className={`mt-2 ${inputClassName}`}
+                      className="mt-2 h-12"
                       autoComplete="tel"
                       value={phone}
                       onChange={(event) => setPhone(event.target.value)}
@@ -332,22 +339,22 @@ export default function Login() {
                   <label className="block text-sm font-medium text-text-secondary">
                     验证码
                     <span data-testid="sms-code-row" className="mt-2 flex h-12 items-center gap-2">
-                      <input
+                      <Input
                         inputMode="numeric"
-                        className={inputClassName.replace("w-full", "min-w-0 flex-1")}
+                        className="h-12 min-w-0 flex-1"
                         autoComplete="one-time-code"
                         value={code}
                         onChange={(event) => setCode(event.target.value)}
                       />
-                      <button
+                      <Button
                         data-testid="send-code-button"
-                        type="button"
-                        className="h-12 w-32 shrink-0 cursor-pointer whitespace-nowrap rounded-lg border border-brand-primary px-3 text-sm font-medium text-brand-primary transition duration-150 hover:bg-brand-primary hover:text-white active:scale-[0.98] focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-brand-primary disabled:cursor-not-allowed disabled:border-slate-300 disabled:text-slate-400 disabled:hover:bg-transparent"
+                        className="h-12 w-32 border-brand-primary text-brand-primary hover:bg-brand-soft"
                         disabled={sendingCode || cooldown > 0}
+                        intent="secondary"
                         onClick={openCaptchaDialog}
                       >
                         {getSendCodeLabel(cooldown, sendingCode)}
-                      </button>
+                      </Button>
                     </span>
                   </label>
                 </div>
@@ -355,20 +362,22 @@ export default function Login() {
             </div>
 
             {error ? (
-              <p role="alert" aria-live="polite" className="mt-5 min-h-5 text-sm text-red-600">
+              <p role="alert" aria-live="polite" className="mt-5 min-h-5 text-sm text-danger">
                 {error}
               </p>
             ) : (
               <p aria-hidden="true" className="mt-5 min-h-5" />
             )}
 
-            <button
+            <Button
               type="submit"
               disabled={pending}
-              className="mt-5 min-h-12 w-full cursor-pointer rounded-lg bg-brand-primary px-4 py-3 font-medium text-white transition duration-150 hover:bg-brand-primary-hover active:scale-[0.99] focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-brand-primary disabled:cursor-not-allowed disabled:bg-slate-400"
+              className="mt-5 h-12 w-full"
+              loading={pending}
+              size="lg"
             >
               {pending ? "登录中…" : "登录"}
-            </button>
+            </Button>
           </form>
         </div>
       </section>

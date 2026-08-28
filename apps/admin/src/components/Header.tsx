@@ -1,7 +1,8 @@
 import * as DropdownMenu from "@radix-ui/react-dropdown-menu";
-import { KeyRound, LogOut, Menu, UserRound } from "lucide-react";
+import { ChevronDown, KeyRound, LogOut, Menu, UserRound } from "lucide-react";
 import { useNavigate } from "react-router-dom";
 import { useAuth } from "../auth/auth.context";
+import { Button } from "./ui/Button";
 
 interface HeaderProps {
   onMenuOpen: () => void;
@@ -17,31 +18,32 @@ export function Header({ onMenuOpen }: HeaderProps) {
   }
 
   return (
-    <header className="flex h-[var(--admin-header-height)] shrink-0 items-center justify-between border-b border-slate-200 bg-white px-4 sm:px-6">
+    <header className="flex h-[var(--admin-header-height)] shrink-0 items-center justify-between border-b border-border bg-surface px-4 sm:px-6">
       <div className="flex min-w-0 items-center gap-3">
-        <button
-          type="button"
+        <Button
           aria-label="打开导航"
-          className="flex h-11 w-11 cursor-pointer items-center justify-center rounded-lg text-slate-600 transition-colors hover:bg-slate-100 hover:text-slate-950 active:bg-slate-200 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-blue-600 lg:hidden"
+          className="h-11 w-11 lg:hidden"
+          intent="ghost"
           onClick={onMenuOpen}
+          size="icon"
         >
           <Menu aria-hidden="true" className="h-5 w-5" />
-        </button>
+        </Button>
         <div className="min-w-0">
-          <p className="truncate text-sm font-semibold text-slate-900">PetCare 管理后台</p>
-          <p className="hidden text-xs text-slate-500 sm:block">管理当前已启用的账户与内容</p>
+          <p className="truncate text-sm font-semibold text-text-primary">PetCare 管理后台</p>
+          <p className="hidden text-xs text-text-secondary sm:block">账户、内容与权限工作台</p>
         </div>
       </div>
 
-      <div className="flex items-center gap-1 sm:gap-2">
+      <div className="flex items-center">
         <DropdownMenu.Root>
           <DropdownMenu.Trigger asChild>
             <button
               type="button"
               aria-label="账户菜单"
-              className="flex min-h-11 min-w-11 cursor-pointer items-center gap-2.5 rounded-lg px-2 py-1 text-left transition-colors hover:bg-slate-100 active:bg-slate-200 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-blue-600"
+              className="flex min-h-11 min-w-11 cursor-pointer items-center gap-2.5 rounded-lg px-2 py-1 text-left outline-none transition-colors hover:bg-surface-subtle active:bg-surface-muted focus-visible:ring-2 focus-visible:ring-brand-primary"
             >
-              <span className="flex h-8 w-8 shrink-0 items-center justify-center overflow-hidden rounded-full bg-blue-50 text-blue-700">
+              <span className="flex h-8 w-8 shrink-0 items-center justify-center overflow-hidden rounded-full bg-brand-soft text-brand-primary">
                 {auth.user?.avatar ? (
                   <img
                     src={auth.user.avatar}
@@ -53,36 +55,37 @@ export function Header({ onMenuOpen }: HeaderProps) {
                 )}
               </span>
               <span className="hidden min-w-0 sm:block">
-                <span className="block max-w-32 truncate text-sm font-medium text-slate-800">
+                <span className="block max-w-32 truncate text-sm font-medium text-text-primary">
                   {auth.user?.nickname ?? "管理员"}
                 </span>
-                <span className="block text-xs text-slate-400">管理员</span>
+                <span className="block text-xs text-text-muted">管理员</span>
               </span>
+              <ChevronDown aria-hidden="true" className="hidden h-4 w-4 text-text-muted sm:block" />
             </button>
           </DropdownMenu.Trigger>
           <DropdownMenu.Portal>
             <DropdownMenu.Content
               align="end"
               sideOffset={8}
-              className="z-50 w-48 rounded-lg border border-slate-200 bg-white p-1 shadow-lg outline-none"
+              className="z-50 w-52 rounded-xl border border-border bg-surface p-1.5 shadow-panel-hover outline-none"
             >
               <DropdownMenu.Item
-                className="flex min-h-11 cursor-pointer items-center gap-2 rounded-md px-3 py-2 text-sm font-medium text-slate-700 outline-none hover:bg-slate-100 focus:bg-slate-100"
+                className="flex min-h-10 cursor-pointer items-center gap-2.5 rounded-lg px-3 py-2 text-sm font-medium text-text-primary outline-none hover:bg-surface-subtle focus:bg-surface-subtle"
                 onSelect={() => navigate("/account")}
               >
                 <UserRound aria-hidden="true" className="h-4 w-4" />
                 个人中心
               </DropdownMenu.Item>
               <DropdownMenu.Item
-                className="flex min-h-11 cursor-pointer items-center gap-2 rounded-md px-3 py-2 text-sm font-medium text-slate-700 outline-none hover:bg-slate-100 focus:bg-slate-100"
+                className="flex min-h-10 cursor-pointer items-center gap-2.5 rounded-lg px-3 py-2 text-sm font-medium text-text-primary outline-none hover:bg-surface-subtle focus:bg-surface-subtle"
                 onSelect={() => navigate("/account#password")}
               >
                 <KeyRound aria-hidden="true" className="h-4 w-4" />
                 修改密码
               </DropdownMenu.Item>
-              <DropdownMenu.Separator className="my-1 h-px bg-slate-200" />
+              <DropdownMenu.Separator className="my-1 h-px bg-border" />
               <DropdownMenu.Item
-                className="flex min-h-11 cursor-pointer items-center gap-2 rounded-md px-3 py-2 text-sm font-medium text-red-700 outline-none hover:bg-red-50 focus:bg-red-50"
+                className="flex min-h-10 cursor-pointer items-center gap-2.5 rounded-lg px-3 py-2 text-sm font-medium text-danger outline-none hover:bg-danger-soft focus:bg-danger-soft"
                 onSelect={() => void handleLogout()}
               >
                 <LogOut aria-hidden="true" className="h-4 w-4" />
@@ -91,15 +94,6 @@ export function Header({ onMenuOpen }: HeaderProps) {
             </DropdownMenu.Content>
           </DropdownMenu.Portal>
         </DropdownMenu.Root>
-
-        <button
-          type="button"
-          aria-label="退出登录"
-          className="flex h-11 w-11 cursor-pointer items-center justify-center rounded-lg text-slate-500 transition-colors hover:bg-red-50 hover:text-red-700 active:bg-red-100 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-red-600"
-          onClick={handleLogout}
-        >
-          <LogOut aria-hidden="true" className="h-5 w-5" />
-        </button>
       </div>
     </header>
   );

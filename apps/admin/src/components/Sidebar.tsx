@@ -90,9 +90,9 @@ function RootMenuLink({
       end={end}
       onClick={onClose}
       className={({ isActive }) =>
-        `group flex min-h-11 min-w-0 flex-1 cursor-pointer items-center gap-3 rounded-lg px-3 py-2.5 text-sm font-medium outline-none transition-colors duration-150 focus-visible:ring-2 focus-visible:ring-blue-400 ${
+        `group flex min-h-11 min-w-0 flex-1 cursor-pointer items-center gap-3 rounded-lg px-3 py-2.5 text-sm font-medium outline-none transition-colors duration-150 focus-visible:ring-2 focus-visible:ring-brand-primary ${
           isActive
-            ? "bg-blue-600 text-white shadow-sm"
+            ? "bg-brand-primary text-white shadow-sm"
             : "text-slate-300 hover:bg-white/8 hover:text-white"
         }`
       }
@@ -179,7 +179,7 @@ export function Sidebar({ open = false, onClose, permissions }: SidebarProps) {
       ) : null}
 
       <aside
-        className={`fixed inset-y-0 left-0 z-40 flex h-screen min-h-0 w-[var(--admin-sidebar-width)] flex-col border-r border-slate-200 bg-slate-950 text-slate-300 shadow-xl transition-transform duration-200 lg:static lg:z-auto lg:translate-x-0 lg:shadow-none ${
+        className={`fixed inset-y-0 left-0 z-40 flex h-screen min-h-0 w-[var(--admin-sidebar-width)] flex-col border-r border-white/10 bg-slate-950 text-slate-300 shadow-float transition-transform duration-200 lg:static lg:z-auto lg:translate-x-0 lg:shadow-none ${
           open ? "translate-x-0" : "-translate-x-full"
         }`}
       >
@@ -188,13 +188,13 @@ export function Sidebar({ open = false, onClose, permissions }: SidebarProps) {
             <BrandLogo variant="color" label="PetCare 管理后台" className="h-10 w-10 shrink-0" />
             <div className="min-w-0">
               <p className="truncate text-base font-semibold tracking-wide text-white">PetCare</p>
-              <p className="truncate text-xs text-slate-400">个人版管理后台</p>
+              <p className="truncate text-xs text-slate-400">内容与账户管理</p>
             </div>
           </div>
           <button
             type="button"
             aria-label="关闭导航"
-            className="flex h-11 w-11 cursor-pointer items-center justify-center rounded-md text-slate-400 transition-colors hover:bg-white/10 hover:text-white focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-blue-400 lg:hidden"
+            className="flex h-11 w-11 cursor-pointer items-center justify-center rounded-lg text-slate-400 transition-colors hover:bg-white/10 hover:text-white focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-brand-primary lg:hidden"
             onClick={onClose}
           >
             <X aria-hidden="true" className="h-5 w-5" />
@@ -239,16 +239,16 @@ export function Sidebar({ open = false, onClose, permissions }: SidebarProps) {
                         aria-label={`${label}菜单`}
                         aria-expanded={isExpanded}
                         aria-controls={`submenu-${route.id}`}
-                        className={`group flex min-h-11 w-full cursor-pointer items-center gap-3 rounded-lg px-3 py-2.5 text-left text-sm font-medium outline-none transition-colors duration-200 focus-visible:ring-2 focus-visible:ring-blue-400 ${
+                        className={`group flex min-h-11 w-full cursor-pointer items-center gap-3 rounded-lg px-3 py-2.5 text-left text-sm font-medium outline-none transition-colors duration-200 focus-visible:ring-2 focus-visible:ring-brand-primary ${
                           isParentActive
-                            ? "bg-blue-600/40 text-blue-100"
+                            ? "bg-brand-primary/20 text-white"
                             : "text-slate-300 hover:bg-white/8 hover:text-white"
                         }`}
                         onClick={() => toggleExpanded(route.path)}
                       >
                         <Icon
                           aria-hidden="true"
-                          className={`h-4.5 w-4.5 shrink-0 ${isParentActive ? "text-blue-200" : "text-slate-400 group-hover:text-white"}`}
+                          className={`h-4.5 w-4.5 shrink-0 ${isParentActive ? "text-brand-soft" : "text-slate-400 group-hover:text-white"}`}
                         />
                         <span className="min-w-0 flex-1 truncate">{label}</span>
                         <ChevronDown
@@ -285,9 +285,9 @@ export function Sidebar({ open = false, onClose, permissions }: SidebarProps) {
                                   end
                                   onClick={onClose}
                                   className={({ isActive }) =>
-                                    `group flex min-h-10 items-center rounded-md px-3 py-2 text-sm outline-none transition-colors focus-visible:ring-2 focus-visible:ring-blue-400 ${
+                                    `group flex min-h-10 items-center rounded-md px-3 py-2 text-sm outline-none transition-colors focus-visible:ring-2 focus-visible:ring-brand-primary ${
                                       isActive
-                                        ? "bg-blue-600 font-medium text-white shadow-sm"
+                                        ? "bg-brand-primary font-medium text-white shadow-sm"
                                         : "text-slate-400 hover:bg-white/8 hover:text-white"
                                     }`
                                   }
@@ -310,12 +310,15 @@ export function Sidebar({ open = false, onClose, permissions }: SidebarProps) {
         </nav>
 
         <div className="shrink-0 border-t border-white/10 p-4">
-          <div className="rounded-lg bg-white/5 px-3 py-3">
-            <p className="text-xs font-medium text-slate-300">系统状态</p>
-            <p className="mt-1.5 flex items-center gap-2 text-xs text-slate-400">
-              <span className="h-2 w-2 rounded-full bg-emerald-400" />
-              本地管理功能可用
-            </p>
+          <div className="flex items-start gap-2.5 rounded-lg bg-white/5 px-3 py-3">
+            <ShieldCheck
+              aria-hidden="true"
+              className="mt-0.5 h-4 w-4 shrink-0 text-care-secondary"
+            />
+            <div>
+              <p className="text-xs font-medium text-slate-200">已启用模块</p>
+              <p className="mt-1 text-xs leading-5 text-slate-400">仅显示当前可用的管理入口</p>
+            </div>
           </div>
         </div>
       </aside>
