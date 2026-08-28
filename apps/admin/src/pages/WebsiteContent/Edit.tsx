@@ -486,36 +486,34 @@ export default function WebsiteContentEdit() {
               预览已保存草稿
             </Button>
           </PermissionGate>
+          {canEdit || canPublish ? (
+            <>
+              <PermissionGate all={["website.edit"]}>
+                <Button
+                  type="submit"
+                  form="website-content-form"
+                  disabled={saveMutation.isPending}
+                  loading={saveMutation.isPending}
+                >
+                  <Save aria-hidden="true" className="h-4 w-4" />
+                  保存草稿
+                </Button>
+              </PermissionGate>
+              <PermissionGate all={["website.publish"]}>
+                <Button
+                  type="button"
+                  aria-label="publish-saved-draft"
+                  disabled={dirty || publishMutation.isPending}
+                  onClick={() => setPublishDialogOpen(true)}
+                  intent="secondary"
+                >
+                  <Send aria-hidden="true" className="h-4 w-4" />
+                  发布已保存草稿
+                </Button>
+              </PermissionGate>
+            </>
+          ) : null}
         </>
-      }
-      footerActions={
-        canEdit || canPublish ? (
-          <>
-            <PermissionGate all={["website.edit"]}>
-              <Button
-                type="submit"
-                form="website-content-form"
-                disabled={saveMutation.isPending}
-                loading={saveMutation.isPending}
-              >
-                <Save aria-hidden="true" className="h-4 w-4" />
-                保存草稿
-              </Button>
-            </PermissionGate>
-            <PermissionGate all={["website.publish"]}>
-              <Button
-                type="button"
-                aria-label="publish-saved-draft"
-                disabled={dirty || publishMutation.isPending}
-                onClick={() => setPublishDialogOpen(true)}
-                intent="secondary"
-              >
-                <Send aria-hidden="true" className="h-4 w-4" />
-                发布已保存草稿
-              </Button>
-            </PermissionGate>
-          </>
-        ) : undefined
       }
       unsavedChanges={unsavedChanges}
     >

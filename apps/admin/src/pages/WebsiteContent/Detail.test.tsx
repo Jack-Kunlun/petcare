@@ -130,15 +130,16 @@ describe("WebsiteContentDetail", () => {
     const page = document.querySelector("section.editor-page");
 
     expect(page).toHaveClass("max-w-[var(--editor-width-narrow)]");
+    const toolbar = within(page?.querySelector("div.editor-page__toolbar") as HTMLElement);
     const header = within(page?.querySelector("header.editor-page__header") as HTMLElement);
     const content = within(page?.querySelector("div.editor-page__content") as HTMLElement);
 
-    expect(header.getByRole("link", { name: "返回官网管理编辑" })).toBeInTheDocument();
+    expect(toolbar.getByRole("link", { name: "返回官网管理编辑" })).toBeInTheDocument();
     expect(header.getByText("历史版本")).toBeInTheDocument();
-    expect(header.getByRole("button", { name: "恢复为新草稿" })).toBeEnabled();
+    expect(toolbar.getByRole("button", { name: "恢复为新草稿" })).toBeEnabled();
     expect(content.queryByRole("button", { name: "恢复为新草稿" })).not.toBeInTheDocument();
 
-    await user.click(header.getByRole("button", { name: "恢复为新草稿" }));
+    await user.click(toolbar.getByRole("button", { name: "恢复为新草稿" }));
     expect(screen.getByRole("dialog", { name: "确认创建恢复草稿" })).toBeInTheDocument();
   });
 
@@ -160,9 +161,9 @@ describe("WebsiteContentDetail", () => {
     await screen.findByRole("heading", { name: "历史版本 v2" });
     await screen.findByRole("alert");
     const page = document.querySelector("section.editor-page");
-    const header = within(page?.querySelector("header.editor-page__header") as HTMLElement);
+    const toolbar = within(page?.querySelector("div.editor-page__toolbar") as HTMLElement);
 
-    expect(header.getByRole("button", { name: "恢复为新草稿" })).toBeDisabled();
+    expect(toolbar.getByRole("button", { name: "恢复为新草稿" })).toBeDisabled();
   });
 
   it("does not render the restore action without website.publish", async () => {

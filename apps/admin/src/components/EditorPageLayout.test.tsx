@@ -37,16 +37,17 @@ describe("EditorPageLayout", () => {
     );
 
     const page = container.querySelector("section.editor-page");
+    const toolbar = page?.querySelector("div.editor-page__toolbar");
     const header = page?.querySelector("header.editor-page__header");
     const content = page?.querySelector("div.editor-page__content");
     const footer = page?.querySelector("footer.editor-page__footer");
 
     expect(page).toBeInTheDocument();
-    expect(header).toContainElement(screen.getByRole("button", { name: "返回" }));
+    expect(toolbar).toContainElement(screen.getByRole("button", { name: "返回" }));
+    expect(toolbar).toContainElement(screen.getByRole("button", { name: "保存" }));
     expect(header).toHaveTextContent("编辑文章");
     expect(header).toHaveTextContent("更新文章正文");
     expect(header).toHaveTextContent("草稿");
-    expect(header).toContainElement(screen.getByRole("button", { name: "保存" }));
     expect(content).toHaveTextContent("编辑内容");
     expect(footer).toContainElement(screen.getByRole("button", { name: "底部保存" }));
     expect(footer).toHaveClass("border-t", "bg-surface", "px-6", "py-4", "gap-3");
@@ -66,7 +67,7 @@ describe("EditorPageLayout", () => {
     expect(container.querySelector(".editor-page")).toHaveClass(widthClass);
   });
 
-  it("wraps title metadata and actions without creating a persistent scroll overlay", () => {
+  it("keeps actions in an opaque sticky toolbar and title metadata in normal flow", () => {
     const { container } = render(
       <EditorPageLayout
         title="编辑文章"
@@ -78,12 +79,17 @@ describe("EditorPageLayout", () => {
       </EditorPageLayout>,
     );
 
+    const toolbar = container.querySelector(".editor-page__toolbar");
     const header = container.querySelector(".editor-page__header");
     const actions = container.querySelector(".editor-page__actions");
 
-    expect(header).toHaveClass("flex", "flex-wrap");
+    expect(toolbar).toHaveClass("sticky", "-top-4", "z-30", "bg-surface", "xl:-top-8");
     expect(header).not.toHaveClass("sticky", "top-0");
-    expect(actions).toHaveClass("w-full", "flex-wrap", "sm:w-auto");
+    expect(toolbar).toContainElement(screen.getByRole("button", { name: "保存" }));
+    expect(header).toHaveTextContent("编辑文章");
+    expect(header).toHaveTextContent("更新文章正文");
+    expect(header).toHaveTextContent("草稿");
+    expect(actions).toHaveClass("w-full", "flex-wrap", "justify-end", "sm:w-auto");
   });
 });
 

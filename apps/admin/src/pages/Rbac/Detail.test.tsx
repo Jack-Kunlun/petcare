@@ -188,11 +188,12 @@ describe("RbacDetail", () => {
     renderDetail(["rbac.view", "rbac.role.update", "rbac.assign_role"]);
     await screen.findByRole("heading", { name: "运营专员" });
     expect(document.querySelector(".editor-page")).toHaveClass("max-w-[var(--editor-width-wide)]");
+    const toolbar = within(document.querySelector(".editor-page__toolbar")!);
     const header = within(document.querySelector(".editor-page__header")!);
 
-    expect(header.getByRole("link", { name: "返回角色列表" })).toBeInTheDocument();
-    expect(header.getByRole("link", { name: "编辑角色" })).toBeInTheDocument();
-    expect(header.getByRole("button", { name: "顶部保存关联管理员" })).toBeInTheDocument();
+    expect(toolbar.getByRole("link", { name: "返回角色列表" })).toBeInTheDocument();
+    expect(toolbar.getByRole("link", { name: "编辑角色" })).toBeInTheDocument();
+    expect(toolbar.getByRole("button", { name: "顶部保存关联管理员" })).toBeInTheDocument();
     expect(document.querySelectorAll(".editor-page__content .form-section")).toHaveLength(3);
     expect(document.querySelector(".editor-page__content > .grid")).toHaveClass(
       "xl:grid-cols-[minmax(0,1fr)_400px]",
@@ -201,17 +202,17 @@ describe("RbacDetail", () => {
     await user.clear(screen.getByLabelText("关联管理员 ID"));
     await user.type(screen.getByLabelText("关联管理员 ID"), "admin-1\nadmin-2");
     expect(header.getByText("有未保存修改")).toBeInTheDocument();
-    await user.click(header.getByRole("link", { name: "返回角色列表" }));
+    await user.click(toolbar.getByRole("link", { name: "返回角色列表" }));
     expect(await screen.findByRole("dialog")).toHaveTextContent("放弃未保存的修改？");
     await user.click(screen.getByRole("button", { name: "继续编辑" }));
     await waitFor(() => expect(screen.queryByRole("dialog")).not.toBeInTheDocument());
-    await user.click(header.getByRole("button", { name: "顶部保存关联管理员" }));
+    await user.click(toolbar.getByRole("button", { name: "顶部保存关联管理员" }));
     await waitFor(() => expect(rbacApi.replaceRbacRoleUsers).toHaveBeenCalled());
     await waitFor(() =>
       expect(screen.getByLabelText("关联管理员 ID")).toHaveValue("admin-1\nadmin-2"),
     );
     await waitFor(() => expect(header.queryByText("有未保存修改")).not.toBeInTheDocument());
-    await user.click(header.getByRole("link", { name: "返回角色列表" }));
+    await user.click(toolbar.getByRole("link", { name: "返回角色列表" }));
     expect(await screen.findByText("角色列表")).toBeInTheDocument();
     expect(screen.queryByRole("dialog")).not.toBeInTheDocument();
   });

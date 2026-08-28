@@ -127,10 +127,12 @@ async function assertEditorLayout(
   viewport: Viewport,
 ): Promise<void> {
   const editor = page.locator(".editor-page");
+  const toolbar = editor.locator(".editor-page__toolbar");
   const header = editor.locator(".editor-page__header");
-  const actionButton = header.getByRole("button", { name: action, exact: true });
+  const actionButton = toolbar.getByRole("button", { name: action, exact: true });
 
   await expect(editor).toBeVisible();
+  await expect(toolbar).toBeVisible();
   await expect(header.getByRole("heading", { name: title })).toBeVisible();
   await expect(actionButton).toBeVisible();
 
@@ -149,24 +151,29 @@ async function assertEditorLayout(
   expect(actionBounds.x + actionBounds.width).toBeLessThanOrEqual(viewport.width);
   expect(actionBounds.y + actionBounds.height).toBeLessThanOrEqual(viewport.height);
 
-  const layout = await header.evaluate((element) => {
+  const layout = await toolbar.evaluate((element) => {
     const main = document.getElementById("main-content");
     const sidebar = document.querySelector("aside");
+    const header = element.parentElement?.querySelector(".editor-page__header");
     const documentElement = document.documentElement;
 
-    if (!main || !sidebar) {
+    if (!main || !sidebar || !header) {
       return null;
     }
 
     return {
-      headerTop: element.getBoundingClientRect().top,
+      toolbarTop: element.getBoundingClientRect().top,
+      toolbarBottom: element.getBoundingClientRect().bottom,
+      headerTop: header.getBoundingClientRect().top,
       mainTop: main.getBoundingClientRect().top,
       position: getComputedStyle(element).position,
+      backgroundColor: getComputedStyle(element).backgroundColor,
+      stickyTop: Number.parseFloat(getComputedStyle(element).top),
+      mainPaddingTop: Number.parseFloat(getComputedStyle(main).paddingTop),
       sidebarRight: sidebar.getBoundingClientRect().right,
       mainLeft: main.getBoundingClientRect().left,
       scrollWidth: documentElement.scrollWidth,
       clientWidth: documentElement.clientWidth,
-      top: getComputedStyle(element).top,
     };
   });
 
@@ -174,9 +181,11 @@ async function assertEditorLayout(
     throw new Error("Admin shell did not render a main scrollport and desktop sidebar");
   }
 
-  expect(layout.position).toBe("static");
-  expect(layout.top).toBe("auto");
-  expect(layout.headerTop).toBeGreaterThanOrEqual(layout.mainTop);
+  expect(layout.position).toBe("sticky");
+  expect(layout.stickyTop).toBe(-layout.mainPaddingTop);
+  expect(layout.backgroundColor).toBe("rgb(255, 255, 255)");
+  expect(layout.toolbarTop).toBeGreaterThanOrEqual(layout.mainTop);
+  expect(layout.headerTop).toBeGreaterThan(layout.toolbarBottom);
   expect(layout.sidebarRight).toBeLessThanOrEqual(layout.mainLeft);
   expect(layout.scrollWidth).toBeLessThanOrEqual(layout.clientWidth);
 }
@@ -193,9 +202,9 @@ async function openAndAssert(
   await assertEditorLayout(page, scenario, viewport);
 }
 
-async function assertHeaderLeavesScrollport(page: Page): Promise<void> {
+async function assertToolbarStaysWhileHeaderLeaves(page: Page): Promise<void> {
   const main = page.locator("#main-content");
-  const header = page.locator(".editor-page__header");
+  const toolbar = page.locator(".editor-page__toolbar");
   const scrollState = await main.evaluate((element) => {
     element.scrollTop = element.scrollHeight;
 
@@ -208,15 +217,18 @@ async function assertHeaderLeavesScrollport(page: Page): Promise<void> {
 
   expect(scrollState.scrollHeight).toBeGreaterThan(scrollState.clientHeight);
   expect(scrollState.scrollTop).toBeGreaterThan(0);
-  const geometry = await header.evaluate((element) => {
+  const geometry = await toolbar.evaluate((element) => {
     const mainElement = document.getElementById("main-content");
+    const pageHeader = element.parentElement?.querySelector(".editor-page__header");
 
-    if (!mainElement) {
+    if (!mainElement || !pageHeader) {
       return null;
     }
 
     return {
-      headerBottom: element.getBoundingClientRect().bottom,
+      toolbarTop: element.getBoundingClientRect().top,
+      toolbarBottom: element.getBoundingClientRect().bottom,
+      headerBottom: pageHeader.getBoundingClientRect().bottom,
       mainTop: mainElement.getBoundingClientRect().top,
       position: getComputedStyle(element).position,
     };
@@ -226,55 +238,60 @@ async function assertHeaderLeavesScrollport(page: Page): Promise<void> {
     throw new Error("Admin editor scrollport was unavailable");
   }
 
-  expect(geometry.position).toBe("static");
+  expect(geometry.position).toBe("sticky");
+  expect(Math.abs(geometry.toolbarTop - geometry.mainTop)).toBeLessThanOrEqual(1);
   expect(geometry.headerBottom).toBeLessThanOrEqual(geometry.mainTop);
+  expect(geometry.toolbarBottom).toBeGreaterThan(geometry.mainTop);
 }
 
 for (const viewport of viewports) {
-  test(
-    `编辑页布局在 ${viewport.width}x${viewport.height} 保持桌面契约`,
-    async ({ page }, testInfo) => {
-      await page.setViewportSize(viewport);
-      await loginAsDefaultAdmin(page);
+  test(`编辑页布局在 ${viewport.width}x${viewport.height} 保持桌面契约`, async ({
+    page,
+  }, testInfo) => {
+    await page.setViewportSize(viewport);
+    await loginAsDefaultAdmin(page);
 
-      await openAndAssert(
-        page,
-        { path: "/content/articles/new", title: "新建文章", action: "保存草稿" },
-        viewport,
-      );
-      await openAndAssert(
-        page,
-        {
-          path: "/website-content/home/edit",
-          title: "编辑 官网首页",
-          action: "preview-saved-draft",
-          uniqueAction: "保存草稿",
-        },
-        viewport,
-      );
+    await openAndAssert(
+      page,
+      { path: "/content/articles/new", title: "新建文章", action: "保存草稿" },
+      viewport,
+    );
+    await openAndAssert(
+      page,
+      {
+        path: "/website-content/home/edit",
+        title: "编辑 官网首页",
+        action: "preview-saved-draft",
+        uniqueAction: "保存草稿",
+      },
+      viewport,
+    );
 
-      if (viewport.width === 1440) {
-        await page.locator("#main-content").evaluate((element) => {
-          element.scrollTop = element.scrollHeight;
-        });
-        await expect(page.getByRole("button", { name: "保存草稿", exact: true })).toBeVisible();
-        await testInfo.attach("website-editor-bottom-1440", {
-          body: await page.screenshot({ animations: "disabled", caret: "hide" }),
-          contentType: "image/png",
-        });
-      }
+    if (viewport.width === 1440) {
+      await testInfo.attach("website-editor-top-1440", {
+        body: await page.screenshot({ animations: "disabled", caret: "hide" }),
+        contentType: "image/png",
+      });
+      await page.locator("#main-content").evaluate((element) => {
+        element.scrollTop = element.scrollHeight;
+      });
+      await expect(page.getByRole("button", { name: "保存草稿", exact: true })).toBeVisible();
+      await testInfo.attach("website-editor-bottom-1440", {
+        body: await page.screenshot({ animations: "disabled", caret: "hide" }),
+        contentType: "image/png",
+      });
+    }
 
-      await openAndAssert(
-        page,
-        { path: "/rbac/new", title: "新建角色", action: "顶部保存角色" },
-        viewport,
-      );
-      await assertHeaderLeavesScrollport(page);
-    },
-  );
+    await openAndAssert(
+      page,
+      { path: "/rbac/new", title: "新建角色", action: "顶部保存角色" },
+      viewport,
+    );
+    await assertToolbarStaysWhileHeaderLeaves(page);
+  });
 }
 
-test("帖子详情深滚动时不保留重叠标题或嵌套滚动层", async ({ page }, testInfo) => {
+test("帖子详情深滚动时只保留固定操作栏且没有嵌套滚动层", async ({ page }, testInfo) => {
   await page.setViewportSize({ width: 1440, height: 900 });
   await loginAsDefaultAdmin(page);
   await mockPostDetail(page);
@@ -282,13 +299,20 @@ test("帖子详情深滚动时不保留重叠标题或嵌套滚动层", async ({
 
   await expect(page.getByRole("heading", { name: "社区帖子详情" })).toBeVisible();
   const editor = page.locator(".editor-page");
+  const toolbar = editor.locator(".editor-page__toolbar");
   const header = editor.locator(".editor-page__header");
   const navigation = editor.getByRole("navigation", { name: "帖子详情分区" });
   const sideRail = editor.locator(".editor-page__content aside");
 
+  await expect(toolbar).toHaveCSS("position", "sticky");
+  await expect(toolbar).toHaveCSS("background-color", "rgb(255, 255, 255)");
   await expect(header).toHaveCSS("position", "static");
   await expect(navigation).toHaveCSS("position", "static");
   await expect(sideRail).toHaveCSS("position", "static");
+  await testInfo.attach("post-detail-top-1440", {
+    body: await page.screenshot({ animations: "disabled", caret: "hide" }),
+    contentType: "image/png",
+  });
 
   const main = page.locator("#main-content");
   const scrollState = await main.evaluate((element) => {
@@ -300,15 +324,18 @@ test("帖子详情深滚动时不保留重叠标题或嵌套滚动层", async ({
   expect(scrollState.scrollHeight).toBeGreaterThan(scrollState.clientHeight);
   const geometry = await editor.evaluate((element) => {
     const mainElement = document.getElementById("main-content");
+    const actionToolbar = element.querySelector(".editor-page__toolbar");
     const pageHeader = element.querySelector(".editor-page__header");
     const sectionNavigation = element.querySelector("nav[aria-label='帖子详情分区']");
 
-    if (!mainElement || !pageHeader || !sectionNavigation) {
+    if (!mainElement || !actionToolbar || !pageHeader || !sectionNavigation) {
       return null;
     }
 
     return {
       mainTop: mainElement.getBoundingClientRect().top,
+      toolbarTop: actionToolbar.getBoundingClientRect().top,
+      toolbarBottom: actionToolbar.getBoundingClientRect().bottom,
       headerBottom: pageHeader.getBoundingClientRect().bottom,
       navigationBottom: sectionNavigation.getBoundingClientRect().bottom,
     };
@@ -318,6 +345,8 @@ test("帖子详情深滚动时不保留重叠标题或嵌套滚动层", async ({
     throw new Error("Post detail scroll geometry was unavailable");
   }
 
+  expect(Math.abs(geometry.toolbarTop - geometry.mainTop)).toBeLessThanOrEqual(1);
+  expect(geometry.toolbarBottom).toBeGreaterThan(geometry.mainTop);
   expect(geometry.headerBottom).toBeLessThanOrEqual(geometry.mainTop);
   expect(geometry.navigationBottom).toBeLessThanOrEqual(geometry.mainTop);
   await testInfo.attach("post-detail-bottom-1440", {

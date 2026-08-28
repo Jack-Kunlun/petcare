@@ -324,12 +324,7 @@ export default function ContentPostDetail() {
       <EditorPageLayout
         width="wide"
         title="社区帖子详情"
-        description={
-          <>
-            <span className="mr-2 font-medium text-blue-700">帖子管理</span>
-            提交于 {formatDateTime(post.createdAt)}
-          </>
-        }
+        description={`提交于 ${formatDateTime(post.createdAt)}`}
         status={<Badge tone={statusTones[post.status]}>{statusLabels[post.status]}</Badge>}
         back={backLink}
         actions={actions}

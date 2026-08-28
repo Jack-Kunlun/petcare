@@ -446,8 +446,10 @@ describe("WebsiteContentEdit", () => {
     expect(document.querySelector("section.editor-page")).toHaveClass(
       "max-w-[var(--editor-width-wide)]",
     );
+    const toolbar = document.querySelector<HTMLElement>("div.editor-page__toolbar");
     const header = document.querySelector<HTMLElement>("header.editor-page__header");
 
+    expect(toolbar).toBeInTheDocument();
     expect(header).toBeInTheDocument();
     expect(document.querySelector("div.editor-page__content")).toBeInTheDocument();
     expect(screen.getByRole("heading", { name: "编辑 官网首页" })).toBeInTheDocument();
@@ -456,25 +458,26 @@ describe("WebsiteContentEdit", () => {
       "href",
       "#website-content-history",
     );
-    expect(within(header!).queryByRole("button", { name: "保存草稿" })).toBeNull();
+    expect(within(toolbar!).getByRole("link", { name: "返回官网管理" })).toBeInTheDocument();
+    expect(within(toolbar!).getByRole("link", { name: "查看历史" })).toBeInTheDocument();
+    expect(within(toolbar!).getByRole("button", { name: "保存草稿" })).toHaveAttribute(
+      "form",
+      "website-content-form",
+    );
     expect(screen.getAllByRole("button", { name: "preview-saved-draft" })[0]).toBeInTheDocument();
     expect(
-      within(header!).queryByRole("button", { name: "顶部发布已保存草稿" }),
+      within(toolbar!).getByRole("button", { name: "publish-saved-draft" }),
+    ).toBeInTheDocument();
+    expect(
+      within(header!).queryByRole("button", { name: "publish-saved-draft" }),
     ).not.toBeInTheDocument();
 
     const footer = document.querySelector<HTMLElement>("footer.editor-page__footer");
 
-    expect(footer).toBeInTheDocument();
-    expect(within(footer!).getByRole("button", { name: "保存草稿" })).toHaveAttribute(
-      "form",
-      "website-content-form",
-    );
-    expect(
-      within(footer!).getByRole("button", { name: "publish-saved-draft" }),
-    ).toBeInTheDocument();
-    expect(within(footer!).queryByRole("button", { name: "preview-saved-draft" })).toBeNull();
+    expect(footer).not.toBeInTheDocument();
     expect(screen.getAllByRole("button", { name: "preview-saved-draft" })).toHaveLength(1);
     expect(screen.getAllByRole("button", { name: "保存草稿" })).toHaveLength(1);
+    expect(screen.getAllByRole("button", { name: "publish-saved-draft" })).toHaveLength(1);
   });
 
   it("allows only optional template sections to be hidden and blocks dirty navigation", async () => {

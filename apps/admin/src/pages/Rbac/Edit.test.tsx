@@ -185,12 +185,12 @@ describe("RbacEdit", () => {
       "max-w-[var(--editor-width-default)]",
     );
     expect(
-      within(document.querySelector(".editor-page__header")!).getByRole("link", {
+      within(document.querySelector(".editor-page__toolbar")!).getByRole("link", {
         name: "返回角色列表",
       }),
     ).toBeInTheDocument();
     expect(
-      within(document.querySelector(".editor-page__header")!).getByRole("button", {
+      within(document.querySelector(".editor-page__toolbar")!).getByRole("button", {
         name: "顶部保存角色",
       }),
     ).toBeInTheDocument();

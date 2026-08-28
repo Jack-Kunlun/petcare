@@ -33,7 +33,7 @@ const widthClasses: Record<EditorPageWidth, string> = {
   wide: "max-w-[var(--editor-width-wide)]",
 };
 
-/** Provides the shared header, content width, and optional footer for editor pages. */
+/** Provides the shared sticky action toolbar, title hierarchy, content width, and optional footer. */
 export function EditorPageLayout({
   title,
   children,
@@ -49,25 +49,29 @@ export function EditorPageLayout({
   return (
     <section
       className={cn(
-        "editor-page mx-auto flex w-full min-w-0 flex-col gap-6 text-text-primary",
+        "editor-page isolate mx-auto flex w-full min-w-0 flex-col gap-5 text-text-primary",
         widthClasses[width],
         className,
       )}
     >
-      <header className="editor-page__header flex flex-wrap items-start gap-3">
-        {back ? <div className="shrink-0">{back}</div> : null}
-        <div className="min-w-0 flex-1">
-          <div className="flex flex-wrap items-center gap-2">
-            <h1 className="text-2xl font-semibold tracking-tight text-text-primary">{title}</h1>
-            {status ? <div className="shrink-0">{status}</div> : null}
-          </div>
-          {description ? (
-            <div className="mt-1 text-sm leading-6 text-text-secondary">{description}</div>
+      {back || actions ? (
+        <div className="editor-page__toolbar sticky -top-4 z-30 flex min-h-14 flex-wrap items-center gap-3 rounded-xl border border-border bg-surface px-3 py-2.5 shadow-panel sm:-top-6 sm:flex-nowrap lg:-top-7 xl:-top-8">
+          {back ? <div className="min-w-0 shrink-0">{back}</div> : null}
+          {actions ? (
+            <div className="editor-page__actions ml-auto flex w-full flex-wrap items-center justify-end gap-2 sm:w-auto">
+              {actions}
+            </div>
           ) : null}
         </div>
-        {actions ? (
-          <div className="editor-page__actions flex w-full flex-wrap items-center gap-3 sm:ml-auto sm:w-auto">
-            {actions}
+      ) : null}
+      <header className="editor-page__header min-w-0 px-1 py-1">
+        <div className="flex flex-wrap items-center gap-x-3 gap-y-2">
+          <h1 className="text-2xl font-semibold tracking-tight text-text-primary">{title}</h1>
+          {status ? <div className="shrink-0">{status}</div> : null}
+        </div>
+        {description ? (
+          <div className="mt-2 max-w-[var(--editor-width-narrow)] text-sm leading-6 text-text-secondary">
+            {description}
           </div>
         ) : null}
       </header>
