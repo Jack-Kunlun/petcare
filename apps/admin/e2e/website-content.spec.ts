@@ -153,7 +153,10 @@ test.describe("官网内容 Admin 到 Website 发布流程", () => {
     try {
       await loginWebsiteOperator(page, websiteContentFixtures.editor);
       await openContentEditor(page, websiteContentFixtures.help.contentKey);
-      const questionInput = page.getByLabel(websiteContentFixtures.help.questionLabel);
+      const questionInput = page
+        .getByRole("group", { name: "固定正文小节" })
+        .getByRole("textbox", { name: /正文小节 .+ 标题/u })
+        .first();
 
       await questionInput.fill(question);
       await page.getByLabel("变更摘要").fill("帮助 E2E：更新资料问题");
@@ -186,7 +189,7 @@ test.describe("官网内容 Admin 到 Website 发布流程", () => {
     await openContentOverview(page, "home");
     await expect(page.getByRole("link", { name: /编辑.+草稿/u })).toHaveCount(0);
     await openContentEditorRoute(page, "home");
-    await expect(page.getByRole("heading", { name: "没有官网内容编辑权限" })).toBeVisible();
+    await expect(page.getByRole("heading", { name: "没有页面内容编辑权限" })).toBeVisible();
     await expect(page.getByRole("button", { name: "保存草稿", exact: true })).toHaveCount(0);
     await expect(page.getByRole("button", { name: "preview-saved-draft" })).toHaveCount(0);
     await expect(page.getByRole("button", { name: "publish-saved-draft" })).toHaveCount(0);
