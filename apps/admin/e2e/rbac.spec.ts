@@ -96,6 +96,6 @@ test("拥有官网编辑权限但没有发布权限的受限会话不显示发�
   );
   await expect(page.getByRole("heading", { name: "没有访问权限" })).toBeVisible();
   await openRoute(page, "/website-content/home/edit");
-  await expect(page.getByRole("heading", { name: "编辑 home" })).toBeVisible();
+  await expect(page.getByRole("heading", { name: "编辑 官网首页" })).toBeVisible();
   await expect(page.getByRole("button", { name: /发布已保存草稿/u })).toHaveCount(0);
 });
