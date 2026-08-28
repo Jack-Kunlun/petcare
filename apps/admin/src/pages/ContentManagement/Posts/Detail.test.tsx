@@ -227,6 +227,20 @@ describe("ContentPostDetail", () => {
     expect(fetchAdminContentPostComments).not.toHaveBeenCalled();
   });
 
+  it("keeps the detail header, section navigation, and side rail in one scroll flow", async () => {
+    const { container } = renderPage();
+
+    expect(await screen.findByText("今天带旺财散步，天气很好。")).toBeInTheDocument();
+
+    const header = container.querySelector(".editor-page__header");
+    const navigation = screen.getByRole("navigation", { name: "帖子详情分区" });
+    const sideRail = container.querySelector(".editor-page__content aside");
+
+    expect(header).not.toHaveClass("sticky");
+    expect(navigation).not.toHaveClass("sticky");
+    expect(sideRail).not.toHaveClass("xl:sticky", "xl:overflow-y-auto");
+  });
+
   it("requires a reason before taking a visible comment offline", async () => {
     const user = userEvent.setup();
 

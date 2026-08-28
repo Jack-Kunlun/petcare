@@ -66,7 +66,7 @@ describe("EditorPageLayout", () => {
     expect(container.querySelector(".editor-page")).toHaveClass(widthClass);
   });
 
-  it("wraps title metadata and actions on narrow screens", () => {
+  it("wraps title metadata and actions without creating a persistent scroll overlay", () => {
     const { container } = render(
       <EditorPageLayout
         title="编辑文章"
@@ -81,7 +81,8 @@ describe("EditorPageLayout", () => {
     const header = container.querySelector(".editor-page__header");
     const actions = container.querySelector(".editor-page__actions");
 
-    expect(header).toHaveClass("flex", "flex-wrap", "sticky", "top-0");
+    expect(header).toHaveClass("flex", "flex-wrap");
+    expect(header).not.toHaveClass("sticky", "top-0");
     expect(actions).toHaveClass("w-full", "flex-wrap", "sm:w-auto");
   });
 });

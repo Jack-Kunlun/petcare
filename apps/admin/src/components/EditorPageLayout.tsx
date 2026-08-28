@@ -54,7 +54,7 @@ export function EditorPageLayout({
         className,
       )}
     >
-      <header className="editor-page__header sticky top-0 z-10 flex flex-wrap items-start gap-3 bg-page-background/95 py-4 backdrop-blur-sm">
+      <header className="editor-page__header flex flex-wrap items-start gap-3">
         {back ? <div className="shrink-0">{back}</div> : null}
         <div className="min-w-0 flex-1">
           <div className="flex flex-wrap items-center gap-2">

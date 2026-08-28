@@ -353,7 +353,7 @@ export default function ContentPostDetail() {
 
         <nav
           aria-label="帖子详情分区"
-          className="sticky top-[72px] z-[9] flex gap-1 overflow-x-auto rounded-xl border border-border bg-surface/95 p-1.5 shadow-panel backdrop-blur-sm"
+          className="flex gap-1 overflow-x-auto rounded-xl border border-border bg-surface p-1.5 shadow-panel"
         >
           {[
             ["#post-content", "内容"],
@@ -635,7 +635,7 @@ export default function ContentPostDetail() {
             ) : null}
           </main>
 
-          <aside className="min-w-0 space-y-6 xl:sticky xl:top-32 xl:max-h-[calc(100dvh-144px)] xl:overflow-y-auto xl:pr-1">
+          <aside className="min-w-0 space-y-6">
             {canModerate ? (
               <div id="post-reports" className="scroll-mt-32">
                 <FormSection

@@ -437,7 +437,7 @@ describe("WebsiteContentEdit", () => {
     expect(websiteContentApi.saveWebsiteContentDraft).not.toHaveBeenCalled();
   });
 
-  it("uses the shared wide editor layout with publish separated from top editing actions", async () => {
+  it("uses the shared wide editor layout with each primary action rendered once", async () => {
     vi.mocked(websiteContentApi.fetchWebsiteContentDraft).mockResolvedValue(draft);
     renderEditor(["website.view", "website.edit", "website.publish"]);
 
@@ -456,10 +456,7 @@ describe("WebsiteContentEdit", () => {
       "href",
       "#website-content-history",
     );
-    expect(within(header!).getByRole("button", { name: "顶部保存草稿" })).toHaveAttribute(
-      "form",
-      "website-content-form",
-    );
+    expect(within(header!).queryByRole("button", { name: "保存草稿" })).toBeNull();
     expect(screen.getAllByRole("button", { name: "preview-saved-draft" })[0]).toBeInTheDocument();
     expect(
       within(header!).queryByRole("button", { name: "顶部发布已保存草稿" }),
@@ -477,6 +474,7 @@ describe("WebsiteContentEdit", () => {
     ).toBeInTheDocument();
     expect(within(footer!).queryByRole("button", { name: "preview-saved-draft" })).toBeNull();
     expect(screen.getAllByRole("button", { name: "preview-saved-draft" })).toHaveLength(1);
+    expect(screen.getAllByRole("button", { name: "保存草稿" })).toHaveLength(1);
   });
 
   it("allows only optional template sections to be hidden and blocks dirty navigation", async () => {

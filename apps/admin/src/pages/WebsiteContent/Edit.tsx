@@ -486,18 +486,6 @@ export default function WebsiteContentEdit() {
               预览已保存草稿
             </Button>
           </PermissionGate>
-          <PermissionGate all={["website.edit"]}>
-            <Button
-              type="submit"
-              aria-label="顶部保存草稿"
-              form="website-content-form"
-              disabled={saveMutation.isPending}
-              loading={saveMutation.isPending}
-            >
-              <Save aria-hidden="true" className="h-4 w-4" />
-              保存草稿
-            </Button>
-          </PermissionGate>
         </>
       }
       footerActions={
