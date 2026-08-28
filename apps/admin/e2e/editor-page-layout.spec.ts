@@ -143,7 +143,11 @@ for (const viewport of viewports) {
     );
     await openAndAssert(
       page,
-      { path: "/website-content/home/edit", title: "编辑 home", action: "顶部保存草稿" },
+      {
+        path: "/website-content/home/edit",
+        title: "编辑 官网首页",
+        action: "顶部保存草稿",
+      },
       viewport,
     );
     await openAndAssert(
