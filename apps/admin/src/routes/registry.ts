@@ -90,7 +90,8 @@ function lazyRoute(component: LazyRouteComponent, label: string): ReactNode {
           {
             "aria-live": "polite",
             "aria-label": `正在加载${label}`,
-            className: "rounded-xl border border-slate-200 bg-white p-8 text-center text-slate-600",
+            className:
+              "rounded-xl border border-border bg-surface p-8 text-center text-text-secondary shadow-panel",
           },
           `正在加载${label}…`,
         ),

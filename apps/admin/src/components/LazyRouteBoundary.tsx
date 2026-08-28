@@ -1,4 +1,6 @@
+import { RefreshCw } from "lucide-react";
 import { Component, type ReactNode } from "react";
+import { Button, StatePanel } from "./ui";
 
 interface LazyRouteBoundaryProps {
   children: ReactNode;
@@ -33,21 +35,20 @@ export class LazyRouteBoundary extends Component<LazyRouteBoundaryProps, LazyRou
       const label = this.props.label?.trim() || "页面";
 
       return (
-        <section
+        <StatePanel
           role="alert"
           aria-label="页面资源加载失败"
-          className="rounded-xl border border-red-200 bg-red-50 p-6 text-red-950"
-        >
-          <h1 className="text-xl font-semibold">{label}加载失败</h1>
-          <p className="mt-2 leading-6">页面资源暂时无法获取，网络恢复后可重新加载页面。</p>
-          <button
-            type="button"
-            onClick={this.retry}
-            className="mt-4 min-h-11 cursor-pointer rounded-lg bg-red-800 px-4 py-2 font-semibold text-white outline-none hover:bg-red-900 focus-visible:ring-2 focus-visible:ring-red-900 focus-visible:ring-offset-2"
-          >
-            重新加载页面
-          </button>
-        </section>
+          tone="danger"
+          icon={<RefreshCw aria-hidden="true" className="h-5 w-5" />}
+          title={`${label}加载失败`}
+          description="页面资源暂时无法获取，网络恢复后可重新加载页面。"
+          action={
+            <Button intent="dangerOutline" onClick={this.retry}>
+              <RefreshCw aria-hidden="true" className="h-4 w-4" />
+              重新加载页面
+            </Button>
+          }
+        />
       );
     }
 

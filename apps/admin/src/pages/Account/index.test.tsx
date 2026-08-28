@@ -113,6 +113,18 @@ describe("Account", () => {
     expect(await screen.findByRole("status")).toHaveTextContent("昵称已保存");
   });
 
+  it("uses the shared page shell and separates profile from the sticky security rail", async () => {
+    renderAccount();
+
+    const heading = await screen.findByRole("heading", { name: "个人中心" });
+    const page = heading.closest("div.mx-auto");
+    const passwordSection = document.getElementById("password");
+
+    expect(page).toHaveClass("max-w-[var(--admin-content-width)]", "gap-6");
+    expect(passwordSection?.parentElement).toHaveClass("xl:grid-cols-[minmax(0,1fr)_400px]");
+    expect(passwordSection).toHaveClass("xl:sticky", "xl:top-28");
+  });
+
   it("validates avatar input locally and restores the default avatar", async () => {
     const user = userEvent.setup();
     const { container } = renderAccount();

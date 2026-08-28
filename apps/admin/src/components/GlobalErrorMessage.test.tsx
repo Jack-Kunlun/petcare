@@ -11,7 +11,7 @@ describe("GlobalErrorMessage", () => {
 
   afterEach(() => vi.useRealTimers());
 
-  it("shows only the first normal error for three seconds", () => {
+  it("shows only the first normal error for six seconds", () => {
     render(<GlobalErrorMessage />);
     act(() => {
       showGlobalError("第一个错误");
@@ -19,7 +19,10 @@ describe("GlobalErrorMessage", () => {
     });
 
     expect(screen.getByRole("alert")).toHaveTextContent("第一个错误");
-    act(() => vi.advanceTimersByTime(3_000));
+    expect(screen.getByRole("alert")).toHaveAttribute("data-priority", "normal");
+    expect(screen.getByRole("alert")).toHaveTextContent("操作未完成");
+    expect(screen.getByRole("alert")).toHaveClass("sm:right-4", "bg-surface");
+    act(() => vi.advanceTimersByTime(6_000));
     expect(screen.queryByRole("alert")).not.toBeInTheDocument();
 
     act(() => showGlobalError("三秒后的新错误"));
@@ -34,5 +37,7 @@ describe("GlobalErrorMessage", () => {
     act(() => vi.advanceTimersByTime(1_500));
 
     expect(screen.getByRole("alert")).toHaveTextContent("登录状态已失效");
+    expect(screen.getByRole("alert")).toHaveTextContent("登录状态异常");
+    expect(screen.getByRole("alert")).toHaveAttribute("data-priority", "session");
   });
 });

@@ -1,8 +1,9 @@
-import { KeyRound } from "lucide-react";
+import { KeyRound, ShieldCheck } from "lucide-react";
 import { type FormEvent, type RefObject, useState } from "react";
 import { useNavigate } from "react-router-dom";
 import { changeAdminPassword } from "../../api/admin-account";
 import { useAuth } from "../../auth/auth.context";
+import { Badge, Button, Input } from "../../components/ui";
 import { showApiError } from "../../lib/global-error";
 
 interface PasswordCardProps {
@@ -57,71 +58,81 @@ export function PasswordCard({ currentPasswordRef, sectionRef }: PasswordCardPro
       id="password"
       ref={sectionRef}
       tabIndex={-1}
-      className="min-w-0 rounded-xl border border-slate-200 bg-white p-5 shadow-sm outline-none sm:p-6"
+      className="form-section min-w-0 scroll-mt-28 rounded-xl border border-border bg-surface p-6 shadow-panel outline-none focus-visible:ring-2 focus-visible:ring-brand-primary xl:sticky xl:top-28"
     >
       <div className="flex items-start gap-3">
-        <span className="flex h-11 w-11 shrink-0 items-center justify-center rounded-lg bg-blue-50 text-blue-700">
+        <span className="flex h-11 w-11 shrink-0 items-center justify-center rounded-xl bg-brand-soft text-brand-primary">
           <KeyRound aria-hidden="true" className="h-5 w-5" />
         </span>
         <div>
-          <h2 className="text-xl font-semibold text-slate-950">修改密码</h2>
-          <p className="mt-1 leading-6 text-slate-600">
+          <h2 className="text-lg font-semibold text-text-primary">修改密码</h2>
+          <p className="mt-1 text-sm leading-6 text-text-secondary">
             修改后需要重新登录，其他设备的登录状态也会失效。
           </p>
         </div>
       </div>
 
-      <form className="mt-6 grid max-w-[576px] gap-5" onSubmit={(event) => void submit(event)}>
-        <label className="block text-sm font-medium text-slate-700">
+      <div className="mt-5 flex items-start gap-3 rounded-xl border border-warning-border bg-warning-soft p-4 text-sm text-text-primary">
+        <ShieldCheck aria-hidden="true" className="mt-0.5 h-4 w-4 shrink-0 text-warning" />
+        <div>
+          <p className="font-semibold">安全要求</p>
+          <p className="mt-1 leading-5 text-text-secondary">
+            新密码至少 12 位，修改后全部会话失效。
+          </p>
+        </div>
+      </div>
+
+      <form className="mt-5 grid gap-4" onSubmit={(event) => void submit(event)}>
+        <label className="block text-sm font-medium text-text-primary">
           当前密码
-          <input
+          <Input
             ref={currentPasswordRef}
             type="password"
             autoComplete="current-password"
             value={currentPassword}
             disabled={pending}
             onChange={(event) => setCurrentPassword(event.target.value)}
-            className="mt-2 h-11 w-full rounded-lg border border-slate-300 bg-white px-3 text-slate-900 outline-none transition-colors hover:border-blue-500 focus-visible:border-blue-600 focus-visible:ring-2 focus-visible:ring-blue-600/20 disabled:cursor-not-allowed disabled:bg-slate-100"
+            className="mt-2"
           />
         </label>
-        <label className="block text-sm font-medium text-slate-700">
+        <label className="block text-sm font-medium text-text-primary">
           新密码
-          <input
+          <Input
             type="password"
             autoComplete="new-password"
             value={newPassword}
             disabled={pending}
             onChange={(event) => setNewPassword(event.target.value)}
-            className="mt-2 h-11 w-full rounded-lg border border-slate-300 bg-white px-3 text-slate-900 outline-none transition-colors hover:border-blue-500 focus-visible:border-blue-600 focus-visible:ring-2 focus-visible:ring-blue-600/20 disabled:cursor-not-allowed disabled:bg-slate-100"
+            className="mt-2"
           />
         </label>
-        <label className="block text-sm font-medium text-slate-700">
+        <label className="block text-sm font-medium text-text-primary">
           确认新密码
-          <input
+          <Input
             type="password"
             autoComplete="new-password"
             value={confirmation}
             disabled={pending}
             onChange={(event) => setConfirmation(event.target.value)}
-            className="mt-2 h-11 w-full rounded-lg border border-slate-300 bg-white px-3 text-slate-900 outline-none transition-colors hover:border-blue-500 focus-visible:border-blue-600 focus-visible:ring-2 focus-visible:ring-blue-600/20 disabled:cursor-not-allowed disabled:bg-slate-100"
+            className="mt-2"
           />
         </label>
         {error ? (
           <p
             role="alert"
-            className="rounded-lg border border-red-200 bg-red-50 px-3 py-2 text-sm text-red-800"
+            className="rounded-lg border border-danger-border bg-danger-soft px-3 py-2 text-sm text-danger-strong"
           >
             {error}
           </p>
         ) : null}
-        <button
-          type="submit"
-          disabled={pending}
-          className="inline-flex min-h-11 w-full cursor-pointer items-center justify-center rounded-lg bg-blue-700 px-4 py-2 font-semibold text-white outline-none transition-colors hover:bg-blue-800 focus-visible:ring-2 focus-visible:ring-blue-700 focus-visible:ring-offset-2 disabled:cursor-not-allowed disabled:bg-slate-400 sm:w-fit"
-        >
-          {pending ? "修改中…" : "修改密码"}
-        </button>
+        <Button type="submit" loading={pending} className="w-full">
+          修改密码
+        </Button>
       </form>
+
+      <div className="mt-5 border-t border-border pt-4">
+        <Badge tone="neutral">需要重新登录</Badge>
+      </div>
     </section>
   );
 }
