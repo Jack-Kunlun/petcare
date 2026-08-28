@@ -63,6 +63,8 @@ describe("UserManagement", () => {
     });
     expect(screen.queryByText("宠托师")).not.toBeInTheDocument();
     expect(screen.queryByText("认证状态")).not.toBeInTheDocument();
+    expect(screen.getByRole("searchbox", { name: "搜索用户" })).toHaveClass("h-10");
+    expect(screen.getByRole("combobox", { name: "账号状态" })).toHaveClass("h-10");
   });
 
   it("提交关键词后重新查询第一页", async () => {

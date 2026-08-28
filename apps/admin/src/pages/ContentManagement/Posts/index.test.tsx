@@ -55,6 +55,7 @@ describe("ContentPosts", () => {
     expect(screen.getByText("举报 2")).toBeTruthy();
     expect(within(screen.getByRole("table")).getByText("已发布")).toBeTruthy();
     expect(screen.getByText("共 1 条帖子")).toBeTruthy();
+    expect(screen.getByRole("table")).toHaveClass("min-w-[900px]");
     expect(screen.getByRole("link", { name: "查看详情" })).toHaveAttribute(
       "href",
       "/content/posts/post-1",

@@ -1,17 +1,28 @@
 import type { AdminUserListItem, AdminUserStatus } from "@petcare/shared-types";
 import { keepPreviousData, useQuery } from "@tanstack/react-query";
-import {
-  AlertCircle,
-  ChevronLeft,
-  ChevronRight,
-  RotateCcw,
-  Search,
-  UserRound,
-  Users,
-} from "lucide-react";
+import { AlertCircle, RotateCcw, UserRound, Users } from "lucide-react";
 import { useState } from "react";
 import type { FormEvent } from "react";
 import { fetchAdminUsers } from "../../api/users";
+import {
+  Badge,
+  Button,
+  DataPanel,
+  DataTable,
+  DataTableBody,
+  DataTableCell,
+  DataTableHead,
+  DataTableHeadCell,
+  DataTableRow,
+  FilterBar,
+  ListSkeleton,
+  PageHeader,
+  PageShell,
+  Pagination,
+  SearchInput,
+  Select,
+  StatePanel,
+} from "../../components/ui";
 
 const PAGE_SIZE = 20;
 
@@ -21,10 +32,10 @@ const statusLabels: Record<AdminUserStatus, string> = {
   banned: "已封禁",
 };
 
-const statusClasses: Record<AdminUserStatus, string> = {
-  active: "bg-emerald-50 text-emerald-700 ring-emerald-600/20",
-  inactive: "bg-slate-100 text-slate-600 ring-slate-500/20",
-  banned: "bg-red-50 text-red-700 ring-red-600/20",
+const statusTones: Record<AdminUserStatus, "success" | "neutral" | "danger"> = {
+  active: "success",
+  inactive: "neutral",
+  banned: "danger",
 };
 
 /** 将 ISO 时间格式化为用户列表使用的本地日期。 */
@@ -37,33 +48,22 @@ function formatDate(value: string): string {
 }
 
 function StatusBadge({ status }: { status: AdminUserStatus }) {
-  return (
-    <span
-      className={`inline-flex items-center rounded-full px-2 py-1 text-xs font-medium ring-1 ring-inset ${statusClasses[status]}`}
-    >
-      {statusLabels[status]}
-    </span>
-  );
+  return <Badge tone={statusTones[status]}>{statusLabels[status]}</Badge>;
 }
 
 function UserIdentity({ user }: { user: AdminUserListItem }) {
   return (
     <div className="flex min-w-0 items-center gap-3">
-      <span className="flex h-9 w-9 shrink-0 items-center justify-center rounded-full bg-blue-50 font-semibold text-blue-700">
+      <span className="flex h-9 w-9 shrink-0 items-center justify-center overflow-hidden rounded-full bg-brand-soft font-semibold text-brand-primary">
         {user.avatar ? (
-          <img
-            src={user.avatar}
-            alt=""
-            className="h-full w-full rounded-full object-cover"
-            loading="lazy"
-          />
+          <img src={user.avatar} alt="" className="h-full w-full object-cover" loading="lazy" />
         ) : (
           user.nickname.slice(0, 1).toUpperCase()
         )}
       </span>
       <div className="min-w-0">
-        <p className="truncate font-medium text-slate-900">{user.nickname}</p>
-        <p className="truncate text-xs text-slate-500">@{user.username ?? "未设置账号"}</p>
+        <p className="truncate font-medium text-text-primary">{user.nickname}</p>
+        <p className="truncate text-xs text-text-secondary">@{user.username ?? "未设置账号"}</p>
       </div>
     </div>
   );
@@ -107,162 +107,111 @@ export default function UserManagement() {
   }
 
   return (
-    <div className="mx-auto flex w-full max-w-[1600px] flex-col gap-6 text-text-primary">
-      <section className="flex flex-col justify-between gap-4 sm:flex-row sm:items-end">
-        <div>
-          <p className="mb-1 text-sm font-medium text-blue-700">账户资料</p>
-          <h1 className="text-2xl font-semibold tracking-tight text-slate-950">用户资料</h1>
-          <p className="mt-1 text-sm text-slate-500">查询当前账户资料与账号状态。</p>
-        </div>
-        <div className="flex items-center gap-2 self-start rounded-lg border border-slate-200 bg-white px-3 py-2 shadow-sm sm:self-auto">
-          <Users aria-hidden="true" className="h-4 w-4 text-blue-700" />
-          <span className="text-sm font-medium text-slate-700">共 {total} 位用户</span>
-        </div>
-      </section>
+    <PageShell>
+      <PageHeader
+        actions={
+          <Badge className="h-9 px-3" tone="brand">
+            <Users aria-hidden="true" className="h-4 w-4" />共 {total} 位用户
+          </Badge>
+        }
+        description="查询当前账户资料与账号状态。"
+        eyebrow="账户资料"
+        title="用户资料"
+      />
 
-      <section
+      <FilterBar
         aria-label="用户筛选"
-        className="rounded-xl border border-border bg-white p-4 shadow-sm transition-[box-shadow,border-color,background-color] duration-200 hover:border-brand-primary/30 hover:shadow-md"
+        className="lg:grid-cols-[minmax(260px,1fr)_160px_auto]"
+        onSubmit={submitSearch}
       >
-        <form
-          className="grid gap-3 lg:grid-cols-[minmax(260px,1fr)_160px_auto]"
-          onSubmit={submitSearch}
+        <SearchInput
+          aria-label="搜索用户"
+          className="h-10"
+          onChange={(event) => setKeywordInput(event.target.value)}
+          placeholder="搜索手机号、账号或昵称"
+          value={keywordInput}
+        />
+
+        <Select
+          aria-label="账号状态"
+          onChange={(event) => {
+            setStatus((event.target.value || undefined) as AdminUserStatus | undefined);
+            setPage(1);
+          }}
+          value={status ?? ""}
         >
-          <label className="relative block">
-            <span className="sr-only">搜索用户</span>
-            <Search
-              aria-hidden="true"
-              className="pointer-events-none absolute left-3 top-1/2 h-4 w-4 -translate-y-1/2 text-slate-400"
-            />
-            <input
-              type="search"
-              aria-label="搜索用户"
-              value={keywordInput}
-              onChange={(event) => setKeywordInput(event.target.value)}
-              placeholder="搜索手机号、账号或昵称"
-              className="h-11 w-full rounded-lg border border-border bg-white pl-9 pr-3 text-sm text-text-primary outline-none transition-colors placeholder:text-text-secondary hover:border-brand-primary/60 focus-visible:border-brand-primary focus-visible:ring-2 focus-visible:ring-brand-primary/20"
-            />
-          </label>
+          <option value="">全部账号状态</option>
+          <option value="active">正常</option>
+          <option value="inactive">未激活</option>
+          <option value="banned">已封禁</option>
+        </Select>
 
-          <label>
-            <span className="sr-only">账号状态</span>
-            <select
-              aria-label="账号状态"
-              value={status ?? ""}
-              onChange={(event) => {
-                setStatus((event.target.value || undefined) as AdminUserStatus | undefined);
-                setPage(1);
-              }}
-              className="h-11 w-full cursor-pointer rounded-lg border border-border bg-white px-3 text-sm text-text-secondary outline-none transition-colors hover:border-brand-primary/60 active:bg-page-background focus-visible:border-brand-primary focus-visible:ring-2 focus-visible:ring-brand-primary/20"
-            >
-              <option value="">全部账号状态</option>
-              <option value="active">正常</option>
-              <option value="inactive">未激活</option>
-              <option value="banned">已封禁</option>
-            </select>
-          </label>
+        <div className="flex gap-2">
+          <Button className="flex-1 lg:flex-none" type="submit">
+            查询
+          </Button>
+          <Button aria-label="重置筛选" intent="secondary" onClick={resetFilters} size="icon">
+            <RotateCcw aria-hidden="true" className="h-4 w-4" />
+          </Button>
+        </div>
+      </FilterBar>
 
-          <div className="flex gap-2">
-            <button
-              type="submit"
-              className="inline-flex h-11 flex-1 cursor-pointer items-center justify-center rounded-lg bg-brand-primary px-4 text-sm font-semibold text-white transition-colors hover:bg-brand-primary-hover active:bg-brand-primary-hover focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-brand-primary focus-visible:ring-offset-2 disabled:cursor-not-allowed disabled:bg-slate-400 lg:flex-none"
-            >
-              查询
-            </button>
-            <button
-              type="button"
-              aria-label="重置筛选"
-              className="flex h-11 w-11 cursor-pointer items-center justify-center rounded-lg border border-border text-text-secondary transition-colors hover:border-brand-primary/60 hover:bg-page-background hover:text-text-primary active:bg-slate-100 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-brand-primary disabled:cursor-not-allowed disabled:bg-slate-100 disabled:text-slate-400"
-              onClick={resetFilters}
-            >
-              <RotateCcw aria-hidden="true" className="h-4 w-4" />
-            </button>
-          </div>
-        </form>
-      </section>
-
-      <section
-        aria-label="用户列表"
-        className="overflow-hidden rounded-xl border border-border bg-white shadow-sm transition-[box-shadow,border-color,background-color] duration-200 hover:border-brand-primary/30 hover:shadow-md"
-      >
-        {query.isPending && (
-          <div aria-label="正在加载用户" className="space-y-3 p-5">
-            {Array.from({ length: 5 }, (_, index) => (
-              <div
-                key={index}
-                className="h-14 rounded-lg bg-slate-100 animate-[pc-skeleton-shimmer_220ms_linear_infinite] motion-reduce:animate-none"
-              />
-            ))}
-          </div>
-        )}
+      <DataPanel aria-label="用户列表">
+        {query.isPending && <ListSkeleton label="正在加载用户" />}
         {query.isError && (
-          <div className="flex min-h-64 flex-col items-center justify-center px-6 py-12 text-center">
-            <span className="rounded-full bg-red-50 p-3 text-red-700">
-              <AlertCircle aria-hidden="true" className="h-6 w-6" />
-            </span>
-            <h2 className="mt-4 font-semibold text-slate-900">用户列表加载失败</h2>
-            <p className="mt-1 text-sm text-slate-500">请检查服务端连接后重试。</p>
-            <button
-              type="button"
-              className="mt-4 h-11 cursor-pointer rounded-lg border border-slate-300 px-4 text-sm font-medium text-slate-700 hover:bg-slate-50 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-blue-600"
-              onClick={() => void query.refetch()}
-            >
-              重新加载
-            </button>
-          </div>
+          <StatePanel
+            action={
+              <Button intent="secondary" onClick={() => void query.refetch()}>
+                重新加载
+              </Button>
+            }
+            description="请检查服务端连接后重试。"
+            icon={<AlertCircle aria-hidden="true" className="h-6 w-6" />}
+            title="用户列表加载失败"
+            tone="danger"
+          />
         )}
         {!query.isPending && !query.isError && query.data?.list.length === 0 && (
-          <div className="flex min-h-64 flex-col items-center justify-center px-6 py-12 text-center">
-            <span className="rounded-full bg-slate-100 p-3 text-slate-500">
-              <UserRound aria-hidden="true" className="h-6 w-6" />
-            </span>
-            <h2 className="mt-4 font-semibold text-slate-900">没有找到用户</h2>
-            <p className="mt-1 text-sm text-slate-500">调整关键词或筛选条件后再试。</p>
-          </div>
+          <StatePanel
+            description="调整关键词或筛选条件后再试。"
+            icon={<UserRound aria-hidden="true" className="h-6 w-6" />}
+            title="没有找到用户"
+          />
         )}
         {!query.isPending && !query.isError && query.data && query.data.list.length > 0 && (
           <>
-            <div className="hidden overflow-x-auto md:block">
-              <table className="w-full border-collapse text-left">
+            <div className="hidden md:block">
+              <DataTable>
                 <caption className="sr-only">用户资料列表</caption>
-                <thead className="border-b border-slate-200 bg-slate-50/80">
+                <DataTableHead>
                   <tr>
                     {["用户", "手机号", "账号状态", "注册时间"].map((heading) => (
-                      <th
-                        key={heading}
-                        scope="col"
-                        className="whitespace-nowrap px-5 py-3 text-xs font-semibold text-slate-500"
-                      >
-                        {heading}
-                      </th>
+                      <DataTableHeadCell key={heading}>{heading}</DataTableHeadCell>
                     ))}
                   </tr>
-                </thead>
-                <tbody className="divide-y divide-slate-100">
+                </DataTableHead>
+                <DataTableBody>
                   {query.data.list.map((user) => (
-                    <tr
-                      key={user.id}
-                      className="border-border transition-[background-color,border-color] duration-200 hover:bg-page-background hover:border-border"
-                    >
-                      <td className="px-5 py-4">
+                    <DataTableRow key={user.id}>
+                      <DataTableCell>
                         <UserIdentity user={user} />
-                      </td>
-                      <td className="whitespace-nowrap px-5 py-4 text-sm tabular-nums text-slate-600">
+                      </DataTableCell>
+                      <DataTableCell className="whitespace-nowrap tabular-nums text-text-secondary">
                         {user.phone}
-                      </td>
-                      <td className="whitespace-nowrap px-5 py-4">
+                      </DataTableCell>
+                      <DataTableCell className="whitespace-nowrap">
                         <StatusBadge status={user.status} />
-                      </td>
-                      <td className="whitespace-nowrap px-5 py-4 text-sm tabular-nums text-slate-500">
+                      </DataTableCell>
+                      <DataTableCell className="whitespace-nowrap tabular-nums text-text-secondary">
                         {formatDate(user.createdAt)}
-                      </td>
-                    </tr>
+                      </DataTableCell>
+                    </DataTableRow>
                   ))}
-                </tbody>
-              </table>
+                </DataTableBody>
+              </DataTable>
             </div>
 
-            <ul className="divide-y divide-slate-100 md:hidden">
+            <ul className="divide-y divide-border md:hidden">
               {query.data.list.map((user) => (
                 <li key={user.id} className="space-y-3 p-4">
                   <div className="flex items-start justify-between gap-3">
@@ -271,12 +220,12 @@ export default function UserManagement() {
                   </div>
                   <dl className="grid grid-cols-2 gap-3 text-xs">
                     <div>
-                      <dt className="text-slate-400">手机号</dt>
-                      <dd className="mt-1 tabular-nums text-slate-700">{user.phone}</dd>
+                      <dt className="text-text-muted">手机号</dt>
+                      <dd className="mt-1 tabular-nums text-text-primary">{user.phone}</dd>
                     </div>
                     <div>
-                      <dt className="text-slate-400">注册时间</dt>
-                      <dd className="mt-1 tabular-nums text-slate-700">
+                      <dt className="text-text-muted">注册时间</dt>
+                      <dd className="mt-1 tabular-nums text-text-primary">
                         {formatDate(user.createdAt)}
                       </dd>
                     </div>
@@ -288,33 +237,17 @@ export default function UserManagement() {
         )}
 
         {!query.isPending && !query.isError && total > 0 ? (
-          <div className="flex flex-col gap-3 border-t border-slate-200 px-4 py-3 sm:flex-row sm:items-center sm:justify-between">
-            <p className="text-xs text-slate-500">
-              第 {page} / {totalPages} 页，每页 {PAGE_SIZE} 条
-            </p>
-            <div className="flex items-center gap-2">
-              <button
-                type="button"
-                aria-label="上一页"
-                disabled={page <= 1 || query.isFetching}
-                className="flex h-10 w-10 cursor-pointer items-center justify-center rounded-lg border border-slate-300 text-slate-600 transition-colors hover:bg-slate-50 disabled:cursor-not-allowed disabled:opacity-40 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-blue-600"
-                onClick={() => setPage((current) => Math.max(1, current - 1))}
-              >
-                <ChevronLeft aria-hidden="true" className="h-4 w-4" />
-              </button>
-              <button
-                type="button"
-                aria-label="下一页"
-                disabled={page >= totalPages || query.isFetching}
-                className="flex h-10 w-10 cursor-pointer items-center justify-center rounded-lg border border-slate-300 text-slate-600 transition-colors hover:bg-slate-50 disabled:cursor-not-allowed disabled:opacity-40 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-blue-600"
-                onClick={() => setPage((current) => Math.min(totalPages, current + 1))}
-              >
-                <ChevronRight aria-hidden="true" className="h-4 w-4" />
-              </button>
-            </div>
-          </div>
+          <Pagination
+            disabled={query.isFetching}
+            itemLabel="位用户"
+            onPageChange={setPage}
+            page={page}
+            pageSize={PAGE_SIZE}
+            total={total}
+            totalPages={totalPages}
+          />
         ) : null}
-      </section>
-    </div>
+      </DataPanel>
+    </PageShell>
   );
 }

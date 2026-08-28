@@ -78,7 +78,7 @@ describe("Rbac role management", () => {
     expect(await screen.findByRole("heading", { name: "角色管理" })).toBeInTheDocument();
     expect(await screen.findByText("运营专员")).toBeInTheDocument();
     expect(rbacApi.fetchRbacRoles).toHaveBeenCalledWith({ page: 1, pageSize: 10 });
-    expect(screen.getByText("第 1 / 2 页，每页 10 条")).toBeInTheDocument();
+    expect(screen.getByText("第 1 / 2 页 · 共 11 个角色 · 每页 10 条")).toBeInTheDocument();
     expect(screen.queryByRole("tablist")).not.toBeInTheDocument();
 
     await user.click(screen.getByRole("button", { name: "下一页" }));

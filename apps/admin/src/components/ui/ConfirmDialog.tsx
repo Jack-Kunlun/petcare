@@ -12,11 +12,13 @@ export interface ConfirmDialogProps {
   cancelLabel?: ReactNode;
   confirmTone?: "primary" | "danger";
   pending?: boolean;
+  children?: ReactNode;
 }
 
 /** Shared confirmation dialog with safe focus placement and explicit action hierarchy. */
 export function ConfirmDialog({
   cancelLabel = "取消",
+  children,
   confirmLabel = "确认",
   confirmTone = "primary",
   description,
@@ -35,6 +37,7 @@ export function ConfirmDialog({
           <Dialog.Description className="mt-2 text-sm leading-6 text-text-secondary">
             {description}
           </Dialog.Description>
+          {children}
           <div className="mt-6 flex flex-wrap justify-end gap-3">
             <Button
               autoFocus

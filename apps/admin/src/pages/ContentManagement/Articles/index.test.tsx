@@ -248,7 +248,7 @@ describe("ContentArticles", () => {
     await screen.findByText(draftArticle.title);
 
     expect(screen.getByRole("heading", { name: "文章管理" })).toBeInTheDocument();
-    expect(screen.getByText("共 3 篇文章").parentElement).toHaveClass("h-10");
+    expect(screen.getByText("共 3 篇文章")).toHaveClass("h-10");
     expect(screen.getByRole("link", { name: "新建文章" })).toHaveClass("h-10");
     expect(screen.getByRole("searchbox", { name: "搜索文章" })).toHaveClass("h-10");
     expect(screen.getByRole("combobox", { name: "文章状态" })).toHaveClass("h-10");

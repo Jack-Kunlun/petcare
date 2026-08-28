@@ -5,6 +5,17 @@ import { describe, expect, it, vi } from "vitest";
 import { Badge } from "./Badge";
 import { Button } from "./Button";
 import { ConfirmDialog } from "./ConfirmDialog";
+import {
+  DataPanel,
+  DataTable,
+  DataTableBody,
+  DataTableCell,
+  DataTableHead,
+  DataTableHeadCell,
+  DataTableRow,
+  FilterBar,
+  Pagination,
+} from "./DataList";
 import { Field, Input } from "./FormControls";
 import { PageHeader, PageShell } from "./PageShell";
 import { Panel } from "./Panel";
@@ -100,5 +111,46 @@ describe("Admin UI foundation", () => {
     await user.click(screen.getByRole("button", { name: "删除" }));
     expect(onConfirm).toHaveBeenCalledTimes(1);
     expect(onOpenChange).not.toHaveBeenCalled();
+  });
+
+  it("shares one filter, table, and pagination structure across list pages", async () => {
+    const user = userEvent.setup();
+    const onPageChange = vi.fn();
+
+    render(
+      <>
+        <FilterBar aria-label="内容筛选">
+          <Input aria-label="关键词" />
+        </FilterBar>
+        <DataPanel aria-label="内容列表">
+          <DataTable minWidthClassName="min-w-[760px]">
+            <DataTableHead>
+              <tr>
+                <DataTableHeadCell>标题</DataTableHeadCell>
+              </tr>
+            </DataTableHead>
+            <DataTableBody>
+              <DataTableRow>
+                <DataTableCell>示例内容</DataTableCell>
+              </DataTableRow>
+            </DataTableBody>
+          </DataTable>
+          <Pagination
+            itemLabel="条内容"
+            onPageChange={onPageChange}
+            page={1}
+            pageSize={20}
+            total={21}
+            totalPages={2}
+          />
+        </DataPanel>
+      </>,
+    );
+
+    expect(screen.getByRole("form", { name: "内容筛选" })).toBeInTheDocument();
+    expect(screen.getByRole("region", { name: "内容列表" })).toHaveClass("shadow-panel");
+    expect(screen.getByRole("table")).toHaveClass("min-w-[760px]");
+    await user.click(screen.getByRole("button", { name: "下一页" }));
+    expect(onPageChange).toHaveBeenCalledWith(2);
   });
 });

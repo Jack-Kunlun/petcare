@@ -1,3 +1,4 @@
+import { Search } from "lucide-react";
 import {
   forwardRef,
   type InputHTMLAttributes,
@@ -61,6 +62,21 @@ export function Field({
 export const Input = forwardRef<HTMLInputElement, InputHTMLAttributes<HTMLInputElement>>(
   function Input({ className, ...props }, ref) {
     return <input ref={ref} className={cn(controlClassName, "h-10 px-3", className)} {...props} />;
+  },
+);
+
+/** Search control with a shared leading icon and input spacing. */
+export const SearchInput = forwardRef<HTMLInputElement, InputHTMLAttributes<HTMLInputElement>>(
+  function SearchInput({ className, type = "search", ...props }, ref) {
+    return (
+      <span className="relative block">
+        <Search
+          aria-hidden="true"
+          className="pointer-events-none absolute left-3 top-1/2 z-10 h-4 w-4 -translate-y-1/2 text-text-muted"
+        />
+        <Input ref={ref} className={cn("pl-9", className)} type={type} {...props} />
+      </span>
+    );
   },
 );
 
