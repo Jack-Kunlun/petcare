@@ -207,7 +207,7 @@ describe("support content mappers", () => {
       kind: "phone",
       value: "4008886288",
     });
-    expect(getContactAction("tel:13800138000")).toEqual({
+    expect(getContactAction("tel:+86 138-0013-8000")).toEqual({
       kind: "phone",
       value: "+8613800138000",
     });
