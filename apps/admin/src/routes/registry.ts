@@ -16,6 +16,7 @@ const RbacEdit = lazy(() => import("../pages/Rbac/Edit"));
 const RbacCatalog = lazy(() => import("../pages/Rbac/Catalog"));
 const SharedContent = lazy(() => import("../pages/SharedContent"));
 const UserManagement = lazy(() => import("../pages/UserManagement"));
+const UserDetail = lazy(() => import("../pages/UserManagement/Detail"));
 const WebsiteContent = lazy(() => import("../pages/WebsiteContent"));
 const WebsiteContentEdit = lazy(() => import("../pages/WebsiteContent/Edit"));
 const WebsiteContentDetail = lazy(() => import("../pages/WebsiteContent/Detail"));
@@ -120,6 +121,17 @@ export const ADMIN_ROUTE_REGISTRY: readonly AdminRouteDefinition[] = [
   },
   catalogMenuRoute("dashboard", "stats.view", Dashboard),
   catalogMenuRoute("users", "user.view", UserManagement, "用户列表"),
+  {
+    id: "user-detail",
+    path: "/users/:id",
+    element: lazyRoute(UserDetail, "用户详情"),
+    menuPermission: null,
+    requiredPermissions: ["user.view"],
+    parentPath: "/users",
+    order: 0,
+    icon: null,
+    menuLabel: null,
+  },
   catalogMenuRoute("content", "content.view", ContentManagement, "内容概览"),
   catalogMenuRoute("content-posts", "content.post.view", ContentPosts),
   {

@@ -1,4 +1,4 @@
-import { Controller, Get, Query, UseGuards } from "@nestjs/common";
+import { Controller, Get, Param, ParseUUIDPipe, Query, UseGuards } from "@nestjs/common";
 import { ApiBearerAuth, ApiOperation, ApiTags } from "@nestjs/swagger";
 import { AccessTokenGuard } from "../../auth/access-token.guard";
 import { PermissionGuard } from "../../auth/permission.guard";
@@ -8,7 +8,7 @@ import {
   ApiSuccessResponse,
 } from "../../common/swagger/api-response.decorators";
 import { AdminUserListQueryDto } from "./dto/admin-user-list-query.dto";
-import { AdminUserListResponseDto } from "./dto/user-response.dto";
+import { AdminUserDetailDto, AdminUserListResponseDto } from "./dto/user-response.dto";
 import { UserService } from "./user.service";
 
 @ApiTags("admin-users")
@@ -26,5 +26,15 @@ export class AdminUserController {
   @ApiStandardErrors(400, 401, 403, 500)
   findAll(@Query() query: AdminUserListQueryDto) {
     return this.userService.findAdminPage(query);
+  }
+
+  /** 返回单个后台用户的账户详情。 */
+  @Get(":id")
+  @RequirePermissions("user.read")
+  @ApiOperation({ summary: "获取后台用户详情" })
+  @ApiSuccessResponse(AdminUserDetailDto)
+  @ApiStandardErrors(400, 401, 403, 404, 500)
+  findOne(@Param("id", ParseUUIDPipe) id: string) {
+    return this.userService.findAdminOne(id);
   }
 }

@@ -1,6 +1,6 @@
 import { beforeEach, describe, expect, it, vi } from "vitest";
 import { apiClient } from "./auth";
-import { fetchAdminUsers } from "./users";
+import { fetchAdminUser, fetchAdminUsers } from "./users";
 
 vi.mock("./auth", () => ({
   apiClient: {
@@ -37,5 +37,26 @@ describe("fetchAdminUsers", () => {
         status: "active",
       },
     });
+  });
+
+  it("通过用户标识查询后台用户详情", async () => {
+    const detail = {
+      id: "user-1",
+      phone: null,
+      username: null,
+      nickname: "小宠家长",
+      avatar: null,
+      userType: "pet_owner" as const,
+      status: "active" as const,
+      createdAt: "2026-07-29T00:00:00.000Z",
+      updatedAt: "2026-07-30T00:00:00.000Z",
+      profile: { bio: "喜欢猫咪" },
+      activity: { petCount: 1, postCount: 2, commentCount: 3, favoriteCount: 4 },
+    };
+
+    vi.mocked(apiClient.get).mockResolvedValue({ data: detail });
+
+    await expect(fetchAdminUser("user-1")).resolves.toEqual(detail);
+    expect(apiClient.get).toHaveBeenCalledWith("/admin/users/user-1");
   });
 });

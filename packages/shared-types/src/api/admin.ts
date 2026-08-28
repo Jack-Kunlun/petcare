@@ -46,6 +46,32 @@ export interface AdminUserListItem {
   updatedAt: string;
 }
 
+/** 后台用户详情中可展示的非敏感个人资料。 */
+export interface AdminUserDetailProfile {
+  /** 用户自述；未填写时为 null。 */
+  bio: string | null;
+}
+
+/** 后台用户详情中的当前使用概况。 */
+export interface AdminUserActivitySummary {
+  /** 当前关联的宠物档案数量。 */
+  petCount: number;
+  /** 当前创建的社区帖子数量。 */
+  postCount: number;
+  /** 当前创建的评论数量。 */
+  commentCount: number;
+  /** 当前收藏的内容数量。 */
+  favoriteCount: number;
+}
+
+/** 后台用户详情响应。 */
+export interface AdminUserDetail extends AdminUserListItem {
+  /** 可供后台查看的非敏感个人资料；尚未建立资料时为 null。 */
+  profile: AdminUserDetailProfile | null;
+  /** 当前使用概况。 */
+  activity: AdminUserActivitySummary;
+}
+
 /** 后台用户分页查询参数。 */
 export interface AdminUserListQuery {
   /** 页码，从 1 开始。 */

@@ -1,8 +1,9 @@
 import type { AdminUserListItem, AdminUserStatus } from "@petcare/shared-types";
 import { keepPreviousData, useQuery } from "@tanstack/react-query";
-import { AlertCircle, RotateCcw, UserRound, Users } from "lucide-react";
+import { AlertCircle, Eye, RotateCcw, UserRound, Users } from "lucide-react";
 import { useState } from "react";
 import type { FormEvent } from "react";
+import { Link } from "react-router-dom";
 import { fetchAdminUsers } from "../../api/users";
 import {
   Badge,
@@ -23,20 +24,9 @@ import {
   Select,
   StatePanel,
 } from "../../components/ui";
+import { UserStatusBadge } from "./UserStatusBadge";
 
 const PAGE_SIZE = 20;
-
-const statusLabels: Record<AdminUserStatus, string> = {
-  active: "正常",
-  inactive: "未激活",
-  banned: "已封禁",
-};
-
-const statusTones: Record<AdminUserStatus, "success" | "neutral" | "danger"> = {
-  active: "success",
-  inactive: "neutral",
-  banned: "danger",
-};
 
 /** 将 ISO 时间格式化为用户列表使用的本地日期。 */
 function formatDate(value: string): string {
@@ -45,10 +35,6 @@ function formatDate(value: string): string {
     month: "2-digit",
     day: "2-digit",
   }).format(new Date(value));
-}
-
-function StatusBadge({ status }: { status: AdminUserStatus }) {
-  return <Badge tone={statusTones[status]}>{statusLabels[status]}</Badge>;
 }
 
 function UserIdentity({ user }: { user: AdminUserListItem }) {
@@ -185,7 +171,7 @@ export default function UserManagement() {
                 <caption className="sr-only">用户资料列表</caption>
                 <DataTableHead>
                   <tr>
-                    {["用户", "手机号", "账号状态", "注册时间"].map((heading) => (
+                    {["用户", "手机号", "当前状态", "注册时间", "操作"].map((heading) => (
                       <DataTableHeadCell key={heading}>{heading}</DataTableHeadCell>
                     ))}
                   </tr>
@@ -197,13 +183,21 @@ export default function UserManagement() {
                         <UserIdentity user={user} />
                       </DataTableCell>
                       <DataTableCell className="whitespace-nowrap tabular-nums text-text-secondary">
-                        {user.phone}
+                        {user.phone ?? "未绑定手机号"}
                       </DataTableCell>
                       <DataTableCell className="whitespace-nowrap">
-                        <StatusBadge status={user.status} />
+                        <UserStatusBadge status={user.status} />
                       </DataTableCell>
                       <DataTableCell className="whitespace-nowrap tabular-nums text-text-secondary">
                         {formatDate(user.createdAt)}
+                      </DataTableCell>
+                      <DataTableCell className="whitespace-nowrap text-right">
+                        <Button asChild intent="ghost" size="sm">
+                          <Link to={`/users/${user.id}`}>
+                            <Eye aria-hidden="true" className="h-4 w-4" />
+                            查看详情
+                          </Link>
+                        </Button>
                       </DataTableCell>
                     </DataTableRow>
                   ))}
@@ -216,12 +210,14 @@ export default function UserManagement() {
                 <li key={user.id} className="space-y-3 p-4">
                   <div className="flex items-start justify-between gap-3">
                     <UserIdentity user={user} />
-                    <StatusBadge status={user.status} />
+                    <UserStatusBadge status={user.status} />
                   </div>
                   <dl className="grid grid-cols-2 gap-3 text-xs">
                     <div>
                       <dt className="text-text-muted">手机号</dt>
-                      <dd className="mt-1 tabular-nums text-text-primary">{user.phone}</dd>
+                      <dd className="mt-1 tabular-nums text-text-primary">
+                        {user.phone ?? "未绑定"}
+                      </dd>
                     </div>
                     <div>
                       <dt className="text-text-muted">注册时间</dt>
@@ -230,6 +226,12 @@ export default function UserManagement() {
                       </dd>
                     </div>
                   </dl>
+                  <Button asChild className="w-full" intent="secondary" size="sm">
+                    <Link to={`/users/${user.id}`}>
+                      <Eye aria-hidden="true" className="h-4 w-4" />
+                      查看详情
+                    </Link>
+                  </Button>
                 </li>
               ))}
             </ul>

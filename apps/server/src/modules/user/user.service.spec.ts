@@ -8,6 +8,7 @@ describe("UserService public responses", () => {
     user: {
       count: jest.fn(),
       findFirst: jest.fn(),
+      findUnique: jest.fn(),
       findMany: jest.fn(),
     },
   };
@@ -152,6 +153,63 @@ describe("UserService public responses", () => {
       skip: 10,
       take: 10,
       select: expect.not.objectContaining({ passwordHash: true }),
+    });
+  });
+
+  it("returns one admin user with non-sensitive profile and activity counts", async () => {
+    prisma.user.findUnique.mockResolvedValue({
+      id: "user-1",
+      phone: "13800138000",
+      username: "xiaochong",
+      nickname: "小宠家长",
+      avatar: null,
+      userType: "pet_owner",
+      status: "active",
+      createdAt: new Date("2026-07-29T00:00:00.000Z"),
+      updatedAt: new Date("2026-07-30T00:00:00.000Z"),
+      profile: { bio: "喜欢猫咪" },
+      _count: { pets: 2, posts: 3, comments: 4, favorites: 5 },
+    });
+
+    await expect(service.findAdminOne("user-1")).resolves.toEqual({
+      id: "user-1",
+      phone: "13800138000",
+      username: "xiaochong",
+      nickname: "小宠家长",
+      avatar: null,
+      userType: "pet_owner",
+      status: "active",
+      createdAt: new Date("2026-07-29T00:00:00.000Z"),
+      updatedAt: new Date("2026-07-30T00:00:00.000Z"),
+      profile: { bio: "喜欢猫咪" },
+      activity: { petCount: 2, postCount: 3, commentCount: 4, favoriteCount: 5 },
+    });
+    expect(prisma.user.findUnique).toHaveBeenCalledWith({
+      where: { id: "user-1" },
+      select: {
+        id: true,
+        phone: true,
+        username: true,
+        nickname: true,
+        avatar: true,
+        userType: true,
+        status: true,
+        createdAt: true,
+        updatedAt: true,
+        profile: { select: { bio: true } },
+        _count: {
+          select: { pets: true, posts: true, comments: true, favorites: true },
+        },
+      },
+    });
+  });
+
+  it("returns a stable 404 when the admin user detail does not exist", async () => {
+    prisma.user.findUnique.mockResolvedValue(null);
+
+    await expect(service.findAdminOne("missing-user")).rejects.toMatchObject({
+      code: "RESOURCE_NOT_FOUND",
+      clientMessage: "用户不存在",
     });
   });
 });

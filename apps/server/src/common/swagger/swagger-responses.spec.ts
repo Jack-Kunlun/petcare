@@ -67,6 +67,9 @@ describe("Swagger response documentation", () => {
     expect(responseSchema("/admin/users", "get", "200")).toMatchObject({
       allOf: expect.any(Array),
     });
+    expect(responseSchema("/admin/users/{id}", "get", "200")).toMatchObject({
+      allOf: expect.any(Array),
+    });
   });
 
   it("documents only anonymous-safe public user fields", () => {
@@ -95,6 +98,29 @@ describe("Swagger response documentation", () => {
       page: { type: "number", example: 1 },
       pageSize: { type: "number", example: 20 },
     });
+  });
+
+  it("documents the admin user detail without sensitive profile fields", () => {
+    expect(schemaPropertyNames("AdminUserDetailDto")).toEqual([
+      "activity",
+      "avatar",
+      "createdAt",
+      "id",
+      "nickname",
+      "phone",
+      "profile",
+      "status",
+      "updatedAt",
+      "userType",
+      "username",
+    ]);
+    expect(schemaPropertyNames("AdminUserDetailProfileDto")).toEqual(["bio"]);
+    expect(schemaPropertyNames("AdminUserActivitySummaryDto")).toEqual([
+      "commentCount",
+      "favoriteCount",
+      "petCount",
+      "postCount",
+    ]);
   });
 
   it("documents logout and standard errors", () => {

@@ -53,6 +53,12 @@ describe("UserManagement", () => {
     expect(screen.getByRole("heading", { name: "用户资料" })).toBeInTheDocument();
     expect((await screen.findAllByText("小宠家长"))[0]).toBeInTheDocument();
     expect(screen.getByRole("cell", { name: "13800138000" })).toBeInTheDocument();
+    expect(screen.getByRole("columnheader", { name: "当前状态" })).toBeInTheDocument();
+    expect(screen.getAllByText("正常").length).toBeGreaterThan(0);
+    expect(screen.getAllByRole("link", { name: "查看详情" })[0]).toHaveAttribute(
+      "href",
+      "/users/user-1",
+    );
     expect(screen.getByText("共 1 位用户")).toBeInTheDocument();
     expect(fetchAdminUsers).toHaveBeenCalledWith({
       page: 1,
@@ -82,6 +88,22 @@ describe("UserManagement", () => {
       keyword: "1767",
       userType: undefined,
       status: undefined,
+    });
+  });
+
+  it("按当前账号状态筛选用户", async () => {
+    const user = userEvent.setup();
+
+    renderPage();
+    await screen.findAllByText("小宠家长");
+    await user.selectOptions(screen.getByRole("combobox", { name: "账号状态" }), "banned");
+
+    expect(fetchAdminUsers).toHaveBeenLastCalledWith({
+      page: 1,
+      pageSize: 20,
+      keyword: undefined,
+      userType: undefined,
+      status: "banned",
     });
   });
 });

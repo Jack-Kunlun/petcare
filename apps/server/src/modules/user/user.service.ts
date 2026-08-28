@@ -24,6 +24,19 @@ const adminUserListSelect = {
   updatedAt: true,
 } as const;
 
+const adminUserDetailSelect = {
+  ...adminUserListSelect,
+  profile: { select: { bio: true } },
+  _count: {
+    select: {
+      pets: true,
+      posts: true,
+      comments: true,
+      favorites: true,
+    },
+  },
+} as const;
+
 @Injectable()
 export class UserService {
   constructor(private readonly prisma: PrismaService) {}
@@ -89,6 +102,30 @@ export class UserService {
       total,
       page: query.page,
       pageSize: query.pageSize,
+    };
+  }
+
+  /** 返回单个后台用户的非敏感账户详情与使用概况。 */
+  async findAdminOne(id: string) {
+    const user = await this.prisma.user.findUnique({
+      where: { id },
+      select: adminUserDetailSelect,
+    });
+
+    if (!user) {
+      throw new ApiException("RESOURCE_NOT_FOUND", "用户不存在", HttpStatus.NOT_FOUND);
+    }
+
+    const { _count, ...account } = user;
+
+    return {
+      ...account,
+      activity: {
+        petCount: _count.pets,
+        postCount: _count.posts,
+        commentCount: _count.comments,
+        favoriteCount: _count.favorites,
+      },
     };
   }
 }

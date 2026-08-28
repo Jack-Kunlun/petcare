@@ -263,6 +263,30 @@ describe("ADMIN_ROUTE_REGISTRY", () => {
     );
   });
 
+  it("registers the user list and detail behind the user view permission", () => {
+    expect(
+      ADMIN_ROUTE_REGISTRY.filter((route) => route.path.startsWith("/users")).map((route) => ({
+        path: route.path,
+        menuPermission: route.menuPermission,
+        requiredPermissions: route.requiredPermissions,
+        parentPath: route.parentPath,
+      })),
+    ).toEqual([
+      {
+        path: "/users",
+        menuPermission: "user.view",
+        requiredPermissions: ["user.view"],
+        parentPath: null,
+      },
+      {
+        path: "/users/:id",
+        menuPermission: null,
+        requiredPermissions: ["user.view"],
+        parentPath: "/users",
+      },
+    ]);
+  });
+
   it("registers the RBAC list, create, edit, and detail views behind the single menu entry", () => {
     expect(
       ADMIN_ROUTE_REGISTRY.filter((route) => route.path.startsWith("/rbac")).map((route) => ({
