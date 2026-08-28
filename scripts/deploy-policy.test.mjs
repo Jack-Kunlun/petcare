@@ -97,7 +97,7 @@ test("生产发布只在完整验证后原子保存可回退的镜像状态", as
     'if [[ "$INITIALIZE_DATA" == true && ( "$HAD_STATE" != false || "$APPLICATION_TABLES" != 0 ) ]]; then',
   );
   const backup = position(script, '"$RELEASE_DIR/scripts/database-backup.sh"');
-  const migrate = position(script, "prisma:migrate:deploy");
+  const migrate = position(script, "node_modules/prisma/build/index.js migrate deploy");
   const wait = lastPosition(script, "--wait-timeout 180");
   const httpSmoke = position(script, "http://$host/");
   const httpsSmoke = position(script, "https://petcare-home.com");
@@ -134,7 +134,10 @@ test("生产发布只在完整验证后原子保存可回退的镜像状态", as
     script,
     /BACKUP_RUNNER_IMAGE="\$IMAGE_REGISTRY\/server:\$SERVER_IMAGE_TAG" \\\n\s+"\$RELEASE_DIR\/scripts\/database-backup\.sh"/,
   );
-  assert.match(script, /INITIALIZE_DATA.*true[\s\S]*TARGET.*all[\s\S]*prisma:seed/);
+  assert.match(
+    script,
+    /INITIALIZE_DATA.*true[\s\S]*TARGET.*all[\s\S]*node_modules\/tsx\/dist\/cli\.mjs prisma\/seed\.ts/,
+  );
   assert.doesNotMatch(script, /prisma:push|prisma db push/);
 
   assert.match(script, /trap on_error ERR/);
@@ -165,15 +168,23 @@ test("生产发布只在完整验证后原子保存可回退的镜像状态", as
   assert.match(packageJson.scripts["test:tooling"], /\bscripts\/deploy-policy\.test\.mjs\b/);
 });
 
-test("后端运行镜像在构建时预热 pnpm，生产 migration 不依赖 npm 网络", async () => {
+test("生产 migration 和 seed 直接使用镜像内工具，不触发 pnpm 安装", async () => {
   const dockerfile = await readFile(resolve(root, "Dockerfile.server"), "utf8");
+  const script = await readFile(resolve(root, "scripts/release-production.sh"), "utf8");
   const runnerStage = dockerfile.slice(
     position(dockerfile, "FROM node:24.19-alpine AS server-runner"),
   );
-  const packageJson = position(runnerStage, "COPY --from=server-builder /app/package.json ./");
-  const pnpmWarmup = position(runnerStage, "RUN corepack enable && pnpm --version");
 
-  assert.ok(packageJson < pnpmWarmup);
+  assert.doesNotMatch(runnerStage, /corepack|pnpm(?:-lock|-workspace)?|\/app\/package\.json/);
+  assert.doesNotMatch(script, /\bpnpm\b/);
+  assert.match(
+    script,
+    /--workdir \/app\/apps\/server server \\\n\s+node --env-file-if-exists=\.\.\/\.\.\/\.env node_modules\/prisma\/build\/index\.js migrate deploy/,
+  );
+  assert.match(
+    script,
+    /--workdir \/app\/apps\/server server \\\n\s+node --env-file-if-exists=\.\.\/\.\.\/\.env node_modules\/tsx\/dist\/cli\.mjs prisma\/seed\.ts/,
+  );
 });
 
 test("后端运行镜像包含 seed 所需的 shared-types 构建产物", async () => {

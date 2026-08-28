@@ -165,6 +165,7 @@ visudo -cf "/etc/sudoers.d/$DEPLOY_USER"
 
 `/opt/petcare/current` 始终指向不可变 release；`.env`、`.deploy-images.env`、`certs`、`logs` 和 PostgreSQL/Redis named volumes
 都在 release 之外持久保存。发布归档允许的顶层内容只有 `docker-compose.yml`、`docker/`、`scripts/`、`deploy/`。
+生产 migration 与 seed 直接调用 Server 镜像内已打包的 Prisma CLI 和 tsx，不运行 pnpm，也不依赖 npm 网络。
 
 ### 9.1 首次发布前完成 `.env`
 

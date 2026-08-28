@@ -239,11 +239,13 @@ if [[ "$TARGET" == all || "$TARGET" == server ]]; then
   fi
 
   echo "数据库 migration 为 forward-only，失败时不会自动回滚。"
-  docker compose --env-file "$ENV_FILE" run --rm --no-deps server \
-    pnpm --filter @petcare/server prisma:migrate:deploy
+  docker compose --env-file "$ENV_FILE" run --rm --no-deps \
+    --workdir /app/apps/server server \
+    node --env-file-if-exists=../../.env node_modules/prisma/build/index.js migrate deploy
   if [[ "$INITIALIZE_DATA" == true ]]; then
-    docker compose --env-file "$ENV_FILE" run --rm --no-deps server \
-      pnpm --filter @petcare/server prisma:seed
+    docker compose --env-file "$ENV_FILE" run --rm --no-deps \
+      --workdir /app/apps/server server \
+      node --env-file-if-exists=../../.env node_modules/tsx/dist/cli.mjs prisma/seed.ts
   fi
 fi
 

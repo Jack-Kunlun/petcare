@@ -38,12 +38,6 @@ FROM node:24.19-alpine AS server-runner
 WORKDIR /app
 
 # 复制构建产物和依赖
-COPY --from=server-builder /app/pnpm-workspace.yaml ./
-COPY --from=server-builder /app/pnpm-lock.yaml ./
-COPY --from=server-builder /app/package.json ./
-# 生产服务器无法访问 npm，构建镜像时预热仓库锁定的 pnpm。
-RUN corepack enable && pnpm --version
-
 COPY --from=server-builder /app/server-production ./apps/server
 COPY --from=server-builder /app/packages/eslint-config-base/package.json ./packages/eslint-config-base/
 COPY --from=server-builder /app/packages/shared-types/package.json ./packages/shared-types/

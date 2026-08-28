@@ -298,8 +298,9 @@ config；无论成败都立即清理。应用镜像产物不包含这些凭据�
 首次初始化只传输并运行 `scripts/server-init.sh`：它使用服务器已配置的 Ubuntu APT 源，要求 `docker compose version` 成功，
 创建持久目录和 `.env`，不获取仓库也不启动应用。
 
-Server 发布先运行备份，随后执行 forward-only `prisma:migrate:deploy`；应用镜像可尝试回滚，但数据库 migration 不会自动
-回滚。发布会用 `docker compose --wait --wait-timeout 180` 等待服务，并验证三个域名的 HTTP → HTTPS 重定向及四个公开
+Server 发布先运行备份，随后在一次性容器中直接调用镜像内的 Prisma CLI 执行 forward-only migration；生产迁移与 seed 不调用
+pnpm，也不访问 npm。应用镜像可尝试回滚，但数据库 migration 不会自动回滚。发布会用
+`docker compose --wait --wait-timeout 180` 等待服务，并验证三个域名的 HTTP → HTTPS 重定向及四个公开
 HTTPS smoke check：官网根域、`www`、Admin 和 `/api/ready`。Miniapp 始终由独立的 GitHub Actions 工作流上传微信，
 不进入 Docker、TCR 或生产服务器。完整的 Environment Secret、证书上传和部署账号约束见
 [GitHub Actions 手动发布指南](./github-actions-deploy.md)。
