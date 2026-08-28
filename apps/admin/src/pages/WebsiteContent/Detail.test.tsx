@@ -121,7 +121,7 @@ describe("WebsiteContentDetail", () => {
     expect(websiteApi.fetchWebsiteContentDraft).not.toHaveBeenCalled();
   });
 
-  it("uses the shared narrow layout and opens the same restore dialog from both actions", async () => {
+  it("uses the shared narrow layout and keeps a single restore action in the header", async () => {
     const user = userEvent.setup();
 
     renderDetail();
@@ -135,13 +135,10 @@ describe("WebsiteContentDetail", () => {
 
     expect(header.getByRole("link", { name: "返回官网管理编辑" })).toBeInTheDocument();
     expect(header.getByText("历史版本")).toBeInTheDocument();
-    expect(header.getByRole("button", { name: "顶部恢复为新草稿" })).toBeEnabled();
-    expect(content.getByRole("button", { name: "恢复为新草稿" })).toBeEnabled();
+    expect(header.getByRole("button", { name: "恢复为新草稿" })).toBeEnabled();
+    expect(content.queryByRole("button", { name: "恢复为新草稿" })).not.toBeInTheDocument();
 
-    await user.click(header.getByRole("button", { name: "顶部恢复为新草稿" }));
-    expect(screen.getByRole("dialog", { name: "确认创建恢复草稿" })).toBeInTheDocument();
-    await user.click(screen.getByRole("button", { name: "取消" }));
-    await user.click(content.getByRole("button", { name: "恢复为新草稿" }));
+    await user.click(header.getByRole("button", { name: "恢复为新草稿" }));
     expect(screen.getByRole("dialog", { name: "确认创建恢复草稿" })).toBeInTheDocument();
   });
 
@@ -155,7 +152,7 @@ describe("WebsiteContentDetail", () => {
     );
   });
 
-  it("keeps top and lower restore actions unavailable when the current draft cannot be read", async () => {
+  it("keeps the restore action unavailable when the current draft cannot be read", async () => {
     vi.mocked(websiteApi.fetchWebsiteContentDraft).mockRejectedValue(new Error("network down"));
 
     renderDetail();
@@ -164,18 +161,15 @@ describe("WebsiteContentDetail", () => {
     await screen.findByRole("alert");
     const page = document.querySelector("section.editor-page");
     const header = within(page?.querySelector("header.editor-page__header") as HTMLElement);
-    const content = within(page?.querySelector("div.editor-page__content") as HTMLElement);
 
-    expect(header.getByRole("button", { name: "顶部恢复为新草稿" })).toBeDisabled();
-    expect(content.getByRole("button", { name: "恢复为新草稿" })).toBeDisabled();
+    expect(header.getByRole("button", { name: "恢复为新草稿" })).toBeDisabled();
   });
 
-  it("does not render either restore action without website.publish", async () => {
+  it("does not render the restore action without website.publish", async () => {
     renderDetail([]);
 
     await screen.findByRole("heading", { name: "历史版本 v2" });
 
-    expect(screen.queryByRole("button", { name: "顶部恢复为新草稿" })).not.toBeInTheDocument();
     expect(screen.queryByRole("button", { name: "恢复为新草稿" })).not.toBeInTheDocument();
     expect(screen.getByText("需要 website.publish 权限。")).toBeInTheDocument();
   });

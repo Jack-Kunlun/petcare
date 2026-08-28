@@ -12,6 +12,7 @@ import {
 } from "../../api/rbac";
 import { PermissionGate } from "../../auth/PermissionGate";
 import { EditorPageLayout, FormSection } from "../../components/EditorPageLayout";
+import { Badge, Button, Input, StatePanel, Textarea } from "../../components/ui";
 import { useUnsavedChanges } from "../../hooks/useUnsavedChanges";
 import {
   buildPermissionTree,
@@ -24,14 +25,17 @@ import {
 interface PermissionNodeProps {
   node: PermissionTreeNode;
   disabled: boolean;
+  depth?: number;
   onToggle(code: string): void;
 }
 
 /** Renders one permission tree branch and propagates descendant selection changes. */
-function PermissionNode({ node, disabled, onToggle }: PermissionNodeProps) {
+function PermissionNode({ node, disabled, depth = 0, onToggle }: PermissionNodeProps) {
   return (
-    <li className="mt-2">
-      <label className="flex min-h-10 cursor-pointer items-center gap-3 rounded-lg px-3 py-2 hover:bg-slate-50 has-[:disabled]:cursor-not-allowed has-[:disabled]:opacity-60">
+    <li
+      className={depth === 0 ? "rounded-xl border border-border bg-surface-subtle p-3" : "mt-1.5"}
+    >
+      <label className="flex min-h-10 cursor-pointer items-center gap-3 rounded-lg px-3 py-2 transition-colors hover:bg-surface has-[:disabled]:cursor-not-allowed has-[:disabled]:opacity-60">
         <input
           type="checkbox"
           aria-label={node.label}
@@ -43,17 +47,23 @@ function PermissionNode({ node, disabled, onToggle }: PermissionNodeProps) {
             }
           }}
           onChange={() => onToggle(node.code)}
-          className="h-4 w-4 rounded border-slate-300 text-blue-700 focus:ring-blue-700"
+          className="h-4 w-4 rounded border-border-strong text-brand-primary focus:ring-brand-primary"
         />
         <span className="min-w-0">
-          <span className="block font-medium text-slate-900">{node.label}</span>
-          <span className="block text-xs text-slate-500">{node.code}</span>
+          <span className="block font-medium text-text-primary">{node.label}</span>
+          <span className="block font-mono text-xs text-text-muted">{node.code}</span>
         </span>
       </label>
       {node.children.length > 0 ? (
-        <ul className="ml-5 border-l border-slate-200 pl-3">
+        <ul className="ml-5 border-l border-border pl-3">
           {node.children.map((child) => (
-            <PermissionNode key={child.code} node={child} disabled={disabled} onToggle={onToggle} />
+            <PermissionNode
+              key={child.code}
+              node={child}
+              disabled={disabled}
+              depth={depth + 1}
+              onToggle={onToggle}
+            />
           ))}
         </ul>
       ) : null}
@@ -158,29 +168,35 @@ export default function RbacEdit() {
 
   if (catalogQuery.isPending || (!isNew && roleQuery.isPending)) {
     return (
-      <div
+      <StatePanel
         aria-label="正在加载角色编辑器"
-        className="h-96 animate-pulse rounded-xl bg-slate-200 motion-reduce:animate-none"
+        title="正在加载角色编辑器"
+        description="正在读取角色资料和服务端权限目录。"
       />
     );
   }
 
   if (catalogQuery.isError || (!isNew && roleQuery.isError)) {
     return (
-      <section role="alert" className="rounded-xl border border-red-200 bg-red-50 p-6 text-red-950">
-        <h1 className="font-bold">角色编辑器加载失败</h1>
-        <button
-          type="button"
-          onClick={() => {
-            void catalogQuery.refetch();
-            void roleQuery.refetch();
-          }}
-          className="mt-4 inline-flex h-10 items-center gap-2 rounded-lg border border-red-700 px-4 font-semibold hover:bg-red-100"
-        >
-          <RefreshCw aria-hidden="true" className="h-4 w-4" />
-          重新加载
-        </button>
-      </section>
+      <StatePanel
+        role="alert"
+        tone="danger"
+        icon={<RefreshCw aria-hidden="true" className="h-5 w-5" />}
+        title="角色编辑器加载失败"
+        description="未能读取角色或权限目录，请检查连接后重试。"
+        action={
+          <Button
+            intent="dangerOutline"
+            onClick={() => {
+              void catalogQuery.refetch();
+              void roleQuery.refetch();
+            }}
+          >
+            <RefreshCw aria-hidden="true" className="h-4 w-4" />
+            重新加载
+          </Button>
+        }
+      />
     );
   }
 
@@ -189,46 +205,41 @@ export default function RbacEdit() {
       title={isNew ? "新建角色" : `编辑角色：${role?.roleName ?? ""}`}
       description="仅可分配菜单和按钮权限，服务端会按权限目录自动附加接口访问权限。"
       back={
-        <Link
-          to={isNew ? "/rbac" : `/rbac/${id}`}
-          className="inline-flex h-10 cursor-pointer items-center gap-2 text-sm font-semibold text-slate-700 outline-none hover:text-blue-800 focus-visible:ring-2 focus-visible:ring-blue-700 focus-visible:ring-offset-2"
-        >
-          <ArrowLeft aria-hidden="true" className="h-4 w-4" />
-          返回角色列表
-        </Link>
+        <Button asChild intent="ghost">
+          <Link to={isNew ? "/rbac" : `/rbac/${id}`}>
+            <ArrowLeft aria-hidden="true" className="h-4 w-4" />
+            返回角色列表
+          </Link>
+        </Button>
       }
       status={
         dirty ? (
-          <span
-            role="status"
-            aria-live="polite"
-            className="inline-flex items-center gap-1.5 text-sm font-medium text-amber-700"
-          >
+          <Badge role="status" aria-live="polite" tone="warning">
             <span aria-hidden="true" className="h-1.5 w-1.5 rounded-full bg-current" />
             有未保存修改
-          </span>
+          </Badge>
         ) : null
       }
       actions={
         !isSystem ? (
           <PermissionGate all={[isNew ? "rbac.role.create" : "rbac.role.update"]}>
-            <button
+            <Button
               aria-label="顶部保存角色"
               form="rbac-role-form"
               type="submit"
               disabled={!roleName.trim() || saveMutation.isPending}
-              className="inline-flex h-10 cursor-pointer items-center gap-2 rounded-lg bg-blue-700 px-5 font-semibold text-white outline-none hover:bg-blue-800 focus-visible:ring-2 focus-visible:ring-blue-700 focus-visible:ring-offset-2 disabled:cursor-not-allowed disabled:opacity-50"
+              loading={saveMutation.isPending}
             >
               <Save aria-hidden="true" className="h-4 w-4" />
               保存角色
-            </button>
+            </Button>
           </PermissionGate>
         ) : null
       }
       unsavedChanges={unsavedChanges}
     >
       {isSystem ? (
-        <div className="mt-5 flex items-center gap-2 rounded-xl border border-amber-200 bg-amber-50 p-4 text-amber-950">
+        <div className="flex items-center gap-2 rounded-xl border border-warning-border bg-warning-soft p-4 text-warning">
           <ShieldCheck aria-hidden="true" className="h-5 w-5" />
           系统角色不可编辑
         </div>
@@ -236,7 +247,7 @@ export default function RbacEdit() {
       {saveMutation.isError ? (
         <div
           role="alert"
-          className="mt-5 rounded-xl border border-red-200 bg-red-50 p-4 text-red-950"
+          className="rounded-xl border border-danger-border bg-danger-soft p-4 text-danger-strong"
         >
           {isConflict(saveMutation.error)
             ? "角色已被其他管理员更新，请刷新后再试。"
@@ -245,12 +256,11 @@ export default function RbacEdit() {
       ) : null}
 
       <form id="rbac-role-form" className="space-y-6" onSubmit={submit}>
-        <FormSection>
-          <h2 className="font-semibold text-slate-950">基本信息</h2>
-          <div className="mt-4 grid gap-4 sm:grid-cols-2">
+        <FormSection title="基本信息" description="定义角色名称、说明和启用状态。">
+          <div className="grid gap-5 sm:grid-cols-[minmax(0,1fr)_220px]">
             <label>
-              <span className="text-sm font-medium text-slate-800">角色名称</span>
-              <input
+              <span className="text-sm font-medium text-text-primary">角色名称</span>
+              <Input
                 aria-label="角色名称"
                 value={roleName}
                 disabled={isSystem}
@@ -260,10 +270,10 @@ export default function RbacEdit() {
                 }}
                 required
                 maxLength={50}
-                className="mt-2 h-10 w-full rounded-lg border border-slate-300 px-3 outline-none focus:border-blue-700 focus:ring-2 focus:ring-blue-700/20 disabled:cursor-not-allowed disabled:bg-slate-100"
+                className="mt-2"
               />
             </label>
-            <label className="flex items-end gap-3 pb-1">
+            <label className="flex min-h-16 items-center gap-3 rounded-xl border border-border bg-surface-subtle px-4">
               <input
                 type="checkbox"
                 checked={isActive}
@@ -272,14 +282,17 @@ export default function RbacEdit() {
                   setIsActive(event.target.checked);
                   setDirty(true);
                 }}
-                className="h-4 w-4 rounded border-slate-300 text-blue-700"
+                className="h-4 w-4 rounded border-border-strong text-brand-primary"
               />
-              <span className="text-sm font-medium text-slate-800">启用角色</span>
+              <span>
+                <span className="block text-sm font-medium text-text-primary">启用角色</span>
+                <span className="mt-0.5 block text-xs text-text-secondary">停用后不再授予权限</span>
+              </span>
             </label>
           </div>
           <label className="mt-4 block">
-            <span className="text-sm font-medium text-slate-800">角色说明</span>
-            <textarea
+            <span className="text-sm font-medium text-text-primary">角色说明</span>
+            <Textarea
               aria-label="角色说明"
               value={description}
               disabled={isSystem}
@@ -289,16 +302,16 @@ export default function RbacEdit() {
               }}
               rows={3}
               maxLength={200}
-              className="mt-2 min-h-10 w-full rounded-lg border border-slate-300 px-3 py-2 outline-none focus:border-blue-700 focus:ring-2 focus:ring-blue-700/20 disabled:cursor-not-allowed disabled:bg-slate-100"
+              className="mt-2"
             />
           </label>
         </FormSection>
-        <FormSection>
-          <h2 className="font-semibold text-slate-950">菜单与操作权限</h2>
-          <p className="mt-1 text-sm text-slate-600">
-            勾选父项会同步勾选其所有子项；部分子项已选时父项显示为半选状态。
-          </p>
-          <ul className="mt-4">
+        <FormSection
+          title="菜单与操作权限"
+          description="按根菜单分组；勾选父项会同步勾选所有子项，部分选择时父项显示半选。"
+          actions={<Badge tone="info">目录 {catalogQuery.data?.version}</Badge>}
+        >
+          <ul className="grid gap-4 xl:grid-cols-2">
             {tree.map((node) => (
               <PermissionNode
                 key={node.code}
@@ -321,14 +334,14 @@ export default function RbacEdit() {
               </p>
             }
           >
-            <button
+            <Button
               type="submit"
               disabled={!roleName.trim() || saveMutation.isPending}
-              className="inline-flex h-10 cursor-pointer items-center gap-2 rounded-lg bg-blue-700 px-5 font-semibold text-white outline-none hover:bg-blue-800 focus-visible:ring-2 focus-visible:ring-blue-700 focus-visible:ring-offset-2 disabled:cursor-not-allowed disabled:opacity-50"
+              loading={saveMutation.isPending}
             >
               <Save aria-hidden="true" className="h-4 w-4" />
               保存角色
-            </button>
+            </Button>
           </PermissionGate>
         ) : null}
       </form>

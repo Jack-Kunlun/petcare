@@ -124,7 +124,8 @@ describe("RbacDetail", () => {
     expect(await screen.findByRole("heading", { name: "运营专员" })).toBeInTheDocument();
     expect(screen.getByText("目录版本：2026-08-02")).toBeInTheDocument();
     expect(screen.getByText("系统设置")).toBeInTheDocument();
-    expect(screen.getByText("读取系统接口（自动派生）")).toBeInTheDocument();
+    expect(screen.getByText("读取系统接口")).toBeInTheDocument();
+    expect(screen.getByText("自动派生")).toBeInTheDocument();
     expect(screen.getByText("运营主管")).toBeInTheDocument();
     expect(screen.queryByRole("button", { name: "保存关联管理员" })).not.toBeInTheDocument();
   });
@@ -186,15 +187,16 @@ describe("RbacDetail", () => {
       .mockResolvedValue({ ...role, userIds: ["admin-1", "admin-2"], userCount: 2 });
     renderDetail(["rbac.view", "rbac.role.update", "rbac.assign_role"]);
     await screen.findByRole("heading", { name: "运营专员" });
-    expect(document.querySelector(".editor-page")).toHaveClass(
-      "max-w-[var(--editor-width-default)]",
-    );
+    expect(document.querySelector(".editor-page")).toHaveClass("max-w-[var(--editor-width-wide)]");
     const header = within(document.querySelector(".editor-page__header")!);
 
     expect(header.getByRole("link", { name: "返回角色列表" })).toBeInTheDocument();
     expect(header.getByRole("link", { name: "编辑角色" })).toBeInTheDocument();
     expect(header.getByRole("button", { name: "顶部保存关联管理员" })).toBeInTheDocument();
-    expect(document.querySelectorAll(".editor-page__content > .form-section")).toHaveLength(3);
+    expect(document.querySelectorAll(".editor-page__content .form-section")).toHaveLength(3);
+    expect(document.querySelector(".editor-page__content > .grid")).toHaveClass(
+      "xl:grid-cols-[minmax(0,1fr)_400px]",
+    );
 
     await user.clear(screen.getByLabelText("关联管理员 ID"));
     await user.type(screen.getByLabelText("关联管理员 ID"), "admin-1\nadmin-2");

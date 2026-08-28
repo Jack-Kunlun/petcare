@@ -113,6 +113,22 @@ describe("Admin UI foundation", () => {
     expect(onOpenChange).not.toHaveBeenCalled();
   });
 
+  it("keeps confirmation unavailable until its page-level prerequisite is met", () => {
+    render(
+      <ConfirmDialog
+        confirmDisabled
+        confirmLabel="确认恢复"
+        description="请先填写摘要。"
+        onConfirm={vi.fn()}
+        onOpenChange={vi.fn()}
+        open
+        title="恢复历史版本？"
+      />,
+    );
+
+    expect(screen.getByRole("button", { name: "确认恢复" })).toBeDisabled();
+  });
+
   it("shares one filter, table, and pagination structure across list pages", async () => {
     const user = userEvent.setup();
     const onPageChange = vi.fn();

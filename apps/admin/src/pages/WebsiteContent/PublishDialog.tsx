@@ -149,7 +149,7 @@ export function PublishDialog({
               </label>
             </div>
           ) : (
-            <div className="mt-5 rounded-lg border-2 border-red-200 bg-red-50 p-5 text-red-950">
+            <div className="mt-5 rounded-lg border border-warning-border bg-warning-soft p-5 text-text-primary">
               <p className="font-semibold">确认立即发布？</p>
               <p className="mt-2">
                 系统会记录发布人、时间和变更摘要，此操作不能在当前对话框中撤销。
@@ -181,7 +181,7 @@ export function PublishDialog({
                 type="button"
                 disabled={pending}
                 onClick={confirmPublish}
-                className="inline-flex min-h-11 items-center justify-center gap-2 rounded-lg bg-red-700 px-5 py-2 font-semibold text-white outline-none hover:bg-red-800 focus-visible:ring-2 focus-visible:ring-red-700 focus-visible:ring-offset-2 disabled:cursor-not-allowed disabled:opacity-50"
+                className="inline-flex min-h-11 items-center justify-center gap-2 rounded-lg bg-brand-primary px-5 py-2 font-semibold text-white outline-none hover:bg-brand-primary-hover focus-visible:ring-2 focus-visible:ring-brand-primary focus-visible:ring-offset-2 disabled:cursor-not-allowed disabled:opacity-50"
               >
                 {pending ? (
                   <LoaderCircle aria-hidden="true" className="h-4 w-4 animate-spin" />

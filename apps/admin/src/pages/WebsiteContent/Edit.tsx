@@ -10,7 +10,18 @@ import {
 } from "@petcare/shared-types";
 import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
 import axios from "axios";
-import { AlertCircle, ArrowLeft, CheckCircle2, RefreshCw, Save } from "lucide-react";
+import {
+  AlertCircle,
+  ArrowLeft,
+  CheckCircle2,
+  ChevronDown,
+  Eye,
+  History,
+  Images,
+  RefreshCw,
+  Save,
+  Send,
+} from "lucide-react";
 import { type FormEvent, useEffect, useMemo, useState } from "react";
 import { Link, useParams } from "react-router-dom";
 import {
@@ -28,6 +39,7 @@ import {
 import { useAuth } from "../../auth/auth.context";
 import { PermissionGate } from "../../auth/PermissionGate";
 import { EditorPageLayout, FormSection } from "../../components/EditorPageLayout";
+import { Badge, Button, StatePanel } from "../../components/ui";
 import { useUnsavedChanges } from "../../hooks/useUnsavedChanges";
 import {
   getContentAreaLabel,
@@ -389,117 +401,102 @@ export default function WebsiteContentEdit() {
 
   if (draftQuery.isPending) {
     return (
-      <section
+      <StatePanel
         aria-label="正在加载页面内容草稿"
-        className="mx-auto h-96 w-full max-w-[1080px] animate-pulse rounded-xl bg-slate-200 motion-reduce:animate-none"
+        className="mx-auto w-full max-w-[1080px]"
+        title="正在加载页面内容草稿"
+        description="正在读取草稿修订、预设区块和发布历史。"
       />
     );
   }
 
   if (draftQuery.isError) {
     return (
-      <section
+      <StatePanel
         role="alert"
-        className="mx-auto w-full max-w-[960px] rounded-xl border border-red-200 bg-red-50 p-6 text-red-950"
-      >
-        <h1 className="font-bold">页面内容草稿加载失败</h1>
-        <p className="mt-2">无法读取当前草稿，请重试后再编辑。</p>
-        <button
-          type="button"
-          onClick={() => void draftQuery.refetch()}
-          className="mt-4 inline-flex h-10 cursor-pointer items-center gap-2 rounded-lg border border-red-700 px-4 font-semibold outline-none hover:bg-red-100 focus-visible:ring-2 focus-visible:ring-red-700"
-        >
-          <RefreshCw aria-hidden="true" className="h-4 w-4" />
-          重新加载
-        </button>
-      </section>
+        tone="danger"
+        className="mx-auto w-full max-w-[960px]"
+        icon={<AlertCircle aria-hidden="true" className="h-5 w-5" />}
+        title="页面内容草稿加载失败"
+        description="无法读取当前草稿，请重试后再编辑。"
+        action={
+          <Button intent="dangerOutline" onClick={() => void draftQuery.refetch()}>
+            <RefreshCw aria-hidden="true" className="h-4 w-4" />
+            重新加载
+          </Button>
+        }
+      />
     );
   }
 
   if (!editorState) {
     return (
-      <section
+      <StatePanel
         aria-label="正在加载页面内容草稿"
-        className="mx-auto h-96 w-full max-w-[1080px] animate-pulse rounded-xl bg-slate-200 motion-reduce:animate-none"
+        className="mx-auto w-full max-w-[1080px]"
+        title="正在加载页面内容草稿"
       />
     );
   }
 
   return (
     <EditorPageLayout
-      width="default"
+      width="wide"
       title={`编辑 ${MANAGED_CONTENT_LABELS[contentKey]}`}
       description="预设区块编辑：仅可编辑预设区块的内容、有限展示设置和允许的显示状态。保存会创建新的不可变草稿，不会直接发布；预览和发布始终使用最近一次保存的草稿修订版。"
       back={
-        <Link
-          to={overviewPath}
-          className="inline-flex h-10 cursor-pointer items-center gap-2 rounded-lg px-2 font-medium text-blue-800 outline-none hover:bg-blue-50 focus-visible:ring-2 focus-visible:ring-blue-800"
-        >
-          <ArrowLeft aria-hidden="true" className="h-4 w-4" />
-          返回{areaLabel}
-        </Link>
+        <Button asChild intent="ghost">
+          <Link to={overviewPath}>
+            <ArrowLeft aria-hidden="true" className="h-4 w-4" />
+            返回{areaLabel}
+          </Link>
+        </Button>
       }
       status={
         (dirty && (
-          <span
-            aria-live="polite"
-            className="inline-flex items-center gap-2 text-sm font-medium text-amber-800"
-          >
-            <AlertCircle aria-hidden="true" className="h-4 w-4" />
+          <Badge aria-live="polite" tone="warning">
+            <AlertCircle aria-hidden="true" className="h-3.5 w-3.5" />
             有未保存变更
-          </span>
+          </Badge>
         )) ||
         (notice && (
-          <span
-            aria-live="polite"
-            className="inline-flex items-center gap-2 text-sm font-medium text-emerald-800"
-          >
-            <CheckCircle2 aria-hidden="true" className="h-4 w-4" />
+          <Badge aria-live="polite" tone="success">
+            <CheckCircle2 aria-hidden="true" className="h-3.5 w-3.5" />
             {notice}
-          </span>
+          </Badge>
         ))
       }
       actions={
         <>
-          <a
-            href="#website-content-history"
-            className="inline-flex h-10 cursor-pointer items-center justify-center rounded-lg border border-slate-300 bg-white px-4 font-semibold text-slate-700 outline-none transition-colors hover:bg-slate-50 focus-visible:ring-2 focus-visible:ring-blue-800"
-          >
-            查看历史
-          </a>
+          <Button asChild intent="secondary">
+            <a href="#website-content-history">
+              <History aria-hidden="true" className="h-4 w-4" />
+              查看历史
+            </a>
+          </Button>
           <PermissionGate all={["website.edit"]}>
-            <button
+            <Button
               type="button"
               aria-label="preview-saved-draft"
               disabled={dirty || previewMutation.isPending}
               onClick={handlePreview}
-              className="inline-flex h-10 cursor-pointer items-center justify-center rounded-lg border border-blue-700 px-4 font-semibold text-blue-800 outline-none hover:bg-blue-50 focus-visible:ring-2 focus-visible:ring-blue-800 disabled:cursor-not-allowed disabled:opacity-40"
+              intent="secondary"
             >
+              <Eye aria-hidden="true" className="h-4 w-4" />
               预览已保存草稿
-            </button>
+            </Button>
           </PermissionGate>
           <PermissionGate all={["website.edit"]}>
-            <button
+            <Button
               type="submit"
               aria-label="顶部保存草稿"
               form="website-content-form"
               disabled={saveMutation.isPending}
-              className="inline-flex h-10 cursor-pointer items-center justify-center gap-2 rounded-lg bg-blue-700 px-4 font-semibold text-white outline-none transition-colors hover:bg-blue-800 focus-visible:ring-2 focus-visible:ring-blue-700 disabled:cursor-not-allowed disabled:opacity-50"
+              loading={saveMutation.isPending}
             >
               <Save aria-hidden="true" className="h-4 w-4" />
               保存草稿
-            </button>
-          </PermissionGate>
-          <PermissionGate all={["website.publish"]}>
-            <button
-              type="button"
-              aria-label="顶部发布已保存草稿"
-              disabled={dirty || publishMutation.isPending}
-              onClick={() => setPublishDialogOpen(true)}
-              className="inline-flex h-10 cursor-pointer items-center justify-center rounded-lg bg-red-700 px-4 font-semibold text-white outline-none hover:bg-red-800 focus-visible:ring-2 focus-visible:ring-red-700 disabled:cursor-not-allowed disabled:opacity-40"
-            >
-              发布已保存草稿
-            </button>
+            </Button>
           </PermissionGate>
         </>
       }
@@ -507,26 +504,27 @@ export default function WebsiteContentEdit() {
         canEdit || canPublish ? (
           <>
             <PermissionGate all={["website.edit"]}>
-              <button
+              <Button
                 type="submit"
                 form="website-content-form"
                 disabled={saveMutation.isPending}
-                className="inline-flex h-10 cursor-pointer items-center justify-center gap-2 rounded-lg bg-blue-700 px-4 font-semibold text-white outline-none transition-colors hover:bg-blue-800 focus-visible:ring-2 focus-visible:ring-blue-700 disabled:cursor-not-allowed disabled:opacity-50"
+                loading={saveMutation.isPending}
               >
                 <Save aria-hidden="true" className="h-4 w-4" />
                 保存草稿
-              </button>
+              </Button>
             </PermissionGate>
             <PermissionGate all={["website.publish"]}>
-              <button
+              <Button
                 type="button"
                 aria-label="publish-saved-draft"
                 disabled={dirty || publishMutation.isPending}
                 onClick={() => setPublishDialogOpen(true)}
-                className="inline-flex h-10 cursor-pointer items-center justify-center rounded-lg bg-red-700 px-4 font-semibold text-white outline-none hover:bg-red-800 focus-visible:ring-2 focus-visible:ring-red-700 disabled:cursor-not-allowed disabled:opacity-40"
+                intent="secondary"
               >
+                <Send aria-hidden="true" className="h-4 w-4" />
                 发布已保存草稿
-              </button>
+              </Button>
             </PermissionGate>
           </>
         ) : undefined
@@ -644,8 +642,25 @@ export default function WebsiteContentEdit() {
         </div>
       ) : null}
 
-      <section id="website-content-history" aria-label="website-content-history">
-        <FormSection title="已发布历史">
+      <details
+        id="website-content-history"
+        aria-label="website-content-history"
+        className="group overflow-hidden rounded-xl border border-border bg-surface shadow-panel"
+      >
+        <summary className="flex cursor-pointer list-none items-center gap-3 px-6 py-5 outline-none hover:bg-surface-subtle focus-visible:ring-2 focus-visible:ring-brand-primary [&::-webkit-details-marker]:hidden">
+          <History aria-hidden="true" className="h-5 w-5 text-brand-primary" />
+          <span className="min-w-0 flex-1">
+            <span className="block font-semibold text-text-primary">已发布历史</span>
+            <span className="mt-1 block text-sm text-text-secondary">
+              {historyQuery.data?.total ?? 0} 个不可变发布版本
+            </span>
+          </span>
+          <ChevronDown
+            aria-hidden="true"
+            className="h-5 w-5 text-text-muted transition-transform group-open:rotate-180"
+          />
+        </summary>
+        <div className="border-t border-border p-6">
           <ContentHistory
             contentKey={contentKey}
             items={historyQuery.data?.list ?? []}
@@ -653,29 +668,47 @@ export default function WebsiteContentEdit() {
             error={historyQuery.isError}
             onRetry={() => void historyQuery.refetch()}
           />
-        </FormSection>
-      </section>
+        </div>
+      </details>
 
       <PermissionGate all={["website.edit"]}>
-        <div aria-label="website-media-library">
-          <WebsiteMediaLibrary
-            assets={mediaAssetsQuery.data?.list ?? []}
-            total={mediaAssetsQuery.data?.total ?? 0}
-            query={mediaQuery}
-            loading={mediaAssetsQuery.isPending}
-            error={mediaAssetsQuery.isError}
-            pendingAssetId={
-              archiveMediaMutation.isPending ? (archiveMediaMutation.variables ?? null) : null
-            }
-            onQueryChange={setMediaQuery}
-            onUpload={async (file) => {
-              await uploadMediaMutation.mutateAsync(file);
-            }}
-            onArchive={async (asset) => {
-              await archiveMediaMutation.mutateAsync(asset.id);
-            }}
-          />
-        </div>
+        <details
+          aria-label="website-media-library"
+          className="group overflow-hidden rounded-xl border border-border bg-surface shadow-panel"
+        >
+          <summary className="flex cursor-pointer list-none items-center gap-3 px-6 py-5 outline-none hover:bg-surface-subtle focus-visible:ring-2 focus-visible:ring-brand-primary [&::-webkit-details-marker]:hidden">
+            <Images aria-hidden="true" className="h-5 w-5 text-brand-primary" />
+            <span className="min-w-0 flex-1">
+              <span className="block font-semibold text-text-primary">媒体资源库</span>
+              <span className="mt-1 block text-sm text-text-secondary">
+                {mediaAssetsQuery.data?.total ?? 0} 个当前可选资源
+              </span>
+            </span>
+            <ChevronDown
+              aria-hidden="true"
+              className="h-5 w-5 text-text-muted transition-transform group-open:rotate-180"
+            />
+          </summary>
+          <div className="border-t border-border p-6">
+            <WebsiteMediaLibrary
+              assets={mediaAssetsQuery.data?.list ?? []}
+              total={mediaAssetsQuery.data?.total ?? 0}
+              query={mediaQuery}
+              loading={mediaAssetsQuery.isPending}
+              error={mediaAssetsQuery.isError}
+              pendingAssetId={
+                archiveMediaMutation.isPending ? (archiveMediaMutation.variables ?? null) : null
+              }
+              onQueryChange={setMediaQuery}
+              onUpload={async (file) => {
+                await uploadMediaMutation.mutateAsync(file);
+              }}
+              onArchive={async (asset) => {
+                await archiveMediaMutation.mutateAsync(asset.id);
+              }}
+            />
+          </div>
+        </details>
       </PermissionGate>
 
       <PermissionGate all={["website.publish"]}>

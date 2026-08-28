@@ -1,5 +1,7 @@
 import type { CurrentWebsiteContentKey, WebsiteContentVersion } from "@petcare/shared-types";
+import { ChevronRight, Clock3, History, RefreshCw } from "lucide-react";
 import { Link } from "react-router-dom";
+import { Badge, Button, Skeleton, StatePanel } from "../../components/ui";
 import { getContentHistoryPath } from "./content-registry";
 
 interface ContentHistoryProps {
@@ -28,64 +30,86 @@ export function ContentHistory({
 }: ContentHistoryProps) {
   if (loading) {
     return (
-      <p
-        aria-live="polite"
-        className="rounded-lg border border-slate-200 bg-white p-5 text-slate-600"
-      >
-        正在加载历史版本…
-      </p>
+      <div aria-live="polite" aria-label="正在加载历史版本…" className="space-y-3">
+        <span className="sr-only">正在加载历史版本…</span>
+        <Skeleton lines={4} />
+      </div>
     );
   }
 
   if (error) {
     return (
-      <div role="alert" className="rounded-lg border border-red-200 bg-red-50 p-4 text-red-950">
-        <p className="font-semibold">历史版本加载失败</p>
-        {onRetry ? (
-          <button
-            type="button"
-            onClick={onRetry}
-            className="mt-3 inline-flex h-10 cursor-pointer items-center rounded-lg border border-red-700 px-4 font-semibold outline-none hover:bg-red-100 focus-visible:ring-2 focus-visible:ring-red-800"
-          >
-            重试
-          </button>
-        ) : null}
-      </div>
+      <StatePanel
+        role="alert"
+        tone="danger"
+        className="min-h-44"
+        icon={<RefreshCw aria-hidden="true" className="h-5 w-5" />}
+        title="历史版本加载失败"
+        description="未能读取不可变发布历史。"
+        action={
+          onRetry ? (
+            <Button intent="dangerOutline" onClick={onRetry}>
+              重试
+            </Button>
+          ) : null
+        }
+      />
     );
   }
 
   if (items.length === 0) {
     return (
-      <p className="rounded-lg border border-dashed border-slate-300 bg-white p-5 text-slate-600">
-        暂无已发布历史版本。
-      </p>
+      <StatePanel
+        className="min-h-44"
+        icon={<History aria-hidden="true" className="h-5 w-5" />}
+        title="暂无已发布历史版本。"
+        description="首次发布后，这里会按时间显示不可变版本记录。"
+      />
     );
   }
 
   return (
     <nav aria-label="内容历史版本">
-      <ol className="space-y-2">
+      <ol className="relative space-y-3 before:absolute before:bottom-4 before:left-[11px] before:top-4 before:w-px before:bg-border">
         {items.map((version) => (
-          <li key={version.id}>
+          <li key={version.id} className="relative pl-8">
+            <span
+              aria-hidden="true"
+              className="absolute left-1 top-5 z-[1] h-4 w-4 rounded-full border-4 border-surface bg-brand-primary"
+            />
             <Link
               to={getContentHistoryPath(contentKey, version.id)}
               aria-current={version.id === selectedVersionId ? "page" : undefined}
-              className="block rounded-lg border border-slate-200 bg-white p-4 outline-none transition-colors hover:border-blue-300 hover:bg-blue-50 focus-visible:ring-2 focus-visible:ring-blue-800"
+              className="group block rounded-xl border border-border bg-surface p-4 outline-none transition-[border-color,background-color,box-shadow] hover:border-brand-primary/30 hover:bg-surface-subtle hover:shadow-panel focus-visible:ring-2 focus-visible:ring-brand-primary"
             >
-              <div className="flex flex-wrap items-center justify-between gap-2">
-                <span className="font-semibold text-slate-950">
-                  {version.businessVersion === null
-                    ? `修订 r${version.revision}`
-                    : `已发布 v${version.businessVersion}`}
-                </span>
-                <span className="text-sm text-slate-600">
-                  {new Intl.DateTimeFormat("zh-CN", {
-                    dateStyle: "medium",
-                    timeStyle: "short",
-                  }).format(new Date(version.publishedAt ?? version.createdAt))}
-                </span>
+              <div className="flex items-start gap-3">
+                <div className="min-w-0 flex-1">
+                  <div className="flex flex-wrap items-center gap-2">
+                    <span className="font-semibold text-text-primary">
+                      {version.businessVersion === null
+                        ? `修订 r${version.revision}`
+                        : `已发布 v${version.businessVersion}`}
+                    </span>
+                    <Badge tone={version.status === "published" ? "success" : "neutral"}>
+                      {version.status === "published" ? "当前生效" : "历史版本"}
+                    </Badge>
+                  </div>
+                  <p className="mt-1 line-clamp-2 text-sm leading-6 text-text-secondary">
+                    {version.changeSummary}
+                  </p>
+                  <span className="mt-2 inline-flex items-center gap-1.5 text-xs text-text-muted">
+                    <Clock3 aria-hidden="true" className="h-3.5 w-3.5" />
+                    {new Intl.DateTimeFormat("zh-CN", {
+                      dateStyle: "medium",
+                      timeStyle: "short",
+                    }).format(new Date(version.publishedAt ?? version.createdAt))}
+                  </span>
+                </div>
+                <ChevronRight
+                  aria-hidden="true"
+                  className="mt-1 h-4 w-4 shrink-0 text-text-muted transition-transform group-hover:translate-x-0.5"
+                />
               </div>
-              <p className="mt-1 line-clamp-2 text-sm text-slate-600">{version.changeSummary}</p>
             </Link>
           </li>
         ))}

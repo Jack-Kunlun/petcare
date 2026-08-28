@@ -42,7 +42,11 @@ describe("PublishDialog", () => {
     ).toBeInTheDocument();
     expect(onPublish).not.toHaveBeenCalled();
 
-    fireEvent.click(screen.getByRole("button", { name: "确认发布" }));
+    const confirmButton = screen.getByRole("button", { name: "确认发布" });
+
+    expect(confirmButton).toHaveClass("bg-brand-primary");
+    expect(confirmButton).not.toHaveClass("bg-red-700");
+    fireEvent.click(confirmButton);
     expect(onPublish).toHaveBeenCalledWith(
       expect.objectContaining({
         revision: 4,

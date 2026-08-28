@@ -11,6 +11,7 @@ import {
 } from "../../api/rbac";
 import { PermissionGate } from "../../auth/PermissionGate";
 import { EditorPageLayout, FormSection } from "../../components/EditorPageLayout";
+import { Badge, Button, StatePanel, Textarea } from "../../components/ui";
 import { useUnsavedChanges } from "../../hooks/useUnsavedChanges";
 import { isConflict } from "./rbac-utils";
 import { replaceRbacRoleUsersForRole } from "./role-users-utils";
@@ -101,9 +102,10 @@ export default function RbacDetail() {
 
   if (catalogQuery.isPending || roleQuery.isPending || usersQuery.isPending) {
     return (
-      <div
+      <StatePanel
         aria-label="正在加载角色详情"
-        className="h-96 animate-pulse rounded-xl bg-slate-200 motion-reduce:animate-none"
+        title="正在加载角色详情"
+        description="正在读取权限目录和关联管理员。"
       />
     );
   }
@@ -116,21 +118,26 @@ export default function RbacDetail() {
     !catalogQuery.data
   ) {
     return (
-      <section role="alert" className="rounded-xl border border-red-200 bg-red-50 p-6 text-red-950">
-        <h1 className="font-bold">角色详情加载失败</h1>
-        <button
-          type="button"
-          onClick={() => {
-            void catalogQuery.refetch();
-            void roleQuery.refetch();
-            void usersQuery.refetch();
-          }}
-          className="mt-4 inline-flex h-10 items-center gap-2 rounded-lg border border-red-700 px-4 font-semibold hover:bg-red-100"
-        >
-          <RefreshCw aria-hidden="true" className="h-4 w-4" />
-          重新加载
-        </button>
-      </section>
+      <StatePanel
+        role="alert"
+        tone="danger"
+        icon={<RefreshCw aria-hidden="true" className="h-5 w-5" />}
+        title="角色详情加载失败"
+        description="未能读取角色、权限目录或关联管理员。"
+        action={
+          <Button
+            intent="dangerOutline"
+            onClick={() => {
+              void catalogQuery.refetch();
+              void roleQuery.refetch();
+              void usersQuery.refetch();
+            }}
+          >
+            <RefreshCw aria-hidden="true" className="h-4 w-4" />
+            重新加载
+          </Button>
+        }
+      />
     );
   }
 
@@ -155,166 +162,185 @@ export default function RbacDetail() {
 
   return (
     <EditorPageLayout
+      width="wide"
       title={role.roleName}
       description={role.description ?? "未填写角色说明"}
       back={
-        <Link
-          to="/rbac"
-          className="inline-flex h-10 cursor-pointer items-center gap-2 text-sm font-semibold text-slate-700 outline-none hover:text-blue-800 focus-visible:ring-2 focus-visible:ring-blue-700 focus-visible:ring-offset-2"
-        >
-          <ArrowLeft aria-hidden="true" className="h-4 w-4" />
-          返回角色列表
-        </Link>
+        <Button asChild intent="ghost">
+          <Link to="/rbac">
+            <ArrowLeft aria-hidden="true" className="h-4 w-4" />
+            返回角色列表
+          </Link>
+        </Button>
       }
       status={
         dirty ? (
-          <span
-            role="status"
-            aria-live="polite"
-            className="inline-flex items-center gap-1.5 text-sm font-medium text-amber-700"
-          >
+          <Badge role="status" aria-live="polite" tone="warning">
             <span aria-hidden="true" className="h-1.5 w-1.5 rounded-full bg-current" />
             有未保存修改
-          </span>
+          </Badge>
         ) : null
       }
       actions={
         <>
           <PermissionGate all={["rbac.role.update"]}>
             {role.isSystem ? null : (
-              <Link
-                to={`/rbac/${role.id}/edit`}
-                className="inline-flex h-10 cursor-pointer items-center gap-2 rounded-lg border border-blue-700 px-4 font-semibold text-blue-800 outline-none hover:bg-blue-50 focus-visible:ring-2 focus-visible:ring-blue-700 focus-visible:ring-offset-2"
-              >
-                <Pencil aria-hidden="true" className="h-4 w-4" />
-                编辑角色
-              </Link>
+              <Button asChild intent="secondary">
+                <Link to={`/rbac/${role.id}/edit`}>
+                  <Pencil aria-hidden="true" className="h-4 w-4" />
+                  编辑角色
+                </Link>
+              </Button>
             )}
           </PermissionGate>
           {!role.isSystem ? (
             <PermissionGate all={["rbac.assign_role"]}>
-              <button
+              <Button
                 aria-label="顶部保存关联管理员"
                 type="button"
                 disabled={replaceUsersMutation.isPending}
                 onClick={saveUsers}
-                className="inline-flex h-10 cursor-pointer items-center gap-2 rounded-lg bg-blue-700 px-4 font-semibold text-white outline-none hover:bg-blue-800 focus-visible:ring-2 focus-visible:ring-blue-700 focus-visible:ring-offset-2 disabled:cursor-not-allowed disabled:opacity-50"
+                loading={replaceUsersMutation.isPending}
               >
                 <Save aria-hidden="true" className="h-4 w-4" />
                 保存关联管理员
-              </button>
+              </Button>
             </PermissionGate>
           ) : null}
         </>
       }
       unsavedChanges={unsavedChanges}
     >
-      <FormSection>
-        <h2 className="font-semibold text-slate-950">角色元数据</h2>
-        <dl className="mt-4 grid gap-4 text-sm sm:grid-cols-2 lg:grid-cols-4">
-          <div>
-            <dt className="text-slate-500">角色类型</dt>
-            <dd className="mt-1 font-medium text-slate-900">
-              {role.isSystem ? "系统角色" : "自定义角色"}
-            </dd>
-          </div>
-          <div>
-            <dt className="text-slate-500">状态</dt>
-            <dd className="mt-1 font-medium text-slate-900">{role.isActive ? "启用" : "停用"}</dd>
-          </div>
-          <div>
-            <dt className="text-slate-500">目录版本</dt>
-            <dd className="mt-1 font-medium text-slate-900">
-              目录版本：{catalogQuery.data.version}
-            </dd>
-          </div>
-          <div>
-            <dt className="text-slate-500">最后更新</dt>
-            <dd className="mt-1 font-medium text-slate-900">
-              {new Date(role.updatedAt).toLocaleString("zh-CN")}
-            </dd>
-          </div>
-        </dl>
-      </FormSection>
+      <div className="grid items-start gap-6 xl:grid-cols-[minmax(0,1fr)_400px]">
+        <div className="min-w-0 space-y-6">
+          <FormSection title="角色元数据">
+            <dl className="grid gap-4 text-sm sm:grid-cols-2 lg:grid-cols-4">
+              <div>
+                <dt className="text-slate-500">角色类型</dt>
+                <dd className="mt-1">
+                  <Badge tone={role.isSystem ? "brand" : "neutral"}>
+                    {role.isSystem ? "系统角色" : "自定义角色"}
+                  </Badge>
+                </dd>
+              </div>
+              <div>
+                <dt className="text-slate-500">状态</dt>
+                <dd className="mt-1">
+                  <Badge tone={role.isActive ? "success" : "neutral"}>
+                    {role.isActive ? "启用" : "停用"}
+                  </Badge>
+                </dd>
+              </div>
+              <div>
+                <dt className="text-slate-500">目录版本</dt>
+                <dd className="mt-1 font-medium text-slate-900">
+                  目录版本：{catalogQuery.data.version}
+                </dd>
+              </div>
+              <div>
+                <dt className="text-slate-500">最后更新</dt>
+                <dd className="mt-1 font-medium text-slate-900">
+                  {new Date(role.updatedAt).toLocaleString("zh-CN")}
+                </dd>
+              </div>
+            </dl>
+          </FormSection>
 
-      <FormSection>
-        <h2 className="font-semibold text-slate-950">有效权限</h2>
-        <p className="mt-1 text-sm text-slate-600">
-          包含由菜单和按钮权限自动派生的服务端接口权限。
-        </p>
-        <ul className="mt-4 grid gap-3 sm:grid-cols-2">
-          {effectivePermissions.map((permission) => (
-            <li key={permission.code} className="rounded-lg bg-slate-50 px-3 py-3">
-              <p className="font-medium text-slate-900">
-                {permission.label}
-                {directPermissionCodes.has(permission.code) ? "" : "（自动派生）"}
-              </p>
-              <p className="mt-1 text-xs text-slate-500">{permission.code}</p>
-            </li>
-          ))}
-        </ul>
-      </FormSection>
-
-      <FormSection>
-        <div className="flex items-center gap-2">
-          <Users aria-hidden="true" className="h-5 w-5 text-blue-700" />
-          <h2 className="font-semibold text-slate-950">关联管理员</h2>
-        </div>
-        <ul className="mt-4 divide-y divide-slate-100 rounded-lg border border-slate-200">
-          {usersQuery.data?.length ? (
-            usersQuery.data.map((user) => (
-              <li key={user.id} className="flex items-center justify-between gap-3 px-4 py-3">
-                <div>
-                  <p className="font-medium text-slate-900">{user.nickname}</p>
-                  <p className="mt-1 text-xs text-slate-500">
-                    {user.id} · @{user.username ?? "未设置账号"}
+          <FormSection
+            title="有效权限"
+            description="包含由菜单和按钮权限自动派生的服务端接口权限。"
+            actions={<Badge tone="info">{effectivePermissions.length} 项</Badge>}
+          >
+            <ul className="grid gap-3 sm:grid-cols-2">
+              {effectivePermissions.map((permission) => (
+                <li
+                  key={permission.code}
+                  className="rounded-xl border border-border bg-surface-subtle px-4 py-3"
+                >
+                  <div className="flex flex-wrap items-center gap-2">
+                    <p className="font-medium text-text-primary">{permission.label}</p>
+                    <Badge tone={directPermissionCodes.has(permission.code) ? "brand" : "neutral"}>
+                      {directPermissionCodes.has(permission.code) ? "直接分配" : "自动派生"}
+                    </Badge>
+                  </div>
+                  <p className="mt-1 break-all font-mono text-xs text-text-muted">
+                    {permission.code}
                   </p>
+                </li>
+              ))}
+            </ul>
+          </FormSection>
+        </div>
+
+        <aside className="min-w-0 xl:sticky xl:top-28">
+          <FormSection
+            title={
+              <span className="flex items-center gap-2">
+                <Users aria-hidden="true" className="h-5 w-5 text-brand-primary" />
+                关联管理员
+              </span>
+            }
+            description="查看当前成员，并在有权限时批量替换关联。"
+            actions={<Badge tone="info">{usersQuery.data?.length ?? 0} 位</Badge>}
+          >
+            <ul className="divide-y divide-border rounded-xl border border-border">
+              {usersQuery.data?.length ? (
+                usersQuery.data.map((user) => (
+                  <li key={user.id} className="flex items-center justify-between gap-3 px-4 py-3">
+                    <div>
+                      <p className="font-medium text-slate-900">{user.nickname}</p>
+                      <p className="mt-1 text-xs text-slate-500">
+                        {user.id} · @{user.username ?? "未设置账号"}
+                      </p>
+                    </div>
+                    <Badge tone={user.status === "active" ? "success" : "neutral"}>
+                      {user.status === "active" ? "启用" : user.status}
+                    </Badge>
+                  </li>
+                ))
+              ) : (
+                <li className="px-4 py-5 text-sm text-slate-600">当前没有关联管理员。</li>
+              )}
+            </ul>
+            {!role.isSystem ? (
+              <PermissionGate all={["rbac.assign_role"]}>
+                <div className="mt-5 border-t border-border pt-5">
+                  <label className="block">
+                    <span className="text-sm font-medium text-text-primary">关联管理员 ID</span>
+                    <span className="mt-1 block text-xs leading-5 text-text-secondary">
+                      批量替换模式：每行一个管理员 ID。保存后，未列出的现有关联会被移除。
+                    </span>
+                    <Textarea
+                      aria-label="关联管理员 ID"
+                      value={userIdsText}
+                      onChange={(event) => setUserIdsText(event.target.value)}
+                      rows={4}
+                      className="mt-2 font-mono"
+                    />
+                  </label>
+                  {replaceUsersMutation.isError ? (
+                    <p role="alert" className="mt-3 text-sm text-red-700">
+                      {isConflict(replaceUsersMutation.error)
+                        ? "关联管理员已变更，请刷新后再试。"
+                        : "保存关联管理员失败，请稍后重试。"}
+                    </p>
+                  ) : null}
+                  <Button
+                    type="button"
+                    disabled={replaceUsersMutation.isPending}
+                    onClick={saveUsers}
+                    loading={replaceUsersMutation.isPending}
+                    className="mt-4 w-full"
+                  >
+                    <Save aria-hidden="true" className="h-4 w-4" />
+                    保存关联管理员
+                  </Button>
                 </div>
-                <span className="text-sm text-slate-600">
-                  {user.status === "active" ? "启用" : user.status}
-                </span>
-              </li>
-            ))
-          ) : (
-            <li className="px-4 py-5 text-sm text-slate-600">当前没有关联管理员。</li>
-          )}
-        </ul>
-        {!role.isSystem ? (
-          <PermissionGate all={["rbac.assign_role"]}>
-            <div className="mt-5 border-t border-slate-200 pt-5">
-              <label className="block">
-                <span className="text-sm font-medium text-slate-800">关联管理员 ID</span>
-                <span className="mt-1 block text-xs text-slate-500">
-                  每行一个管理员 ID，保存将替换该角色的全部关联管理员。
-                </span>
-                <textarea
-                  aria-label="关联管理员 ID"
-                  value={userIdsText}
-                  onChange={(event) => setUserIdsText(event.target.value)}
-                  rows={4}
-                  className="mt-2 min-h-10 w-full rounded-lg border border-slate-300 px-3 py-2 font-mono text-sm outline-none focus:border-blue-700 focus:ring-2 focus:ring-blue-700/20"
-                />
-              </label>
-              {replaceUsersMutation.isError ? (
-                <p role="alert" className="mt-3 text-sm text-red-700">
-                  {isConflict(replaceUsersMutation.error)
-                    ? "关联管理员已变更，请刷新后再试。"
-                    : "保存关联管理员失败，请稍后重试。"}
-                </p>
-              ) : null}
-              <button
-                type="button"
-                disabled={replaceUsersMutation.isPending}
-                onClick={saveUsers}
-                className="mt-4 inline-flex h-10 cursor-pointer items-center gap-2 rounded-lg bg-blue-700 px-4 font-semibold text-white outline-none hover:bg-blue-800 focus-visible:ring-2 focus-visible:ring-blue-700 focus-visible:ring-offset-2 disabled:cursor-not-allowed disabled:opacity-50"
-              >
-                <Save aria-hidden="true" className="h-4 w-4" />
-                保存关联管理员
-              </button>
-            </div>
-          </PermissionGate>
-        ) : null}
-      </FormSection>
+              </PermissionGate>
+            ) : null}
+          </FormSection>
+        </aside>
+      </div>
     </EditorPageLayout>
   );
 }

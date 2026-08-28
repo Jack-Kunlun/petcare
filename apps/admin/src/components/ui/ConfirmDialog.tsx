@@ -11,6 +11,7 @@ export interface ConfirmDialogProps {
   confirmLabel?: ReactNode;
   cancelLabel?: ReactNode;
   confirmTone?: "primary" | "danger";
+  confirmDisabled?: boolean;
   pending?: boolean;
   children?: ReactNode;
 }
@@ -20,6 +21,7 @@ export function ConfirmDialog({
   cancelLabel = "取消",
   children,
   confirmLabel = "确认",
+  confirmDisabled = false,
   confirmTone = "primary",
   description,
   onConfirm,
@@ -48,6 +50,7 @@ export function ConfirmDialog({
               {cancelLabel}
             </Button>
             <Button
+              disabled={confirmDisabled}
               intent={confirmTone === "danger" ? "danger" : "primary"}
               loading={pending}
               onClick={onConfirm}

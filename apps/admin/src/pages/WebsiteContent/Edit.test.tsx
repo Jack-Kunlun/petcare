@@ -437,12 +437,15 @@ describe("WebsiteContentEdit", () => {
     expect(websiteContentApi.saveWebsiteContentDraft).not.toHaveBeenCalled();
   });
 
-  it("uses the shared editor layout with the existing top actions", async () => {
+  it("uses the shared wide editor layout with publish separated from top editing actions", async () => {
     vi.mocked(websiteContentApi.fetchWebsiteContentDraft).mockResolvedValue(draft);
     renderEditor(["website.view", "website.edit", "website.publish"]);
 
     await screen.findByRole("textbox", { name: "主标题" });
     expect(document.querySelector("section.editor-page")).toBeInTheDocument();
+    expect(document.querySelector("section.editor-page")).toHaveClass(
+      "max-w-[var(--editor-width-wide)]",
+    );
     const header = document.querySelector<HTMLElement>("header.editor-page__header");
 
     expect(header).toBeInTheDocument();
@@ -458,7 +461,9 @@ describe("WebsiteContentEdit", () => {
       "website-content-form",
     );
     expect(screen.getAllByRole("button", { name: "preview-saved-draft" })[0]).toBeInTheDocument();
-    expect(within(header!).getByRole("button", { name: "顶部发布已保存草稿" })).toBeInTheDocument();
+    expect(
+      within(header!).queryByRole("button", { name: "顶部发布已保存草稿" }),
+    ).not.toBeInTheDocument();
 
     const footer = document.querySelector<HTMLElement>("footer.editor-page__footer");
 

@@ -1,7 +1,6 @@
 import { isCurrentWebsiteContentKey } from "@petcare/shared-types";
-import * as Dialog from "@radix-ui/react-dialog";
 import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
-import { AlertCircle, ArrowLeft, Copy, History, LoaderCircle, X } from "lucide-react";
+import { AlertCircle, ArrowLeft, Copy, History } from "lucide-react";
 import { useState } from "react";
 import { Link, useNavigate, useParams } from "react-router-dom";
 import {
@@ -12,6 +11,7 @@ import {
 } from "../../api/website-content";
 import { PermissionGate } from "../../auth/PermissionGate";
 import { EditorPageLayout, FormSection } from "../../components/EditorPageLayout";
+import { Badge, Button, ConfirmDialog, StatePanel, Textarea } from "../../components/ui";
 import {
   getContentAreaLabel,
   getContentEditPath,
@@ -90,13 +90,12 @@ export default function WebsiteContentDetail() {
   }
 
   const backLink = (
-    <Link
-      to={getContentEditPath(contentKey)}
-      className="inline-flex min-h-11 items-center gap-2 rounded-lg px-2 font-medium text-blue-800 outline-none hover:bg-blue-50 focus-visible:ring-2 focus-visible:ring-blue-800"
-    >
-      <ArrowLeft aria-hidden="true" className="h-4 w-4" />
-      返回{areaLabel}编辑
-    </Link>
+    <Button asChild intent="ghost">
+      <Link to={getContentEditPath(contentKey)}>
+        <ArrowLeft aria-hidden="true" className="h-4 w-4" />
+        返回{areaLabel}编辑
+      </Link>
+    </Button>
   );
   const restoreDisabled = draftQuery.isPending || draftQuery.isError || !draftQuery.data;
 
@@ -109,24 +108,22 @@ export default function WebsiteContentDetail() {
     setDialogOpen(true);
   }
 
-  function renderRestoreAction(top = false) {
+  function renderRestoreAction() {
     return (
       <PermissionGate
         all={["website.publish"]}
-        fallback={
-          top ? undefined : <p className="text-sm text-slate-600">需要 website.publish 权限。</p>
-        }
+        fallback={<p className="text-sm text-text-secondary">需要 website.publish 权限。</p>}
       >
-        <button
+        <Button
           type="button"
-          aria-label={top ? "顶部恢复为新草稿" : undefined}
+          aria-label="恢复为新草稿"
           disabled={restoreDisabled}
           onClick={openRestoreDialog}
-          className="inline-flex h-10 shrink-0 items-center justify-center gap-2 rounded-lg bg-amber-700 px-5 font-semibold text-white outline-none hover:bg-amber-800 focus-visible:ring-2 focus-visible:ring-amber-700 focus-visible:ring-offset-2 disabled:cursor-not-allowed disabled:opacity-40"
+          intent="secondary"
         >
           <Copy aria-hidden="true" className="h-4 w-4" />
           恢复为新草稿
-        </button>
+        </Button>
       </PermissionGate>
     );
   }
@@ -136,12 +133,7 @@ export default function WebsiteContentDetail() {
       <section className="mx-auto w-full max-w-[1024px]">
         {backLink}
         {versionQuery.isPending ? (
-          <p
-            aria-live="polite"
-            className="mt-6 rounded-xl border border-slate-200 bg-white p-8 text-center text-slate-600"
-          >
-            正在加载历史版本…
-          </p>
+          <StatePanel aria-live="polite" className="mt-6" title="正在加载历史版本…" />
         ) : null}
         {versionQuery.isError ? (
           <Message
@@ -170,12 +162,12 @@ export default function WebsiteContentDetail() {
           </>
         }
         status={
-          <span className="self-start rounded-full border border-slate-300 bg-slate-50 px-3 py-1.5 text-xs font-semibold text-slate-700">
+          <Badge tone={version.status === "published" ? "success" : "neutral"}>
             {version.status === "published" ? "当前生效" : "历史版本"}
-          </span>
+          </Badge>
         }
         back={backLink}
-        actions={renderRestoreAction(true)}
+        actions={renderRestoreAction()}
       >
         <FormSection title="版本元数据">
           <dl className="grid gap-3 sm:grid-cols-2">
@@ -243,9 +235,10 @@ export default function WebsiteContentDetail() {
           </ol>
         </FormSection>
 
-        <FormSection title="恢复为新草稿" actions={renderRestoreAction()}>
+        <FormSection title="恢复说明">
           <p className="text-sm leading-6 text-slate-600">
-            恢复只会创建新的不可变草稿，不会直接发布或修改历史记录。
+            恢复只会创建新的不可变草稿，不会直接发布或修改历史记录。恢复入口位于页面顶部，
+            操作前仍需填写本次恢复摘要。
           </p>
           {draftQuery.isError ? (
             <p role="alert" className="mt-2 text-sm text-red-700">
@@ -255,71 +248,30 @@ export default function WebsiteContentDetail() {
         </FormSection>
       </EditorPageLayout>
 
-      <Dialog.Root
+      <ConfirmDialog
         open={dialogOpen}
         onOpenChange={(open) => !restoreMutation.isPending && setDialogOpen(open)}
+        title="确认创建恢复草稿"
+        description="该操作不会直接发布，创建后请在编辑页重新预览并显式发布。"
+        confirmLabel="确认创建草稿"
+        confirmDisabled={!changeSummary.trim()}
+        pending={restoreMutation.isPending}
+        onConfirm={() => restoreMutation.mutate()}
       >
-        <Dialog.Portal>
-          <Dialog.Overlay className="fixed inset-0 z-40 bg-slate-950/55 backdrop-blur-[2px]" />
-          <Dialog.Content className="fixed inset-x-4 top-1/2 z-50 max-h-[90dvh] -translate-y-1/2 overflow-y-auto rounded-2xl bg-white p-5 shadow-2xl outline-none focus-visible:ring-2 focus-visible:ring-blue-800 sm:left-1/2 sm:right-auto sm:w-[min(512px,calc(100vw-32px))] sm:-translate-x-1/2 sm:p-6">
-            <div className="flex items-start justify-between gap-4">
-              <div>
-                <Dialog.Title className="text-xl font-semibold text-slate-950">
-                  确认创建恢复草稿
-                </Dialog.Title>
-                <Dialog.Description className="mt-2 leading-6 text-slate-600">
-                  该操作不会直接发布，创建后请在编辑页重新预览并显式发布。
-                </Dialog.Description>
-              </div>
-              <Dialog.Close asChild>
-                <button
-                  type="button"
-                  aria-label="关闭恢复确认"
-                  disabled={restoreMutation.isPending}
-                  className="flex h-11 w-11 items-center justify-center rounded-lg outline-none hover:bg-slate-100 focus-visible:ring-2 focus-visible:ring-blue-800 disabled:opacity-40"
-                >
-                  <X aria-hidden="true" className="h-5 w-5" />
-                </button>
-              </Dialog.Close>
-            </div>
-            <label className="mt-5 block font-medium text-slate-800">
-              变更摘要{" "}
-              <span aria-hidden="true" className="text-red-700">
-                *
-              </span>
-              <textarea
-                aria-label="恢复变更摘要"
-                rows={3}
-                value={changeSummary}
-                onChange={(event) => setChangeSummary(event.target.value)}
-                className="mt-2 w-full resize-y rounded-lg border border-slate-300 px-3 py-2 outline-none focus:border-blue-700 focus:ring-2 focus:ring-blue-700/20"
-              />
-            </label>
-            <div className="mt-6 flex flex-col-reverse gap-3 sm:flex-row sm:justify-end">
-              <Dialog.Close asChild>
-                <button
-                  type="button"
-                  disabled={restoreMutation.isPending}
-                  className="min-h-11 rounded-lg border border-slate-300 px-4 py-2 font-semibold text-slate-800 outline-none hover:bg-slate-50 focus-visible:ring-2 focus-visible:ring-blue-800 disabled:opacity-40"
-                >
-                  取消
-                </button>
-              </Dialog.Close>
-              <button
-                type="button"
-                disabled={restoreMutation.isPending || !changeSummary.trim()}
-                onClick={() => restoreMutation.mutate()}
-                className="inline-flex min-h-11 items-center justify-center gap-2 rounded-lg bg-amber-700 px-5 py-2 font-semibold text-white outline-none hover:bg-amber-800 focus-visible:ring-2 focus-visible:ring-amber-700 disabled:cursor-not-allowed disabled:opacity-40"
-              >
-                {restoreMutation.isPending ? (
-                  <LoaderCircle aria-hidden="true" className="h-4 w-4 animate-spin" />
-                ) : null}
-                {restoreMutation.isPending ? "正在创建…" : "确认创建草稿"}
-              </button>
-            </div>
-          </Dialog.Content>
-        </Dialog.Portal>
-      </Dialog.Root>
+        <label className="mt-5 block font-medium text-text-primary">
+          变更摘要{" "}
+          <span aria-hidden="true" className="text-danger">
+            *
+          </span>
+          <Textarea
+            aria-label="恢复变更摘要"
+            rows={3}
+            value={changeSummary}
+            onChange={(event) => setChangeSummary(event.target.value)}
+            className="mt-2"
+          />
+        </label>
+      </ConfirmDialog>
     </>
   );
 }
