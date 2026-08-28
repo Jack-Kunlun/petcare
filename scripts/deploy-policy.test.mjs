@@ -230,8 +230,8 @@ test("应用镜像通过 Docker daemon 有界重试推送 TCR", async () => {
   assert.match(build, /load: true/);
   assert.match(build, /push: false/);
   assert.match(build, /for attempt in 1 2 3/);
-  assert.match(build, /timeout 600 docker image push "\$IMAGE"/);
-  assert.match(build, /timeout 60 docker manifest inspect "\$IMAGE"/);
+  assert.match(build, /timeout --kill-after=30s 600s docker image push "\$IMAGE"/);
+  assert.match(build, /timeout --kill-after=10s 60s docker manifest inspect "\$IMAGE"/);
   assert.doesNotMatch(build, /push: true/);
 });
 

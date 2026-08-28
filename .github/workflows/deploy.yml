@@ -144,9 +144,8 @@ jobs:
         run: |
           set -Eeuo pipefail
           for attempt in 1 2 3; do
-            if timeout 600 docker image push "$IMAGE" \
-              && timeout 60 docker manifest inspect "$IMAGE" > /dev/null
-            then
+            timeout --kill-after=30s 600s docker image push "$IMAGE" || true
+            if timeout --kill-after=10s 60s docker manifest inspect "$IMAGE" > /dev/null; then
               exit 0
             fi
             if [[ "$attempt" -eq 3 ]]; then
