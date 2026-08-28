@@ -16,7 +16,6 @@ describe("ConfigService", () => {
     REDIS_PASSWORD: "",
     JWT_SECRET: "local-jwt-secret-with-at-least-32-characters",
     DEFAULT_ADMIN_USERNAME: "admin",
-    DEFAULT_ADMIN_PHONE: "13800138000",
     DEFAULT_ADMIN_PASSWORD: "Local-Admin-Password-2026!",
     ALLOWED_ORIGINS: "http://localhost:8986",
     WECHAT_APP_ID: "",
@@ -60,7 +59,6 @@ describe("ConfigService", () => {
     delete process.env.COMMUNITY_MEDIA_MAX_ATTEMPTS;
     delete process.env.COMMUNITY_MEDIA_WINDOW_SECONDS;
     delete process.env.DEFAULT_ADMIN_USERNAME;
-    delete process.env.DEFAULT_ADMIN_PHONE;
     delete process.env.DEFAULT_ADMIN_PASSWORD;
     delete process.env.LOG_LEVEL;
     delete process.env.LOG_DIR;
@@ -148,10 +146,9 @@ describe("ConfigService", () => {
     );
   });
 
-  it("requires the default administrator phone and password", () => {
+  it("requires the default administrator password", () => {
     const config = new ConfigService();
 
-    expect(() => config.defaultAdminPhone).toThrow("DEFAULT_ADMIN_PHONE is required");
     expect(() => config.defaultAdminPassword).toThrow("DEFAULT_ADMIN_PASSWORD is required");
   });
 
@@ -274,7 +271,7 @@ describe("ConfigService", () => {
       process.env = { NODE_ENV: "development" };
 
       expect(() => new ConfigService().validateForStartup()).toThrow(
-        /DB_HOST.*DB_PASSWORD.*JWT_SECRET.*DEFAULT_ADMIN_PHONE/s,
+        /DB_HOST.*DB_PASSWORD.*JWT_SECRET.*DEFAULT_ADMIN_PASSWORD/s,
       );
     });
 

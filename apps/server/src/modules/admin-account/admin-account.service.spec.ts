@@ -87,6 +87,21 @@ describe("AdminAccountService", () => {
     await expect(service.getProfile("user-1")).resolves.toMatchObject({ maskedPhone: "****" });
   });
 
+  it("labels a username-only administrator without inventing a phone", async () => {
+    prisma.user.findUnique.mockResolvedValue({
+      id: "user-1",
+      username: "admin",
+      phone: null,
+      nickname: "系统管理员",
+      avatar: null,
+      status: "active",
+      createdAt: new Date("2026-07-22T00:00:00.000Z"),
+      roles: [{ role: { roleName: "super_admin" } }],
+    });
+
+    await expect(service.getProfile("user-1")).resolves.toMatchObject({ maskedPhone: "未绑定" });
+  });
+
   it("trims a nickname before persisting it and returns the latest safe profile", async () => {
     prisma.user.update.mockResolvedValue(undefined);
     prisma.user.findUnique.mockResolvedValue({

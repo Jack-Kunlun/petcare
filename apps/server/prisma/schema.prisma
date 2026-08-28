@@ -180,9 +180,7 @@ model Pet {
   legacyAge  Float?    @map("age")
   weight     Float?
   sterilized Boolean   @default(false)
-  habits     String?
-  allergies  String?
-  tabooFoods String?   @map("taboo_foods")
+  notes      String?
   photos     String[]
   createdAt  DateTime  @default(now()) @map("created_at")
   updatedAt  DateTime  @updatedAt @map("updated_at")

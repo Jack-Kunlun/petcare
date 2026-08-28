@@ -17,21 +17,11 @@ export interface PetProfileForm {
   birthDate: string;
   weightKg: string;
   sterilized: boolean;
-  habits: string;
-  allergies: string;
-  tabooFoods: string;
+  notes: string;
 }
 
 export type PetProfileField =
-  | "name"
-  | "species"
-  | "breed"
-  | "gender"
-  | "birthDate"
-  | "weightKg"
-  | "habits"
-  | "allergies"
-  | "tabooFoods";
+  "name" | "species" | "breed" | "gender" | "birthDate" | "weightKg" | "notes";
 
 export type PetFormValidation =
   { ok: true; request: CreatePetRequest } | { ok: false; message: string; field: PetProfileField };
@@ -56,9 +46,7 @@ export function createEmptyPetForm(): PetProfileForm {
     birthDate: "",
     weightKg: "",
     sterilized: false,
-    habits: "",
-    allergies: "",
-    tabooFoods: "",
+    notes: "",
   };
 }
 
@@ -72,9 +60,7 @@ export function createPetForm(detail: MyPetDetail): PetProfileForm {
     birthDate: detail.birthDate ?? "",
     weightKg: detail.weightKg?.toString() ?? "",
     sterilized: detail.sterilized,
-    habits: detail.habits ?? "",
-    allergies: detail.allergies ?? "",
-    tabooFoods: detail.tabooFoods ?? "",
+    notes: detail.notes ?? "",
   };
 }
 
@@ -121,20 +107,14 @@ export function validatePetForm(form: PetProfileForm): PetFormValidation {
     };
   }
 
-  for (const [value, label, field] of [
-    [form.habits, "生活习惯", "habits"],
-    [form.allergies, "过敏信息", "allergies"],
-    [form.tabooFoods, "忌口信息", "tabooFoods"],
-  ] as const) {
-    const normalized = value.trim();
+  const notes = form.notes.trim();
 
-    if (!validOptionalText(normalized, PET_PROFILE_LIMITS.CARE_TEXT_MAX_LENGTH)) {
-      return {
-        ok: false,
-        field,
-        message: `${label}不能超过 ${PET_PROFILE_LIMITS.CARE_TEXT_MAX_LENGTH} 个字符`,
-      };
-    }
+  if (!validOptionalText(notes, PET_PROFILE_LIMITS.CARE_TEXT_MAX_LENGTH)) {
+    return {
+      ok: false,
+      field: "notes",
+      message: `备注不能超过 ${PET_PROFILE_LIMITS.CARE_TEXT_MAX_LENGTH} 个字符`,
+    };
   }
 
   return {
@@ -147,9 +127,7 @@ export function validatePetForm(form: PetProfileForm): PetFormValidation {
       birthDate: form.birthDate || null,
       weightKg: weight,
       sterilized: form.sterilized,
-      habits: nullableTrim(form.habits),
-      allergies: nullableTrim(form.allergies),
-      tabooFoods: nullableTrim(form.tabooFoods),
+      notes: nullableTrim(form.notes),
     },
   };
 }

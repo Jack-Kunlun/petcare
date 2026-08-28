@@ -485,6 +485,7 @@ test(
     const updater = resolve(root, "scripts/update-public-media-env.py");
     const original = [
       "DB_PASSWORD=keep=this=value",
+      "DEFAULT_ADMIN_PHONE=13800138000",
       "PUBLIC_MEDIA_STORAGE_PROVIDER=disabled",
       "TENCENT_COS_SECRET_ID=",
       "TENCENT_COS_SECRET_KEY=",
@@ -511,6 +512,7 @@ test(
 
     assert.equal(result.stdout.trim(), "public media environment updated");
     assert.match(updated, /^DB_PASSWORD=keep=this=value$/m);
+    assert.doesNotMatch(updated, /^DEFAULT_ADMIN_PHONE=/m);
     assert.match(updated, /^PUBLIC_MEDIA_STORAGE_PROVIDER=tencent-cos$/m);
     assert.match(updated, /^TENCENT_COS_BUCKET=petcare-1306016679$/m);
 

@@ -113,6 +113,16 @@ describe("AuthService", () => {
     expect(tokenService.issue).toHaveBeenCalledWith(expect.objectContaining({ sessionVersion: 0 }));
   });
 
+  it("allows an active administrator without a phone to log in by username and password", async () => {
+    prisma.user.findFirst.mockResolvedValue({ ...activeAdmin, phone: null });
+
+    await expect(
+      service.loginWithPassword("admin", "Correct-Horse-Battery-Staple!42"),
+    ).resolves.toMatchObject({
+      user: { username: "admin", phone: null, roles: ["super_admin"] },
+    });
+  });
+
   it("consumes a password attempt before looking up the account", async () => {
     await service.loginWithPassword("admin", "Correct-Horse-Battery-Staple!42");
 

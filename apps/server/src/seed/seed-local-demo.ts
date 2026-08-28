@@ -124,9 +124,7 @@ export async function seedLocalDemoData(prisma: PrismaClient): Promise<LocalDemo
         birthDate: new Date("2023-05-12T00:00:00.000Z"),
         weight: 4.3,
         sterilized: true,
-        habits: "喜欢晒太阳，陌生环境会先躲一会儿。",
-        allergies: null,
-        tabooFoods: "葡萄、巧克力",
+        notes: "喜欢晒太阳，陌生环境会先躲一会儿；不能吃葡萄、巧克力。",
         photos: [],
       },
       {
@@ -139,9 +137,7 @@ export async function seedLocalDemoData(prisma: PrismaClient): Promise<LocalDemo
         birthDate: new Date("2022-10-03T00:00:00.000Z"),
         weight: 11.8,
         sterilized: true,
-        habits: "每天早晚散步，见到熟人会摇尾巴。",
-        allergies: "鸡肉不耐受",
-        tabooFoods: null,
+        notes: "每天早晚散步，见到熟人会摇尾巴；鸡肉不耐受。",
         photos: [],
       },
     ] satisfies Prisma.PetUncheckedCreateInput[];

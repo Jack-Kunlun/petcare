@@ -161,9 +161,7 @@ test("本人宠物档案在隔离环境完成管理、权限与图片清理闭�
     birthDate: "2023-05-12",
     weightKg: 10.6,
     sterilized: true,
-    habits: "喜欢散步",
-    allergies: "鸡肉",
-    tabooFoods: "葡萄",
+    notes: "喜欢散步；不能吃鸡肉和葡萄",
   };
 
   await expectFailure(await page.request.get("/api/pets"), 401, "AUTH_SESSION_EXPIRED");
@@ -261,12 +259,12 @@ test("本人宠物档案在隔离环境完成管理、权限与图片清理闭�
       new RegExp(`/pages-account/pets/form[?]mode=edit&id=${created.id}$`, "u"),
     );
     await miniappPage.getByLabel("宠物名字").locator("input").fill(updatedName);
-    await miniappPage.getByLabel("生活习惯").locator("textarea").fill(updatedHabits);
+    await miniappPage.getByLabel("宠物备注").locator("textarea").fill(updatedHabits);
     await miniappPage.getByText("保存修改", { exact: true }).click();
     await expect(miniappPage.getByText(updatedName, { exact: true })).toBeVisible();
     await expect(miniappPage.getByText(updatedHabits, { exact: true })).toBeVisible();
 
-    const repeatedInput: CreatePetRequest = { ...input, name: updatedName, habits: updatedHabits };
+    const repeatedInput: CreatePetRequest = { ...input, name: updatedName, notes: updatedHabits };
     const firstRepeatedUpdate = await responseData<MyPetDetail>(
       await page.request.put(`/api/pets/${created.id}`, {
         headers: { Authorization: ownerAuthorization },

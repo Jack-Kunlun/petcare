@@ -35,18 +35,6 @@ const facts = computed(() => {
     : [];
 });
 
-const careNotes = computed(() => {
-  const value = pet.value;
-
-  return value
-    ? [
-        { label: "生活习惯", value: value.habits },
-        { label: "过敏信息", value: value.allergies },
-        { label: "忌口信息", value: value.tabooFoods },
-      ]
-    : [];
-});
-
 function errorMessage(error: unknown, fallback: string): string {
   return getSafeRequestErrorMessage(error, fallback);
 }
@@ -254,14 +242,10 @@ onShow(() => {
         <view class="main-card p-action">
           <text class="card-heading">照护信息</text>
           <view class="mt-copy flex flex-col gap-copy">
-            <view
-              v-for="note in careNotes"
-              :key="note.label"
-              class="rounded-control bg-divider p-copy"
-            >
-              <text class="quiet-text">{{ note.label }}</text>
+            <view class="rounded-control bg-divider p-copy">
+              <text class="quiet-text">备注</text>
               <text class="mt-caption block text-body text-ink leading-body">
-                {{ note.value || "未填写" }}
+                {{ pet.notes || "未填写" }}
               </text>
             </view>
           </view>

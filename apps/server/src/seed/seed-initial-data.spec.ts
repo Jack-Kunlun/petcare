@@ -22,7 +22,7 @@ interface StoredRole {
 interface StoredUser {
   id: string;
   username: string;
-  phone: string;
+  phone: string | null;
   nickname: string;
   passwordHash: string;
   userType: string;
@@ -97,7 +97,7 @@ function createFakePrisma() {
     },
     user: {
       upsert: jest.fn(async ({ where, update, create }) => {
-        const existing = users.find((user) => user.phone === where.phone);
+        const existing = users.find((user) => user.username === where.username);
 
         if (existing) {
           Object.assign(existing, update);
@@ -143,7 +143,6 @@ function createFakePrisma() {
 describe("seedInitialData", () => {
   const options: SeedOptions = {
     username: "admin",
-    phone: "13800138000",
     password: "Correct-Horse-Battery-Staple!42",
     nickname: "系统管理员",
   };
@@ -179,7 +178,7 @@ describe("seedInitialData", () => {
     expect(state.users).toEqual([
       expect.objectContaining({
         username: "admin",
-        phone: "13800138000",
+        phone: null,
         nickname: "系统管理员",
         passwordHash: "$argon2id$v=19$seed-test-hash",
         status: "active",
@@ -209,7 +208,7 @@ describe("seedInitialData", () => {
 
     await seedInitialData(state.prisma, options, passwordService);
     Object.assign(state.users[0], {
-      username: "operator-renamed",
+      phone: "13800138000",
       nickname: "人工维护昵称",
       passwordHash: "$argon2id$v=19$operator-password",
       status: "disabled",
@@ -219,7 +218,6 @@ describe("seedInitialData", () => {
       state.prisma,
       {
         ...options,
-        username: "admin-reset",
         nickname: "系统管理员",
         password: "New-Seed-Password!42",
       },
@@ -227,7 +225,8 @@ describe("seedInitialData", () => {
     );
 
     expect(state.users[0]).toMatchObject({
-      username: "operator-renamed",
+      username: "admin",
+      phone: null,
       nickname: "人工维护昵称",
       passwordHash: "$argon2id$v=19$operator-password",
       status: "disabled",

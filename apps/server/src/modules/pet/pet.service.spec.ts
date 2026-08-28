@@ -42,9 +42,7 @@ describe("PetService", () => {
     birthDate: new Date("2023-05-12T00:00:00.000Z"),
     weight: 4.6,
     sterilized: true,
-    habits: "怕生",
-    allergies: null,
-    tabooFoods: "葡萄",
+    notes: "怕生，不能吃葡萄",
     photos: ["https://cdn.example/pet.jpg"],
     mediaAssets: [
       {
@@ -67,9 +65,7 @@ describe("PetService", () => {
     birthDate: "2023-05-12",
     weightKg: 4.6,
     sterilized: true,
-    habits: "  怕生  ",
-    allergies: null,
-    tabooFoods: "  葡萄  ",
+    notes: "  怕生，不能吃葡萄  ",
   };
 
   beforeEach(() => {
@@ -113,9 +109,7 @@ describe("PetService", () => {
       coverImage: "https://cdn.example/pet.jpg",
       weightKg: 4.6,
       sterilized: true,
-      habits: "怕生",
-      allergies: null,
-      tabooFoods: "葡萄",
+      notes: "怕生，不能吃葡萄",
       photoUrls: ["https://cdn.example/pet.jpg"],
       photoAssets: [
         {
@@ -160,9 +154,7 @@ describe("PetService", () => {
         birthDate: new Date("2023-05-12T00:00:00.000Z"),
         weight: 4.6,
         sterilized: true,
-        habits: "怕生",
-        allergies: null,
-        tabooFoods: "葡萄",
+        notes: "怕生，不能吃葡萄",
         legacyAge: null,
         photos: [],
       },

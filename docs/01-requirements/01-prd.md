@@ -497,7 +497,7 @@ PetCare宠伴
 | ------------- | ---------------- | --------------------------------------------------------------------------------------- |
 | users         | 用户基础表       | user_id, openid, phone, nickname, avatar, user_type(owner/provider)                     |
 | user_profiles | 用户详细资料     | profile_id, user_id, real_name, gender, age, address                                    |
-| pets          | 宠物档案         | pet_id, owner_id, name, breed, age, weight, gender, sterilized, habits, allergies       |
+| pets          | 宠物档案         | pet_id, owner_id, name, breed, age, weight, gender, sterilized, notes                   |
 | providers     | 服务提供者扩展表 | provider_id, user_id, id_card_verified, wechat_score, training_passed, certified_sitter |
 
 ### 6.2 订单相关

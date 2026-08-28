@@ -33,7 +33,7 @@ cp .env.example .env
 
 - `DB_PASSWORD`、`REDIS_PASSWORD`；
 - 长度不少于 32 字符的 `JWT_SECRET`；
-- `DEFAULT_ADMIN_PHONE`、`DEFAULT_ADMIN_PASSWORD`。
+- `DEFAULT_ADMIN_PASSWORD`。
 
 端口被占用时可以调整 `EXPOSE_DB_PORT`、`EXPOSE_REDIS_PORT`、`EXPOSE_SERVER_PORT`、
 `EXPOSE_ADMIN_PORT` 和 `WEBSITE_PORT`。同时保持以下关系：
@@ -80,8 +80,7 @@ docker compose -f docker-compose.yml -f docker-compose.local.yml --env-file .env
 | Server 健康 | `http://localhost:3300/health` | 进程存活                               |
 | Server 就绪 | `http://localhost:3300/ready`  | PostgreSQL 与 Redis 就绪               |
 
-Admin 使用 `.env` 中的 `DEFAULT_ADMIN_USERNAME` 或 `DEFAULT_ADMIN_PHONE`，以及
-`DEFAULT_ADMIN_PASSWORD` 登录。不要把实际账号或密码写入文档、截图、提交或测试报告。
+Admin 使用 `.env` 中的 `DEFAULT_ADMIN_USERNAME` 和 `DEFAULT_ADMIN_PASSWORD` 登录。不要把实际账号或密码写入文档、截图、提交或测试报告。
 
 ## 4. 最小演示顺序
 

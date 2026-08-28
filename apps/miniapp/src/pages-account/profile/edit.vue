@@ -27,6 +27,10 @@ interface RegionPickerEvent {
   detail?: { value?: string[] };
 }
 
+interface KeyboardHeightChangeEvent {
+  detail?: { height?: number };
+}
+
 const profile = ref<MiniappUserProfile | null>(session.user);
 const form = reactive({
   nickname: session.user?.nickname ?? "",
@@ -40,6 +44,7 @@ const code = ref("");
 const phoneError = ref("");
 const codeError = ref("");
 const phoneSheetOpen = ref(false);
+const phoneSheetKeyboardHeight = ref(0);
 const codeSent = ref(false);
 const busy = ref<"load" | "avatar" | "save" | "code" | "bind" | null>(null);
 const loadError = ref("");
@@ -61,6 +66,7 @@ const saveDisabled = computed(
 );
 const phoneCodeDisabled = computed(() => busy.value !== null || countdown.value > 0);
 const phoneInputDisabled = computed(() => busy.value !== null || countdown.value > 0);
+const phoneSheetStyle = computed(() => `bottom: ${phoneSheetKeyboardHeight.value}px;`);
 const primaryButtonStyle = {
   backgroundColor: miniappDesignTokens.colors.brand,
   color: miniappDesignTokens.colors.surface,
@@ -304,6 +310,7 @@ function startCountdown() {
 
 function resetPhoneBindingForm() {
   clearCountdown();
+  phoneSheetKeyboardHeight.value = 0;
   phone.value = "";
   code.value = "";
   phoneError.value = "";
@@ -335,6 +342,12 @@ function clearPhoneError() {
 
 function clearCodeError() {
   codeError.value = "";
+}
+
+function handleKeyboardHeightChange(event: KeyboardHeightChangeEvent) {
+  const height = Number(event.detail?.height);
+
+  phoneSheetKeyboardHeight.value = Number.isFinite(height) && height > 0 ? height : 0;
 }
 
 function handleRegionChange(event: unknown) {
@@ -754,7 +767,8 @@ onUnload(() => {
       root-portal
       safe-area-inset-bottom
       custom-class="bg-surface"
-      :close-on-click-modal="busy === null"
+      :custom-style="phoneSheetStyle"
+      :close-on-click-modal="busy === null && phoneSheetKeyboardHeight === 0"
       @close="resetPhoneBindingForm"
     >
       <view
@@ -793,12 +807,14 @@ onUnload(() => {
               type="number"
               :maxlength="11"
               :disabled="phoneInputDisabled"
+              :adjust-position="false"
               aria-label="手机号"
               :aria-invalid="Boolean(phoneError)"
               aria-describedby="phone-error"
               placeholder="请输入手机号"
               @input="clearPhoneError"
               @blur="validatePhone"
+              @keyboardheightchange="handleKeyboardHeightChange"
             />
             <text
               v-if="phoneError"
@@ -822,12 +838,14 @@ onUnload(() => {
                 type="number"
                 :maxlength="6"
                 :disabled="busy !== null"
+                :adjust-position="false"
                 aria-label="验证码"
                 :aria-invalid="Boolean(codeError)"
                 aria-describedby="code-error"
                 placeholder="请输入验证码"
                 @input="clearCodeError"
                 @blur="validateCode"
+                @keyboardheightchange="handleKeyboardHeightChange"
               />
               <button
                 class="h-control min-w-pet shrink-0 bg-transparent px-copy text-caption"

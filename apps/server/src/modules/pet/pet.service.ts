@@ -36,9 +36,7 @@ const petDetailSelect = {
   ...petListSelect,
   weight: true,
   sterilized: true,
-  habits: true,
-  allergies: true,
-  tabooFoods: true,
+  notes: true,
   createdAt: true,
   updatedAt: true,
   mediaAssets: {
@@ -216,9 +214,7 @@ export class PetService {
     birthDate: Date | null;
     weight: number | null;
     sterilized: boolean;
-    habits: string | null;
-    allergies: string | null;
-    tabooFoods: string | null;
+    notes: string | null;
   } {
     const species = Object.values(PET_SPECIES);
     const genders = Object.values(PET_GENDER);
@@ -254,9 +250,7 @@ export class PetService {
       birthDate: this.parseBirthDate(input.birthDate),
       weight,
       sterilized: input.sterilized,
-      habits: this.normalizeOptionalText(input.habits, "生活习惯"),
-      allergies: this.normalizeOptionalText(input.allergies, "过敏信息"),
-      tabooFoods: this.normalizeOptionalText(input.tabooFoods, "忌口信息"),
+      notes: this.normalizeOptionalText(input.notes, "备注"),
     };
   }
 
@@ -328,9 +322,7 @@ export class PetService {
       ...this.toListItem(row),
       weightKg: row.weight,
       sterilized: row.sterilized,
-      habits: row.habits,
-      allergies: row.allergies,
-      tabooFoods: row.tabooFoods,
+      notes: row.notes,
       photoUrls: [...row.photos],
       photoAssets: row.mediaAssets.map((asset) => ({
         id: asset.id,

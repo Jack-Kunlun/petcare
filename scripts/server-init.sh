@@ -42,16 +42,6 @@ if [[ -f .env ]]; then
   chmod 600 .env
   ok ".env 已存在，跳过生成（如需重置请先手动备份删除）"
 else
-  DEFAULT_ADMIN_PHONE="${DEFAULT_ADMIN_PHONE:-}"
-  if [[ -z "$DEFAULT_ADMIN_PHONE" && -t 0 ]]; then
-    read -r -p "初始管理员手机号：" DEFAULT_ADMIN_PHONE
-  fi
-  : "${DEFAULT_ADMIN_PHONE:?请提供初始管理员中国大陆手机号}"
-  if [[ ! "$DEFAULT_ADMIN_PHONE" =~ ^1[3-9][0-9]{9}$ ]]; then
-    err "DEFAULT_ADMIN_PHONE 必须是有效的中国大陆手机号"
-    exit 1
-  fi
-
   DB_PASSWORD=$(openssl rand -base64 32 | tr -d '/+=' | head -c 32)
   REDIS_PASSWORD=$(openssl rand -base64 24 | tr -d '/+=' | head -c 24)
   JWT_SECRET=$(openssl rand -base64 48 | tr -d '/+=' | head -c 48)
@@ -94,7 +84,6 @@ REFRESH_TOKEN_TTL_SECONDS=604800
 
 # ===== 管理员初始化 =====
 DEFAULT_ADMIN_USERNAME=admin
-DEFAULT_ADMIN_PHONE=$DEFAULT_ADMIN_PHONE
 DEFAULT_ADMIN_PASSWORD=$ADMIN_PASSWORD
 SMS_DEV_CODE=
 SMS_CODE_TTL_SECONDS=300

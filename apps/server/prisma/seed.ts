@@ -17,13 +17,12 @@ const prisma = new PrismaClient({
 async function main(): Promise<void> {
   await seedInitialData(prisma, {
     username: configService.defaultAdminUsername,
-    phone: configService.defaultAdminPhone,
     password: configService.defaultAdminPassword,
     nickname: "系统管理员",
   });
 
   const administrator = await prisma.user.findUniqueOrThrow({
-    where: { phone: configService.defaultAdminPhone },
+    where: { username: configService.defaultAdminUsername },
     select: { id: true },
   });
 

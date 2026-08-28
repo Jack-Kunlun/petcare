@@ -25,9 +25,7 @@ const request = {
   birthDate: "2023-05-12",
   weightKg: 4.6,
   sterilized: true,
-  habits: "喜欢安静环境",
-  allergies: null,
-  tabooFoods: null,
+  notes: "喜欢安静环境",
 };
 
 describe("miniapp pet API", () => {

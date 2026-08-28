@@ -49,6 +49,15 @@ describe("real Miniapp pet pages", () => {
     expect(form).not.toContain("getPetById");
   });
 
+  it("keeps the pet form concise and marks required fields visibly", () => {
+    expect(form.match(/class="text-danger" aria-hidden="true">\*/gu)).toHaveLength(4);
+    expect(form).not.toContain("clearBirthDate");
+    expect(form).not.toContain(">\n                  清除\n");
+    expect(form).toContain("备注");
+    expect(form).not.toContain("过敏信息");
+    expect(form).not.toContain("忌口信息");
+  });
+
   it("replaces profile fixtures with owner API cards", () => {
     expect(profile).toContain("getMyPets");
     expect(profile).toContain('from "@/domain/pet-display"');

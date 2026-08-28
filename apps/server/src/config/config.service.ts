@@ -88,7 +88,6 @@ export class ConfigService {
     check("COMMUNITY_POST_WINDOW_SECONDS", () => this.communityPostWindowSeconds);
     check("COMMUNITY_MEDIA_MAX_ATTEMPTS", () => this.communityMediaMaxAttempts);
     check("COMMUNITY_MEDIA_WINDOW_SECONDS", () => this.communityMediaWindowSeconds);
-    check("DEFAULT_ADMIN_PHONE", () => this.defaultAdminPhone);
     check("DEFAULT_ADMIN_PASSWORD", () => this.validateAdminPassword());
     check("ALLOWED_ORIGINS", () => this.validateAllowedOrigins());
     check("WECHAT", () => this.validateWechatConfiguration());
@@ -428,16 +427,6 @@ export class ConfigService {
 
   get defaultAdminUsername(): string {
     return process.env.DEFAULT_ADMIN_USERNAME?.trim() || "admin";
-  }
-
-  get defaultAdminPhone(): string {
-    const phone = this.getRequiredString("DEFAULT_ADMIN_PHONE");
-
-    if (!/^1[3-9]\d{9}$/.test(phone)) {
-      throw new Error("DEFAULT_ADMIN_PHONE must be a valid Chinese mobile number");
-    }
-
-    return phone;
   }
 
   get defaultAdminPassword(): string {

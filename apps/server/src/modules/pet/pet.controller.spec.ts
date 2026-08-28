@@ -35,9 +35,7 @@ describe("PetController", () => {
     birthDate: "2023-05-12",
     weightKg: 4.6,
     sterilized: true,
-    habits: null,
-    allergies: null,
-    tabooFoods: null,
+    notes: null,
   };
 
   beforeEach(() => jest.clearAllMocks());

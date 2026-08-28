@@ -81,21 +81,7 @@ export class CreatePetDto implements CreatePetRequest {
   @ValidateIf((_object, value) => value !== null)
   @IsString()
   @MaxLength(PET_PROFILE_LIMITS.CARE_TEXT_MAX_LENGTH)
-  habits: string | null;
-
-  @ApiProperty({ maxLength: PET_PROFILE_LIMITS.CARE_TEXT_MAX_LENGTH, nullable: true })
-  @Transform(({ value }) => trimText(value))
-  @ValidateIf((_object, value) => value !== null)
-  @IsString()
-  @MaxLength(PET_PROFILE_LIMITS.CARE_TEXT_MAX_LENGTH)
-  allergies: string | null;
-
-  @ApiProperty({ maxLength: PET_PROFILE_LIMITS.CARE_TEXT_MAX_LENGTH, nullable: true })
-  @Transform(({ value }) => trimText(value))
-  @ValidateIf((_object, value) => value !== null)
-  @IsString()
-  @MaxLength(PET_PROFILE_LIMITS.CARE_TEXT_MAX_LENGTH)
-  tabooFoods: string | null;
+  notes: string | null;
 }
 
 /** Complete validated replacement fields for an owner-controlled pet profile. */
@@ -161,13 +147,7 @@ export class MyPetDetailDto extends MyPetListItemDto implements MyPetDetail {
   sterilized: boolean;
 
   @ApiProperty({ nullable: true })
-  habits: string | null;
-
-  @ApiProperty({ nullable: true })
-  allergies: string | null;
-
-  @ApiProperty({ nullable: true })
-  tabooFoods: string | null;
+  notes: string | null;
 
   @ApiProperty({ type: [String], format: "uri" })
   photoUrls: string[];

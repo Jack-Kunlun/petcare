@@ -135,9 +135,7 @@ erDiagram
 | weight     | Float         | nullable            | 体重（kg）                              |
 | gender     | String        | default(unknown)    | 性别：male / female / unknown           |
 | sterilized | Boolean       | default(false)      | 是否绝育                                |
-| habits     | String        | nullable            | 特殊习性                                |
-| allergies  | String        | nullable            | 过敏史                                  |
-| tabooFoods | String        | nullable            | 忌口信息                                |
+| notes      | String        | nullable            | 照护备注                                |
 | photos     | String[]      | Array               | 旧数据与订单读取兼容的有序照片 URL 投影 |
 | createdAt  | DateTime      | default(now())      | 创建时间                                |
 | updatedAt  | DateTime      | @updatedAt          | 更新时间                                |

@@ -30,8 +30,8 @@ export interface AdminSessionUser {
   id: string;
   /** 管理员登录账号；未设置时为 null。 */
   username: string | null;
-  /** 管理员登录及联系手机号。 */
-  phone: string;
+  /** 管理员登录及联系手机号；仅使用用户名登录时为 null。 */
+  phone: string | null;
   /** 管理员展示昵称。 */
   nickname: string;
   /** Current public avatar URL, or null for the default avatar. */

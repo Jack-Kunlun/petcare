@@ -105,7 +105,7 @@ Copy-Item .env.example .env
 ```
 
 至少替换 `.env` 中的 `DB_PASSWORD`、`REDIS_PASSWORD`、`JWT_SECRET`、
-`DEFAULT_ADMIN_PHONE` 和 `DEFAULT_ADMIN_PASSWORD`。本地 Server 连接容器时保持
+`DEFAULT_ADMIN_PASSWORD`。本地 Server 连接容器时保持
 `DB_HOST=localhost`、`REDIS_HOST=localhost`、`EXPOSE_DB_PORT=5432` 和
 `EXPOSE_REDIS_PORT=6379`。
 
@@ -202,7 +202,7 @@ pnpm clean:modules
 - **数据库配置**：`DB_HOST`, `DB_PORT`, `DB_USERNAME`, `DB_PASSWORD`, `DB_NAME`, `DB_SCHEMA`
 - **Redis配置**：`REDIS_HOST`, `REDIS_PORT`, `REDIS_PASSWORD`
 - **JWT配置**：`JWT_SECRET`, `JWT_ACCESS_EXPIRES_IN`, `JWT_REFRESH_EXPIRES_IN`
-- **管理员认证**：`DEFAULT_ADMIN_USERNAME`, `DEFAULT_ADMIN_PHONE`, `DEFAULT_ADMIN_PASSWORD`, `SMS_DEV_CODE`, `CAPTCHA_TTL_SECONDS`, `CAPTCHA_MAX_ATTEMPTS`
+- **管理员认证**：`DEFAULT_ADMIN_USERNAME`, `DEFAULT_ADMIN_PASSWORD`, `SMS_DEV_CODE`, `CAPTCHA_TTL_SECONDS`, `CAPTCHA_MAX_ATTEMPTS`
 - **公开媒体**：本地开发可使用持久化文件 provider；腾讯云 COS 是显式启用的可选 provider
 - **第三方服务**：微信、腾讯云 COS；外部凭据仅由 Server 读取
 - **官网 SSR**：`WEBSITE_PUBLIC_URL`、仅服务端使用的 `WEBSITE_CONTENT_API_BASE_URL`、预览/缓存 TTL 与网关端口

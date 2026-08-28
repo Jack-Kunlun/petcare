@@ -76,9 +76,7 @@ describe("pet contracts", () => {
       birthDate: "2023-05-12",
       weightKg: 32.5,
       sterilized: true,
-      habits: "怕生",
-      allergies: "鸡肉",
-      tabooFoods: "葡萄",
+      notes: "怕生；不能吃鸡肉和葡萄",
       photoUrls: [photo.url],
       photoAssets: [photo],
       coverImage: publicSummary.coverImage,
@@ -89,7 +87,7 @@ describe("pet contracts", () => {
 
     expect(Object.keys(publicSummary).sort()).toEqual(["breed", "coverImage", "name"]);
     expect(list).toHaveLength(1);
-    expect(detail).toMatchObject({ allergies: "鸡肉", tabooFoods: "葡萄", photoAssets: [photo] });
+    expect(detail).toMatchObject({ notes: "怕生；不能吃鸡肉和葡萄", photoAssets: [photo] });
     expectTypeOf<UpdatePetRequest>().toEqualTypeOf<CreatePetRequest>();
   });
 });

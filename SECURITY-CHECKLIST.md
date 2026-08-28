@@ -19,7 +19,7 @@
       不获取仓库、不启动应用。
 - [ ] `/opt/petcare/.env` 为 root-owned `0600`，已安全补全并轮换初始管理员密码、`WECHAT_APP_SECRET` 和四个
       `ALIYUN_SMS_*` 值；生产环境没有 `SMS_DEV_CODE`。
-- [ ] `DEFAULT_ADMIN_PHONE` 是有效的中国大陆手机号，`JWT_SECRET` 至少 32 字符，数据库、Redis 和管理员密码均为独立强随机值。
+- [ ] `JWT_SECRET` 至少 32 字符，数据库、Redis 和管理员密码均为独立强随机值。
 - [ ] 阿里云短信认证使用当前可用且相互配套的系统赠送签名和模板；专用 RAM 用户仅有
       `dypns:SendSmsVerifyCode`，未授予 `AliyunDypnsFullAccess`。
 - [ ] 已创建一个全局唯一私有 `TCR_NAMESPACE`，其下有 `postgres`、`redis`、`nginx` 三个私有运行时仓库；Compose 项目名为

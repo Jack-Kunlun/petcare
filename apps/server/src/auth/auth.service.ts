@@ -27,12 +27,12 @@ interface AdminUserRecord {
   }>;
 }
 
-type ActiveAdministrator = AdminUserRecord & { phone: string };
+type ActiveAdministrator = AdminUserRecord;
 
 export interface SafeAdminUser {
   id: string;
   username: string | null;
-  phone: string;
+  phone: string | null;
   nickname: string;
   avatar: string | null;
   roles: string[];
@@ -251,10 +251,7 @@ export class AuthService {
 
   private isActiveAdministrator(user: AdminUserRecord | null): user is ActiveAdministrator {
     return Boolean(
-      user &&
-      user.status === "active" &&
-      user.phone &&
-      user.roles.some((assignment) => assignment.role.isActive),
+      user && user.status === "active" && user.roles.some((assignment) => assignment.role.isActive),
     );
   }
 

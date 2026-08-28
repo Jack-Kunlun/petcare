@@ -139,12 +139,8 @@ export interface MyPetDetail extends MyPetListItem {
   weightKg: number | null;
   /** Whether the pet has been sterilized. */
   sterilized: boolean;
-  /** Private behavior and routine notes, or null when omitted. */
-  habits: string | null;
-  /** Private allergy notes, or null when omitted. */
-  allergies: string | null;
-  /** Private food restrictions, or null when omitted. */
-  tabooFoods: string | null;
+  /** Private care notes, or null when omitted. */
+  notes: string | null;
   /** Owner-visible managed photo URLs. */
   photoUrls: string[];
   /** Managed photo identities and validated metadata available to the owner. */
@@ -171,12 +167,8 @@ export interface CreatePetRequest {
   weightKg: number | null;
   /** Whether the pet has been sterilized. */
   sterilized: boolean;
-  /** Private behavior and routine notes, or null when omitted. */
-  habits: string | null;
-  /** Private allergy notes, or null when omitted. */
-  allergies: string | null;
-  /** Private food restrictions, or null when omitted. */
-  tabooFoods: string | null;
+  /** Private care notes, or null when omitted. */
+  notes: string | null;
 }
 
 /** Complete editable fields for replacing an owner-controlled pet profile. */

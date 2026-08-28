@@ -662,7 +662,7 @@ async function seedCompiledServer(env) {
     path.join(serverDirectory, "dist", "auth", "password.service.js"),
   );
   const { JwtService } = serverRequire("@nestjs/jwt");
-  const phone = requireEnvironmentValue(env, "DEFAULT_ADMIN_PHONE");
+  const username = env.DEFAULT_ADMIN_USERNAME?.trim() || "admin";
   const prisma = new PrismaClient({
     adapter: new PrismaPg(
       { connectionString: createDatabaseUrl(env) },
@@ -672,13 +672,12 @@ async function seedCompiledServer(env) {
 
   try {
     await seedInitialData(prisma, {
-      username: env.DEFAULT_ADMIN_USERNAME?.trim() || "admin",
-      phone,
+      username,
       password: requireEnvironmentValue(env, "DEFAULT_ADMIN_PASSWORD"),
       nickname: "系统管理员",
     });
     const administrator = await prisma.user.findUniqueOrThrow({
-      where: { phone },
+      where: { username },
       select: { id: true },
     });
 

@@ -209,7 +209,7 @@ describe("support content mappers", () => {
     });
     expect(getContactAction("tel:13800138000")).toEqual({
       kind: "phone",
-      value: "13800138000",
+      value: "+8613800138000",
     });
     expect(getContactAction("mailto:support@petcare.example?subject=help")).toEqual({
       kind: "email",

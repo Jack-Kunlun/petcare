@@ -10,7 +10,7 @@ pnpm --filter @petcare/admin exec playwright install chromium
 ```
 
 本地运行时，根目录 `.env` 必须提供可用的数据库连接字段、
-`DEFAULT_ADMIN_USERNAME`、`DEFAULT_ADMIN_PHONE` 和 `DEFAULT_ADMIN_PASSWORD`；CI
+`DEFAULT_ADMIN_USERNAME` 和 `DEFAULT_ADMIN_PASSWORD`；CI
 只读取 CI 注入的环境变量。
 
 ## 运行

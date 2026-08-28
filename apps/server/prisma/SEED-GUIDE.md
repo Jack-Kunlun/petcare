@@ -6,7 +6,7 @@
 
 - 36 个后台权限点；
 - 1 个系统角色 `super_admin`，并关联全部权限；
-- 1 个默认管理员，账号、手机号和密码由环境变量提供；
+- 1 个不绑定手机号的默认管理员，账号和密码由环境变量提供；
 - 默认管理员与 `super_admin` 的角色关联。
 
 脚本可以重复执行，不会生成重复账号、角色或权限关联。
@@ -17,7 +17,6 @@
 
 ```bash
 DEFAULT_ADMIN_USERNAME=admin
-DEFAULT_ADMIN_PHONE=13800138000
 DEFAULT_ADMIN_PASSWORD=请替换为至少12位的强密码
 ```
 

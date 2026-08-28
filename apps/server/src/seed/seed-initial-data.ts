@@ -4,7 +4,6 @@ import { PrismaClient } from "../generated/prisma/client";
 
 export interface SeedOptions {
   username: string;
-  phone: string;
   password: string;
   nickname: string;
 }
@@ -66,10 +65,10 @@ export async function seedInitialData(
 
   const passwordHash = await passwordService.hash(options.password);
   const user = await prisma.user.upsert({
-    where: { phone: options.phone },
-    update: {},
+    where: { username: options.username },
+    update: { phone: null },
     create: {
-      phone: options.phone,
+      phone: null,
       username: options.username,
       nickname: options.nickname,
       passwordHash,

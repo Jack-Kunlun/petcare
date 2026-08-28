@@ -40,11 +40,6 @@ interface DraftPhoto {
 }
 
 let photoSequence = 0;
-const careFields = [
-  { key: "habits", label: "生活习惯" },
-  { key: "allergies", label: "过敏信息" },
-  { key: "tabooFoods", label: "忌口信息" },
-] as const;
 const formMode = ref<"add" | "edit">("add");
 const petId = ref("");
 const pet = ref<MyPetDetail | null>(null);
@@ -203,12 +198,6 @@ function handleBirthDateChange(event: PickerChangeEvent): void {
 function handleSterilizedChange(event: SwitchChangeEvent): void {
   if (typeof event.detail?.value === "boolean") {
     form.sterilized = event.detail.value;
-  }
-}
-
-function clearBirthDate(): void {
-  if (!controlsDisabled.value) {
-    form.birthDate = "";
   }
 }
 
@@ -602,7 +591,9 @@ watch(
           <text class="card-heading">基础资料</text>
           <view class="mt-copy flex flex-col gap-action">
             <label>
-              <text class="mb-sm block text-body text-ink font-medium">宠物名字 *</text>
+              <text class="mb-sm block text-body text-ink font-medium">
+                宠物名字 <text class="text-danger" aria-hidden="true">*</text>
+              </text>
               <input
                 v-model="form.name"
                 class="box-border h-control w-full border border-divider rounded-control px-copy text-body text-ink"
@@ -623,7 +614,9 @@ watch(
             </label>
 
             <view>
-              <text class="mb-sm block text-body text-ink font-medium">宠物种类 *</text>
+              <text class="mb-sm block text-body text-ink font-medium">
+                宠物种类 <text class="text-danger" aria-hidden="true">*</text>
+              </text>
               <picker
                 :range="PET_SPECIES_OPTIONS"
                 range-key="label"
@@ -652,7 +645,9 @@ watch(
             </view>
 
             <label>
-              <text class="mb-sm block text-body text-ink font-medium">品种 *</text>
+              <text class="mb-sm block text-body text-ink font-medium">
+                品种 <text class="text-danger" aria-hidden="true">*</text>
+              </text>
               <input
                 v-model="form.breed"
                 class="box-border h-control w-full border border-divider rounded-control px-copy text-body text-ink"
@@ -673,7 +668,9 @@ watch(
             </label>
 
             <view>
-              <text class="mb-sm block text-body text-ink font-medium">性别 *</text>
+              <text class="mb-sm block text-body text-ink font-medium">
+                性别 <text class="text-danger" aria-hidden="true">*</text>
+              </text>
               <picker
                 :range="PET_GENDER_OPTIONS"
                 range-key="label"
@@ -703,37 +700,27 @@ watch(
 
             <view>
               <text class="mb-sm block text-body text-ink font-medium">生日</text>
-              <view class="flex gap-sm">
-                <picker
-                  class="min-w-0 flex-1"
-                  mode="date"
-                  :value="form.birthDate"
-                  :end="maximumDate"
-                  :disabled="controlsDisabled"
-                  aria-label="宠物生日"
-                  @change="handleBirthDateChange"
+              <picker
+                mode="date"
+                :value="form.birthDate"
+                :end="maximumDate"
+                :disabled="controlsDisabled"
+                aria-label="宠物生日"
+                @change="handleBirthDateChange"
+              >
+                <view
+                  class="h-control flex items-center justify-between border border-divider rounded-control px-copy"
                 >
-                  <view
-                    class="h-control flex items-center justify-between border border-divider rounded-control px-copy"
-                  >
-                    <text :class="form.birthDate ? 'text-ink' : 'text-subtle'">
-                      {{ form.birthDate || "请选择" }}
-                    </text>
-                    <image
-                      class="h-icon-xs w-icon-xs"
-                      src="/static/main/chevron.svg"
-                      mode="aspectFit"
-                    />
-                  </view>
-                </picker>
-                <PcButton
-                  variant="ghost"
-                  :disabled="!form.birthDate || controlsDisabled"
-                  @click="clearBirthDate"
-                >
-                  清除
-                </PcButton>
-              </view>
+                  <text :class="form.birthDate ? 'text-ink' : 'text-subtle'">
+                    {{ form.birthDate || "请选择" }}
+                  </text>
+                  <image
+                    class="h-icon-xs w-icon-xs"
+                    src="/static/main/chevron.svg"
+                    mode="aspectFit"
+                  />
+                </view>
+              </picker>
               <text
                 v-if="validationField === 'birthDate'"
                 class="mt-caption block text-caption text-danger leading-caption"
@@ -782,20 +769,20 @@ watch(
         <view class="main-card p-action">
           <text class="card-heading">照护信息</text>
           <view class="mt-copy flex flex-col gap-action">
-            <label v-for="field in careFields" :key="field.key">
-              <text class="mb-sm block text-body text-ink font-medium">{{ field.label }}</text>
+            <label>
+              <text class="mb-sm block text-body text-ink font-medium">备注</text>
               <textarea
-                v-model="form[field.key]"
+                v-model="form.notes"
                 class="min-h-control box-border w-full border border-divider rounded-control px-copy py-copy text-body text-ink leading-body"
                 auto-height
                 :maxlength="PET_PROFILE_LIMITS.CARE_TEXT_MAX_LENGTH"
                 :disabled="controlsDisabled"
-                :aria-label="field.label"
+                aria-label="宠物备注"
                 placeholder="选填，最多 200 字"
-                @input="clearValidation(field.key)"
+                @input="clearValidation('notes')"
               />
               <text
-                v-if="validationField === field.key"
+                v-if="validationField === 'notes'"
                 class="mt-caption block text-caption text-danger leading-caption"
                 role="alert"
               >

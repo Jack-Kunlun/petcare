@@ -1,5 +1,5 @@
 #!/usr/bin/env python3
-"""Atomically replace the managed public-media settings in a production dotenv file."""
+"""Atomically update managed production settings and remove deprecated keys."""
 
 import os
 import re
@@ -17,6 +17,7 @@ MANAGED_KEYS = (
     "TENCENT_COS_REGION",
     "TENCENT_COS_PUBLIC_BASE_URL",
 )
+REMOVED_KEYS = {"DEFAULT_ADMIN_PHONE"}
 
 
 def fail(message: str) -> None:
@@ -79,6 +80,8 @@ def update_env(target: Path, updates: dict[str, str]) -> None:
     seen: set[str] = set()
     for line in target.read_text(encoding="utf-8").splitlines():
         key, separator, _value = line.partition("=")
+        if separator and key in REMOVED_KEYS:
+            continue
         if separator and key in MANAGED_KEYS:
             if key in seen:
                 fail(f"production environment file contains a duplicate key: {key}")

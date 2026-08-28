@@ -11,9 +11,7 @@ const validPet = {
   birthDate: "2023-05-12",
   weightKg: 4.6,
   sterilized: true,
-  habits: "  怕生  ",
-  allergies: null,
-  tabooFoods: "  葡萄  ",
+  notes: "  怕生，不能吃葡萄  ",
 };
 
 describe("pet DTOs", () => {
@@ -26,8 +24,7 @@ describe("pet DTOs", () => {
       expect(value).toMatchObject({
         name: "米米",
         breed: "英短",
-        habits: "怕生",
-        tabooFoods: "葡萄",
+        notes: "怕生，不能吃葡萄",
       });
     },
   );
@@ -41,7 +38,7 @@ describe("pet DTOs", () => {
       sterilized: true,
     });
 
-    await expect(validate(value)).resolves.toHaveLength(5);
+    await expect(validate(value)).resolves.toHaveLength(3);
   });
 
   it.each([
@@ -54,7 +51,7 @@ describe("pet DTOs", () => {
     { ...validPet, weightKg: 0 },
     { ...validPet, weightKg: 200.001 },
     { ...validPet, sterilized: "yes" },
-    { ...validPet, habits: "字".repeat(201) },
+    { ...validPet, notes: "字".repeat(201) },
   ])("rejects an invalid complete payload %#", async (input) => {
     await expect(validate(plainToInstance(CreatePetDto, input))).resolves.not.toHaveLength(0);
   });

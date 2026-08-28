@@ -22,9 +22,7 @@ const detail = {
   birthDate: "2023-05-12",
   weightKg: 4.6,
   sterilized: true,
-  habits: "怕生",
-  allergies: null,
-  tabooFoods: "葡萄",
+  notes: "怕生，不能吃葡萄",
   coverImage: null,
   photoUrls: [],
   photoAssets: [],
@@ -37,7 +35,7 @@ describe("pet profile form", () => {
     const form = createPetForm(detail);
 
     expect(form.weightKg).toBe("4.6");
-    expect(validatePetForm({ ...form, name: "  咪咪  ", habits: "  怕生  " })).toEqual({
+    expect(validatePetForm({ ...form, name: "  咪咪  ", notes: "  怕生，不能吃葡萄  " })).toEqual({
       ok: true,
       request: {
         name: "咪咪",
@@ -47,9 +45,7 @@ describe("pet profile form", () => {
         birthDate: "2023-05-12",
         weightKg: 4.6,
         sterilized: true,
-        habits: "怕生",
-        allergies: null,
-        tabooFoods: "葡萄",
+        notes: "怕生，不能吃葡萄",
       },
     });
   });
@@ -77,12 +73,12 @@ describe("pet profile form", () => {
   });
 
   it("keeps blank optional values null and snapshots dirty state deterministically", () => {
-    const form = { ...createPetForm(detail), birthDate: "", weightKg: "", tabooFoods: "  " };
+    const form = { ...createPetForm(detail), birthDate: "", weightKg: "", notes: "  " };
     const result = validatePetForm(form);
 
     expect(result).toMatchObject({
       ok: true,
-      request: { birthDate: null, weightKg: null, tabooFoods: null },
+      request: { birthDate: null, weightKg: null, notes: null },
     });
     expect(serializePetForm(form)).toBe(serializePetForm({ ...form }));
     expect(serializePetForm({ ...form, name: "旺财" })).not.toBe(serializePetForm(form));

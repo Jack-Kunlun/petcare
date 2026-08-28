@@ -32,8 +32,8 @@ export class AdminUserResponseDto implements AdminSessionUser {
   @ApiProperty({ nullable: true, example: "admin" })
   username: string | null;
 
-  @ApiProperty({ example: "13800138000" })
-  phone: string;
+  @ApiProperty({ nullable: true, example: null })
+  phone: string | null;
 
   @ApiProperty({ example: "系统管理员" })
   nickname: string;

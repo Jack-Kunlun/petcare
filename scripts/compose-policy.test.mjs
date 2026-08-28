@@ -8,13 +8,7 @@ const root = resolve(import.meta.dirname, "..");
 test("生产 Compose 要求显式敏感值且禁用开发短信码", async () => {
   const compose = await readFile(resolve(root, "docker-compose.yml"), "utf8");
 
-  for (const name of [
-    "DB_PASSWORD",
-    "REDIS_PASSWORD",
-    "JWT_SECRET",
-    "DEFAULT_ADMIN_PHONE",
-    "DEFAULT_ADMIN_PASSWORD",
-  ]) {
+  for (const name of ["DB_PASSWORD", "REDIS_PASSWORD", "JWT_SECRET", "DEFAULT_ADMIN_PASSWORD"]) {
     assert.match(compose, new RegExp(`\\$\\{${name}:\\?`), `${name} 必须使用 Compose 必填表达式`);
   }
 

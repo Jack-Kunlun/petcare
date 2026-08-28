@@ -15,7 +15,7 @@ export interface AdminAccountProfile {
   id: string;
   /** Login name, or null when none is configured. */
   username: string | null;
-  /** Server-masked login phone number. */
+  /** Server-masked login phone number, or `未绑定` for a username-only account. */
   maskedPhone: string;
   /** Administrator-facing display name. */
   nickname: string;

@@ -809,15 +809,13 @@ Token 获取，客户端不得传入。接口只返回脱敏姓名、脱敏身�
   "birthDate": "2023-05-01",
   "weightKg": 12.4,
   "sterilized": true,
-  "habits": null,
-  "allergies": null,
-  "tabooFoods": "巧克力"
+  "notes": "不能吃巧克力"
 }
 ```
 
 `species` 可取 `cat`、`dog`、`rabbit`、`hamster`、`bird`、`other`；`gender` 可取 `male`、`female`、`unknown`。`birthDate` 为 `YYYY-MM-DD` 或 `null`，`weightKg` 为 0.1–200 且最多两位小数，或为 `null`。单个用户最多创建 5 个宠物档案，并发创建通过用户行锁串行化。
 
-列表返回 `id`、`name`、`species`、`breed`、`gender`、`birthDate` 和 `coverImage`。详情额外返回 `weightKg`、`sterilized`、`habits`、`allergies`、`tabooFoods`、`photoUrls`、`photoAssets`、`createdAt` 和 `updatedAt`。`photoAssets` 为本人可见的受管理图片元数据，包含 `id`、`url`、服务端检测的 `mimeType`、`width`、`height` 和 `sizeBytes`；照护文本、完整照片列表和媒体标识均不进入公开宠物摘要。兼容保留的旧 `age` 字段不通过 API 暴露。
+列表返回 `id`、`name`、`species`、`breed`、`gender`、`birthDate` 和 `coverImage`。详情额外返回 `weightKg`、`sterilized`、`notes`、`photoUrls`、`photoAssets`、`createdAt` 和 `updatedAt`。`photoAssets` 为本人可见的受管理图片元数据，包含 `id`、`url`、服务端检测的 `mimeType`、`width`、`height` 和 `sizeBytes`；照护备注、完整照片列表和媒体标识均不进入公开宠物摘要。兼容保留的旧 `age` 字段不通过 API 暴露。
 
 `POST /pets/{id}/media-assets` 使用 `multipart/form-data` 的 `file` 字段。图片类型只接受服务端从字节检测出的 JPEG、PNG 或 WebP，大小为 1 字节到 10 MiB，宽高均为 32–8192 像素；客户端声明的扩展名和 MIME 类型不作为信任来源。每个宠物最多保留 5 张图片，数量会在上传前和所有者行锁事务内重复检查。`photoUrls` 与 `photoAssets` 不是创建或更新宠物档案的请求字段。
 

@@ -59,6 +59,9 @@ describe("profile edit interaction boundary", () => {
     expect(source).not.toContain("验证并绑定");
     expect(source).toContain("<wd-popup");
     expect(source).toContain('position="bottom"');
+    expect(source).toContain(':custom-style="phoneSheetStyle"');
+    expect(source).toContain(':adjust-position="false"');
+    expect(source).toContain('@keyboardheightchange="handleKeyboardHeightChange"');
     expect(source).toContain('v-if="profile.phoneMasked === null"');
     expect(source).toContain('@click="openPhoneSheet"');
     expect(source).toContain('id="phone-error"');
