@@ -15,5 +15,7 @@ describe("current administration controller authorization", () => {
     ]);
     expect(permissions(AdminUserController.prototype, "findAll")).toEqual(["user.read"]);
     expect(permissions(AdminUserController.prototype, "findOne")).toEqual(["user.read"]);
+    expect(permissions(AdminUserController.prototype, "ban")).toEqual(["user.update"]);
+    expect(permissions(AdminUserController.prototype, "restore")).toEqual(["user.update"]);
   });
 });

@@ -70,6 +70,12 @@ describe("Swagger response documentation", () => {
     expect(responseSchema("/admin/users/{id}", "get", "200")).toMatchObject({
       allOf: expect.any(Array),
     });
+    expect(responseSchema("/admin/users/{id}/ban", "post", "200")).toMatchObject({
+      allOf: expect.any(Array),
+    });
+    expect(responseSchema("/admin/users/{id}/restore", "post", "200")).toMatchObject({
+      allOf: expect.any(Array),
+    });
   });
 
   it("documents only anonymous-safe public user fields", () => {
@@ -133,6 +139,8 @@ describe("Swagger response documentation", () => {
     expect(document.paths["/auth/wechat/logout"]?.post?.responses?.["204"]).toBeDefined();
     expect(document.paths["/users/me/phone/code"]?.post?.responses?.["503"]).toBeDefined();
     expect(document.paths["/users/me/cancellation/code"]?.post?.responses?.["503"]).toBeDefined();
+    expect(document.paths["/admin/users/{id}/ban"]?.post?.responses?.["409"]).toBeDefined();
+    expect(document.paths["/admin/users/{id}/restore"]?.post?.responses?.["409"]).toBeDefined();
   });
 });
 

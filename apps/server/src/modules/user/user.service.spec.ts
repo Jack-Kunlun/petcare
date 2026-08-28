@@ -10,6 +10,7 @@ describe("UserService public responses", () => {
       findFirst: jest.fn(),
       findUnique: jest.fn(),
       findMany: jest.fn(),
+      updateMany: jest.fn(),
     },
   };
   const service = new UserService(prisma as unknown as PrismaService);
@@ -211,5 +212,105 @@ describe("UserService public responses", () => {
       code: "RESOURCE_NOT_FOUND",
       clientMessage: "用户不存在",
     });
+  });
+
+  it("atomically bans an active user and rotates all existing sessions", async () => {
+    prisma.user.findUnique.mockResolvedValueOnce({ status: "active" }).mockResolvedValueOnce({
+      id: "user-1",
+      phone: null,
+      username: null,
+      nickname: "小宠家长",
+      avatar: null,
+      userType: "pet_owner",
+      status: "banned",
+      createdAt: new Date("2026-07-29T00:00:00.000Z"),
+      updatedAt: new Date("2026-07-30T00:00:00.000Z"),
+      profile: null,
+      _count: { pets: 0, posts: 0, comments: 0, favorites: 0 },
+    });
+    prisma.user.updateMany.mockResolvedValue({ count: 1 });
+
+    await expect(service.banAdminUser("user-1", "admin-1")).resolves.toMatchObject({
+      id: "user-1",
+      status: "banned",
+    });
+    expect(prisma.user.updateMany).toHaveBeenCalledWith({
+      where: { id: "user-1", status: "active" },
+      data: { status: "banned", sessionVersion: { increment: 1 } },
+    });
+  });
+
+  it("restores only a banned user and rotates the session version again", async () => {
+    prisma.user.findUnique.mockResolvedValueOnce({ status: "banned" }).mockResolvedValueOnce({
+      id: "user-1",
+      phone: null,
+      username: null,
+      nickname: "小宠家长",
+      avatar: null,
+      userType: "pet_owner",
+      status: "active",
+      createdAt: new Date("2026-07-29T00:00:00.000Z"),
+      updatedAt: new Date("2026-07-30T00:00:00.000Z"),
+      profile: null,
+      _count: { pets: 0, posts: 0, comments: 0, favorites: 0 },
+    });
+    prisma.user.updateMany.mockResolvedValue({ count: 1 });
+
+    await expect(service.restoreAdminUser("user-1")).resolves.toMatchObject({
+      id: "user-1",
+      status: "active",
+    });
+    expect(prisma.user.updateMany).toHaveBeenCalledWith({
+      where: { id: "user-1", status: "banned" },
+      data: { status: "active", sessionVersion: { increment: 1 } },
+    });
+  });
+
+  it("keeps an already banned request idempotent without rotating sessions twice", async () => {
+    prisma.user.findUnique.mockResolvedValueOnce({ status: "banned" }).mockResolvedValueOnce({
+      id: "user-1",
+      phone: null,
+      username: null,
+      nickname: "小宠家长",
+      avatar: null,
+      userType: "pet_owner",
+      status: "banned",
+      createdAt: new Date("2026-07-29T00:00:00.000Z"),
+      updatedAt: new Date("2026-07-30T00:00:00.000Z"),
+      profile: null,
+      _count: { pets: 0, posts: 0, comments: 0, favorites: 0 },
+    });
+
+    await expect(service.banAdminUser("user-1", "admin-1")).resolves.toMatchObject({
+      status: "banned",
+    });
+    expect(prisma.user.updateMany).not.toHaveBeenCalled();
+  });
+
+  it("rejects self-ban and leaves the account untouched", async () => {
+    await expect(service.banAdminUser("admin-1", "admin-1")).rejects.toMatchObject({
+      code: "USER_SELF_BAN_FORBIDDEN",
+      status: HttpStatus.CONFLICT,
+    });
+    expect(prisma.user.findUnique).not.toHaveBeenCalled();
+    expect(prisma.user.updateMany).not.toHaveBeenCalled();
+  });
+
+  it.each([
+    ["ban", "inactive"],
+    ["restore", "inactive"],
+  ])("rejects a %s transition from %s", async (action, status) => {
+    prisma.user.findUnique.mockResolvedValue({ status });
+
+    const operation =
+      action === "ban"
+        ? service.banAdminUser("user-1", "admin-1")
+        : service.restoreAdminUser("user-1");
+
+    await expect(operation).rejects.toMatchObject({
+      code: "USER_STATUS_CONFLICT",
+      status: HttpStatus.CONFLICT,
+    });
+    expect(prisma.user.updateMany).not.toHaveBeenCalled();
   });
 });

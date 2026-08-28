@@ -1,10 +1,11 @@
 import { beforeEach, describe, expect, it, vi } from "vitest";
 import { apiClient } from "./auth";
-import { fetchAdminUser, fetchAdminUsers } from "./users";
+import { banAdminUser, fetchAdminUser, fetchAdminUsers, restoreAdminUser } from "./users";
 
 vi.mock("./auth", () => ({
   apiClient: {
     get: vi.fn(),
+    post: vi.fn(),
   },
 }));
 
@@ -58,5 +59,29 @@ describe("fetchAdminUsers", () => {
 
     await expect(fetchAdminUser("user-1")).resolves.toEqual(detail);
     expect(apiClient.get).toHaveBeenCalledWith("/admin/users/user-1");
+  });
+
+  it.each([
+    ["拉黑", banAdminUser, "/admin/users/user-1/ban", "banned"],
+    ["恢复", restoreAdminUser, "/admin/users/user-1/restore", "active"],
+  ] as const)("通过语义化接口%s用户", async (_label, operation, path, status) => {
+    const detail = {
+      id: "user-1",
+      phone: null,
+      username: null,
+      nickname: "小宠家长",
+      avatar: null,
+      userType: "pet_owner" as const,
+      status,
+      createdAt: "2026-07-29T00:00:00.000Z",
+      updatedAt: "2026-07-30T00:00:00.000Z",
+      profile: null,
+      activity: { petCount: 0, postCount: 0, commentCount: 0, favoriteCount: 0 },
+    };
+
+    vi.mocked(apiClient.post).mockResolvedValue({ data: detail });
+
+    await expect(operation("user-1")).resolves.toEqual(detail);
+    expect(apiClient.post).toHaveBeenCalledWith(path);
   });
 });

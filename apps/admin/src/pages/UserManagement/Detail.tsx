@@ -1,18 +1,26 @@
-import { useQuery } from "@tanstack/react-query";
+import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
 import {
   ArrowLeft,
+  Ban,
   CalendarDays,
   Heart,
   MessageSquare,
   PawPrint,
   RefreshCw,
+  ShieldCheck,
   UserRound,
 } from "lucide-react";
+import { useState } from "react";
 import { Link, useParams } from "react-router-dom";
-import { fetchAdminUser } from "../../api/users";
+import { readApiErrorMessage } from "../../api/api-response";
+import { banAdminUser, fetchAdminUser, restoreAdminUser } from "../../api/users";
+import { useAuth } from "../../auth/auth.context";
+import { usePermission } from "../../auth/permissions";
 import { EditorPageLayout, FormSection } from "../../components/EditorPageLayout";
-import { Button, StatePanel } from "../../components/ui";
+import { Button, ConfirmDialog, StatePanel } from "../../components/ui";
 import { UserStatusBadge } from "./UserStatusBadge";
+
+type UserStatusAction = "ban" | "restore";
 
 const userTypeLabels = {
   pet_owner: "宠物账户",
@@ -31,10 +39,26 @@ function formatDateTime(value: string): string {
 /** 展示单个用户的账户、资料和当前使用概况。 */
 export default function UserDetail() {
   const { id = "" } = useParams<{ id: string }>();
+  const auth = useAuth();
+  const canUpdate = usePermission("user.update");
+  const queryClient = useQueryClient();
+  const [action, setAction] = useState<UserStatusAction | null>(null);
+  const [actionError, setActionError] = useState("");
   const query = useQuery({
     queryKey: ["admin-user", id],
     queryFn: () => fetchAdminUser(id),
     enabled: Boolean(id),
+  });
+  const statusMutation = useMutation({
+    mutationFn: (nextAction: UserStatusAction) =>
+      nextAction === "ban" ? banAdminUser(id) : restoreAdminUser(id),
+    onSuccess: async (updatedUser) => {
+      queryClient.setQueryData(["admin-user", id], updatedUser);
+      setAction(null);
+      setActionError("");
+      await queryClient.invalidateQueries({ queryKey: ["admin-users"] });
+    },
+    onError: (error) => setActionError(readApiErrorMessage(error)),
   });
 
   const back = (
@@ -85,6 +109,7 @@ export default function UserDetail() {
   }
 
   const user = query.data;
+  const isCurrentUser = auth.user?.id === user.id;
   const activities = [
     { label: "宠物档案", value: user.activity.petCount, icon: PawPrint },
     { label: "社区帖子", value: user.activity.postCount, icon: UserRound },
@@ -92,109 +117,185 @@ export default function UserDetail() {
     { label: "收藏", value: user.activity.favoriteCount, icon: Heart },
   ];
 
-  return (
-    <EditorPageLayout
-      width="wide"
-      title={user.nickname}
-      description="查看该用户当前的账户身份、资料摘要和使用概况。"
-      back={back}
-      status={<UserStatusBadge status={user.status} />}
-    >
-      <div className="grid items-start gap-6 xl:grid-cols-[minmax(0,1fr)_360px]">
-        <div className="min-w-0 space-y-6">
-          <FormSection title="账户信息">
-            <dl className="grid gap-x-8 gap-y-5 text-sm sm:grid-cols-2">
-              <div className="min-w-0">
-                <dt className="text-text-muted">用户 ID</dt>
-                <dd className="mt-1 break-all font-mono text-xs leading-5 text-text-primary">
-                  {user.id}
-                </dd>
-              </div>
-              <div>
-                <dt className="text-text-muted">账户类型</dt>
-                <dd className="mt-1 font-medium text-text-primary">
-                  {userTypeLabels[user.userType]}
-                </dd>
-              </div>
-              <div>
-                <dt className="text-text-muted">手机号</dt>
-                <dd className="mt-1 font-medium tabular-nums text-text-primary">
-                  {user.phone ?? "未绑定"}
-                </dd>
-              </div>
-              <div>
-                <dt className="text-text-muted">登录账号</dt>
-                <dd className="mt-1 font-medium text-text-primary">
-                  {user.username ? `@${user.username}` : "未设置"}
-                </dd>
-              </div>
-            </dl>
-          </FormSection>
+  function renderStatusAction() {
+    if (!canUpdate) {
+      return null;
+    }
 
-          <FormSection title="使用概况" description="以下数量反映当前仍关联到该账户的数据。">
-            <dl className="grid gap-3 sm:grid-cols-2 lg:grid-cols-4">
-              {activities.map(({ label, value, icon: Icon }) => (
-                <div key={label} className="rounded-xl border border-border bg-surface-subtle p-4">
-                  <dt className="flex items-center gap-2 text-sm text-text-secondary">
-                    <Icon aria-hidden="true" className="h-4 w-4 text-brand-primary" />
-                    {label}
-                  </dt>
-                  <dd className="mt-3 text-2xl font-semibold tabular-nums text-text-primary">
-                    {value}
+    if (user.status === "active") {
+      return (
+        <Button
+          disabled={isCurrentUser}
+          intent="dangerOutline"
+          onClick={() => {
+            setActionError("");
+            setAction("ban");
+          }}
+          title={isCurrentUser ? "不能拉黑当前登录账号" : undefined}
+        >
+          <Ban aria-hidden="true" className="h-4 w-4" />
+          {isCurrentUser ? "不可拉黑自己" : "拉黑用户"}
+        </Button>
+      );
+    }
+
+    if (user.status === "banned") {
+      return (
+        <Button
+          intent="secondary"
+          onClick={() => {
+            setActionError("");
+            setAction("restore");
+          }}
+        >
+          <ShieldCheck aria-hidden="true" className="h-4 w-4" />
+          恢复用户
+        </Button>
+      );
+    }
+
+    return null;
+  }
+
+  return (
+    <>
+      <EditorPageLayout
+        width="wide"
+        title={user.nickname}
+        description="查看该用户当前的账户身份、资料摘要和使用概况。"
+        back={back}
+        status={<UserStatusBadge status={user.status} />}
+        actions={renderStatusAction()}
+      >
+        <div className="grid items-start gap-6 xl:grid-cols-[minmax(0,1fr)_360px]">
+          <div className="min-w-0 space-y-6">
+            <FormSection title="账户信息">
+              <dl className="grid gap-x-8 gap-y-5 text-sm sm:grid-cols-2">
+                <div className="min-w-0">
+                  <dt className="text-text-muted">用户 ID</dt>
+                  <dd className="mt-1 break-all font-mono text-xs leading-5 text-text-primary">
+                    {user.id}
                   </dd>
                 </div>
-              ))}
-            </dl>
-          </FormSection>
+                <div>
+                  <dt className="text-text-muted">账户类型</dt>
+                  <dd className="mt-1 font-medium text-text-primary">
+                    {userTypeLabels[user.userType]}
+                  </dd>
+                </div>
+                <div>
+                  <dt className="text-text-muted">手机号</dt>
+                  <dd className="mt-1 font-medium tabular-nums text-text-primary">
+                    {user.phone ?? "未绑定"}
+                  </dd>
+                </div>
+                <div>
+                  <dt className="text-text-muted">登录账号</dt>
+                  <dd className="mt-1 font-medium text-text-primary">
+                    {user.username ? `@${user.username}` : "未设置"}
+                  </dd>
+                </div>
+              </dl>
+            </FormSection>
 
-          <FormSection title="时间信息">
-            <dl className="grid gap-5 text-sm sm:grid-cols-2">
-              <div>
-                <dt className="flex items-center gap-2 text-text-muted">
-                  <CalendarDays aria-hidden="true" className="h-4 w-4" />
-                  注册时间
-                </dt>
-                <dd className="mt-1 font-medium tabular-nums text-text-primary">
-                  {formatDateTime(user.createdAt)}
-                </dd>
+            <FormSection title="使用概况" description="以下数量反映当前仍关联到该账户的数据。">
+              <dl className="grid gap-3 sm:grid-cols-2 lg:grid-cols-4">
+                {activities.map(({ label, value, icon: Icon }) => (
+                  <div
+                    key={label}
+                    className="rounded-xl border border-border bg-surface-subtle p-4"
+                  >
+                    <dt className="flex items-center gap-2 text-sm text-text-secondary">
+                      <Icon aria-hidden="true" className="h-4 w-4 text-brand-primary" />
+                      {label}
+                    </dt>
+                    <dd className="mt-3 text-2xl font-semibold tabular-nums text-text-primary">
+                      {value}
+                    </dd>
+                  </div>
+                ))}
+              </dl>
+            </FormSection>
+
+            <FormSection title="时间信息">
+              <dl className="grid gap-5 text-sm sm:grid-cols-2">
+                <div>
+                  <dt className="flex items-center gap-2 text-text-muted">
+                    <CalendarDays aria-hidden="true" className="h-4 w-4" />
+                    注册时间
+                  </dt>
+                  <dd className="mt-1 font-medium tabular-nums text-text-primary">
+                    {formatDateTime(user.createdAt)}
+                  </dd>
+                </div>
+                <div>
+                  <dt className="flex items-center gap-2 text-text-muted">
+                    <RefreshCw aria-hidden="true" className="h-4 w-4" />
+                    最后更新
+                  </dt>
+                  <dd className="mt-1 font-medium tabular-nums text-text-primary">
+                    {formatDateTime(user.updatedAt)}
+                  </dd>
+                </div>
+              </dl>
+            </FormSection>
+          </div>
+
+          <aside className="min-w-0 xl:sticky xl:top-28">
+            <FormSection title="资料摘要">
+              <div className="flex flex-col items-center text-center">
+                <div className="flex h-20 w-20 items-center justify-center overflow-hidden rounded-full bg-brand-soft text-2xl font-semibold text-brand-primary">
+                  {user.avatar ? (
+                    <img src={user.avatar} alt="" className="h-full w-full object-cover" />
+                  ) : (
+                    user.nickname.slice(0, 1).toUpperCase()
+                  )}
+                </div>
+                <p className="mt-4 text-lg font-semibold text-text-primary">{user.nickname}</p>
+                <p className="mt-1 text-sm text-text-secondary">
+                  {user.username ? `@${user.username}` : "未设置登录账号"}
+                </p>
               </div>
-              <div>
-                <dt className="flex items-center gap-2 text-text-muted">
-                  <RefreshCw aria-hidden="true" className="h-4 w-4" />
-                  最后更新
-                </dt>
-                <dd className="mt-1 font-medium tabular-nums text-text-primary">
-                  {formatDateTime(user.updatedAt)}
-                </dd>
+              <div className="mt-6 border-t border-border pt-5">
+                <p className="text-xs font-medium text-text-muted">个人简介</p>
+                <p className="mt-2 whitespace-pre-wrap text-sm leading-6 text-text-primary">
+                  {user.profile?.bio || "暂未填写个人简介。"}
+                </p>
               </div>
-            </dl>
-          </FormSection>
+            </FormSection>
+          </aside>
         </div>
+      </EditorPageLayout>
 
-        <aside className="min-w-0 xl:sticky xl:top-28">
-          <FormSection title="资料摘要">
-            <div className="flex flex-col items-center text-center">
-              <div className="flex h-20 w-20 items-center justify-center overflow-hidden rounded-full bg-brand-soft text-2xl font-semibold text-brand-primary">
-                {user.avatar ? (
-                  <img src={user.avatar} alt="" className="h-full w-full object-cover" />
-                ) : (
-                  user.nickname.slice(0, 1).toUpperCase()
-                )}
-              </div>
-              <p className="mt-4 text-lg font-semibold text-text-primary">{user.nickname}</p>
-              <p className="mt-1 text-sm text-text-secondary">
-                {user.username ? `@${user.username}` : "未设置登录账号"}
-              </p>
-            </div>
-            <div className="mt-6 border-t border-border pt-5">
-              <p className="text-xs font-medium text-text-muted">个人简介</p>
-              <p className="mt-2 whitespace-pre-wrap text-sm leading-6 text-text-primary">
-                {user.profile?.bio || "暂未填写个人简介。"}
-              </p>
-            </div>
-          </FormSection>
-        </aside>
-      </div>
-    </EditorPageLayout>
+      <ConfirmDialog
+        open={action !== null}
+        onOpenChange={(open) => {
+          if (!open && !statusMutation.isPending) {
+            setAction(null);
+            setActionError("");
+          }
+        }}
+        title={action === "ban" ? "确认拉黑该用户？" : "确认恢复该用户？"}
+        description={
+          action === "ban"
+            ? "拉黑后，该用户将无法继续登录，所有现有会话会立即失效。"
+            : "恢复后，该用户可以重新登录；拉黑前签发的旧会话仍保持失效。"
+        }
+        confirmLabel={action === "ban" ? "确认拉黑" : "确认恢复"}
+        confirmTone={action === "ban" ? "danger" : "primary"}
+        pending={statusMutation.isPending}
+        onConfirm={() => {
+          if (action) {
+            statusMutation.mutate(action);
+          }
+        }}
+      >
+        {actionError ? (
+          <p role="alert" className="mt-4 rounded-lg bg-danger-soft px-3 py-2 text-sm text-danger">
+            {actionError}
+          </p>
+        ) : null}
+      </ConfirmDialog>
+    </>
   );
 }

@@ -128,4 +128,65 @@ export class UserService {
       },
     };
   }
+
+  /** 拉黑一个正常账号并立即轮换其会话版本。 */
+  async banAdminUser(id: string, operatorId: string) {
+    if (id === operatorId) {
+      throw new ApiException(
+        "USER_SELF_BAN_FORBIDDEN",
+        "不能拉黑当前登录账号",
+        HttpStatus.CONFLICT,
+      );
+    }
+
+    return this.transitionAdminUserStatus(id, "active", "banned", "仅可拉黑正常账号");
+  }
+
+  /** 恢复一个已拉黑账号；主动停用的账号不在该操作范围内。 */
+  async restoreAdminUser(id: string) {
+    return this.transitionAdminUserStatus(id, "banned", "active", "仅可恢复已拉黑账号");
+  }
+
+  /** 以条件更新保证账号状态转换幂等且不会覆盖并发状态变化。 */
+  private async transitionAdminUserStatus(
+    id: string,
+    sourceStatus: "active" | "banned",
+    targetStatus: "active" | "banned",
+    conflictMessage: string,
+  ) {
+    const current = await this.prisma.user.findUnique({
+      where: { id },
+      select: { status: true },
+    });
+
+    if (!current) {
+      throw new ApiException("RESOURCE_NOT_FOUND", "用户不存在", HttpStatus.NOT_FOUND);
+    }
+
+    if (current.status === targetStatus) {
+      return this.findAdminOne(id);
+    }
+
+    if (current.status !== sourceStatus) {
+      throw new ApiException("USER_STATUS_CONFLICT", conflictMessage, HttpStatus.CONFLICT);
+    }
+
+    const updated = await this.prisma.user.updateMany({
+      where: { id, status: sourceStatus },
+      data: { status: targetStatus, sessionVersion: { increment: 1 } },
+    });
+
+    if (updated.count !== 1) {
+      const latest = await this.prisma.user.findUnique({
+        where: { id },
+        select: { status: true },
+      });
+
+      if (latest?.status !== targetStatus) {
+        throw new ApiException("USER_STATUS_CONFLICT", conflictMessage, HttpStatus.CONFLICT);
+      }
+    }
+
+    return this.findAdminOne(id);
+  }
 }
