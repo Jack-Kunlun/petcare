@@ -122,12 +122,28 @@ describe("RbacDetail", () => {
     renderDetail();
 
     expect(await screen.findByRole("heading", { name: "运营专员" })).toBeInTheDocument();
-    expect(screen.getByText("目录版本：2026-08-02")).toBeInTheDocument();
+    expect(screen.getByText("2026-08-02")).toHaveClass("break-all", "font-mono", "text-xs");
     expect(screen.getByText("系统设置")).toBeInTheDocument();
     expect(screen.getByText("读取系统接口")).toBeInTheDocument();
     expect(screen.getByText("自动派生")).toBeInTheDocument();
     expect(screen.getByText("运营主管")).toBeInTheDocument();
     expect(screen.queryByRole("button", { name: "保存关联管理员" })).not.toBeInTheDocument();
+  });
+
+  it("keeps long catalog versions inside the metadata grid", async () => {
+    const longVersion = "9deca6d867c489bf98c2f423e6292d5c68939305586764347d16eb82183";
+
+    vi.mocked(rbacApi.fetchRbacCatalog).mockResolvedValue({
+      ...catalog,
+      version: longVersion,
+    });
+    renderDetail();
+
+    const version = await screen.findByText(longVersion);
+
+    expect(version).toHaveClass("break-all", "font-mono", "text-xs");
+    expect(version.parentElement).toHaveClass("min-w-0");
+    expect(version).toHaveAttribute("title", longVersion);
   });
 
   it("only shows association replacement to rbac.assign_role and submits replacement IDs", async () => {

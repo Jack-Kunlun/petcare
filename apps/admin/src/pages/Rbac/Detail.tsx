@@ -231,10 +231,14 @@ export default function RbacDetail() {
                   </Badge>
                 </dd>
               </div>
-              <div>
+              <div className="min-w-0">
                 <dt className="text-slate-500">目录版本</dt>
-                <dd className="mt-1 font-medium text-slate-900">
-                  目录版本：{catalogQuery.data.version}
+                <dd
+                  className="mt-1 break-all font-mono text-xs leading-5 text-slate-700"
+                  data-testid="rbac-catalog-version"
+                  title={catalogQuery.data.version}
+                >
+                  {catalogQuery.data.version}
                 </dd>
               </div>
               <div>
