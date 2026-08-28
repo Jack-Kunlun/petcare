@@ -9,7 +9,7 @@
 - [ ] 两份 TLS 证书分别覆盖官网两个域名与 Admin 域名；私钥仅以 GitHub Environment Secret 临时传递，服务器
       `/opt/petcare/certs` 为 root-owned `0700`。
 - [ ] 边缘防火墙只放行 `22`、`80`、`443`；数据库、Redis、`8986` 与 `8080` 不对公网开放。
-- [ ] GitHub `production` Environment 已启用 required reviewers，并保存全部部署、TLS、TCR、备份 COS 和微信上传配置；
+- [ ] GitHub `production` Environment 已启用 required reviewers，并保存全部部署、TLS、TCR、公开媒体 COS、备份 COS 和微信上传配置；
       阿里云短信认证凭据只在服务器 root-owned `0600` 的 `.env` 中保存。
 - [ ] `DEPLOY_USER` 是专用、仅密钥、非交互账号，不在 Docker 组；它的 passwordless sudo 与 Docker/root-run release
       实际上是 root-equivalent，必须按特权账号管理并定期轮换 SSH 密钥。
@@ -29,6 +29,9 @@
 - [ ] 两个 TCR Registry 密码分别初始化并记录 UIN 用户名，临时密码管理权限已移除、控制台登录已关闭但子用户未禁用；已验证 push 可推拉不可删、pull 可拉不可推。
 - [ ] `TCR_REGISTRY=ccr.ccs.tencentyun.com` 与 `TCR_NAMESPACE` 是 production Variables；`TCR_PUSH_USERNAME`、`TCR_PUSH_PASSWORD`、
       `TCR_PULL_USERNAME`、`TCR_PULL_PASSWORD` 是 production Secrets，且不是 CAM `SecretId`/`SecretKey`。
+- [ ] `PUBLIC_MEDIA_STORAGE_PROVIDER`、公开素材 Bucket/Region/HTTPS URL 是 production Variables；`TENCENT_COS_SECRET_ID` 与
+      `TENCENT_COS_SECRET_KEY` 是 production Secrets，只允许操作五个 `public/*` 素材前缀，并由 Server/全量发布原子写入
+      root-owned `0600` 的 `/opt/petcare/.env`。
 
 ## P0：备份与恢复
 
@@ -44,7 +47,7 @@
       `server`、`admin` 或 `website` 和 `false`。
 - [ ] 发布归档顶层只包含 `docker-compose.yml`、`docker/`、`scripts/`、`deploy/`；应用镜像产物按完整 SHA 构建、校验并在
       release 切换前加载；TCR 密码只在本次 runner/远端临时目录和临时 Docker config 中使用，结束时清理。
-- [ ] 发布提交已成功通过 `ci.yml`，且 `deploy/production-release-contract` 严格为单行 `tcr-source-free-v1`；不使用
+- [ ] 发布提交已成功通过 `ci.yml`，且 `deploy/production-release-contract` 严格为单行 `source-free-public-media-v2`；不使用
       `prisma:push`；理解 migration 是 forward-only，而镜像回滚不回滚数据库。
 - [ ] 发布完成后验证三个 HTTP → HTTPS 重定向与以下 HTTPS 端点：官网根域、`www`、Admin、`/api/ready`。
 - [ ] Server、Admin、Website 使用独立不可变 SHA 镜像标签，`/opt/petcare/.deploy-images.env` 只在完整验证后更新。

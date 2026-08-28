@@ -91,8 +91,9 @@ Copy-Item .env.example .env
 
 生产环境使用公开读、私有写 COS Bucket，并向 Server 注入仅允许读写
 `public/admin-avatars/`、`public/user-avatars/`、`public/website-media/`、`public/community-media/` 与
-`public/pet-media/` 前缀的最小权限子账号凭据。不要将 COS 凭据写入镜像、工作流、客户端或仓库的 `.env`；
-根 `.env` 不提交。
+`public/pet-media/` 前缀的最小权限子账号凭据。公开媒体凭据保存在 GitHub `production` Environment Secrets，非敏感
+坐标保存在同一 Environment Variables；Server/全量发布将它们原子同步到 root-owned `0600` 的生产根 `.env`。
+不要把 COS 凭据硬编码进工作流、镜像、客户端或仓库的 `.env`；生产根 `.env` 不提交。
 
 需要在尚未正式发版的环境全量重置数据时，手动运行“手动生产发布”，选择 `target=all`，并在
 `reset_data_confirmation` 输入 `RESET_PRODUCTION_DATA`。发布会先停止 Server 写入，将 PostgreSQL 备份上传到
@@ -282,7 +283,7 @@ Admin 的静态 Nginx 容器。网关仅代理官网页面、`/website-content/*
 ### 5.7 生产手动发布
 
 `deploy.yml` 接受分支、标签或 commit SHA/ref，并在构建/发布前将其解析为不可变 40 字符完整 SHA。所选提交必须既通过
-`ci.yml`，又携带内容严格为单行 `tcr-source-free-v1` 的 `deploy/production-release-contract`；否则 `resolve` 会在镜像工作前拒绝它。GitHub
+`ci.yml`，又携带内容严格为单行 `source-free-public-media-v2` 的 `deploy/production-release-contract`；否则 `resolve` 会在镜像工作前拒绝它。GitHub
 `production` Environment 使用 `TCR_REGISTRY=ccr.ccs.tencentyun.com` 和已选的 `TCR_NAMESPACE`；`TCR_PUSH_*` 只供固定运行时
 镜像同步使用，`TCR_PULL_*` 只供生产服务器拉取运行时镜像。
 这些 Registry 用户名和密码不是 CAM `SecretId`/`SecretKey`，真实值不能写入文档、命令示例或日志。
@@ -295,6 +296,10 @@ Actions Artifact；专用部署 runner 校验下载摘要与 gzip，再通过已
 首次发布使用 `target=all`、`initialize_data=true`；日常完整发布使用 `target=all`、`initialize_data=false`；只发布一个应用时选择
 `server`、`admin` 或 `website` 且保持 `false`。每个应用有独立不可变镜像标签，并在完整验证后原子更新
 `/opt/petcare/.deploy-images.env`。
+
+Server/全量发布还会从 `production` Environment 读取 `PUBLIC_MEDIA_STORAGE_PROVIDER` 与五个 `TENCENT_COS_*` 值，先在
+runner 的 `0600` 临时文件中验证，再由生产发布脚本只替换 `/opt/petcare/.env` 中对应的六个键。更新失败或后续发布失败时，
+发布事务先恢复旧 `.env` 再尝试镜像回滚；Admin/Website 选择性发布不改动这些 Server 运行配置。
 
 `/opt/petcare/current` 指向不可变 release；`.env`、`.deploy-images.env`、`certs`、`logs` 和 PostgreSQL/Redis named volumes 都在
 release 之外持久保存。发布归档顶层白名单只有 `docker-compose.yml`、`docker/`、`scripts/`、`deploy/`，不会覆盖这些持久数据。

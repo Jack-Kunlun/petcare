@@ -208,8 +208,11 @@ Miniapp 的 Vite 环境根目录是 `apps/miniapp`。仓库内的 `.env.developm
 
 生产环境应使用公开读、私有写素材 Bucket，并为 Server 配置仅能操作该 Bucket 中
 `public/admin-avatars/`、`public/user-avatars/`、`public/website-media/`、`public/community-media/` 和
-`public/pet-media/` 前缀的最小权限子账号凭据。不要将 SecretId、SecretKey 或根账号凭据写入客户端、仓库或
-文档示例；任何根 `.env` 均不提交，生产文件仅由 root 在服务器上持有。
+`public/pet-media/` 前缀的最小权限子账号凭据。生产环境的 `TENCENT_COS_SECRET_ID` 与
+`TENCENT_COS_SECRET_KEY` 保存在 GitHub `production` Environment Secrets；provider、Bucket、Region 与公开 URL
+保存在同一 Environment Variables。`deploy.yml` 仅在 Server/全量发布时把这六项原子写入 root-owned `0600` 的
+`/opt/petcare/.env`，失败时恢复旧文件。不要将 SecretId、SecretKey 或根账号凭据硬编码进工作流、客户端、仓库或
+文档示例；根 `.env` 不提交，也不能通过日志或聊天回传。
 
 ### 数据库异地备份（仅生产 Linux/systemd）
 

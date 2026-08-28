@@ -1,9 +1,16 @@
 import assert from "node:assert/strict";
-import { readFile } from "node:fs/promises";
-import { resolve } from "node:path";
+import { execFile } from "node:child_process";
+import { chmod, mkdtemp, readFile, rm, writeFile } from "node:fs/promises";
+import { tmpdir } from "node:os";
+import { join, resolve } from "node:path";
+import process from "node:process";
 import test from "node:test";
+import { promisify } from "node:util";
 
 const root = resolve(import.meta.dirname, "..");
+const execFileAsync = promisify(execFile);
+const pythonExecutable =
+  process.env.PETCARE_TEST_PYTHON || (process.platform === "win32" ? "" : "python3");
 
 function position(script, fragment) {
   const index = script.indexOf(fragment);
@@ -294,15 +301,15 @@ test("所选提交必须包含当前生产发布契约", async () => {
   const checkout = position(resolveJob, "ref: ${{ inputs.ref }}");
   const markerGate = position(
     resolveJob,
-    "cmp -s <(printf '%s\\n' 'tcr-source-free-v1') deploy/production-release-contract",
+    "cmp -s <(printf '%s\\n' 'source-free-public-media-v2') deploy/production-release-contract",
   );
   const ciGate = position(resolveJob, "要求该提交的持续集成已成功");
 
-  assert.equal(releaseContract, "tcr-source-free-v1\n");
+  assert.equal(releaseContract, "source-free-public-media-v2\n");
   assert.doesNotMatch(resolveJob, /test "\$\(wc -l < deploy\/production-release-contract\)" -eq 1/);
   assert.doesNotMatch(
     resolveJob,
-    /grep -Fxq "tcr-source-free-v1" deploy\/production-release-contract/,
+    /grep -Fxq "source-free-public-media-v2" deploy\/production-release-contract/,
   );
   assert.ok(checkout < markerGate && markerGate < ciGate);
 });
@@ -392,6 +399,8 @@ test("部署工作流先在受保护 runner 临时目录验证 SSH 与 TLS", asy
     "BACKUP_COS_SECRET_KEY",
     "BACKUP_COS_BUCKET",
     "BACKUP_COS_REGION",
+    "TENCENT_COS_SECRET_ID",
+    "TENCENT_COS_SECRET_KEY",
   ]) {
     assert.match(workflow, new RegExp(`secrets\\.${secret}`));
   }
@@ -421,6 +430,98 @@ test("部署工作流先在受保护 runner 临时目录验证 SSH 与 TLS", asy
   assert.doesNotMatch(workflow, /appleboy\/ssh-action/);
   assert.doesNotMatch(workflow, /prisma:push|sync_schema/);
 });
+
+test("公开媒体配置由 production Environment 原子写入且失败时恢复", async () => {
+  const [workflow, releaseScript, updater] = await Promise.all([
+    readFile(resolve(root, ".github/workflows/deploy.yml"), "utf8"),
+    readFile(resolve(root, "scripts/release-production.sh"), "utf8"),
+    readFile(resolve(root, "scripts/update-public-media-env.py"), "utf8"),
+  ]);
+
+  for (const variable of [
+    "PUBLIC_MEDIA_STORAGE_PROVIDER",
+    "TENCENT_COS_BUCKET",
+    "TENCENT_COS_REGION",
+    "TENCENT_COS_PUBLIC_BASE_URL",
+  ]) {
+    assert.match(workflow, new RegExp(`vars\\.${variable}`));
+  }
+  for (const secret of ["TENCENT_COS_SECRET_ID", "TENCENT_COS_SECRET_KEY"]) {
+    assert.match(workflow, new RegExp(`secrets\\.${secret}`));
+  }
+  assert.match(workflow, /petcare-public-media\.env/);
+  assert.match(workflow, /PUBLIC_MEDIA_ENV_FILE="\$REMOTE_TMP\/petcare-public-media\.env"/);
+  assert.doesNotMatch(workflow, /(?:echo|printf).*\$TENCENT_COS_SECRET_(?:ID|KEY).*>&2/);
+
+  const update = position(
+    releaseScript,
+    'python3 "$RELEASE_DIR/scripts/update-public-media-env.py" "$ENV_FILE" "$PUBLIC_MEDIA_ENV_FILE"',
+  );
+  const composeValidation = position(
+    releaseScript,
+    'docker compose --env-file "$ENV_FILE" config --quiet',
+  );
+  const restore = position(releaseScript, 'mv -f -- "$ENV_BACKUP" "$ENV_FILE"');
+  const rollback = position(releaseScript, 'IMAGE_REGISTRY="$OLD_IMAGE_REGISTRY"');
+
+  assert.ok(update < composeValidation);
+  assert.ok(restore < rollback);
+  assert.match(releaseScript, /stat -c '%U:%G %a'.*root:root 600/);
+  assert.match(releaseScript, /PUBLIC_MEDIA_ENV_FILE 路径无效/);
+  assert.match(updater, /MANAGED_KEYS = \(/);
+  assert.match(updater, /os\.replace\(temporary_name, target\)/);
+  assert.match(updater, /production environment file contains a duplicate key/);
+  assert.doesNotMatch(updater, /print\(.*updates|print\(.*SECRET/);
+});
+
+test(
+  "公开媒体 dotenv 更新器保留无关配置并拒绝重复键",
+  { skip: !pythonExecutable },
+  async (context) => {
+    const directory = await mkdtemp(join(tmpdir(), "petcare-public-media-env-"));
+    context.after(() => rm(directory, { force: true, recursive: true }));
+    const target = join(directory, ".env");
+    const updates = join(directory, "updates.env");
+    const updater = resolve(root, "scripts/update-public-media-env.py");
+    const original = [
+      "DB_PASSWORD=keep=this=value",
+      "PUBLIC_MEDIA_STORAGE_PROVIDER=disabled",
+      "TENCENT_COS_SECRET_ID=",
+      "TENCENT_COS_SECRET_KEY=",
+      "TENCENT_COS_BUCKET=",
+      "TENCENT_COS_REGION=",
+      "TENCENT_COS_PUBLIC_BASE_URL=",
+      "",
+    ].join("\n");
+    const validUpdates = [
+      "PUBLIC_MEDIA_STORAGE_PROVIDER=tencent-cos",
+      "TENCENT_COS_SECRET_ID=test-secret-id-000000000000000000",
+      "TENCENT_COS_SECRET_KEY=test-secret-key-00000000000000000",
+      "TENCENT_COS_BUCKET=petcare-1306016679",
+      "TENCENT_COS_REGION=ap-guangzhou",
+      "TENCENT_COS_PUBLIC_BASE_URL=https://petcare-1306016679.cos.ap-guangzhou.myqcloud.com",
+      "",
+    ].join("\n");
+
+    await writeFile(target, original, "utf8");
+    await chmod(target, 0o600);
+    await writeFile(updates, validUpdates, "utf8");
+    const result = await execFileAsync(pythonExecutable, [updater, target, updates]);
+    const updated = await readFile(target, "utf8");
+
+    assert.equal(result.stdout.trim(), "public media environment updated");
+    assert.match(updated, /^DB_PASSWORD=keep=this=value$/m);
+    assert.match(updated, /^PUBLIC_MEDIA_STORAGE_PROVIDER=tencent-cos$/m);
+    assert.match(updated, /^TENCENT_COS_BUCKET=petcare-1306016679$/m);
+
+    await writeFile(updates, validUpdates + "TENCENT_COS_BUCKET=duplicate-1306016679\n", "utf8");
+    await assert.rejects(
+      execFileAsync(pythonExecutable, [updater, target, updates]),
+      /duplicate key/,
+    );
+    assert.equal(await readFile(target, "utf8"), updated);
+  },
+);
 
 test("远端发布以 root 不可变 release 和临时凭据完成 TLS 与事务", async () => {
   const workflow = await readFile(resolve(root, ".github/workflows/deploy.yml"), "utf8");

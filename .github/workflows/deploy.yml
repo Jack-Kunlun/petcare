@@ -58,7 +58,7 @@ jobs:
         shell: bash
         run: |
           set -Eeuo pipefail
-          cmp -s <(printf '%s\n' 'tcr-source-free-v1') deploy/production-release-contract
+          cmp -s <(printf '%s\n' 'source-free-public-media-v2') deploy/production-release-contract
 
       - name: 解析不可变部署参数
         id: meta
@@ -224,6 +224,12 @@ jobs:
       BACKUP_COS_SECRET_KEY: ${{ secrets.BACKUP_COS_SECRET_KEY }}
       BACKUP_COS_BUCKET: ${{ secrets.BACKUP_COS_BUCKET }}
       BACKUP_COS_REGION: ${{ secrets.BACKUP_COS_REGION }}
+      PUBLIC_MEDIA_STORAGE_PROVIDER: ${{ vars.PUBLIC_MEDIA_STORAGE_PROVIDER }}
+      TENCENT_COS_BUCKET: ${{ vars.TENCENT_COS_BUCKET }}
+      TENCENT_COS_REGION: ${{ vars.TENCENT_COS_REGION }}
+      TENCENT_COS_PUBLIC_BASE_URL: ${{ vars.TENCENT_COS_PUBLIC_BASE_URL }}
+      TENCENT_COS_SECRET_ID: ${{ secrets.TENCENT_COS_SECRET_ID }}
+      TENCENT_COS_SECRET_KEY: ${{ secrets.TENCENT_COS_SECRET_KEY }}
       TARGET: ${{ inputs.target }}
       INITIALIZE_DATA: ${{ inputs.initialize_data }}
       RESET_DATA: ${{ inputs.reset_data_confirmation == 'RESET_PRODUCTION_DATA' }}
@@ -263,7 +269,9 @@ jobs:
           for name in \
             DEPLOY_HOST DEPLOY_USER DEPLOY_SSH_KEY DEPLOY_HOST_FINGERPRINT TCR_PULL_USERNAME TCR_PULL_PASSWORD \
             TLS_WEBSITE_CERT_B64 TLS_WEBSITE_KEY_B64 TLS_ADMIN_CERT_B64 TLS_ADMIN_KEY_B64 \
-            BACKUP_COS_SECRET_ID BACKUP_COS_SECRET_KEY BACKUP_COS_BUCKET BACKUP_COS_REGION
+            BACKUP_COS_SECRET_ID BACKUP_COS_SECRET_KEY BACKUP_COS_BUCKET BACKUP_COS_REGION \
+            PUBLIC_MEDIA_STORAGE_PROVIDER TENCENT_COS_BUCKET TENCENT_COS_REGION \
+            TENCENT_COS_PUBLIC_BASE_URL TENCENT_COS_SECRET_ID TENCENT_COS_SECRET_KEY
           do
             [[ -n "${!name:-}" ]] || {
               echo "$name is required" >&2
@@ -294,6 +302,12 @@ jobs:
           [[ "$TCR_REGISTRY" == "ccr.ccs.tencentyun.com" ]]
           [[ "$IMAGE_REGISTRY" =~ ^ccr\.ccs\.tencentyun\.com/[a-z0-9]+([._-][a-z0-9]+)*$ ]]
           [[ "$TCR_PULL_USERNAME" =~ ^[a-zA-Z0-9][a-zA-Z0-9-]*$ ]]
+          [[ "$PUBLIC_MEDIA_STORAGE_PROVIDER" == tencent-cos ]]
+          [[ "$TENCENT_COS_BUCKET" =~ ^[a-z0-9][a-z0-9-]*-[0-9]{10,}$ ]]
+          [[ "$TENCENT_COS_REGION" =~ ^[a-z0-9]+(-[a-z0-9]+)+$ ]]
+          [[ "$TENCENT_COS_PUBLIC_BASE_URL" =~ ^https://[a-zA-Z0-9.-]+(:[0-9]+)?(/[^[:space:]?#]*)?$ ]]
+          [[ "$TENCENT_COS_SECRET_ID" =~ ^[a-zA-Z0-9_+/=-]{16,128}$ ]]
+          [[ "$TENCENT_COS_SECRET_KEY" =~ ^[a-zA-Z0-9_+/=-]{16,128}$ ]]
 
           case "$TARGET" in
             all) IMAGE_SERVICES=(server admin website) ;;
@@ -345,6 +359,14 @@ jobs:
             printf 'BACKUP_COS_BUCKET=%s\n' "$BACKUP_COS_BUCKET"
             printf 'BACKUP_COS_REGION=%s\n' "$BACKUP_COS_REGION"
           } > "$DEPLOY_TMP/petcare-backup.env"
+          {
+            printf 'PUBLIC_MEDIA_STORAGE_PROVIDER=%s\n' "$PUBLIC_MEDIA_STORAGE_PROVIDER"
+            printf 'TENCENT_COS_SECRET_ID=%s\n' "$TENCENT_COS_SECRET_ID"
+            printf 'TENCENT_COS_SECRET_KEY=%s\n' "$TENCENT_COS_SECRET_KEY"
+            printf 'TENCENT_COS_BUCKET=%s\n' "$TENCENT_COS_BUCKET"
+            printf 'TENCENT_COS_REGION=%s\n' "$TENCENT_COS_REGION"
+            printf 'TENCENT_COS_PUBLIC_BASE_URL=%s\n' "$TENCENT_COS_PUBLIC_BASE_URL"
+          } > "$DEPLOY_TMP/petcare-public-media.env"
           chmod 600 "$DEPLOY_TMP"/*
 
           validate_pair() {
@@ -454,6 +476,7 @@ jobs:
             "$DEPLOY_TMP/admin.petcare-home.com.key" \
             "$DEPLOY_TMP/tcr-pull.password" \
             "$DEPLOY_TMP/petcare-backup.env" \
+            "$DEPLOY_TMP/petcare-public-media.env" \
             "$DEPLOY_TMP"/petcare-image-*.tar.gz \
             "$destination:$REMOTE_TMP/"
 
@@ -696,6 +719,7 @@ jobs:
             INITIALIZE_DATA="$INITIALIZE_DATA" \
             RESET_DATA="$RESET_DATA" \
             APPLICATION_IMAGES_PRELOADED=true \
+            PUBLIC_MEDIA_ENV_FILE="$REMOTE_TMP/petcare-public-media.env" \
             bash /opt/petcare/current/scripts/release-production.sh < /dev/null
           RELEASE_SUCCEEDED=true
           sudo systemctl enable --now petcare-backup.timer

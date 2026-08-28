@@ -12,7 +12,7 @@
 
 - DNS 为 `petcare-home.com`、`www.petcare-home.com` 和 `admin.petcare-home.com` 配置指向服务器的 A/AAAA 记录。
 - TLS 证书的 SAN 覆盖两个官网域名，Admin 证书覆盖 `admin.petcare-home.com`；公网只放行 `22`、`80`、`443`，数据库、Redis、`8986` 与 `8080` 不对公网开放。
-- GitHub `production` Environment 启用 required reviewers；部署、TLS、TCR、备份 COS 和小程序上传配置只保存在这里。
+- GitHub `production` Environment 启用 required reviewers；部署、TLS、TCR、公开媒体 COS、备份 COS 和小程序上传配置只保存在这里。
 - 阿里云短信认证使用专用 RAM 身份，仅允许 `dypns:SendSmsVerifyCode`，不使用 `AliyunDypnsFullAccess`；使用当前可用且相互配套的系统赠送签名和模板。
 - 备份使用独立、私有、HTTPS 的 COS Bucket 和最小权限 CAM 凭据，不复用官网素材 Bucket。
 
@@ -88,10 +88,14 @@ TCR Registry 的用户名和密码不是 CAM API `SecretId`/`SecretKey`。绝不
 ```text
 TCR_REGISTRY=ccr.ccs.tencentyun.com
 TCR_NAMESPACE=<所选全局唯一私有命名空间>
+PUBLIC_MEDIA_STORAGE_PROVIDER=tencent-cos
+TENCENT_COS_BUCKET=<公开素材 BucketName-APPID>
+TENCENT_COS_REGION=<COS 区域代码>
+TENCENT_COS_PUBLIC_BASE_URL=<公开素材 HTTPS 基础 URL>
 ```
 
 保留 `DEPLOY_PORT=22` 和 production required reviewers。`deploy.yml` 接受分支、标签或 commit SHA/ref，并在构建/发布前将其
-解析为不可变 40 字符完整 SHA。所选提交必须既通过 `ci.yml`，又包含内容严格为单行 `tcr-source-free-v1` 的
+解析为不可变 40 字符完整 SHA。所选提交必须既通过 `ci.yml`，又包含内容严格为单行 `source-free-public-media-v2` 的
 `deploy/production-release-contract`；缺失或不匹配会在任何镜像工作前被 `resolve` 拒绝。应用镜像使用不可变
 `sha-<40 位 SHA>` 标签发布。
 
@@ -106,6 +110,13 @@ TCR_PULL_USERNAME
 TCR_PULL_PASSWORD
 ```
 
+添加公开媒体 COS 专用子用户的两个 Secrets：
+
+```text
+TENCENT_COS_SECRET_ID
+TENCENT_COS_SECRET_KEY
+```
+
 同时保留既有的 `DEPLOY_HOST`、`DEPLOY_USER`、`DEPLOY_SSH_KEY`、`DEPLOY_HOST_FINGERPRINT`、TLS、`BACKUP_COS_*`
 与 `MP_UPLOAD_PRIVATE_KEY_B64` 配置。阿里云短信认证生产值只在 root-owned、`0600` 的服务器 `.env` 中保存，
 不进入镜像或工作流。
@@ -114,6 +125,8 @@ TCR_PULL_PASSWORD
 出现在 runner 和远端的本次临时目录，
 并只通过 `--password-stdin` 写入临时 Docker config；发布结束或失败时立即清理，绝不写入 `.env`、镜像、发布归档、日志或缓存。
 TLS Base64、SSH 私钥和小程序上传 key 同样只在受保护临时位置解码，不能粘贴进 shell history、Issue 或聊天。
+公开媒体 COS Secrets 只在 `deploy` job 的受保护临时文件和服务器根 `.env` 中出现；Server/全量发布原子替换六个托管键，
+校验或发布失败时恢复旧文件。不要把这些 Secrets 直接写入 workflow YAML。
 
 ## 9. 初始化 Ubuntu 与部署 SSH
 

@@ -9,6 +9,7 @@ NEW_IMAGE_TAG="${NEW_IMAGE_TAG:?NEW_IMAGE_TAG is required}"
 INITIALIZE_DATA="${INITIALIZE_DATA:-false}"
 RESET_DATA="${RESET_DATA:-false}"
 APPLICATION_IMAGES_PRELOADED="${APPLICATION_IMAGES_PRELOADED:-false}"
+PUBLIC_MEDIA_ENV_FILE="${PUBLIC_MEDIA_ENV_FILE:-}"
 ROOT_DIR="/opt/petcare"
 RELEASE_DIR="$ROOT_DIR/current"
 ENV_FILE="$ROOT_DIR/.env"
@@ -20,6 +21,8 @@ DEPLOYMENT_STARTED=false
 STATE_PERSISTED=false
 ROLLBACK_RUNNING=false
 CANDIDATE_STATE=""
+ENV_BACKUP=""
+ENV_UPDATED=false
 OLD_IMAGE_REGISTRY=""
 OLD_SERVER_IMAGE_TAG=""
 OLD_ADMIN_IMAGE_TAG=""
@@ -31,6 +34,9 @@ cleanup() {
   if [[ -n "$CANDIDATE_STATE" && "$STATE_PERSISTED" != true ]]; then
     rm -f -- "$CANDIDATE_STATE" || [[ "$status" -ne 0 ]] || status=1
   fi
+  if [[ -n "$ENV_BACKUP" ]]; then
+    rm -f -- "$ENV_BACKUP" || [[ "$status" -ne 0 ]] || status=1
+  fi
 
   return "$status"
 }
@@ -40,9 +46,20 @@ on_error() {
   local status=$?
 
   trap - ERR
+  set +e
+  if [[ "$ENV_UPDATED" == true && -n "$ENV_BACKUP" ]]; then
+    if mv -f -- "$ENV_BACKUP" "$ENV_FILE"; then
+      ENV_BACKUP=""
+      ENV_UPDATED=false
+      printf '%s\n' "生产运行配置已恢复。" >&2
+    else
+      printf '%s\n' "生产运行配置恢复失败，保留备份：$ENV_BACKUP" >&2
+      ENV_BACKUP=""
+      status=1
+    fi
+  fi
   if [[ "$HAD_STATE" == true && "$DEPLOYMENT_STARTED" == true && "$ROLLBACK_RUNNING" == false ]]; then
     ROLLBACK_RUNNING=true
-    set +e
     IMAGE_REGISTRY="$OLD_IMAGE_REGISTRY"
     SERVER_IMAGE_TAG="$OLD_SERVER_IMAGE_TAG"
     ADMIN_IMAGE_TAG="$OLD_ADMIN_IMAGE_TAG"
@@ -147,9 +164,31 @@ if [[ "$RESET_DATA" == true && "$INITIALIZE_DATA" == true ]]; then
   echo "reset_data=true 不能与 initialize_data=true 同时使用" >&2
   exit 1
 fi
+if [[ "$TARGET" == all || "$TARGET" == server ]]; then
+  if [[ ! "$PUBLIC_MEDIA_ENV_FILE" =~ ^/tmp/petcare-release-[0-9]+-[0-9]+/petcare-public-media\.env$ ]]; then
+    echo "PUBLIC_MEDIA_ENV_FILE 路径无效" >&2
+    exit 1
+  fi
+  [[ -f "$PUBLIC_MEDIA_ENV_FILE" && ! -L "$PUBLIC_MEDIA_ENV_FILE" && -r "$PUBLIC_MEDIA_ENV_FILE" ]] || {
+    echo "PUBLIC_MEDIA_ENV_FILE 不可读取" >&2
+    exit 1
+  }
+fi
 
 cd "$RELEASE_DIR"
 test -r "$ENV_FILE"
+
+if [[ "$TARGET" == all || "$TARGET" == server ]]; then
+  [[ "$(stat -c '%U:%G %a' -- "$ENV_FILE")" == "root:root 600" ]] || {
+    echo "生产运行配置权限无效" >&2
+    exit 1
+  }
+  ENV_BACKUP="$(mktemp "$ROOT_DIR/.env.rollback.XXXXXX")"
+  install -o root -g root -m 600 "$ENV_FILE" "$ENV_BACKUP"
+  ENV_UPDATED=true
+  python3 "$RELEASE_DIR/scripts/update-public-media-env.py" "$ENV_FILE" "$PUBLIC_MEDIA_ENV_FILE"
+  [[ "$(stat -c '%U:%G %a' -- "$ENV_FILE")" == "root:root 600" ]]
+fi
 
 if [[ -e "$STATE_FILE" ]]; then
   [[ -f "$STATE_FILE" && -r "$STATE_FILE" ]] || {
