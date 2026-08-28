@@ -68,13 +68,16 @@ test("宿主机本地媒体不会进入 Git 或 Docker 构建上下文", async (
   assert.match(dockerignore, /^data\/media$/m);
 });
 
-test("Server 运行镜像保留 Prisma seed 所需源码", async () => {
+test("Server 运行镜像使用可移植生产依赖并保留 seed 源码", async () => {
   const dockerfile = await readFile(resolve(root, "Dockerfile.server"), "utf8");
 
   assert.match(
     dockerfile,
-    /COPY --from=server-builder \/app\/apps\/server\/src \.\/apps\/server\/src/,
+    /RUN pnpm --filter @petcare\/server --prod deploy --legacy \/app\/server-production/,
   );
+  assert.match(dockerfile, /test -f \/app\/server-production\/src\/seed\/seed-initial-data\.ts/);
+  assert.match(dockerfile, /COPY --from=server-builder \/app\/server-production \.\/apps\/server/);
+  assert.doesNotMatch(dockerfile, /COPY --from=server-builder \/app\/node_modules/);
 });
 
 test("Admin 构建镜像保留样式产物校验脚本", async () => {

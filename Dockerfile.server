@@ -25,6 +25,12 @@ COPY packages/shared-utils ./packages/shared-utils
 # 构建
 RUN pnpm --filter @petcare/shared-types build
 RUN pnpm --filter @petcare/server build
+RUN pnpm --filter @petcare/server --prod deploy --legacy /app/server-production
+RUN test -f /app/server-production/dist/main.js \
+  && test -f /app/server-production/src/seed/seed-initial-data.ts \
+  && test -f /app/server-production/node_modules/prisma/build/index.js \
+  && test -f /app/server-production/node_modules/tsx/dist/cli.mjs \
+  && test -f /app/server-production/node_modules/@petcare/shared-types/dist/index.js
 
 # ===== 运行阶段 =====
 FROM node:24.19-alpine AS server-runner
@@ -38,19 +44,10 @@ COPY --from=server-builder /app/package.json ./
 # 生产服务器无法访问 npm，构建镜像时预热仓库锁定的 pnpm。
 RUN corepack enable && pnpm --version
 
-COPY --from=server-builder /app/apps/server/package.json ./apps/server/
-COPY --from=server-builder /app/apps/server/prisma.config.ts ./apps/server/
-COPY --from=server-builder /app/apps/server/prisma ./apps/server/prisma
-# Prisma seed 通过 tsx 执行，运行镜像需保留其 ConfigService、密码服务和生成客户端源码。
-COPY --from=server-builder /app/apps/server/src ./apps/server/src
+COPY --from=server-builder /app/server-production ./apps/server
 COPY --from=server-builder /app/packages/eslint-config-base/package.json ./packages/eslint-config-base/
 COPY --from=server-builder /app/packages/shared-types/package.json ./packages/shared-types/
 COPY --from=server-builder /app/packages/shared-utils/package.json ./packages/shared-utils/
-COPY --from=server-builder /app/node_modules ./node_modules
-COPY --from=server-builder /app/apps/server/node_modules ./apps/server/node_modules
-COPY --from=server-builder /app/packages/shared-types/node_modules ./packages/shared-types/node_modules
-COPY --from=server-builder /app/packages/shared-utils/node_modules ./packages/shared-utils/node_modules
-COPY --from=server-builder /app/apps/server/dist ./apps/server/dist
 COPY --from=server-builder /app/packages/shared-types/dist ./packages/shared-types/dist
 
 # Prisma 在没有 schema enum 时只生成 enums.d.ts；CJS 客户端仍会加载该模块。

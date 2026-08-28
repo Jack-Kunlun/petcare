@@ -39,6 +39,6 @@ test("Server Prisma 依赖族保持一致", async () => {
   const server = await readManifest("apps/server/package.json");
 
   assert.equal(server.dependencies["@prisma/client"], server.dependencies["@prisma/adapter-pg"]);
-  assert.equal(server.devDependencies.prisma, server.dependencies["@prisma/client"]);
-  assert.equal(server.devDependencies.prisma, "7.9.1");
+  assert.equal(server.dependencies.prisma, server.dependencies["@prisma/client"]);
+  assert.equal(server.dependencies.prisma, "7.9.1");
 });

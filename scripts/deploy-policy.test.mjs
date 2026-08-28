@@ -177,6 +177,15 @@ test("后端运行镜像包含 seed 所需的 shared-types 构建产物", async 
   );
 });
 
+test("后端生产依赖包含迁移和 seed 运行工具", async () => {
+  const packageJson = JSON.parse(await readFile(resolve(root, "apps/server/package.json"), "utf8"));
+
+  assert.equal(packageJson.dependencies.prisma, "7.9.1");
+  assert.equal(packageJson.dependencies.tsx, "4.23.1");
+  assert.equal(packageJson.devDependencies.prisma, undefined);
+  assert.equal(packageJson.devDependencies.tsx, undefined);
+});
+
 test("手动部署只发布已通过 CI 的不可变所选镜像", async () => {
   const [workflow, ciWorkflow] = await Promise.all([
     readFile(resolve(root, ".github/workflows/deploy.yml"), "utf8"),
