@@ -112,6 +112,10 @@ test.describe("官网内容 Admin 到 Website 发布流程", () => {
       await livePage.reload();
       await expect(livePage.getByRole("heading", { name: draftTitle, exact: true })).toBeVisible();
 
+      await publisherPage
+        .getByLabel("website-content-history")
+        .getByText("已发布历史", { exact: true })
+        .click();
       const originalVersion = publisherPage.getByRole("link", { name: /已发布 v1/u });
 
       await expect(originalVersion).toBeVisible();
