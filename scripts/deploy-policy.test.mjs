@@ -222,6 +222,19 @@ test("部署工作流使用 Node.js 24 Docker Actions", async () => {
   );
 });
 
+test("应用镜像通过 Docker daemon 有界重试推送 TCR", async () => {
+  const workflow = await readFile(resolve(root, ".github/workflows/deploy.yml"), "utf8");
+  const build = workflowJobBlock(workflow, "build");
+
+  assert.match(build, /timeout-minutes: 40/);
+  assert.match(build, /load: true/);
+  assert.match(build, /push: false/);
+  assert.match(build, /for attempt in 1 2 3/);
+  assert.match(build, /timeout 600 docker image push "\$IMAGE"/);
+  assert.match(build, /timeout 60 docker manifest inspect "\$IMAGE"/);
+  assert.doesNotMatch(build, /push: true/);
+});
+
 test("所选提交必须包含当前生产发布契约", async () => {
   const [workflow, releaseContract] = await Promise.all([
     readFile(resolve(root, ".github/workflows/deploy.yml"), "utf8"),

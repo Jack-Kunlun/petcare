@@ -102,6 +102,7 @@ jobs:
     name: 构建并推送 ${{ matrix.service }}
     needs: resolve
     runs-on: ubuntu-latest
+    timeout-minutes: 40
     environment: production
     permissions:
       contents: read
@@ -125,15 +126,36 @@ jobs:
           username: ${{ env.TCR_PUSH_USERNAME }}
           password: ${{ env.TCR_PUSH_PASSWORD }}
 
-      - name: 构建并推送 ${{ matrix.service }}
+      - name: 构建 ${{ matrix.service }}
         uses: docker/build-push-action@v7
         with:
           context: .
           file: Dockerfile.${{ matrix.service }}
-          push: true
+          load: true
+          push: false
           tags: ${{ needs.resolve.outputs.registry }}/${{ matrix.service }}:${{ needs.resolve.outputs.image_tag }}
           cache-from: type=gha,scope=${{ matrix.service }}
           cache-to: type=gha,mode=max,scope=${{ matrix.service }}
+
+      - name: 推送 ${{ matrix.service }}
+        shell: bash
+        env:
+          IMAGE: ${{ needs.resolve.outputs.registry }}/${{ matrix.service }}:${{ needs.resolve.outputs.image_tag }}
+        run: |
+          set -Eeuo pipefail
+          for attempt in 1 2 3; do
+            if timeout 600 docker image push "$IMAGE" \
+              && timeout 60 docker manifest inspect "$IMAGE" > /dev/null
+            then
+              exit 0
+            fi
+            if [[ "$attempt" -eq 3 ]]; then
+              echo "TCR image push failed after $attempt attempts" >&2
+              exit 1
+            fi
+            echo "TCR image push attempt $attempt failed; retrying" >&2
+            sleep $((attempt * 10))
+          done
 
   runtime-images:
     name: 准备运行时镜像 ${{ matrix.repository }}
