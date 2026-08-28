@@ -7,8 +7,9 @@
 个人版首次启动、无外部供应商账号的演示和隔离纵向验收优先使用
 [个人版本地启动与演示指南](./local-personal-demo.md)。
 
-生产服务器是无源码运行节点：Compose 项目名固定为 `petcare`，全部六个镜像族都从同一私有 TCR 命名空间拉取，
-不会在服务器构建镜像或获取仓库。
+生产服务器是无源码运行节点：Compose 项目名固定为 `petcare`。Server、Admin、Website 在 GitHub-hosted runner 构建为
+不可变镜像产物，经专用部署 runner 传输后由服务器直接加载；PostgreSQL、Redis 和 Nginx 从私有 TCR 拉取。服务器不会构建
+镜像或获取仓库。
 
 ## 1. 运行模式
 
@@ -277,13 +278,14 @@ Admin 的静态 Nginx 容器。网关仅代理官网页面、`/website-content/*
 
 `deploy.yml` 接受分支、标签或 commit SHA/ref，并在构建/发布前将其解析为不可变 40 字符完整 SHA。所选提交必须既通过
 `ci.yml`，又携带内容严格为单行 `tcr-source-free-v1` 的 `deploy/production-release-contract`；否则 `resolve` 会在镜像工作前拒绝它。GitHub
-`production` Environment 使用 `TCR_REGISTRY=ccr.ccs.tencentyun.com` 和已选的 `TCR_NAMESPACE`；`TCR_PUSH_*` 只供构建使用，
-`TCR_PULL_*` 只供部署使用。
+`production` Environment 使用 `TCR_REGISTRY=ccr.ccs.tencentyun.com` 和已选的 `TCR_NAMESPACE`；`TCR_PUSH_*` 只供固定运行时
+镜像同步使用，`TCR_PULL_*` 只供生产服务器拉取运行时镜像。
 这些 Registry 用户名和密码不是 CAM `SecretId`/`SecretKey`，真实值不能写入文档、命令示例或日志。
 
-TCR 命名空间必须预先拥有六个私有仓库：`server`、`admin`、`website`、`postgres`、`redis`、`nginx`。应用使用不可变完整 SHA
-标签；每仓库保留最新 30 个标签，低于个人版每仓库 100 个标签的限制。固定运行时镜像先由 Actions 同步到 TCR，生产服务器
-不从公共镜像仓库拉取。
+TCR 命名空间必须预先拥有三个私有运行时仓库：`postgres`、`redis`、`nginx`。固定运行时镜像先由 Actions 同步到 TCR，
+生产服务器不从公共镜像仓库拉取。应用镜像使用不可变完整 SHA 标签，在 GitHub-hosted runner 打包为保留 1 天的不可变
+Actions Artifact；专用部署 runner 校验下载摘要与 gzip，再通过已验证的 SSH 主机传输。服务器在切换 release 前执行
+`docker image load` 并核对完整镜像名，不需要 TCR 中存在应用镜像清单。
 
 首次发布使用 `target=all`、`initialize_data=true`；日常完整发布使用 `target=all`、`initialize_data=false`；只发布一个应用时选择
 `server`、`admin` 或 `website` 且保持 `false`。每个应用有独立不可变镜像标签，并在完整验证后原子更新
@@ -291,7 +293,8 @@ TCR 命名空间必须预先拥有六个私有仓库：`server`、`admin`、`web
 
 `/opt/petcare/current` 指向不可变 release；`.env`、`.deploy-images.env`、`certs`、`logs` 和 PostgreSQL/Redis named volumes 都在
 release 之外持久保存。发布归档顶层白名单只有 `docker-compose.yml`、`docker/`、`scripts/`、`deploy/`，不会覆盖这些持久数据。
-TCR 密码只在 runner 和远端本次临时目录使用，并仅通过 `--password-stdin` 写入临时 Docker config；无论成败都立即清理。
+TCR 密码只在需要同步或拉取固定运行时镜像的 runner 和远端本次临时目录使用，并仅通过 `--password-stdin` 写入临时 Docker
+config；无论成败都立即清理。应用镜像产物不包含这些凭据。
 首次初始化只传输并运行 `scripts/server-init.sh`：它使用服务器已配置的 Ubuntu APT 源，要求 `docker compose version` 成功，
 创建持久目录和 `.env`，不获取仓库也不启动应用。
 

@@ -5,7 +5,8 @@
 - `deploy.yml`：构建并发布 Server、Admin、Website 及其固定运行时镜像；
 - `miniapp-release.yml`：构建并上传微信小程序代码到开发版或体验版。
 
-生产服务器是无源码运行节点：不在服务器本地构建镜像，也不执行 `docker compose build`，只从私有 TCR 拉取已通过 CI 的镜像。
+生产服务器是无源码运行节点：不在服务器本地构建镜像，也不执行 `docker compose build`。应用镜像由 GitHub-hosted runner
+构建并作为不可变产物传入，固定运行时镜像从私有 TCR 拉取。
 
 ## 生产前提
 
@@ -17,9 +18,11 @@
 
 ### 专用生产部署 runner
 
-`resolve`、应用镜像构建和固定运行时镜像同步继续使用 GitHub-hosted runner；只有 `deploy` job 使用标签
+`resolve`、应用镜像构建和固定运行时镜像同步继续使用 GitHub-hosted runner；应用镜像先保存为保留 1 天的不可变 Actions
+Artifact。只有 `deploy` job 使用标签
 `self-hosted`、`linux`、`x64`、`petcare-deploy` 的仓库级专用 runner。当前 runner 名为 `petcare-wsl-deploy`，运行在隔离的
-Ubuntu WSL 中，不挂载 Windows 磁盘、不安装 Docker，也不以 root 或常驻服务运行。
+Ubuntu WSL 中，不挂载 Windows 磁盘、不安装 Docker，也不以 root 或常驻服务运行。它只校验并转发镜像产物和部署材料；生产
+服务器在 release 切换前加载并核对所选镜像。
 
 每次手动发布前，在 Ubuntu 中按需启动 runner 并保持终端开启，直到 `deploy` job 完成：
 
@@ -36,34 +39,32 @@ GitHub-hosted runner。
 在 TCR 个人版创建一个全局唯一的**私有**命名空间。记录选择的名称，稍后作为 GitHub Environment Variable 的
 `TCR_NAMESPACE`；文档、命令示例和日志都不填写真实账号或密码。
 
-## 2. 创建六个私有仓库
+## 2. 创建三个私有运行时仓库
 
-在该命名空间中只创建以下六个私有仓库：
+在该命名空间中创建以下三个私有仓库：
 
 ```text
-server
-admin
-website
 postgres
 redis
 nginx
 ```
 
-Compose 项目名固定为 `petcare`。所有六个镜像族均来自同一私有 TCR 命名空间：应用镜像使用不可变完整 SHA 标签，
-`postgres`、`redis` 和 `nginx` 使用已验证的固定运行时标签；生产服务器不从公共镜像仓库拉取。
+Compose 项目名固定为 `petcare`。`postgres`、`redis` 和 `nginx` 使用已验证的固定运行时标签；生产服务器不从公共镜像仓库
+拉取。Server、Admin、Website 不要求 TCR 仓库：它们使用完整 SHA 标签，在 GitHub-hosted runner 构建后以镜像产物传入并
+直接加载。
 
 ## 3. 配置标签清理
 
-为每个仓库配置标签清理，保留最新 30 个标签，低于个人版每仓库 100 个标签的上限。固定运行时标签不能被普通应用发布
-静默覆盖；升级它们必须先经过单独验证。
+固定运行时标签不能被普通应用发布静默覆盖；升级它们必须先经过单独验证。应用镜像产物保留 1 天，每次发布或回退都会按
+所选提交重新构建，不依赖长期保存的 Actions Artifact。
 
 ## 4. 配置最小权限 TCR 子用户
 
-创建两个不供人员日常使用的 CAM 子用户，权限资源限定到该命名空间及其六个仓库：
+创建两个不供人员日常使用的 CAM 子用户，权限资源限定到该命名空间及三个运行时仓库：
 
 | 子用户             | 用途                          | 允许能力             | 不允许能力           |
 | ------------------ | ----------------------------- | -------------------- | -------------------- |
-| `petcare-tcr-push` | GitHub Actions 构建与镜像同步 | describe、pull、push | 删除或管理仓库       |
+| `petcare-tcr-push` | GitHub Actions 运行时镜像同步 | describe、pull、push | 删除或管理仓库       |
 | `petcare-tcr-pull` | 生产服务器运行时拉取          | describe、pull       | push、删除或管理仓库 |
 
 不要猜测或复制未核验的策略 ARN；以这些能力边界配置权限即可。
@@ -109,7 +110,8 @@ TCR_PULL_PASSWORD
 与 `MP_UPLOAD_PRIVATE_KEY_B64` 配置。阿里云短信认证生产值只在 root-owned、`0600` 的服务器 `.env` 中保存，
 不进入镜像或工作流。
 
-构建 job 只使用 `TCR_PUSH_*`，部署 job 只使用 `TCR_PULL_*`。TCR 密码只可出现在 runner 和远端的本次临时目录，
+固定运行时镜像同步 job 只使用 `TCR_PUSH_*`，部署 job 只使用 `TCR_PULL_*`；应用构建 job 不读取生产 Secret。TCR 密码只可
+出现在 runner 和远端的本次临时目录，
 并只通过 `--password-stdin` 写入临时 Docker config；发布结束或失败时立即清理，绝不写入 `.env`、镜像、发布归档、日志或缓存。
 TLS Base64、SSH 私钥和小程序上传 key 同样只在受保护临时位置解码，不能粘贴进 shell history、Issue 或聊天。
 

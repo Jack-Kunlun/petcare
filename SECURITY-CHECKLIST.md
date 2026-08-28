@@ -22,9 +22,9 @@
 - [ ] `DEFAULT_ADMIN_PHONE` 是有效的中国大陆手机号，`JWT_SECRET` 至少 32 字符，数据库、Redis 和管理员密码均为独立强随机值。
 - [ ] 阿里云短信认证使用当前可用且相互配套的系统赠送签名和模板；专用 RAM 用户仅有
       `dypns:SendSmsVerifyCode`，未授予 `AliyunDypnsFullAccess`。
-- [ ] 已创建一个全局唯一私有 `TCR_NAMESPACE`，其下恰有 `server`、`admin`、`website`、`postgres`、`redis`、`nginx` 六个私有仓库；
-      Compose 项目名为 `petcare`，所有镜像族来自该命名空间。
-- [ ] 每仓库保留最新 30 个标签，低于个人版每仓库 100 个标签的限制；应用标签是不可变完整 SHA，固定运行时标签不能由常规发布覆盖。
+- [ ] 已创建一个全局唯一私有 `TCR_NAMESPACE`，其下有 `postgres`、`redis`、`nginx` 三个私有运行时仓库；Compose 项目名为
+      `petcare`，应用镜像以不可变产物传入生产服务器，不要求 TCR 应用仓库。
+- [ ] 应用标签是不可变完整 SHA，镜像产物只保留 1 天并在每次发布或回退时重建；固定运行时标签不能由常规发布覆盖。
 - [ ] `petcare-tcr-push` 仅有该命名空间的 describe/pull/push 能力，`petcare-tcr-pull` 仅有 describe/pull 能力；两者均无删除或管理仓库权限。
 - [ ] 两个 TCR Registry 密码分别初始化并记录 UIN 用户名，临时密码管理权限已移除、控制台登录已关闭但子用户未禁用；已验证 push 可推拉不可删、pull 可拉不可推。
 - [ ] `TCR_REGISTRY=ccr.ccs.tencentyun.com` 与 `TCR_NAMESPACE` 是 production Variables；`TCR_PUSH_USERNAME`、`TCR_PUSH_PASSWORD`、
@@ -42,8 +42,8 @@
 
 - [ ] 首次发布使用 `target=all`、`initialize_data=true`；日常完整发布使用 `all/false`；选择性发布使用
       `server`、`admin` 或 `website` 和 `false`。
-- [ ] 发布归档顶层只包含 `docker-compose.yml`、`docker/`、`scripts/`、`deploy/`；TCR 密码只在本次 runner/远端临时目录和临时
-      Docker config 中使用，结束时清理。
+- [ ] 发布归档顶层只包含 `docker-compose.yml`、`docker/`、`scripts/`、`deploy/`；应用镜像产物按完整 SHA 构建、校验并在
+      release 切换前加载；TCR 密码只在本次 runner/远端临时目录和临时 Docker config 中使用，结束时清理。
 - [ ] 发布提交已成功通过 `ci.yml`，且 `deploy/production-release-contract` 严格为单行 `tcr-source-free-v1`；不使用
       `prisma:push`；理解 migration 是 forward-only，而镜像回滚不回滚数据库。
 - [ ] 发布完成后验证三个 HTTP → HTTPS 重定向与以下 HTTPS 端点：官网根域、`www`、Admin、`/api/ready`。

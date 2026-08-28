@@ -7,6 +7,7 @@ IMAGE_REGISTRY="${IMAGE_REGISTRY:?IMAGE_REGISTRY is required}"
 RELEASE_SHA="${RELEASE_SHA:?RELEASE_SHA is required}"
 NEW_IMAGE_TAG="${NEW_IMAGE_TAG:?NEW_IMAGE_TAG is required}"
 INITIALIZE_DATA="${INITIALIZE_DATA:-false}"
+APPLICATION_IMAGES_PRELOADED="${APPLICATION_IMAGES_PRELOADED:-false}"
 ROOT_DIR="/opt/petcare"
 RELEASE_DIR="$ROOT_DIR/current"
 ENV_FILE="$ROOT_DIR/.env"
@@ -125,6 +126,10 @@ if [[ "$INITIALIZE_DATA" != true && "$INITIALIZE_DATA" != false ]]; then
   echo "INITIALIZE_DATA 必须是 true 或 false" >&2
   exit 1
 fi
+if [[ "$APPLICATION_IMAGES_PRELOADED" != true && "$APPLICATION_IMAGES_PRELOADED" != false ]]; then
+  echo "APPLICATION_IMAGES_PRELOADED 必须是 true 或 false" >&2
+  exit 1
+fi
 if [[ "$INITIALIZE_DATA" == true && "$TARGET" != all ]]; then
   echo "initialize_data=true 只允许 target=all" >&2
   exit 1
@@ -197,8 +202,19 @@ printf '%s\n' \
 export IMAGE_REGISTRY SERVER_IMAGE_TAG ADMIN_IMAGE_TAG WEBSITE_IMAGE_TAG
 
 docker compose --env-file "$ENV_FILE" config --quiet
+if [[ "$APPLICATION_IMAGES_PRELOADED" == true ]]; then
+  for service in "${APP_SERVICES[@]}"; do
+    case "$service" in
+      server) image_tag="$SERVER_IMAGE_TAG" ;;
+      admin) image_tag="$ADMIN_IMAGE_TAG" ;;
+      website) image_tag="$WEBSITE_IMAGE_TAG" ;;
+    esac
+    docker image inspect "$IMAGE_REGISTRY/$service:$image_tag" > /dev/null
+  done
+else
+  docker compose --env-file "$ENV_FILE" pull "${APP_SERVICES[@]}"
+fi
 DEPLOYMENT_STARTED=true
-docker compose --env-file "$ENV_FILE" pull "${APP_SERVICES[@]}"
 if [[ "$HAD_STATE" == false && "$TARGET" == all ]]; then
   docker compose --env-file "$ENV_FILE" pull "${INFRA_SERVICES[@]}"
 fi

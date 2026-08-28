@@ -99,16 +99,12 @@ jobs:
           }
 
   build:
-    name: 构建并推送 ${{ matrix.service }}
+    name: 构建并打包 ${{ matrix.service }}
     needs: resolve
     runs-on: ubuntu-latest
     timeout-minutes: 40
-    environment: production
     permissions:
       contents: read
-    env:
-      TCR_PUSH_USERNAME: ${{ secrets.TCR_PUSH_USERNAME }}
-      TCR_PUSH_PASSWORD: ${{ secrets.TCR_PUSH_PASSWORD }}
     strategy:
       fail-fast: false
       matrix:
@@ -119,12 +115,6 @@ jobs:
           ref: ${{ needs.resolve.outputs.sha }}
 
       - uses: docker/setup-buildx-action@v4
-
-      - uses: docker/login-action@v4
-        with:
-          registry: ${{ needs.resolve.outputs.registry_host }}
-          username: ${{ env.TCR_PUSH_USERNAME }}
-          password: ${{ env.TCR_PUSH_PASSWORD }}
 
       - name: 构建 ${{ matrix.service }}
         uses: docker/build-push-action@v7
@@ -137,24 +127,24 @@ jobs:
           cache-from: type=gha,scope=${{ matrix.service }}
           cache-to: type=gha,mode=max,scope=${{ matrix.service }}
 
-      - name: 推送 ${{ matrix.service }}
+      - name: 打包 ${{ matrix.service }}
         shell: bash
         env:
           IMAGE: ${{ needs.resolve.outputs.registry }}/${{ matrix.service }}:${{ needs.resolve.outputs.image_tag }}
+          ARCHIVE: ${{ runner.temp }}/petcare-image-${{ matrix.service }}.tar.gz
         run: |
           set -Eeuo pipefail
-          for attempt in 1 2 3; do
-            timeout --kill-after=30s 600s docker image push "$IMAGE" || true
-            if timeout --kill-after=10s 60s docker manifest inspect "$IMAGE" > /dev/null; then
-              exit 0
-            fi
-            if [[ "$attempt" -eq 3 ]]; then
-              echo "TCR image push failed after $attempt attempts" >&2
-              exit 1
-            fi
-            echo "TCR image push attempt $attempt failed; retrying" >&2
-            sleep $((attempt * 10))
-          done
+          docker image save "$IMAGE" | gzip -1 > "$ARCHIVE"
+          test -s "$ARCHIVE"
+          gzip -t "$ARCHIVE"
+
+      - name: 上传 ${{ matrix.service }} 镜像产物
+        uses: actions/upload-artifact@v7
+        with:
+          path: ${{ runner.temp }}/petcare-image-${{ matrix.service }}.tar.gz
+          archive: false
+          if-no-files-found: error
+          retention-days: 1
 
   runtime-images:
     name: 准备运行时镜像 ${{ matrix.repository }}
@@ -209,6 +199,7 @@ jobs:
     name: 发布到生产环境
     needs: [resolve, build, runtime-images]
     runs-on: [self-hosted, linux, x64, petcare-deploy]
+    timeout-minutes: 90
     permissions:
       contents: read
     environment: production
@@ -237,13 +228,24 @@ jobs:
     steps:
       - name: 初始化 runner 临时目录
         shell: bash
-        run: printf 'DEPLOY_TMP=%s\n' "$RUNNER_TEMP/petcare-deploy-$GITHUB_RUN_ID-$GITHUB_RUN_ATTEMPT" >> "$GITHUB_ENV"
+        run: |
+          set -Eeuo pipefail
+          deploy_tmp="$RUNNER_TEMP/petcare-deploy-$GITHUB_RUN_ID-$GITHUB_RUN_ATTEMPT"
+          install -d -m 700 "$deploy_tmp"
+          printf 'DEPLOY_TMP=%s\n' "$deploy_tmp" >> "$GITHUB_ENV"
 
       - uses: actions/checkout@v7
         with:
           fetch-depth: 0
           persist-credentials: false
           ref: ${{ needs.resolve.outputs.sha }}
+
+      - name: 下载应用镜像产物
+        uses: actions/download-artifact@v8
+        with:
+          pattern: petcare-image-*.tar.gz
+          path: ${{ env.DEPLOY_TMP }}
+          merge-multiple: true
 
       - name: 验证并准备临时部署材料
         shell: bash
@@ -275,6 +277,19 @@ jobs:
           [[ "$TCR_REGISTRY" == "ccr.ccs.tencentyun.com" ]]
           [[ "$IMAGE_REGISTRY" =~ ^ccr\.ccs\.tencentyun\.com/[a-z0-9]+([._-][a-z0-9]+)*$ ]]
           [[ "$TCR_PULL_USERNAME" =~ ^[a-zA-Z0-9][a-zA-Z0-9-]*$ ]]
+
+          case "$TARGET" in
+            all) IMAGE_SERVICES=(server admin website) ;;
+            *) IMAGE_SERVICES=("$TARGET") ;;
+          esac
+          shopt -s nullglob
+          image_archives=("$DEPLOY_TMP"/petcare-image-*.tar.gz)
+          [[ "${#image_archives[@]}" -eq "${#IMAGE_SERVICES[@]}" ]]
+          for service in "${IMAGE_SERVICES[@]}"; do
+            archive="$DEPLOY_TMP/petcare-image-$service.tar.gz"
+            test -s "$archive"
+            gzip -t "$archive"
+          done
 
           install -d -m 700 "$DEPLOY_TMP"
           [[ "$(git rev-parse HEAD)" == "$RELEASE_SHA" ]]
@@ -422,6 +437,7 @@ jobs:
             "$DEPLOY_TMP/admin.petcare-home.com.key" \
             "$DEPLOY_TMP/tcr-pull.password" \
             "$DEPLOY_TMP/petcare-backup.env" \
+            "$DEPLOY_TMP"/petcare-image-*.tar.gz \
             "$destination:$REMOTE_TMP/"
 
           ssh -o StrictHostKeyChecking=yes \
@@ -452,6 +468,14 @@ jobs:
           [[ "$NEW_IMAGE_TAG" == "sha-$RELEASE_SHA" ]]
           [[ "$INITIALIZE_DATA" =~ ^(true|false)$ ]]
           [[ "$TCR_PULL_USERNAME" =~ ^[a-zA-Z0-9][a-zA-Z0-9-]*$ ]]
+
+          case "$TARGET" in
+            all) IMAGE_SERVICES=(server admin website) ;;
+            *) IMAGE_SERVICES=("$TARGET") ;;
+          esac
+          shopt -s nullglob
+          image_archives=("$REMOTE_TMP"/petcare-image-*.tar.gz)
+          [[ "${#image_archives[@]}" -eq "${#IMAGE_SERVICES[@]}" ]]
 
           INSTALL_DIR="/opt/petcare"
           RELEASES_DIR="$INSTALL_DIR/releases"
@@ -519,6 +543,16 @@ jobs:
           sudo env DOCKER_CONFIG="$DOCKER_CONFIG" docker login "$TCR_REGISTRY" \
             -u "$TCR_PULL_USERNAME" --password-stdin < "$REMOTE_TMP/tcr-pull.password"
           sudo rm -f -- "$REMOTE_TMP/tcr-pull.password"
+
+          for service in "${IMAGE_SERVICES[@]}"; do
+            archive="$REMOTE_TMP/petcare-image-$service.tar.gz"
+            expected_image="$IMAGE_REGISTRY/$service:$NEW_IMAGE_TAG"
+            test -s "$archive"
+            gzip -t "$archive"
+            gzip -dc "$archive" | sudo docker image load
+            sudo docker image inspect "$expected_image" > /dev/null
+            rm -f -- "$archive"
+          done
 
           sudo install -d -o root -g root -m 755 "$RELEASES_DIR"
           if sudo test -e "$STAGING_DIR" || sudo test -L "$STAGING_DIR"; then
@@ -639,6 +673,7 @@ jobs:
             RELEASE_SHA="$RELEASE_SHA" \
             NEW_IMAGE_TAG="$NEW_IMAGE_TAG" \
             INITIALIZE_DATA="$INITIALIZE_DATA" \
+            APPLICATION_IMAGES_PRELOADED=true \
             bash /opt/petcare/current/scripts/release-production.sh < /dev/null
           RELEASE_SUCCEEDED=true
           sudo systemctl enable --now petcare-backup.timer

@@ -15,15 +15,15 @@
 
 ## 生产发布约束
 
-生产 Compose 项目名固定为 `petcare`。`TCR_REGISTRY=ccr.ccs.tencentyun.com` 与 `TCR_NAMESPACE` 共同定位一个私有
-命名空间，`server`、`admin`、`website`、`postgres`、`redis`、`nginx` 六个镜像族均从这里拉取；应用使用不可变完整 SHA 标签，
-运行时镜像使用已验证的固定标签。每仓库保留最新 30 个标签，低于个人版每仓库 100 个标签的限制。
+生产 Compose 项目名固定为 `petcare`。`TCR_REGISTRY=ccr.ccs.tencentyun.com` 与 `TCR_NAMESPACE` 共同定位私有运行时
+镜像仓库；`postgres`、`redis`、`nginx` 从这里拉取已验证的固定标签。`server`、`admin`、`website` 使用不可变完整 SHA 标签，
+由 GitHub-hosted runner 构建为镜像产物并在 release 切换前传入生产服务器加载。
 
 `/opt/petcare/current` 只指向不可变 release；`.env`、`.deploy-images.env`、`certs`、`logs` 和 PostgreSQL/Redis named volumes
 都在 release 外持久保存。发布归档顶层只允许 `docker-compose.yml`、`docker/`、`scripts/`、`deploy/`，不能覆盖持久数据。
 
 `scripts/server-init.sh` 只使用服务器已配置的 Ubuntu APT 源，要求 `docker compose version` 成功，创建持久目录和 `.env`，
-不获取仓库也不启动应用。`TCR_PUSH_USERNAME`、`TCR_PUSH_PASSWORD` 仅供 Actions 构建；`TCR_PULL_USERNAME`、
+不获取仓库也不启动应用。`TCR_PUSH_USERNAME`、`TCR_PUSH_PASSWORD` 仅供 Actions 同步固定运行时镜像；`TCR_PULL_USERNAME`、
 `TCR_PULL_PASSWORD` 仅供部署。TCR 密码只在本次 runner/远端临时目录和临时 Docker config 中出现，并在发布结束时清理。
 
 Miniapp 仍由独立 GitHub Actions 工作流上传微信，不使用 Docker、TCR 或生产服务器。完成首次发布、第二次发布、回退演练和

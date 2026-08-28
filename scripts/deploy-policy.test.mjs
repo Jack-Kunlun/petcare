@@ -102,8 +102,14 @@ test("生产发布只在完整验证后原子保存可回退的镜像状态", as
   const httpSmoke = position(script, "http://$host/");
   const httpsSmoke = position(script, "https://petcare-home.com");
   const persist = position(script, 'mv -f -- "$CANDIDATE_STATE" "$STATE_FILE"');
+  const preloadedImageCheck = position(
+    script,
+    'docker image inspect "$IMAGE_REGISTRY/$service:$image_tag"',
+  );
+  const deploymentStarted = position(script, "DEPLOYMENT_STARTED=true");
 
   assert.ok(cleanup < candidate && candidate < candidateMode);
+  assert.ok(preloadedImageCheck < deploymentStarted);
   assert.ok(
     initializeGuard < backup &&
       backup < migrate &&
@@ -119,6 +125,11 @@ test("生产发布只在完整验证后原子保存可回退的镜像状态", as
     /HAD_STATE.*false[\s\S]*APPLICATION_TABLES.*== 0[\s\S]*跳过无历史意义的备份/,
   );
   assert.match(script, /initialize_data=true 仅允许首次空库部署/);
+  assert.match(script, /APPLICATION_IMAGES_PRELOADED="\$\{APPLICATION_IMAGES_PRELOADED:-false\}"/);
+  assert.match(
+    script,
+    /APPLICATION_IMAGES_PRELOADED" == true[\s\S]*docker image inspect "\$IMAGE_REGISTRY\/\$service:\$image_tag"[\s\S]*docker compose --env-file "\$ENV_FILE" pull "\$\{APP_SERVICES\[@\]\}"/,
+  );
   assert.match(
     script,
     /BACKUP_RUNNER_IMAGE="\$IMAGE_REGISTRY\/server:\$SERVER_IMAGE_TAG" \\\n\s+"\$RELEASE_DIR\/scripts\/database-backup\.sh"/,
@@ -216,23 +227,36 @@ test("部署工作流使用 Node.js 24 Docker Actions", async () => {
   assert.match(workflow, /docker\/setup-buildx-action@v4/);
   assert.match(workflow, /docker\/login-action@v4/);
   assert.match(workflow, /docker\/build-push-action@v7/);
+  assert.match(workflow, /actions\/upload-artifact@v7/);
+  assert.match(workflow, /actions\/download-artifact@v8/);
   assert.doesNotMatch(
     workflow,
-    /docker\/(?:setup-buildx-action@v3|login-action@v3|build-push-action@v6)/,
+    /(?:docker\/(?:setup-buildx-action@v3|login-action@v3|build-push-action@v6)|actions\/(?:upload-artifact@v[1-6]|download-artifact@v[1-7]))/,
   );
 });
 
-test("应用镜像通过 Docker daemon 有界重试推送 TCR", async () => {
+test("应用镜像作为不可变产物交给部署 runner 加载", async () => {
   const workflow = await readFile(resolve(root, ".github/workflows/deploy.yml"), "utf8");
   const build = workflowJobBlock(workflow, "build");
+  const deploy = workflowJobBlock(workflow, "deploy");
 
   assert.match(build, /timeout-minutes: 40/);
   assert.match(build, /load: true/);
   assert.match(build, /push: false/);
-  assert.match(build, /for attempt in 1 2 3/);
-  assert.match(build, /timeout --kill-after=30s 600s docker image push "\$IMAGE"/);
-  assert.match(build, /timeout --kill-after=10s 60s docker manifest inspect "\$IMAGE"/);
+  assert.match(build, /docker image save "\$IMAGE" \| gzip -1 > "\$ARCHIVE"/);
+  assert.match(build, /actions\/upload-artifact@v7/);
+  assert.match(build, /archive: false/);
+  assert.match(build, /retention-days: 1/);
+  assert.doesNotMatch(build, /docker image push|TCR_PUSH_|docker\/login-action/);
   assert.doesNotMatch(build, /push: true/);
+
+  assert.match(deploy, /timeout-minutes: 90/);
+  assert.match(deploy, /actions\/download-artifact@v8/);
+  assert.match(deploy, /pattern: petcare-image-\*\.tar\.gz/);
+  assert.match(deploy, /gzip -t "\$archive"/);
+  assert.match(deploy, /gzip -dc "\$archive" \| sudo docker image load/);
+  assert.match(deploy, /sudo docker image inspect "\$expected_image"/);
+  assert.match(deploy, /APPLICATION_IMAGES_PRELOADED=true/);
 });
 
 test("所选提交必须包含当前生产发布契约", async () => {
@@ -289,12 +313,11 @@ test("TCR 推送与拉取凭据严格分离", async () => {
   const runtime = workflowJobBlock(workflow, "runtime-images");
   const deploy = workflowJobBlock(workflow, "deploy");
 
-  for (const job of [build, runtime]) {
-    assert.match(job, /environment: production/);
-    assert.match(job, /secrets\.TCR_PUSH_USERNAME/);
-    assert.match(job, /secrets\.TCR_PUSH_PASSWORD/);
-    assert.doesNotMatch(job, /TCR_PULL_/);
-  }
+  assert.doesNotMatch(build, /environment: production|TCR_PUSH_|TCR_PULL_/);
+  assert.match(runtime, /environment: production/);
+  assert.match(runtime, /secrets\.TCR_PUSH_USERNAME/);
+  assert.match(runtime, /secrets\.TCR_PUSH_PASSWORD/);
+  assert.doesNotMatch(runtime, /TCR_PULL_/);
   assert.match(deploy, /secrets\.TCR_PULL_USERNAME/);
   assert.match(deploy, /secrets\.TCR_PULL_PASSWORD/);
   assert.doesNotMatch(deploy, /TCR_PUSH_/);
@@ -326,7 +349,7 @@ test("部署工作流先在受保护 runner 临时目录验证 SSH 与 TLS", asy
   assert.doesNotMatch(workflow, /^ {6}DEPLOY_TMP:/m);
   assert.match(
     workflow,
-    /printf 'DEPLOY_TMP=%s\\n' "\$RUNNER_TEMP\/petcare-deploy-\$GITHUB_RUN_ID-\$GITHUB_RUN_ATTEMPT" >> "\$GITHUB_ENV"/,
+    /deploy_tmp="\$RUNNER_TEMP\/petcare-deploy-\$GITHUB_RUN_ID-\$GITHUB_RUN_ATTEMPT"[\s\S]*printf 'DEPLOY_TMP=%s\\n' "\$deploy_tmp" >> "\$GITHUB_ENV"/,
   );
   for (const secret of [
     "DEPLOY_HOST",
@@ -373,6 +396,9 @@ test("远端发布以 root 不可变 release 和临时凭据完成 TLS 与事务
     /REMOTE_TMP="\/tmp\/petcare-release-\$GITHUB_RUN_ID-\$GITHUB_RUN_ATTEMPT"/,
   );
   assert.match(workflow, /scp[\s\S]*StrictHostKeyChecking=yes[\s\S]*-P "\$DEPLOY_PORT"/);
+  assert.match(workflow, /"\$DEPLOY_TMP"\/petcare-image-\*\.tar\.gz/);
+  assert.match(workflow, /gzip -dc "\$archive" \| sudo docker image load/);
+  assert.match(workflow, /sudo docker image inspect "\$expected_image"/);
   assert.match(workflow, /local status=\$\?/);
   assert.match(workflow, /sudo rm -rf -- "\$REMOTE_TMP"/);
   assert.doesNotMatch(workflow, /git fetch|git checkout|git clone|sudo -H git/);
@@ -398,6 +424,10 @@ test("远端发布以 root 不可变 release 和临时凭据完成 TLS 与事务
   assert.match(workflow, /CURRENT_SWITCHED=true/);
   assert.match(workflow, /RELEASE_SUCCEEDED=true/);
   assert.match(workflow, /恢复上一 release/);
+  assert.ok(
+    position(workflow, 'gzip -dc "$archive" | sudo docker image load') <
+      position(workflow, 'sudo mv -Tf -- "$NEXT_CURRENT" "$INSTALL_DIR/current"'),
+  );
 
   assert.match(workflow, /\/opt\/petcare\/current\/scripts\/release-production\.sh/);
   assert.match(workflow, /\/opt\/petcare\/current\/deploy\/systemd\/petcare-backup\.service/);
@@ -494,7 +524,7 @@ test("部署 SSH 仍要求可信主机身份和受限 sudo", async () => {
   assert.match(docs, /带外/);
 });
 
-test("部署文档完整记录 TCR 配置和迁移后清理顺序", async () => {
+test("部署文档完整记录镜像产物、TCR 配置和迁移后清理顺序", async () => {
   const paths = [
     "docs/08-deployment/deployment.md",
     "docs/08-deployment/github-actions-deploy.md",
@@ -516,10 +546,12 @@ test("部署文档完整记录 TCR 配置和迁移后清理顺序", async () => 
   ]) {
     assert.match(documents, new RegExp(name));
   }
-  for (const repository of ["server", "admin", "website", "postgres", "redis", "nginx"]) {
+  for (const repository of ["postgres", "redis", "nginx"]) {
     assert.match(documents, new RegExp(`\\b${repository}\\b`));
   }
-  assert.match(documents, /保留[^\n]*30/);
+  assert.match(documents, /Actions Artifact/);
+  assert.match(documents, /docker image load/);
+  assert.match(documents, /保留 1 天/);
   assert.match(documents, /回退演练/);
   assert.match(documents, /删除[^\n]*GHCR_PULL_USER/);
   assert.match(documents, /删除[^\n]*GitHub Deploy Key/);
