@@ -108,6 +108,9 @@ jobs:
             exit 1
           }
 
+      - name: 构建共享类型
+        run: pnpm --filter @petcare/shared-types build
+
       - name: 构建小程序（mp-weixin）
         run: pnpm build:miniapp:mp-weixin
 

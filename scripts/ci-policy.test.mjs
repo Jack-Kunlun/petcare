@@ -179,6 +179,8 @@ test("手动小程序上传受 CI、环境和临时密钥策略保护", async ()
     workflow.indexOf("\n  upload:"),
   );
   const uploadJob = workflow.slice(workflow.indexOf("\n  upload:"));
+  const sharedTypesBuild = uploadJob.indexOf("pnpm --filter @petcare/shared-types build");
+  const miniappBuild = uploadJob.indexOf("pnpm build:miniapp:mp-weixin");
 
   assert.equal(miniappPackage.devDependencies["miniprogram-ci"], "2.1.31");
   assertMiniappUploadBoundary(workflow);
@@ -197,6 +199,8 @@ test("手动小程序上传受 CI、环境和临时密钥策略保护", async ()
   assert.match(workflow, /group: petcare-miniapp-production/);
   assert.match(workflow, /cancel-in-progress: false/);
   assert.match(uploadJob, /ref: \$\{\{ needs\.resolve\.outputs\.sha \}\}/);
+  assert.notEqual(sharedTypesBuild, -1, "小程序上传 Job 缺少共享类型构建步骤");
+  assert.ok(sharedTypesBuild < miniappBuild, "共享类型必须在 mp-weixin 构建前完成构建");
   assert.match(
     uploadJob,
     /MP_UPLOAD_PRIVATE_KEY_B64: \$\{\{ secrets\.MP_UPLOAD_PRIVATE_KEY_B64 \}\}/,
