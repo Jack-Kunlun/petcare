@@ -94,6 +94,11 @@ Copy-Item .env.example .env
 `public/pet-media/` 前缀的最小权限子账号凭据。不要将 COS 凭据写入镜像、工作流、客户端或仓库的 `.env`；
 根 `.env` 不提交。
 
+需要在尚未正式发版的环境全量重置数据时，手动运行“手动生产发布”，选择 `target=all`，并在
+`reset_data_confirmation` 输入 `RESET_PRODUCTION_DATA`。发布会先停止 Server 写入，将 PostgreSQL 备份上传到
+备份 COS，再重建数据库 Schema、重新写入默认管理员/RBAC/官网默认内容并清空 Redis。该操作会删除全部用户、
+宠物、社区、订单、审计及运营内容；不能与 `initialize_data` 同时使用。
+
 ### 3.1 生产 Aliyun 短信认证
 
 首次部署前，必须开通号码认证服务的短信认证功能，并在短信认证参数配置中选择当前可用的系统赠送签名及与其配套的

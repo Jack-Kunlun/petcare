@@ -107,6 +107,7 @@ test("数据库备份使用容器工具、校验转储并通过 Server 镜像上
     ].join("\n"),
   );
   assert.ok(restorable < upload);
+  assert.match(script, /printf '数据库备份已上传：%s\\n' "\$OBJECT_KEY"/);
 
   for (const forbidden of [
     /BACKUP_COS_SECRET_(?:ID|KEY)=/,

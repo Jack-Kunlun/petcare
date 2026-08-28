@@ -18,6 +18,11 @@ on:
         required: false
         type: boolean
         default: false
+      reset_data_confirmation:
+        description: "留空；全量重置生产数据时输入 RESET_PRODUCTION_DATA"
+        required: false
+        type: string
+        default: ""
 
 permissions:
   contents: read
@@ -221,6 +226,8 @@ jobs:
       BACKUP_COS_REGION: ${{ secrets.BACKUP_COS_REGION }}
       TARGET: ${{ inputs.target }}
       INITIALIZE_DATA: ${{ inputs.initialize_data }}
+      RESET_DATA: ${{ inputs.reset_data_confirmation == 'RESET_PRODUCTION_DATA' }}
+      RESET_DATA_CONFIRMATION: ${{ inputs.reset_data_confirmation }}
       TCR_REGISTRY: ${{ needs.resolve.outputs.registry_host }}
       IMAGE_REGISTRY: ${{ needs.resolve.outputs.registry }}
       NEW_IMAGE_TAG: ${{ needs.resolve.outputs.image_tag }}
@@ -272,6 +279,16 @@ jobs:
           }
           [[ "$TARGET" =~ ^(all|server|admin|website)$ ]]
           [[ "$INITIALIZE_DATA" =~ ^(true|false)$ ]]
+          [[ "$RESET_DATA" =~ ^(true|false)$ ]]
+          [[ -z "$RESET_DATA_CONFIRMATION" || "$RESET_DATA_CONFIRMATION" == RESET_PRODUCTION_DATA ]]
+          if [[ "$RESET_DATA" == true && "$TARGET" != all ]]; then
+            echo "生产数据重置只允许 target=all" >&2
+            exit 1
+          fi
+          if [[ "$RESET_DATA" == true && "$INITIALIZE_DATA" == true ]]; then
+            echo "生产数据重置不能与首次初始化同时执行" >&2
+            exit 1
+          fi
           [[ "$RELEASE_SHA" =~ ^[0-9a-f]{40}$ ]]
           [[ "$NEW_IMAGE_TAG" == "sha-$RELEASE_SHA" ]]
           [[ "$TCR_REGISTRY" == "ccr.ccs.tencentyun.com" ]]
@@ -445,7 +462,7 @@ jobs:
             -i "$DEPLOY_TMP/deploy_key" -p "$DEPLOY_PORT" \
             "$destination" bash -s -- \
             "$REMOTE_TMP" "$TARGET" "$TCR_REGISTRY" "$IMAGE_REGISTRY" "$RELEASE_SHA" \
-            "$NEW_IMAGE_TAG" "$INITIALIZE_DATA" "$TCR_PULL_USERNAME" <<'REMOTE'
+            "$NEW_IMAGE_TAG" "$INITIALIZE_DATA" "$RESET_DATA" "$TCR_PULL_USERNAME" <<'REMOTE'
           set -Eeuo pipefail
           umask 077
 
@@ -456,7 +473,8 @@ jobs:
           RELEASE_SHA="$5"
           NEW_IMAGE_TAG="$6"
           INITIALIZE_DATA="$7"
-          TCR_PULL_USERNAME="$8"
+          RESET_DATA="$8"
+          TCR_PULL_USERNAME="$9"
 
           [[ "$REMOTE_TMP" =~ ^/tmp/petcare-release-[0-9]+-[0-9]+$ ]]
           RUN_TOKEN="${REMOTE_TMP#/tmp/petcare-release-}"
@@ -467,6 +485,9 @@ jobs:
           [[ "$RELEASE_SHA" =~ ^[0-9a-f]{40}$ ]]
           [[ "$NEW_IMAGE_TAG" == "sha-$RELEASE_SHA" ]]
           [[ "$INITIALIZE_DATA" =~ ^(true|false)$ ]]
+          [[ "$RESET_DATA" =~ ^(true|false)$ ]]
+          [[ "$RESET_DATA" != true || "$TARGET" == all ]]
+          [[ "$RESET_DATA" != true || "$INITIALIZE_DATA" == false ]]
           [[ "$TCR_PULL_USERNAME" =~ ^[a-zA-Z0-9][a-zA-Z0-9-]*$ ]]
 
           case "$TARGET" in
@@ -673,6 +694,7 @@ jobs:
             RELEASE_SHA="$RELEASE_SHA" \
             NEW_IMAGE_TAG="$NEW_IMAGE_TAG" \
             INITIALIZE_DATA="$INITIALIZE_DATA" \
+            RESET_DATA="$RESET_DATA" \
             APPLICATION_IMAGES_PRELOADED=true \
             bash /opt/petcare/current/scripts/release-production.sh < /dev/null
           RELEASE_SUCCEEDED=true

@@ -7,6 +7,7 @@ IMAGE_REGISTRY="${IMAGE_REGISTRY:?IMAGE_REGISTRY is required}"
 RELEASE_SHA="${RELEASE_SHA:?RELEASE_SHA is required}"
 NEW_IMAGE_TAG="${NEW_IMAGE_TAG:?NEW_IMAGE_TAG is required}"
 INITIALIZE_DATA="${INITIALIZE_DATA:-false}"
+RESET_DATA="${RESET_DATA:-false}"
 APPLICATION_IMAGES_PRELOADED="${APPLICATION_IMAGES_PRELOADED:-false}"
 ROOT_DIR="/opt/petcare"
 RELEASE_DIR="$ROOT_DIR/current"
@@ -126,12 +127,24 @@ if [[ "$INITIALIZE_DATA" != true && "$INITIALIZE_DATA" != false ]]; then
   echo "INITIALIZE_DATA 必须是 true 或 false" >&2
   exit 1
 fi
+if [[ "$RESET_DATA" != true && "$RESET_DATA" != false ]]; then
+  echo "RESET_DATA 必须是 true 或 false" >&2
+  exit 1
+fi
 if [[ "$APPLICATION_IMAGES_PRELOADED" != true && "$APPLICATION_IMAGES_PRELOADED" != false ]]; then
   echo "APPLICATION_IMAGES_PRELOADED 必须是 true 或 false" >&2
   exit 1
 fi
 if [[ "$INITIALIZE_DATA" == true && "$TARGET" != all ]]; then
   echo "initialize_data=true 只允许 target=all" >&2
+  exit 1
+fi
+if [[ "$RESET_DATA" == true && "$TARGET" != all ]]; then
+  echo "reset_data=true 只允许 target=all" >&2
+  exit 1
+fi
+if [[ "$RESET_DATA" == true && "$INITIALIZE_DATA" == true ]]; then
+  echo "reset_data=true 不能与 initialize_data=true 同时使用" >&2
   exit 1
 fi
 
@@ -231,6 +244,13 @@ if [[ "$TARGET" == all || "$TARGET" == server ]]; then
     echo "initialize_data=true 仅允许首次空库部署" >&2
     exit 1
   fi
+  if [[ "$RESET_DATA" == true && ( "$HAD_STATE" != true || "$APPLICATION_TABLES" == 0 ) ]]; then
+    echo "reset_data=true 仅允许重置已部署的非空数据库" >&2
+    exit 1
+  fi
+  if [[ "$RESET_DATA" == true ]]; then
+    docker compose --env-file "$ENV_FILE" stop server
+  fi
   if [[ "$HAD_STATE" == false && "$APPLICATION_TABLES" == 0 ]]; then
     echo "首次部署确认数据库为空，跳过无历史意义的备份"
   else
@@ -238,14 +258,26 @@ if [[ "$TARGET" == all || "$TARGET" == server ]]; then
       "$RELEASE_DIR/scripts/database-backup.sh"
   fi
 
-  echo "数据库 migration 为 forward-only，失败时不会自动回滚。"
-  docker compose --env-file "$ENV_FILE" run --rm --no-deps \
-    --workdir /app/apps/server server \
-    node --env-file-if-exists=../../.env node_modules/prisma/build/index.js migrate deploy
-  if [[ "$INITIALIZE_DATA" == true ]]; then
+  if [[ "$RESET_DATA" == true ]]; then
+    echo "数据库备份已完成，开始全量重置生产数据。"
+    docker compose --env-file "$ENV_FILE" run --rm --no-deps \
+      --workdir /app/apps/server server \
+      node --env-file-if-exists=../../.env node_modules/prisma/build/index.js migrate reset --force
     docker compose --env-file "$ENV_FILE" run --rm --no-deps \
       --workdir /app/apps/server server \
       node --env-file-if-exists=../../.env node_modules/tsx/dist/cli.mjs prisma/seed.ts
+    docker compose --env-file "$ENV_FILE" exec -T redis sh -lc \
+      'redis-cli --no-auth-warning -a "$REDIS_PASSWORD" FLUSHDB'
+  else
+    echo "数据库 migration 为 forward-only，失败时不会自动回滚。"
+    docker compose --env-file "$ENV_FILE" run --rm --no-deps \
+      --workdir /app/apps/server server \
+      node --env-file-if-exists=../../.env node_modules/prisma/build/index.js migrate deploy
+    if [[ "$INITIALIZE_DATA" == true ]]; then
+      docker compose --env-file "$ENV_FILE" run --rm --no-deps \
+        --workdir /app/apps/server server \
+        node --env-file-if-exists=../../.env node_modules/tsx/dist/cli.mjs prisma/seed.ts
+    fi
   fi
 fi
 

@@ -61,3 +61,5 @@ docker run --rm \
   "$SERVER_IMAGE" \
   node apps/server/dist/operations/database-backup-cli.js \
   upload /backup/database.dump "$OBJECT_KEY"
+
+printf '数据库备份已上传：%s\n' "$OBJECT_KEY"

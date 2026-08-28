@@ -97,6 +97,7 @@ test("生产发布只在完整验证后原子保存可回退的镜像状态", as
     'if [[ "$INITIALIZE_DATA" == true && ( "$HAD_STATE" != false || "$APPLICATION_TABLES" != 0 ) ]]; then',
   );
   const backup = position(script, '"$RELEASE_DIR/scripts/database-backup.sh"');
+  const reset = position(script, "node_modules/prisma/build/index.js migrate reset --force");
   const migrate = position(script, "node_modules/prisma/build/index.js migrate deploy");
   const wait = lastPosition(script, "--wait-timeout 180");
   const httpSmoke = position(script, "http://$host/");
@@ -125,6 +126,16 @@ test("生产发布只在完整验证后原子保存可回退的镜像状态", as
     /HAD_STATE.*false[\s\S]*APPLICATION_TABLES.*== 0[\s\S]*跳过无历史意义的备份/,
   );
   assert.match(script, /initialize_data=true 仅允许首次空库部署/);
+  assert.match(script, /reset_data=true 只允许 target=all/);
+  assert.match(script, /reset_data=true 不能与 initialize_data=true 同时使用/);
+  assert.match(script, /reset_data=true 仅允许重置已部署的非空数据库/);
+  const stopServer = position(script, 'docker compose --env-file "$ENV_FILE" stop server');
+  assert.ok(stopServer < backup);
+  assert.ok(backup < reset);
+  assert.match(
+    script,
+    /RESET_DATA" == true[\s\S]*docker compose --env-file "\$ENV_FILE" stop server[\s\S]*database-backup\.sh[\s\S]*migrate reset --force[\s\S]*prisma\/seed\.ts[\s\S]*FLUSHDB/,
+  );
   assert.match(script, /APPLICATION_IMAGES_PRELOADED="\$\{APPLICATION_IMAGES_PRELOADED:-false\}"/);
   assert.match(
     script,
@@ -180,6 +191,10 @@ test("生产 migration 和 seed 直接使用镜像内工具，不触发 pnpm 安
   assert.match(
     script,
     /--workdir \/app\/apps\/server server \\\n\s+node --env-file-if-exists=\.\.\/\.\.\/\.env node_modules\/prisma\/build\/index\.js migrate deploy/,
+  );
+  assert.match(
+    script,
+    /--workdir \/app\/apps\/server server \\\n+\s+node --env-file-if-exists=\.\.\/\.\.\/\.env node_modules\/prisma\/build\/index\.js migrate reset --force/,
   );
   assert.match(
     script,
@@ -392,6 +407,14 @@ test("部署工作流先在受保护 runner 临时目录验证 SSH 与 TLS", asy
   assert.match(workflow, /StrictHostKeyChecking=yes/);
   assert.match(workflow, /UserKnownHostsFile="\$DEPLOY_TMP\/known_hosts"/);
   assert.match(workflow, /TCR_PULL_USERNAME TCR_PULL_PASSWORD/);
+  assert.match(workflow, /reset_data_confirmation:/);
+  assert.match(workflow, /RESET_PRODUCTION_DATA/);
+  assert.match(
+    workflow,
+    /RESET_DATA: \$\{\{ inputs\.reset_data_confirmation == 'RESET_PRODUCTION_DATA' \}\}/,
+  );
+  assert.match(workflow, /生产数据重置只允许 target=all/);
+  assert.match(workflow, /生产数据重置不能与首次初始化同时执行/);
   assert.match(workflow, /\[\[ "\$TCR_PULL_USERNAME" =~ \^\[a-zA-Z0-9\]/);
   assert.doesNotMatch(workflow, /REGISTRY_USER: \$\{\{ github\.repository_owner \}\}/);
   assert.match(workflow, /if: always\(\)/);
