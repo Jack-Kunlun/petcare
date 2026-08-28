@@ -1,7 +1,7 @@
-import * as Dialog from "@radix-ui/react-dialog";
 import type { ReactNode } from "react";
 import type { UnsavedChangesController } from "../hooks/useUnsavedChanges";
 import { cn } from "../lib/utils";
+import { ConfirmDialog } from "./ui/ConfirmDialog";
 
 type EditorPageWidth = "narrow" | "default" | "wide";
 
@@ -49,20 +49,20 @@ export function EditorPageLayout({
   return (
     <section
       className={cn(
-        "editor-page mx-auto flex w-full min-w-0 flex-col gap-6 text-slate-900",
+        "editor-page mx-auto flex w-full min-w-0 flex-col gap-6 text-text-primary",
         widthClasses[width],
         className,
       )}
     >
-      <header className="editor-page__header sticky top-0 z-10 flex flex-wrap items-start gap-3 bg-slate-50 py-4">
+      <header className="editor-page__header sticky top-0 z-10 flex flex-wrap items-start gap-3 bg-page-background/95 py-4 backdrop-blur-sm">
         {back ? <div className="shrink-0">{back}</div> : null}
         <div className="min-w-0 flex-1">
           <div className="flex flex-wrap items-center gap-2">
-            <h1 className="text-2xl font-semibold tracking-tight text-slate-950">{title}</h1>
+            <h1 className="text-2xl font-semibold tracking-tight text-text-primary">{title}</h1>
             {status ? <div className="shrink-0">{status}</div> : null}
           </div>
           {description ? (
-            <div className="mt-1 text-sm leading-6 text-slate-600">{description}</div>
+            <div className="mt-1 text-sm leading-6 text-text-secondary">{description}</div>
           ) : null}
         </div>
         {actions ? (
@@ -73,46 +73,21 @@ export function EditorPageLayout({
       </header>
       <div className="editor-page__content flex min-w-0 flex-col gap-6">{children}</div>
       {footerActions ? (
-        <footer className="editor-page__footer flex flex-wrap items-center justify-end gap-3 border-t border-slate-200 bg-white px-6 py-4">
+        <footer className="editor-page__footer flex flex-wrap items-center justify-end gap-3 border-t border-border bg-surface px-6 py-4">
           {footerActions}
         </footer>
       ) : null}
       {unsavedChanges ? (
-        <Dialog.Root
-          open={unsavedChanges.state === "blocked"}
+        <ConfirmDialog
+          cancelLabel="继续编辑"
+          confirmLabel="放弃修改"
+          confirmTone="danger"
+          description="当前页面的修改尚未保存，离开后将无法恢复。"
+          onConfirm={unsavedChanges.proceed}
           onOpenChange={(open) => !open && unsavedChanges.reset()}
-        >
-          <Dialog.Portal>
-            <Dialog.Overlay className="fixed inset-0 z-40 bg-slate-950/45" />
-            <Dialog.Content className="fixed left-1/2 top-1/2 z-50 w-[calc(100vw-32px)] max-w-md -translate-x-1/2 -translate-y-1/2 rounded-xl bg-white p-6 shadow-2xl outline-none focus-visible:ring-2 focus-visible:ring-brand-primary">
-              <Dialog.Title className="text-lg font-semibold text-slate-950">
-                放弃未保存的修改？
-              </Dialog.Title>
-              <Dialog.Description className="mt-2 text-sm leading-6 text-slate-600">
-                当前页面的修改尚未保存，离开后将无法恢复。
-              </Dialog.Description>
-              <div className="mt-6 flex flex-wrap justify-end gap-3">
-                <button
-                  autoFocus
-                  className="h-10 rounded-md border border-slate-300 bg-white px-4 text-sm font-medium text-slate-700 transition-colors hover:bg-slate-50 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-brand-primary focus-visible:ring-offset-2 disabled:cursor-not-allowed disabled:opacity-50"
-                  disabled={unsavedChanges.state !== "blocked"}
-                  onClick={unsavedChanges.reset}
-                  type="button"
-                >
-                  继续编辑
-                </button>
-                <button
-                  className="h-10 rounded-md bg-red-600 px-4 text-sm font-medium text-white transition-colors hover:bg-red-700 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-red-600 focus-visible:ring-offset-2 disabled:cursor-not-allowed disabled:opacity-50"
-                  disabled={unsavedChanges.state !== "blocked"}
-                  onClick={unsavedChanges.proceed}
-                  type="button"
-                >
-                  放弃修改
-                </button>
-              </div>
-            </Dialog.Content>
-          </Dialog.Portal>
-        </Dialog.Root>
+          open={unsavedChanges.state === "blocked"}
+          title="放弃未保存的修改？"
+        />
       ) : null}
     </section>
   );
@@ -132,14 +107,17 @@ export function FormSection({
   return (
     <section
       aria-labelledby={ariaLabelledBy}
-      className={cn("form-section rounded-xl border border-slate-200 bg-white p-6", className)}
+      className={cn(
+        "form-section rounded-xl border border-border bg-surface p-6 shadow-panel",
+        className,
+      )}
     >
       {hasHeader ? (
         <header className="form-section__header flex flex-wrap items-start gap-3">
           <div className="min-w-0 flex-1">
-            {title ? <h2 className="text-lg font-semibold text-slate-950">{title}</h2> : null}
+            {title ? <h2 className="text-lg font-semibold text-text-primary">{title}</h2> : null}
             {description ? (
-              <div className="mt-1 text-sm leading-6 text-slate-600">{description}</div>
+              <div className="mt-1 text-sm leading-6 text-text-secondary">{description}</div>
             ) : null}
           </div>
           {actions ? <div className="flex flex-wrap items-center gap-3">{actions}</div> : null}

@@ -49,7 +49,7 @@ describe("EditorPageLayout", () => {
     expect(header).toContainElement(screen.getByRole("button", { name: "保存" }));
     expect(content).toHaveTextContent("编辑内容");
     expect(footer).toContainElement(screen.getByRole("button", { name: "底部保存" }));
-    expect(footer).toHaveClass("border-t", "bg-white", "px-6", "py-4", "gap-3");
+    expect(footer).toHaveClass("border-t", "bg-surface", "px-6", "py-4", "gap-3");
   });
 
   it.each([
@@ -115,7 +115,7 @@ describe("FormSection", () => {
     const header = section?.querySelector("header.form-section__header");
     const content = section?.querySelector("div.form-section__content");
 
-    expect(section).toHaveClass("rounded-xl", "p-6");
+    expect(section).toHaveClass("rounded-xl", "p-6", "shadow-panel");
     expect(header).toHaveClass("flex", "flex-wrap");
     expect(header).toHaveTextContent("基本信息");
     expect(header).toHaveTextContent("填写文章基本资料");

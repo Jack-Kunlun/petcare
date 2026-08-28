@@ -31,7 +31,7 @@ export function GlobalErrorMessage() {
   return (
     <div
       role="alert"
-      className="fixed left-1/2 top-4 z-[100] flex max-w-[calc(100vw-32px)] -translate-x-1/2 items-start gap-3 rounded-lg bg-red-700 px-4 py-3 text-sm text-white shadow-lg"
+      className="fixed left-1/2 top-4 z-[100] flex max-w-[calc(100vw-32px)] -translate-x-1/2 items-start gap-3 rounded-lg border border-danger-strong bg-danger-strong px-4 py-3 text-sm text-white shadow-float"
     >
       <span>{current.message}</span>
       <button
