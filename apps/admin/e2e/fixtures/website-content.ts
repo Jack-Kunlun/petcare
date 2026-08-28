@@ -5,7 +5,7 @@ export const websiteContentFixtures = {
     contentKey: "home",
     route: "/",
     heroTitleLabel: "主标题",
-    initialTitle: "陪伴每一次托付",
+    initialTitle: "记录每一次陪伴",
   },
   help: {
     contentKey: "help",

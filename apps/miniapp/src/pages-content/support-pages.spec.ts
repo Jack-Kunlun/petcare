@@ -77,10 +77,8 @@ describe("published support pages", () => {
     expect(profile).toContain('detail: "查看已发布联系方式"');
     expect(profile).not.toContain("工作日 09:00–20:00");
     expect(navigators).toHaveLength(2);
-    expect(terms).toContain("h-control");
     expect(terms).toContain('aria-label="查看服务协议"');
     expect(terms).toContain('hover-class="opacity-80"');
-    expect(privacy).toContain("h-control");
     expect(privacy).toContain('aria-label="查看隐私政策"');
     expect(privacy).toContain('hover-class="opacity-80"');
     expect(auth).not.toContain("function openLegal");

@@ -83,30 +83,69 @@ async function loginAccessToken(
 }
 
 async function seedMiniappSession(page: Page, accessToken: string): Promise<void> {
-  await page.evaluate((token) => {
-    const runtime = globalThis as typeof globalThis & {
-      uni: {
-        removeStorageSync: (key: string) => void;
-        setStorageSync: (key: string, value: unknown) => void;
+  const refreshToken = "community-e2e-refresh-restored";
+  const user = {
+    id: "community-e2e-author",
+    nickname: "社区 E2E 作者",
+    avatar: null,
+    phoneMasked: "139****0095",
+    profileComplete: true,
+    userType: "pet_owner",
+    region: null,
+    bio: null,
+  };
+
+  await page.route("**/auth/wechat/refresh", async (route) => {
+    if (route.request().method() === "OPTIONS") {
+      await route.continue();
+
+      return;
+    }
+
+    await route.fulfill({
+      status: 200,
+      contentType: "application/json",
+      headers: { "access-control-allow-origin": new URL(page.url()).origin },
+      json: {
+        code: "SUCCESS",
+        message: "操作成功",
+        data: { accessToken, refreshToken, user },
+        meta: { requestId: "community-e2e-session-refresh", timestamp: new Date().toISOString() },
+      },
+    });
+  });
+  await page.evaluate(
+    ({ token, storedUser }) => {
+      const runtime = globalThis as typeof globalThis & {
+        uni: {
+          removeStorageSync: (key: string) => void;
+          setStorageSync: (key: string, value: unknown) => void;
+        };
       };
+
+      runtime.uni.setStorageSync("petcare.sessionCommitted", false);
+      runtime.uni.setStorageSync("petcare.accessToken", token);
+      runtime.uni.setStorageSync("petcare.refreshToken", "community-e2e-refresh-not-used");
+      runtime.uni.setStorageSync("petcare.user", storedUser);
+      runtime.uni.removeStorageSync("petcare.manualLogout");
+      runtime.uni.setStorageSync("petcare.sessionCommitted", true);
+    },
+    { token: accessToken, storedUser: user },
+  );
+  const refreshed = page.waitForResponse(
+    (response) =>
+      response.request().method() === "POST" && response.url().endsWith("/auth/wechat/refresh"),
+  );
+
+  await page.reload();
+  await refreshed;
+  await page.waitForFunction((expectedRefreshToken) => {
+    const runtime = globalThis as typeof globalThis & {
+      uni: { getStorageSync: (key: string) => unknown };
     };
 
-    runtime.uni.setStorageSync("petcare.sessionCommitted", false);
-    runtime.uni.setStorageSync("petcare.accessToken", token);
-    runtime.uni.setStorageSync("petcare.refreshToken", "community-e2e-refresh-not-used");
-    runtime.uni.setStorageSync("petcare.user", {
-      id: "community-e2e-author",
-      nickname: "社区 E2E 作者",
-      avatar: null,
-      phoneMasked: "139****0095",
-      profileComplete: true,
-      userType: "pet_owner",
-      region: null,
-      bio: null,
-    });
-    runtime.uni.removeStorageSync("petcare.manualLogout");
-    runtime.uni.setStorageSync("petcare.sessionCommitted", true);
-  }, accessToken);
+    return runtime.uni.getStorageSync("petcare.refreshToken") === expectedRefreshToken;
+  }, refreshToken);
 }
 
 async function responseData<T>(response: APIResponse): Promise<T> {

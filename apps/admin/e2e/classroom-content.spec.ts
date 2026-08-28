@@ -97,7 +97,7 @@ test("Admin 发布的课堂文章在 Miniapp 可见且下线后不可访问", as
     await miniappPage.goto(`${miniappUrl}/#/pages/community/index?tab=classroom`);
     await miniappPage.reload();
     await expect(miniappPage.getByText(title, { exact: true })).toHaveCount(0);
-    await expect(miniappPage.getByText("未找到符合条件的课堂文章")).toBeVisible();
+    await expect(miniappPage.getByText("暂无课堂文章")).toBeVisible();
 
     await miniappPage.goto(`${miniappUrl}/#/pages-content/classroom/article?id=${draft.id}`);
     await expect(miniappPage.getByText("文章已下线或不存在")).toBeVisible();
