@@ -111,7 +111,6 @@ describe("Admin user ban and restore boundary (e2e)", () => {
       prisma,
       {
         username: operatorCredentials.identifier,
-        phone: "13900000091",
         password: operatorCredentials.password,
         nickname: "用户状态 E2E 管理员",
       },

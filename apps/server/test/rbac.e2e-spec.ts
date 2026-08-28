@@ -105,7 +105,6 @@ describe("RBAC authorization boundary (e2e)", () => {
       prisma,
       {
         username: superAdminCredentials.identifier,
-        phone: "13900000081",
         password: superAdminCredentials.password,
         nickname: "RBAC E2E 超级管理员",
       },
