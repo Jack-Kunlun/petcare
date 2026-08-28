@@ -1,5 +1,5 @@
 <script setup lang="ts">
-import { onLoad } from "@dcloudio/uni-app";
+import { onLoad, onShareAppMessage, onShareTimeline } from "@dcloudio/uni-app";
 import type {
   ClassroomArticleCategory,
   CommunityPostContentType,
@@ -72,6 +72,10 @@ const featuredHasMore = computed(() => featuredPosts.value.length < featuredTota
 const featuredHasFilters = computed(
   () => Boolean(featuredAppliedKeyword.value) || featuredContentType.value !== null,
 );
+const shareTitle = computed(() =>
+  activeChannel.value === "classroom" ? "PetCare 萌宠课堂" : "PetCare 社区｜真实养宠日常",
+);
+const shareQuery = computed(() => (activeChannel.value === "classroom" ? "tab=classroom" : ""));
 
 async function loadFeatured(reset = true): Promise<void> {
   if (featuredLoading.value) {
@@ -258,6 +262,12 @@ function openCommunityArticle(id: string): void {
 function openCommunityPublisher(): void {
   void openCommunityPublishEntry(publishPending);
 }
+
+onShareAppMessage(() => ({
+  title: shareTitle.value,
+  path: `/pages/community/index${shareQuery.value ? `?${shareQuery.value}` : ""}`,
+}));
+onShareTimeline(() => ({ title: shareTitle.value, query: shareQuery.value }));
 
 onLoad((query = {}) => {
   if (query.tab === "classroom") {

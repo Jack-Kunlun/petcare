@@ -1,5 +1,5 @@
 <script setup lang="ts">
-import { onShow } from "@dcloudio/uni-app";
+import { onShareAppMessage, onShareTimeline, onShow } from "@dcloudio/uni-app";
 import type { PublicClassroomArticleListItem } from "@petcare/shared-types";
 import { CLASSROOM_ARTICLE_CATEGORY_LABELS } from "@petcare/shared-types";
 import { ref } from "vue";
@@ -17,6 +17,7 @@ definePage({
 
 const HOME_CLASSROOM_PAGE_SIZE = 2;
 const CLASSROOM_COVER_PLACEHOLDER = "/static/main/petcare-placeholder-light.svg";
+const HOME_SHARE_TITLE = "PetCare 宠伴｜记录每一份陪伴";
 
 const classroomArticles = ref<PublicClassroomArticleListItem[]>([]);
 const classroomStatus = ref<"loading" | "ready" | "error">("loading");
@@ -67,6 +68,12 @@ async function loadHomeClassroom(): Promise<void> {
   }
 }
 
+onShareAppMessage(() => ({
+  title: HOME_SHARE_TITLE,
+  path: "/pages/index/index",
+  imageUrl: MINIAPP_TRUSTED_CARE_HERO,
+}));
+onShareTimeline(() => ({ title: HOME_SHARE_TITLE, imageUrl: MINIAPP_TRUSTED_CARE_HERO }));
 onShow(() => void loadHomeClassroom());
 </script>
 

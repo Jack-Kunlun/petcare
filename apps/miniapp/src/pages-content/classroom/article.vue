@@ -1,5 +1,5 @@
 <script setup lang="ts">
-import { onLoad } from "@dcloudio/uni-app";
+import { onLoad, onShareAppMessage, onShareTimeline } from "@dcloudio/uni-app";
 import type { PublicClassroomArticleDetail } from "@petcare/shared-types";
 import { computed, ref } from "vue";
 import { getClassroomArticle } from "@/api/content";
@@ -11,6 +11,7 @@ const articleSlug = ref("");
 const article = ref<PublicClassroomArticleDetail | null>(null);
 const status = ref<"loading" | "ready" | "error" | "unavailable">("loading");
 const loading = ref(false);
+const shareTitle = computed(() => article.value?.title ?? "PetCare 萌宠课堂");
 const byline = computed(() => {
   if (!article.value) {
     return "";
@@ -45,6 +46,19 @@ async function load(): Promise<void> {
 function returnToClassroom(): void {
   uni.redirectTo({ url: "/pages/community/index?tab=classroom" });
 }
+
+onShareAppMessage(() => ({
+  title: shareTitle.value,
+  path: articleSlug.value
+    ? `/pages-content/classroom/article?id=${encodeURIComponent(articleSlug.value)}`
+    : "/pages/community/index?tab=classroom",
+  ...(article.value?.coverUrl ? { imageUrl: article.value.coverUrl } : {}),
+}));
+onShareTimeline(() => ({
+  title: shareTitle.value,
+  query: articleSlug.value ? `id=${encodeURIComponent(articleSlug.value)}` : "",
+  ...(article.value?.coverUrl ? { imageUrl: article.value.coverUrl } : {}),
+}));
 
 onLoad((query = {}) => {
   if (typeof query.id === "string" && query.id) {

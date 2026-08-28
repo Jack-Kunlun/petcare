@@ -1,5 +1,5 @@
 <script setup lang="ts">
-import { onLoad, onShow } from "@dcloudio/uni-app";
+import { onLoad, onShareAppMessage, onShareTimeline, onShow } from "@dcloudio/uni-app";
 import {
   COMMUNITY_POST_REPORT_REASON,
   COMMUNITY_POST_REPORT_REASON_LABELS,
@@ -62,6 +62,10 @@ const commentSuccess = ref("");
 const reportReasons = Object.values(COMMUNITY_POST_REPORT_REASON);
 const avatar = computed(() =>
   post.value ? (post.value.author.avatar ?? getDefaultAvatar(post.value.id)) : "",
+);
+const shareTitle = computed(
+  () =>
+    post.value?.content.trim().replace(/\s+/gu, " ").slice(0, 28) || "PetCare 社区｜真实养宠日常",
 );
 const commentBusy = computed(
   () =>
@@ -378,6 +382,19 @@ async function submitReport(): Promise<void> {
     reportSubmitting.value = false;
   }
 }
+
+onShareAppMessage(() => ({
+  title: shareTitle.value,
+  path: postId.value
+    ? `/pages-content/community/article?id=${encodeURIComponent(postId.value)}`
+    : "/pages/community/index",
+  ...(post.value?.mediaUrls[0] ? { imageUrl: post.value.mediaUrls[0] } : {}),
+}));
+onShareTimeline(() => ({
+  title: shareTitle.value,
+  query: postId.value ? `id=${encodeURIComponent(postId.value)}` : "",
+  ...(post.value?.mediaUrls[0] ? { imageUrl: post.value.mediaUrls[0] } : {}),
+}));
 
 onLoad((query = {}) => {
   if (typeof query.id !== "string" || !query.id) {
