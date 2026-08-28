@@ -288,13 +288,18 @@ test("Website 镜像以非 root 身份运行独立 SSR 并提供健康检查", a
 test("官网网关只暴露 Website 页面和已发布公共内容接口", async () => {
   const nginx = await readFile(resolve(root, "docker/website-nginx.conf"), "utf8");
 
-  assert.match(nginx, /proxy_pass http:\/\/website:4321/);
+  assert.match(nginx, /resolver 127\.0\.0\.11 valid=10s ipv6=off/);
+  assert.match(nginx, /set \$website_upstream http:\/\/website:4321/);
+  assert.match(nginx, /set \$server_upstream http:\/\/server:3000/);
+  assert.equal((nginx.match(/proxy_pass \$website_upstream/g) ?? []).length, 3);
+  assert.equal((nginx.match(/proxy_pass \$server_upstream/g) ?? []).length, 4);
+  assert.doesNotMatch(nginx, /proxy_pass http:\/\/(?:website|server):/);
   assert.match(nginx, /location \^~ \/website-content\/previews\//);
   assert.match(nginx, /location \^~ \/website-content\/previews\/[\s\S]*?return 404/);
-  assert.match(nginx, /location \^~ \/website-content\/[\s\S]*?proxy_pass http:\/\/server:3000/);
-  assert.match(nginx, /location = \/content\/articles[\s\S]*?proxy_pass http:\/\/server:3000/);
-  assert.match(nginx, /location \^~ \/content\/articles\/[\s\S]*?proxy_pass http:\/\/server:3000/);
-  assert.match(nginx, /location \^~ \/media\/[\s\S]*?proxy_pass http:\/\/server:3000/);
+  assert.match(nginx, /location \^~ \/website-content\/[\s\S]*?proxy_pass \$server_upstream/);
+  assert.match(nginx, /location = \/content\/articles[\s\S]*?proxy_pass \$server_upstream/);
+  assert.match(nginx, /location \^~ \/content\/articles\/[\s\S]*?proxy_pass \$server_upstream/);
+  assert.match(nginx, /location \^~ \/media\/[\s\S]*?proxy_pass \$server_upstream/);
   assert.match(nginx, /location \^~ \/media\/[\s\S]*?X-Content-Type-Options "nosniff"/);
   assert.doesNotMatch(nginx, /location\s+(?:=\s*)?(?:\^~\s*)?\/(?:admin|api-docs|api(?:\/|\s))/);
   assert.match(nginx, /location \^~ \/_astro\/[\s\S]*?max-age=31536000, immutable/);
