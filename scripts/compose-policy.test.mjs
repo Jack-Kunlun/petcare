@@ -230,6 +230,15 @@ test("内部网关保留边缘传入的 HTTPS 协议", async () => {
   }
 });
 
+test("社区图片上传链路为 10 MiB 文件保留 multipart 余量", async () => {
+  const edge = await readFile(resolve(root, "docker/edge-nginx.conf"), "utf8");
+  const admin = await readFile(resolve(root, "docker/nginx.conf"), "utf8");
+  const adminEdgeServer = edge.slice(edge.indexOf("# ---- 后台管理"));
+
+  assert.match(adminEdgeServer, /client_max_body_size 11m;/);
+  assert.match(admin, /client_max_body_size 11m;/);
+});
+
 test("开发覆盖只把数据库和 Redis 绑定到本机回环", async () => {
   const override = await readFile(resolve(root, "docker-compose.dev.yml"), "utf8");
 
