@@ -15,6 +15,7 @@ import {
   PUBLIC_AVATAR_STORAGE,
   type PublicAvatarStorage,
 } from "../../public-avatar-storage/public-avatar-storage.types";
+import { CANCELLED_ACCOUNT_DATA } from "./cancelled-account";
 
 const ACTIVE_CANCELLATION_BLOCKING_STATUSES = [
   "pending_confirm",
@@ -132,7 +133,7 @@ export class MiniappAccountService {
     });
   }
 
-  /** Deactivates an eligible Miniapp account after any required phone verification. */
+  /** Anonymizes and deactivates an eligible Miniapp account after any required verification. */
   async cancelAccount(userId: string, code?: string): Promise<void> {
     const user = await this.prisma.user.findUnique({
       where: { id: userId },
@@ -175,7 +176,7 @@ export class MiniappAccountService {
       }
     }
 
-    await this.withSerializableTransaction(async (transaction) => {
+    const avatarObjectKey = await this.withSerializableTransaction(async (transaction) => {
       const current = await lockUserRow(transaction, userId);
 
       if (current?.status !== "active") {
@@ -192,11 +193,21 @@ export class MiniappAccountService {
         throw this.activeOrderExists();
       }
 
+      const avatar = await transaction.user.findUnique({
+        where: { id: userId },
+        select: { avatarObjectKey: true },
+      });
+
+      await transaction.userProfile.deleteMany({ where: { userId } });
       await transaction.user.update({
         where: { id: userId },
-        data: { status: "inactive", sessionVersion: { increment: 1 } },
+        data: CANCELLED_ACCOUNT_DATA,
       });
+
+      return avatar?.avatarObjectKey ?? null;
     });
+
+    await this.deleteAvatarObject(userId, avatarObjectKey);
   }
 
   /** Verifies and permanently binds the account's first phone number. */

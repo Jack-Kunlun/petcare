@@ -2,6 +2,7 @@ import { randomInt } from "node:crypto";
 import { HttpStatus, Injectable } from "@nestjs/common";
 import { MiniappUserProfile, WechatSession } from "@petcare/shared-types";
 import { ApiException } from "../common/http/api-exception";
+import { CANCELLED_ACCOUNT_DATA } from "../modules/user/cancelled-account";
 import { PrismaService } from "../prisma/prisma.service";
 import { TokenService } from "./token.service";
 import { WechatApiClient } from "./wechat-api.client";
@@ -67,6 +68,11 @@ export class WechatAuthService {
       select: miniappUserSelect,
     });
 
+    if (user?.status === "inactive") {
+      await this.releaseCancelledIdentity(user.id, openid);
+      user = null;
+    }
+
     if (!user) {
       try {
         user = await this.prismaService.$transaction((transaction) =>
@@ -113,6 +119,19 @@ export class WechatAuthService {
   /** Revokes a Miniapp refresh token so it cannot be reused. */
   async logout(refreshToken: string): Promise<void> {
     await this.tokenService.revoke(refreshToken);
+  }
+
+  private async releaseCancelledIdentity(userId: string, openid: string): Promise<void> {
+    await this.prismaService.$transaction(async (transaction) => {
+      const released = await transaction.user.updateMany({
+        where: { id: userId, openid, status: "inactive" },
+        data: CANCELLED_ACCOUNT_DATA,
+      });
+
+      if (released.count === 1) {
+        await transaction.userProfile.deleteMany({ where: { userId } });
+      }
+    });
   }
 
   private async findSessionUser(userId: string): Promise<MiniappUserRecord> {

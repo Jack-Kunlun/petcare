@@ -5,8 +5,9 @@ import { describe, expect, it } from "vitest";
 const source = readFileSync(resolve(import.meta.dirname, "cancel.vue"), "utf8");
 
 describe("account cancellation page wiring", () => {
-  it("shows the irreversible, retained-history, and protected-record notices", () => {
+  it("explains irreversible cancellation, clean re-registration, and retained audit data", () => {
     expect(source).toContain("账户注销后不可恢复");
+    expect(source).toContain("再次微信登录会创建新账号，不会恢复或关联旧账号资料");
     expect(source).toContain("必要的安全与审计记录会按规则保留");
     expect(source).toContain("存在受保护的关联数据时，系统会暂时拒绝注销");
     expect(source).not.toContain("进行中业务");

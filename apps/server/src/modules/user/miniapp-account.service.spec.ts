@@ -27,6 +27,9 @@ describe("MiniappAccountService", () => {
       update: jest.fn(),
       updateMany: jest.fn(),
     },
+    userProfile: {
+      deleteMany: jest.fn(),
+    },
     order: {
       count: jest.fn(),
     },
@@ -52,6 +55,17 @@ describe("MiniappAccountService", () => {
     userType: "pet_owner",
     status: "active",
     profile: { address: "上海市", bio: "爱猫人士" },
+  };
+  const cancelledUserData = {
+    openid: null,
+    phone: null,
+    username: null,
+    passwordHash: null,
+    nickname: "已注销用户",
+    avatar: null,
+    avatarObjectKey: null,
+    status: "inactive",
+    sessionVersion: { increment: 1 },
   };
 
   beforeEach(() => {
@@ -360,18 +374,26 @@ describe("MiniappAccountService", () => {
     expect(verificationCodeService.verifyAndConsume).not.toHaveBeenCalled();
   });
 
-  it("cancels an unbound account without touching Redis", async () => {
+  it("anonymizes an unbound account and releases its login identifiers", async () => {
     prisma.user.findUnique.mockResolvedValue({ id: "user-1", phone: null, status: "active" });
     prisma.order.count.mockResolvedValue(0);
+    transaction.user.findUnique.mockResolvedValue({
+      avatarObjectKey: "public/user-avatars/user-1/old.png",
+    });
     transaction.order.count.mockResolvedValue(0);
     transaction.user.update.mockResolvedValue(undefined);
+    transaction.userProfile.deleteMany.mockResolvedValue({ count: 1 });
 
     await expect(service.cancelAccount("user-1")).resolves.toBeUndefined();
     expect(verificationCodeService.verifyAndConsume).not.toHaveBeenCalled();
+    expect(transaction.userProfile.deleteMany).toHaveBeenCalledWith({
+      where: { userId: "user-1" },
+    });
     expect(transaction.user.update).toHaveBeenCalledWith({
       where: { id: "user-1" },
-      data: { status: "inactive", sessionVersion: { increment: 1 } },
+      data: cancelledUserData,
     });
+    expect(avatarStorage.delete).toHaveBeenCalledWith("public/user-avatars/user-1/old.png");
     expect(prisma.$transaction).toHaveBeenCalledWith(expect.any(Function), {
       isolationLevel: "Serializable",
     });
@@ -405,7 +427,7 @@ describe("MiniappAccountService", () => {
     expect(verificationCodeService.verifyAndConsume).toHaveBeenCalledTimes(1);
     expect(transaction.user.update).toHaveBeenCalledWith({
       where: { id: "user-1" },
-      data: { status: "inactive", sessionVersion: { increment: 1 } },
+      data: cancelledUserData,
     });
   });
 

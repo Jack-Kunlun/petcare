@@ -148,7 +148,8 @@ export async function runCancellationFlow(
         (
           await dependencies.showModal({
             title: "确认注销账户？",
-            content: "注销后账户无法恢复，所有设备会话将失效，历史记录仍按规则保留。",
+            content:
+              "注销后原账号无法恢复；再次微信登录会创建新账号，旧账号数据不会恢复或关联。所有设备会话将失效。",
             confirmText: "确认注销",
             cancelText: "暂不注销",
           })

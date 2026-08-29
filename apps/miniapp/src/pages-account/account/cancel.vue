@@ -102,6 +102,9 @@ onUnload(() => {
           账户注销后不可恢复
         </text>
         <text class="text-body text-ink leading-body">所有设备上的登录会话将立即失效。</text>
+        <text class="text-body text-ink leading-body">
+          再次微信登录会创建新账号，不会恢复或关联旧账号资料。
+        </text>
         <text class="text-body text-ink leading-body">必要的安全与审计记录会按规则保留。</text>
         <text class="text-body text-ink leading-body"
           >存在受保护的关联数据时，系统会暂时拒绝注销。</text

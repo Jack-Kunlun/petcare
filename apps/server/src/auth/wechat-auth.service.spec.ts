@@ -26,6 +26,10 @@ describe("WechatAuthService", () => {
     user: {
       findUnique: jest.fn(),
       create: jest.fn(),
+      updateMany: jest.fn(),
+    },
+    userProfile: {
+      deleteMany: jest.fn(),
     },
     $transaction: jest.fn(),
   };
@@ -56,6 +60,8 @@ describe("WechatAuthService", () => {
       ...createActiveUser(null),
       ...data,
     }));
+    prisma.user.updateMany.mockResolvedValue({ count: 1 });
+    prisma.userProfile.deleteMany.mockResolvedValue({ count: 1 });
     prisma.$transaction.mockImplementation((callback: (client: typeof prisma) => unknown) =>
       callback(prisma),
     );
@@ -144,13 +150,34 @@ describe("WechatAuthService", () => {
     expect(prisma.user.findUnique).toHaveBeenCalledTimes(2);
   });
 
-  it("rejects an inactive openid without creating a replacement", async () => {
-    usersByOpenid["openid-1"] = { ...activeUser, status: "inactive" };
+  it("releases a legacy cancelled openid and creates a fresh account", async () => {
+    usersByOpenid["openid-1"] = { ...activeUser, id: "cancelled-user", status: "inactive" };
+
+    await expect(service.login("login-code")).resolves.toMatchObject({
+      user: { id: "user-1" },
+    });
+    expect(prisma.user.updateMany).toHaveBeenCalledWith({
+      where: { id: "cancelled-user", openid: "openid-1", status: "inactive" },
+      data: expect.objectContaining({ openid: null, status: "inactive" }),
+    });
+    expect(prisma.userProfile.deleteMany).toHaveBeenCalledWith({
+      where: { userId: "cancelled-user" },
+    });
+    expect(prisma.user.create).toHaveBeenCalledWith(
+      expect.objectContaining({
+        data: expect.objectContaining({ openid: "openid-1", status: "active" }),
+      }),
+    );
+  });
+
+  it("rejects a banned openid without creating a replacement", async () => {
+    usersByOpenid["openid-1"] = { ...activeUser, status: "banned" };
 
     await expect(service.login("login-code")).rejects.toMatchObject({
       code: "AUTH_ACCOUNT_DISABLED",
       status: 403,
     });
+    expect(prisma.user.updateMany).not.toHaveBeenCalled();
     expect(prisma.user.create).not.toHaveBeenCalled();
   });
 

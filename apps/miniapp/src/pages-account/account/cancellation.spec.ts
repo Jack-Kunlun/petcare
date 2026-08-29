@@ -230,7 +230,10 @@ describe("account cancellation flow", () => {
     await runCancellationFlow(state, { requiresCode: false, code: "" }, deps);
 
     expect(deps.showModal).toHaveBeenCalledWith(
-      expect.objectContaining({ confirmText: "确认注销" }),
+      expect.objectContaining({
+        confirmText: "确认注销",
+        content: expect.stringContaining("再次微信登录会创建新账号"),
+      }),
     );
     expect(deps.cancelAccount).not.toHaveBeenCalled();
     expect(deps.completeCancellation).not.toHaveBeenCalled();
