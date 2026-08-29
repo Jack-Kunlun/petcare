@@ -3,7 +3,7 @@ import { resolve } from "node:path";
 import { describe, expect, it } from "vitest";
 
 describe("community publisher", () => {
-  it("keeps submission and moderation states visible and behaviorally disabled", () => {
+  it("keeps upload, submission, and moderation states reactive and behaviorally disabled", () => {
     const source = readFileSync(resolve(import.meta.dirname, "publish.vue"), "utf8");
 
     expect(source).toContain("createCommunityPost");
@@ -13,6 +13,10 @@ describe("community publisher", () => {
     expect(source).toContain("discardCommunityMedia");
     expect(source).toContain("uni.chooseImage");
     expect(source).toContain("item.progress = progress");
+    expect(source).toContain(
+      "draftMedia.value.slice(-items.length).forEach((item) => void uploadMedia(item));",
+    );
+    expect(source).not.toContain("items.forEach((item) => void uploadMedia(item));");
     expect(source).toContain("mediaAssetIds:");
     expect(source).toContain('@click="uploadMedia(item)"');
     expect(source).toContain('@click="removeMedia(item)"');

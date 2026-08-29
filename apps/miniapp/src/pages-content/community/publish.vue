@@ -146,7 +146,7 @@ function chooseMedia(): void {
       }));
 
       draftMedia.value.push(...items);
-      items.forEach((item) => void uploadMedia(item));
+      draftMedia.value.slice(-items.length).forEach((item) => void uploadMedia(item));
     },
     fail(error) {
       if (!error.errMsg.includes("cancel")) {
