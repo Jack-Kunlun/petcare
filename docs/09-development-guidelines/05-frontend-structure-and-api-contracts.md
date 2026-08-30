@@ -106,9 +106,9 @@ apps/admin/src/pages/Settings/
 - 当前编辑器只开放预设区块字段，但持久化契约保留 `sectionType`、`schemaVersion` 与区块数组，后续新增、删除和排序仍复用同一页面版本模型。
 - 预览令牌仅用于服务端预览请求，预览响应不得进入公开内容缓存；公开页面只渲染已发布版本。
 
-## 8. 个人版页面与路由清理边界
+## 8. 产品页面与路由范围边界
 
-前端范围和清理顺序统一遵循[个人开发版范围与代码清理规范](./06-personal-scope-and-code-cleanup.md)。
+前端范围和清理顺序统一遵循[个人基线与商业能力分阶段恢复规范](./06-personal-scope-and-code-cleanup.md)。
 
 - Miniapp、Admin 与 Website 的导航和路由只注册当前路线图中的能力。暂停的商业页面不能依赖权限隐藏、CSS 隐藏或“暂未开放”弹窗继续留在当前入口中。
 - 注销页面时必须同时检查主导航、首页/个人中心入口、深链、`pages.json`、Admin `routes/registry.ts`、Website 页面、API 客户端、静态资源和对应测试。

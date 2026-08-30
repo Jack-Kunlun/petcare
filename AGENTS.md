@@ -4,9 +4,9 @@
 
 ## 📋 项目概览
 
-**PetCare宠伴** - 个人、非商业、可本地验收的宠物内容与档案原型
+**PetCare宠伴** - 已完成个人版基线，正按路线图分阶段恢复 C2C 服务能力
 
-服务者认证、悬赏交易、支付结算等商业能力仅保留为未来设计资料，不属于当前产品或默认运行范围。
+当前生产能力仍以个人、非商业基线为准。悬赏、订单与 SOP 已获准进入分阶段开发，但默认运行和产品入口必须保持关闭，直到对应纵向链路、资质门禁和发布条件通过；支付结算尚未恢复。
 
 ### 技术栈
 
@@ -114,13 +114,14 @@ REDIS_PASSWORD=  # 可选
 
 详见：[前端目录与 API 契约规范](./docs/09-development-guidelines/05-frontend-structure-and-api-contracts.md)
 
-### 个人开发版范围与代码清理
+### 产品范围与商业能力恢复
 
-- 当前任务只能来自 `docs/01-requirements/05-development-roadmap.md` 的个人开发版队列；未来 PRD、历史原型、已有页面或 Server 模块不能自行授权扩展商业能力。
-- 服务者认证、悬赏/接单、SOP、支付退款、结算提现、钱包和 B2C 派单属于暂停范围，不得重新加入当前导航、公开路由、默认种子内容或演示数据。
-- 商业残留先移除入口和默认运行时注册，再删除无消费者代码；Prisma Schema、已提交 migration 与运行数据必须单独审计和迁移，禁止在普通清理中顺带删除。
+- 当前任务只能来自 `docs/01-requirements/05-development-roadmap.md` 的执行队列；未来 PRD、历史原型、已有页面或 Server 模块不能自行授权扩展范围。
+- Cycle 5–7 只恢复路线图明确列出的悬赏、订单与 SOP 纵向链路。开发和隔离验收期间默认关闭生产入口；服务者接单必须经过真实资格门禁，禁止用人工假状态或测试数据绕过。
+- 实名/资质外部接入、真实支付退款、结算提现、钱包和 B2C 派单仍属暂停范围，恢复前必须再次进入路线图并单独确认依赖与责任。
+- 历史商业实现只能作为审计参考，不得整批回退清理提交。Prisma Schema、已提交 migration 与运行数据必须单独审计和迁移，禁止在普通功能提交中顺带删除或重写。
 
-详见：[个人开发版范围与代码清理规范](./docs/09-development-guidelines/06-personal-scope-and-code-cleanup.md)
+详见：[个人基线与商业能力分阶段恢复规范](./docs/09-development-guidelines/06-personal-scope-and-code-cleanup.md)
 
 ### Git Hooks
 
@@ -365,5 +366,5 @@ docker compose --env-file .env up -d
 
 ---
 
-**最后更新**: 2026-08-27
+**最后更新**: 2026-08-30
 **维护者**: PetCare 开发团队
