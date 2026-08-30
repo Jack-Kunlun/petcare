@@ -43,6 +43,8 @@ async function expectFailure(response: APIResponse, status: number, code: string
   expect(((await response.json()) as ApiErrorResponse).code).toBe(code);
 }
 
+const twoDigits = (part: number): string => part.toString().padStart(2, "0");
+
 async function seedMiniappSession(page: Page, accessToken: string): Promise<void> {
   const refreshToken = "bounty-e2e-refresh-restored";
   const user = {
@@ -59,6 +61,7 @@ async function seedMiniappSession(page: Page, accessToken: string): Promise<void
   await page.route("**/auth/wechat/refresh", async (route) => {
     if (route.request().method() === "OPTIONS") {
       await route.continue();
+
       return;
     }
 
@@ -114,8 +117,6 @@ async function choosePicker(page: Page, label: string, value: number | string): 
 }
 
 function localDateParts(value: Date): { date: string; clock: string } {
-  const twoDigits = (part: number) => part.toString().padStart(2, "0");
-
   return {
     date: `${value.getFullYear()}-${twoDigits(value.getMonth() + 1)}-${twoDigits(value.getDate())}`,
     clock: `${twoDigits(value.getHours())}:${twoDigits(value.getMinutes())}`,
@@ -191,6 +192,7 @@ test("悬赏在隔离环境完成发布、私有读取、公开脱敏与所有�
     const createdResponse = miniappPage.waitForResponse(
       (response) => response.request().method() === "POST" && response.url().endsWith("/bounties"),
     );
+
     await miniappPage.getByRole("button", { name: "确认发布" }).click();
     const created = await responseData<MyBounty>(await createdResponse);
 

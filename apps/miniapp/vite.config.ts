@@ -26,7 +26,6 @@ export default defineConfig(({ mode }) => {
     (process.env.VITE_COMMERCIAL_SERVICES_ENABLED ?? environment.VITE_COMMERCIAL_SERVICES_ENABLED)
       ?.trim()
       .toLowerCase() === "true";
-  const pagesOutDir = e2e ? process.env.ADMIN_E2E_MINIAPP_VITE_CACHE_DIR : "src";
 
   return {
     base: "./",
@@ -35,7 +34,7 @@ export default defineConfig(({ mode }) => {
       ...(e2e ? [] : [UniHelperManifest()]),
       UniHelperPages({
         dts: e2e ? false : "src/uni-pages.d.ts",
-        outDir: pagesOutDir,
+        outDir: "src",
         onBeforeLoadUserConfig(context) {
           if (!commercialServicesEnabled) {
             removeSubPackage(context.resolvedPagesJSONPath, "pages-bounty");

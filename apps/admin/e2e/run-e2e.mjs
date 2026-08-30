@@ -1,7 +1,7 @@
 import { spawn } from "node:child_process";
 import console from "node:console";
 import { randomBytes, randomUUID } from "node:crypto";
-import { existsSync, readFileSync, rmSync } from "node:fs";
+import { existsSync, readFileSync, rmSync, writeFileSync } from "node:fs";
 import { createRequire } from "node:module";
 import { createServer } from "node:net";
 import { tmpdir } from "node:os";
@@ -1008,6 +1008,8 @@ async function runMain(playwrightArgs, signal) {
   }
   const schemaName = createAdminE2eSchemaName();
   const temporaryDirectory = path.join(tmpdir(), schemaName);
+  const miniappPagesPath = path.join(miniappDirectory, "src", "pages.json");
+  const originalMiniappPages = readFileSync(miniappPagesPath, "utf8");
   const serverPort = await findAvailablePort();
   let adminPort = await findAvailablePort();
   let miniappPort = await findAvailablePort();
@@ -1098,6 +1100,7 @@ async function runMain(playwrightArgs, signal) {
       dropSchema: dropPostgresSchema,
     });
   } finally {
+    writeFileSync(miniappPagesPath, originalMiniappPages, "utf8");
     rmSync(temporaryDirectory, { recursive: true, force: true });
   }
 }
