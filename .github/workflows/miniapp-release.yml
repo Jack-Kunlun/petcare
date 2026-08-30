@@ -156,7 +156,7 @@ jobs:
             --pkp "$MINIAPP_TMP/private.key" \
             --appid "$WECHAT_APP_ID" \
             --uv "$MP_VERSION" \
-            --desc "$MP_DESC" \
+            --upload-description "$MP_DESC" \
             -r 1 \
             --use-project-config true
 

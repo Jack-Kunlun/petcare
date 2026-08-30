@@ -217,6 +217,7 @@ test("手动小程序上传受 CI、环境和临时密钥策略保护", async ()
   assert.match(uploadJob, /test -s apps\/miniapp\/dist\/build\/mp-weixin\/project\.config\.json/);
   assert.match(uploadJob, /pnpm --dir apps\/miniapp exec miniprogram-ci upload/);
   assert.match(uploadJob, /--pp dist\/build\/mp-weixin/);
+  assert.match(uploadJob, /--upload-description "\$MP_DESC"/);
   assert.match(uploadJob, /--use-project-config true/);
   assert.doesNotMatch(workflow, /npx|@latest|MP_UPLOAD_PRIVATE_KEY(?!_B64)|WECHAT_APP_SECRET/);
 });
