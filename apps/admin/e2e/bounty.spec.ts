@@ -177,7 +177,9 @@ test("悬赏在隔离环境完成发布、私有读取、公开脱敏与所有�
     await miniappPage.goto(`${miniappUrl}/#/pages/community/index`);
     await seedMiniappSession(miniappPage, requiredEnv("BOUNTY_E2E_OWNER_TOKEN"));
     await miniappPage.goto(`${miniappUrl}/#/pages-bounty/form?petId=${pet.id}`);
-    await expect(miniappPage.getByText(pet.name, { exact: true })).toBeVisible();
+    await expect(
+      miniappPage.getByLabel("选择照护宠物").locator("span", { hasText: pet.name }),
+    ).toBeVisible();
 
     await choosePicker(miniappPage, "选择服务类型", 0);
     await choosePicker(miniappPage, "选择服务日期", service.date);
