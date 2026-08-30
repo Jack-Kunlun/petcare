@@ -58,6 +58,7 @@ describe("ConfigService", () => {
     delete process.env.COMMUNITY_POST_WINDOW_SECONDS;
     delete process.env.COMMUNITY_MEDIA_MAX_ATTEMPTS;
     delete process.env.COMMUNITY_MEDIA_WINDOW_SECONDS;
+    delete process.env.COMMERCIAL_SERVICES_ENABLED;
     delete process.env.DEFAULT_ADMIN_USERNAME;
     delete process.env.DEFAULT_ADMIN_PASSWORD;
     delete process.env.LOG_LEVEL;
@@ -119,6 +120,18 @@ describe("ConfigService", () => {
     expect(config.websitePublicUrl).toBe("http://localhost:8080");
     expect(config.websitePreviewTtlSeconds).toBe(600);
     expect(config.websiteContentCacheTtlSeconds).toBe(86400);
+  });
+
+  it("keeps commercial services closed unless explicitly enabled", () => {
+    const config = new ConfigService();
+
+    expect(config.commercialServicesEnabled).toBe(false);
+    process.env.COMMERCIAL_SERVICES_ENABLED = "true";
+    expect(config.commercialServicesEnabled).toBe(true);
+    process.env.COMMERCIAL_SERVICES_ENABLED = "yes";
+    expect(() => config.commercialServicesEnabled).toThrow(
+      "COMMERCIAL_SERVICES_ENABLED must be true or false",
+    );
   });
 
   it("allows the local Admin and Miniapp H5 origins by default", () => {

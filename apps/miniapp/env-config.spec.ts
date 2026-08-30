@@ -17,9 +17,10 @@ describe("miniapp mode environment", () => {
         resolve(isolatedEnvDirectory, sourceFile),
       );
 
-      const env = loadEnv(mode, isolatedEnvDirectory, "VITE_MINIAPP_");
+      const env = loadEnv(mode, isolatedEnvDirectory, "VITE_");
 
       expect(env.VITE_MINIAPP_API_BASE_URL).toBe(expectedBaseUrl);
+      expect(env.VITE_COMMERCIAL_SERVICES_ENABLED).toBe("false");
     } finally {
       rmSync(isolatedEnvDirectory, { force: true, recursive: true });
     }

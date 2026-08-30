@@ -93,3 +93,11 @@ pnpm --filter @petcare/admin test:e2e:pets
 ```
 
 runner 仅为 E2E Server 进程预加载 `support/fake-cos.mjs`，把对象写入本次运行的临时目录并在退出时整体清理。该替身不会访问腾讯云，也不提供生产存储能力；真实 COS 的凭据、网络、权限和桶策略必须在对应环境另行验收。
+
+## 悬赏纵向端到端场景
+
+悬赏测试只在一次性 E2E 进程中打开 Server 与 Miniapp 商业开关，验证本人宠物发布、我的悬赏私有读取、公开脱敏读取和跨用户拒绝。默认环境仍保持关闭，也不会写入长期数据库。
+
+```bash
+pnpm --filter @petcare/admin test:e2e:bounty
+```

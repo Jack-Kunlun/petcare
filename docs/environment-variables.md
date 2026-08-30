@@ -65,14 +65,16 @@ REDIS_PASSWORD=
 
 ### 异步任务与 Worker 配置
 
-| 变量名                    | 必填 | 默认值      | 说明                                                |
-| ------------------------- | ---- | ----------- | --------------------------------------------------- |
-| `QUEUE_PREFIX`            | 否   | `petcare`   | BullMQ 队列前缀；不同环境必须使用不同前缀           |
-| `WORKER_CONCURRENCY`      | 否   | `5`         | 单个 Worker 的并发任务数，必须为正整数              |
-| `OUTBOX_POLL_INTERVAL_MS` | 否   | `1000`      | Transactional Outbox 轮询间隔（毫秒），必须为正整数 |
-| `ORDER_TIMEOUT_DELAY_MS`  | 否   | `172800000` | 悬赏订单超时关闭延迟（48 小时，毫秒），必须为正整数 |
+| 变量名                        | 必填 | 默认值      | 说明                                                      |
+| ----------------------------- | ---- | ----------- | --------------------------------------------------------- |
+| `QUEUE_PREFIX`                | 否   | `petcare`   | BullMQ 队列前缀；不同环境必须使用不同前缀                 |
+| `WORKER_CONCURRENCY`          | 否   | `5`         | 单个 Worker 的并发任务数，必须为正整数                    |
+| `OUTBOX_POLL_INTERVAL_MS`     | 否   | `1000`      | Transactional Outbox 轮询间隔（毫秒），必须为正整数       |
+| `ORDER_TIMEOUT_DELAY_MS`      | 否   | `172800000` | 悬赏订单超时关闭延迟（48 小时，毫秒），必须为正整数       |
+| `COMMERCIAL_SERVICES_ENABLED` | 否   | `false`     | Cycle 5–7 Server 总开关；资质与发布门禁完成前必须保持关闭 |
 
 API 和独立 Worker 必须使用相同的 `QUEUE_PREFIX`；生产、预发和开发环境必须使用不同前缀，避免任务串扰。
+`COMMERCIAL_SERVICES_ENABLED=true` 只授权已进入路线图且完成纵向验收的能力；它不会替代服务者资质、支付或生产发布条件。
 
 ### JWT配置
 
@@ -149,14 +151,17 @@ ALIYUN_SMS_TEMPLATE_CODE=
 
 ### API配置
 
-| 变量名                      | 必填 | 说明                                                                 |
-| --------------------------- | ---- | -------------------------------------------------------------------- |
-| `API_BASE_URL`              | 否   | Admin API 基础 URL；默认值仅用于本地诊断 `http://localhost:8986/api` |
-| `VITE_MINIAPP_API_BASE_URL` | ✅   | UniApp Miniapp API 基础 URL；按构建模式从 `apps/miniapp/.env.*` 加载 |
-| ~~`TARO_APP_API_BASE_URL`~~ | -    | ~~Taro Miniapp 请求地址；已随项目删除~~                              |
+| 变量名                             | 必填 | 默认值  | 说明                                                                  |
+| ---------------------------------- | ---- | ------- | --------------------------------------------------------------------- |
+| `API_BASE_URL`                     | 否   | -       | Admin API 基础 URL；默认值仅用于本地诊断 `http://localhost:8986/api`  |
+| `VITE_MINIAPP_API_BASE_URL`        | ✅   | -       | UniApp Miniapp API 基础 URL；按构建模式从 `apps/miniapp/.env.*` 加载  |
+| `VITE_COMMERCIAL_SERVICES_ENABLED` | 否   | `false` | 是否显示已验收的 Cycle 5–7 产品入口；必须与 Server 开关及发布门禁同步 |
+| ~~`TARO_APP_API_BASE_URL`~~        | -    | -       | ~~Taro Miniapp 请求地址；已随项目删除~~                               |
 
 `VITE_MINIAPP_API_BASE_URL` 会进入客户端构建产物，只能配置公开网关地址，不能包含凭据。生产构建必须使用
 HTTPS API 网关，不能使用本地 HTTP 示例或 Docker 内网服务名。
+`VITE_COMMERCIAL_SERVICES_ENABLED` 只控制客户端入口；Server 仍独立校验
+`COMMERCIAL_SERVICES_ENABLED`，两个开关都不能替代服务者资质或生产发布验收。
 
 Miniapp 的 Vite 环境根目录是 `apps/miniapp`。仓库内的 `.env.development` 和 `.env.production` 分别提供开发与
 生产构建值；开发者若要覆盖本地开发地址，应创建不提交的 `apps/miniapp/.env.development.local`。Vite 会在

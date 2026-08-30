@@ -10,3 +10,4 @@ export * from "./admin";
 export * from "./rbac";
 export * from "./content";
 export * from "./website-content";
+export * from "./bounty";

@@ -2,10 +2,11 @@
 
 本文档定义PetCare平台的RESTful API设计规范，确保前后端协作的一致性和可维护性。
 
-> **当前范围说明（2026-08-27）**：个人版当前运行时只注册认证、健康检查、账户/用户、本人宠物档案、课堂与受控社区、
-> RBAC、Admin 账户和官网内容模块。本文后续保留的服务者认证、订单、服务履约、评价、投诉纠纷和系统费用/SOP
-> 设置接口属于历史或未来商业设计，不是当前可调用 API。是否可用必须以 `apps/server/src/app.module.ts` 的默认装配、
-> 当前路由测试和[开发路线图](../01-requirements/05-development-roadmap.md)为准，不能仅根据接口表推断。
+> **当前范围说明（2026-08-30）**：个人版当前运行时注册认证、健康检查、账户/用户、本人宠物档案、课堂与受控社区、
+> RBAC、Admin 账户、官网内容，以及默认关闭的 Cycle 5 悬赏模块。悬赏路由只有在
+> `COMMERCIAL_SERVICES_ENABLED=true` 时可用；默认环境返回 404。本文后续保留的服务者认证、完整订单、服务履约、评价、
+> 投诉纠纷和系统费用/SOP 设置接口属于历史或未来商业设计，不是当前可调用 API。是否可用必须以
+> `apps/server/src/app.module.ts` 的默认装配、当前路由测试和[开发路线图](../01-requirements/05-development-roadmap.md)为准。
 
 ## 📋 目录
 
@@ -837,7 +838,44 @@ Token 获取，客户端不得传入。接口只返回脱敏姓名、脱敏身�
 | 413       | `PET_PHOTO_INVALID`             | multipart 文件超过 10 MiB       |
 | 503       | `PET_PHOTO_STORAGE_UNAVAILABLE` | 对象存储暂时无法接受上传        |
 
-### 订单模块 (/orders)
+### 悬赏模块 (/bounties)
+
+| 方法 | 路径             | 说明                 | 权限           |
+| ---- | ---------------- | -------------------- | -------------- |
+| POST | `/bounties`      | 为本人宠物发布悬赏   | 认证且资料完善 |
+| GET  | `/bounties/mine` | 分页读取我的悬赏     | 认证           |
+| GET  | `/bounties`      | 分页读取公开悬赏     | 公开           |
+| GET  | `/bounties/{id}` | 读取公开悬赏安全详情 | 公开           |
+
+四个路由均受 `COMMERCIAL_SERVICES_ENABLED` 总开关保护；未显式启用时统一返回 HTTP 404 和
+`BOUNTY_FEATURE_DISABLED`。该开关只允许隔离开发和验收，不代表已满足服务者资质、支付或生产经营条件。
+
+`POST /bounties` 从 Access Token 取得 `ownerId`，并在事务内锁定当前用户、确认账户活跃且手机号资料完整、确认 `petId`
+属于本人，再同时创建 `Order(orderType=reward)` 与唯一 `OrderReward`。记录不存在和跨用户宠物统一返回 404 和
+`BOUNTY_NOT_FOUND`，失败事务不得留下半成品订单。请求体字段为：
+
+```json
+{
+  "petId": "uuid",
+  "serviceType": "feeding",
+  "serviceTime": "2026-09-03T01:00:00.000Z",
+  "amountCents": 5025,
+  "address": "上海市示例地址",
+  "remark": "请换水"
+}
+```
+
+`serviceType` 仅允许 `feeding`、`walking`、`playing`；`serviceTime` 必须晚于当前时间；`amountCents` 必须是
+100–100000 的整数分；地址去除首尾空白后为 1–200 个字符；备注可为 `null`，否则最多 500 个字符。地址和备注均拒绝控制字符。
+
+`GET /bounties/mine` 只查询当前用户创建的悬赏，返回私有 `address`、`remark`、宠物 `id` 和创建时间。
+公开列表和详情只返回开放且未过期、发布者仍活跃的悬赏，并使用白名单投影：`id`、`serviceType`、`serviceTime`、
+整数分 `amountCents`、`status`、`expiresAt`、发布者公开昵称/头像及宠物名称/品种/封面；不得返回精确地址、私密备注、
+`ownerId` 或 `petId`。列表使用 `page`、`pageSize`，每页最多 50 条。
+
+Cycle 5 不提供接单、确认、取消、支付或退款接口；这些能力不能从下方历史订单设计推断为已上线。
+
+### 历史订单设计 (/orders)
 
 | 方法  | 路径                    | 说明               | 权限           |
 | ----- | ----------------------- | ------------------ | -------------- |

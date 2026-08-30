@@ -5,8 +5,10 @@ import { CLASSROOM_ARTICLE_CATEGORY_LABELS } from "@petcare/shared-types";
 import { ref } from "vue";
 import { getClassroomArticles } from "@/api/content";
 import MainTabLayout from "@/components/MainTabLayout.vue";
+import PcButton from "@/components/PcButton.vue";
 import PcStatePanel from "@/components/PcStatePanel.vue";
 import { MINIAPP_TRUSTED_CARE_HERO } from "@/config/brand-assets";
+import { commercialServicesEnabled } from "@/config/features";
 
 definePage({
   style: {
@@ -37,6 +39,10 @@ function openCommunityList() {
 
 function openPetProfiles() {
   uni.redirectTo({ url: "/pages/profile/index" });
+}
+
+function openBounties() {
+  uni.navigateTo({ url: "/pages-bounty/index" });
 }
 
 function classroomCategoryLabel(article: PublicClassroomArticleListItem): string {
@@ -164,6 +170,18 @@ onShow(() => void loadHomeClassroom());
             <text class="quiet-text">分享日常</text>
           </view>
         </view>
+      </view>
+
+      <view v-if="commercialServicesEnabled" class="mx-page-horizontal mt-copy">
+        <PcButton
+          block
+          variant="secondary"
+          size="action"
+          aria-label="浏览悬赏服务"
+          @click="openBounties"
+        >
+          浏览悬赏服务
+        </PcButton>
       </view>
 
       <view class="mt-section flex items-center justify-between px-page-horizontal">

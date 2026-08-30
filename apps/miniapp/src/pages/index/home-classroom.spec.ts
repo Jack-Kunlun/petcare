@@ -18,10 +18,12 @@ describe("home classroom section", () => {
     expect(home).not.toContain("/static/main/community-pet-5.jpg");
   });
 
-  it("presents only current personal features without commercial service fixtures", () => {
+  it("keeps the real bounty entry behind the explicit client feature boundary", () => {
     expect(home).toContain("管理宠物档案");
     expect(home).toContain("管理档案，发现养宠内容");
-    expect(home).not.toContain("pages-bounty");
+    expect(home).toContain('v-if="commercialServicesEnabled"');
+    expect(home).toContain('url: "/pages-bounty/index"');
+    expect(home).toContain('aria-label="浏览悬赏服务"');
     expect(home).not.toContain("pages-care");
     expect(home).not.toContain("服务进行中");
     expect(home).not.toContain("附近热门悬赏");

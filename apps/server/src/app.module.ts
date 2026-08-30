@@ -9,6 +9,7 @@ import { HealthModule } from "./health/health.module";
 import { HttpLoggingMiddleware } from "./logging/http-logging.middleware";
 import { LoggingModule } from "./logging/logging.module";
 import { AdminAccountModule } from "./modules/admin-account/admin-account.module";
+import { BountyModule } from "./modules/bounty/bounty.module";
 import { ContentModule } from "./modules/content/content.module";
 import { PetModule } from "./modules/pet/pet.module";
 import { RbacModule } from "./modules/rbac/rbac.module";
@@ -28,6 +29,7 @@ import { PrismaModule } from "./prisma/prisma.module";
     ContentModule,
     RbacModule,
     AdminAccountModule,
+    BountyModule,
     WebsiteContentModule,
   ],
   providers: [

@@ -88,6 +88,7 @@ export class ConfigService {
     check("COMMUNITY_POST_WINDOW_SECONDS", () => this.communityPostWindowSeconds);
     check("COMMUNITY_MEDIA_MAX_ATTEMPTS", () => this.communityMediaMaxAttempts);
     check("COMMUNITY_MEDIA_WINDOW_SECONDS", () => this.communityMediaWindowSeconds);
+    check("COMMERCIAL_SERVICES_ENABLED", () => this.commercialServicesEnabled);
     check("DEFAULT_ADMIN_PASSWORD", () => this.validateAdminPassword());
     check("ALLOWED_ORIGINS", () => this.validateAllowedOrigins());
     check("WECHAT", () => this.validateWechatConfiguration());
@@ -559,6 +560,20 @@ export class ConfigService {
 
   get orderTimeoutDelayMs(): number {
     return this.getPositiveInteger("ORDER_TIMEOUT_DELAY_MS", 172800000);
+  }
+
+  get commercialServicesEnabled(): boolean {
+    const value = process.env.COMMERCIAL_SERVICES_ENABLED?.trim().toLowerCase();
+
+    if (!value) {
+      return false;
+    }
+
+    if (value !== "true" && value !== "false") {
+      throw new Error("COMMERCIAL_SERVICES_ENABLED must be true or false");
+    }
+
+    return value === "true";
   }
 
   // 第三方服务配置

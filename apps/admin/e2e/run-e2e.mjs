@@ -707,7 +707,14 @@ async function seedCompiledServer(env) {
         createdById: administrator.id,
       },
     });
-    const [communityAuthor, communityReporter, petOwner, otherPetOwner] = await Promise.all([
+    const [
+      communityAuthor,
+      communityReporter,
+      petOwner,
+      otherPetOwner,
+      bountyOwner,
+      otherBountyOwner,
+    ] = await Promise.all([
       prisma.user.upsert({
         where: { phone: "13900000095" },
         update: { username: "community-e2e-author", nickname: "社区 E2E 作者", status: "active" },
@@ -756,6 +763,30 @@ async function seedCompiledServer(env) {
           status: "active",
         },
       }),
+      prisma.user.upsert({
+        where: { phone: "13900000089" },
+        update: { username: "bounty-e2e-owner", nickname: "悬赏 E2E 主人", status: "active" },
+        create: {
+          phone: "13900000089",
+          username: "bounty-e2e-owner",
+          nickname: "悬赏 E2E 主人",
+          status: "active",
+        },
+      }),
+      prisma.user.upsert({
+        where: { phone: "13900000090" },
+        update: {
+          username: "bounty-e2e-other-owner",
+          nickname: "悬赏 E2E 其他用户",
+          status: "active",
+        },
+        create: {
+          phone: "13900000090",
+          username: "bounty-e2e-other-owner",
+          nickname: "悬赏 E2E 其他用户",
+          status: "active",
+        },
+      }),
     ]);
     const jwtSecret = requireEnvironmentValue(env, "JWT_SECRET");
     const jwt = new JwtService();
@@ -777,6 +808,9 @@ async function seedCompiledServer(env) {
     env.PET_E2E_OWNER_ID = petOwner.id;
     env.PET_E2E_OWNER_TOKEN = accessToken(petOwner);
     env.PET_E2E_OTHER_OWNER_TOKEN = accessToken(otherPetOwner);
+    env.BOUNTY_E2E_OWNER_ID = bountyOwner.id;
+    env.BOUNTY_E2E_OWNER_TOKEN = accessToken(bountyOwner);
+    env.BOUNTY_E2E_OTHER_OWNER_TOKEN = accessToken(otherBountyOwner);
     const [
       websiteViewPermission,
       websiteReadPermission,
@@ -1023,6 +1057,8 @@ async function runMain(playwrightArgs, signal) {
     COMMUNITY_POST_WINDOW_SECONDS: "1",
     COMMUNITY_MEDIA_MAX_ATTEMPTS: "5",
     COMMUNITY_MEDIA_WINDOW_SECONDS: "60",
+    COMMERCIAL_SERVICES_ENABLED: "true",
+    VITE_COMMERCIAL_SERVICES_ENABLED: "true",
   };
   const prismaCli = path.join(serverDirectory, "node_modules", "prisma", "build", "index.js");
   const playwrightCli = path.join(adminDirectory, "node_modules", "@playwright", "test", "cli.js");
