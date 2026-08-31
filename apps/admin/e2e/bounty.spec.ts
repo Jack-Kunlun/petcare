@@ -12,7 +12,14 @@ import {
   type PublicBounty,
   type PublicBountyListResponse,
 } from "@petcare/shared-types";
-import { expect, test, type APIResponse, type Page, type Response } from "@playwright/test";
+import {
+  expect,
+  test,
+  type APIResponse,
+  type Locator,
+  type Page,
+  type Response,
+} from "@playwright/test";
 
 function requiredEnv(
   name:
@@ -104,16 +111,70 @@ async function seedMiniappSession(page: Page, accessToken: string): Promise<void
   await refreshed;
 }
 
-async function choosePicker(page: Page, label: string, value: number | string): Promise<void> {
-  await page.locator(`[aria-label="${label}"]`).evaluate((element, selectedValue) => {
-    element.dispatchEvent(
-      new CustomEvent("change", {
-        bubbles: true,
-        composed: true,
-        detail: { value: selectedValue },
-      }),
-    );
-  }, value);
+async function openPicker(page: Page, label: string): Promise<Locator> {
+  await page.getByLabel(label).click();
+  const picker = page.locator(".uni-picker-container:has(.uni-picker-toggle)");
+
+  await expect(picker).toHaveCount(1);
+  await expect(picker.locator("uni-picker-view")).toBeVisible();
+
+  return picker;
+}
+
+async function setPickerColumn(column: Locator, targetIndex: number): Promise<void> {
+  await column.evaluate(async (element, nextIndex) => {
+    const group = element.querySelector<HTMLElement>(".uni-picker-view-group");
+    const content = element.querySelector<HTMLElement>(".uni-picker-view-content");
+    const itemCount = element.querySelectorAll(".uni-picker-item").length;
+    const selectedIndex = (): number => {
+      const offset = /translateY\((-?[\d.]+)px\)/u.exec(content?.style.transform ?? "")?.[1];
+      const height = Number.parseFloat(
+        content?.style.getPropertyValue("--picker-view-column-indicator-height") ?? "",
+      );
+
+      return offset && height ? Math.round(Math.abs(Number(offset)) / height) : NaN;
+    };
+
+    await new Promise<void>((resolve, reject) => {
+      let frame = 0;
+      const waitForPosition = (): void => {
+        if (Number.isFinite(selectedIndex())) {
+          resolve();
+        } else if (frame === 120) {
+          reject(new Error("Picker did not initialize"));
+        } else {
+          frame += 1;
+          requestAnimationFrame(waitForPosition);
+        }
+      };
+
+      waitForPosition();
+    });
+
+    const currentIndex = selectedIndex();
+
+    if (!group || !Number.isFinite(currentIndex) || nextIndex < 0 || nextIndex >= itemCount) {
+      throw new Error(`Invalid picker index ${nextIndex} for ${itemCount} items`);
+    }
+
+    const direction = Math.sign(nextIndex - currentIndex);
+
+    for (let index = currentIndex; index !== nextIndex; index += direction) {
+      group.dispatchEvent(
+        new WheelEvent("wheel", { bubbles: true, cancelable: true, deltaY: direction * 12 }),
+      );
+    }
+
+    await new Promise<void>((resolve) => requestAnimationFrame(() => resolve()));
+
+    if (selectedIndex() !== nextIndex) {
+      throw new Error(`Picker stopped at ${selectedIndex()} instead of ${nextIndex}`);
+    }
+  }, targetIndex);
+}
+
+async function confirmPicker(picker: Locator): Promise<void> {
+  await picker.locator(".uni-picker-action-confirm").click();
 }
 
 function localDateParts(value: Date): { date: string; clock: string } {
@@ -181,9 +242,38 @@ test("悬赏在隔离环境完成发布、私有读取、公开脱敏与所有�
       miniappPage.getByLabel("选择照护宠物").locator("span", { hasText: pet.name }),
     ).toBeVisible();
 
-    await choosePicker(miniappPage, "选择服务类型", 0);
-    await choosePicker(miniappPage, "选择服务日期", service.date);
-    await choosePicker(miniappPage, "选择服务时间", service.clock);
+    const serviceTypePicker = await openPicker(miniappPage, "选择服务类型");
+
+    await setPickerColumn(serviceTypePicker.locator("uni-picker-view-column"), 0);
+    await confirmPicker(serviceTypePicker);
+
+    const [year, month, day] = service.date.split("-").map(Number);
+    const datePicker = await openPicker(miniappPage, "选择服务日期");
+    const dateColumns = datePicker.locator("uni-picker-view-column");
+    const dateColumnSizes = await dateColumns.evaluateAll((columns) =>
+      columns.map((column) => column.querySelectorAll(".uni-picker-item").length),
+    );
+    const yearColumnIndex = dateColumnSizes.findIndex((size) => size > 31);
+    const monthColumnIndex = dateColumnSizes.indexOf(12);
+    const dayColumnIndex = dateColumnSizes.findIndex((size) => size >= 28 && size <= 31);
+    const yearItems = await dateColumns
+      .nth(yearColumnIndex)
+      .locator(".uni-picker-item")
+      .allTextContents();
+    const yearIndex = yearItems.findIndex((item) => Number.parseInt(item, 10) === year);
+
+    await setPickerColumn(dateColumns.nth(yearColumnIndex), yearIndex);
+    await setPickerColumn(dateColumns.nth(monthColumnIndex), month - 1);
+    await setPickerColumn(dateColumns.nth(dayColumnIndex), day - 1);
+    await confirmPicker(datePicker);
+
+    const [hour, minute] = service.clock.split(":").map(Number);
+    const timePicker = await openPicker(miniappPage, "选择服务时间");
+    const timeColumns = timePicker.locator("uni-picker-view-column");
+
+    await setPickerColumn(timeColumns.nth(0), hour);
+    await setPickerColumn(timeColumns.nth(1), minute);
+    await confirmPicker(timePicker);
     await miniappPage.getByLabel("悬赏金额").locator("input").fill("50.25");
     await miniappPage.getByLabel("服务地址").locator("textarea").fill(request.address);
     await miniappPage
@@ -195,7 +285,7 @@ test("悬赏在隔离环境完成发布、私有读取、公开脱敏与所有�
       (response) => response.request().method() === "POST" && response.url().endsWith("/bounties"),
     );
 
-    await miniappPage.getByRole("button", { name: "确认发布" }).click();
+    await miniappPage.getByText("确认发布", { exact: true }).click();
     const created = await responseData<MyBounty>(await createdResponse);
 
     expect(created).toMatchObject({
@@ -240,7 +330,7 @@ test("悬赏在隔离环境完成发布、私有读取、公开脱敏与所有�
     );
     expect(Object.keys(publicDetail.pet).sort()).toEqual(["breed", "coverImage", "name"]);
 
-    await miniappPage.getByRole("button", { name: "悬赏广场" }).click();
+    await miniappPage.getByText("悬赏广场", { exact: true }).click();
     await expect(miniappPage.getByText(pet.name, { exact: false })).toBeVisible();
     await expect(miniappPage.getByText("¥50.25", { exact: true })).toBeVisible();
     await expect(miniappPage.getByText(request.address, { exact: true })).toHaveCount(0);
