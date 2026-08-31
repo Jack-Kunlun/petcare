@@ -6,8 +6,11 @@ import {
   BOUNTY_LIMITS,
   BOUNTY_SERVICE_TYPE,
   BOUNTY_SERVICE_TYPE_LABELS,
+  BOUNTY_SOP_EVIDENCE_KIND,
+  BOUNTY_SOP_LIMITS,
   BOUNTY_STATUS,
   BOUNTY_STATUS_LABELS,
+  type BountySop,
   type CreateBountyRequest,
   type MyBounty,
   type MyBountyIntent,
@@ -30,6 +33,12 @@ describe("bounty contracts", () => {
       AMOUNT_MIN_CENTS: 100,
       AMOUNT_MAX_CENTS: 100_000,
       PAGE_SIZE_MAX: 50,
+    });
+    expect(BOUNTY_SOP_EVIDENCE_KIND).toEqual({ PHOTO: "photo", VIDEO: "video" });
+    expect(BOUNTY_SOP_LIMITS).toMatchObject({
+      STEP_COUNT: 5,
+      MAX_PHOTOS_PER_STEP: 9,
+      MAX_VIDEOS_PER_STEP: 1,
     });
     expect(BOUNTY_ERROR_CODE.FEATURE_DISABLED).toBe("BOUNTY_FEATURE_DISABLED");
 
@@ -96,5 +105,31 @@ describe("bounty contracts", () => {
     });
     expect(BOUNTY_ERROR_CODE.PROVIDER_NOT_ELIGIBLE).toBe("BOUNTY_PROVIDER_NOT_ELIGIBLE");
     expectTypeOf(intent).toEqualTypeOf<MyBountyIntent>();
+  });
+
+  it("describes an ordered private SOP without exposing writable configuration", () => {
+    const sop: BountySop = {
+      orderId: "22222222-2222-4222-8222-222222222222",
+      orderStatus: BOUNTY_STATUS.CONFIRMED,
+      currentStepNumber: 1,
+      canExecute: true,
+      steps: [
+        {
+          stepNumber: 1,
+          stepName: "进门消毒",
+          instruction: "完成消毒并拍照",
+          expectedDurationMinutes: 2,
+          minimumPhotoCount: 1,
+          videoRequired: false,
+          photos: [],
+          videos: [],
+          completedAt: null,
+        },
+      ],
+    };
+
+    expect(sop).toMatchObject({ currentStepNumber: 1, canExecute: true });
+    expect(BOUNTY_ERROR_CODE.SOP_STEP_CONFLICT).toBe("BOUNTY_SOP_STEP_CONFLICT");
+    expectTypeOf(sop).toEqualTypeOf<BountySop>();
   });
 });

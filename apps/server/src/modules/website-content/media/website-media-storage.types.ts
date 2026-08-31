@@ -1,9 +1,9 @@
-/** Validated website image handed to object storage. */
+/** Validated public media handed to the shared object storage adapter. */
 export interface WebsiteMediaStorageUpload {
   body: Buffer;
-  mimeType: "image/jpeg" | "image/png" | "image/webp";
-  extension: "jpg" | "png" | "webp";
-  area?: "website-media" | "community-media" | "pet-media";
+  mimeType: "image/jpeg" | "image/png" | "image/webp" | "video/mp4";
+  extension: "jpg" | "png" | "webp" | "mp4";
+  area?: "website-media" | "community-media" | "pet-media" | "sop-media";
 }
 
 /** Result of a managed object upload. */

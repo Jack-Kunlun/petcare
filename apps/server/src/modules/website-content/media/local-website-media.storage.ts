@@ -8,7 +8,7 @@ import type {
 } from "./website-media-storage.types";
 
 const MANAGED_MEDIA_KEY =
-  /^public\/(?:website-media|community-media|pet-media)\/(?:[A-Za-z0-9_-]+\/)*[A-Za-z0-9_-]+\.(?:jpg|png|webp)$/u;
+  /^public\/(?:website-media|community-media|pet-media|sop-media)\/(?:[A-Za-z0-9_-]+\/)*[A-Za-z0-9_-]+\.(?:jpg|png|webp|mp4)$/u;
 
 /** Determinism hooks for local-adapter tests. */
 export interface LocalWebsiteMediaHooks {

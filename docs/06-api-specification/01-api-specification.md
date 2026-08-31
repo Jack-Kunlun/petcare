@@ -3,9 +3,9 @@
 本文档定义PetCare平台的RESTful API设计规范，确保前后端协作的一致性和可维护性。
 
 > **当前范围说明（2026-08-31）**：个人版当前运行时注册认证、健康检查、账户/用户、本人宠物档案、课堂与受控社区、
-> RBAC、Admin 账户、官网内容，以及默认关闭的 Cycle 5–6 悬赏、服务意向与唯一确认模块。悬赏路由只有在
-> `COMMERCIAL_SERVICES_ENABLED=true` 时可用；默认环境返回 404。本文后续保留的服务者认证、完整订单、服务履约、评价、
-> 投诉纠纷和系统费用/SOP 设置接口属于历史或未来商业设计，不是当前可调用 API。是否可用必须以
+> RBAC、Admin 账户、官网内容，以及默认关闭的 Cycle 5–7 悬赏、服务意向、唯一确认与冻结 SOP 履约模块。悬赏路由只有在
+> `COMMERCIAL_SERVICES_ENABLED=true` 时可用；默认环境返回 404。本文后续保留的服务者认证、旧版完整订单、评价、
+> 投诉纠纷和系统费用设置接口属于历史或未来商业设计，不是当前可调用 API。是否可用必须以
 > `apps/server/src/app.module.ts` 的默认装配、当前路由测试和[开发路线图](../01-requirements/05-development-roadmap.md)为准。
 
 ## 📋 目录
@@ -849,6 +849,9 @@ Token 获取，客户端不得传入。接口只返回脱敏姓名、脱敏身�
 | POST | `/bounties/{id}/intents`                    | 幂等提交服务意向             | 合格服务者     |
 | GET  | `/bounties/{id}/intents`                    | 分页读取本人悬赏的候选意向   | 悬赏主人       |
 | POST | `/bounties/{id}/intents/{intentId}/confirm` | 确认唯一服务者并迁移订单状态 | 悬赏主人       |
+| GET  | `/bounties/{id}/sop`                        | 读取订单冻结的 SOP 与证据    | 订单双方       |
+| POST | `/bounties/{id}/sop/steps/{step}/evidence`  | 上传当前步骤的照片或视频证据 | 合格确认服务者 |
+| POST | `/bounties/{id}/sop/steps/{step}/complete`  | 完成当前步骤并推进订单状态   | 合格确认服务者 |
 | GET  | `/bounties`                                 | 分页读取公开悬赏             | 公开           |
 | GET  | `/bounties/{id}`                            | 读取公开悬赏安全详情         | 公开           |
 
@@ -856,7 +859,8 @@ Token 获取，客户端不得传入。接口只返回脱敏姓名、脱敏身�
 `BOUNTY_FEATURE_DISABLED`。该开关只允许隔离开发和验收，不代表已满足服务者资质、支付或生产经营条件。
 
 `POST /bounties` 从 Access Token 取得 `ownerId`，并在事务内锁定当前用户、确认账户活跃且手机号资料完整、确认 `petId`
-属于本人，再同时创建 `Order(orderType=reward)` 与唯一 `OrderReward`。记录不存在和跨用户宠物统一返回 404 和
+属于本人，再读取当前已发布的同服务类型 SOP，原子创建 `Order(orderType=reward)`、唯一 `OrderReward` 与 5 个冻结的
+`OrderSop` 步骤。没有完整已发布模板时返回 503 和 `BOUNTY_SOP_CONFIG_UNAVAILABLE`，不得创建无履约约束的订单。记录不存在和跨用户宠物统一返回 404 和
 `BOUNTY_NOT_FOUND`，失败事务不得留下半成品订单。请求体字段为：
 
 ```json
@@ -887,8 +891,15 @@ Cycle 6 的服务者资格为硬门禁：账号必须活跃、手机号完整、
 意向；精确地址和私密备注仅在该服务者被确认后返回。
 
 确认接口只接受属于该悬赏的候选意向，并通过 `Order` 条件更新将 `pending_confirm` 原子迁移到 `confirmed`：同一成功结果
-重放保持幂等，其他候选或并发确认稳定返回 409；胜出意向为 `confirmed`，其余待处理意向为 `rejected`。Cycle 6 不提供
-取消、履约、支付、退款、结算、提现或钱包接口；这些能力不能从下方历史订单设计推断为已上线。
+重放保持幂等，其他候选或并发确认稳定返回 409；胜出意向为 `confirmed`，其余待处理意向为 `rejected`。
+
+Cycle 7 的 SOP 只允许主人和唯一确认服务者读取，主人始终只读；其他账号统一按不存在处理。服务者每次上传或完成步骤时，
+Server 都在写事务内重新检查真实资格与订单状态。步骤只能按冻结顺序执行：照片按字节解码为 JPEG、PNG 或 WebP，单张不超过
+10 MiB；视频必须具有 MP4 `ftyp` 文件签名且不超过 50 MiB。证据写入受管媒体存储，数据库绑定失败时删除刚上传的对象。
+满足当前步骤冻结的照片数和视频要求后才可完成；首步完成将订单从 `confirmed` 推进至 `in_progress`，末步完成推进至
+`completed`，已完成步骤的重放保持幂等。
+
+当前仍不提供取消、支付、退款、结算、提现或钱包接口；这些能力不能从下方历史订单设计推断为已上线。
 
 ### 历史订单设计 (/orders)
 

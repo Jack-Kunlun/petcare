@@ -1,15 +1,19 @@
-import { HttpStatus, Injectable } from "@nestjs/common";
+import { HttpStatus, Inject, Injectable } from "@nestjs/common";
 import {
   BOUNTY_ERROR_CODE,
   BOUNTY_INTENT_STATUS,
   BOUNTY_LIMITS,
   BOUNTY_SERVICE_TYPE,
+  BOUNTY_SOP_EVIDENCE_KIND,
+  BOUNTY_SOP_LIMITS,
   BOUNTY_STATUS,
   MINIAPP_ACCOUNT_ERROR_CODE,
   type BountyIntentStatus,
   type BountyListQuery,
   type BountyProviderEligibility,
   type BountyServiceType,
+  type BountySop,
+  type BountySopEvidenceKind,
   type BountyStatus,
   type CreateBountyRequest,
   type MyBounty,
@@ -26,6 +30,9 @@ import { ConfigService } from "../../config/config.service";
 import type { Prisma } from "../../generated/prisma/client";
 import { PrismaService } from "../../prisma/prisma.service";
 import { lockUserRow } from "../../prisma/user-row-lock";
+import type { WebsiteMediaStorage } from "../website-content/media/website-media-storage.types";
+import { WEBSITE_MEDIA_STORAGE } from "../website-content/website-media.service";
+import { validateBountySopEvidence, type BountySopEvidenceFile } from "./bounty-sop-evidence";
 
 const providerSummarySelect = {
   id: true,
@@ -99,11 +106,34 @@ const providerEligibilitySelect = {
   },
 } satisfies Prisma.UserSelect;
 
+const sopStepSelect = {
+  id: true,
+  stepNumber: true,
+  stepName: true,
+  instruction: true,
+  expectedDurationMinutes: true,
+  minimumPhotoCount: true,
+  videoRequired: true,
+  photos: true,
+  videos: true,
+  completedAt: true,
+} satisfies Prisma.OrderSopSelect;
+
+const sopOrderSelect = {
+  id: true,
+  ownerId: true,
+  providerId: true,
+  status: true,
+  sops: { orderBy: { stepNumber: "asc" }, select: sopStepSelect },
+} satisfies Prisma.OrderSelect;
+
 type PrivateBountyRow = Prisma.OrderGetPayload<{ select: typeof privateBountySelect }>;
 type PublicBountyRow = Prisma.OrderGetPayload<{ select: typeof publicBountySelect }>;
 type OwnerIntentRow = Prisma.OrderIntentGetPayload<{ select: typeof ownerIntentSelect }>;
 type MyIntentRow = Prisma.OrderIntentGetPayload<{ select: typeof myIntentSelect }>;
 type ProviderEligibilityRow = Prisma.UserGetPayload<{ select: typeof providerEligibilitySelect }>;
+type SopOrderRow = Prisma.OrderGetPayload<{ select: typeof sopOrderSelect }>;
+type SopStepRow = Prisma.OrderSopGetPayload<{ select: typeof sopStepSelect }>;
 
 interface LockedBountyRow {
   id: string;
@@ -113,12 +143,33 @@ interface LockedBountyRow {
   expiresAt: Date;
 }
 
+interface LockedFulfillmentRow {
+  id: string;
+  ownerId: string;
+  providerId: string | null;
+  status: string;
+}
+
+interface FrozenSopConfig {
+  versionId: string;
+  violationGuidance: string;
+  steps: Array<{
+    stepNumber: number;
+    stepName: string;
+    instruction: string;
+    expectedDurationMinutes: number;
+    minimumPhotoCount: number;
+    videoRequired: boolean;
+  }>;
+}
+
 /** Owns default-closed bounty creation, qualification, intent, and confirmation state. */
 @Injectable()
 export class BountyService {
   constructor(
     private readonly prisma: PrismaService,
     private readonly config: ConfigService,
+    @Inject(WEBSITE_MEDIA_STORAGE) private readonly mediaStorage: WebsiteMediaStorage,
   ) {}
 
   /** Creates one exact-price bounty for a pet owned by the active authenticated account. */
@@ -154,6 +205,7 @@ export class BountyService {
           throw this.notFound();
         }
 
+        const sop = await this.getPublishedSop(transaction, normalized.serviceType);
         const expiresAt = new Date(
           Math.min(Date.now() + this.config.orderTimeoutDelayMs, normalized.serviceTime.getTime()),
         );
@@ -168,6 +220,7 @@ export class BountyService {
             address: normalized.address,
             remark: normalized.remark,
             status: BOUNTY_STATUS.OPEN,
+            sopConfigVersionId: sop.versionId,
             reward: {
               create: {
                 rewardAmount: normalized.amountCents,
@@ -175,6 +228,14 @@ export class BountyService {
                 priceRangeMax: normalized.amountCents,
                 expireTime: expiresAt,
               },
+            },
+            sops: {
+              create: sop.steps.map((step) => ({
+                ...step,
+                violationGuidance: sop.violationGuidance,
+                photos: [],
+                videos: [],
+              })),
             },
           },
           select: privateBountySelect,
@@ -417,6 +478,231 @@ export class BountyService {
     }
   }
 
+  /** Returns the frozen SOP only to the order owner or uniquely confirmed provider. */
+  async findSop(actorId: string, bountyId: string): Promise<BountySop> {
+    const order = await this.prisma.order.findFirst({
+      where: {
+        id: bountyId,
+        orderType: "reward",
+        OR: [{ ownerId: actorId }, { providerId: actorId }],
+      },
+      select: sopOrderSelect,
+    });
+
+    if (!order || order.sops.length === 0) {
+      throw this.notFound();
+    }
+
+    const eligible =
+      order.providerId === actorId
+        ? this.isEligibleProvider(
+            await this.prisma.user.findUnique({
+              where: { id: actorId },
+              select: providerEligibilitySelect,
+            }),
+          )
+        : false;
+
+    return this.toSop(order, eligible);
+  }
+
+  /** Uploads one managed evidence object to the current step for the confirmed provider. */
+  async uploadSopEvidence(
+    providerId: string,
+    bountyId: string,
+    stepNumber: number,
+    kind: BountySopEvidenceKind,
+    file: BountySopEvidenceFile,
+  ): Promise<BountySop> {
+    const preflight = await this.prisma.order.findFirst({
+      where: { id: bountyId, providerId, orderType: "reward" },
+      select: sopOrderSelect,
+    });
+
+    if (!preflight || preflight.sops.length === 0) {
+      throw this.notFound();
+    }
+
+    this.assertExecutableStatus(preflight.status);
+
+    if (
+      !this.isEligibleProvider(
+        await this.prisma.user.findUnique({
+          where: { id: providerId },
+          select: providerEligibilitySelect,
+        }),
+      )
+    ) {
+      throw this.providerNotEligible("当前资格不允许继续履约", HttpStatus.CONFLICT);
+    }
+
+    const preflightStep = this.assertCurrentStep(preflight.sops, stepNumber);
+
+    this.assertEvidenceSlot(preflightStep, kind);
+
+    const valid = await validateBountySopEvidence(file, kind);
+    let stored: Awaited<ReturnType<WebsiteMediaStorage["put"]>>;
+
+    try {
+      stored = await this.mediaStorage.put({
+        body: valid.body,
+        mimeType: valid.mimeType,
+        extension: valid.extension,
+        area: "sop-media",
+      });
+    } catch {
+      throw this.sopStorageUnavailable();
+    }
+
+    try {
+      return await this.prisma.$transaction(async (transaction) => {
+        const order = await this.lockFulfillmentOrder(transaction, bountyId);
+
+        if (!order || order.providerId !== providerId) {
+          throw this.notFound();
+        }
+
+        this.assertExecutableStatus(order.status);
+
+        if (!(await this.lockEligibleProvider(transaction, providerId))) {
+          throw this.providerNotEligible("当前资格不允许继续履约", HttpStatus.CONFLICT);
+        }
+
+        const steps = await transaction.orderSop.findMany({
+          where: { orderId: bountyId },
+          orderBy: { stepNumber: "asc" },
+          select: sopStepSelect,
+        });
+        const current = this.assertCurrentStep(steps, stepNumber);
+
+        this.assertEvidenceSlot(current, kind);
+
+        const updated = await transaction.orderSop.update({
+          where: { id: current.id },
+          data:
+            kind === BOUNTY_SOP_EVIDENCE_KIND.PHOTO
+              ? { photos: { push: stored.publicUrl } }
+              : { videos: { push: stored.publicUrl } },
+          select: sopStepSelect,
+        });
+
+        return this.toSop(
+          { ...order, sops: steps.map((step) => (step.id === updated.id ? updated : step)) },
+          true,
+        );
+      });
+    } catch (error) {
+      await this.mediaStorage.delete(stored.storageKey).catch(() => undefined);
+
+      if (error instanceof ApiException) {
+        throw error;
+      }
+
+      throw this.sopExecutionFailed();
+    }
+  }
+
+  /** Completes the exact current step and advances the order state without allowing skips. */
+  async completeSopStep(
+    providerId: string,
+    bountyId: string,
+    stepNumber: number,
+  ): Promise<BountySop> {
+    try {
+      return await this.prisma.$transaction(async (transaction) => {
+        const order = await this.lockFulfillmentOrder(transaction, bountyId);
+
+        if (!order || order.providerId !== providerId) {
+          throw this.notFound();
+        }
+
+        const steps = await transaction.orderSop.findMany({
+          where: { orderId: bountyId },
+          orderBy: { stepNumber: "asc" },
+          select: sopStepSelect,
+        });
+        const target = steps.find((step) => step.stepNumber === stepNumber);
+
+        if (!target) {
+          throw this.notFound();
+        }
+
+        if (target.completedAt) {
+          const stillEligible =
+            order.status !== BOUNTY_STATUS.COMPLETED &&
+            (await this.lockEligibleProvider(transaction, providerId));
+
+          return this.toSop({ ...order, sops: steps }, stillEligible);
+        }
+
+        this.assertExecutableStatus(order.status);
+
+        if (!(await this.lockEligibleProvider(transaction, providerId))) {
+          throw this.providerNotEligible("当前资格不允许继续履约", HttpStatus.CONFLICT);
+        }
+
+        const current = this.assertCurrentStep(steps, stepNumber);
+
+        if (
+          current.photos.length < current.minimumPhotoCount ||
+          (current.videoRequired && current.videos.length === 0)
+        ) {
+          throw new ApiException(
+            BOUNTY_ERROR_CODE.SOP_REQUIREMENTS_NOT_MET,
+            "请先补全当前步骤要求的照片和视频证据",
+            HttpStatus.CONFLICT,
+          );
+        }
+
+        const completedAt = new Date();
+        const completed = await transaction.orderSop.updateMany({
+          where: { id: current.id, orderId: bountyId, completedAt: null },
+          data: { completedAt },
+        });
+
+        if (completed.count !== 1) {
+          throw this.sopStepConflict();
+        }
+
+        const isFinal = current.id === steps[steps.length - 1]?.id;
+        const nextStatus = isFinal ? BOUNTY_STATUS.COMPLETED : BOUNTY_STATUS.IN_PROGRESS;
+
+        if (order.status !== nextStatus) {
+          const advanced = await transaction.order.updateMany({
+            where: {
+              id: bountyId,
+              providerId,
+              status: { in: [BOUNTY_STATUS.CONFIRMED, BOUNTY_STATUS.IN_PROGRESS] },
+            },
+            data: {
+              status: nextStatus,
+              ...(isFinal ? { completedAt } : {}),
+            },
+          });
+
+          if (advanced.count !== 1) {
+            throw this.sopStepConflict();
+          }
+        }
+
+        return this.toSop(
+          {
+            ...order,
+            status: nextStatus,
+            sops: steps.map((step) => (step.id === current.id ? { ...step, completedAt } : step)),
+          },
+          !isFinal,
+        );
+      });
+    } catch (error) {
+      if (error instanceof ApiException) {
+        throw error;
+      }
+
+      throw this.sopExecutionFailed();
+    }
+  }
+
   /** Lists only bounties created by the authenticated owner, including private fields. */
   async findMine(ownerId: string, query: BountyListQuery): Promise<MyBountyListResponse> {
     const where = { orderType: "reward", ownerId, reward: { isNot: null } } as const;
@@ -473,6 +759,164 @@ export class BountyService {
     }
 
     return this.toPublicBounty(order);
+  }
+
+  private async getPublishedSop(
+    transaction: Pick<Prisma.TransactionClient, "systemConfigPointer">,
+    serviceType: BountyServiceType,
+  ): Promise<FrozenSopConfig> {
+    const pointer = await transaction.systemConfigPointer.findUnique({
+      where: { configKey: "sop" },
+      select: {
+        publishedVersion: {
+          select: {
+            id: true,
+            configKey: true,
+            status: true,
+            sopSteps: {
+              where: { serviceType },
+              orderBy: { stepNumber: "asc" },
+              select: {
+                stepNumber: true,
+                stepName: true,
+                instruction: true,
+                expectedDurationMinutes: true,
+                minimumPhotoCount: true,
+                videoRequired: true,
+              },
+            },
+            sopViolationRules: {
+              orderBy: { sortOrder: "asc" },
+              select: {
+                severity: true,
+                description: true,
+                serviceFeeDeductionBps: true,
+                ratingDeductionScore: true,
+                suspensionDays: true,
+                retrainingRequired: true,
+              },
+            },
+          },
+        },
+      },
+    });
+    const version = pointer?.publishedVersion;
+    const validSteps =
+      version?.sopSteps.length === BOUNTY_SOP_LIMITS.STEP_COUNT &&
+      version.sopSteps.every(
+        (step, index) =>
+          step.stepNumber === index + 1 &&
+          step.stepName.trim().length > 0 &&
+          step.instruction.trim().length > 0 &&
+          step.expectedDurationMinutes > 0 &&
+          step.minimumPhotoCount >= 0 &&
+          step.minimumPhotoCount <= BOUNTY_SOP_LIMITS.MAX_PHOTOS_PER_STEP,
+      );
+
+    if (!version || version.configKey !== "sop" || version.status !== "published" || !validSteps) {
+      throw new ApiException(
+        BOUNTY_ERROR_CODE.SOP_CONFIG_UNAVAILABLE,
+        "当前服务暂未配置可用的履约流程",
+        HttpStatus.SERVICE_UNAVAILABLE,
+      );
+    }
+
+    return {
+      versionId: version.id,
+      violationGuidance: JSON.stringify(version.sopViolationRules),
+      steps: version.sopSteps,
+    };
+  }
+
+  private async lockFulfillmentOrder(
+    transaction: Pick<Prisma.TransactionClient, "$queryRaw">,
+    bountyId: string,
+  ): Promise<LockedFulfillmentRow | null> {
+    const rows = await transaction.$queryRaw<LockedFulfillmentRow[]>`
+      SELECT
+        o."id",
+        o."owner_id" AS "ownerId",
+        o."provider_id" AS "providerId",
+        o."status"
+      FROM "orders" o
+      WHERE o."id" = ${bountyId} AND o."order_type" = 'reward'
+      FOR UPDATE OF o
+    `;
+
+    return rows[0] ?? null;
+  }
+
+  private assertExecutableStatus(status: string): void {
+    if (status !== BOUNTY_STATUS.CONFIRMED && status !== BOUNTY_STATUS.IN_PROGRESS) {
+      throw this.sopStepConflict("当前订单状态不允许履约");
+    }
+  }
+
+  private assertCurrentStep(steps: SopStepRow[], stepNumber: number): SopStepRow {
+    const requested = steps.find((step) => step.stepNumber === stepNumber);
+
+    if (!requested) {
+      throw this.notFound();
+    }
+
+    const current = steps.find((step) => !step.completedAt);
+
+    if (!current || current.id !== requested.id) {
+      throw this.sopStepConflict();
+    }
+
+    return current;
+  }
+
+  private assertEvidenceSlot(step: SopStepRow, kind: BountySopEvidenceKind): void {
+    if (
+      (kind === BOUNTY_SOP_EVIDENCE_KIND.PHOTO &&
+        step.photos.length >= BOUNTY_SOP_LIMITS.MAX_PHOTOS_PER_STEP) ||
+      (kind === BOUNTY_SOP_EVIDENCE_KIND.VIDEO &&
+        step.videos.length >= BOUNTY_SOP_LIMITS.MAX_VIDEOS_PER_STEP)
+    ) {
+      throw new ApiException(
+        BOUNTY_ERROR_CODE.SOP_EVIDENCE_INVALID,
+        "当前步骤的证据数量已达上限",
+        HttpStatus.CONFLICT,
+      );
+    }
+
+    if (!Object.values(BOUNTY_SOP_EVIDENCE_KIND).includes(kind)) {
+      throw new ApiException(
+        BOUNTY_ERROR_CODE.SOP_EVIDENCE_INVALID,
+        "履约证据类型无效",
+        HttpStatus.BAD_REQUEST,
+      );
+    }
+  }
+
+  private toSop(
+    order: SopOrderRow | (LockedFulfillmentRow & { sops: SopStepRow[] }),
+    eligible: boolean,
+  ): BountySop {
+    const current = order.sops.find((step) => !step.completedAt);
+
+    return {
+      orderId: order.id,
+      orderStatus: order.status as BountyStatus,
+      currentStepNumber: current?.stepNumber ?? null,
+      canExecute:
+        eligible &&
+        Boolean(current) &&
+        (order.status === BOUNTY_STATUS.CONFIRMED || order.status === BOUNTY_STATUS.IN_PROGRESS),
+      steps: order.sops.map((step) => ({
+        stepNumber: step.stepNumber,
+        stepName: step.stepName,
+        instruction: step.instruction,
+        expectedDurationMinutes: step.expectedDurationMinutes,
+        minimumPhotoCount: step.minimumPhotoCount,
+        videoRequired: step.videoRequired,
+        photos: step.photos,
+        videos: step.videos,
+        completedAt: step.completedAt?.toISOString() ?? null,
+      })),
+    };
   }
 
   private publicWhere(): Prisma.OrderWhereInput {
@@ -723,6 +1167,26 @@ export class BountyService {
       BOUNTY_ERROR_CODE.CONFIRMATION_CONFLICT,
       "该悬赏已确认其他服务者",
       HttpStatus.CONFLICT,
+    );
+  }
+
+  private sopStepConflict(message = "请按顺序执行当前履约步骤"): ApiException {
+    return new ApiException(BOUNTY_ERROR_CODE.SOP_STEP_CONFLICT, message, HttpStatus.CONFLICT);
+  }
+
+  private sopStorageUnavailable(): ApiException {
+    return new ApiException(
+      BOUNTY_ERROR_CODE.SOP_STORAGE_UNAVAILABLE,
+      "履约证据暂时无法保存，请稍后重试",
+      HttpStatus.SERVICE_UNAVAILABLE,
+    );
+  }
+
+  private sopExecutionFailed(): ApiException {
+    return new ApiException(
+      BOUNTY_ERROR_CODE.SOP_EXECUTION_FAILED,
+      "履约步骤更新失败，请稍后重试",
+      HttpStatus.INTERNAL_SERVER_ERROR,
     );
   }
 

@@ -19,23 +19,25 @@ describe("LocalWebsiteMediaStorage", () => {
     await rm(rootDirectory, { recursive: true, force: true });
   });
 
-  it.each(["website-media", "community-media", "pet-media"] as const)(
+  it.each(["website-media", "community-media", "pet-media", "sop-media"] as const)(
     "persists and removes validated %s bytes through the shared local provider",
     async (area) => {
+      const extension = area === "sop-media" ? "mp4" : "png";
+      const mimeType = area === "sop-media" ? "video/mp4" : "image/png";
       const result = await storage.put({
         area,
-        body: Buffer.from(`${area}-png`),
-        mimeType: "image/png",
-        extension: "png",
+        body: Buffer.from(`${area}-${extension}`),
+        mimeType,
+        extension,
       });
 
       expect(result).toEqual({
-        storageKey: `public/${area}/2026/08/00000000-0000-4000-8000-000000000000.png`,
-        publicUrl: `http://localhost:8080/media/public/${area}/2026/08/00000000-0000-4000-8000-000000000000.png`,
+        storageKey: `public/${area}/2026/08/00000000-0000-4000-8000-000000000000.${extension}`,
+        publicUrl: `http://localhost:8080/media/public/${area}/2026/08/00000000-0000-4000-8000-000000000000.${extension}`,
       });
       await expect(storage.head(result.storageKey)).resolves.toBeUndefined();
       await expect(readFile(join(rootDirectory, result.storageKey), "utf8")).resolves.toBe(
-        `${area}-png`,
+        `${area}-${extension}`,
       );
       expect(storage.resolvePublicUrl(result.storageKey)).toBe(result.publicUrl);
       await expect(storage.delete(result.storageKey)).resolves.toBeUndefined();

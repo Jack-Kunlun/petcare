@@ -83,6 +83,32 @@ export const BOUNTY_LIMITS = {
   PAGE_SIZE_MAX: 50,
 } as const;
 
+/** Evidence categories accepted while executing one frozen SOP step. */
+export const BOUNTY_SOP_EVIDENCE_KIND = {
+  /** A decoded JPEG, PNG, or WebP image. */
+  PHOTO: "photo",
+  /** An ISO Base Media MP4 video. */
+  VIDEO: "video",
+} as const;
+
+/** Evidence category accepted by the SOP upload endpoint. */
+export type BountySopEvidenceKind =
+  (typeof BOUNTY_SOP_EVIDENCE_KIND)[keyof typeof BOUNTY_SOP_EVIDENCE_KIND];
+
+/** Shared execution and upload limits for frozen bounty SOP steps. */
+export const BOUNTY_SOP_LIMITS = {
+  /** Every published service template must freeze exactly this many ordered steps. */
+  STEP_COUNT: 5,
+  /** Maximum retained photos for one frozen step. */
+  MAX_PHOTOS_PER_STEP: 9,
+  /** Maximum retained videos for one frozen step. */
+  MAX_VIDEOS_PER_STEP: 1,
+  /** Maximum accepted decoded image payload size. */
+  PHOTO_MAX_BYTES: 10 * 1024 * 1024,
+  /** Maximum accepted MP4 payload size. */
+  VIDEO_MAX_BYTES: 50 * 1024 * 1024,
+} as const;
+
 /** Stable bounty errors used by clients for recovery behavior. */
 export const BOUNTY_ERROR_CODE = {
   /** Commercial routes are intentionally disabled in the current environment. */
@@ -105,6 +131,18 @@ export const BOUNTY_ERROR_CODE = {
   INTENT_FAILED: "BOUNTY_INTENT_FAILED",
   /** The unique provider confirmation could not be persisted. */
   CONFIRMATION_FAILED: "BOUNTY_CONFIRMATION_FAILED",
+  /** No complete published SOP template exists for a newly created bounty. */
+  SOP_CONFIG_UNAVAILABLE: "BOUNTY_SOP_CONFIG_UNAVAILABLE",
+  /** Uploaded SOP evidence fails type, size, count, or byte validation. */
+  SOP_EVIDENCE_INVALID: "BOUNTY_SOP_EVIDENCE_INVALID",
+  /** Managed SOP evidence storage is unavailable. */
+  SOP_STORAGE_UNAVAILABLE: "BOUNTY_SOP_STORAGE_UNAVAILABLE",
+  /** The requested SOP step is not the current executable step. */
+  SOP_STEP_CONFLICT: "BOUNTY_SOP_STEP_CONFLICT",
+  /** The current SOP step is still missing required evidence. */
+  SOP_REQUIREMENTS_NOT_MET: "BOUNTY_SOP_REQUIREMENTS_NOT_MET",
+  /** An unexpected persistence failure prevented SOP execution. */
+  SOP_EXECUTION_FAILED: "BOUNTY_SOP_EXECUTION_FAILED",
   /** The authenticated account is inactive. */
   ACCOUNT_DISABLED: "AUTH_ACCOUNT_DISABLED",
 } as const;
@@ -257,6 +295,42 @@ export interface MyBountyIntent {
   createdAt: string;
   /** Bounty data with confirmation-scoped private fields. */
   bounty: MyBountyIntentBounty;
+}
+
+/** One immutable configured step plus its current fulfillment evidence. */
+export interface BountySopStep {
+  /** One-based position frozen from the published template. */
+  stepNumber: number;
+  /** Frozen user-facing step name. */
+  stepName: string;
+  /** Frozen provider instruction. */
+  instruction: string;
+  /** Frozen expected duration in whole minutes. */
+  expectedDurationMinutes: number;
+  /** Frozen minimum number of photos required before completion. */
+  minimumPhotoCount: number;
+  /** Whether at least one MP4 is required before completion. */
+  videoRequired: boolean;
+  /** Managed public photo URLs submitted for this step. */
+  photos: string[];
+  /** Managed public video URLs submitted for this step. */
+  videos: string[];
+  /** ISO 8601 completion time, or null while incomplete. */
+  completedAt: string | null;
+}
+
+/** Private SOP projection shared by the order owner and confirmed provider. */
+export interface BountySop {
+  /** Bounty order identifier. */
+  orderId: string;
+  /** Current persisted order state. */
+  orderStatus: BountyStatus;
+  /** First incomplete step number, or null when every step is complete. */
+  currentStepNumber: number | null;
+  /** Whether this authenticated account may currently execute the next step. */
+  canExecute: boolean;
+  /** Frozen ordered steps and their submitted evidence. */
+  steps: BountySopStep[];
 }
 
 /** Shared page query used by public and owner-only bounty lists. */

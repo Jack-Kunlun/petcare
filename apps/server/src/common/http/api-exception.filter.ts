@@ -1,5 +1,5 @@
 import { ArgumentsHost, Catch, ExceptionFilter, HttpException } from "@nestjs/common";
-import { PET_ERROR_CODE } from "@petcare/shared-types";
+import { BOUNTY_ERROR_CODE, PET_ERROR_CODE } from "@petcare/shared-types";
 import { Response } from "express";
 import { MulterError } from "multer";
 import { AppLogger } from "../../logging/app-logger.service";
@@ -58,6 +58,17 @@ export class ApiExceptionFilter implements ExceptionFilter {
 
       if (requestPath.includes("/admin/content/articles/media-assets")) {
         return { code: "CONTENT_ARTICLE_MEDIA_TOO_LARGE", message: "文章图片不能超过 10 MiB" };
+      }
+
+      if (
+        requestPath.includes("/bounties/") &&
+        requestPath.includes("/sop/steps/") &&
+        requestPath.endsWith("/evidence")
+      ) {
+        return {
+          code: BOUNTY_ERROR_CODE.SOP_EVIDENCE_INVALID,
+          message: "履约证据不能超过 50 MiB",
+        };
       }
 
       return { code: "AVATAR_FILE_TOO_LARGE", message: "头像文件不能超过 2MB" };

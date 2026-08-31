@@ -8,15 +8,22 @@ import {
   HttpStatus,
   Injectable,
   Param,
+  ParseIntPipe,
   ParseUUIDPipe,
   Post,
   Query,
   Req,
+  UploadedFile,
   UseGuards,
+  UseInterceptors,
 } from "@nestjs/common";
+import { FileInterceptor } from "@nestjs/platform-express";
 import {
   ApiBearerAuth,
+  ApiBody,
+  ApiConsumes,
   ApiOperation,
+  ApiParam,
   ApiProperty,
   ApiPropertyOptional,
   ApiTags,
@@ -26,12 +33,17 @@ import {
   BOUNTY_INTENT_STATUS,
   BOUNTY_LIMITS,
   BOUNTY_SERVICE_TYPE,
+  BOUNTY_SOP_EVIDENCE_KIND,
+  BOUNTY_SOP_LIMITS,
   BOUNTY_STATUS,
   type BountyIntentStatus,
   type BountyListQuery,
   type BountyProviderEligibility,
   type BountyProviderSummary,
   type BountyServiceType,
+  type BountySop,
+  type BountySopEvidenceKind,
+  type BountySopStep,
   type BountyStatus,
   type CreateBountyRequest,
   type MyBounty,
@@ -62,6 +74,7 @@ import {
   ValidateIf,
 } from "class-validator";
 import type { Request } from "express";
+import { memoryStorage } from "multer";
 import { AccessTokenGuard } from "../../auth/access-token.guard";
 import type { AccessTokenPayload } from "../../auth/auth.types";
 import { ProfileCompleteGuard } from "../../auth/profile-complete.guard";
@@ -71,6 +84,7 @@ import {
   ApiSuccessResponse,
 } from "../../common/swagger/api-response.decorators";
 import { ConfigService } from "../../config/config.service";
+import { bountySopEvidenceInvalid } from "./bounty-sop-evidence";
 import { BountyService } from "./bounty.service";
 
 type AuthRequest = Request & { user: AccessTokenPayload };
@@ -79,7 +93,7 @@ function trimText(value: unknown): unknown {
   return typeof value === "string" ? value.trim() : value;
 }
 
-/** Hides all Cycle 5–6 bounty routes unless the environment explicitly enables them. */
+/** Hides all Cycle 5–7 bounty routes unless the environment explicitly enables them. */
 @Injectable()
 export class BountyFeatureGuard implements CanActivate {
   constructor(private readonly config: ConfigService) {}
@@ -151,6 +165,13 @@ export class BountyListQueryDto implements BountyListQuery {
   @Min(1)
   @Max(BOUNTY_LIMITS.PAGE_SIZE_MAX)
   pageSize = 20;
+}
+
+/** Validated multipart evidence category. */
+export class BountySopEvidenceDto {
+  @ApiProperty({ enum: Object.values(BOUNTY_SOP_EVIDENCE_KIND) })
+  @IsIn(Object.values(BOUNTY_SOP_EVIDENCE_KIND))
+  kind: BountySopEvidenceKind;
 }
 
 class PublicBountyOwnerDto implements PublicBountyOwner {
@@ -314,6 +335,52 @@ class MyBountyIntentDto implements MyBountyIntent {
   bounty: MyBountyIntentBounty;
 }
 
+class BountySopStepDto implements BountySopStep {
+  @ApiProperty()
+  stepNumber: number;
+
+  @ApiProperty()
+  stepName: string;
+
+  @ApiProperty()
+  instruction: string;
+
+  @ApiProperty()
+  expectedDurationMinutes: number;
+
+  @ApiProperty()
+  minimumPhotoCount: number;
+
+  @ApiProperty()
+  videoRequired: boolean;
+
+  @ApiProperty({ type: [String] })
+  photos: string[];
+
+  @ApiProperty({ type: [String] })
+  videos: string[];
+
+  @ApiProperty({ format: "date-time", nullable: true })
+  completedAt: string | null;
+}
+
+class BountySopDto implements BountySop {
+  @ApiProperty({ format: "uuid" })
+  orderId: string;
+
+  @ApiProperty({ enum: Object.values(BOUNTY_STATUS) })
+  orderStatus: BountyStatus;
+
+  @ApiProperty({ nullable: true })
+  currentStepNumber: number | null;
+
+  @ApiProperty()
+  canExecute: boolean;
+
+  @ApiProperty({ type: [BountySopStepDto] })
+  steps: BountySopStep[];
+}
+
 class PublicBountyListResponseDto implements PublicBountyListResponse {
   @ApiProperty({ type: [PublicBountyDto] })
   list: PublicBounty[];
@@ -370,7 +437,7 @@ class MyBountyIntentListResponseDto implements MyBountyIntentListResponse {
   pageSize: number;
 }
 
-/** Exposes default-closed Cycle 5–6 bounty and provider-intent capabilities. */
+/** Exposes default-closed Cycle 5–7 bounty, intent, and SOP capabilities. */
 @ApiTags("bounties")
 @UseGuards(BountyFeatureGuard)
 @Controller("bounties")
@@ -464,6 +531,77 @@ export class BountyController {
     @Param("intentId", new ParseUUIDPipe({ version: "4" })) intentId: string,
   ): Promise<MyBounty> {
     return this.bounties.confirmIntent(request.user.sub, id, intentId);
+  }
+
+  @Get(":id/sop")
+  @ApiBearerAuth()
+  @UseGuards(AccessTokenGuard)
+  @ApiOperation({ summary: "读取订单当事人的冻结 SOP" })
+  @ApiSuccessResponse(BountySopDto)
+  @ApiStandardErrors(400, 401, 404, 500)
+  findSop(
+    @Req() request: AuthRequest,
+    @Param("id", new ParseUUIDPipe({ version: "4" })) id: string,
+  ): Promise<BountySop> {
+    return this.bounties.findSop(request.user.sub, id);
+  }
+
+  @Post(":id/sop/steps/:stepNumber/evidence")
+  @ApiBearerAuth()
+  @UseGuards(AccessTokenGuard, ProfileCompleteGuard)
+  @UseInterceptors(
+    FileInterceptor("file", {
+      storage: memoryStorage(),
+      limits: { fileSize: BOUNTY_SOP_LIMITS.VIDEO_MAX_BYTES, files: 1 },
+    }),
+  )
+  @ApiConsumes("multipart/form-data")
+  @ApiBody({
+    schema: {
+      type: "object",
+      required: ["kind", "file"],
+      properties: {
+        kind: { type: "string", enum: Object.values(BOUNTY_SOP_EVIDENCE_KIND) },
+        file: { type: "string", format: "binary" },
+      },
+    },
+  })
+  @ApiParam({ name: "id", format: "uuid" })
+  @ApiParam({ name: "stepNumber", type: Number })
+  @ApiOperation({ summary: "为当前 SOP 步骤上传受管证据" })
+  @ApiSuccessResponse(BountySopDto, { status: 201 })
+  @ApiStandardErrors(400, 401, 403, 404, 409, 413, 503)
+  uploadSopEvidence(
+    @Req() request: AuthRequest,
+    @Param("id", new ParseUUIDPipe({ version: "4" })) id: string,
+    @Param("stepNumber", ParseIntPipe) stepNumber: number,
+    @Body() dto: BountySopEvidenceDto,
+    @UploadedFile() file: Express.Multer.File | undefined,
+  ): Promise<BountySop> {
+    if (!file) {
+      throw bountySopEvidenceInvalid("请选择要上传的履约证据");
+    }
+
+    return this.bounties.uploadSopEvidence(request.user.sub, id, stepNumber, dto.kind, {
+      buffer: file.buffer,
+      originalName: file.originalname,
+      mimeType: file.mimetype,
+    });
+  }
+
+  @Post(":id/sop/steps/:stepNumber/complete")
+  @HttpCode(HttpStatus.OK)
+  @ApiBearerAuth()
+  @UseGuards(AccessTokenGuard, ProfileCompleteGuard)
+  @ApiOperation({ summary: "按顺序完成当前 SOP 步骤" })
+  @ApiSuccessResponse(BountySopDto)
+  @ApiStandardErrors(400, 401, 403, 404, 409, 500)
+  completeSopStep(
+    @Req() request: AuthRequest,
+    @Param("id", new ParseUUIDPipe({ version: "4" })) id: string,
+    @Param("stepNumber", ParseIntPipe) stepNumber: number,
+  ): Promise<BountySop> {
+    return this.bounties.completeSopStep(request.user.sub, id, stepNumber);
   }
 
   @Get()

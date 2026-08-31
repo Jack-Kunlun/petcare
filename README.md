@@ -64,8 +64,8 @@ docker compose -f docker-compose.yml -f docker-compose.local.yml --env-file .env
 ```
 
 执行前必须替换 `.env` 中的本地密码和 JWT 密钥。微信、阿里云短信和腾讯云 COS 配置可以留空；
-本地 Compose 会使用固定短信验证码和持久化文件存储。seed 只初始化管理员、权限目录和安全的官网内容模板，
-不会创建虚构的宠物、社区帖子、订单或资金数据。
+本地 Compose 会使用固定短信验证码和持久化文件存储。seed 只初始化管理员、权限目录、安全的官网内容模板和基础 SOP，
+不会创建虚构的服务者资格、宠物、社区帖子、订单或资金数据。
 
 完整的访问入口、演示顺序、Miniapp 外部登录限制、隔离验收和数据保留说明见
 [个人版本地启动与演示指南](./docs/08-deployment/local-personal-demo.md)。

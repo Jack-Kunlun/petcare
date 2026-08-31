@@ -10,6 +10,14 @@ import { PrismaService } from "../../prisma/prisma.service";
 import { BountyFeatureGuard } from "./bounty.controller";
 import { BountyService } from "./bounty.service";
 
+const validEvidencePng = Buffer.from(
+  "iVBORw0KGgoAAAANSUhEUgAAAAEAAAABCAQAAAC1HAwCAAAAC0lEQVR42mNk+A8AAQUBAScY42YAAAAASUVORK5CYII=",
+  "base64",
+);
+
+validEvidencePng.writeUInt32BE(32, 16);
+validEvidencePng.writeUInt32BE(32, 20);
+
 describe("BountyService", () => {
   const prisma = {
     user: { findUnique: jest.fn() },
@@ -27,9 +35,15 @@ describe("BountyService", () => {
   const transaction = {
     $queryRaw: jest.fn(),
     pet: { findFirst: jest.fn() },
+    systemConfigPointer: { findUnique: jest.fn() },
     order: {
       create: jest.fn(),
       findFirst: jest.fn(),
+      updateMany: jest.fn(),
+    },
+    orderSop: {
+      findMany: jest.fn(),
+      update: jest.fn(),
       updateMany: jest.fn(),
     },
     orderIntent: {
@@ -40,7 +54,13 @@ describe("BountyService", () => {
     },
   };
   const config = { orderTimeoutDelayMs: 48 * 60 * 60 * 1000 } as ConfigService;
-  const service = new BountyService(prisma as unknown as PrismaService, config);
+  const mediaStorage = {
+    put: jest.fn(),
+    head: jest.fn(),
+    delete: jest.fn(),
+    resolvePublicUrl: jest.fn(),
+  };
+  const service = new BountyService(prisma as unknown as PrismaService, config, mediaStorage);
   const now = new Date("2026-08-31T00:00:00.000Z");
   const serviceTime = "2026-09-03T00:00:00.000Z";
   const expiresAt = new Date("2026-09-02T00:00:00.000Z");
@@ -104,6 +124,21 @@ describe("BountyService", () => {
     createdAt: now,
     order: intentOrder,
   };
+  const publishedSopSteps = Array.from({ length: 5 }, (_, index) => ({
+    stepNumber: index + 1,
+    stepName: `步骤${index + 1}`,
+    instruction: `执行步骤${index + 1}`,
+    expectedDurationMinutes: 2,
+    minimumPhotoCount: 1,
+    videoRequired: index === 2,
+  }));
+  const frozenSopSteps = publishedSopSteps.map((step) => ({
+    id: `sop-step-${step.stepNumber}`,
+    ...step,
+    photos: step.stepNumber === 1 ? ["https://cdn.example.com/step-1.png"] : [],
+    videos: [],
+    completedAt: null as Date | null,
+  }));
   let lockedBounty: {
     id: string;
     ownerId: string;
@@ -136,9 +171,29 @@ describe("BountyService", () => {
         return Promise.resolve(providerEligible ? [{ id: providerId }] : []);
       }
 
+      if (sql.includes('FROM "orders" o')) {
+        return Promise.resolve([
+          {
+            id: lockedBounty.id,
+            ownerId: lockedBounty.ownerId,
+            providerId: lockedBounty.providerId,
+            status: lockedBounty.status,
+          },
+        ]);
+      }
+
       return Promise.resolve([{ status: "active", phone: "13800000000" }]);
     });
     transaction.pet.findFirst.mockResolvedValue({ id: petId });
+    transaction.systemConfigPointer.findUnique.mockResolvedValue({
+      publishedVersion: {
+        id: "sop-version-1",
+        configKey: "sop",
+        status: "published",
+        sopSteps: publishedSopSteps,
+        sopViolationRules: [],
+      },
+    });
     transaction.order.create.mockResolvedValue(privateRow);
     transaction.order.updateMany.mockResolvedValue({ count: 1 });
     transaction.order.findFirst.mockResolvedValue(confirmedPrivateRow);
@@ -150,6 +205,17 @@ describe("BountyService", () => {
     });
     transaction.orderIntent.update.mockResolvedValue({});
     transaction.orderIntent.updateMany.mockResolvedValue({ count: 1 });
+    transaction.orderSop.findMany.mockResolvedValue(frozenSopSteps);
+    transaction.orderSop.update.mockResolvedValue({
+      ...frozenSopSteps[0],
+      photos: [...frozenSopSteps[0].photos, "https://cdn.example.com/evidence.png"],
+    });
+    transaction.orderSop.updateMany.mockResolvedValue({ count: 1 });
+    mediaStorage.put.mockResolvedValue({
+      storageKey: "public/sop-media/2026/08/evidence.png",
+      publicUrl: "https://cdn.example.com/evidence.png",
+    });
+    mediaStorage.delete.mockResolvedValue(undefined);
     prisma.order.count.mockResolvedValue(1);
     prisma.orderIntent.count.mockResolvedValue(1);
   });
@@ -187,6 +253,7 @@ describe("BountyService", () => {
         address: "上海市示例地址",
         remark: "请换水",
         status: BOUNTY_STATUS.OPEN,
+        sopConfigVersionId: "sop-version-1",
         reward: {
           create: {
             rewardAmount: 5_000,
@@ -195,9 +262,27 @@ describe("BountyService", () => {
             expireTime: expiresAt,
           },
         },
+        sops: {
+          create: publishedSopSteps.map((step) => ({
+            ...step,
+            violationGuidance: "[]",
+            photos: [],
+            videos: [],
+          })),
+        },
       },
       select: expect.any(Object),
     });
+  });
+
+  it("refuses to create an order without one complete published SOP template", async () => {
+    transaction.systemConfigPointer.findUnique.mockResolvedValueOnce(null);
+
+    await expect(service.create("owner-1", input)).rejects.toMatchObject({
+      code: BOUNTY_ERROR_CODE.SOP_CONFIG_UNAVAILABLE,
+      status: HttpStatus.SERVICE_UNAVAILABLE,
+    });
+    expect(transaction.order.create).not.toHaveBeenCalled();
   });
 
   it("hides a missing or cross-owner pet without issuing an order write", async () => {
@@ -430,6 +515,170 @@ describe("BountyService", () => {
       code: BOUNTY_ERROR_CODE.PROVIDER_NOT_ELIGIBLE,
       status: HttpStatus.CONFLICT,
     });
+  });
+
+  it("lets only order parties read SOP and only the eligible provider execute it", async () => {
+    const sopOrder = {
+      id: bountyId,
+      ownerId: "owner-1",
+      providerId,
+      status: BOUNTY_STATUS.CONFIRMED,
+      sops: frozenSopSteps,
+    };
+    const qualifiedProvider = {
+      phone: "13800000000",
+      status: "active",
+      userType: "provider",
+      provider: { idCardVerified: true, trainingPassed: true, certifiedSitter: true },
+    };
+
+    prisma.order.findFirst.mockResolvedValueOnce(sopOrder);
+    await expect(service.findSop("owner-1", bountyId)).resolves.toMatchObject({
+      currentStepNumber: 1,
+      canExecute: false,
+    });
+
+    prisma.order.findFirst.mockResolvedValueOnce(sopOrder);
+    prisma.user.findUnique.mockResolvedValueOnce(qualifiedProvider);
+    await expect(service.findSop(providerId, bountyId)).resolves.toMatchObject({
+      currentStepNumber: 1,
+      canExecute: true,
+    });
+
+    prisma.order.findFirst.mockResolvedValueOnce(null);
+    await expect(service.findSop("other-user", bountyId)).rejects.toMatchObject({
+      code: BOUNTY_ERROR_CODE.NOT_FOUND,
+      status: HttpStatus.NOT_FOUND,
+    });
+  });
+
+  it("validates, stores, and atomically appends evidence only to the current step", async () => {
+    lockedBounty.providerId = providerId;
+    lockedBounty.status = BOUNTY_STATUS.CONFIRMED;
+    prisma.order.findFirst.mockResolvedValueOnce({
+      id: bountyId,
+      ownerId: "owner-1",
+      providerId,
+      status: BOUNTY_STATUS.CONFIRMED,
+      sops: frozenSopSteps,
+    });
+    prisma.user.findUnique.mockResolvedValueOnce({
+      phone: "13800000000",
+      status: "active",
+      userType: "provider",
+      provider: { idCardVerified: true, trainingPassed: true, certifiedSitter: true },
+    });
+
+    const uploaded = await service.uploadSopEvidence(providerId, bountyId, 1, "photo", {
+      buffer: validEvidencePng,
+      originalName: "evidence.bin",
+      mimeType: "application/octet-stream",
+    });
+
+    expect(uploaded.currentStepNumber).toBe(1);
+    expect(uploaded.steps[0]?.photos).toContain("https://cdn.example.com/evidence.png");
+    expect(mediaStorage.put).toHaveBeenCalledWith(
+      expect.objectContaining({ area: "sop-media", mimeType: "image/png", extension: "png" }),
+    );
+    expect(transaction.orderSop.update).toHaveBeenCalledWith(
+      expect.objectContaining({
+        data: { photos: { push: "https://cdn.example.com/evidence.png" } },
+      }),
+    );
+
+    prisma.order.findFirst.mockResolvedValueOnce({
+      id: bountyId,
+      ownerId: "owner-1",
+      providerId,
+      status: BOUNTY_STATUS.CONFIRMED,
+      sops: frozenSopSteps,
+    });
+    prisma.user.findUnique.mockResolvedValueOnce({
+      phone: "13800000000",
+      status: "active",
+      userType: "provider",
+      provider: { idCardVerified: true, trainingPassed: true, certifiedSitter: true },
+    });
+    await expect(
+      service.uploadSopEvidence(providerId, bountyId, 2, "photo", {
+        buffer: validEvidencePng,
+        originalName: "evidence.png",
+        mimeType: "image/png",
+      }),
+    ).rejects.toMatchObject({ code: BOUNTY_ERROR_CODE.SOP_STEP_CONFLICT });
+  });
+
+  it("advances steps in order, requires frozen evidence, and completes the order", async () => {
+    lockedBounty.providerId = providerId;
+    lockedBounty.status = BOUNTY_STATUS.CONFIRMED;
+
+    await expect(service.completeSopStep(providerId, bountyId, 2)).rejects.toMatchObject({
+      code: BOUNTY_ERROR_CODE.SOP_STEP_CONFLICT,
+    });
+    await expect(service.completeSopStep(providerId, bountyId, 1)).resolves.toMatchObject({
+      orderStatus: BOUNTY_STATUS.IN_PROGRESS,
+      currentStepNumber: 2,
+    });
+
+    const completedAt = new Date("2026-08-31T00:05:00.000Z");
+    const finalSteps = frozenSopSteps.map((step) => ({
+      ...step,
+      photos: step.stepNumber === 5 ? ["one", "two"] : step.photos,
+      completedAt: step.stepNumber < 5 ? completedAt : null,
+    }));
+
+    lockedBounty.status = BOUNTY_STATUS.IN_PROGRESS;
+    transaction.orderSop.findMany.mockResolvedValueOnce(finalSteps);
+    await expect(service.completeSopStep(providerId, bountyId, 5)).resolves.toMatchObject({
+      orderStatus: BOUNTY_STATUS.COMPLETED,
+      currentStepNumber: null,
+      canExecute: false,
+    });
+    expect(transaction.order.updateMany).toHaveBeenLastCalledWith(
+      expect.objectContaining({
+        data: expect.objectContaining({ status: BOUNTY_STATUS.COMPLETED }),
+      }),
+    );
+  });
+
+  it("rechecks provider qualification before every step mutation", async () => {
+    lockedBounty.providerId = providerId;
+    lockedBounty.status = BOUNTY_STATUS.CONFIRMED;
+    providerEligible = false;
+
+    await expect(service.completeSopStep(providerId, bountyId, 1)).rejects.toMatchObject({
+      code: BOUNTY_ERROR_CODE.PROVIDER_NOT_ELIGIBLE,
+      status: HttpStatus.CONFLICT,
+    });
+    expect(transaction.orderSop.updateMany).not.toHaveBeenCalled();
+    expect(transaction.order.updateMany).not.toHaveBeenCalled();
+  });
+
+  it("compensates a stored evidence object when the locked order can no longer execute", async () => {
+    prisma.order.findFirst.mockResolvedValueOnce({
+      id: bountyId,
+      ownerId: "owner-1",
+      providerId,
+      status: BOUNTY_STATUS.CONFIRMED,
+      sops: frozenSopSteps,
+    });
+    prisma.user.findUnique.mockResolvedValueOnce({
+      phone: "13800000000",
+      status: "active",
+      userType: "provider",
+      provider: { idCardVerified: true, trainingPassed: true, certifiedSitter: true },
+    });
+    lockedBounty.providerId = providerId;
+    lockedBounty.status = BOUNTY_STATUS.COMPLETED;
+
+    await expect(
+      service.uploadSopEvidence(providerId, bountyId, 1, "photo", {
+        buffer: validEvidencePng,
+        originalName: "evidence.png",
+        mimeType: "image/png",
+      }),
+    ).rejects.toMatchObject({ code: BOUNTY_ERROR_CODE.SOP_STEP_CONFLICT });
+    expect(mediaStorage.delete).toHaveBeenCalledWith("public/sop-media/2026/08/evidence.png");
   });
 
   it("returns owner-only address data from an owner-scoped query", async () => {

@@ -131,6 +131,20 @@ describe("ApiExceptionFilter", () => {
     );
   });
 
+  it("maps an SOP evidence upload limit to the bounty error contract", () => {
+    request.path = "/api/bounties/11111111-1111-4111-8111-111111111111/sop/steps/1/evidence";
+
+    filter.catch(new MulterError("LIMIT_FILE_SIZE"), host);
+
+    expect(response.status).toHaveBeenCalledWith(413);
+    expect(response.json).toHaveBeenCalledWith(
+      expect.objectContaining({
+        code: "BOUNTY_SOP_EVIDENCE_INVALID",
+        message: "履约证据不能超过 50 MiB",
+      }),
+    );
+  });
+
   it("maps the fixed article upload path from a query-stripped request.url", () => {
     request.url = "/api/admin/content/articles/media-assets?file=article.png";
 
