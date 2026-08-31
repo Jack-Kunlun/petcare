@@ -205,7 +205,10 @@ function localDateParts(value: Date): { date: string; clock: string } {
   };
 }
 
-test("悬赏在隔离环境完成资格门禁、幂等意向、唯一确认与订单迁移", async ({ browser, page }) => {
+test("悬赏在隔离环境完成资格门禁、幂等意向、唯一确认与订单迁移", async ({
+  browser,
+  page,
+}, testInfo) => {
   test.setTimeout(150_000);
   const ownerAuthorization = `Bearer ${requiredEnv("BOUNTY_E2E_OWNER_TOKEN")}`;
   const otherAuthorization = `Bearer ${requiredEnv("BOUNTY_E2E_OTHER_OWNER_TOKEN")}`;
@@ -233,7 +236,7 @@ test("悬赏在隔离环境完成资格门禁、幂等意向、唯一确认与�
     serviceType: BOUNTY_SERVICE_TYPE.FEEDING,
     serviceTime: new Date(`${service.date}T${service.clock}:00`).toISOString(),
     amountCents: 5_025,
-    address: "上海市隔离验收地址 52 号",
+    address: `上海市隔离验收地址 52-${testInfo.retry} 号`,
     remark: "请换水并拍照",
   };
 
@@ -406,7 +409,7 @@ test("悬赏在隔离环境完成资格门禁、幂等意向、唯一确认与�
     await seedMiniappSession(providerMiniappPage, requiredEnv("BOUNTY_E2E_PROVIDER_A_TOKEN"), {
       id: requiredEnv("BOUNTY_E2E_PROVIDER_A_ID"),
       nickname: "悬赏 E2E 服务者甲",
-      phoneMasked: "139****0091",
+      phoneMasked: "139****0101",
       userType: "provider",
     });
     await providerMiniappPage.goto(`${miniappUrl}/#/pages-bounty/index`);

@@ -790,7 +790,7 @@ async function seedCompiledServer(env) {
         },
       }),
       prisma.user.upsert({
-        where: { phone: "13900000091" },
+        where: { phone: "13900000101" },
         update: {
           username: "bounty-e2e-provider-a",
           nickname: "悬赏 E2E 服务者甲",
@@ -798,7 +798,7 @@ async function seedCompiledServer(env) {
           status: "active",
         },
         create: {
-          phone: "13900000091",
+          phone: "13900000101",
           username: "bounty-e2e-provider-a",
           nickname: "悬赏 E2E 服务者甲",
           userType: "provider",
@@ -806,7 +806,7 @@ async function seedCompiledServer(env) {
         },
       }),
       prisma.user.upsert({
-        where: { phone: "13900000092" },
+        where: { phone: "13900000102" },
         update: {
           username: "bounty-e2e-provider-b",
           nickname: "悬赏 E2E 服务者乙",
@@ -814,7 +814,7 @@ async function seedCompiledServer(env) {
           status: "active",
         },
         create: {
-          phone: "13900000092",
+          phone: "13900000102",
           username: "bounty-e2e-provider-b",
           nickname: "悬赏 E2E 服务者乙",
           userType: "provider",
