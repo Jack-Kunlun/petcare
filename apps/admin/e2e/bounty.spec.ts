@@ -7,6 +7,7 @@ import {
   PET_SPECIES,
   type ApiErrorResponse,
   type BountyProviderEligibility,
+  type BountySop,
   type CreateBountyRequest,
   type CreatePetRequest,
   type MyBounty,
@@ -22,10 +23,20 @@ import {
   expect,
   test,
   type APIResponse,
+  type APIRequestContext,
   type Locator,
   type Page,
   type Response,
 } from "@playwright/test";
+
+const sopEvidencePng = Buffer.from(
+  "iVBORw0KGgoAAAANSUhEUgAAAAEAAAABCAQAAAC1HAwCAAAAC0lEQVR42mNk+A8AAQUBAScY42YAAAAASUVORK5CYII=",
+  "base64",
+);
+const sopEvidenceMp4 = Buffer.concat([Buffer.alloc(4), Buffer.from("ftypisom", "ascii")]);
+
+sopEvidencePng.writeUInt32BE(32, 16);
+sopEvidencePng.writeUInt32BE(32, 20);
 
 function requiredEnv(
   name:
@@ -58,6 +69,29 @@ async function responseData<T>(response: APIResponse | Response): Promise<T> {
 async function expectFailure(response: APIResponse, status: number, code: string): Promise<void> {
   expect(response.status()).toBe(status);
   expect(((await response.json()) as ApiErrorResponse).code).toBe(code);
+}
+
+async function uploadSopEvidence(
+  request: APIRequestContext,
+  authorization: string,
+  bountyId: string,
+  stepNumber: number,
+  kind: "photo" | "video",
+  index = 1,
+): Promise<BountySop> {
+  return responseData<BountySop>(
+    await request.post(`/api/bounties/${bountyId}/sop/steps/${stepNumber}/evidence`, {
+      headers: { Authorization: authorization },
+      multipart: {
+        kind,
+        file: {
+          name: `step-${stepNumber}-${index}.${kind === "photo" ? "png" : "mp4"}`,
+          mimeType: kind === "photo" ? "image/png" : "video/mp4",
+          buffer: kind === "photo" ? sopEvidencePng : sopEvidenceMp4,
+        },
+      },
+    }),
+  );
 }
 
 const twoDigits = (part: number): string => part.toString().padStart(2, "0");
@@ -567,6 +601,140 @@ test("悬赏在隔离环境完成资格门禁、幂等意向、唯一确认与�
     await expect(
       providerMiniappPage.getByText(`备注：${request.remark}`, { exact: true }),
     ).toBeVisible();
+
+    const ownerSop = await responseData<BountySop>(
+      await page.request.get(`/api/bounties/${created.id}/sop`, {
+        headers: { Authorization: ownerAuthorization },
+      }),
+    );
+    const providerSop = await responseData<BountySop>(
+      await page.request.get(`/api/bounties/${created.id}/sop`, {
+        headers: { Authorization: providerAAuthorization },
+      }),
+    );
+
+    expect(ownerSop).toMatchObject({
+      orderStatus: BOUNTY_STATUS.CONFIRMED,
+      currentStepNumber: 1,
+      canExecute: false,
+    });
+    expect(ownerSop.steps).toHaveLength(5);
+    expect(providerSop).toMatchObject({ currentStepNumber: 1, canExecute: true });
+    await expectFailure(
+      await page.request.get(`/api/bounties/${created.id}/sop`, {
+        headers: { Authorization: otherAuthorization },
+      }),
+      404,
+      BOUNTY_ERROR_CODE.NOT_FOUND,
+    );
+    await expectFailure(
+      await page.request.get(`/api/bounties/${created.id}/sop`, {
+        headers: { Authorization: providerBAuthorization },
+      }),
+      404,
+      BOUNTY_ERROR_CODE.NOT_FOUND,
+    );
+    await expectFailure(
+      await page.request.post(`/api/bounties/${created.id}/sop/steps/1/complete`, {
+        headers: { Authorization: ownerAuthorization },
+      }),
+      404,
+      BOUNTY_ERROR_CODE.NOT_FOUND,
+    );
+    await expectFailure(
+      await page.request.post(`/api/bounties/${created.id}/sop/steps/2/complete`, {
+        headers: { Authorization: providerAAuthorization },
+      }),
+      409,
+      BOUNTY_ERROR_CODE.SOP_STEP_CONFLICT,
+    );
+    await expectFailure(
+      await page.request.post(`/api/bounties/${created.id}/sop/steps/1/complete`, {
+        headers: { Authorization: providerAAuthorization },
+      }),
+      409,
+      BOUNTY_ERROR_CODE.SOP_REQUIREMENTS_NOT_MET,
+    );
+
+    await providerMiniappPage.getByText("查看履约记录", { exact: true }).click();
+    await expect(providerMiniappPage.getByText("1. 到达与消毒", { exact: true })).toBeVisible();
+    await expect(providerMiniappPage.getByLabel("完成到达与消毒")).toBeDisabled();
+
+    await uploadSopEvidence(page.request, providerAAuthorization, created.id, 1, "photo");
+    await providerMiniappPage.reload();
+    await providerMiniappPage.getByText("我的意向", { exact: true }).click();
+    await providerMiniappPage.getByText("查看履约记录", { exact: true }).click();
+    await expect(providerMiniappPage.getByLabel("完成到达与消毒")).toBeEnabled();
+
+    const firstStepCompletionResponse = providerMiniappPage.waitForResponse(
+      (response) =>
+        response.request().method() === "POST" &&
+        response.url().endsWith(`/bounties/${created.id}/sop/steps/1/complete`),
+    );
+
+    await providerMiniappPage.getByLabel("完成到达与消毒").click();
+    await providerMiniappPage.getByText("确认完成", { exact: true }).click();
+    let sop = await responseData<BountySop>(await firstStepCompletionResponse);
+
+    expect(sop).toMatchObject({
+      orderStatus: BOUNTY_STATUS.IN_PROGRESS,
+      currentStepNumber: 2,
+    });
+
+    // These requests must remain sequential because the API rejects evidence for a future step.
+    /* eslint-disable no-await-in-loop */
+    for (const step of sop.steps.filter((item) => !item.completedAt)) {
+      for (let photoIndex = 1; photoIndex <= step.minimumPhotoCount; photoIndex += 1) {
+        sop = await uploadSopEvidence(
+          page.request,
+          providerAAuthorization,
+          created.id,
+          step.stepNumber,
+          "photo",
+          photoIndex,
+        );
+      }
+
+      if (step.videoRequired) {
+        sop = await uploadSopEvidence(
+          page.request,
+          providerAAuthorization,
+          created.id,
+          step.stepNumber,
+          "video",
+        );
+      }
+
+      sop = await responseData<BountySop>(
+        await page.request.post(
+          `/api/bounties/${created.id}/sop/steps/${step.stepNumber}/complete`,
+          { headers: { Authorization: providerAAuthorization } },
+        ),
+      );
+    }
+    /* eslint-enable no-await-in-loop */
+
+    expect(sop).toMatchObject({
+      orderStatus: BOUNTY_STATUS.COMPLETED,
+      currentStepNumber: null,
+      canExecute: false,
+    });
+    expect(sop.steps.every((step) => Boolean(step.completedAt))).toBe(true);
+    expect(
+      await responseData<BountySop>(
+        await page.request.post(`/api/bounties/${created.id}/sop/steps/5/complete`, {
+          headers: { Authorization: providerAAuthorization },
+        }),
+      ),
+    ).toMatchObject({ orderStatus: BOUNTY_STATUS.COMPLETED, currentStepNumber: null });
+
+    await miniappPage.reload();
+    await miniappPage.getByText("我的悬赏", { exact: true }).click();
+    await miniappPage.getByText("查看履约记录", { exact: true }).click();
+    await expect(miniappPage.getByText("5. 离开确认", { exact: true })).toBeVisible();
+    await expect(miniappPage.getByText("已完成", { exact: true }).first()).toBeVisible();
+    await expect(miniappPage.getByText("完成当前步骤", { exact: true })).toHaveCount(0);
+
     await providerMiniappPage.setViewportSize({ width: 812, height: 375 });
     expect(
       await providerMiniappPage.evaluate(

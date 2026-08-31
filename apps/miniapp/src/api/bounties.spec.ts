@@ -1,22 +1,26 @@
 import { beforeEach, describe, expect, it, vi } from "vitest";
-import { authorizedRequest } from "../state/session";
+import { authorizedRequest, authorizedUpload } from "../state/session";
 import {
+  completeBountySopStep,
   confirmBountyIntent,
   createBounty,
   getBountyIntents,
   getBountyProviderEligibility,
+  getBountySop,
   getMyBounties,
   getMyBountyIntents,
   getPublicBounties,
   getPublicBounty,
   submitBountyIntent,
+  uploadBountySopEvidence,
 } from "./bounties";
 import { rawRequest } from "./request";
 
-vi.mock("../state/session", () => ({ authorizedRequest: vi.fn() }));
+vi.mock("../state/session", () => ({ authorizedRequest: vi.fn(), authorizedUpload: vi.fn() }));
 vi.mock("./request", () => ({ rawRequest: vi.fn() }));
 
 const authorizedRequestMock = vi.mocked(authorizedRequest);
+const authorizedUploadMock = vi.mocked(authorizedUpload);
 const rawRequestMock = vi.mocked(rawRequest);
 
 describe("miniapp bounty API", () => {
@@ -72,5 +76,27 @@ describe("miniapp bounty API", () => {
       ["/bounties/bounty%2F1/intents", { method: "POST" }],
       ["/bounties/bounty%2F1/intents/intent%2F1/confirm", { method: "POST" }],
     ]);
+  });
+
+  it("keeps SOP reads, managed evidence, and ordered completion authenticated", async () => {
+    const onProgress = vi.fn();
+
+    authorizedRequestMock.mockResolvedValue({});
+    authorizedUploadMock.mockResolvedValue({});
+    await getBountySop("bounty/1");
+    await uploadBountySopEvidence("bounty/1", 2, "photo", "temp/evidence.png", onProgress);
+    await completeBountySopStep("bounty/1", 2);
+
+    expect(authorizedRequestMock.mock.calls).toEqual([
+      ["/bounties/bounty%2F1/sop"],
+      ["/bounties/bounty%2F1/sop/steps/2/complete", { method: "POST" }],
+    ]);
+    expect(authorizedUploadMock).toHaveBeenCalledWith(
+      "/bounties/bounty%2F1/sop/steps/2/evidence",
+      "temp/evidence.png",
+      "file",
+      { kind: "photo" },
+      onProgress,
+    );
   });
 });

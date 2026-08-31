@@ -10,20 +10,26 @@ import {
 } from "@petcare/shared-types";
 import type {
   BountyProviderEligibility,
+  BountySop,
+  BountySopEvidenceKind,
   MyBounty,
   MyBountyIntent,
   OwnerBountyIntent,
   PublicBounty,
 } from "@petcare/shared-types";
 import { computed, ref, watch } from "vue";
+import BountySopPanel from "./BountySopPanel.vue";
 import {
+  completeBountySopStep,
   confirmBountyIntent,
   getBountyIntents,
   getBountyProviderEligibility,
+  getBountySop,
   getMyBounties,
   getMyBountyIntents,
   getPublicBounties,
   submitBountyIntent,
+  uploadBountySopEvidence,
 } from "@/api/bounties";
 import { getSafeRequestErrorMessage, MiniappApiError } from "@/api/request";
 import PcButton from "@/components/PcButton.vue";
@@ -42,6 +48,7 @@ import {
 type BountyView = "public" | "mine" | "intents";
 type PageStatus = "loading" | "ready" | "error" | "unauthenticated";
 type CandidateStatus = "idle" | "loading" | "ready" | "error";
+type SopStatus = "idle" | "loading" | "ready" | "error";
 
 function padDatePart(part: number): string {
   return part.toString().padStart(2, "0");
@@ -53,6 +60,8 @@ const myBounties = ref<MyBounty[]>([]);
 const myIntents = ref<MyBountyIntent[]>([]);
 const ownerIntents = ref<Record<string, OwnerBountyIntent[]>>({});
 const candidateStatuses = ref<Record<string, CandidateStatus>>({});
+const bountySops = ref<Record<string, BountySop>>({});
+const sopStatuses = ref<Record<string, SopStatus>>({});
 const eligibility = ref<BountyProviderEligibility | null>(null);
 const publicStatus = ref<PageStatus>("loading");
 const mineStatus = ref<PageStatus>("loading");
@@ -62,6 +71,8 @@ const loading = ref(false);
 const openingForm = ref(false);
 const applyingBountyId = ref<string | null>(null);
 const confirmingIntentId = ref<string | null>(null);
+const sopBusy = ref<{ bountyId: string; key: string } | null>(null);
+const sopUploadProgress = ref<number | null>(null);
 const serverUnavailable = ref(false);
 const actionMessage = ref("");
 const actionFailed = ref(false);
@@ -105,6 +116,10 @@ function clearProviderContext(): void {
   myIntents.value = [];
   providerContextStatus.value = session.bootstrapped ? "unauthenticated" : "loading";
   intentStatus.value = providerContextStatus.value;
+  bountySops.value = {};
+  sopStatuses.value = {};
+  sopBusy.value = null;
+  sopUploadProgress.value = null;
 }
 
 async function loadProviderContext(): Promise<void> {
@@ -426,6 +441,7 @@ async function confirmIntent(bounty: MyBounty, intent: OwnerBountyIntent): Promi
 
     publicBounties.value = publicBounties.value.filter((item) => item.id !== confirmed.id);
     await loadOwnerIntents(confirmed.id);
+    await loadSop(confirmed.id);
     showActionMessage(`已确认${confirmed.provider?.nickname ?? "服务者"}接单。`, false);
   } catch (error) {
     if (!isSessionUserRevisionCurrent(startedAt)) {
@@ -443,6 +459,200 @@ async function confirmIntent(bounty: MyBounty, intent: OwnerBountyIntent): Promi
     showActionMessage(getSafeRequestErrorMessage(error, "服务者确认失败，请重试。"), true);
   } finally {
     confirmingIntentId.value = null;
+  }
+}
+
+function hasSop(status: MyBounty["status"]): boolean {
+  return (
+    status === BOUNTY_STATUS.CONFIRMED ||
+    status === BOUNTY_STATUS.IN_PROGRESS ||
+    status === BOUNTY_STATUS.COMPLETED
+  );
+}
+
+function sopStatus(bountyId: string): SopStatus {
+  return sopStatuses.value[bountyId] ?? "idle";
+}
+
+function sopBusyKey(bountyId: string): string | null {
+  return sopBusy.value?.bountyId === bountyId ? sopBusy.value.key : null;
+}
+
+function applySopSnapshot(sop: BountySop): void {
+  bountySops.value[sop.orderId] = sop;
+  sopStatuses.value[sop.orderId] = "ready";
+  myBounties.value = myBounties.value.map((bounty) =>
+    bounty.id === sop.orderId ? { ...bounty, status: sop.orderStatus } : bounty,
+  );
+  myIntents.value = myIntents.value.map((intent) =>
+    intent.bounty.id === sop.orderId
+      ? { ...intent, bounty: { ...intent.bounty, status: sop.orderStatus } }
+      : intent,
+  );
+}
+
+async function loadSop(bountyId: string): Promise<void> {
+  if (!session.user || sopStatus(bountyId) === "loading") {
+    return;
+  }
+
+  sopStatuses.value[bountyId] = "loading";
+  const startedAt = captureSessionUserRevision();
+
+  try {
+    const sop = await getBountySop(bountyId);
+
+    if (isSessionUserRevisionCurrent(startedAt)) {
+      applySopSnapshot(sop);
+    }
+  } catch (error) {
+    if (isSessionUserRevisionCurrent(startedAt)) {
+      sopStatuses.value[bountyId] = "error";
+      showActionMessage(getSafeRequestErrorMessage(error, "履约记录加载失败，请重试。"), true);
+    }
+  }
+}
+
+async function uploadSopEvidence(
+  bountyId: string,
+  stepNumber: number,
+  kind: BountySopEvidenceKind,
+  filePath: string,
+): Promise<void> {
+  if (sopBusy.value) {
+    return;
+  }
+
+  const busy = { bountyId, key: `${stepNumber}:upload-${kind}` };
+
+  sopBusy.value = busy;
+  sopUploadProgress.value = 0;
+  const startedAt = captureSessionUserRevision();
+
+  try {
+    const sop = await uploadBountySopEvidence(bountyId, stepNumber, kind, filePath, (progress) => {
+      if (isSessionUserRevisionCurrent(startedAt)) {
+        sopUploadProgress.value = progress;
+      }
+    });
+
+    if (isSessionUserRevisionCurrent(startedAt)) {
+      applySopSnapshot(sop);
+      showActionMessage(kind === "photo" ? "履约照片已上传。" : "履约视频已上传。", false);
+    }
+  } catch (error) {
+    if (isSessionUserRevisionCurrent(startedAt)) {
+      showActionMessage(getSafeRequestErrorMessage(error, "履约证据上传失败，请重试。"), true);
+    }
+  } finally {
+    if (sopBusy.value === busy) {
+      sopBusy.value = null;
+      sopUploadProgress.value = null;
+    }
+  }
+}
+
+function chooseSopPhoto(bountyId: string, stepNumber: number): void {
+  if (sopBusy.value) {
+    return;
+  }
+
+  const busy = { bountyId, key: `${stepNumber}:choose-photo` };
+  const startedAt = captureSessionUserRevision();
+
+  sopBusy.value = busy;
+  uni.chooseImage({
+    count: 1,
+    sizeType: ["compressed"],
+    success(result) {
+      const filePath = result.tempFilePaths[0];
+
+      if (sopBusy.value === busy) {
+        sopBusy.value = null;
+      }
+
+      if (filePath && isSessionUserRevisionCurrent(startedAt)) {
+        void uploadSopEvidence(bountyId, stepNumber, "photo", filePath);
+      }
+    },
+    fail() {
+      if (sopBusy.value === busy) {
+        sopBusy.value = null;
+      }
+    },
+  });
+}
+
+function chooseSopVideo(bountyId: string, stepNumber: number): void {
+  if (sopBusy.value) {
+    return;
+  }
+
+  const busy = { bountyId, key: `${stepNumber}:choose-video` };
+  const startedAt = captureSessionUserRevision();
+
+  sopBusy.value = busy;
+  uni.chooseVideo({
+    sourceType: ["camera", "album"],
+    compressed: true,
+    maxDuration: 60,
+    success(result) {
+      if (sopBusy.value === busy) {
+        sopBusy.value = null;
+      }
+
+      if (result.tempFilePath && isSessionUserRevisionCurrent(startedAt)) {
+        void uploadSopEvidence(bountyId, stepNumber, "video", result.tempFilePath);
+      }
+    },
+    fail() {
+      if (sopBusy.value === busy) {
+        sopBusy.value = null;
+      }
+    },
+  });
+}
+
+async function completeSopStep(bountyId: string, stepNumber: number): Promise<void> {
+  if (sopBusy.value) {
+    return;
+  }
+
+  const confirmation = await uni.showModal({
+    title: "完成当前步骤",
+    content: "确认所需证据已经完整并完成当前服务步骤？",
+    confirmText: "确认完成",
+  });
+
+  if (!confirmation.confirm) {
+    return;
+  }
+
+  const busy = { bountyId, key: `${stepNumber}:complete` };
+
+  sopBusy.value = busy;
+  const startedAt = captureSessionUserRevision();
+
+  try {
+    const sop = await completeBountySopStep(bountyId, stepNumber);
+
+    if (isSessionUserRevisionCurrent(startedAt)) {
+      applySopSnapshot(sop);
+      showActionMessage(
+        sop.orderStatus === BOUNTY_STATUS.COMPLETED
+          ? "全部履约步骤已完成。"
+          : "当前步骤已完成，请继续下一步。",
+        false,
+      );
+    }
+  } catch (error) {
+    if (isSessionUserRevisionCurrent(startedAt)) {
+      showActionMessage(getSafeRequestErrorMessage(error, "履约步骤更新失败，请重试。"), true);
+    }
+  } finally {
+    if (sopBusy.value === busy) {
+      sopBusy.value = null;
+    }
   }
 }
 
@@ -740,6 +950,14 @@ watch(
                   </template>
                 </view>
               </view>
+
+              <BountySopPanel
+                v-if="hasSop(bounty.status)"
+                :status="sopStatus(bounty.id)"
+                :sop="bountySops[bounty.id]"
+                :read-only="true"
+                @load="loadSop(bounty.id)"
+              />
             </view>
           </view>
         </template>
@@ -783,6 +1001,20 @@ watch(
                   备注：{{ intent.bounty.remark }}
                 </text>
               </view>
+              <BountySopPanel
+                v-if="
+                  intent.status === BOUNTY_INTENT_STATUS.CONFIRMED && hasSop(intent.bounty.status)
+                "
+                :status="sopStatus(intent.bounty.id)"
+                :sop="bountySops[intent.bounty.id]"
+                :read-only="false"
+                :busy-key="sopBusyKey(intent.bounty.id)"
+                :upload-progress="sopBusy?.bountyId === intent.bounty.id ? sopUploadProgress : null"
+                @load="loadSop(intent.bounty.id)"
+                @photo="chooseSopPhoto(intent.bounty.id, $event)"
+                @video="chooseSopVideo(intent.bounty.id, $event)"
+                @complete="completeSopStep(intent.bounty.id, $event)"
+              />
             </view>
           </view>
         </template>

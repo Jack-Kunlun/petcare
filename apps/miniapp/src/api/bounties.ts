@@ -1,6 +1,8 @@
 import type {
   BountyListQuery,
   BountyProviderEligibility,
+  BountySop,
+  BountySopEvidenceKind,
   CreateBountyRequest,
   MyBounty,
   MyBountyIntent,
@@ -10,8 +12,9 @@ import type {
   PublicBounty,
   PublicBountyListResponse,
 } from "@petcare/shared-types";
-import { authorizedRequest } from "../state/session";
+import { authorizedRequest, authorizedUpload } from "../state/session";
 import { rawRequest } from "./request";
+import type { UploadProgressHandler } from "./request";
 
 function queryString(query: BountyListQuery): string {
   return `page=${query.page}&pageSize=${query.pageSize}`;
@@ -63,6 +66,36 @@ export function submitBountyIntent(bountyId: string): Promise<MyBountyIntent> {
 export function confirmBountyIntent(bountyId: string, intentId: string): Promise<MyBounty> {
   return authorizedRequest(
     `/bounties/${encodeURIComponent(bountyId)}/intents/${encodeURIComponent(intentId)}/confirm`,
+    { method: "POST" },
+  );
+}
+
+/** Reads the frozen SOP for the authenticated owner or confirmed provider. */
+export function getBountySop(bountyId: string): Promise<BountySop> {
+  return authorizedRequest(`/bounties/${encodeURIComponent(bountyId)}/sop`);
+}
+
+/** Uploads one managed photo or MP4 to the current SOP step. */
+export function uploadBountySopEvidence(
+  bountyId: string,
+  stepNumber: number,
+  kind: BountySopEvidenceKind,
+  filePath: string,
+  onProgress?: UploadProgressHandler,
+): Promise<BountySop> {
+  return authorizedUpload(
+    `/bounties/${encodeURIComponent(bountyId)}/sop/steps/${stepNumber}/evidence`,
+    filePath,
+    "file",
+    { kind },
+    onProgress,
+  );
+}
+
+/** Completes the exact current SOP step after its frozen evidence requirements pass. */
+export function completeBountySopStep(bountyId: string, stepNumber: number): Promise<BountySop> {
+  return authorizedRequest(
+    `/bounties/${encodeURIComponent(bountyId)}/sop/steps/${stepNumber}/complete`,
     { method: "POST" },
   );
 }

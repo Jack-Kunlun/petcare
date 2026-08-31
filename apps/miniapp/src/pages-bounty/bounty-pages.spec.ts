@@ -5,6 +5,7 @@ import { describe, expect, it } from "vitest";
 const page = (name: string) => readFileSync(resolve(import.meta.dirname, name), "utf8");
 const index = page("index.vue");
 const form = page("form.vue");
+const sopPanel = page("BountySopPanel.vue");
 
 describe("bounty pages", () => {
   it("keeps deep links and navigation unavailable when the client boundary is closed", () => {
@@ -55,6 +56,23 @@ describe("bounty pages", () => {
     expect(index).toContain("intent.bounty.remark");
     expect(index).toContain("BOUNTY_INTENT_STATUS_LABELS[intent.status]");
     expect(index).toContain("BOUNTY_STATUS_LABELS[bounty.status]");
+  });
+
+  it("keeps owner SOP read-only and provider execution ordered, qualified, and evidence-gated", () => {
+    expect(index).toContain("getBountySop(bountyId)");
+    expect(index).toContain("uploadBountySopEvidence(");
+    expect(index).toContain("completeBountySopStep(bountyId, stepNumber)");
+    expect(index).toContain("uni.chooseImage");
+    expect(index).toContain("uni.chooseVideo");
+    expect(index).toContain(':read-only="true"');
+    expect(index).toContain(':read-only="false"');
+    expect(sopPanel).toContain("props.sop?.currentStepNumber === step.stepNumber");
+    expect(sopPanel).toContain("step.photos.length >= step.minimumPhotoCount");
+    expect(sopPanel).toContain("!step.videoRequired || step.videos.length > 0");
+    expect(sopPanel).toContain("!sop.canExecute");
+    expect(sopPanel).toContain("BOUNTY_SOP_LIMITS.MAX_PHOTOS_PER_STEP");
+    expect(sopPanel).toContain('role="status"');
+    expect(sopPanel).toContain(":aria-label");
   });
 
   it("uses visible labels, native pickers, inline errors, and a duplicate-safe submit", () => {

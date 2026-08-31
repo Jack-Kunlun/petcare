@@ -655,6 +655,9 @@ async function seedCompiledServer(env) {
   const { seedInitialData } = serverRequire(
     path.join(serverDirectory, "dist", "seed", "seed-initial-data.js"),
   );
+  const { seedSopConfiguration } = serverRequire(
+    path.join(serverDirectory, "dist", "seed", "seed-sop-config.js"),
+  );
   const { seedWebsiteContent } = serverRequire(
     path.join(serverDirectory, "dist", "seed", "seed-website-content.js"),
   );
@@ -682,6 +685,7 @@ async function seedCompiledServer(env) {
     });
 
     await seedWebsiteContent(prisma, administrator.id);
+    await seedSopConfiguration(prisma, administrator.id);
     await prisma.websiteMediaAsset.upsert({
       where: { storageKey: "public/website-media/e2e/website-e2e-selection.png" },
       update: {
