@@ -1,6 +1,16 @@
 import { beforeEach, describe, expect, it, vi } from "vitest";
 import { authorizedRequest } from "../state/session";
-import { createBounty, getMyBounties, getPublicBounties, getPublicBounty } from "./bounties";
+import {
+  confirmBountyIntent,
+  createBounty,
+  getBountyIntents,
+  getBountyProviderEligibility,
+  getMyBounties,
+  getMyBountyIntents,
+  getPublicBounties,
+  getPublicBounty,
+  submitBountyIntent,
+} from "./bounties";
 import { rawRequest } from "./request";
 
 vi.mock("../state/session", () => ({ authorizedRequest: vi.fn() }));
@@ -44,5 +54,23 @@ describe("miniapp bounty API", () => {
       method: "POST",
       data: request,
     });
+  });
+
+  it("keeps qualification, intent, and owner confirmation routes authenticated and encoded", async () => {
+    authorizedRequestMock.mockResolvedValue({});
+
+    await getBountyProviderEligibility();
+    await getMyBountyIntents({ page: 2, pageSize: 10 });
+    await getBountyIntents("bounty/1", { page: 1, pageSize: 20 });
+    await submitBountyIntent("bounty/1");
+    await confirmBountyIntent("bounty/1", "intent/1");
+
+    expect(authorizedRequestMock.mock.calls).toEqual([
+      ["/bounties/provider-eligibility"],
+      ["/bounties/intents/mine?page=2&pageSize=10"],
+      ["/bounties/bounty%2F1/intents?page=1&pageSize=20"],
+      ["/bounties/bounty%2F1/intents", { method: "POST" }],
+      ["/bounties/bounty%2F1/intents/intent%2F1/confirm", { method: "POST" }],
+    ]);
   });
 });

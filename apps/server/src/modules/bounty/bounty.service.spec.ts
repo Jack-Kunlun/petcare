@@ -1,5 +1,10 @@
 import { HttpStatus } from "@nestjs/common";
-import { BOUNTY_ERROR_CODE, BOUNTY_SERVICE_TYPE, BOUNTY_STATUS } from "@petcare/shared-types";
+import {
+  BOUNTY_ERROR_CODE,
+  BOUNTY_INTENT_STATUS,
+  BOUNTY_SERVICE_TYPE,
+  BOUNTY_STATUS,
+} from "@petcare/shared-types";
 import { ConfigService } from "../../config/config.service";
 import { PrismaService } from "../../prisma/prisma.service";
 import { BountyFeatureGuard } from "./bounty.controller";
@@ -7,25 +12,43 @@ import { BountyService } from "./bounty.service";
 
 describe("BountyService", () => {
   const prisma = {
+    user: { findUnique: jest.fn() },
     order: {
       findMany: jest.fn(),
       count: jest.fn(),
       findFirst: jest.fn(),
+    },
+    orderIntent: {
+      findMany: jest.fn(),
+      count: jest.fn(),
     },
     $transaction: jest.fn(),
   };
   const transaction = {
     $queryRaw: jest.fn(),
     pet: { findFirst: jest.fn() },
-    order: { create: jest.fn() },
+    order: {
+      create: jest.fn(),
+      findFirst: jest.fn(),
+      updateMany: jest.fn(),
+    },
+    orderIntent: {
+      upsert: jest.fn(),
+      findFirst: jest.fn(),
+      update: jest.fn(),
+      updateMany: jest.fn(),
+    },
   };
   const config = { orderTimeoutDelayMs: 48 * 60 * 60 * 1000 } as ConfigService;
   const service = new BountyService(prisma as unknown as PrismaService, config);
-  const now = new Date("2026-08-30T00:00:00.000Z");
+  const now = new Date("2026-08-31T00:00:00.000Z");
   const serviceTime = "2026-09-03T00:00:00.000Z";
-  const expiresAt = new Date("2026-09-01T00:00:00.000Z");
+  const expiresAt = new Date("2026-09-02T00:00:00.000Z");
   const petId = "11111111-1111-4111-8111-111111111111";
   const bountyId = "22222222-2222-4222-8222-222222222222";
+  const intentId = "33333333-3333-4333-8333-333333333333";
+  const providerId = "44444444-4444-4444-8444-444444444444";
+  const otherProviderId = "55555555-5555-4555-8555-555555555555";
   const input = {
     petId,
     serviceType: BOUNTY_SERVICE_TYPE.FEEDING,
@@ -45,6 +68,12 @@ describe("BountyService", () => {
     createdAt: now,
     reward: { expireTime: expiresAt },
     pet: { id: petId, name: "米米", breed: "英短", photos: [] },
+    provider: null,
+  };
+  const confirmedPrivateRow = {
+    ...privateRow,
+    status: BOUNTY_STATUS.CONFIRMED,
+    provider: { id: providerId, nickname: "合格服务者", avatar: null },
   };
   const publicRow = {
     id: bountyId,
@@ -56,15 +85,73 @@ describe("BountyService", () => {
     owner: { nickname: "小萌", avatar: null },
     pet: { name: "米米", breed: "英短", photos: [] },
   };
+  const intentOrder = {
+    id: bountyId,
+    serviceType: BOUNTY_SERVICE_TYPE.FEEDING,
+    serviceTime: new Date(serviceTime),
+    amount: 5_000,
+    status: BOUNTY_STATUS.OPEN,
+    address: "上海市示例地址",
+    remark: "请换水",
+    providerId: null,
+    reward: { expireTime: expiresAt },
+    owner: { nickname: "小萌", avatar: null },
+    pet: { name: "米米", breed: "英短", photos: [] },
+  };
+  const pendingIntentRow = {
+    id: intentId,
+    intentStatus: BOUNTY_INTENT_STATUS.PENDING,
+    createdAt: now,
+    order: intentOrder,
+  };
+  let lockedBounty: {
+    id: string;
+    ownerId: string;
+    providerId: string | null;
+    status: string;
+    expiresAt: Date;
+  };
+  let providerEligible: boolean;
 
   beforeEach(() => {
     jest.useFakeTimers().setSystemTime(now);
     jest.clearAllMocks();
+    lockedBounty = {
+      id: bountyId,
+      ownerId: "owner-1",
+      providerId: null,
+      status: BOUNTY_STATUS.OPEN,
+      expiresAt,
+    };
+    providerEligible = true;
     prisma.$transaction.mockImplementation((operation) => operation(transaction));
-    transaction.$queryRaw.mockResolvedValue([{ status: "active", phone: "13800000000" }]);
+    transaction.$queryRaw.mockImplementation((strings: TemplateStringsArray) => {
+      const sql = strings.join(" ");
+
+      if (sql.includes('INNER JOIN "order_rewards"')) {
+        return Promise.resolve(lockedBounty ? [lockedBounty] : []);
+      }
+
+      if (sql.includes('INNER JOIN "providers"')) {
+        return Promise.resolve(providerEligible ? [{ id: providerId }] : []);
+      }
+
+      return Promise.resolve([{ status: "active", phone: "13800000000" }]);
+    });
     transaction.pet.findFirst.mockResolvedValue({ id: petId });
     transaction.order.create.mockResolvedValue(privateRow);
+    transaction.order.updateMany.mockResolvedValue({ count: 1 });
+    transaction.order.findFirst.mockResolvedValue(confirmedPrivateRow);
+    transaction.orderIntent.upsert.mockResolvedValue(pendingIntentRow);
+    transaction.orderIntent.findFirst.mockResolvedValue({
+      id: intentId,
+      providerId,
+      intentStatus: BOUNTY_INTENT_STATUS.PENDING,
+    });
+    transaction.orderIntent.update.mockResolvedValue({});
+    transaction.orderIntent.updateMany.mockResolvedValue({ count: 1 });
     prisma.order.count.mockResolvedValue(1);
+    prisma.orderIntent.count.mockResolvedValue(1);
   });
 
   afterEach(() => {
@@ -83,6 +170,7 @@ describe("BountyService", () => {
       expiresAt: expiresAt.toISOString(),
       createdAt: now.toISOString(),
       pet: { id: petId, name: "米米", breed: "英短", coverImage: null },
+      provider: null,
     });
     expect(transaction.pet.findFirst).toHaveBeenCalledWith({
       where: { id: petId, ownerId: "owner-1" },
@@ -135,11 +223,220 @@ describe("BountyService", () => {
     expect(prisma.$transaction).not.toHaveBeenCalled();
   });
 
+  it("requires the provider account type and every persisted qualification flag", async () => {
+    const qualified = {
+      phone: "13800000000",
+      status: "active",
+      userType: "provider",
+      provider: {
+        idCardVerified: true,
+        trainingPassed: true,
+        certifiedSitter: true,
+      },
+    };
+
+    prisma.user.findUnique.mockResolvedValue(qualified);
+    await expect(service.getProviderEligibility(providerId)).resolves.toEqual({ eligible: true });
+
+    const ineligibleUsers = [
+      { ...qualified, userType: "pet_owner" },
+      { ...qualified, phone: null },
+      { ...qualified, provider: null },
+      { ...qualified, provider: { ...qualified.provider, idCardVerified: false } },
+      { ...qualified, provider: { ...qualified.provider, trainingPassed: false } },
+      { ...qualified, provider: { ...qualified.provider, certifiedSitter: false } },
+    ];
+
+    for (const user of ineligibleUsers) {
+      prisma.user.findUnique.mockResolvedValueOnce(user);
+    }
+
+    await expect(
+      Promise.all(ineligibleUsers.map(() => service.getProviderEligibility(providerId))),
+    ).resolves.toEqual(ineligibleUsers.map(() => ({ eligible: false })));
+  });
+
+  it("returns the same intent for repeated qualified submissions without private fields", async () => {
+    const first = await service.submitIntent(providerId, bountyId);
+    const repeated = await service.submitIntent(providerId, bountyId);
+
+    expect(first).toEqual(repeated);
+    expect(first).toMatchObject({
+      id: intentId,
+      status: BOUNTY_INTENT_STATUS.PENDING,
+      bounty: { id: bountyId, address: null, remark: null },
+    });
+    expect(transaction.orderIntent.upsert).toHaveBeenCalledTimes(2);
+    expect(transaction.orderIntent.upsert).toHaveBeenLastCalledWith({
+      where: { orderId_providerId: { orderId: bountyId, providerId } },
+      update: {},
+      create: { orderId: bountyId, providerId, intentStatus: BOUNTY_INTENT_STATUS.PENDING },
+      select: expect.any(Object),
+    });
+
+    const lockSql = transaction.$queryRaw.mock.calls
+      .map(([strings]) => (strings as TemplateStringsArray).join(" "))
+      .join(" ");
+
+    expect(lockSql).toContain("FOR UPDATE OF o, r");
+    expect(lockSql).toContain("FOR SHARE OF u, p");
+    expect(lockSql).toContain("BTRIM(u.\"phone\") <> ''");
+    expect(lockSql).toContain("u.\"user_type\" = 'provider'");
+    expect(lockSql).toContain('p."certified_sitter" = TRUE');
+  });
+
+  it("rejects missing qualification, owner self-intent, and closed bounties deterministically", async () => {
+    providerEligible = false;
+    await expect(service.submitIntent(providerId, bountyId)).rejects.toMatchObject({
+      code: BOUNTY_ERROR_CODE.PROVIDER_NOT_ELIGIBLE,
+      status: HttpStatus.FORBIDDEN,
+    });
+
+    lockedBounty.ownerId = providerId;
+    await expect(service.submitIntent(providerId, bountyId)).rejects.toMatchObject({
+      code: BOUNTY_ERROR_CODE.OWN_BOUNTY_FORBIDDEN,
+      status: HttpStatus.FORBIDDEN,
+    });
+
+    lockedBounty.ownerId = "owner-1";
+    lockedBounty.status = BOUNTY_STATUS.CONFIRMED;
+    await expect(service.submitIntent(providerId, bountyId)).rejects.toMatchObject({
+      code: BOUNTY_ERROR_CODE.NOT_OPEN,
+      status: HttpStatus.CONFLICT,
+    });
+    expect(transaction.orderIntent.upsert).not.toHaveBeenCalled();
+  });
+
+  it("keeps intent address private until that provider is confirmed", async () => {
+    const confirmedIntent = {
+      ...pendingIntentRow,
+      intentStatus: BOUNTY_INTENT_STATUS.CONFIRMED,
+      order: {
+        ...intentOrder,
+        providerId,
+        status: BOUNTY_STATUS.CONFIRMED,
+      },
+    };
+
+    prisma.orderIntent.findMany.mockResolvedValueOnce([pendingIntentRow]);
+    await expect(
+      service.findMyIntents(providerId, { page: 1, pageSize: 20 }),
+    ).resolves.toMatchObject({
+      list: [{ bounty: { address: null, remark: null } }],
+    });
+
+    prisma.orderIntent.findMany.mockResolvedValueOnce([confirmedIntent]);
+    await expect(
+      service.findMyIntents(providerId, { page: 1, pageSize: 20 }),
+    ).resolves.toMatchObject({
+      list: [{ bounty: { address: "上海市示例地址", remark: "请换水" } }],
+    });
+  });
+
+  it("hides candidate lists from non-owners and returns public provider summaries to the owner", async () => {
+    prisma.order.findFirst.mockResolvedValueOnce(null);
+    await expect(
+      service.findOwnerIntents("owner-2", bountyId, { page: 1, pageSize: 20 }),
+    ).rejects.toMatchObject({ code: BOUNTY_ERROR_CODE.NOT_FOUND, status: HttpStatus.NOT_FOUND });
+
+    prisma.order.findFirst.mockResolvedValueOnce({ id: bountyId });
+    prisma.orderIntent.findMany.mockResolvedValueOnce([
+      {
+        id: intentId,
+        intentStatus: BOUNTY_INTENT_STATUS.PENDING,
+        createdAt: now,
+        provider: { id: providerId, nickname: "合格服务者", avatar: null },
+      },
+    ]);
+    await expect(
+      service.findOwnerIntents("owner-1", bountyId, { page: 1, pageSize: 20 }),
+    ).resolves.toMatchObject({
+      list: [
+        {
+          id: intentId,
+          status: BOUNTY_INTENT_STATUS.PENDING,
+          provider: { id: providerId, nickname: "合格服务者" },
+        },
+      ],
+    });
+  });
+
+  it("atomically confirms one provider, rejects competitors, and returns the owner order", async () => {
+    await expect(service.confirmIntent("owner-1", bountyId, intentId)).resolves.toMatchObject({
+      id: bountyId,
+      status: BOUNTY_STATUS.CONFIRMED,
+      provider: { id: providerId },
+    });
+    expect(transaction.order.updateMany).toHaveBeenCalledWith({
+      where: {
+        id: bountyId,
+        ownerId: "owner-1",
+        orderType: "reward",
+        status: BOUNTY_STATUS.OPEN,
+        providerId: null,
+      },
+      data: { providerId, status: BOUNTY_STATUS.CONFIRMED },
+    });
+    expect(transaction.orderIntent.update).toHaveBeenCalledWith({
+      where: { id: intentId },
+      data: { intentStatus: BOUNTY_INTENT_STATUS.CONFIRMED },
+    });
+    expect(transaction.orderIntent.updateMany).toHaveBeenCalledWith({
+      where: {
+        orderId: bountyId,
+        id: { not: intentId },
+        intentStatus: BOUNTY_INTENT_STATUS.PENDING,
+      },
+      data: { intentStatus: BOUNTY_INTENT_STATUS.REJECTED },
+    });
+  });
+
+  it("makes the winning confirmation replay-safe and rejects a different candidate", async () => {
+    lockedBounty.providerId = providerId;
+    lockedBounty.status = BOUNTY_STATUS.CONFIRMED;
+    transaction.orderIntent.findFirst.mockResolvedValueOnce({
+      id: intentId,
+      providerId,
+      intentStatus: BOUNTY_INTENT_STATUS.CONFIRMED,
+    });
+
+    await expect(service.confirmIntent("owner-1", bountyId, intentId)).resolves.toMatchObject({
+      provider: { id: providerId },
+    });
+    expect(transaction.order.updateMany).not.toHaveBeenCalled();
+
+    transaction.orderIntent.findFirst.mockResolvedValueOnce({
+      id: "66666666-6666-4666-8666-666666666666",
+      providerId: otherProviderId,
+      intentStatus: BOUNTY_INTENT_STATUS.PENDING,
+    });
+    await expect(
+      service.confirmIntent("owner-1", bountyId, "66666666-6666-4666-8666-666666666666"),
+    ).rejects.toMatchObject({
+      code: BOUNTY_ERROR_CODE.CONFIRMATION_CONFLICT,
+      status: HttpStatus.CONFLICT,
+    });
+  });
+
+  it("turns a lost conditional claim or revoked candidate into a stable conflict", async () => {
+    transaction.order.updateMany.mockResolvedValueOnce({ count: 0 });
+    await expect(service.confirmIntent("owner-1", bountyId, intentId)).rejects.toMatchObject({
+      code: BOUNTY_ERROR_CODE.CONFIRMATION_CONFLICT,
+      status: HttpStatus.CONFLICT,
+    });
+
+    providerEligible = false;
+    await expect(service.confirmIntent("owner-1", bountyId, intentId)).rejects.toMatchObject({
+      code: BOUNTY_ERROR_CODE.PROVIDER_NOT_ELIGIBLE,
+      status: HttpStatus.CONFLICT,
+    });
+  });
+
   it("returns owner-only address data from an owner-scoped query", async () => {
     prisma.order.findMany.mockResolvedValue([privateRow]);
 
     await expect(service.findMine("owner-1", { page: 1, pageSize: 20 })).resolves.toMatchObject({
-      list: [{ id: bountyId, address: "上海市示例地址", remark: "请换水" }],
+      list: [{ id: bountyId, address: "上海市示例地址", remark: "请换水", provider: null }],
       total: 1,
     });
     expect(prisma.order.findMany).toHaveBeenCalledWith(

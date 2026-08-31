@@ -1,15 +1,23 @@
 import { HttpStatus, Injectable } from "@nestjs/common";
 import {
   BOUNTY_ERROR_CODE,
+  BOUNTY_INTENT_STATUS,
   BOUNTY_LIMITS,
   BOUNTY_SERVICE_TYPE,
   BOUNTY_STATUS,
   MINIAPP_ACCOUNT_ERROR_CODE,
+  type BountyIntentStatus,
   type BountyListQuery,
+  type BountyProviderEligibility,
   type BountyServiceType,
+  type BountyStatus,
   type CreateBountyRequest,
   type MyBounty,
+  type MyBountyIntent,
+  type MyBountyIntentListResponse,
   type MyBountyListResponse,
+  type OwnerBountyIntent,
+  type OwnerBountyIntentListResponse,
   type PublicBounty,
   type PublicBountyListResponse,
 } from "@petcare/shared-types";
@@ -18,6 +26,12 @@ import { ConfigService } from "../../config/config.service";
 import type { Prisma } from "../../generated/prisma/client";
 import { PrismaService } from "../../prisma/prisma.service";
 import { lockUserRow } from "../../prisma/user-row-lock";
+
+const providerSummarySelect = {
+  id: true,
+  nickname: true,
+  avatar: true,
+} satisfies Prisma.UserSelect;
 
 const privateBountySelect = {
   id: true,
@@ -30,6 +44,7 @@ const privateBountySelect = {
   createdAt: true,
   reward: { select: { expireTime: true } },
   pet: { select: { id: true, name: true, breed: true, photos: true } },
+  provider: { select: providerSummarySelect },
 } satisfies Prisma.OrderSelect;
 
 const publicBountySelect = {
@@ -43,10 +58,62 @@ const publicBountySelect = {
   pet: { select: { name: true, breed: true, photos: true } },
 } satisfies Prisma.OrderSelect;
 
+const ownerIntentSelect = {
+  id: true,
+  intentStatus: true,
+  createdAt: true,
+  provider: { select: providerSummarySelect },
+} satisfies Prisma.OrderIntentSelect;
+
+const intentBountySelect = {
+  id: true,
+  serviceType: true,
+  serviceTime: true,
+  amount: true,
+  status: true,
+  address: true,
+  remark: true,
+  providerId: true,
+  reward: { select: { expireTime: true } },
+  owner: { select: { nickname: true, avatar: true } },
+  pet: { select: { name: true, breed: true, photos: true } },
+} satisfies Prisma.OrderSelect;
+
+const myIntentSelect = {
+  id: true,
+  intentStatus: true,
+  createdAt: true,
+  order: { select: intentBountySelect },
+} satisfies Prisma.OrderIntentSelect;
+
+const providerEligibilitySelect = {
+  phone: true,
+  status: true,
+  userType: true,
+  provider: {
+    select: {
+      idCardVerified: true,
+      trainingPassed: true,
+      certifiedSitter: true,
+    },
+  },
+} satisfies Prisma.UserSelect;
+
 type PrivateBountyRow = Prisma.OrderGetPayload<{ select: typeof privateBountySelect }>;
 type PublicBountyRow = Prisma.OrderGetPayload<{ select: typeof publicBountySelect }>;
+type OwnerIntentRow = Prisma.OrderIntentGetPayload<{ select: typeof ownerIntentSelect }>;
+type MyIntentRow = Prisma.OrderIntentGetPayload<{ select: typeof myIntentSelect }>;
+type ProviderEligibilityRow = Prisma.UserGetPayload<{ select: typeof providerEligibilitySelect }>;
 
-/** Owns Cycle 5 bounty creation and privacy-scoped reads. */
+interface LockedBountyRow {
+  id: string;
+  ownerId: string;
+  providerId: string | null;
+  status: string;
+  expiresAt: Date;
+}
+
+/** Owns default-closed bounty creation, qualification, intent, and confirmation state. */
 @Injectable()
 export class BountyService {
   constructor(
@@ -127,6 +194,224 @@ export class BountyService {
       throw new ApiException(
         BOUNTY_ERROR_CODE.CREATION_FAILED,
         "悬赏发布失败，请稍后重试",
+        HttpStatus.INTERNAL_SERVER_ERROR,
+      );
+    }
+  }
+
+  /** Reports whether the current account passes every persisted provider gate. */
+  async getProviderEligibility(userId: string): Promise<BountyProviderEligibility> {
+    const user = await this.prisma.user.findUnique({
+      where: { id: userId },
+      select: providerEligibilitySelect,
+    });
+
+    return { eligible: this.isEligibleProvider(user) };
+  }
+
+  /** Creates or returns the provider's single intent for one open bounty. */
+  async submitIntent(providerId: string, bountyId: string): Promise<MyBountyIntent> {
+    try {
+      return await this.prisma.$transaction(async (transaction) => {
+        const bounty = await this.lockBounty(transaction, bountyId);
+
+        if (!bounty) {
+          throw this.notFound();
+        }
+
+        if (bounty.ownerId === providerId) {
+          throw new ApiException(
+            BOUNTY_ERROR_CODE.OWN_BOUNTY_FORBIDDEN,
+            "不能接取自己发布的悬赏",
+            HttpStatus.FORBIDDEN,
+          );
+        }
+
+        if (
+          bounty.status !== BOUNTY_STATUS.OPEN ||
+          bounty.providerId !== null ||
+          bounty.expiresAt.getTime() <= Date.now()
+        ) {
+          throw this.notOpen();
+        }
+
+        if (!(await this.lockEligibleProvider(transaction, providerId))) {
+          throw this.providerNotEligible();
+        }
+
+        const intent = await transaction.orderIntent.upsert({
+          where: { orderId_providerId: { orderId: bountyId, providerId } },
+          update: {},
+          create: {
+            orderId: bountyId,
+            providerId,
+            intentStatus: BOUNTY_INTENT_STATUS.PENDING,
+          },
+          select: myIntentSelect,
+        });
+
+        return this.toMyIntent(intent, providerId);
+      });
+    } catch (error) {
+      if (error instanceof ApiException) {
+        throw error;
+      }
+
+      if (this.isPrismaError(error, "P2003")) {
+        throw this.notFound();
+      }
+
+      throw new ApiException(
+        BOUNTY_ERROR_CODE.INTENT_FAILED,
+        "接单意向提交失败，请稍后重试",
+        HttpStatus.INTERNAL_SERVER_ERROR,
+      );
+    }
+  }
+
+  /** Lists all intents submitted by the authenticated provider without leaking private fields. */
+  async findMyIntents(
+    providerId: string,
+    query: BountyListQuery,
+  ): Promise<MyBountyIntentListResponse> {
+    const where = {
+      providerId,
+      order: { is: { orderType: "reward", reward: { isNot: null } } },
+    } as const;
+    const [list, total] = await Promise.all([
+      this.prisma.orderIntent.findMany({
+        where,
+        orderBy: [{ createdAt: "desc" }, { id: "desc" }],
+        skip: (query.page - 1) * query.pageSize,
+        take: query.pageSize,
+        select: myIntentSelect,
+      }),
+      this.prisma.orderIntent.count({ where }),
+    ]);
+
+    return {
+      list: list.map((intent) => this.toMyIntent(intent, providerId)),
+      total,
+      page: query.page,
+      pageSize: query.pageSize,
+    };
+  }
+
+  /** Lists provider candidates only when the authenticated account owns the bounty. */
+  async findOwnerIntents(
+    ownerId: string,
+    bountyId: string,
+    query: BountyListQuery,
+  ): Promise<OwnerBountyIntentListResponse> {
+    const bounty = await this.prisma.order.findFirst({
+      where: { id: bountyId, ownerId, orderType: "reward", reward: { isNot: null } },
+      select: { id: true },
+    });
+
+    if (!bounty) {
+      throw this.notFound();
+    }
+
+    const where = { orderId: bountyId } as const;
+    const [list, total] = await Promise.all([
+      this.prisma.orderIntent.findMany({
+        where,
+        orderBy: [{ createdAt: "asc" }, { id: "asc" }],
+        skip: (query.page - 1) * query.pageSize,
+        take: query.pageSize,
+        select: ownerIntentSelect,
+      }),
+      this.prisma.orderIntent.count({ where }),
+    ]);
+
+    return {
+      list: list.map((intent) => this.toOwnerIntent(intent)),
+      total,
+      page: query.page,
+      pageSize: query.pageSize,
+    };
+  }
+
+  /** Confirms exactly one currently eligible provider and rejects every competing pending intent. */
+  async confirmIntent(ownerId: string, bountyId: string, intentId: string): Promise<MyBounty> {
+    try {
+      return await this.prisma.$transaction(async (transaction) => {
+        const bounty = await this.lockBounty(transaction, bountyId);
+
+        if (!bounty || bounty.ownerId !== ownerId) {
+          throw this.notFound();
+        }
+
+        const intent = await transaction.orderIntent.findFirst({
+          where: { id: intentId, orderId: bountyId },
+          select: { id: true, providerId: true, intentStatus: true },
+        });
+
+        if (!intent) {
+          throw this.notFound();
+        }
+
+        if (bounty.providerId !== null) {
+          if (
+            bounty.providerId === intent.providerId &&
+            intent.intentStatus === BOUNTY_INTENT_STATUS.CONFIRMED
+          ) {
+            return this.findLockedPrivateBounty(transaction, bountyId, ownerId);
+          }
+
+          throw this.confirmationConflict();
+        }
+
+        if (
+          bounty.status !== BOUNTY_STATUS.OPEN ||
+          bounty.expiresAt.getTime() <= Date.now() ||
+          intent.intentStatus !== BOUNTY_INTENT_STATUS.PENDING
+        ) {
+          throw this.notOpen();
+        }
+
+        if (!(await this.lockEligibleProvider(transaction, intent.providerId))) {
+          throw this.providerNotEligible("该服务者当前不满足接单资格", HttpStatus.CONFLICT);
+        }
+
+        const claimed = await transaction.order.updateMany({
+          where: {
+            id: bountyId,
+            ownerId,
+            orderType: "reward",
+            status: BOUNTY_STATUS.OPEN,
+            providerId: null,
+          },
+          data: { providerId: intent.providerId, status: BOUNTY_STATUS.CONFIRMED },
+        });
+
+        if (claimed.count !== 1) {
+          throw this.confirmationConflict();
+        }
+
+        await transaction.orderIntent.update({
+          where: { id: intent.id },
+          data: { intentStatus: BOUNTY_INTENT_STATUS.CONFIRMED },
+        });
+        await transaction.orderIntent.updateMany({
+          where: {
+            orderId: bountyId,
+            id: { not: intent.id },
+            intentStatus: BOUNTY_INTENT_STATUS.PENDING,
+          },
+          data: { intentStatus: BOUNTY_INTENT_STATUS.REJECTED },
+        });
+
+        return this.findLockedPrivateBounty(transaction, bountyId, ownerId);
+      });
+    } catch (error) {
+      if (error instanceof ApiException) {
+        throw error;
+      }
+
+      throw new ApiException(
+        BOUNTY_ERROR_CODE.CONFIRMATION_FAILED,
+        "服务者确认失败，请稍后重试",
         HttpStatus.INTERNAL_SERVER_ERROR,
       );
     }
@@ -246,6 +531,78 @@ export class BountyService {
     };
   }
 
+  private async lockBounty(
+    transaction: Pick<Prisma.TransactionClient, "$queryRaw">,
+    bountyId: string,
+  ): Promise<LockedBountyRow | null> {
+    const rows = await transaction.$queryRaw<LockedBountyRow[]>`
+      SELECT
+        o."id",
+        o."owner_id" AS "ownerId",
+        o."provider_id" AS "providerId",
+        o."status",
+        r."expire_time" AS "expiresAt"
+      FROM "orders" o
+      INNER JOIN "order_rewards" r ON r."order_id" = o."id"
+      WHERE o."id" = ${bountyId} AND o."order_type" = 'reward'
+      FOR UPDATE OF o, r
+    `;
+
+    return rows[0] ?? null;
+  }
+
+  private async lockEligibleProvider(
+    transaction: Pick<Prisma.TransactionClient, "$queryRaw">,
+    providerId: string,
+  ): Promise<boolean> {
+    const rows = await transaction.$queryRaw<Array<{ id: string }>>`
+      SELECT u."id"
+      FROM "users" u
+      INNER JOIN "providers" p ON p."user_id" = u."id"
+      WHERE
+        u."id" = ${providerId}
+        AND u."status" = 'active'
+        AND u."phone" IS NOT NULL
+        AND BTRIM(u."phone") <> ''
+        AND u."user_type" = 'provider'
+        AND p."id_card_verified" = TRUE
+        AND p."training_passed" = TRUE
+        AND p."certified_sitter" = TRUE
+      FOR SHARE OF u, p
+    `;
+
+    return rows.length === 1;
+  }
+
+  private isEligibleProvider(user: ProviderEligibilityRow | null): boolean {
+    return Boolean(
+      user &&
+      user.status === "active" &&
+      user.phone &&
+      user.userType === "provider" &&
+      user.provider?.idCardVerified &&
+      user.provider.trainingPassed &&
+      user.provider.certifiedSitter,
+    );
+  }
+
+  private async findLockedPrivateBounty(
+    transaction: Pick<Prisma.TransactionClient, "order">,
+    bountyId: string,
+    ownerId: string,
+  ): Promise<MyBounty> {
+    const order = await transaction.order.findFirst({
+      where: { id: bountyId, ownerId, orderType: "reward", reward: { isNot: null } },
+      select: privateBountySelect,
+    });
+
+    if (!order) {
+      throw this.notFound();
+    }
+
+    return this.toMyBounty(order);
+  }
+
   private toMyBounty(order: PrivateBountyRow): MyBounty {
     if (!order.reward) {
       throw this.notFound();
@@ -256,7 +613,7 @@ export class BountyService {
       serviceType: order.serviceType as BountyServiceType,
       serviceTime: order.serviceTime.toISOString(),
       amountCents: order.amount,
-      status: order.status,
+      status: order.status as BountyStatus,
       address: order.address,
       remark: order.remark,
       expiresAt: order.reward.expireTime.toISOString(),
@@ -267,6 +624,13 @@ export class BountyService {
         breed: order.pet.breed,
         coverImage: order.pet.photos[0] ?? null,
       },
+      provider: order.provider
+        ? {
+            id: order.provider.id,
+            nickname: order.provider.nickname,
+            avatar: order.provider.avatar,
+          }
+        : null,
     };
   }
 
@@ -291,8 +655,75 @@ export class BountyService {
     };
   }
 
+  private toOwnerIntent(intent: OwnerIntentRow): OwnerBountyIntent {
+    return {
+      id: intent.id,
+      status: intent.intentStatus as BountyIntentStatus,
+      createdAt: intent.createdAt.toISOString(),
+      provider: {
+        id: intent.provider.id,
+        nickname: intent.provider.nickname,
+        avatar: intent.provider.avatar,
+      },
+    };
+  }
+
+  private toMyIntent(intent: MyIntentRow, providerId: string): MyBountyIntent {
+    if (!intent.order.reward) {
+      throw this.notFound();
+    }
+
+    const privateFieldsVisible =
+      intent.intentStatus === BOUNTY_INTENT_STATUS.CONFIRMED &&
+      intent.order.providerId === providerId;
+
+    return {
+      id: intent.id,
+      status: intent.intentStatus as BountyIntentStatus,
+      createdAt: intent.createdAt.toISOString(),
+      bounty: {
+        id: intent.order.id,
+        serviceType: intent.order.serviceType as BountyServiceType,
+        serviceTime: intent.order.serviceTime.toISOString(),
+        amountCents: intent.order.amount,
+        status: intent.order.status as BountyStatus,
+        expiresAt: intent.order.reward.expireTime.toISOString(),
+        owner: {
+          nickname: intent.order.owner.nickname,
+          avatar: intent.order.owner.avatar,
+        },
+        pet: {
+          name: intent.order.pet.name,
+          breed: intent.order.pet.breed,
+          coverImage: intent.order.pet.photos[0] ?? null,
+        },
+        address: privateFieldsVisible ? intent.order.address : null,
+        remark: privateFieldsVisible ? intent.order.remark : null,
+      },
+    };
+  }
+
   private notFound(): ApiException {
     return new ApiException(BOUNTY_ERROR_CODE.NOT_FOUND, "悬赏不存在", HttpStatus.NOT_FOUND);
+  }
+
+  private notOpen(): ApiException {
+    return new ApiException(BOUNTY_ERROR_CODE.NOT_OPEN, "悬赏已停止接单", HttpStatus.CONFLICT);
+  }
+
+  private providerNotEligible(
+    message = "当前账号尚未满足接单资格",
+    status = HttpStatus.FORBIDDEN,
+  ): ApiException {
+    return new ApiException(BOUNTY_ERROR_CODE.PROVIDER_NOT_ELIGIBLE, message, status);
+  }
+
+  private confirmationConflict(): ApiException {
+    return new ApiException(
+      BOUNTY_ERROR_CODE.CONFIRMATION_CONFLICT,
+      "该悬赏已确认其他服务者",
+      HttpStatus.CONFLICT,
+    );
   }
 
   private validationFailed(message: string): ApiException {

@@ -714,6 +714,8 @@ async function seedCompiledServer(env) {
       otherPetOwner,
       bountyOwner,
       otherBountyOwner,
+      bountyProviderA,
+      bountyProviderB,
     ] = await Promise.all([
       prisma.user.upsert({
         where: { phone: "13900000095" },
@@ -787,7 +789,57 @@ async function seedCompiledServer(env) {
           status: "active",
         },
       }),
+      prisma.user.upsert({
+        where: { phone: "13900000091" },
+        update: {
+          username: "bounty-e2e-provider-a",
+          nickname: "悬赏 E2E 服务者甲",
+          userType: "provider",
+          status: "active",
+        },
+        create: {
+          phone: "13900000091",
+          username: "bounty-e2e-provider-a",
+          nickname: "悬赏 E2E 服务者甲",
+          userType: "provider",
+          status: "active",
+        },
+      }),
+      prisma.user.upsert({
+        where: { phone: "13900000092" },
+        update: {
+          username: "bounty-e2e-provider-b",
+          nickname: "悬赏 E2E 服务者乙",
+          userType: "provider",
+          status: "active",
+        },
+        create: {
+          phone: "13900000092",
+          username: "bounty-e2e-provider-b",
+          nickname: "悬赏 E2E 服务者乙",
+          userType: "provider",
+          status: "active",
+        },
+      }),
     ]);
+    await Promise.all(
+      [bountyProviderA, bountyProviderB].map((provider) =>
+        prisma.provider.upsert({
+          where: { userId: provider.id },
+          update: {
+            idCardVerified: true,
+            trainingPassed: true,
+            certifiedSitter: true,
+          },
+          create: {
+            userId: provider.id,
+            idCardVerified: true,
+            trainingPassed: true,
+            certifiedSitter: true,
+          },
+        }),
+      ),
+    );
     const jwtSecret = requireEnvironmentValue(env, "JWT_SECRET");
     const jwt = new JwtService();
     const accessToken = (user) =>
@@ -811,6 +863,10 @@ async function seedCompiledServer(env) {
     env.BOUNTY_E2E_OWNER_ID = bountyOwner.id;
     env.BOUNTY_E2E_OWNER_TOKEN = accessToken(bountyOwner);
     env.BOUNTY_E2E_OTHER_OWNER_TOKEN = accessToken(otherBountyOwner);
+    env.BOUNTY_E2E_PROVIDER_A_ID = bountyProviderA.id;
+    env.BOUNTY_E2E_PROVIDER_A_TOKEN = accessToken(bountyProviderA);
+    env.BOUNTY_E2E_PROVIDER_B_ID = bountyProviderB.id;
+    env.BOUNTY_E2E_PROVIDER_B_TOKEN = accessToken(bountyProviderB);
     const [
       websiteViewPermission,
       websiteReadPermission,

@@ -1,14 +1,20 @@
 import {
   BOUNTY_ERROR_CODE,
+  BOUNTY_INTENT_STATUS,
   BOUNTY_SERVICE_TYPE,
+  BOUNTY_STATUS,
   PET_GENDER,
   PET_SPECIES,
   type ApiErrorResponse,
+  type BountyProviderEligibility,
   type CreateBountyRequest,
   type CreatePetRequest,
   type MyBounty,
+  type MyBountyIntent,
+  type MyBountyIntentListResponse,
   type MyBountyListResponse,
   type MyPetDetail,
+  type OwnerBountyIntentListResponse,
   type PublicBounty,
   type PublicBountyListResponse,
 } from "@petcare/shared-types";
@@ -26,7 +32,11 @@ function requiredEnv(
     | "ADMIN_E2E_MINIAPP_URL"
     | "BOUNTY_E2E_OTHER_OWNER_TOKEN"
     | "BOUNTY_E2E_OWNER_ID"
-    | "BOUNTY_E2E_OWNER_TOKEN",
+    | "BOUNTY_E2E_OWNER_TOKEN"
+    | "BOUNTY_E2E_PROVIDER_A_ID"
+    | "BOUNTY_E2E_PROVIDER_A_TOKEN"
+    | "BOUNTY_E2E_PROVIDER_B_ID"
+    | "BOUNTY_E2E_PROVIDER_B_TOKEN",
 ): string {
   const value = process.env[name]?.trim();
 
@@ -52,15 +62,26 @@ async function expectFailure(response: APIResponse, status: number, code: string
 
 const twoDigits = (part: number): string => part.toString().padStart(2, "0");
 
-async function seedMiniappSession(page: Page, accessToken: string): Promise<void> {
+interface MiniappSessionFixture {
+  id: string;
+  nickname: string;
+  phoneMasked: string;
+  userType: "pet_owner" | "provider";
+}
+
+async function seedMiniappSession(
+  page: Page,
+  accessToken: string,
+  fixture: MiniappSessionFixture,
+): Promise<void> {
   const refreshToken = "bounty-e2e-refresh-restored";
   const user = {
-    id: requiredEnv("BOUNTY_E2E_OWNER_ID"),
-    nickname: "悬赏 E2E 主人",
+    id: fixture.id,
+    nickname: fixture.nickname,
     avatar: null,
-    phoneMasked: "139****0097",
+    phoneMasked: fixture.phoneMasked,
     profileComplete: true,
-    userType: "pet_owner",
+    userType: fixture.userType,
     region: null,
     bio: null,
   };
@@ -184,10 +205,12 @@ function localDateParts(value: Date): { date: string; clock: string } {
   };
 }
 
-test("悬赏在隔离环境完成发布、私有读取、公开脱敏与所有权拒绝", async ({ browser, page }) => {
-  test.setTimeout(90_000);
+test("悬赏在隔离环境完成资格门禁、幂等意向、唯一确认与订单迁移", async ({ browser, page }) => {
+  test.setTimeout(150_000);
   const ownerAuthorization = `Bearer ${requiredEnv("BOUNTY_E2E_OWNER_TOKEN")}`;
   const otherAuthorization = `Bearer ${requiredEnv("BOUNTY_E2E_OTHER_OWNER_TOKEN")}`;
+  const providerAAuthorization = `Bearer ${requiredEnv("BOUNTY_E2E_PROVIDER_A_TOKEN")}`;
+  const providerBAuthorization = `Bearer ${requiredEnv("BOUNTY_E2E_PROVIDER_B_TOKEN")}`;
   const petInput: CreatePetRequest = {
     name: `悬赏宠物${Date.now().toString().slice(-4)}`,
     species: PET_SPECIES.DOG,
@@ -230,13 +253,22 @@ test("悬赏在隔离环境完成发布、私有读取、公开脱敏与所有�
     ),
   ).toMatchObject({ list: [], total: 0 });
 
-  const miniappContext = await browser.newContext({ viewport: { width: 375, height: 812 } });
-  const miniappPage = await miniappContext.newPage();
+  const ownerMiniappContext = await browser.newContext({ viewport: { width: 375, height: 812 } });
+  const miniappPage = await ownerMiniappContext.newPage();
+  const providerMiniappContext = await browser.newContext({
+    viewport: { width: 375, height: 812 },
+  });
+  const providerMiniappPage = await providerMiniappContext.newPage();
   const miniappUrl = requiredEnv("ADMIN_E2E_MINIAPP_URL");
 
   try {
     await miniappPage.goto(`${miniappUrl}/#/pages/community/index`);
-    await seedMiniappSession(miniappPage, requiredEnv("BOUNTY_E2E_OWNER_TOKEN"));
+    await seedMiniappSession(miniappPage, requiredEnv("BOUNTY_E2E_OWNER_TOKEN"), {
+      id: requiredEnv("BOUNTY_E2E_OWNER_ID"),
+      nickname: "悬赏 E2E 主人",
+      phoneMasked: "139****0089",
+      userType: "pet_owner",
+    });
     await miniappPage.goto(`${miniappUrl}/#/pages-bounty/form?petId=${pet.id}`);
     await expect(
       miniappPage.getByLabel("选择照护宠物").locator("span", { hasText: pet.name }),
@@ -335,7 +367,276 @@ test("悬赏在隔离环境完成发布、私有读取、公开脱敏与所有�
     await expect(miniappPage.getByText("¥50.25", { exact: true })).toBeVisible();
     await expect(miniappPage.getByText(request.address, { exact: true })).toHaveCount(0);
     await expect(miniappPage.getByText(request.remark ?? "", { exact: false })).toHaveCount(0);
+
+    expect(
+      await responseData<BountyProviderEligibility>(
+        await page.request.get("/api/bounties/provider-eligibility", {
+          headers: { Authorization: otherAuthorization },
+        }),
+      ),
+    ).toEqual({ eligible: false });
+    await expectFailure(
+      await page.request.post(`/api/bounties/${created.id}/intents`, {
+        headers: { Authorization: otherAuthorization },
+      }),
+      403,
+      BOUNTY_ERROR_CODE.PROVIDER_NOT_ELIGIBLE,
+    );
+    await expectFailure(
+      await page.request.post(`/api/bounties/${created.id}/intents`, {
+        headers: { Authorization: ownerAuthorization },
+      }),
+      403,
+      BOUNTY_ERROR_CODE.OWN_BOUNTY_FORBIDDEN,
+    );
+
+    const providerEligibility = await Promise.all(
+      [providerAAuthorization, providerBAuthorization].map(async (authorization) =>
+        responseData<BountyProviderEligibility>(
+          await page.request.get("/api/bounties/provider-eligibility", {
+            headers: { Authorization: authorization },
+          }),
+        ),
+      ),
+    );
+
+    expect(providerEligibility).toEqual([{ eligible: true }, { eligible: true }]);
+
+    await providerMiniappPage.goto(`${miniappUrl}/#/pages/community/index`);
+    await seedMiniappSession(providerMiniappPage, requiredEnv("BOUNTY_E2E_PROVIDER_A_TOKEN"), {
+      id: requiredEnv("BOUNTY_E2E_PROVIDER_A_ID"),
+      nickname: "悬赏 E2E 服务者甲",
+      phoneMasked: "139****0091",
+      userType: "provider",
+    });
+    await providerMiniappPage.goto(`${miniappUrl}/#/pages-bounty/index`);
+    await expect(providerMiniappPage.getByText("提交接单意向", { exact: true })).toBeVisible();
+    await expect(providerMiniappPage.getByText(request.address, { exact: true })).toHaveCount(0);
+
+    const providerAIntentResponse = providerMiniappPage.waitForResponse(
+      (response) =>
+        response.request().method() === "POST" &&
+        response.url().endsWith(`/bounties/${created.id}/intents`),
+    );
+
+    await providerMiniappPage.getByText("提交接单意向", { exact: true }).click();
+    const providerAIntent = await responseData<MyBountyIntent>(await providerAIntentResponse);
+
+    expect(providerAIntent).toMatchObject({
+      status: BOUNTY_INTENT_STATUS.PENDING,
+      bounty: { id: created.id, address: null, remark: null },
+    });
+    await expect(providerMiniappPage.getByText("等待主人确认", { exact: true })).toBeVisible();
+    await providerMiniappPage.getByText("我的意向", { exact: true }).click();
+    await expect(
+      providerMiniappPage.getByText("意向状态：等待主人确认", { exact: true }),
+    ).toBeVisible();
+    await expect(providerMiniappPage.getByText(request.address, { exact: true })).toHaveCount(0);
+
+    const repeatedIntent = await responseData<MyBountyIntent>(
+      await page.request.post(`/api/bounties/${created.id}/intents`, {
+        headers: { Authorization: providerAAuthorization },
+      }),
+    );
+    const providerBIntent = await responseData<MyBountyIntent>(
+      await page.request.post(`/api/bounties/${created.id}/intents`, {
+        headers: { Authorization: providerBAuthorization },
+      }),
+    );
+
+    expect(repeatedIntent.id).toBe(providerAIntent.id);
+    expect(providerBIntent).toMatchObject({
+      status: BOUNTY_INTENT_STATUS.PENDING,
+      bounty: { address: null, remark: null },
+    });
+    await expectFailure(
+      await page.request.get(`/api/bounties/${created.id}/intents?page=1&pageSize=20`, {
+        headers: { Authorization: otherAuthorization },
+      }),
+      404,
+      BOUNTY_ERROR_CODE.NOT_FOUND,
+    );
+
+    const candidatesBeforeConfirmation = await responseData<OwnerBountyIntentListResponse>(
+      await page.request.get(`/api/bounties/${created.id}/intents?page=1&pageSize=20`, {
+        headers: { Authorization: ownerAuthorization },
+      }),
+    );
+
+    expect(candidatesBeforeConfirmation).toMatchObject({
+      total: 2,
+      list: [{ status: BOUNTY_INTENT_STATUS.PENDING }, { status: BOUNTY_INTENT_STATUS.PENDING }],
+    });
+
+    await miniappPage.getByText("我的悬赏", { exact: true }).click();
+    await miniappPage.getByText("查看接单意向", { exact: true }).click();
+    await expect(miniappPage.getByText("悬赏 E2E 服务者甲", { exact: true })).toBeVisible();
+    await expect(miniappPage.getByText("悬赏 E2E 服务者乙", { exact: true })).toBeVisible();
+
+    const confirmationResponse = miniappPage.waitForResponse(
+      (response) =>
+        response.request().method() === "POST" &&
+        response.url().endsWith(`/bounties/${created.id}/intents/${providerAIntent.id}/confirm`),
+    );
+
+    await miniappPage.getByLabel("确认悬赏 E2E 服务者甲接单").click();
+    await expect(
+      miniappPage.getByText("确认由悬赏 E2E 服务者甲接单？确认后其他意向将自动结束。", {
+        exact: true,
+      }),
+    ).toBeVisible();
+    await miniappPage.getByText("确认接单", { exact: true }).click();
+    const confirmed = await responseData<MyBounty>(await confirmationResponse);
+
+    expect(confirmed).toMatchObject({
+      id: created.id,
+      status: BOUNTY_STATUS.CONFIRMED,
+      provider: { id: requiredEnv("BOUNTY_E2E_PROVIDER_A_ID") },
+    });
+    await expect(
+      miniappPage.getByText("已确认服务者：悬赏 E2E 服务者甲", { exact: true }),
+    ).toBeVisible();
+    await expect(miniappPage.getByText("主人已确认", { exact: true })).toBeVisible();
+    await expect(miniappPage.getByText("已由其他服务者接单", { exact: true })).toBeVisible();
+
+    const replayedConfirmation = await responseData<MyBounty>(
+      await page.request.post(`/api/bounties/${created.id}/intents/${providerAIntent.id}/confirm`, {
+        headers: { Authorization: ownerAuthorization },
+      }),
+    );
+
+    expect(replayedConfirmation).toMatchObject({
+      id: created.id,
+      provider: { id: requiredEnv("BOUNTY_E2E_PROVIDER_A_ID") },
+    });
+    await expectFailure(
+      await page.request.post(`/api/bounties/${created.id}/intents/${providerBIntent.id}/confirm`, {
+        headers: { Authorization: ownerAuthorization },
+      }),
+      409,
+      BOUNTY_ERROR_CODE.CONFIRMATION_CONFLICT,
+    );
+
+    const providerAIntents = await responseData<MyBountyIntentListResponse>(
+      await page.request.get("/api/bounties/intents/mine?page=1&pageSize=20", {
+        headers: { Authorization: providerAAuthorization },
+      }),
+    );
+    const providerBIntents = await responseData<MyBountyIntentListResponse>(
+      await page.request.get("/api/bounties/intents/mine?page=1&pageSize=20", {
+        headers: { Authorization: providerBAuthorization },
+      }),
+    );
+
+    expect(providerAIntents).toMatchObject({
+      list: [
+        {
+          id: providerAIntent.id,
+          status: BOUNTY_INTENT_STATUS.CONFIRMED,
+          bounty: { status: BOUNTY_STATUS.CONFIRMED, address: request.address },
+        },
+      ],
+    });
+    expect(providerBIntents).toMatchObject({
+      list: [
+        {
+          id: providerBIntent.id,
+          status: BOUNTY_INTENT_STATUS.REJECTED,
+          bounty: { address: null, remark: null },
+        },
+      ],
+    });
+    await expectFailure(
+      await page.request.get(`/api/bounties/${created.id}`),
+      404,
+      BOUNTY_ERROR_CODE.NOT_FOUND,
+    );
+    expect(
+      await responseData<PublicBountyListResponse>(
+        await page.request.get("/api/bounties?page=1&pageSize=20"),
+      ),
+    ).toMatchObject({ total: 0, list: [] });
+
+    await providerMiniappPage.reload();
+    await expect(providerMiniappPage.getByText("我的意向", { exact: true })).toBeVisible();
+    await providerMiniappPage.getByText("我的意向", { exact: true }).click();
+    await expect(providerMiniappPage.getByText(request.address, { exact: true })).toBeVisible();
+    await expect(
+      providerMiniappPage.getByText(`备注：${request.remark}`, { exact: true }),
+    ).toBeVisible();
+    await providerMiniappPage.setViewportSize({ width: 812, height: 375 });
+    expect(
+      await providerMiniappPage.evaluate(
+        () => document.documentElement.scrollWidth <= window.innerWidth,
+      ),
+    ).toBe(true);
+
+    const raceBounty = await responseData<MyBounty>(
+      await page.request.post("/api/bounties", {
+        headers: { Authorization: ownerAuthorization },
+        data: {
+          ...request,
+          address: "上海市隔离竞态验收地址 53 号",
+          remark: "并发确认只允许一个服务者",
+        },
+      }),
+    );
+    const [providerARaceFirstResponse, providerARaceRepeatResponse, providerBRaceResponse] =
+      await Promise.all([
+        page.request.post(`/api/bounties/${raceBounty.id}/intents`, {
+          headers: { Authorization: providerAAuthorization },
+        }),
+        page.request.post(`/api/bounties/${raceBounty.id}/intents`, {
+          headers: { Authorization: providerAAuthorization },
+        }),
+        page.request.post(`/api/bounties/${raceBounty.id}/intents`, {
+          headers: { Authorization: providerBAuthorization },
+        }),
+      ]);
+    const providerARaceFirst = await responseData<MyBountyIntent>(providerARaceFirstResponse);
+    const providerARaceRepeat = await responseData<MyBountyIntent>(providerARaceRepeatResponse);
+    const providerBRace = await responseData<MyBountyIntent>(providerBRaceResponse);
+
+    expect(providerARaceFirst.id).toBe(providerARaceRepeat.id);
+
+    const confirmationRace = await Promise.all([
+      page.request.post(`/api/bounties/${raceBounty.id}/intents/${providerARaceFirst.id}/confirm`, {
+        headers: { Authorization: ownerAuthorization },
+      }),
+      page.request.post(`/api/bounties/${raceBounty.id}/intents/${providerBRace.id}/confirm`, {
+        headers: { Authorization: ownerAuthorization },
+      }),
+    ]);
+    const raceWinner = confirmationRace.find((response) => response.ok());
+    const raceLoser = confirmationRace.find((response) => response.status() === 409);
+
+    if (!raceWinner || !raceLoser) {
+      throw new Error(
+        `Expected one winner and one conflict, got ${confirmationRace.map((item) => item.status()).join(", ")}`,
+      );
+    }
+
+    expect(((await raceLoser.json()) as ApiErrorResponse).code).toBe(
+      BOUNTY_ERROR_CODE.CONFIRMATION_CONFLICT,
+    );
+    const raceOrder = await responseData<MyBounty>(raceWinner);
+    const raceCandidates = await responseData<OwnerBountyIntentListResponse>(
+      await page.request.get(`/api/bounties/${raceBounty.id}/intents?page=1&pageSize=20`, {
+        headers: { Authorization: ownerAuthorization },
+      }),
+    );
+
+    expect(raceOrder).toMatchObject({
+      status: BOUNTY_STATUS.CONFIRMED,
+      provider: { id: expect.any(String) },
+    });
+    expect(
+      raceCandidates.list.filter((intent) => intent.status === BOUNTY_INTENT_STATUS.CONFIRMED),
+    ).toHaveLength(1);
+    expect(
+      raceCandidates.list.filter((intent) => intent.status === BOUNTY_INTENT_STATUS.REJECTED),
+    ).toHaveLength(1);
   } finally {
-    await miniappContext.close();
+    await Promise.all([ownerMiniappContext.close(), providerMiniappContext.close()]);
   }
 });

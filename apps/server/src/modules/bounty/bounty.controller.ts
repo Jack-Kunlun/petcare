@@ -4,6 +4,7 @@ import {
   Controller,
   ExecutionContext,
   Get,
+  HttpCode,
   HttpStatus,
   Injectable,
   Param,
@@ -22,14 +23,25 @@ import {
 } from "@nestjs/swagger";
 import {
   BOUNTY_ERROR_CODE,
+  BOUNTY_INTENT_STATUS,
   BOUNTY_LIMITS,
   BOUNTY_SERVICE_TYPE,
+  BOUNTY_STATUS,
+  type BountyIntentStatus,
   type BountyListQuery,
+  type BountyProviderEligibility,
+  type BountyProviderSummary,
   type BountyServiceType,
+  type BountyStatus,
   type CreateBountyRequest,
   type MyBounty,
+  type MyBountyIntent,
+  type MyBountyIntentBounty,
+  type MyBountyIntentListResponse,
   type MyBountyListResponse,
   type MyBountyPet,
+  type OwnerBountyIntent,
+  type OwnerBountyIntentListResponse,
   type PublicBounty,
   type PublicBountyListResponse,
   type PublicBountyOwner,
@@ -67,7 +79,7 @@ function trimText(value: unknown): unknown {
   return typeof value === "string" ? value.trim() : value;
 }
 
-/** Hides all Cycle 5 bounty routes unless the environment explicitly enables them. */
+/** Hides all Cycle 5–6 bounty routes unless the environment explicitly enables them. */
 @Injectable()
 export class BountyFeatureGuard implements CanActivate {
   constructor(private readonly config: ConfigService) {}
@@ -149,6 +161,17 @@ class PublicBountyOwnerDto implements PublicBountyOwner {
   avatar: string | null;
 }
 
+class BountyProviderSummaryDto implements BountyProviderSummary {
+  @ApiProperty({ format: "uuid" })
+  id: string;
+
+  @ApiProperty()
+  nickname: string;
+
+  @ApiProperty({ nullable: true })
+  avatar: string | null;
+}
+
 class PublicBountyPetDto implements PublicBountyPet {
   @ApiProperty()
   name: string;
@@ -178,8 +201,8 @@ class PublicBountyDto implements PublicBounty {
   @ApiProperty()
   amountCents: number;
 
-  @ApiProperty({ enum: ["pending_confirm"] })
-  status: "pending_confirm";
+  @ApiProperty({ enum: [BOUNTY_STATUS.OPEN] })
+  status: typeof BOUNTY_STATUS.OPEN;
 
   @ApiProperty({ format: "date-time" })
   expiresAt: string;
@@ -204,8 +227,8 @@ class MyBountyDto implements MyBounty {
   @ApiProperty()
   amountCents: number;
 
-  @ApiProperty()
-  status: string;
+  @ApiProperty({ enum: Object.values(BOUNTY_STATUS) })
+  status: BountyStatus;
 
   @ApiProperty()
   address: string;
@@ -221,6 +244,74 @@ class MyBountyDto implements MyBounty {
 
   @ApiProperty({ type: MyBountyPetDto })
   pet: MyBountyPet;
+
+  @ApiProperty({ type: BountyProviderSummaryDto, nullable: true })
+  provider: BountyProviderSummary | null;
+}
+
+class BountyProviderEligibilityDto implements BountyProviderEligibility {
+  @ApiProperty()
+  eligible: boolean;
+}
+
+class OwnerBountyIntentDto implements OwnerBountyIntent {
+  @ApiProperty({ format: "uuid" })
+  id: string;
+
+  @ApiProperty({ enum: Object.values(BOUNTY_INTENT_STATUS) })
+  status: BountyIntentStatus;
+
+  @ApiProperty({ format: "date-time" })
+  createdAt: string;
+
+  @ApiProperty({ type: BountyProviderSummaryDto })
+  provider: BountyProviderSummary;
+}
+
+class MyBountyIntentBountyDto implements MyBountyIntentBounty {
+  @ApiProperty({ format: "uuid" })
+  id: string;
+
+  @ApiProperty({ enum: Object.values(BOUNTY_SERVICE_TYPE) })
+  serviceType: BountyServiceType;
+
+  @ApiProperty({ format: "date-time" })
+  serviceTime: string;
+
+  @ApiProperty()
+  amountCents: number;
+
+  @ApiProperty({ enum: Object.values(BOUNTY_STATUS) })
+  status: BountyStatus;
+
+  @ApiProperty({ format: "date-time" })
+  expiresAt: string;
+
+  @ApiProperty({ type: PublicBountyOwnerDto })
+  owner: PublicBountyOwner;
+
+  @ApiProperty({ type: PublicBountyPetDto })
+  pet: PublicBountyPet;
+
+  @ApiProperty({ nullable: true })
+  address: string | null;
+
+  @ApiProperty({ nullable: true })
+  remark: string | null;
+}
+
+class MyBountyIntentDto implements MyBountyIntent {
+  @ApiProperty({ format: "uuid" })
+  id: string;
+
+  @ApiProperty({ enum: Object.values(BOUNTY_INTENT_STATUS) })
+  status: BountyIntentStatus;
+
+  @ApiProperty({ format: "date-time" })
+  createdAt: string;
+
+  @ApiProperty({ type: MyBountyIntentBountyDto })
+  bounty: MyBountyIntentBounty;
 }
 
 class PublicBountyListResponseDto implements PublicBountyListResponse {
@@ -251,7 +342,35 @@ class MyBountyListResponseDto implements MyBountyListResponse {
   pageSize: number;
 }
 
-/** Exposes default-closed Cycle 5 bounty creation and privacy-scoped reads. */
+class OwnerBountyIntentListResponseDto implements OwnerBountyIntentListResponse {
+  @ApiProperty({ type: [OwnerBountyIntentDto] })
+  list: OwnerBountyIntent[];
+
+  @ApiProperty()
+  total: number;
+
+  @ApiProperty()
+  page: number;
+
+  @ApiProperty()
+  pageSize: number;
+}
+
+class MyBountyIntentListResponseDto implements MyBountyIntentListResponse {
+  @ApiProperty({ type: [MyBountyIntentDto] })
+  list: MyBountyIntent[];
+
+  @ApiProperty()
+  total: number;
+
+  @ApiProperty()
+  page: number;
+
+  @ApiProperty()
+  pageSize: number;
+}
+
+/** Exposes default-closed Cycle 5–6 bounty and provider-intent capabilities. */
 @ApiTags("bounties")
 @UseGuards(BountyFeatureGuard)
 @Controller("bounties")
@@ -279,6 +398,72 @@ export class BountyController {
     @Query() query: BountyListQueryDto,
   ): Promise<MyBountyListResponse> {
     return this.bounties.findMine(request.user.sub, query);
+  }
+
+  @Get("provider-eligibility")
+  @ApiBearerAuth()
+  @UseGuards(AccessTokenGuard)
+  @ApiOperation({ summary: "获取本人接单资格门禁结果" })
+  @ApiSuccessResponse(BountyProviderEligibilityDto)
+  @ApiStandardErrors(401, 404, 500)
+  getProviderEligibility(@Req() request: AuthRequest): Promise<BountyProviderEligibility> {
+    return this.bounties.getProviderEligibility(request.user.sub);
+  }
+
+  @Get("intents/mine")
+  @ApiBearerAuth()
+  @UseGuards(AccessTokenGuard)
+  @ApiOperation({ summary: "分页获取我的接单意向" })
+  @ApiSuccessResponse(MyBountyIntentListResponseDto)
+  @ApiStandardErrors(400, 401, 404, 500)
+  findMyIntents(
+    @Req() request: AuthRequest,
+    @Query() query: BountyListQueryDto,
+  ): Promise<MyBountyIntentListResponse> {
+    return this.bounties.findMyIntents(request.user.sub, query);
+  }
+
+  @Post(":id/intents")
+  @HttpCode(HttpStatus.OK)
+  @ApiBearerAuth()
+  @UseGuards(AccessTokenGuard, ProfileCompleteGuard)
+  @ApiOperation({ summary: "幂等提交接单意向" })
+  @ApiSuccessResponse(MyBountyIntentDto)
+  @ApiStandardErrors(400, 401, 403, 404, 409, 500)
+  submitIntent(
+    @Req() request: AuthRequest,
+    @Param("id", new ParseUUIDPipe({ version: "4" })) id: string,
+  ): Promise<MyBountyIntent> {
+    return this.bounties.submitIntent(request.user.sub, id);
+  }
+
+  @Get(":id/intents")
+  @ApiBearerAuth()
+  @UseGuards(AccessTokenGuard)
+  @ApiOperation({ summary: "分页获取本人悬赏的候选意向" })
+  @ApiSuccessResponse(OwnerBountyIntentListResponseDto)
+  @ApiStandardErrors(400, 401, 404, 500)
+  findOwnerIntents(
+    @Req() request: AuthRequest,
+    @Param("id", new ParseUUIDPipe({ version: "4" })) id: string,
+    @Query() query: BountyListQueryDto,
+  ): Promise<OwnerBountyIntentListResponse> {
+    return this.bounties.findOwnerIntents(request.user.sub, id, query);
+  }
+
+  @Post(":id/intents/:intentId/confirm")
+  @HttpCode(HttpStatus.OK)
+  @ApiBearerAuth()
+  @UseGuards(AccessTokenGuard, ProfileCompleteGuard)
+  @ApiOperation({ summary: "原子确认唯一服务者" })
+  @ApiSuccessResponse(MyBountyDto)
+  @ApiStandardErrors(400, 401, 403, 404, 409, 500)
+  confirmIntent(
+    @Req() request: AuthRequest,
+    @Param("id", new ParseUUIDPipe({ version: "4" })) id: string,
+    @Param("intentId", new ParseUUIDPipe({ version: "4" })) intentId: string,
+  ): Promise<MyBounty> {
+    return this.bounties.confirmIntent(request.user.sub, id, intentId);
   }
 
   @Get()

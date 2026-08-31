@@ -33,6 +33,30 @@ describe("bounty pages", () => {
     expect(index).not.toContain("bounty.petId");
   });
 
+  it("keeps qualification, intent, and unique confirmation states explicit and non-clickable", () => {
+    expect(index).toContain('type BountyView = "public" | "mine" | "intents"');
+    expect(index).toContain("getBountyProviderEligibility()");
+    expect(index).toContain("!eligibility.value?.eligible");
+    expect(index).toContain("暂无接单资格");
+    expect(index).toContain(':disabled="intentButtonDisabled(bounty.id)"');
+    expect(index).toContain(':loading="applyingBountyId === bounty.id"');
+    expect(index).toContain("getBountyIntents(bountyId, { page: 1, pageSize: 50 })");
+    expect(index).toContain("await uni.showModal");
+    expect(index).toContain("confirmBountyIntent(bounty.id, intent.id)");
+    expect(index).toContain(':disabled="Boolean(confirmingIntentId)"');
+    expect(index).toContain(':loading="confirmingIntentId === intent.id"');
+    expect(index).toContain(":aria-label");
+    expect(index).toContain("intent.provider.nickname");
+  });
+
+  it("shows private fulfillment details only from a confirmed provider intent projection", () => {
+    expect(index).toContain("intent.status === BOUNTY_INTENT_STATUS.CONFIRMED");
+    expect(index).toContain("intent.bounty.address");
+    expect(index).toContain("intent.bounty.remark");
+    expect(index).toContain("BOUNTY_INTENT_STATUS_LABELS[intent.status]");
+    expect(index).toContain("BOUNTY_STATUS_LABELS[bounty.status]");
+  });
+
   it("uses visible labels, native pickers, inline errors, and a duplicate-safe submit", () => {
     expect(form).toContain("照护宠物");
     expect(form).toContain("服务类型");

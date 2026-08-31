@@ -2,8 +2,8 @@
 
 本文档定义PetCare平台的RESTful API设计规范，确保前后端协作的一致性和可维护性。
 
-> **当前范围说明（2026-08-30）**：个人版当前运行时注册认证、健康检查、账户/用户、本人宠物档案、课堂与受控社区、
-> RBAC、Admin 账户、官网内容，以及默认关闭的 Cycle 5 悬赏模块。悬赏路由只有在
+> **当前范围说明（2026-08-31）**：个人版当前运行时注册认证、健康检查、账户/用户、本人宠物档案、课堂与受控社区、
+> RBAC、Admin 账户、官网内容，以及默认关闭的 Cycle 5–6 悬赏、服务意向与唯一确认模块。悬赏路由只有在
 > `COMMERCIAL_SERVICES_ENABLED=true` 时可用；默认环境返回 404。本文后续保留的服务者认证、完整订单、服务履约、评价、
 > 投诉纠纷和系统费用/SOP 设置接口属于历史或未来商业设计，不是当前可调用 API。是否可用必须以
 > `apps/server/src/app.module.ts` 的默认装配、当前路由测试和[开发路线图](../01-requirements/05-development-roadmap.md)为准。
@@ -840,14 +840,19 @@ Token 获取，客户端不得传入。接口只返回脱敏姓名、脱敏身�
 
 ### 悬赏模块 (/bounties)
 
-| 方法 | 路径             | 说明                 | 权限           |
-| ---- | ---------------- | -------------------- | -------------- |
-| POST | `/bounties`      | 为本人宠物发布悬赏   | 认证且资料完善 |
-| GET  | `/bounties/mine` | 分页读取我的悬赏     | 认证           |
-| GET  | `/bounties`      | 分页读取公开悬赏     | 公开           |
-| GET  | `/bounties/{id}` | 读取公开悬赏安全详情 | 公开           |
+| 方法 | 路径                                        | 说明                         | 权限           |
+| ---- | ------------------------------------------- | ---------------------------- | -------------- |
+| POST | `/bounties`                                 | 为本人宠物发布悬赏           | 认证且资料完善 |
+| GET  | `/bounties/mine`                            | 分页读取我的悬赏             | 认证           |
+| GET  | `/bounties/provider-eligibility`            | 读取当前服务者资格结果       | 认证           |
+| GET  | `/bounties/intents/mine`                    | 分页读取我提交的服务意向     | 认证           |
+| POST | `/bounties/{id}/intents`                    | 幂等提交服务意向             | 合格服务者     |
+| GET  | `/bounties/{id}/intents`                    | 分页读取本人悬赏的候选意向   | 悬赏主人       |
+| POST | `/bounties/{id}/intents/{intentId}/confirm` | 确认唯一服务者并迁移订单状态 | 悬赏主人       |
+| GET  | `/bounties`                                 | 分页读取公开悬赏             | 公开           |
+| GET  | `/bounties/{id}`                            | 读取公开悬赏安全详情         | 公开           |
 
-四个路由均受 `COMMERCIAL_SERVICES_ENABLED` 总开关保护；未显式启用时统一返回 HTTP 404 和
+所有路由均受 `COMMERCIAL_SERVICES_ENABLED` 总开关保护；未显式启用时统一返回 HTTP 404 和
 `BOUNTY_FEATURE_DISABLED`。该开关只允许隔离开发和验收，不代表已满足服务者资质、支付或生产经营条件。
 
 `POST /bounties` 从 Access Token 取得 `ownerId`，并在事务内锁定当前用户、确认账户活跃且手机号资料完整、确认 `petId`
@@ -873,7 +878,17 @@ Token 获取，客户端不得传入。接口只返回脱敏姓名、脱敏身�
 整数分 `amountCents`、`status`、`expiresAt`、发布者公开昵称/头像及宠物名称/品种/封面；不得返回精确地址、私密备注、
 `ownerId` 或 `petId`。列表使用 `page`、`pageSize`，每页最多 50 条。
 
-Cycle 5 不提供接单、确认、取消、支付或退款接口；这些能力不能从下方历史订单设计推断为已上线。
+Cycle 6 的服务者资格为硬门禁：账号必须活跃、手机号完整、`userType=provider`，并存在对应 `Provider` 记录，且
+`idCardVerified`、`trainingPassed`、`certifiedSitter` 三项同时为真。资格接口只报告既有记录的判定结果；当前没有创建或
+修改资格的正式接口，seed 也不制造合格服务者。
+
+同一服务者对同一悬赏重复调用 `POST /bounties/{id}/intents` 会复用唯一意向记录；主人本人、无资格服务者、已过期、
+已关闭或已有服务者的悬赏均拒绝提交。候选列表只允许悬赏主人读取，服务者只可通过 `/bounties/intents/mine` 读取自己的
+意向；精确地址和私密备注仅在该服务者被确认后返回。
+
+确认接口只接受属于该悬赏的候选意向，并通过 `Order` 条件更新将 `pending_confirm` 原子迁移到 `confirmed`：同一成功结果
+重放保持幂等，其他候选或并发确认稳定返回 409；胜出意向为 `confirmed`，其余待处理意向为 `rejected`。Cycle 6 不提供
+取消、履约、支付、退款、结算、提现或钱包接口；这些能力不能从下方历史订单设计推断为已上线。
 
 ### 历史订单设计 (/orders)
 
