@@ -365,8 +365,14 @@ test("悬赏在隔离环境完成资格门禁、幂等意向、唯一确认与�
       remark: request.remark,
     });
     await expect(miniappPage).toHaveURL(/\/pages-bounty\/index[?]tab=mine$/u);
-    await expect(miniappPage.getByText(request.address, { exact: true })).toBeVisible();
-    await expect(miniappPage.getByText(`备注：${request.remark}`, { exact: true })).toBeVisible();
+    const ownerBountyCard = miniappPage.locator(".main-card", {
+      has: miniappPage.getByText(request.address, { exact: true }),
+    });
+
+    await expect(ownerBountyCard).toHaveCount(1);
+    await expect(
+      ownerBountyCard.getByText(`备注：${request.remark}`, { exact: true }),
+    ).toBeVisible();
 
     const mine = await responseData<MyBountyListResponse>(
       await page.request.get("/api/bounties/mine?page=1&pageSize=20", {
@@ -597,9 +603,13 @@ test("悬赏在隔离环境完成资格门禁、幂等意向、唯一确认与�
     await providerMiniappPage.reload();
     await expect(providerMiniappPage.getByText("我的意向", { exact: true })).toBeVisible();
     await providerMiniappPage.getByText("我的意向", { exact: true }).click();
-    await expect(providerMiniappPage.getByText(request.address, { exact: true })).toBeVisible();
+    const providerBountyCard = providerMiniappPage.locator(".main-card", {
+      has: providerMiniappPage.getByText(request.address, { exact: true }),
+    });
+
+    await expect(providerBountyCard).toHaveCount(1);
     await expect(
-      providerMiniappPage.getByText(`备注：${request.remark}`, { exact: true }),
+      providerBountyCard.getByText(`备注：${request.remark}`, { exact: true }),
     ).toBeVisible();
 
     const ownerSop = await responseData<BountySop>(
@@ -619,7 +629,11 @@ test("悬赏在隔离环境完成资格门禁、幂等意向、唯一确认与�
       canExecute: false,
     });
     expect(ownerSop.steps).toHaveLength(5);
-    expect(providerSop).toMatchObject({ currentStepNumber: 1, canExecute: true });
+    expect(providerSop).toMatchObject({
+      currentStepNumber: 1,
+      canExecute: true,
+      steps: [{ minimumPhotoCount: 1, photos: [] }],
+    });
     await expectFailure(
       await page.request.get(`/api/bounties/${created.id}/sop`, {
         headers: { Authorization: otherAuthorization },
@@ -656,15 +670,17 @@ test("悬赏在隔离环境完成资格门禁、幂等意向、唯一确认与�
       BOUNTY_ERROR_CODE.SOP_REQUIREMENTS_NOT_MET,
     );
 
-    await providerMiniappPage.getByText("查看履约记录", { exact: true }).click();
+    await providerBountyCard.getByText("查看履约记录", { exact: true }).click();
     await expect(providerMiniappPage.getByText("1. 到达与消毒", { exact: true })).toBeVisible();
-    await expect(providerMiniappPage.getByLabel("完成到达与消毒")).toBeDisabled();
+    const firstStepCompletion = providerBountyCard.getByLabel("完成到达与消毒");
+
+    await expect(firstStepCompletion).toHaveAttribute("aria-disabled", "true");
 
     await uploadSopEvidence(page.request, providerAAuthorization, created.id, 1, "photo");
     await providerMiniappPage.reload();
     await providerMiniappPage.getByText("我的意向", { exact: true }).click();
-    await providerMiniappPage.getByText("查看履约记录", { exact: true }).click();
-    await expect(providerMiniappPage.getByLabel("完成到达与消毒")).toBeEnabled();
+    await providerBountyCard.getByText("查看履约记录", { exact: true }).click();
+    await expect(firstStepCompletion).toHaveAttribute("aria-disabled", "false");
 
     const firstStepCompletionResponse = providerMiniappPage.waitForResponse(
       (response) =>
@@ -672,7 +688,7 @@ test("悬赏在隔离环境完成资格门禁、幂等意向、唯一确认与�
         response.url().endsWith(`/bounties/${created.id}/sop/steps/1/complete`),
     );
 
-    await providerMiniappPage.getByLabel("完成到达与消毒").click();
+    await firstStepCompletion.click();
     await providerMiniappPage.getByText("确认完成", { exact: true }).click();
     let sop = await responseData<BountySop>(await firstStepCompletionResponse);
 
@@ -730,10 +746,10 @@ test("悬赏在隔离环境完成资格门禁、幂等意向、唯一确认与�
 
     await miniappPage.reload();
     await miniappPage.getByText("我的悬赏", { exact: true }).click();
-    await miniappPage.getByText("查看履约记录", { exact: true }).click();
-    await expect(miniappPage.getByText("5. 离开确认", { exact: true })).toBeVisible();
-    await expect(miniappPage.getByText("已完成", { exact: true }).first()).toBeVisible();
-    await expect(miniappPage.getByText("完成当前步骤", { exact: true })).toHaveCount(0);
+    await ownerBountyCard.getByText("查看履约记录", { exact: true }).click();
+    await expect(ownerBountyCard.getByText("5. 离开确认", { exact: true })).toBeVisible();
+    await expect(ownerBountyCard.getByText("已完成", { exact: true }).first()).toBeVisible();
+    await expect(ownerBountyCard.getByText("完成当前步骤", { exact: true })).toHaveCount(0);
 
     await providerMiniappPage.setViewportSize({ width: 812, height: 375 });
     expect(
