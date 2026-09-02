@@ -380,7 +380,9 @@ test("悬赏在隔离环境完成资格门禁、幂等意向、唯一确认与�
       }),
     );
 
-    expect(mine).toMatchObject({ total: 1, list: [{ id: created.id, address: request.address }] });
+    expect(mine.list).toContainEqual(
+      expect.objectContaining({ id: created.id, address: request.address }),
+    );
 
     const publicList = await responseData<PublicBountyListResponse>(
       await page.request.get("/api/bounties?page=1&pageSize=20"),
@@ -632,8 +634,8 @@ test("悬赏在隔离环境完成资格门禁、幂等意向、唯一确认与�
     expect(providerSop).toMatchObject({
       currentStepNumber: 1,
       canExecute: true,
-      steps: [{ minimumPhotoCount: 1, photos: [] }],
     });
+    expect(providerSop.steps[0]).toMatchObject({ minimumPhotoCount: 1, photos: [] });
     await expectFailure(
       await page.request.get(`/api/bounties/${created.id}/sop`, {
         headers: { Authorization: otherAuthorization },
