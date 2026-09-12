@@ -3,7 +3,6 @@ import { ConfigService } from "./config.service";
 function configure() {
   Object.assign(process.env, {
     QUALIFICATION_STORAGE_PROVIDER: "tencent-cos",
-    QUALIFICATION_COS_KMS_KEY_ID: "kms-id",
     TENCENT_COS_BUCKET: "shared-1234567890",
     TENCENT_COS_REGION: "ap-guangzhou",
     TENCENT_COS_SECRET_ID: "shared-id",
@@ -22,7 +21,7 @@ describe("qualification storage configuration", () => {
   });
 
   it("keeps an incomplete integration disabled", () => {
-    process.env.QUALIFICATION_COS_KMS_KEY_ID = "unfinished";
+    process.env.TENCENT_COS_BUCKET = "unfinished";
     expect(new ConfigService().qualificationStorage).toBeNull();
   });
 
@@ -33,7 +32,6 @@ describe("qualification storage configuration", () => {
       region: "ap-guangzhou",
       secretId: "shared-id",
       secretKey: "shared-secret",
-      kmsKeyId: "kms-id",
     });
   });
 
@@ -42,7 +40,6 @@ describe("qualification storage configuration", () => {
     "TENCENT_COS_REGION",
     "TENCENT_COS_SECRET_ID",
     "TENCENT_COS_SECRET_KEY",
-    "QUALIFICATION_COS_KMS_KEY_ID",
   ])("fails closed when enabled but %s is missing", (name) => {
     configure();
     delete process.env[name];

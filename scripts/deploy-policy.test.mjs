@@ -444,7 +444,6 @@ test("存储配置由 production Environment 原子写入且失败时恢复", as
     "TENCENT_COS_REGION",
     "TENCENT_COS_PUBLIC_BASE_URL",
     "QUALIFICATION_STORAGE_PROVIDER",
-    "QUALIFICATION_COS_KMS_KEY_ID",
   ]) {
     assert.match(workflow, new RegExp(`vars\\.${variable}`));
   }
@@ -454,10 +453,7 @@ test("存储配置由 production Environment 原子写入且失败时恢复", as
   assert.match(workflow, /petcare-storage\.env/);
   assert.match(workflow, /STORAGE_ENV_FILE="\$REMOTE_TMP\/petcare-storage\.env"/);
   assert.match(workflow, /QUALIFICATION_WORKFLOW_ENABLED: "false"/);
-  assert.match(
-    workflow,
-    /\[\[ "\$QUALIFICATION_STORAGE_PROVIDER" != tencent-cos \|\| -n "\$QUALIFICATION_COS_KMS_KEY_ID" \]\]/,
-  );
+  assert.doesNotMatch(workflow, /QUALIFICATION_COS_KMS_KEY_ID/);
   assert.doesNotMatch(workflow, /(?:echo|printf).*\$TENCENT_COS_SECRET_(?:ID|KEY).*>&2/);
 
   const update = position(
@@ -502,7 +498,7 @@ test(
       "TENCENT_COS_PUBLIC_BASE_URL=",
       "QUALIFICATION_WORKFLOW_ENABLED=false",
       "QUALIFICATION_STORAGE_PROVIDER=disabled",
-      "QUALIFICATION_COS_KMS_KEY_ID=",
+      "QUALIFICATION_COS_KMS_KEY_ID=old-key-id",
       "",
     ].join("\n");
     const validUpdates = [
@@ -514,16 +510,13 @@ test(
       "TENCENT_COS_PUBLIC_BASE_URL=https://petcare-1306016679.cos.ap-guangzhou.myqcloud.com",
       "QUALIFICATION_WORKFLOW_ENABLED=false",
       "QUALIFICATION_STORAGE_PROVIDER=tencent-cos",
-      "QUALIFICATION_COS_KMS_KEY_ID=kms-key-123",
       "",
     ].join("\n");
 
-    const disabledUpdates = validUpdates
-      .replace(
-        "QUALIFICATION_STORAGE_PROVIDER=tencent-cos",
-        "QUALIFICATION_STORAGE_PROVIDER=disabled",
-      )
-      .replace("QUALIFICATION_COS_KMS_KEY_ID=kms-key-123", "QUALIFICATION_COS_KMS_KEY_ID=");
+    const disabledUpdates = validUpdates.replace(
+      "QUALIFICATION_STORAGE_PROVIDER=tencent-cos",
+      "QUALIFICATION_STORAGE_PROVIDER=disabled",
+    );
 
     await writeFile(target, original, "utf8");
     await chmod(target, 0o600);
@@ -538,6 +531,7 @@ test(
     assert.match(updated, /^DB_PASSWORD=keep=this=value$/m);
     assert.doesNotMatch(updated, /^DEFAULT_ADMIN_PHONE=/m);
     assert.doesNotMatch(updated, /^QUALIFICATION_COS_SECRET_ID=/m);
+    assert.doesNotMatch(updated, /^QUALIFICATION_COS_KMS_KEY_ID=/m);
     assert.match(updated, /^PUBLIC_MEDIA_STORAGE_PROVIDER=tencent-cos$/m);
     assert.match(updated, /^TENCENT_COS_BUCKET=petcare-1306016679$/m);
     assert.match(updated, /^QUALIFICATION_WORKFLOW_ENABLED=false$/m);
@@ -560,14 +554,14 @@ test(
     await writeFile(
       updates,
       validUpdates.replace(
-        "QUALIFICATION_COS_KMS_KEY_ID=kms-key-123",
-        "QUALIFICATION_COS_KMS_KEY_ID=",
+        "TENCENT_COS_SECRET_KEY=test-secret-key-00000000000000000",
+        "TENCENT_COS_SECRET_KEY=",
       ),
       "utf8",
     );
     await assert.rejects(
       execFileAsync(pythonExecutable, [updater, target, updates]),
-      /KMS_KEY_ID is required/,
+      /TENCENT_COS_SECRET_KEY has an invalid format/,
     );
     assert.equal(await readFile(target, "utf8"), updated);
 

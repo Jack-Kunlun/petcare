@@ -12,7 +12,6 @@ describe("QualificationStorage", () => {
     region: "ap-guangzhou",
     secretId: "private-test-id",
     secretKey: "private-test-secret",
-    kmsKeyId: "test-kms-key",
   };
   let storage: QualificationStorage;
   const client = { putObject: jest.fn(), getObject: jest.fn(), deleteObject: jest.fn() };
@@ -23,18 +22,18 @@ describe("QualificationStorage", () => {
     storage = new QualificationStorage({ qualificationStorage: coordinates } as ConfigService);
   });
 
-  it("uses the existing private bucket with encrypted, private, non-cacheable objects", async () => {
+  it("uses the shared bucket with COS-encrypted, private, non-cacheable objects", async () => {
     await storage.put(key, Buffer.from("validated-image"), "image/png");
     expect(client.putObject).toHaveBeenCalledWith(
       expect.objectContaining({
         Bucket: coordinates.bucket,
         Key: key,
         ACL: "private",
-        ServerSideEncryption: "cos/kms",
-        SSEKMSKeyId: coordinates.kmsKeyId,
+        ServerSideEncryption: "AES256",
         CacheControl: "no-store",
       }),
     );
+    expect(client.putObject.mock.calls[0]?.[0]).not.toHaveProperty("SSEKMSKeyId");
     expect(storage.createKey()).toMatch(/^private\/provider-qualifications\/[a-f0-9-]{36}$/);
   });
 

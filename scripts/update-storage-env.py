@@ -18,7 +18,6 @@ MANAGED_KEYS = (
     "TENCENT_COS_PUBLIC_BASE_URL",
     "QUALIFICATION_WORKFLOW_ENABLED",
     "QUALIFICATION_STORAGE_PROVIDER",
-    "QUALIFICATION_COS_KMS_KEY_ID",
 )
 REMOVED_KEYS = {
     "DEFAULT_ADMIN_PHONE",
@@ -26,6 +25,7 @@ REMOVED_KEYS = {
     "QUALIFICATION_COS_REGION",
     "QUALIFICATION_COS_SECRET_ID",
     "QUALIFICATION_COS_SECRET_KEY",
+    "QUALIFICATION_COS_KMS_KEY_ID",
 }
 
 
@@ -79,12 +79,6 @@ def read_updates(path: Path) -> dict[str, str]:
         fail("QUALIFICATION_WORKFLOW_ENABLED must remain false")
     if updates["QUALIFICATION_STORAGE_PROVIDER"] not in ("disabled", "tencent-cos"):
         fail("QUALIFICATION_STORAGE_PROVIDER has an invalid value")
-    kms_key_id = updates["QUALIFICATION_COS_KMS_KEY_ID"]
-    if kms_key_id and not re.fullmatch(r"[A-Za-z0-9_:/.-]{1,256}", kms_key_id):
-        fail("QUALIFICATION_COS_KMS_KEY_ID has an invalid format")
-    if updates["QUALIFICATION_STORAGE_PROVIDER"] == "tencent-cos" and not kms_key_id:
-        fail("QUALIFICATION_COS_KMS_KEY_ID is required")
-
     return updates
 
 

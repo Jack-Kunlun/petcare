@@ -6,7 +6,7 @@ import COS from "cos-nodejs-sdk-v5";
 import { ApiException } from "../../common/http/api-exception";
 import { ConfigService } from "../../config/config.service";
 
-/** Private namespace in the existing private bucket; never served by public media routes. */
+/** Private namespace in the shared COS bucket; never served by public media routes. */
 export const QUALIFICATION_OBJECT_PREFIX = "private/provider-qualifications/";
 /** Maximum validated material size, also enforced when reading objects. */
 export const QUALIFICATION_MATERIAL_MAX_BYTES = 10 * 1024 * 1024;
@@ -43,7 +43,7 @@ export class QualificationStorage {
     return `${QUALIFICATION_OBJECT_PREFIX}${randomUUID()}`;
   }
 
-  /** Writes validated material with private ACL and explicit KMS encryption. */
+  /** Writes validated material with private ACL and COS-managed encryption. */
   async put(key: string, bytes: Buffer, mimeType: string): Promise<void> {
     const params = this.objectParams(key);
 
@@ -63,8 +63,7 @@ export class QualificationStorage {
         ContentType: mimeType,
         ACL: "private",
         CacheControl: "no-store",
-        ServerSideEncryption: "cos/kms",
-        SSEKMSKeyId: this.coordinates!.kmsKeyId,
+        ServerSideEncryption: "AES256",
       });
     } catch {
       throw qualificationStorageUnavailable();

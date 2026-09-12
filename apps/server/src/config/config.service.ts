@@ -617,7 +617,6 @@ export class ConfigService {
     region: string;
     secretId: string;
     secretKey: string;
-    kmsKeyId: string;
   } | null {
     const provider = process.env.QUALIFICATION_STORAGE_PROVIDER?.trim() || "disabled";
 
@@ -636,7 +635,6 @@ export class ConfigService {
       region: this.tencentCosRegion,
       secretId: this.tencentCosSecretId,
       secretKey: this.tencentCosSecretKey,
-      kmsKeyId: this.getRequiredString("QUALIFICATION_COS_KMS_KEY_ID"),
     };
   }
 

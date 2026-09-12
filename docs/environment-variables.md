@@ -76,7 +76,7 @@ REDIS_PASSWORD=
 API 和独立 Worker 必须使用相同的 `QUEUE_PREFIX`；生产、预发和开发环境必须使用不同前缀，避免任务串扰。
 `COMMERCIAL_SERVICES_ENABLED=true` 只授权已进入路线图且完成纵向验收的能力；它不会替代服务者资质、支付或生产发布条件。
 `QUALIFICATION_WORKFLOW_ENABLED` 是独立的资格申请与审核开关，默认 `false`，不会开放悬赏或订单。
-它要求私有资格材料存储已配置；生产启用还须完成最小权限、KMS 与目标环境纵向验收。
+它要求私有资格材料存储已配置；生产启用还须完成最小权限、SSE-COS 与目标环境纵向验收。
 
 ### JWT配置
 
@@ -192,15 +192,16 @@ Miniapp 的 Vite 环境根目录是 `apps/miniapp`。仓库内的 `.env.developm
 
 资格材料与公开素材共用 `TENCENT_COS_*` Bucket 和凭据，使用固定的
 `private/provider-qualifications/` 前缀区分，不复用备份存储配置。
-`QUALIFICATION_STORAGE_PROVIDER` 默认 `disabled`；设为 `tencent-cos` 时还必须配置
-`QUALIFICATION_COS_KMS_KEY_ID`。生产部署始终写入 `QUALIFICATION_WORKFLOW_ENABLED=false`，
+`QUALIFICATION_STORAGE_PROVIDER` 默认 `disabled`；设为 `tencent-cos` 时复用现有 COS 配置，
+不需要 KMS 密钥。生产部署始终写入 `QUALIFICATION_WORKFLOW_ENABLED=false`，
 开门须在独立验收后另行变更。前缀不是安全边界：Bucket 公开读取策略只能覆盖公开对象前缀，
-私有前缀必须拒绝匿名读取，共用子账号仅授予业务所需前缀及指定 KMS 密钥权限。
-对象以私有 ACL 和 COS SSE-KMS 写入，
+私有前缀必须拒绝匿名读取，共用子账号仅授予业务所需前缀权限。
+对象以私有 ACL 和 COS SSE-COS（AES-256）写入；SSE-COS 不提供独立 KMS 密钥级权限，
 Server 不返回对象键或签名 URL。管理员材料读取有独立的 `provider_qualification.material_read` 权限与审计。
 未提交草稿 7 天清理；拒绝或撤销后保留 30 天用于申诉，随后定期清理对象并保留无对象键的审计记录。
 上传前持久登记未绑定对象键；绑定成功时原子移除，失败删除未成功时由定时清理重试。
-生产仍缺共享 Bucket 的私有前缀策略核查、KMS 权限、该补偿链路的目标环境验证及真实读写删/匿名拒绝验证，不得以占位值绕过门禁。
+2026-09-13 已使用编译后的资格材料存储实现和现有 COS 配置，对随机非敏感对象验证 SSE-COS `AES256` 回执、私有对象 ACL、已认证读取一致、COS 默认域名匿名 GET 403、删除后 HEAD 404。
+生产仍缺共享 Bucket 的私有前缀策略及子账号最小权限核查、其他对外域名访问检查、补偿链路和资格业务全链路的目标环境验证，不得以单个对象探针绕过门禁。
 
 微信配置必须同时留空或同时提供。启用时，`WECHAT_APP_ID` 必须符合 `wx` 加 16 位字符的格式，
 `WECHAT_APP_SECRET` 必须为 32 位十六进制字符串。
