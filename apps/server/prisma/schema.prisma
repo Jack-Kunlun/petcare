@@ -215,6 +215,15 @@ model ProviderQualificationEvent {
   @@map("provider_qualification_events")
 }
 
+/// Unbound COS keys stay here until an upload binds atomically or cleanup deletes them.
+model ProviderQualificationUpload {
+  key       String   @id
+  createdAt DateTime @default(now()) @map("created_at")
+
+  @@index([createdAt])
+  @@map("provider_qualification_uploads")
+}
+
 // ============================================
 // 宠物相关
 // ============================================

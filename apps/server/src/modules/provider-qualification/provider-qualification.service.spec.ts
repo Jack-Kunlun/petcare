@@ -52,6 +52,7 @@ describe("ProviderQualificationService", () => {
       findUniqueOrThrow: jest.fn(),
     },
     providerQualificationEvent: { create: jest.fn() },
+    providerQualificationUpload: { delete: jest.fn() },
   };
   const prisma = {
     $transaction: jest.fn(),
@@ -61,6 +62,10 @@ describe("ProviderQualificationService", () => {
       findMany: jest.fn(),
     },
     providerQualificationEvent: { create: jest.fn(), findMany: jest.fn() },
+    providerQualificationUpload: {
+      create: jest.fn(),
+      findMany: jest.fn(),
+    },
     user: { findUnique: jest.fn() },
   };
   const storage = { createKey: jest.fn(), put: jest.fn(), read: jest.fn(), delete: jest.fn() };
@@ -84,6 +89,7 @@ describe("ProviderQualificationService", () => {
     prisma.providerQualificationApplication.findUnique.mockResolvedValue(application);
     prisma.providerQualificationApplication.findMany.mockResolvedValue([application]);
     prisma.providerQualificationEvent.findMany.mockResolvedValue([]);
+    prisma.providerQualificationUpload.findMany.mockResolvedValue([]);
     prisma.user.findUnique.mockResolvedValue({ nickname: "申请人", phone: "13800000000" });
     storage.createKey.mockReturnValue("private/provider-qualifications/new-key");
     storage.read.mockResolvedValue(Buffer.from("image"));
@@ -112,6 +118,129 @@ describe("ProviderQualificationService", () => {
       service.submit(applicantId, id, PROVIDER_QUALIFICATION_CONSENT_VERSION, false),
     ).rejects.toMatchObject({ code: "QUALIFICATION_CONSENT_REQUIRED" });
     expect(tx.providerQualificationApplication.update).not.toHaveBeenCalled();
+  });
+
+  it("reserves an object before COS upload and removes the reservation with the database binding", async () => {
+    prisma.providerQualificationApplication.findFirst.mockResolvedValue({
+      ...application,
+      status: "draft",
+      idCardFrontKey: null,
+      purgeAfter: new Date("2099-01-01"),
+    });
+
+    await service.upload(applicantId, id, "id-front", {
+      buffer: Buffer.from("image"),
+      mimetype: "image/png",
+      originalname: "front.png",
+    } as Express.Multer.File);
+
+    expect(prisma.providerQualificationUpload.create).toHaveBeenCalledWith({
+      data: { key: "private/provider-qualifications/new-key" },
+    });
+    expect(prisma.providerQualificationUpload.create.mock.invocationCallOrder[0]).toBeLessThan(
+      storage.put.mock.invocationCallOrder[0],
+    );
+    expect(tx.$queryRaw.mock.invocationCallOrder[0]).toBeLessThan(
+      storage.put.mock.invocationCallOrder[0],
+    );
+    expect(tx.providerQualificationUpload.delete).toHaveBeenCalledWith({
+      where: { key: "private/provider-qualifications/new-key" },
+    });
+  });
+
+  it("retains a failed upload's reservation until private deletion succeeds on retry", async () => {
+    const key = "private/provider-qualifications/new-key";
+
+    prisma.providerQualificationApplication.findFirst.mockResolvedValue({
+      ...application,
+      status: "draft",
+      idCardFrontKey: null,
+      purgeAfter: new Date("2099-01-01"),
+    });
+    tx.providerQualificationApplication.updateMany.mockRejectedValueOnce(
+      new Error("binding failed"),
+    );
+    storage.delete.mockRejectedValueOnce(new Error("COS unavailable"));
+
+    await expect(
+      service.upload(applicantId, id, "id-front", {
+        buffer: Buffer.from("image"),
+        mimetype: "image/png",
+        originalname: "front.png",
+      } as Express.Multer.File),
+    ).rejects.toThrow("binding failed");
+
+    expect(tx.providerQualificationUpload.delete).not.toHaveBeenCalled();
+    prisma.providerQualificationUpload.findMany.mockResolvedValueOnce([
+      { key, createdAt: new Date("2020-01-01") },
+    ]);
+    prisma.providerQualificationApplication.findMany.mockResolvedValueOnce([]);
+
+    await expect(service.purgeExpired()).resolves.toBe(0);
+    expect(storage.delete).toHaveBeenCalledTimes(2);
+    expect(tx.providerQualificationUpload.delete).toHaveBeenCalledWith({ where: { key } });
+  });
+
+  it("does not delete an object when a transaction reports an uncertain commit", async () => {
+    prisma.providerQualificationApplication.findFirst.mockResolvedValue({
+      ...application,
+      status: "draft",
+      idCardFrontKey: null,
+      purgeAfter: new Date("2099-01-01"),
+    });
+    tx.$queryRaw.mockResolvedValueOnce([{ key: "private/provider-qualifications/new-key" }]);
+    tx.$queryRaw.mockResolvedValueOnce([]);
+    prisma.$transaction.mockImplementationOnce(async (callback) => {
+      await callback(tx);
+      throw new Error("commit acknowledgement lost");
+    });
+
+    await expect(
+      service.upload(applicantId, id, "id-front", {
+        buffer: Buffer.from("image"),
+        mimetype: "image/png",
+        originalname: "front.png",
+      } as Express.Multer.File),
+    ).rejects.toThrow("commit acknowledgement lost");
+
+    expect(storage.delete).not.toHaveBeenCalled();
+  });
+
+  it("waits for an in-flight COS write before compensating a timed-out transaction", async () => {
+    const timeout = new Error("transaction timed out");
+    let finishPut!: () => void;
+
+    prisma.providerQualificationApplication.findFirst.mockResolvedValue({
+      ...application,
+      status: "draft",
+      idCardFrontKey: null,
+      purgeAfter: new Date("2099-01-01"),
+    });
+    storage.put.mockReturnValue(
+      new Promise<void>((resolve) => {
+        finishPut = resolve;
+      }),
+    );
+    prisma.$transaction.mockImplementationOnce(async (callback) => {
+      void callback(tx).catch(() => undefined);
+      await new Promise<void>((resolve) => setImmediate(resolve));
+      throw timeout;
+    });
+
+    const upload = service.upload(applicantId, id, "id-front", {
+      buffer: Buffer.from("image"),
+      mimetype: "image/png",
+      originalname: "front.png",
+    } as Express.Multer.File);
+
+    await new Promise<void>((resolve) => setImmediate(resolve));
+    await new Promise<void>((resolve) => setImmediate(resolve));
+    expect(storage.put).toHaveBeenCalledTimes(1);
+    expect(storage.delete).not.toHaveBeenCalled();
+
+    finishPut();
+    await expect(upload).rejects.toBe(timeout);
+    expect(storage.delete).toHaveBeenCalledTimes(1);
   });
 
   it("never permits self-review or approval without a verification reference", async () => {

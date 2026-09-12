@@ -17,6 +17,7 @@ import { QualificationStorage } from "./qualification-storage";
 const KINDS = Object.values(PROVIDER_QUALIFICATION_MATERIAL_KIND);
 const APPEAL_DAYS = 30;
 const DRAFT_DAYS = 7;
+const UPLOAD_CLEANUP_GRACE_MS = 5 * 60 * 1000;
 
 function failure(code: string, message: string, status: HttpStatus): ApiException {
   return new ApiException(code, message, status);
@@ -188,45 +189,76 @@ export class ProviderQualificationService implements OnModuleInit, OnModuleDestr
     );
     const key = this.storage.createKey();
 
+    await this.prisma.providerQualificationUpload.create({ data: { key } });
+    let aborted = false;
+    let put: Promise<void> | undefined;
+
     try {
-      await this.storage.put(key, file.buffer, validated.mimeType);
-      const result = await this.prisma.$transaction(async (tx) => {
-        const updated = await tx.providerQualificationApplication.updateMany({
-          where: {
-            id,
-            applicantId,
-            status: "draft",
-            purgeAfter: { gt: new Date() },
-            [fields.key]: null,
-          },
-          data: { [fields.key]: key, [fields.mime]: validated.mimeType },
-        });
+      // Keep the reservation locked through COS upload so cleanup cannot delete an in-flight object.
+      const result = await this.prisma.$transaction(
+        async (tx) => {
+          const reserved = await tx.$queryRaw<Array<{ key: string }>>`
+          SELECT "key" FROM "provider_qualification_uploads" WHERE "key" = ${key} FOR UPDATE
+        `;
 
-        if (!updated.count) {
-          throw failure(
-            "QUALIFICATION_STATE_CONFLICT",
-            "材料已上传或申请状态已改变",
-            HttpStatus.CONFLICT,
-          );
-        }
+          if (reserved.length !== 1) {
+            throw failure("QUALIFICATION_STATE_CONFLICT", "材料上传已失效", HttpStatus.CONFLICT);
+          }
 
-        await tx.providerQualificationEvent.create({
-          data: {
-            applicationId: id,
-            applicantId,
-            actorId: applicantId,
-            action: `uploaded_${kind}`,
-            fromStatus: "draft",
-            toStatus: "draft",
-          },
-        });
+          if (aborted) {
+            throw failure("QUALIFICATION_STATE_CONFLICT", "材料上传已失效", HttpStatus.CONFLICT);
+          }
 
-        return tx.providerQualificationApplication.findUniqueOrThrow({ where: { id } });
-      });
+          put = this.storage.put(key, file.buffer, validated.mimeType);
+          await put;
+          const updated = await tx.providerQualificationApplication.updateMany({
+            where: {
+              id,
+              applicantId,
+              status: "draft",
+              purgeAfter: { gt: new Date() },
+              [fields.key]: null,
+            },
+            data: { [fields.key]: key, [fields.mime]: validated.mimeType },
+          });
+
+          if (!updated.count) {
+            throw failure(
+              "QUALIFICATION_STATE_CONFLICT",
+              "材料已上传或申请状态已改变",
+              HttpStatus.CONFLICT,
+            );
+          }
+
+          await tx.providerQualificationEvent.create({
+            data: {
+              applicationId: id,
+              applicantId,
+              actorId: applicantId,
+              action: `uploaded_${kind}`,
+              fromStatus: "draft",
+              toStatus: "draft",
+            },
+          });
+
+          await tx.providerQualificationUpload.delete({ where: { key } });
+
+          return tx.providerQualificationApplication.findUniqueOrThrow({ where: { id } });
+        },
+        { timeout: 60_000 },
+      );
 
       return this.summary(result);
     } catch (error) {
-      await this.storage.delete(key).catch(() => undefined);
+      aborted = true;
+      await put?.catch(() => undefined);
+
+      try {
+        await this.cleanupUpload(key);
+      } catch {
+        this.logger.warn("Qualification upload cleanup will retry");
+      }
+
       throw error;
     }
   }
@@ -590,6 +622,7 @@ export class ProviderQualificationService implements OnModuleInit, OnModuleDestr
 
   /** Retains rejected/revoked material for appeal, then removes every private object. */
   async purgeExpired(): Promise<number> {
+    await this.purgeOrphanedUploads();
     const rows = await this.prisma.providerQualificationApplication.findMany({
       where: {
         status: { in: ["draft", "expired", "rejected", "revoked", "withdrawn"] },
@@ -683,6 +716,42 @@ export class ProviderQualificationService implements OnModuleInit, OnModuleDestr
     /* eslint-enable no-await-in-loop */
 
     return purged;
+  }
+
+  private async purgeOrphanedUploads(): Promise<void> {
+    const rows = await this.prisma.providerQualificationUpload.findMany({
+      where: { createdAt: { lte: new Date(Date.now() - UPLOAD_CLEANUP_GRACE_MS) } },
+      orderBy: { createdAt: "asc" },
+      take: 50,
+    });
+
+    /* eslint-disable no-await-in-loop */
+    for (const row of rows) {
+      try {
+        await this.cleanupUpload(row.key);
+      } catch {
+        this.logger.warn("Qualification upload cleanup will retry");
+      }
+    }
+    /* eslint-enable no-await-in-loop */
+  }
+
+  private async cleanupUpload(key: string): Promise<void> {
+    await this.prisma.$transaction(
+      async (tx) => {
+        const reserved = await tx.$queryRaw<Array<{ key: string }>>`
+          SELECT "key" FROM "provider_qualification_uploads" WHERE "key" = ${key} FOR UPDATE
+        `;
+
+        if (reserved.length === 0) {
+          return;
+        }
+
+        await this.storage.delete(key);
+        await tx.providerQualificationUpload.delete({ where: { key } });
+      },
+      { timeout: 60_000 },
+    );
   }
 
   private summary(row: ProviderQualificationApplication): ProviderQualificationSummary {
