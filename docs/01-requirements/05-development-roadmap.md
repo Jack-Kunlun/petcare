@@ -27,6 +27,8 @@
 
 2026-09-07，当前 `master` 已上传为微信小程序体验版 `0.0.6`，仅表示代码到达微信公众平台，未提审或公开发布。Cycle 8 已由 [#55](https://github.com/Jack-Kunlun/petcare/issues/55) 跟踪。用户确认复用现有腾讯 COS 私有 Bucket，以独立的 `private/provider-qualifications/` 目录存放资格材料；旧资格 Schema 的公开材料 URL 不可复用。2026-09-12，申请、私有材料上传与按权限读取、管理员审核/撤销、资格来源门禁、审计和过期清理进入实现与本地检查阶段。正式凭据与 KMS、目标环境 Bucket 权限和材料生命周期、真实数据库/COS 纵向验收尚未完成；资格写入与商业入口继续默认关闭，不可据代码完成推断生产可用。
 
+2026-09-12，阶段性实现提交 `4b50015a`，后续测试修复至 `3b609cf7`；该提交的[远端 CI](https://github.com/Jack-Kunlun/petcare/actions/runs/34697914038)已通过格式、lint、typecheck、单测、构建、微信小程序编译、隔离数据库/浏览器 E2E、容器构建和线性历史门禁。隔离 E2E 未使用真实私有 COS 与 KMS，也未完成目标环境的审核主体、保留删除、补偿恢复和发布验收；[#55](https://github.com/Jack-Kunlun/petcare/issues/55) 保持开放。
+
 此前对 Miniapp、Website、Admin、Server 与共享契约的商业残留清理仍然有效：历史页面和应用层代码只作审计参考，不整批回退；保留的 Prisma Schema 与 migration 继续作为数据兼容基础。真实腾讯 COS、生产短信、微信生产登录以及小程序审核/发布不作为隔离开发门禁，但它们是否满足生产发布条件必须单独确认。
 
 长期本地 Compose 已使用显式 `local` 媒体 provider 和 `petcare-local-media-data` named volume，管理员/用户头像、宠物、社区与官网素材复用服务端管理的对象键和只读 `/media/` 出口。真实容器验收已确认宠物与社区图片可上传、读取、跨 Server/网关容器重建保留，并在删除后返回 404；腾讯云 COS 仅在显式选择 `tencent-cos` provider 时启用。
