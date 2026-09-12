@@ -8,13 +8,14 @@ import { AdminAccountModule } from "./modules/admin-account/admin-account.module
 import { BountyModule } from "./modules/bounty/bounty.module";
 import { ContentModule } from "./modules/content/content.module";
 import { PetModule } from "./modules/pet/pet.module";
+import { ProviderQualificationModule } from "./modules/provider-qualification/provider-qualification.module";
 import { RbacModule } from "./modules/rbac/rbac.module";
 import { UserModule } from "./modules/user/user.module";
 import { WebsiteContentModule } from "./modules/website-content/website-content.module";
 import { PrismaModule } from "./prisma/prisma.module";
 
 describe("AppModule", () => {
-  it("registers current capabilities including the feature-gated bounty module", () => {
+  it("registers current capabilities including the gated bounty and qualification modules", () => {
     const imports = Reflect.getMetadata(MODULE_METADATA.IMPORTS, AppModule) as unknown[];
 
     expect(imports).toEqual([
@@ -29,6 +30,7 @@ describe("AppModule", () => {
       RbacModule,
       AdminAccountModule,
       BountyModule,
+      ProviderQualificationModule,
       WebsiteContentModule,
     ]);
   });
