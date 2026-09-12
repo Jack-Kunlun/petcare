@@ -3,12 +3,11 @@ import { ConfigService } from "./config.service";
 function configure() {
   Object.assign(process.env, {
     QUALIFICATION_STORAGE_PROVIDER: "tencent-cos",
-    QUALIFICATION_COS_BUCKET: "existing-private-1234567890",
-    QUALIFICATION_COS_REGION: "ap-guangzhou",
-    QUALIFICATION_COS_SECRET_ID: "scoped-id",
-    QUALIFICATION_COS_SECRET_KEY: "scoped-secret",
     QUALIFICATION_COS_KMS_KEY_ID: "kms-id",
-    TENCENT_COS_BUCKET: "public-1234567890",
+    TENCENT_COS_BUCKET: "shared-1234567890",
+    TENCENT_COS_REGION: "ap-guangzhou",
+    TENCENT_COS_SECRET_ID: "shared-id",
+    TENCENT_COS_SECRET_KEY: "shared-secret",
   });
 }
 
@@ -23,31 +22,31 @@ describe("qualification storage configuration", () => {
   });
 
   it("keeps an incomplete integration disabled", () => {
-    process.env.QUALIFICATION_COS_BUCKET = "unfinished";
+    process.env.QUALIFICATION_COS_KMS_KEY_ID = "unfinished";
     expect(new ConfigService().qualificationStorage).toBeNull();
   });
 
-  it("accepts independent credentials for the existing private bucket", () => {
+  it("uses the existing COS bucket and credentials with a private object prefix", () => {
     configure();
-    expect(new ConfigService().qualificationStorage?.bucket).toBe("existing-private-1234567890");
+    expect(new ConfigService().qualificationStorage).toEqual({
+      bucket: "shared-1234567890",
+      region: "ap-guangzhou",
+      secretId: "shared-id",
+      secretKey: "shared-secret",
+      kmsKeyId: "kms-id",
+    });
   });
 
   it.each([
-    "QUALIFICATION_COS_BUCKET",
-    "QUALIFICATION_COS_REGION",
-    "QUALIFICATION_COS_SECRET_ID",
-    "QUALIFICATION_COS_SECRET_KEY",
+    "TENCENT_COS_BUCKET",
+    "TENCENT_COS_REGION",
+    "TENCENT_COS_SECRET_ID",
+    "TENCENT_COS_SECRET_KEY",
     "QUALIFICATION_COS_KMS_KEY_ID",
   ])("fails closed when enabled but %s is missing", (name) => {
     configure();
     delete process.env[name];
     expect(() => new ConfigService().qualificationStorage).toThrow(name);
-  });
-
-  it("rejects reusing the known public bucket", () => {
-    configure();
-    process.env.QUALIFICATION_COS_BUCKET = process.env.TENCENT_COS_BUCKET;
-    expect(() => new ConfigService().qualificationStorage).toThrow("public media bucket");
   });
 
   it("keeps the workflow closed until private storage is configured", () => {

@@ -431,11 +431,11 @@ test("部署工作流先在受保护 runner 临时目录验证 SSH 与 TLS", asy
   assert.doesNotMatch(workflow, /prisma:push|sync_schema/);
 });
 
-test("公开媒体配置由 production Environment 原子写入且失败时恢复", async () => {
+test("存储配置由 production Environment 原子写入且失败时恢复", async () => {
   const [workflow, releaseScript, updater] = await Promise.all([
     readFile(resolve(root, ".github/workflows/deploy.yml"), "utf8"),
     readFile(resolve(root, "scripts/release-production.sh"), "utf8"),
-    readFile(resolve(root, "scripts/update-public-media-env.py"), "utf8"),
+    readFile(resolve(root, "scripts/update-storage-env.py"), "utf8"),
   ]);
 
   for (const variable of [
@@ -443,19 +443,26 @@ test("公开媒体配置由 production Environment 原子写入且失败时恢�
     "TENCENT_COS_BUCKET",
     "TENCENT_COS_REGION",
     "TENCENT_COS_PUBLIC_BASE_URL",
+    "QUALIFICATION_STORAGE_PROVIDER",
+    "QUALIFICATION_COS_KMS_KEY_ID",
   ]) {
     assert.match(workflow, new RegExp(`vars\\.${variable}`));
   }
   for (const secret of ["TENCENT_COS_SECRET_ID", "TENCENT_COS_SECRET_KEY"]) {
     assert.match(workflow, new RegExp(`secrets\\.${secret}`));
   }
-  assert.match(workflow, /petcare-public-media\.env/);
-  assert.match(workflow, /PUBLIC_MEDIA_ENV_FILE="\$REMOTE_TMP\/petcare-public-media\.env"/);
+  assert.match(workflow, /petcare-storage\.env/);
+  assert.match(workflow, /STORAGE_ENV_FILE="\$REMOTE_TMP\/petcare-storage\.env"/);
+  assert.match(workflow, /QUALIFICATION_WORKFLOW_ENABLED: "false"/);
+  assert.match(
+    workflow,
+    /\[\[ "\$QUALIFICATION_STORAGE_PROVIDER" != tencent-cos \|\| -n "\$QUALIFICATION_COS_KMS_KEY_ID" \]\]/,
+  );
   assert.doesNotMatch(workflow, /(?:echo|printf).*\$TENCENT_COS_SECRET_(?:ID|KEY).*>&2/);
 
   const update = position(
     releaseScript,
-    'python3 "$RELEASE_DIR/scripts/update-public-media-env.py" "$ENV_FILE" "$PUBLIC_MEDIA_ENV_FILE"',
+    'python3 "$RELEASE_DIR/scripts/update-storage-env.py" "$ENV_FILE" "$STORAGE_ENV_FILE"',
   );
   const composeValidation = position(
     releaseScript,
@@ -467,7 +474,7 @@ test("公开媒体配置由 production Environment 原子写入且失败时恢�
   assert.ok(update < composeValidation);
   assert.ok(restore < rollback);
   assert.match(releaseScript, /stat -c '%U:%G %a'.*root:root 600/);
-  assert.match(releaseScript, /PUBLIC_MEDIA_ENV_FILE 路径无效/);
+  assert.match(releaseScript, /STORAGE_ENV_FILE 路径无效/);
   assert.match(updater, /MANAGED_KEYS = \(/);
   assert.match(updater, /os\.replace\(temporary_name, target\)/);
   assert.match(updater, /production environment file contains a duplicate key/);
@@ -475,23 +482,27 @@ test("公开媒体配置由 production Environment 原子写入且失败时恢�
 });
 
 test(
-  "公开媒体 dotenv 更新器保留无关配置并拒绝重复键",
+  "存储 dotenv 更新器保留无关配置并拒绝非法资格开关",
   { skip: !pythonExecutable },
   async (context) => {
-    const directory = await mkdtemp(join(tmpdir(), "petcare-public-media-env-"));
+    const directory = await mkdtemp(join(tmpdir(), "petcare-storage-env-"));
     context.after(() => rm(directory, { force: true, recursive: true }));
     const target = join(directory, ".env");
     const updates = join(directory, "updates.env");
-    const updater = resolve(root, "scripts/update-public-media-env.py");
+    const updater = resolve(root, "scripts/update-storage-env.py");
     const original = [
       "DB_PASSWORD=keep=this=value",
       "DEFAULT_ADMIN_PHONE=13800138000",
+      "QUALIFICATION_COS_SECRET_ID=old-private-secret",
       "PUBLIC_MEDIA_STORAGE_PROVIDER=disabled",
       "TENCENT_COS_SECRET_ID=",
       "TENCENT_COS_SECRET_KEY=",
       "TENCENT_COS_BUCKET=",
       "TENCENT_COS_REGION=",
       "TENCENT_COS_PUBLIC_BASE_URL=",
+      "QUALIFICATION_WORKFLOW_ENABLED=false",
+      "QUALIFICATION_STORAGE_PROVIDER=disabled",
+      "QUALIFICATION_COS_KMS_KEY_ID=",
       "",
     ].join("\n");
     const validUpdates = [
@@ -501,20 +512,64 @@ test(
       "TENCENT_COS_BUCKET=petcare-1306016679",
       "TENCENT_COS_REGION=ap-guangzhou",
       "TENCENT_COS_PUBLIC_BASE_URL=https://petcare-1306016679.cos.ap-guangzhou.myqcloud.com",
+      "QUALIFICATION_WORKFLOW_ENABLED=false",
+      "QUALIFICATION_STORAGE_PROVIDER=tencent-cos",
+      "QUALIFICATION_COS_KMS_KEY_ID=kms-key-123",
       "",
     ].join("\n");
 
+    const disabledUpdates = validUpdates
+      .replace(
+        "QUALIFICATION_STORAGE_PROVIDER=tencent-cos",
+        "QUALIFICATION_STORAGE_PROVIDER=disabled",
+      )
+      .replace("QUALIFICATION_COS_KMS_KEY_ID=kms-key-123", "QUALIFICATION_COS_KMS_KEY_ID=");
+
     await writeFile(target, original, "utf8");
     await chmod(target, 0o600);
+    await writeFile(updates, disabledUpdates, "utf8");
+    await execFileAsync(pythonExecutable, [updater, target, updates]);
+    assert.match(await readFile(target, "utf8"), /^QUALIFICATION_STORAGE_PROVIDER=disabled$/m);
     await writeFile(updates, validUpdates, "utf8");
     const result = await execFileAsync(pythonExecutable, [updater, target, updates]);
     const updated = await readFile(target, "utf8");
 
-    assert.equal(result.stdout.trim(), "public media environment updated");
+    assert.equal(result.stdout.trim(), "storage environment updated");
     assert.match(updated, /^DB_PASSWORD=keep=this=value$/m);
     assert.doesNotMatch(updated, /^DEFAULT_ADMIN_PHONE=/m);
+    assert.doesNotMatch(updated, /^QUALIFICATION_COS_SECRET_ID=/m);
     assert.match(updated, /^PUBLIC_MEDIA_STORAGE_PROVIDER=tencent-cos$/m);
     assert.match(updated, /^TENCENT_COS_BUCKET=petcare-1306016679$/m);
+    assert.match(updated, /^QUALIFICATION_WORKFLOW_ENABLED=false$/m);
+    assert.match(updated, /^QUALIFICATION_STORAGE_PROVIDER=tencent-cos$/m);
+
+    await writeFile(
+      updates,
+      validUpdates.replace(
+        "QUALIFICATION_WORKFLOW_ENABLED=false",
+        "QUALIFICATION_WORKFLOW_ENABLED=true",
+      ),
+      "utf8",
+    );
+    await assert.rejects(
+      execFileAsync(pythonExecutable, [updater, target, updates]),
+      /must remain false/,
+    );
+    assert.equal(await readFile(target, "utf8"), updated);
+
+    await writeFile(
+      updates,
+      validUpdates.replace(
+        "QUALIFICATION_COS_KMS_KEY_ID=kms-key-123",
+        "QUALIFICATION_COS_KMS_KEY_ID=",
+      ),
+      "utf8",
+    );
+    await assert.rejects(
+      execFileAsync(pythonExecutable, [updater, target, updates]),
+      /KMS_KEY_ID is required/,
+    );
+    assert.equal(await readFile(target, "utf8"), updated);
 
     await writeFile(updates, validUpdates + "TENCENT_COS_BUCKET=duplicate-1306016679\n", "utf8");
     await assert.rejects(

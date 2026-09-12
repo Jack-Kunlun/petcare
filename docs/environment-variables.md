@@ -184,21 +184,23 @@ Miniapp 的 Vite 环境根目录是 `apps/miniapp`。仓库内的 `.env.developm
 | `LOCAL_MEDIA_PUBLIC_BASE_URL`   | `local` provider 的公开基础 URL；留空时使用 `WEBSITE_PUBLIC_URL/media`   |
 | `WECHAT_APP_ID`                 | 微信小程序 AppID                                                         |
 | `WECHAT_APP_SECRET`             | 微信小程序 AppSecret                                                     |
-| `TENCENT_COS_SECRET_ID`         | 腾讯云 COS 最小权限子账号的 SecretId；仅 Server 读取                     |
-| `TENCENT_COS_SECRET_KEY`        | 腾讯云 COS 最小权限子账号的 SecretKey；仅 Server 读取                    |
-| `TENCENT_COS_BUCKET`            | 公开素材 Bucket，格式为 `BucketName-APPID`                               |
+| `TENCENT_COS_SECRET_ID`         | 应用素材共用 COS 子账号的 SecretId；仅 Server 读取                       |
+| `TENCENT_COS_SECRET_KEY`        | 应用素材共用 COS 子账号的 SecretKey；仅 Server 读取                      |
+| `TENCENT_COS_BUCKET`            | 应用素材共用 Bucket，格式为 `BucketName-APPID`                           |
 | `TENCENT_COS_REGION`            | COS 区域代码，例如 `ap-guangzhou`                                        |
 | `TENCENT_COS_PUBLIC_BASE_URL`   | 可选的公开素材访问基础 URL；选择 `tencent-cos` 且留空时使用 COS 默认域名 |
 
-资格材料复用现有私有 Bucket 的 `private/provider-qualifications/` 独立目录，不复用备份或公开素材凭据。
-`QUALIFICATION_STORAGE_PROVIDER` 默认 `disabled`；设为 `tencent-cos` 时必须配置
-`QUALIFICATION_COS_BUCKET`、`QUALIFICATION_COS_REGION`、`QUALIFICATION_COS_SECRET_ID`、
-`QUALIFICATION_COS_SECRET_KEY`、`QUALIFICATION_COS_KMS_KEY_ID`。Bucket 不得是公开素材 Bucket。
-应用子账号必须仅能操作资格目录及使用指定 KMS 密钥；对象以私有 ACL 和 COS SSE-KMS 写入，
+资格材料与公开素材共用 `TENCENT_COS_*` Bucket 和凭据，使用固定的
+`private/provider-qualifications/` 前缀区分，不复用备份存储配置。
+`QUALIFICATION_STORAGE_PROVIDER` 默认 `disabled`；设为 `tencent-cos` 时还必须配置
+`QUALIFICATION_COS_KMS_KEY_ID`。生产部署始终写入 `QUALIFICATION_WORKFLOW_ENABLED=false`，
+开门须在独立验收后另行变更。前缀不是安全边界：Bucket 公开读取策略只能覆盖公开对象前缀，
+私有前缀必须拒绝匿名读取，共用子账号仅授予业务所需前缀及指定 KMS 密钥权限。
+对象以私有 ACL 和 COS SSE-KMS 写入，
 Server 不返回对象键或签名 URL。管理员材料读取有独立的 `provider_qualification.material_read` 权限与审计。
 未提交草稿 7 天清理；拒绝或撤销后保留 30 天用于申诉，随后定期清理对象并保留无对象键的审计记录。
 上传前持久登记未绑定对象键；绑定成功时原子移除，失败删除未成功时由定时清理重试。
-生产仍缺独立凭据、KMS 策略、该补偿链路的目标环境验证及真实读写删验证，不得以占位值绕过门禁。
+生产仍缺共享 Bucket 的私有前缀策略核查、KMS 权限、该补偿链路的目标环境验证及真实读写删/匿名拒绝验证，不得以占位值绕过门禁。
 
 微信配置必须同时留空或同时提供。启用时，`WECHAT_APP_ID` 必须符合 `wx` 加 16 位字符的格式，
 `WECHAT_APP_SECRET` 必须为 32 位十六进制字符串。

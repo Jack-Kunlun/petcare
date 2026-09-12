@@ -9,7 +9,7 @@ NEW_IMAGE_TAG="${NEW_IMAGE_TAG:?NEW_IMAGE_TAG is required}"
 INITIALIZE_DATA="${INITIALIZE_DATA:-false}"
 RESET_DATA="${RESET_DATA:-false}"
 APPLICATION_IMAGES_PRELOADED="${APPLICATION_IMAGES_PRELOADED:-false}"
-PUBLIC_MEDIA_ENV_FILE="${PUBLIC_MEDIA_ENV_FILE:-}"
+STORAGE_ENV_FILE="${STORAGE_ENV_FILE:-}"
 ROOT_DIR="/opt/petcare"
 RELEASE_DIR="$ROOT_DIR/current"
 ENV_FILE="$ROOT_DIR/.env"
@@ -165,12 +165,12 @@ if [[ "$RESET_DATA" == true && "$INITIALIZE_DATA" == true ]]; then
   exit 1
 fi
 if [[ "$TARGET" == all || "$TARGET" == server ]]; then
-  if [[ ! "$PUBLIC_MEDIA_ENV_FILE" =~ ^/tmp/petcare-release-[0-9]+-[0-9]+/petcare-public-media\.env$ ]]; then
-    echo "PUBLIC_MEDIA_ENV_FILE 路径无效" >&2
+  if [[ ! "$STORAGE_ENV_FILE" =~ ^/tmp/petcare-release-[0-9]+-[0-9]+/petcare-storage\.env$ ]]; then
+    echo "STORAGE_ENV_FILE 路径无效" >&2
     exit 1
   fi
-  [[ -f "$PUBLIC_MEDIA_ENV_FILE" && ! -L "$PUBLIC_MEDIA_ENV_FILE" && -r "$PUBLIC_MEDIA_ENV_FILE" ]] || {
-    echo "PUBLIC_MEDIA_ENV_FILE 不可读取" >&2
+  [[ -f "$STORAGE_ENV_FILE" && ! -L "$STORAGE_ENV_FILE" && -r "$STORAGE_ENV_FILE" ]] || {
+    echo "STORAGE_ENV_FILE 不可读取" >&2
     exit 1
   }
 fi
@@ -186,7 +186,7 @@ if [[ "$TARGET" == all || "$TARGET" == server ]]; then
   ENV_BACKUP="$(mktemp "$ROOT_DIR/.env.rollback.XXXXXX")"
   install -o root -g root -m 600 "$ENV_FILE" "$ENV_BACKUP"
   ENV_UPDATED=true
-  python3 "$RELEASE_DIR/scripts/update-public-media-env.py" "$ENV_FILE" "$PUBLIC_MEDIA_ENV_FILE"
+  python3 "$RELEASE_DIR/scripts/update-storage-env.py" "$ENV_FILE" "$STORAGE_ENV_FILE"
   [[ "$(stat -c '%U:%G %a' -- "$ENV_FILE")" == "root:root 600" ]]
 fi
 

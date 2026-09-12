@@ -89,10 +89,14 @@ TCR Registry 的用户名和密码不是 CAM API `SecretId`/`SecretKey`。绝不
 TCR_REGISTRY=ccr.ccs.tencentyun.com
 TCR_NAMESPACE=<所选全局唯一私有命名空间>
 PUBLIC_MEDIA_STORAGE_PROVIDER=tencent-cos
-TENCENT_COS_BUCKET=<公开素材 BucketName-APPID>
+TENCENT_COS_BUCKET=<应用素材共用 BucketName-APPID>
 TENCENT_COS_REGION=<COS 区域代码>
 TENCENT_COS_PUBLIC_BASE_URL=<公开素材 HTTPS 基础 URL>
 ```
+
+资格材料使用同一 Bucket 的 `private/provider-qualifications/` 前缀。完成 Bucket 策略、匿名拒绝与 KMS 验收后，
+可另设 `QUALIFICATION_STORAGE_PROVIDER=tencent-cos` 和 `QUALIFICATION_COS_KMS_KEY_ID`；当前生产发布流程仍强制
+`QUALIFICATION_WORKFLOW_ENABLED=false`，配置存储不等于开放资格申请。
 
 保留 `DEPLOY_PORT=22` 和 production required reviewers。`deploy.yml` 接受分支、标签或 commit SHA/ref，并在构建/发布前将其
 解析为不可变 40 字符完整 SHA。所选提交必须既通过 `ci.yml`，又包含内容严格为单行 `source-free-public-media-v2` 的

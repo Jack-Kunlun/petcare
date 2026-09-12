@@ -230,6 +230,9 @@ jobs:
       TENCENT_COS_PUBLIC_BASE_URL: ${{ vars.TENCENT_COS_PUBLIC_BASE_URL }}
       TENCENT_COS_SECRET_ID: ${{ secrets.TENCENT_COS_SECRET_ID }}
       TENCENT_COS_SECRET_KEY: ${{ secrets.TENCENT_COS_SECRET_KEY }}
+      QUALIFICATION_WORKFLOW_ENABLED: "false"
+      QUALIFICATION_STORAGE_PROVIDER: ${{ vars.QUALIFICATION_STORAGE_PROVIDER || 'disabled' }}
+      QUALIFICATION_COS_KMS_KEY_ID: ${{ vars.QUALIFICATION_COS_KMS_KEY_ID }}
       TARGET: ${{ inputs.target }}
       INITIALIZE_DATA: ${{ inputs.initialize_data }}
       RESET_DATA: ${{ inputs.reset_data_confirmation == 'RESET_PRODUCTION_DATA' }}
@@ -308,6 +311,10 @@ jobs:
           [[ "$TENCENT_COS_PUBLIC_BASE_URL" =~ ^https://[a-zA-Z0-9.-]+(:[0-9]+)?(/[^[:space:]?#]*)?$ ]]
           [[ "$TENCENT_COS_SECRET_ID" =~ ^[a-zA-Z0-9_+/=-]{16,128}$ ]]
           [[ "$TENCENT_COS_SECRET_KEY" =~ ^[a-zA-Z0-9_+/=-]{16,128}$ ]]
+          [[ "$QUALIFICATION_WORKFLOW_ENABLED" == false ]]
+          [[ "$QUALIFICATION_STORAGE_PROVIDER" == disabled || "$QUALIFICATION_STORAGE_PROVIDER" == tencent-cos ]]
+          [[ -z "$QUALIFICATION_COS_KMS_KEY_ID" || "$QUALIFICATION_COS_KMS_KEY_ID" =~ ^[a-zA-Z0-9_:/.-]{1,256}$ ]]
+          [[ "$QUALIFICATION_STORAGE_PROVIDER" != tencent-cos || -n "$QUALIFICATION_COS_KMS_KEY_ID" ]]
 
           case "$TARGET" in
             all) IMAGE_SERVICES=(server admin website) ;;
@@ -366,7 +373,10 @@ jobs:
             printf 'TENCENT_COS_BUCKET=%s\n' "$TENCENT_COS_BUCKET"
             printf 'TENCENT_COS_REGION=%s\n' "$TENCENT_COS_REGION"
             printf 'TENCENT_COS_PUBLIC_BASE_URL=%s\n' "$TENCENT_COS_PUBLIC_BASE_URL"
-          } > "$DEPLOY_TMP/petcare-public-media.env"
+            printf 'QUALIFICATION_WORKFLOW_ENABLED=%s\n' "$QUALIFICATION_WORKFLOW_ENABLED"
+            printf 'QUALIFICATION_STORAGE_PROVIDER=%s\n' "$QUALIFICATION_STORAGE_PROVIDER"
+            printf 'QUALIFICATION_COS_KMS_KEY_ID=%s\n' "$QUALIFICATION_COS_KMS_KEY_ID"
+          } > "$DEPLOY_TMP/petcare-storage.env"
           chmod 600 "$DEPLOY_TMP"/*
 
           validate_pair() {
@@ -476,7 +486,7 @@ jobs:
             "$DEPLOY_TMP/admin.petcare-home.com.key" \
             "$DEPLOY_TMP/tcr-pull.password" \
             "$DEPLOY_TMP/petcare-backup.env" \
-            "$DEPLOY_TMP/petcare-public-media.env" \
+            "$DEPLOY_TMP/petcare-storage.env" \
             "$DEPLOY_TMP"/petcare-image-*.tar.gz \
             "$destination:$REMOTE_TMP/"
 
@@ -719,7 +729,7 @@ jobs:
             INITIALIZE_DATA="$INITIALIZE_DATA" \
             RESET_DATA="$RESET_DATA" \
             APPLICATION_IMAGES_PRELOADED=true \
-            PUBLIC_MEDIA_ENV_FILE="$REMOTE_TMP/petcare-public-media.env" \
+            STORAGE_ENV_FILE="$REMOTE_TMP/petcare-storage.env" \
             bash /opt/petcare/current/scripts/release-production.sh < /dev/null
           RELEASE_SUCCEEDED=true
           sudo systemctl enable --now petcare-backup.timer

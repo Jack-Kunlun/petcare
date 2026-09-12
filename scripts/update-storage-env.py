@@ -16,8 +16,17 @@ MANAGED_KEYS = (
     "TENCENT_COS_BUCKET",
     "TENCENT_COS_REGION",
     "TENCENT_COS_PUBLIC_BASE_URL",
+    "QUALIFICATION_WORKFLOW_ENABLED",
+    "QUALIFICATION_STORAGE_PROVIDER",
+    "QUALIFICATION_COS_KMS_KEY_ID",
 )
-REMOVED_KEYS = {"DEFAULT_ADMIN_PHONE"}
+REMOVED_KEYS = {
+    "DEFAULT_ADMIN_PHONE",
+    "QUALIFICATION_COS_BUCKET",
+    "QUALIFICATION_COS_REGION",
+    "QUALIFICATION_COS_SECRET_ID",
+    "QUALIFICATION_COS_SECRET_KEY",
+}
 
 
 def fail(message: str) -> None:
@@ -27,20 +36,20 @@ def fail(message: str) -> None:
 def read_updates(path: Path) -> dict[str, str]:
     raw = path.read_text(encoding="utf-8")
     if "\r" in raw or "\0" in raw:
-        fail("public media update file contains control characters")
+        fail("storage update file contains control characters")
 
     updates: dict[str, str] = {}
     for line in raw.splitlines():
         key, separator, value = line.partition("=")
         if not separator or key not in MANAGED_KEYS:
-            fail("public media update file contains an invalid key")
+            fail("storage update file contains an invalid key")
         if key in updates:
-            fail(f"public media update file contains a duplicate key: {key}")
+            fail(f"storage update file contains a duplicate key: {key}")
         updates[key] = value
 
     missing = set(MANAGED_KEYS) - updates.keys()
     if missing:
-        fail("public media update file is incomplete")
+        fail("storage update file is incomplete")
 
     if updates["PUBLIC_MEDIA_STORAGE_PROVIDER"] != "tencent-cos":
         fail("PUBLIC_MEDIA_STORAGE_PROVIDER must be tencent-cos")
@@ -65,6 +74,16 @@ def read_updates(path: Path) -> dict[str, str]:
             or parsed.fragment
         ):
             fail("TENCENT_COS_PUBLIC_BASE_URL must be a credential-free HTTPS URL")
+
+    if updates["QUALIFICATION_WORKFLOW_ENABLED"] != "false":
+        fail("QUALIFICATION_WORKFLOW_ENABLED must remain false")
+    if updates["QUALIFICATION_STORAGE_PROVIDER"] not in ("disabled", "tencent-cos"):
+        fail("QUALIFICATION_STORAGE_PROVIDER has an invalid value")
+    kms_key_id = updates["QUALIFICATION_COS_KMS_KEY_ID"]
+    if kms_key_id and not re.fullmatch(r"[A-Za-z0-9_:/.-]{1,256}", kms_key_id):
+        fail("QUALIFICATION_COS_KMS_KEY_ID has an invalid format")
+    if updates["QUALIFICATION_STORAGE_PROVIDER"] == "tencent-cos" and not kms_key_id:
+        fail("QUALIFICATION_COS_KMS_KEY_ID is required")
 
     return updates
 
@@ -94,7 +113,7 @@ def update_env(target: Path, updates: dict[str, str]) -> None:
         if key not in seen:
             output.append(f"{key}={updates[key]}")
 
-    descriptor, temporary_name = tempfile.mkstemp(prefix=".env.public-media.", dir=target.parent)
+    descriptor, temporary_name = tempfile.mkstemp(prefix=".env.storage.", dir=target.parent)
     try:
         if hasattr(os, "fchmod"):
             os.fchmod(descriptor, 0o600)
@@ -118,12 +137,12 @@ def update_env(target: Path, updates: dict[str, str]) -> None:
 
 def main() -> None:
     if len(sys.argv) != 3:
-        fail("usage: update-public-media-env.py <target-env> <updates-env>")
+        fail("usage: update-storage-env.py <target-env> <updates-env>")
 
     target = Path(sys.argv[1])
     updates = Path(sys.argv[2])
     update_env(target, read_updates(updates))
-    print("public media environment updated")
+    print("storage environment updated")
 
 
 if __name__ == "__main__":

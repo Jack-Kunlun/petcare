@@ -611,7 +611,7 @@ export class ConfigService {
     return this.getRequiredString("BACKUP_COS_SECRET_ID");
   }
 
-  /** Private qualification storage; credentials must be scoped to its fixed object prefix. */
+  /** Private qualification objects reuse the configured COS bucket under a fixed prefix. */
   get qualificationStorage(): {
     bucket: string;
     region: string;
@@ -629,26 +629,13 @@ export class ConfigService {
       throw new Error("QUALIFICATION_STORAGE_PROVIDER must be disabled or tencent-cos");
     }
 
-    const bucket = this.getRequiredString("QUALIFICATION_COS_BUCKET");
-    const region = this.getRequiredString("QUALIFICATION_COS_REGION");
-
-    if (!/^[a-z0-9][a-z0-9-]*-\d{10,}$/.test(bucket)) {
-      throw new Error("QUALIFICATION_COS_BUCKET must use the BucketName-APPID format");
-    }
-
-    if (!/^[a-z0-9]+(?:-[a-z0-9]+)+$/.test(region)) {
-      throw new Error("QUALIFICATION_COS_REGION has an invalid format");
-    }
-
-    if (bucket === this.tencentCosBucket) {
-      throw new Error("QUALIFICATION_COS_BUCKET must not be the public media bucket");
-    }
+    this.validateTencentCosConfiguration();
 
     return {
-      bucket,
-      region,
-      secretId: this.getRequiredString("QUALIFICATION_COS_SECRET_ID"),
-      secretKey: this.getRequiredString("QUALIFICATION_COS_SECRET_KEY"),
+      bucket: this.tencentCosBucket,
+      region: this.tencentCosRegion,
+      secretId: this.tencentCosSecretId,
+      secretKey: this.tencentCosSecretKey,
       kmsKeyId: this.getRequiredString("QUALIFICATION_COS_KMS_KEY_ID"),
     };
   }
