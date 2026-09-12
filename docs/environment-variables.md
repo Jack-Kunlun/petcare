@@ -75,6 +75,8 @@ REDIS_PASSWORD=
 
 API 和独立 Worker 必须使用相同的 `QUEUE_PREFIX`；生产、预发和开发环境必须使用不同前缀，避免任务串扰。
 `COMMERCIAL_SERVICES_ENABLED=true` 只授权已进入路线图且完成纵向验收的能力；它不会替代服务者资质、支付或生产发布条件。
+`QUALIFICATION_WORKFLOW_ENABLED` 是独立的资格申请与审核开关，默认 `false`，不会开放悬赏或订单。
+它要求私有资格材料存储已配置；生产启用还须完成最小权限、KMS 与目标环境纵向验收。
 
 ### JWT配置
 
@@ -162,6 +164,8 @@ ALIYUN_SMS_TEMPLATE_CODE=
 HTTPS API 网关，不能使用本地 HTTP 示例或 Docker 内网服务名。
 `VITE_COMMERCIAL_SERVICES_ENABLED` 只控制客户端入口；Server 仍独立校验
 `COMMERCIAL_SERVICES_ENABLED`，两个开关都不能替代服务者资质或生产发布验收。
+`VITE_QUALIFICATION_WORKFLOW_ENABLED` 独立决定资格申请页面是否进入小程序构建，以及 Admin
+是否注册资格审核路由，默认 `false`。两个前端分别在构建时显式配置，Server 的资格开关必须另外启用。
 
 Miniapp 的 Vite 环境根目录是 `apps/miniapp`。仓库内的 `.env.development` 和 `.env.production` 分别提供开发与
 生产构建值；开发者若要覆盖本地开发地址，应创建不提交的 `apps/miniapp/.env.development.local`。Vite 会在
@@ -185,6 +189,15 @@ Miniapp 的 Vite 环境根目录是 `apps/miniapp`。仓库内的 `.env.developm
 | `TENCENT_COS_BUCKET`            | 公开素材 Bucket，格式为 `BucketName-APPID`                               |
 | `TENCENT_COS_REGION`            | COS 区域代码，例如 `ap-guangzhou`                                        |
 | `TENCENT_COS_PUBLIC_BASE_URL`   | 可选的公开素材访问基础 URL；选择 `tencent-cos` 且留空时使用 COS 默认域名 |
+
+资格材料复用现有私有 Bucket 的 `private/provider-qualifications/` 独立目录，不复用备份或公开素材凭据。
+`QUALIFICATION_STORAGE_PROVIDER` 默认 `disabled`；设为 `tencent-cos` 时必须配置
+`QUALIFICATION_COS_BUCKET`、`QUALIFICATION_COS_REGION`、`QUALIFICATION_COS_SECRET_ID`、
+`QUALIFICATION_COS_SECRET_KEY`、`QUALIFICATION_COS_KMS_KEY_ID`。Bucket 不得是公开素材 Bucket。
+应用子账号必须仅能操作资格目录及使用指定 KMS 密钥；对象以私有 ACL 和 COS SSE-KMS 写入，
+Server 不返回对象键或签名 URL。管理员材料读取有独立的 `provider_qualification.material_read` 权限与审计。
+未提交草稿 7 天清理；拒绝或撤销后保留 30 天用于申诉，随后定期清理对象并保留无对象键的审计记录。
+生产仍缺独立凭据、KMS 策略、上传失败删除补偿的持续可恢复性及真实读写删验证，不得以占位值绕过门禁。
 
 微信配置必须同时留空或同时提供。启用时，`WECHAT_APP_ID` 必须符合 `wx` 加 16 位字符的格式，
 `WECHAT_APP_SECRET` 必须为 32 位十六进制字符串。

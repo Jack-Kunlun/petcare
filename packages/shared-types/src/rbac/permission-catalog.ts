@@ -35,6 +35,94 @@ export interface RbacPermissionDefinition {
 
 /** The code-defined permission catalog enabled by the current personal-version runtime. */
 export const RBAC_PERMISSION_CATALOG: readonly RbacPermissionDefinition[] = [
+  {
+    code: "provider_qualification.view",
+    type: "menu",
+    label: "服务者资格审核",
+    module: "provider_qualification",
+    path: "/provider-qualifications",
+    parentCode: null,
+    order: 35,
+    icon: "ShieldCheck",
+    impliedApiCodes: ["provider_qualification.read"],
+  },
+  {
+    code: "provider_qualification.read",
+    type: "api",
+    label: "查看资格申请",
+    module: "provider_qualification",
+    path: null,
+    parentCode: null,
+    order: 10,
+    icon: null,
+    impliedApiCodes: [],
+  },
+  {
+    code: "provider_qualification.material_read",
+    type: "api",
+    label: "读取资格私密材料",
+    module: "provider_qualification",
+    path: null,
+    parentCode: null,
+    order: 20,
+    icon: null,
+    impliedApiCodes: [],
+  },
+  {
+    code: "provider_qualification.material_view",
+    type: "button",
+    label: "查看资格材料",
+    module: "provider_qualification",
+    path: null,
+    parentCode: "provider_qualification.view",
+    order: 10,
+    icon: null,
+    impliedApiCodes: ["provider_qualification.material_read"],
+  },
+  {
+    code: "provider_qualification.review_action",
+    type: "api",
+    label: "审核资格申请接口",
+    module: "provider_qualification",
+    path: null,
+    parentCode: null,
+    order: 30,
+    icon: null,
+    impliedApiCodes: [],
+  },
+  {
+    code: "provider_qualification.review",
+    type: "button",
+    label: "审核资格申请",
+    module: "provider_qualification",
+    path: null,
+    parentCode: "provider_qualification.view",
+    order: 20,
+    icon: null,
+    impliedApiCodes: ["provider_qualification.read", "provider_qualification.review_action"],
+  },
+  {
+    code: "provider_qualification.revoke_action",
+    type: "api",
+    label: "撤销服务者资格接口",
+    module: "provider_qualification",
+    path: null,
+    parentCode: null,
+    order: 40,
+    icon: null,
+    impliedApiCodes: [],
+  },
+  {
+    code: "provider_qualification.revoke",
+    type: "button",
+    label: "撤销服务者资格",
+    module: "provider_qualification",
+    path: null,
+    parentCode: "provider_qualification.view",
+    order: 30,
+    icon: null,
+    impliedApiCodes: ["provider_qualification.read", "provider_qualification.revoke_action"],
+  },
   /** Opens the current management overview in the administration console. */
   {
     code: "stats.view",
@@ -480,7 +568,7 @@ export function getRbacPermission(code: string): RbacPermissionDefinition | unde
 
 /** Returns the current catalog version identifier. */
 export function getRbacCatalogVersion(): string {
-  return "2026-08-27";
+  return "2026-09-12";
 }
 
 /** Returns the menu and button codes that role editors may assign. */

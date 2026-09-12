@@ -99,4 +99,34 @@ describe("HttpLoggingMiddleware", () => {
       }),
     );
   });
+
+  it("never logs qualification review bodies, even when raw logging is enabled", () => {
+    const rawMiddleware = new HttpLoggingMiddleware(
+      logger,
+      {
+        nodeEnv: "development",
+        logRawRequestBody: true,
+      } as ConfigService,
+      new LogSanitizer(),
+    );
+    const request = {
+      requestId: "qualification-request",
+      method: "POST",
+      path: "/admin/provider-qualifications/id/review",
+      headers: {},
+      query: {},
+      body: { verificationReference: "sensitive-reference", reason: "private identity" },
+    } as unknown as RequestWithId;
+    const response = Object.assign(new EventEmitter(), { statusCode: 200 });
+
+    rawMiddleware.use(request, response as never, jest.fn());
+    response.emit("finish");
+
+    expect(logger.write).toHaveBeenCalledTimes(1);
+    expect(logger.write).toHaveBeenCalledWith(
+      "info",
+      "http.request.completed",
+      expect.objectContaining({ body: "[REDACTED]" }),
+    );
+  });
 });

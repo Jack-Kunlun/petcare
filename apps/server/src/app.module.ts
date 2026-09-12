@@ -12,6 +12,7 @@ import { AdminAccountModule } from "./modules/admin-account/admin-account.module
 import { BountyModule } from "./modules/bounty/bounty.module";
 import { ContentModule } from "./modules/content/content.module";
 import { PetModule } from "./modules/pet/pet.module";
+import { ProviderQualificationModule } from "./modules/provider-qualification/provider-qualification.module";
 import { RbacModule } from "./modules/rbac/rbac.module";
 import { UserModule } from "./modules/user/user.module";
 import { WebsiteContentModule } from "./modules/website-content/website-content.module";
@@ -30,6 +31,7 @@ import { PrismaModule } from "./prisma/prisma.module";
     RbacModule,
     AdminAccountModule,
     BountyModule,
+    ProviderQualificationModule,
     WebsiteContentModule,
   ],
   providers: [

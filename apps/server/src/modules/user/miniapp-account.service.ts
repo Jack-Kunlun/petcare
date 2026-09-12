@@ -193,6 +193,48 @@ export class MiniappAccountService {
         throw this.activeOrderExists();
       }
 
+      const applications = await transaction.providerQualificationApplication.findMany({
+        where: { applicantId: userId, status: { in: ["draft", "pending", "approved"] } },
+        orderBy: { id: "asc" },
+        select: { id: true, status: true },
+      });
+      const cancelledAt = new Date();
+
+      /* eslint-disable no-await-in-loop */
+      for (const application of applications) {
+        const approved = application.status === "approved";
+        const status = approved ? "revoked" : "withdrawn";
+
+        await transaction.providerQualificationApplication.update({
+          where: { id: application.id },
+          data: {
+            status,
+            purgeAfter: cancelledAt,
+            ...(approved && {
+              revokedById: userId,
+              revokedAt: cancelledAt,
+              revokeReason: "申请人注销账号",
+            }),
+          },
+        });
+        await transaction.providerQualificationEvent.create({
+          data: {
+            applicationId: application.id,
+            applicantId: userId,
+            actorId: userId,
+            action: "account_cancelled",
+            fromStatus: application.status,
+            toStatus: status,
+          },
+        });
+      }
+      /* eslint-enable no-await-in-loop */
+
+      await transaction.provider.updateMany({
+        where: { userId },
+        data: { idCardVerified: false, trainingPassed: false, certifiedSitter: false },
+      });
+
       const avatar = await transaction.user.findUnique({
         where: { id: userId },
         select: { avatarObjectKey: true },

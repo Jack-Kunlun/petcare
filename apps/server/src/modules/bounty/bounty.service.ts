@@ -267,7 +267,9 @@ export class BountyService {
       select: providerEligibilitySelect,
     });
 
-    return { eligible: this.isEligibleProvider(user) };
+    return {
+      eligible: this.isEligibleProvider(user) && (await this.hasApprovedQualification(userId)),
+    };
   }
 
   /** Creates or returns the provider's single intent for one open bounty. */
@@ -500,7 +502,7 @@ export class BountyService {
               where: { id: actorId },
               select: providerEligibilitySelect,
             }),
-          )
+          ) && (await this.hasApprovedQualification(actorId))
         : false;
 
     return this.toSop(order, eligible);
@@ -531,7 +533,8 @@ export class BountyService {
           where: { id: providerId },
           select: providerEligibilitySelect,
         }),
-      )
+      ) ||
+      !(await this.hasApprovedQualification(providerId))
     ) {
       throw this.providerNotEligible("当前资格不允许继续履约", HttpStatus.CONFLICT);
     }
@@ -1012,6 +1015,10 @@ export class BountyService {
         AND p."id_card_verified" = TRUE
         AND p."training_passed" = TRUE
         AND p."certified_sitter" = TRUE
+        AND EXISTS (
+          SELECT 1 FROM "provider_qualification_applications" a
+          WHERE a."applicant_id" = u."id" AND a."status" = 'approved'
+        )
       FOR SHARE OF u, p
     `;
 
@@ -1027,6 +1034,14 @@ export class BountyService {
       user.provider?.idCardVerified &&
       user.provider.trainingPassed &&
       user.provider.certifiedSitter,
+    );
+  }
+
+  private async hasApprovedQualification(userId: string): Promise<boolean> {
+    return (
+      (await this.prisma.providerQualificationApplication.count({
+        where: { applicantId: userId, status: "approved" },
+      })) > 0
     );
   }
 

@@ -10,6 +10,9 @@ const ContentArticleEdit = lazy(() => import("../pages/ContentManagement/Article
 const ContentPosts = lazy(() => import("../pages/ContentManagement/Posts"));
 const ContentPostDetail = lazy(() => import("../pages/ContentManagement/Posts/Detail"));
 const Dashboard = lazy(() => import("../pages/Dashboard"));
+const ProviderQualifications = lazy(() => import("../pages/ProviderQualifications"));
+const qualificationWorkflowEnabled =
+  import.meta.env.VITE_QUALIFICATION_WORKFLOW_ENABLED?.trim().toLowerCase() === "true";
 const Rbac = lazy(() => import("../pages/Rbac"));
 const RbacDetail = lazy(() => import("../pages/Rbac/Detail"));
 const RbacEdit = lazy(() => import("../pages/Rbac/Edit"));
@@ -121,6 +124,15 @@ export const ADMIN_ROUTE_REGISTRY: readonly AdminRouteDefinition[] = [
   },
   catalogMenuRoute("dashboard", "stats.view", Dashboard),
   catalogMenuRoute("users", "user.view", UserManagement, "用户列表"),
+  ...(qualificationWorkflowEnabled
+    ? [
+        catalogMenuRoute(
+          "provider-qualifications",
+          "provider_qualification.view",
+          ProviderQualifications,
+        ),
+      ]
+    : []),
   {
     id: "user-detail",
     path: "/users/:id",

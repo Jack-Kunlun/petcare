@@ -28,7 +28,10 @@ export function removeGeneratedSubPackage(source: string, root: string): string 
 }
 
 /** Builds the route manifest with commercial subpackages absent by default. */
-export function createMiniappPagesConfig(commercialServicesEnabled = false) {
+export function createMiniappPagesConfig(
+  commercialServicesEnabled = false,
+  qualificationWorkflowEnabled = false,
+) {
   return defineUniPages({
     pages: [],
     subPackages: [
@@ -62,6 +65,9 @@ export function createMiniappPagesConfig(commercialServicesEnabled = false) {
               pages: ["index", "form"].map(createPage),
             },
           ]
+        : []),
+      ...(qualificationWorkflowEnabled
+        ? [{ root: "pages-qualification", pages: ["index"].map(createPage) }]
         : []),
     ],
     globalStyle: {

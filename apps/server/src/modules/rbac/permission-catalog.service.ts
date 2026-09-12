@@ -69,7 +69,7 @@ export class PermissionCatalogService implements OnModuleInit {
       .digest("hex");
   }
 
-  /** Compares persisted permission codes with the current catalog at module startup. */
+  /** Makes code-defined permissions assignable without granting any role automatically. */
   async onModuleInit(): Promise<void> {
     if (!this.prisma) {
       return;
@@ -78,6 +78,24 @@ export class PermissionCatalogService implements OnModuleInit {
     const persisted = await this.prisma.permission.findMany({
       select: { permissionCode: true },
     });
+    const existing = new Set(persisted.map(({ permissionCode }) => permissionCode));
+
+    await Promise.all(
+      this.catalog
+        .filter(({ code }) => !existing.has(code))
+        .map((permission) =>
+          this.prisma!.permission.upsert({
+            where: { permissionCode: permission.code },
+            create: {
+              permissionCode: permission.code,
+              permissionName: permission.label,
+              module: permission.module,
+              type: permission.type,
+            },
+            update: {},
+          }),
+        ),
+    );
     const orphanedCodes = this.getOrphanedCodes(
       persisted.map(({ permissionCode }) => permissionCode),
     );

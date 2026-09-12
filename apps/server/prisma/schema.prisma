@@ -164,6 +164,57 @@ model ProviderCertificationApplication {
   @@map("provider_certification_applications")
 }
 
+/// Current qualification workflow. Legacy certification rows remain untouched.
+model ProviderQualificationApplication {
+  id                    String    @id @default(uuid())
+  applicantId           String    @map("applicant_id")
+  idempotencyKey        String    @map("idempotency_key")
+  status                String    @default("draft")
+  idCardFrontKey        String?   @unique @map("id_card_front_key")
+  idCardFrontMime       String?   @map("id_card_front_mime")
+  idCardBackKey         String?   @unique @map("id_card_back_key")
+  idCardBackMime        String?   @map("id_card_back_mime")
+  trainingKey           String?   @unique @map("training_key")
+  trainingMime          String?   @map("training_mime")
+  consentVersion        String?   @map("consent_version")
+  consentedAt           DateTime? @map("consented_at")
+  reviewedById          String?   @map("reviewed_by_id")
+  reviewedAt            DateTime? @map("reviewed_at")
+  reviewReason          String?   @map("review_reason")
+  verificationMethod    String?   @map("verification_method")
+  verificationReference String?   @map("verification_reference")
+  revokedById           String?   @map("revoked_by_id")
+  revokedAt             DateTime? @map("revoked_at")
+  revokeReason          String?   @map("revoke_reason")
+  purgeAfter            DateTime? @map("purge_after")
+  purgedAt              DateTime? @map("purged_at")
+  createdAt             DateTime  @default(now()) @map("created_at")
+  updatedAt             DateTime  @updatedAt @map("updated_at")
+
+  @@unique([applicantId, idempotencyKey])
+  @@index([applicantId, status])
+  @@index([status, createdAt])
+  @@index([purgeAfter, purgedAt])
+  @@map("provider_qualification_applications")
+}
+
+/// Append-only transition record; no private object coordinates are copied here.
+model ProviderQualificationEvent {
+  id            String   @id @default(uuid())
+  applicationId String   @map("application_id")
+  applicantId   String   @map("applicant_id")
+  actorId       String   @map("actor_id")
+  action        String
+  fromStatus    String?  @map("from_status")
+  toStatus      String   @map("to_status")
+  reason        String?
+  createdAt     DateTime @default(now()) @map("created_at")
+
+  @@index([applicationId, createdAt])
+  @@index([applicantId, createdAt])
+  @@map("provider_qualification_events")
+}
+
 // ============================================
 // 宠物相关
 // ============================================

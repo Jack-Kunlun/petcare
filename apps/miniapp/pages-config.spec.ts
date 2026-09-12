@@ -35,9 +35,18 @@ describe("miniapp page contract", () => {
     const registered = JSON.stringify(pagesConfig.subPackages ?? []);
 
     expect(registered).not.toContain("pages-bounty");
+    expect(registered).not.toContain("pages-qualification");
     expect(registered).not.toContain("pages-care");
     expect(registered).not.toContain("wallet");
     expect(registered).not.toContain("coupons");
+  });
+
+  it("registers qualification independently from commercial routes", () => {
+    const enabled = createMiniappPagesConfig(false, true);
+    const registered = JSON.stringify(enabled.subPackages);
+
+    expect(registered).toContain("pages-qualification");
+    expect(registered).not.toContain("pages-bounty");
   });
 
   it("registers only the Cycle 5 bounty pages when the build explicitly enables them", () => {

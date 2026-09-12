@@ -11,3 +11,4 @@ export * from "./rbac";
 export * from "./content";
 export * from "./website-content";
 export * from "./bounty";
+export * from "./provider-qualification";

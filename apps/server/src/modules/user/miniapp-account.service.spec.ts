@@ -33,6 +33,9 @@ describe("MiniappAccountService", () => {
     order: {
       count: jest.fn(),
     },
+    provider: { updateMany: jest.fn() },
+    providerQualificationApplication: { findMany: jest.fn(), update: jest.fn() },
+    providerQualificationEvent: { create: jest.fn() },
   };
   const verificationCodeService = {
     send: jest.fn(),
@@ -72,6 +75,7 @@ describe("MiniappAccountService", () => {
     jest.clearAllMocks();
     prisma.$transaction.mockImplementation((operation) => operation(transaction));
     transaction.$queryRaw.mockResolvedValue([{ status: "active", phone: null }]);
+    transaction.providerQualificationApplication.findMany.mockResolvedValue([]);
   });
 
   it("returns only a masked phone and the derived completion state", async () => {
@@ -397,6 +401,48 @@ describe("MiniappAccountService", () => {
     expect(prisma.$transaction).toHaveBeenCalledWith(expect.any(Function), {
       isolationLevel: "Serializable",
     });
+  });
+
+  it("closes qualification and schedules private-material cleanup in the cancellation transaction", async () => {
+    prisma.user.findUnique.mockResolvedValue({ id: "user-1", phone: null, status: "active" });
+    prisma.order.count.mockResolvedValue(0);
+    transaction.order.count.mockResolvedValue(0);
+    transaction.providerQualificationApplication.findMany.mockResolvedValue([
+      { id: "application-1", status: "approved" },
+      { id: "application-2", status: "pending" },
+    ]);
+
+    await service.cancelAccount("user-1");
+
+    expect(transaction.providerQualificationApplication.update).toHaveBeenCalledWith({
+      where: { id: "application-1" },
+      data: expect.objectContaining({
+        status: "revoked",
+        revokedById: "user-1",
+        purgeAfter: expect.any(Date),
+      }),
+    });
+    expect(transaction.providerQualificationApplication.update).toHaveBeenCalledWith({
+      where: { id: "application-2" },
+      data: { status: "withdrawn", purgeAfter: expect.any(Date) },
+    });
+    expect(transaction.providerQualificationEvent.create).toHaveBeenCalledWith({
+      data: {
+        applicationId: "application-1",
+        applicantId: "user-1",
+        actorId: "user-1",
+        action: "account_cancelled",
+        fromStatus: "approved",
+        toStatus: "revoked",
+      },
+    });
+    expect(transaction.provider.updateMany).toHaveBeenCalledWith({
+      where: { userId: "user-1" },
+      data: { idCardVerified: false, trainingPassed: false, certifiedSitter: false },
+    });
+    expect(transaction.provider.updateMany.mock.invocationCallOrder[0]).toBeLessThan(
+      transaction.user.update.mock.invocationCallOrder[0],
+    );
   });
 
   it("rejects a supplied code for an unbound account without touching Redis", async () => {

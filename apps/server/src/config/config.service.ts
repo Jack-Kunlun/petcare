@@ -93,6 +93,8 @@ export class ConfigService {
     check("ALLOWED_ORIGINS", () => this.validateAllowedOrigins());
     check("WECHAT", () => this.validateWechatConfiguration());
     check("PUBLIC_MEDIA_STORAGE", () => this.validatePublicMediaStorageConfiguration());
+    check("QUALIFICATION_STORAGE", () => this.qualificationStorage);
+    check("QUALIFICATION_WORKFLOW_ENABLED", () => this.qualificationWorkflowEnabled);
     check("WEBSITE_PUBLIC_URL", () => this.websitePublicUrl);
     check("WEBSITE_PREVIEW_TTL_SECONDS", () => this.websitePreviewTtlSeconds);
     check("WEBSITE_CONTENT_CACHE_TTL_SECONDS", () => this.websiteContentCacheTtlSeconds);
@@ -607,6 +609,67 @@ export class ConfigService {
 
   get backupCosSecretId(): string {
     return this.getRequiredString("BACKUP_COS_SECRET_ID");
+  }
+
+  /** Private qualification storage; credentials must be scoped to its fixed object prefix. */
+  get qualificationStorage(): {
+    bucket: string;
+    region: string;
+    secretId: string;
+    secretKey: string;
+    kmsKeyId: string;
+  } | null {
+    const provider = process.env.QUALIFICATION_STORAGE_PROVIDER?.trim() || "disabled";
+
+    if (provider === "disabled") {
+      return null;
+    }
+
+    if (provider !== "tencent-cos") {
+      throw new Error("QUALIFICATION_STORAGE_PROVIDER must be disabled or tencent-cos");
+    }
+
+    const bucket = this.getRequiredString("QUALIFICATION_COS_BUCKET");
+    const region = this.getRequiredString("QUALIFICATION_COS_REGION");
+
+    if (!/^[a-z0-9][a-z0-9-]*-\d{10,}$/.test(bucket)) {
+      throw new Error("QUALIFICATION_COS_BUCKET must use the BucketName-APPID format");
+    }
+
+    if (!/^[a-z0-9]+(?:-[a-z0-9]+)+$/.test(region)) {
+      throw new Error("QUALIFICATION_COS_REGION has an invalid format");
+    }
+
+    if (bucket === this.tencentCosBucket) {
+      throw new Error("QUALIFICATION_COS_BUCKET must not be the public media bucket");
+    }
+
+    return {
+      bucket,
+      region,
+      secretId: this.getRequiredString("QUALIFICATION_COS_SECRET_ID"),
+      secretKey: this.getRequiredString("QUALIFICATION_COS_SECRET_KEY"),
+      kmsKeyId: this.getRequiredString("QUALIFICATION_COS_KMS_KEY_ID"),
+    };
+  }
+
+  /** Keeps qualification writes unavailable until private storage and review operations are ready. */
+  get qualificationWorkflowEnabled(): boolean {
+    const value = process.env.QUALIFICATION_WORKFLOW_ENABLED?.trim().toLowerCase();
+
+    if (value && value !== "true" && value !== "false") {
+      throw new Error("QUALIFICATION_WORKFLOW_ENABLED must be true or false");
+    }
+
+    const enabled = value === "true";
+
+    if (enabled && !this.qualificationStorage) {
+      throw new Error(
+        "QUALIFICATION_WORKFLOW_ENABLED requires QUALIFICATION_STORAGE_PROVIDER=tencent-cos",
+      );
+    }
+
+    return enabled;
   }
 
   get backupCosSecretKey(): string {

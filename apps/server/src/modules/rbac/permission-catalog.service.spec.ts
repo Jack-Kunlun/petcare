@@ -104,10 +104,11 @@ describe("PermissionCatalogService", () => {
         { permissionCode: "retired.permission" },
       ]);
     const write = jest.fn();
+    const upsert = jest.fn().mockResolvedValue({});
     const service = new PermissionCatalogService(
       RBAC_PERMISSION_CATALOG,
       {
-        permission: { findMany },
+        permission: { findMany, upsert },
       } as never,
       { write } as never,
     );
@@ -115,6 +116,12 @@ describe("PermissionCatalogService", () => {
     await service.onModuleInit();
 
     expect(findMany).toHaveBeenCalledWith({ select: { permissionCode: true } });
+    expect(upsert).toHaveBeenCalledWith(
+      expect.objectContaining({
+        where: { permissionCode: "provider_qualification.view" },
+        update: {},
+      }),
+    );
     expect(write).toHaveBeenCalledWith("warn", "rbac.permission_catalog_orphans", {
       catalogVersion: service.getVersion(),
       permissionCodes: ["retired.permission", "system.view"],

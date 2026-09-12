@@ -21,6 +21,7 @@ validEvidencePng.writeUInt32BE(32, 20);
 describe("BountyService", () => {
   const prisma = {
     user: { findUnique: jest.fn() },
+    providerQualificationApplication: { count: jest.fn() },
     order: {
       findMany: jest.fn(),
       count: jest.fn(),
@@ -151,6 +152,7 @@ describe("BountyService", () => {
   beforeEach(() => {
     jest.useFakeTimers().setSystemTime(now);
     jest.clearAllMocks();
+    prisma.providerQualificationApplication.count.mockResolvedValue(1);
     lockedBounty = {
       id: bountyId,
       ownerId: "owner-1",
@@ -322,6 +324,8 @@ describe("BountyService", () => {
 
     prisma.user.findUnique.mockResolvedValue(qualified);
     await expect(service.getProviderEligibility(providerId)).resolves.toEqual({ eligible: true });
+    prisma.providerQualificationApplication.count.mockResolvedValueOnce(0);
+    await expect(service.getProviderEligibility(providerId)).resolves.toEqual({ eligible: false });
 
     const ineligibleUsers = [
       { ...qualified, userType: "pet_owner" },

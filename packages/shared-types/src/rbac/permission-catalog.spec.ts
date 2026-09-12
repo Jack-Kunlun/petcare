@@ -17,6 +17,7 @@ describe("RBAC permission catalog", () => {
     expect(byCode.size).toBe(RBAC_PERMISSION_CATALOG.length);
     expect(new Set(menuPaths).size).toBe(menuPaths.length);
     expect(menuPaths).toEqual([
+      "/provider-qualifications",
       "/",
       "/users",
       "/content",
@@ -31,6 +32,15 @@ describe("RBAC permission catalog", () => {
       label: "管理概览",
       impliedApiCodes: [],
     });
+    expect(byCode.get("provider_qualification.view")?.impliedApiCodes).toEqual([
+      "provider_qualification.read",
+    ]);
+    expect(byCode.get("provider_qualification.material_view")?.impliedApiCodes).toEqual([
+      "provider_qualification.material_read",
+    ]);
+    expect(byCode.get("provider_qualification.review")?.impliedApiCodes).not.toContain(
+      "provider_qualification.material_read",
+    );
 
     expect(byCode.get("rbac.view")?.impliedApiCodes).toContain("rbac.permission.read");
     expect(byCode.get("rbac.view")?.parentCode).toBeNull();

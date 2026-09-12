@@ -11,8 +11,16 @@ import {
 
 describe("ADMIN_ROUTE_REGISTRY", () => {
   const menuPermissions = RBAC_PERMISSION_CATALOG.filter(
-    (permission) => permission.type === RBAC_PERMISSION_TYPES.MENU,
+    (permission) =>
+      permission.type === RBAC_PERMISSION_TYPES.MENU &&
+      permission.code !== "provider_qualification.view",
   );
+
+  it("keeps the qualification route absent in the default-closed build", () => {
+    expect(ADMIN_ROUTE_REGISTRY.some((route) => route.path === "/provider-qualifications")).toBe(
+      false,
+    );
+  });
 
   it("registers every catalog menu path exactly once with its catalog permission", () => {
     const catalogByCode = new Map(

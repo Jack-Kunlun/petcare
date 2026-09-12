@@ -94,6 +94,20 @@ describe("Admin Axios response boundary", () => {
     expect(onFulfilled(response).data).toBe("");
   });
 
+  it("keeps authorized private material bytes outside the JSON envelope parser", async () => {
+    await import("./auth");
+    const onFulfilled = axiosMocks.responseUse.mock.calls[0]?.[0] as (response: {
+      status: number;
+      data: unknown;
+      config: { responseType: string };
+    }) => { data: unknown };
+    const material = new Blob(["private-material"], { type: "image/png" });
+
+    expect(
+      onFulfilled({ status: 200, data: material, config: { responseType: "blob" } }).data,
+    ).toBe(material);
+  });
+
   it("refreshes and retries only expired sessions", async () => {
     await import("./auth");
     const onRejected = axiosMocks.responseUse.mock.calls[0]?.[1] as (error: {

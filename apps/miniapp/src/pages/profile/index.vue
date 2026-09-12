@@ -8,6 +8,7 @@ import { getProfile } from "@/api/user";
 import MainTabLayout from "@/components/MainTabLayout.vue";
 import PcButton from "@/components/PcButton.vue";
 import PcStatePanel from "@/components/PcStatePanel.vue";
+import { qualificationWorkflowEnabled } from "@/config/features";
 import { formatPetSummary, petCoverImage } from "@/domain/pet-display";
 import { getDefaultAvatar } from "@/state/default-avatar";
 import {
@@ -325,6 +326,19 @@ function addPet(): void {
 
       <view class="mt-card px-page-horizontal">
         <text class="section-heading">帮助与协议</text>
+      </view>
+      <view
+        v-if="qualificationWorkflowEnabled && profile"
+        class="mx-page-horizontal mt-copy main-card p-action"
+      >
+        <text class="card-heading">服务者资格</text>
+        <text class="mt-caption block meta-text">申请并查看资格审核进度</text>
+        <PcButton
+          class="mt-copy"
+          variant="secondary"
+          @click="openPage('/pages-qualification/index')"
+          >查看资格申请</PcButton
+        >
       </view>
       <view class="mx-page-horizontal mt-copy overflow-hidden main-card">
         <navigator

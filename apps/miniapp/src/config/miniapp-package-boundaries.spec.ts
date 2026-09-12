@@ -5,7 +5,8 @@ import { describe, expect, it } from "vitest";
 const sourceRoot = resolve(import.meta.dirname, "..");
 const mainPackageRoots = ["api", "components", "config", "domain", "pages", "resolver", "state"];
 const sourceExtensions = new Set([".ts", ".tsx", ".vue"]);
-const subpackageImport = /(?:from\s+|import\(\s*)["']@\/pages-(?:account|bounty|care|content)\//u;
+const subpackageImport =
+  /(?:from\s+|import\(\s*)["']@\/pages-(?:account|bounty|care|content|qualification)\//u;
 
 function productionSources(directory: string): string[] {
   return readdirSync(directory, { withFileTypes: true }).flatMap((entry) => {

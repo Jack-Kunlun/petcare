@@ -26,6 +26,13 @@ export default defineConfig(({ mode }) => {
     (process.env.VITE_COMMERCIAL_SERVICES_ENABLED ?? environment.VITE_COMMERCIAL_SERVICES_ENABLED)
       ?.trim()
       .toLowerCase() === "true";
+  const qualificationWorkflowEnabled =
+    (
+      process.env.VITE_QUALIFICATION_WORKFLOW_ENABLED ??
+      environment.VITE_QUALIFICATION_WORKFLOW_ENABLED
+    )
+      ?.trim()
+      .toLowerCase() === "true";
 
   return {
     base: "./",
@@ -39,9 +46,16 @@ export default defineConfig(({ mode }) => {
           if (!commercialServicesEnabled) {
             removeSubPackage(context.resolvedPagesJSONPath, "pages-bounty");
           }
+
+          if (!qualificationWorkflowEnabled) {
+            removeSubPackage(context.resolvedPagesJSONPath, "pages-qualification");
+          }
         },
         onAfterLoadUserConfig(context) {
-          context.pagesGlobConfig = createMiniappPagesConfig(commercialServicesEnabled);
+          context.pagesGlobConfig = createMiniappPagesConfig(
+            commercialServicesEnabled,
+            qualificationWorkflowEnabled,
+          );
         },
       }),
       UniHelperComponents({

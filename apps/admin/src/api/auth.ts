@@ -58,13 +58,21 @@ apiClient.interceptors.request.use((config) => {
 
 apiClient.interceptors.response.use(
   (response) => {
-    if (response.status !== 204) {
+    if (response.status !== 204 && response.config?.responseType !== "blob") {
       response.data = unwrapApiResponse(response.data);
     }
 
     return response;
   },
   async (error: AxiosError<ApiErrorResponse>) => {
+    if (error.response?.data instanceof Blob) {
+      try {
+        error.response.data = JSON.parse(await error.response.data.text()) as ApiErrorResponse;
+      } catch {
+        // A non-JSON binary failure remains an ordinary request error.
+      }
+    }
+
     const request = error.config as RetriableRequest | undefined;
     const isAuthenticationRequest =
       request?.url?.includes("/auth/refresh") ||

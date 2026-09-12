@@ -844,6 +844,30 @@ async function seedCompiledServer(env) {
         }),
       ),
     );
+    await Promise.all(
+      [bountyProviderA, bountyProviderB].map((provider) =>
+        prisma.providerQualificationApplication.upsert({
+          where: {
+            applicantId_idempotencyKey: {
+              applicantId: provider.id,
+              idempotencyKey: "e2e-qualified-provider",
+            },
+          },
+          update: { status: "approved" },
+          create: {
+            applicantId: provider.id,
+            idempotencyKey: "e2e-qualified-provider",
+            status: "approved",
+            consentVersion: "isolated-e2e",
+            consentedAt: new Date(),
+            reviewedById: administrator.id,
+            reviewedAt: new Date(),
+            verificationMethod: "isolated-e2e",
+            verificationReference: "isolated-e2e",
+          },
+        }),
+      ),
+    );
     const jwtSecret = requireEnvironmentValue(env, "JWT_SECRET");
     const jwt = new JwtService();
     const accessToken = (user) =>
