@@ -46,7 +46,7 @@ test("Hooks 使用 pnpm exec，换行策略为 Windows 脚本保留 CRLF", async
   const lintStaged = JSON.stringify(manifest["lint-staged"]);
 
   assert.match(commitMsg, /^pnpm exec commitlint --edit$/m);
-  assert.match(preCommit, /^pnpm exec lint-staged$/m);
+  assert.match(preCommit, /^pnpm exec lint-staged --concurrent false$/m);
   assert.match(preCommit, /^pnpm run commit:check$/m);
   assert.match(prePush, /refs\/heads\/master/u);
   assert.match(prePush, /git rev-list --min-parents=2/u);
