@@ -17,6 +17,7 @@ import type {
   OrderPaymentSummary,
   OrderPrepayResponse,
   OrderRefundSummary,
+  PaymentReconciliationSummary,
 } from "@petcare/shared-types";
 import { IsString, MaxLength, MinLength } from "class-validator";
 import type { Request } from "express";
@@ -28,6 +29,7 @@ import { ProfileCompleteGuard } from "../../auth/profile-complete.guard";
 import { ApiException } from "../../common/http/api-exception";
 import { ConfigService } from "../../config/config.service";
 import { RedisService } from "../../config/redis.service";
+import { PaymentReconciliationService } from "./payment-reconciliation.service";
 import { PaymentService } from "./payment.service";
 import { RefundService } from "./refund.service";
 
@@ -147,7 +149,14 @@ export class AdminRefundController {
   constructor(
     private readonly refunds: RefundService,
     private readonly redis: RedisService,
+    private readonly reconciliation: PaymentReconciliationService,
   ) {}
+
+  @Get("reconciliation")
+  @RequirePermissions("payment.reconciliation_read")
+  issues(): Promise<PaymentReconciliationSummary[]> {
+    return this.reconciliation.issues();
+  }
 
   @Post("orders/:orderId/refund")
   @RequirePermissions("payment.refund_action")

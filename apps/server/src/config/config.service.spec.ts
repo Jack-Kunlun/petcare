@@ -94,6 +94,11 @@ describe("ConfigService", () => {
     const config = new ConfigService();
 
     expect(config.wechatPay).toBeNull();
+    expect(config.paymentReconciliationEnabled).toBe(false);
+    process.env.WECHAT_PAY_RECONCILIATION_ENABLED = "invalid";
+    expect(() => config.paymentReconciliationEnabled).toThrow("WECHAT_PAY_RECONCILIATION_ENABLED");
+    process.env.WECHAT_PAY_RECONCILIATION_ENABLED = "true";
+    expect(() => config.paymentReconciliationEnabled).toThrow("requires WECHAT_PAY_ENABLED");
     process.env.WECHAT_PAY_ENABLED = "yes";
     expect(() => config.wechatPay).toThrow("WECHAT_PAY_ENABLED");
     process.env.WECHAT_PAY_ENABLED = "true";
@@ -116,6 +121,8 @@ describe("ConfigService", () => {
     const config = new ConfigService();
 
     expect(config.wechatPay?.merchantId).toBe("1900000001");
+    process.env.WECHAT_PAY_RECONCILIATION_ENABLED = "true";
+    expect(config.paymentReconciliationEnabled).toBe(true);
 
     for (const [name, value] of Object.entries({
       WECHAT_PAY_MERCHANT_ID: "invalid",

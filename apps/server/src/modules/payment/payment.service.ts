@@ -131,7 +131,14 @@ export class PaymentService {
   async refresh(ownerId: string, orderId: string): Promise<OrderPaymentSummary> {
     this.settings();
     const payment = await this.ownedPayment(ownerId, orderId);
-    const result = await this.wechat.query(payment.id);
+
+    return this.reconcile(payment.id);
+  }
+
+  /** Internal read-only provider query; HTTP callers must pass ownership checks before using it. */
+  async reconcile(paymentId: string): Promise<OrderPaymentSummary> {
+    this.settings();
+    const result = await this.wechat.query(paymentId);
 
     return this.summary(await this.applyVerifiedResult(result));
   }
@@ -295,6 +302,9 @@ export class PaymentService {
           data: {
             status,
             checkedAt: new Date(),
+            ...(status === "closed" || status === "refunded"
+              ? { reconcileIssue: null, reconcileFailures: 0 }
+              : {}),
             ...(paid ? { transactionId: result.transaction_id as string, paidAt } : {}),
           },
         });

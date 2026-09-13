@@ -12,6 +12,9 @@ import { AppModule } from "../src/app.module";
 import { ConfigService } from "../src/config/config.service";
 import { RedisService } from "../src/config/redis.service";
 import { PrismaService } from "../src/prisma/prisma.service";
+import { PaymentReconciliationService } from "../src/modules/payment/payment-reconciliation.service";
+import { PaymentService } from "../src/modules/payment/payment.service";
+import { RefundService } from "../src/modules/payment/refund.service";
 import {
   buildDropSchemaIfExistsStatement,
   IsolatedPostgresSchemaLifecycle,
@@ -88,6 +91,8 @@ describe("Direct merchant payment persistence (e2e)", () => {
   let adminId: string;
   let adminToken: string;
   let commercial = true;
+  let reconcileEnabled = false;
+  let reconciliation: PaymentReconciliationService;
   const config = new ConfigService();
   const lifecycle = new IsolatedPostgresSchemaLifecycle({
     schemaName,
@@ -96,6 +101,7 @@ describe("Direct merchant payment persistence (e2e)", () => {
       NODE_ENV: "test",
       JWT_SECRET: "payment-e2e-only-secret-2026-09-13",
       WECHAT_PAY_ENABLED: "false",
+      WECHAT_PAY_RECONCILIATION_ENABLED: "false",
     },
     initialize: async () => {
       const result = spawnSync(
@@ -146,6 +152,9 @@ describe("Direct merchant payment persistence (e2e)", () => {
         if (property === "commercialServicesEnabled") {
           return commercial;
         }
+        if (property === "paymentReconciliationEnabled") {
+          return reconcileEnabled;
+        }
         return Reflect.get(target, property, receiver);
       },
     });
@@ -166,6 +175,7 @@ describe("Direct merchant payment persistence (e2e)", () => {
     );
     await app.init();
     prisma = module.get(PrismaService);
+    reconciliation = module.get(PaymentReconciliationService);
     const owner = await prisma.user.create({
       data: { nickname: "Payment owner", phone: "13900000071", openid: "payment_owner_openid" },
     });
@@ -207,6 +217,7 @@ describe("Direct merchant payment persistence (e2e)", () => {
   beforeEach(() => {
     enabled = true;
     commercial = true;
+    reconcileEnabled = false;
     fetchMock.mockReset();
   });
 
@@ -664,5 +675,247 @@ describe("Direct merchant payment persistence (e2e)", () => {
     } finally {
       await prisma.role.update({ where: { roleName: "super_admin" }, data: { isActive: true } });
     }
+  });
+
+  async function onlyDue(paymentId: string) {
+    await prisma.orderPayment.updateMany({
+      data: { reconcileAfter: new Date(Date.now() + 86_400_000) },
+    });
+    await prisma.orderPayment.update({
+      where: { id: paymentId },
+      data: { reconcileAfter: new Date(Date.now() - 60_000) },
+    });
+  }
+
+  function anotherReconciler() {
+    return new PaymentReconciliationService(
+      prisma,
+      app.get(ConfigService),
+      app.get(PaymentService),
+      app.get(RefundService),
+    );
+  }
+
+  async function pendingPayment() {
+    const target = await order();
+    fetchMock.mockResolvedValueOnce(providerResponse({ prepay_id: "test_prepay_id" }));
+    const paymentId = (await prepay(target.id).expect(201)).body.data.payment.paymentId as string;
+    fetchMock.mockReset();
+    await onlyDue(paymentId);
+    return { target, paymentId, paid: success(paymentId) };
+  }
+
+  it("recovers missing payments using only GET queries and atomically claims work across instances", async () => {
+    const { paymentId, paid } = await pendingPayment();
+    expect(await reconciliation.runOnce()).toBe(0);
+    expect(fetchMock).not.toHaveBeenCalled();
+    reconcileEnabled = true;
+    commercial = false;
+    fetchMock.mockImplementation(async (_url, options) => {
+      expect(options.method).toBe("GET");
+      return providerResponse(paid);
+    });
+    const counts = await Promise.all([reconciliation.runOnce(), anotherReconciler().runOnce()]);
+    expect(counts.reduce((a, b) => a + b, 0)).toBe(1);
+    expect(fetchMock).toHaveBeenCalledTimes(1);
+    expect(await prisma.orderPayment.findUniqueOrThrow({ where: { id: paymentId } })).toMatchObject(
+      {
+        status: "succeeded",
+        reconcileFailures: 0,
+        reconcileIssue: null,
+        reconcileLeaseToken: null,
+        reconcileLeaseUntil: null,
+      },
+    );
+    expect(await reconciliation.runOnce()).toBe(0);
+  });
+
+  it("recovers expired leases and fences late worker scheduling without regressing a newer paid result", async () => {
+    const { paymentId, paid } = await pendingPayment();
+    reconcileEnabled = true;
+    await prisma.orderPayment.update({
+      where: { id: paymentId },
+      data: { reconcileLeaseToken: "crashed", reconcileLeaseUntil: new Date(Date.now() + 120_000) },
+    });
+    expect(await reconciliation.runOnce()).toBe(0);
+    expect(fetchMock).not.toHaveBeenCalled();
+    await prisma.orderPayment.update({
+      where: { id: paymentId },
+      data: { reconcileLeaseUntil: new Date(Date.now() - 60_000) },
+    });
+    let started!: () => void;
+    let release!: (response: Response) => void;
+    const waiting = new Promise<void>((resolve) => {
+      started = resolve;
+    });
+    fetchMock.mockImplementationOnce(() => {
+      started();
+      return new Promise<Response>((resolve) => {
+        release = resolve;
+      });
+    });
+    const first = reconciliation.runOnce();
+    await waiting;
+    await prisma.orderPayment.update({
+      where: { id: paymentId },
+      data: { reconcileLeaseUntil: new Date(Date.now() - 60_000) },
+    });
+    fetchMock.mockResolvedValueOnce(providerResponse(paid));
+    expect(await anotherReconciler().runOnce()).toBe(1);
+    const newer = await prisma.orderPayment.findUniqueOrThrow({ where: { id: paymentId } });
+    release(
+      providerResponse({
+        appid: settings.appId,
+        mchid: settings.merchantId,
+        out_trade_no: paymentId,
+        trade_state: "NOTPAY",
+      }),
+    );
+    expect(await first).toBe(0);
+    const current = await prisma.orderPayment.findUniqueOrThrow({ where: { id: paymentId } });
+    expect(current.status).toBe("succeeded");
+    expect(current.reconcileAfter).toEqual(newer.reconcileAfter);
+    expect(current.reconcileLeaseToken).toBeNull();
+    expect(fetchMock.mock.calls.every(([, options]) => options.method === "GET")).toBe(true);
+  });
+
+  it("persists retry backoff, exposes sanitized issues only to administrators and clears them after verified recovery", async () => {
+    const { target, paymentId, paid } = await pendingPayment();
+    reconcileEnabled = true;
+    fetchMock.mockRejectedValue(new Error("sensitive provider payload must not be persisted"));
+    for (let attempt = 1; attempt <= 3; attempt++) {
+      await onlyDue(paymentId);
+      const started = Date.now();
+      expect(await anotherReconciler().runOnce()).toBe(1);
+      const current = await prisma.orderPayment.findUniqueOrThrow({ where: { id: paymentId } });
+      expect(current.status).toBe("pending");
+      expect(current.reconcileFailures).toBe(attempt);
+      expect(current.reconcileAfter.getTime()).toBeGreaterThanOrEqual(
+        started + 2 ** attempt * 60_000,
+      );
+      expect(current.reconcileIssue).toBe(attempt === 3 ? "query_failed" : null);
+      expect(current.reconcileLeaseToken).toBeNull();
+    }
+    await request(app.getHttpServer())
+      .get("/admin/payments/reconciliation")
+      .auth(ownerToken, { type: "bearer" })
+      .expect(403);
+    await request(app.getHttpServer())
+      .get("/admin/payments/reconciliation")
+      .auth(adminToken, { type: "bearer" })
+      .expect(200)
+      .expect((r) => {
+        const issue = r.body.data.find(
+          (item: { paymentId: string }) => item.paymentId === paymentId,
+        );
+        expect(issue).toMatchObject({ issue: "query_failed", consecutiveFailures: 3 });
+        expect(issue).not.toHaveProperty("payerOpenId");
+        expect(JSON.stringify(issue)).not.toContain("sensitive");
+      });
+    await onlyDue(paymentId);
+    fetchMock.mockResolvedValueOnce(
+      providerResponse({ ...paid, amount: { total: 1, currency: "CNY" } }),
+    );
+    await reconciliation.runOnce();
+    expect(await prisma.orderPayment.findUniqueOrThrow({ where: { id: paymentId } })).toMatchObject(
+      { status: "pending", reconcileIssue: "result_invalid" },
+    );
+    await onlyDue(paymentId);
+    fetchMock.mockResolvedValueOnce(providerResponse(paid));
+    await reconciliation.runOnce();
+    expect(await prisma.orderPayment.findUniqueOrThrow({ where: { id: paymentId } })).toMatchObject(
+      { status: "succeeded", reconcileFailures: 0, reconcileIssue: null },
+    );
+    await prisma.order.update({ where: { id: target.id }, data: { status: "cancelled" } });
+    await onlyDue(paymentId);
+    fetchMock.mockResolvedValueOnce(providerResponse(paid));
+    await reconciliation.runOnce();
+    expect(
+      (await prisma.orderPayment.findUniqueOrThrow({ where: { id: paymentId } })).reconcileIssue,
+    ).toBe("cancelled_payment");
+    await onlyDue(paymentId);
+    fetchMock.mockResolvedValueOnce(providerResponse({ ...paid, trade_state: "REFUND" }));
+    await reconciliation.runOnce();
+    expect(await prisma.orderPayment.findUniqueOrThrow({ where: { id: paymentId } })).toMatchObject(
+      { status: "refund_pending", reconcileIssue: "external_refund" },
+    );
+    expect(await prisma.orderRefund.count({ where: { paymentId } })).toBe(0);
+    expect(fetchMock.mock.calls.every(([, options]) => options.method === "GET")).toBe(true);
+  });
+
+  it("flags overdue payments without cancelling them and never queries under a mismatched merchant configuration", async () => {
+    const { target, paymentId } = await pendingPayment();
+    reconcileEnabled = true;
+    await prisma.orderPayment.update({
+      where: { id: paymentId },
+      data: { createdAt: new Date(Date.now() - 25 * 3_600_000) },
+    });
+    fetchMock.mockResolvedValueOnce(
+      providerResponse({
+        appid: settings.appId,
+        mchid: settings.merchantId,
+        out_trade_no: paymentId,
+        trade_state: "NOTPAY",
+      }),
+    );
+    await reconciliation.runOnce();
+    expect(await prisma.orderPayment.findUniqueOrThrow({ where: { id: paymentId } })).toMatchObject(
+      { status: "pending", reconcileIssue: "payment_pending_too_long" },
+    );
+    expect((await prisma.order.findUniqueOrThrow({ where: { id: target.id } })).status).toBe(
+      "confirmed",
+    );
+    await onlyDue(paymentId);
+    await prisma.orderPayment.update({
+      where: { id: paymentId },
+      data: { merchantId: "1900000002" },
+    });
+    fetchMock.mockClear();
+    await reconciliation.runOnce();
+    expect(fetchMock).not.toHaveBeenCalled();
+    expect(
+      (await prisma.orderPayment.findUniqueOrThrow({ where: { id: paymentId } })).reconcileIssue,
+    ).toBe("result_invalid");
+  });
+
+  it("queries uncertain refunds without resubmission, records abnormal/closed states and stops on verified success", async () => {
+    const { target, payment, paid } = await paidCancelledOrder();
+    fetchMock.mockRejectedValueOnce(new Error("lost response"));
+    await refundRequest(target.id).expect(503);
+    const refund = await prisma.orderRefund.findUniqueOrThrow({
+      where: { paymentId: payment.paymentId },
+    });
+    fetchMock.mockReset();
+    reconcileEnabled = true;
+    commercial = false;
+    const abnormal = refundResult(refund.id, paid, "ABNORMAL");
+    for (const [status, issue] of [
+      ["ABNORMAL", "refund_abnormal"],
+      ["CLOSED", "refund_closed"],
+    ]) {
+      await onlyDue(payment.paymentId);
+      fetchMock.mockResolvedValueOnce(providerResponse({ ...abnormal, status }));
+      expect(await reconciliation.runOnce()).toBe(1);
+      expect(
+        await prisma.orderPayment.findUniqueOrThrow({ where: { id: payment.paymentId } }),
+      ).toMatchObject({ status: "refund_pending", reconcileIssue: issue });
+    }
+    await onlyDue(payment.paymentId);
+    fetchMock.mockResolvedValueOnce(
+      providerResponse(refundResult(refund.id, paid, "SUCCESS", abnormal.refund_id)),
+    );
+    expect(await reconciliation.runOnce()).toBe(1);
+    expect(
+      await prisma.orderPayment.findUniqueOrThrow({ where: { id: payment.paymentId } }),
+    ).toMatchObject({ status: "refunded", reconcileIssue: null });
+    await onlyDue(payment.paymentId);
+    expect(await reconciliation.runOnce()).toBe(0);
+    expect(fetchMock).toHaveBeenCalledTimes(3);
+    expect(
+      fetchMock.mock.calls.every(
+        ([url, options]) =>
+          options.method === "GET" && String(url).endsWith(`/refunds/${refund.id}`),
+      ),
+    ).toBe(true);
   });
 });

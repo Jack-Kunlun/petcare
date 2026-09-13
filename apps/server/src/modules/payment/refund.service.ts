@@ -94,7 +94,12 @@ export class RefundService {
 
         await tx.orderPayment.update({
           where: { id: payment.id },
-          data: { status: "refund_pending" },
+          data: {
+            status: "refund_pending",
+            reconcileAfter: new Date(),
+            reconcileIssue: null,
+            reconcileFailures: 0,
+          },
         });
 
         return created;
@@ -298,7 +303,10 @@ export class RefundService {
 
         await tx.orderPayment.update({
           where: { id: payment.id },
-          data: { status: status === "succeeded" ? "refunded" : "refund_pending" },
+          data: {
+            status: status === "succeeded" ? "refunded" : "refund_pending",
+            ...(status === "succeeded" ? { reconcileIssue: null, reconcileFailures: 0 } : {}),
+          },
         });
 
         if (notificationId) {

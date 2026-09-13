@@ -1,5 +1,6 @@
 import { Module } from "@nestjs/common";
 import { AuthModule } from "../../auth/auth.module";
+import { PaymentReconciliationService } from "./payment-reconciliation.service";
 import {
   AdminRefundController,
   PaymentController,
@@ -12,7 +13,13 @@ import { WechatPayClient } from "./wechat-pay.client";
 @Module({
   imports: [AuthModule],
   controllers: [PaymentController, AdminRefundController],
-  providers: [WechatPayClient, PaymentService, RefundService, PaymentFeatureGuard],
+  providers: [
+    WechatPayClient,
+    PaymentService,
+    RefundService,
+    PaymentFeatureGuard,
+    PaymentReconciliationService,
+  ],
   exports: [WechatPayClient],
 })
 export class PaymentModule {}

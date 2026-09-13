@@ -81,3 +81,44 @@ export interface OrderRefundSummary {
   /** 微信确认的退款成功时间。 */
   succeededAt: string | null;
 }
+
+/** 自动状态核对发现的问题；不表示允许自动扣款、退款或改账。 */
+export type PaymentReconciliationIssue =
+  /** 连续至少三次查询失败，交易结果仍未知。 */
+  | "query_failed"
+  /** 已验签结果的业务字段不匹配，或原商户配置不一致。 */
+  | "result_invalid"
+  /** 支付单超过 24 小时仍未确认收款。 */
+  | "payment_pending_too_long"
+  /** 退款单超过 24 小时仍未确认退款成功。 */
+  | "refund_pending_too_long"
+  /** 微信退款异常，需要人工核查。 */
+  | "refund_abnormal"
+  /** 微信退款关闭，不可自动换号重退。 */
+  | "refund_closed"
+  /** 微信转入退款但本地没有退款单。 */
+  | "external_refund"
+  /** 已取消订单存在确认收款，尚未发起本地退款。 */
+  | "cancelled_payment";
+
+/** 管理员只读状态核对队列条目，不包含付款账户或密钥。 */
+export interface PaymentReconciliationSummary {
+  /** 本地固定支付单号。 */
+  paymentId: string;
+  /** 业务订单号。 */
+  orderId: string;
+  /** 原订单冻结金额，单位分。 */
+  amountCents: number;
+  /** 当前持久支付状态。 */
+  paymentStatus: OrderPaymentStatus;
+  /** 当前本地退款状态，没有退款单时为空。 */
+  refundStatus: OrderRefundStatus | null;
+  /** 待核查的问题分类。 */
+  issue: PaymentReconciliationIssue;
+  /** 连续自动查询失败次数，成功核对后归零。 */
+  consecutiveFailures: number;
+  /** 计划下一次查询的时间，不保证队列满载时准点执行。 */
+  nextCheckAt: string;
+  /** 最近成功核对支付结果的时间，不代表退款查询时间。 */
+  paymentCheckedAt: string | null;
+}

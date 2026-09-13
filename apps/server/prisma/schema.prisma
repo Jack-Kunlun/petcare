@@ -347,37 +347,58 @@ enum OrderPaymentStatus {
   refunded
 }
 
+enum PaymentReconciliationIssue {
+  query_failed
+  result_invalid
+  payment_pending_too_long
+  refund_pending_too_long
+  refund_abnormal
+  refund_closed
+  external_refund
+  cancelled_payment
+}
+
 model OrderPayment {
+  /// 后台查询调度独立于资金状态，迁移后存量支付单进入核对队列。
+  reconcileAfter      DateTime                    @default(now()) @map("reconcile_after")
+  /// 租约只控制查询领取；过期持有者不能覆盖新持有者的调度结果。
+  reconcileLeaseToken String?                     @map("reconcile_lease_token")
+  reconcileLeaseUntil DateTime?                   @map("reconcile_lease_until")
+  reconcileFailures   Int                         @default(0) @map("reconcile_failures")
+  /// 仅固定错误分类，不保存微信响应、密钥或账户资料。
+  reconcileIssue      PaymentReconciliationIssue? @map("reconcile_issue")
   /// 固定商户支付单号；重复预支付和未知结果查单不得换号。
-  id            String                @id
+  id                  String                      @id
   /// 一个业务订单只允许一张支付单。
-  orderId       String                @unique @map("order_id")
+  orderId             String                      @unique @map("order_id")
   /// 下单时冻结的整数分总金额。
-  amountCents   Int                   @map("amount_cents")
+  amountCents         Int                         @map("amount_cents")
   /// 固定人民币，不能使用客户端指定币种。
-  currency      String                @default("CNY")
+  currency            String                      @default("CNY")
   /// 下单时冻结的普通商户号。
-  merchantId    String                @map("merchant_id")
+  merchantId          String                      @map("merchant_id")
   /// 下单时冻结的小程序 AppID。
-  appId         String                @map("app_id")
+  appId               String                      @map("app_id")
   /// 从订单主人的正式微信账户读取，不接受客户端覆盖。
-  payerOpenId   String                @map("payer_open_id")
+  payerOpenId         String                      @map("payer_open_id")
   /// 已验证的提供方状态；预支付成功不会改变该状态。
-  status        OrderPaymentStatus    @default(pending)
+  status              OrderPaymentStatus          @default(pending)
   /// 提供方交易号全局唯一，禁止复用于另一支付单。
-  transactionId String?               @unique @map("transaction_id")
+  transactionId       String?                     @unique @map("transaction_id")
   /// 提供方确认的支付成功时间。
-  paidAt        DateTime?             @map("paid_at")
+  paidAt              DateTime?                   @map("paid_at")
   /// 最近一次成功验签并核对业务字段的查单时间。
-  checkedAt     DateTime?             @map("checked_at")
+  checkedAt           DateTime?                   @map("checked_at")
   /// 支付单创建与变更审计时间。
-  createdAt     DateTime              @default(now()) @map("created_at")
-  updatedAt     DateTime              @updatedAt @map("updated_at")
-  order         Order                 @relation(fields: [orderId], references: [id], onDelete: Restrict)
-  notifications PaymentNotification[]
-  refund        OrderRefund?
+  createdAt           DateTime                    @default(now()) @map("created_at")
+  updatedAt           DateTime                    @updatedAt @map("updated_at")
+  order               Order                       @relation(fields: [orderId], references: [id], onDelete: Restrict)
+  notifications       PaymentNotification[]
+  refund              OrderRefund?
 
   @@index([status, createdAt])
+  @@index([reconcileAfter])
+  @@index([reconcileIssue, reconcileAfter])
   @@map("order_payments")
 }
 

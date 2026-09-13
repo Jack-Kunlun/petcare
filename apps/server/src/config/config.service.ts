@@ -93,6 +93,7 @@ export class ConfigService {
     check("ALLOWED_ORIGINS", () => this.validateAllowedOrigins());
     check("WECHAT", () => this.validateWechatConfiguration());
     check("WECHAT_PAY", () => this.wechatPay);
+    check("WECHAT_PAY_RECONCILIATION_ENABLED", () => this.paymentReconciliationEnabled);
     check("PUBLIC_MEDIA_STORAGE", () => this.validatePublicMediaStorageConfiguration());
     check("QUALIFICATION_STORAGE", () => this.qualificationStorage);
     check("QUALIFICATION_WORKFLOW_ENABLED", () => this.qualificationWorkflowEnabled);
@@ -586,6 +587,21 @@ export class ConfigService {
 
   get wechatAppSecret(): string {
     return process.env.WECHAT_APP_SECRET || "";
+  }
+
+  /** Background provider queries are opt-in and require a complete payment configuration. */
+  get paymentReconciliationEnabled(): boolean {
+    const value = process.env.WECHAT_PAY_RECONCILIATION_ENABLED?.trim().toLowerCase() || "false";
+
+    if (!["true", "false"].includes(value)) {
+      throw new Error("WECHAT_PAY_RECONCILIATION_ENABLED must be true or false");
+    }
+
+    if (value === "true" && !this.wechatPay) {
+      throw new Error("WECHAT_PAY_RECONCILIATION_ENABLED requires WECHAT_PAY_ENABLED");
+    }
+
+    return value === "true";
   }
 
   /** Direct-merchant API v3 configuration; absence never enables payment implicitly. */
