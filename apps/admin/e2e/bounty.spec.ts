@@ -620,6 +620,7 @@ test("悬赏在隔离环境完成资格门禁、幂等意向、唯一确认与�
         headers: { Authorization: providerAAuthorization },
       }),
     );
+
     expect(unpaidSop.canExecute).toBe(false);
     await expectFailure(
       await page.request.post(`/api/bounties/${created.id}/sop/steps/1/complete`, {
