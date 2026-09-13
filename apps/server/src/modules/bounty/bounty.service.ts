@@ -124,6 +124,7 @@ const sopOrderSelect = {
   ownerId: true,
   providerId: true,
   status: true,
+  payment: { select: { status: true } },
   sops: { orderBy: { stepNumber: "asc" }, select: sopStepSelect },
 } satisfies Prisma.OrderSelect;
 
@@ -148,6 +149,7 @@ interface LockedFulfillmentRow {
   ownerId: string;
   providerId: string | null;
   status: string;
+  payment: { status: string } | null;
 }
 
 interface FrozenSopConfig {
@@ -526,6 +528,7 @@ export class BountyService {
     }
 
     this.assertExecutableStatus(preflight.status);
+    this.assertPaid(preflight.payment);
 
     if (
       !this.isEligibleProvider(
@@ -566,6 +569,7 @@ export class BountyService {
         }
 
         this.assertExecutableStatus(order.status);
+        this.assertPaid(order.payment);
 
         if (!(await this.lockEligibleProvider(transaction, providerId))) {
           throw this.providerNotEligible("当前资格不允许继续履约", HttpStatus.CONFLICT);
@@ -639,6 +643,7 @@ export class BountyService {
         }
 
         this.assertExecutableStatus(order.status);
+        this.assertPaid(order.payment);
 
         if (!(await this.lockEligibleProvider(transaction, providerId))) {
           throw this.providerNotEligible("当前资格不允许继续履约", HttpStatus.CONFLICT);
@@ -832,7 +837,7 @@ export class BountyService {
   }
 
   private async lockFulfillmentOrder(
-    transaction: Pick<Prisma.TransactionClient, "$queryRaw">,
+    transaction: Pick<Prisma.TransactionClient, "$queryRaw" | "orderPayment">,
     bountyId: string,
   ): Promise<LockedFulfillmentRow | null> {
     const rows = await transaction.$queryRaw<LockedFulfillmentRow[]>`
@@ -846,12 +851,32 @@ export class BountyService {
       FOR UPDATE OF o
     `;
 
-    return rows[0] ?? null;
+    if (!rows[0]) {
+      return null;
+    }
+
+    // Read payment after the lock: a join could retain a pre-wait snapshot during a concurrent refund.
+    const payment = await transaction.orderPayment.findUnique({
+      where: { orderId: bountyId },
+      select: { status: true },
+    });
+
+    return { ...rows[0], payment };
   }
 
   private assertExecutableStatus(status: string): void {
     if (status !== BOUNTY_STATUS.CONFIRMED && status !== BOUNTY_STATUS.IN_PROGRESS) {
       throw this.sopStepConflict("当前订单状态不允许履约");
+    }
+  }
+
+  private assertPaid(payment: { status: string } | null): void {
+    if (payment?.status !== "succeeded") {
+      throw new ApiException(
+        "PAYMENT_REQUIRED",
+        "订单尚未确认收款，暂不能履约",
+        HttpStatus.CONFLICT,
+      );
     }
   }
 
@@ -906,6 +931,7 @@ export class BountyService {
       currentStepNumber: current?.stepNumber ?? null,
       canExecute:
         eligible &&
+        order.payment?.status === "succeeded" &&
         Boolean(current) &&
         (order.status === BOUNTY_STATUS.CONFIRMED || order.status === BOUNTY_STATUS.IN_PROGRESS),
       steps: order.sops.map((step) => ({

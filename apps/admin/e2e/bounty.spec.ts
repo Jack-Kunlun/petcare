@@ -28,6 +28,7 @@ import {
   type Page,
   type Response,
 } from "@playwright/test";
+import { settleIsolatedBountyPayment } from "./fixtures/bounty-payment";
 
 const sopEvidencePng = Buffer.from(
   "iVBORw0KGgoAAAANSUhEUgAAAAEAAAABCAQAAAC1HAwCAAAAC0lEQVR42mNk+A8AAQUBAScY42YAAAAASUVORK5CYII=",
@@ -613,6 +614,21 @@ test("悬赏在隔离环境完成资格门禁、幂等意向、唯一确认与�
     await expect(
       providerBountyCard.getByText(`备注：${request.remark}`, { exact: true }),
     ).toBeVisible();
+
+    const unpaidSop = await responseData<BountySop>(
+      await page.request.get(`/api/bounties/${created.id}/sop`, {
+        headers: { Authorization: providerAAuthorization },
+      }),
+    );
+    expect(unpaidSop.canExecute).toBe(false);
+    await expectFailure(
+      await page.request.post(`/api/bounties/${created.id}/sop/steps/1/complete`, {
+        headers: { Authorization: providerAAuthorization },
+      }),
+      409,
+      "PAYMENT_REQUIRED",
+    );
+    await settleIsolatedBountyPayment(created.id);
 
     const ownerSop = await responseData<BountySop>(
       await page.request.get(`/api/bounties/${created.id}/sop`, {

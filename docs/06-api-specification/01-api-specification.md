@@ -8,6 +8,19 @@
 > 投诉纠纷和系统费用设置接口属于历史或未来商业设计，不是当前可调用 API。是否可用必须以
 > `apps/server/src/app.module.ts` 的默认装配、当前路由测试和[开发路线图](../01-requirements/05-development-roadmap.md)为准。
 
+## Cycle 9 普通商户支付接口
+
+以下路由仅在 `WECHAT_PAY_ENABLED=true` 且配置有效时可用，默认返回 404；生产尚未开放。请求和响应类型见 `@petcare/shared-types` 的 `OrderPaymentSummary`、`OrderPrepayResponse`。金额和付款 OpenID 来自服务器，不接受客户端提交。
+
+| 方法与路径                               | 权限和行为                                                                                                                 |
+| ---------------------------------------- | -------------------------------------------------------------------------------------------------------------------------- |
+| `POST /payments/orders/:orderId/prepay`  | 登录且手机号完整的订单主人；还需商业开关开启、订单已确认、服务者资格有效。先持久化支付单再预支付，重复调用复用同一商户单号 |
+| `GET /payments/orders/:orderId`          | 订单主人读取持久状态，不访问微信                                                                                           |
+| `POST /payments/orders/:orderId/refresh` | 订单主人主动查单，验签并核对业务字段后事务更新；不把网络异常当成失败终态                                                   |
+| `POST /payments/wechat/notify`           | 无登录令牌；必须通过原始字节 RSA 验签、AES-GCM 解密与业务字段匹配，通知 ID 和状态事务提交后返回空 `204`                    |
+
+预支付和主动查单共用每账户每分钟 10 次限流。支付状态为 `pending`、`succeeded`、`closed`、`refund_pending`；旧的未支付查询不能覆盖已确认收款，迟到成功通知不能覆盖已转入退款状态。SOP 的 `canExecute` 与上传/完成写接口均要求 `succeeded`，否则写操作返回 `409 PAYMENT_REQUIRED`。退款单、退款通知和自动对账尚未开放。
+
 ## 📋 目录
 
 - [设计原则](#设计原则)

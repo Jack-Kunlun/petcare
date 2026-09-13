@@ -12,3 +12,4 @@ export * from "./content";
 export * from "./website-content";
 export * from "./bounty";
 export * from "./provider-qualification";
+export * from "./payment";

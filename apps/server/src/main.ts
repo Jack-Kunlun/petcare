@@ -8,7 +8,10 @@ import { ConfigService } from "./config/config.service";
 import { AppLogger } from "./logging/app-logger.service";
 
 async function bootstrap() {
-  const app = await NestFactory.create<NestExpressApplication>(AppModule, { bufferLogs: true });
+  const app = await NestFactory.create<NestExpressApplication>(AppModule, {
+    bufferLogs: true,
+    rawBody: true,
+  });
   const appLogger = app.get(AppLogger);
   const configService = app.get(ConfigService);
 

@@ -35,6 +35,7 @@ describe("BountyService", () => {
   };
   const transaction = {
     $queryRaw: jest.fn(),
+    orderPayment: { findUnique: jest.fn() },
     pet: { findFirst: jest.fn() },
     systemConfigPointer: { findUnique: jest.fn() },
     order: {
@@ -153,6 +154,7 @@ describe("BountyService", () => {
     jest.useFakeTimers().setSystemTime(now);
     jest.clearAllMocks();
     prisma.providerQualificationApplication.count.mockResolvedValue(1);
+    transaction.orderPayment.findUnique.mockResolvedValue({ status: "succeeded" });
     lockedBounty = {
       id: bountyId,
       ownerId: "owner-1",
@@ -180,6 +182,7 @@ describe("BountyService", () => {
             ownerId: lockedBounty.ownerId,
             providerId: lockedBounty.providerId,
             status: lockedBounty.status,
+            payment: { status: "succeeded" },
           },
         ]);
       }
@@ -527,6 +530,7 @@ describe("BountyService", () => {
       ownerId: "owner-1",
       providerId,
       status: BOUNTY_STATUS.CONFIRMED,
+      payment: { status: "succeeded" },
       sops: frozenSopSteps,
     };
     const qualifiedProvider = {
@@ -564,6 +568,7 @@ describe("BountyService", () => {
       ownerId: "owner-1",
       providerId,
       status: BOUNTY_STATUS.CONFIRMED,
+      payment: { status: "succeeded" },
       sops: frozenSopSteps,
     });
     prisma.user.findUnique.mockResolvedValueOnce({
@@ -595,6 +600,7 @@ describe("BountyService", () => {
       ownerId: "owner-1",
       providerId,
       status: BOUNTY_STATUS.CONFIRMED,
+      payment: { status: "succeeded" },
       sops: frozenSopSteps,
     });
     prisma.user.findUnique.mockResolvedValueOnce({
@@ -645,6 +651,19 @@ describe("BountyService", () => {
     );
   });
 
+  it("rechecks payment after acquiring the order lock before completing a step", async () => {
+    lockedBounty.providerId = providerId;
+    lockedBounty.status = BOUNTY_STATUS.CONFIRMED;
+    transaction.orderPayment.findUnique.mockResolvedValueOnce({ status: "refund_pending" });
+    await expect(service.completeSopStep(providerId, bountyId, 1)).rejects.toMatchObject({
+      code: "PAYMENT_REQUIRED",
+    });
+    expect(transaction.orderSop.updateMany).not.toHaveBeenCalled();
+    expect(transaction.$queryRaw.mock.invocationCallOrder[0]).toBeLessThan(
+      transaction.orderPayment.findUnique.mock.invocationCallOrder[0],
+    );
+  });
+
   it("rechecks provider qualification before every step mutation", async () => {
     lockedBounty.providerId = providerId;
     lockedBounty.status = BOUNTY_STATUS.CONFIRMED;
@@ -664,6 +683,7 @@ describe("BountyService", () => {
       ownerId: "owner-1",
       providerId,
       status: BOUNTY_STATUS.CONFIRMED,
+      payment: { status: "succeeded" },
       sops: frozenSopSteps,
     });
     prisma.user.findUnique.mockResolvedValueOnce({
