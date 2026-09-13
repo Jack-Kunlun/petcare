@@ -217,27 +217,29 @@ Server 不返回对象键或签名 URL。管理员材料读取有独立的 `prov
 
 Cycle 9 使用普通商户直连、小程序支付 API v3，不配置服务商或子商户参数。支付单持久化、预支付、查单和支付通知路由已实现，统一受默认关闭的支付开关保护；配置齐全也不代表支付业务可上线。
 
-| 变量                            | 说明                                                                       |
-| ------------------------------- | -------------------------------------------------------------------------- |
-| `WECHAT_PAY_ENABLED`            | 默认 `false`；关闭时不加载密钥、不访问微信支付，调用失败关闭               |
-| `WECHAT_PAY_MERCHANT_ID`        | 普通商户号，必须与已有 `WECHAT_APP_ID` 完成真实绑定                        |
-| `WECHAT_PAY_CERTIFICATE_SERIAL` | 商户 API 证书序列号，用于请求签名身份                                      |
-| `WECHAT_PAY_PRIVATE_KEY_PATH`   | 商户 RSA-2048 私钥 PEM 的 Server 绝对路径                                  |
-| `WECHAT_PAY_PUBLIC_KEY_ID`      | 微信支付公钥 ID，格式 `PUB_KEY_ID_...`，用于匹配响应/通知验签身份          |
-| `WECHAT_PAY_PUBLIC_KEY_PATH`    | 与该 ID 配套的微信支付 RSA-2048 公钥 PEM 的 Server 绝对路径                |
-| `WECHAT_PAY_API_V3_KEY`         | 32 字节 ASCII API v3 密钥，仅服务端用于解密通知；不是 AppSecret 或商户私钥 |
-| `WECHAT_PAY_NOTIFY_URL`         | 预留支付通知 HTTPS 地址，不允许凭据、查询参数或 fragment                   |
-| `WECHAT_PAY_REFUND_NOTIFY_URL`  | 预留退款通知 HTTPS 地址，限制同上                                          |
+| 变量                            | 说明                                                                                       |
+| ------------------------------- | ------------------------------------------------------------------------------------------ |
+| `WECHAT_PAY_ENABLED`            | 默认 `false`；关闭时不加载密钥、不访问微信支付，调用失败关闭                               |
+| `WECHAT_PAY_MERCHANT_ID`        | 普通商户号，必须与已有 `WECHAT_APP_ID` 完成真实绑定                                        |
+| `WECHAT_PAY_CERTIFICATE_SERIAL` | 商户 API 证书序列号，用于请求签名身份                                                      |
+| `WECHAT_PAY_PRIVATE_KEY_PATH`   | 商户 RSA-2048 私钥 PEM 的 Server 绝对路径                                                  |
+| `WECHAT_PAY_PUBLIC_KEY_ID`      | 微信支付公钥 ID，格式 `PUB_KEY_ID_...`，用于匹配响应/通知验签身份                          |
+| `WECHAT_PAY_PUBLIC_KEY_PATH`    | 与该 ID 配套的微信支付 RSA-2048 公钥 PEM 的 Server 绝对路径                                |
+| `WECHAT_PAY_API_V3_KEY`         | 32 字节 ASCII API v3 密钥，仅服务端用于解密通知；不是 AppSecret 或商户私钥                 |
+| `WECHAT_PAY_NOTIFY_URL`         | 预留支付通知 HTTPS 地址，不允许凭据、查询参数或 fragment                                   |
+| `WECHAT_PAY_REFUND_NOTIFY_URL`  | 退款通知 HTTPS 地址，限制同上；指向 `/payments/wechat/refund-notify`（网关含 `/api` 前缀） |
 
 启用时配置及密钥文件不完整会阻止 Server 启动。公钥从微信支付商户平台「账户中心 → API 安全」获取，显式配置可信 ID 和文件；不信任报文自行携带的新 ID、不动态下载未知公钥。轮换需要更新配套公钥和 ID 后重启，并验收新旧通知交接；当前不支持多公钥并行过渡。
 
 请求固定访问微信支付官方主域名，原始响应和通知必须先验 RSA 签名，再解析或 AES-GCM 解密，时间戳容差为 5 分钟。预支付成功不表示已支付，退款受理不表示退款完成；网络错误不自动重试资金操作，也不能据此判定业务失败。后续业务层必须以持久支付/退款单号查询确认，核对订单、金额、付款人和最终状态，并事务处理通知幂等；接入层不会自行更新订单。
 
-当前发布流程未转发支付配置、未挂载密钥文件，也未开放生产支付。后续必须补齐退款单与退款回调、对账及未知结果自动查询、小程序支付交互、商户资质、AppID 授权绑定和目标环境验收，再单独接入发布配置。私钥和 API v3 密钥不得进入仓库、镜像、前端环境变量或日志；普通商户技术接口不代表平台代收、分账或服务者结算方案已获确认。
+当前发布流程未转发支付配置、未挂载密钥文件，也未开放生产支付。退款单、通知与主动查询已接入默认关闭路由；后续必须补齐对账及未知结果自动查询、小程序支付交互、商户资质、AppID 授权绑定和目标环境验收，再单独接入发布配置。私钥和 API v3 密钥不得进入仓库、镜像、前端环境变量或日志；普通商户技术接口不代表平台代收、分账或服务者结算方案已获确认。
 
 `WECHAT_PAY_NOTIFY_URL` 应指向外部可达的 `/payments/wechat/notify`（经网关时包含 `/api` 前缀）。Server 保留原始 JSON 字节用于验签，事务写入支付状态与通知去重记录后返回空 `204`；写入失败返回非 2xx，允许微信重试。关闭商业入口只阻止新增预支付，不应关闭支付验签配置，以便接收已经发生交易的迟到通知。重复预支付复用原商户单号；调用方不能指定金额或付款 OpenID。`REFUND` 只映射为 `refund_pending` 并暂停履约，不表示退款已完成。
 
-接口依据：[请求签名](https://pay.wechatpay.cn/doc/v3/merchant/4012365336)、[公钥验签](https://pay.wechatpay.cn/doc/v3/merchant/4013053249)、[小程序下单](https://pay.wechatpay.cn/doc/v3/merchant/4012791897)、[通知解密](https://pay.wechatpay.cn/doc/v3/merchant/4012791836)、[申请退款](https://pay.wechatpay.cn/doc/v3/merchant/4012587971)、[查询退款](https://pay.wechatpay.cn/doc/v3/merchant/4012810601)。
+退款通知同样在验签、业务核对与事务提交后返回空 `204`；请求受理不等于成功。只有全额退款结果验证成功才进入 `refunded`。存量退款不依赖商业入口开关，但依赖支付配置和密钥继续有效；异常与关闭结果仍保持履约冻结，禁止自动换号重退。
+
+接口依据：[请求签名](https://pay.wechatpay.cn/doc/v3/merchant/4012365336)、[公钥验签](https://pay.wechatpay.cn/doc/v3/merchant/4013053249)、[小程序下单](https://pay.wechatpay.cn/doc/v3/merchant/4012791897)、[通知解密](https://pay.wechatpay.cn/doc/v3/merchant/4012791836)、[申请退款](https://pay.wechatpay.cn/doc/v3/merchant/4012587971)、[查询退款](https://pay.wechatpay.cn/doc/v3/merchant/4012810601)、[退款通知](https://pay.wechatpay.cn/doc/v3/merchant/4012791906)。
 
 ### 公开媒体存储
 

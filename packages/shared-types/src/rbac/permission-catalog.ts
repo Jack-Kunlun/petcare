@@ -36,6 +36,28 @@ export interface RbacPermissionDefinition {
 /** The code-defined permission catalog enabled by the current personal-version runtime. */
 export const RBAC_PERMISSION_CATALOG: readonly RbacPermissionDefinition[] = [
   {
+    code: "payment.refund_action",
+    type: "api",
+    label: "发起取消订单全额退款",
+    module: "payment",
+    path: null,
+    parentCode: null,
+    order: 10,
+    icon: null,
+    impliedApiCodes: [],
+  },
+  {
+    code: "payment.refund_read",
+    type: "api",
+    label: "查询退款状态",
+    module: "payment",
+    path: null,
+    parentCode: null,
+    order: 20,
+    icon: null,
+    impliedApiCodes: [],
+  },
+  {
     code: "provider_qualification.view",
     type: "menu",
     label: "服务者资格审核",

@@ -7,7 +7,11 @@ import { LoggingModule } from "./logging/logging.module";
 import { AdminAccountModule } from "./modules/admin-account/admin-account.module";
 import { BountyModule } from "./modules/bounty/bounty.module";
 import { ContentModule } from "./modules/content/content.module";
-import { PaymentController, PaymentFeatureGuard } from "./modules/payment/payment.controller";
+import {
+  AdminRefundController,
+  PaymentController,
+  PaymentFeatureGuard,
+} from "./modules/payment/payment.controller";
 import { PaymentModule } from "./modules/payment/payment.module";
 import { PetModule } from "./modules/pet/pet.module";
 import { ProviderQualificationModule } from "./modules/provider-qualification/provider-qualification.module";
@@ -41,6 +45,7 @@ describe("AppModule", () => {
   it("registers payment routes behind a default-closed feature guard", () => {
     expect(Reflect.getMetadata(MODULE_METADATA.CONTROLLERS, PaymentModule)).toEqual([
       PaymentController,
+      AdminRefundController,
     ]);
     expect(() => new PaymentFeatureGuard({ wechatPay: null } as never).canActivate()).toThrow(
       "支付服务未开放",

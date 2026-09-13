@@ -52,7 +52,11 @@ function providerResponse(data: unknown) {
   return new Response(body, { headers: signedHeaders(body) });
 }
 
-function notification(resource: Record<string, unknown>, id = randomUUID()) {
+function notification(
+  resource: Record<string, unknown>,
+  id = randomUUID(),
+  eventType = "TRANSACTION.SUCCESS",
+) {
   const nonce = randomBytes(6).toString("hex");
   const cipher = createCipheriv("aes-256-gcm", Buffer.from(settings.apiV3Key), Buffer.from(nonce));
   cipher.setAAD(Buffer.from("transaction"));
@@ -63,7 +67,7 @@ function notification(resource: Record<string, unknown>, id = randomUUID()) {
   ]).toString("base64");
   const body = JSON.stringify({
     id,
-    event_type: "TRANSACTION.SUCCESS",
+    event_type: eventType,
     resource_type: "encrypt-resource",
     resource: { algorithm: "AEAD_AES_256_GCM", nonce, associated_data: "transaction", ciphertext },
   });
@@ -81,6 +85,9 @@ describe("Direct merchant payment persistence (e2e)", () => {
   let petId: string;
   let ownerToken: string;
   let providerToken: string;
+  let adminId: string;
+  let adminToken: string;
+  let commercial = true;
   const config = new ConfigService();
   const lifecycle = new IsolatedPostgresSchemaLifecycle({
     schemaName,
@@ -137,7 +144,7 @@ describe("Direct merchant payment persistence (e2e)", () => {
           return enabled ? settings : null;
         }
         if (property === "commercialServicesEnabled") {
-          return true;
+          return commercial;
         }
         return Reflect.get(target, property, receiver);
       },
@@ -172,6 +179,13 @@ describe("Direct merchant payment persistence (e2e)", () => {
     });
     ownerId = owner.id;
     providerId = provider.id;
+    const admin = await prisma.user.create({
+      data: {
+        nickname: "Refund administrator",
+        roles: { create: { role: { create: { roleName: "super_admin" } } } },
+      },
+    });
+    adminId = admin.id;
     await prisma.providerQualificationApplication.create({
       data: { applicantId: providerId, idempotencyKey: randomUUID(), status: "approved" },
     });
@@ -179,6 +193,7 @@ describe("Direct merchant payment persistence (e2e)", () => {
       await prisma.pet.create({ data: { ownerId, name: "Test pet", breed: "cat", photos: [] } })
     ).id;
     const jwt = new JwtService({ secret: config.jwtSecret });
+    adminToken = jwt.sign({ sub: adminId, sid: randomUUID(), sessionVersion: 0, type: "access" });
     ownerToken = jwt.sign({ sub: ownerId, sid: randomUUID(), sessionVersion: 0, type: "access" });
     providerToken = jwt.sign({
       sub: providerId,
@@ -191,6 +206,7 @@ describe("Direct merchant payment persistence (e2e)", () => {
   afterAll(async () => lifecycle.teardown());
   beforeEach(() => {
     enabled = true;
+    commercial = true;
     fetchMock.mockReset();
   });
 
@@ -226,9 +242,9 @@ describe("Direct merchant payment persistence (e2e)", () => {
       .post(`/payments/orders/${orderId}/prepay`)
       .auth(token, { type: "bearer" });
   }
-  function send(value: ReturnType<typeof notification>) {
+  function send(value: ReturnType<typeof notification>, url = "/payments/wechat/notify") {
     return request(app.getHttpServer())
-      .post("/payments/wechat/notify")
+      .post(url)
       .set(value.headers)
       .set("Content-Type", "application/json")
       .send(value.body);
@@ -393,5 +409,260 @@ describe("Direct merchant payment persistence (e2e)", () => {
       .post(`/bounties/${target.id}/sop/steps/1/complete`)
       .auth(providerToken, { type: "bearer" })
       .expect(409);
+  });
+
+  async function paidCancelledOrder() {
+    const target = await order();
+    fetchMock.mockResolvedValueOnce(providerResponse({ prepay_id: "test_prepay_id" }));
+    const payment = (await prepay(target.id).expect(201)).body.data.payment;
+    const paid = success(payment.paymentId);
+    await send(notification(paid)).expect(204);
+    await prisma.order.update({ where: { id: target.id }, data: { status: "cancelled" } });
+    return { target, payment, paid };
+  }
+
+  function refundRequest(
+    orderId: string,
+    token = adminToken,
+    body: Record<string, unknown> = { reason: "Cancelled before service" },
+  ) {
+    return request(app.getHttpServer())
+      .post(`/admin/payments/orders/${orderId}/refund`)
+      .auth(token, { type: "bearer" })
+      .send(body);
+  }
+
+  function refundRefresh(orderId: string, token = adminToken) {
+    return request(app.getHttpServer())
+      .post(`/admin/payments/orders/${orderId}/refund/refresh`)
+      .auth(token, { type: "bearer" });
+  }
+
+  function refundResult(
+    refundId: string,
+    paid: ReturnType<typeof success>,
+    status = "PROCESSING",
+    providerId = randomBytes(16).toString("hex"),
+  ) {
+    return {
+      out_refund_no: refundId,
+      out_trade_no: paid.out_trade_no,
+      transaction_id: paid.transaction_id,
+      refund_id: providerId,
+      status,
+      ...(status === "SUCCESS" ? { success_time: new Date().toISOString() } : {}),
+      amount: { total: 1234, refund: 1234, payer_total: 1200, payer_refund: 1200, currency: "CNY" },
+    };
+  }
+
+  function refundEvent(result: ReturnType<typeof refundResult>, id = randomUUID()) {
+    const { status, amount, ...fields } = result;
+    const { currency: _currency, ...notificationAmount } = amount;
+    return notification(
+      { ...fields, mchid: settings.merchantId, refund_status: status, amount: notificationAmount },
+      id,
+      `REFUND.${status}`,
+    );
+  }
+
+  const refundNotifyUrl = "/payments/wechat/refund-notify";
+
+  it("restricts refund permission and eligibility, reserves one full refund before uncertain network calls and reuses its number", async () => {
+    const { target, payment, paid } = await paidCancelledOrder();
+    fetchMock.mockClear();
+    await refundRequest(target.id, ownerToken).expect(403);
+    await refundRequest(target.id, providerToken).expect(403);
+    await refundRefresh(target.id, ownerToken).expect(403);
+    await refundRequest(target.id, adminToken, { reason: "     " }).expect(400);
+    await refundRequest(target.id, adminToken, {
+      reason: "Cancelled before service",
+      amountCents: 1,
+    }).expect(400);
+    await prisma.order.update({ where: { id: target.id }, data: { status: "confirmed" } });
+    await refundRequest(target.id).expect(409);
+    await prisma.order.update({ where: { id: target.id }, data: { status: "cancelled" } });
+    await prisma.orderSop.updateMany({
+      where: { orderId: target.id },
+      data: { photos: ["isolated-evidence"] },
+    });
+    await refundRequest(target.id).expect(409);
+    await prisma.orderSop.updateMany({ where: { orderId: target.id }, data: { photos: [] } });
+    expect(fetchMock).not.toHaveBeenCalled();
+
+    fetchMock.mockRejectedValueOnce(new Error("lost response"));
+    await refundRequest(target.id).expect(503);
+    const original = await prisma.orderRefund.findUniqueOrThrow({
+      where: { paymentId: payment.paymentId },
+    });
+    expect(original).toMatchObject({
+      status: "pending",
+      amountCents: 1234,
+      requestedById: adminId,
+    });
+    expect(
+      (await prisma.orderPayment.findUniqueOrThrow({ where: { id: payment.paymentId } })).status,
+    ).toBe("refund_pending");
+    const result = refundResult(original.id, paid);
+    fetchMock.mockImplementation(async (_url, options) => {
+      expect(JSON.parse(String(options.body))).toMatchObject({
+        out_refund_no: original.id,
+        out_trade_no: payment.paymentId,
+        amount: { total: 1234, refund: 1234, currency: "CNY" },
+      });
+      return providerResponse(result);
+    });
+    commercial = false;
+    const retries = await Promise.all([refundRequest(target.id), refundRequest(target.id)]);
+    expect(retries.map((r) => r.status)).toEqual([201, 201]);
+    expect(
+      retries.every(
+        (r) => r.body.data.refundId === original.id && r.body.data.status === "processing",
+      ),
+    ).toBe(true);
+    expect(await prisma.orderRefund.count({ where: { paymentId: payment.paymentId } })).toBe(1);
+    await refundRequest(target.id, adminToken, { reason: "Different request reason" }).expect(409);
+    await request(app.getHttpServer())
+      .get(`/payments/orders/${target.id}/refund`)
+      .auth(ownerToken, { type: "bearer" })
+      .expect(200)
+      .expect((r) => {
+        expect(r.body.data.status).toBe("processing");
+        expect(r.body.data).not.toHaveProperty("reason");
+        expect(r.body.data).not.toHaveProperty("requestedById");
+      });
+    await request(app.getHttpServer())
+      .get(`/payments/orders/${target.id}/refund`)
+      .auth(providerToken, { type: "bearer" })
+      .expect(404);
+    enabled = false;
+    await refundRequest(target.id).expect(404);
+    await request(app.getHttpServer()).post(refundNotifyUrl).send({}).expect(404);
+  });
+
+  it("validates and atomically deduplicates refund notifications without allowing stale results to restore payment", async () => {
+    const { target, payment, paid } = await paidCancelledOrder();
+    fetchMock.mockRejectedValueOnce(new Error("lost response"));
+    await refundRequest(target.id).expect(503);
+    const refund = await prisma.orderRefund.findUniqueOrThrow({
+      where: { paymentId: payment.paymentId },
+    });
+    const result = refundResult(refund.id, paid, "SUCCESS");
+    const valid = refundEvent(result);
+    await send({ ...valid, body: `${valid.body} ` }, refundNotifyUrl).expect(400);
+    for (const patch of [
+      { transaction_id: "other" },
+      { out_trade_no: "other" },
+      { amount: { ...result.amount, refund: 1 } },
+      { amount: { ...result.amount, currency: "USD" } },
+      { amount: { ...result.amount, payer_refund: 1199 } },
+      { success_time: "invalid" },
+      { refund_status: "CLOSED" },
+      { mchid: "other" },
+    ]) {
+      await send(
+        notification(
+          { ...result, mchid: settings.merchantId, refund_status: "SUCCESS", ...patch },
+          randomUUID(),
+          "REFUND.SUCCESS",
+        ),
+        refundNotifyUrl,
+      ).expect(400);
+    }
+    await send(refundEvent({ ...result, out_refund_no: "unknown" }), refundNotifyUrl).expect(404);
+    expect((await prisma.orderRefund.findUniqueOrThrow({ where: { id: refund.id } })).status).toBe(
+      "pending",
+    );
+    const callbacks = await Promise.all([
+      send(valid, refundNotifyUrl),
+      send(valid, refundNotifyUrl),
+      send(notification(paid)),
+    ]);
+    expect(callbacks.map((r) => r.status)).toEqual([204, 204, 204]);
+    const eventId = JSON.parse(valid.body).id;
+    expect(await prisma.paymentNotification.count({ where: { id: eventId } })).toBe(1);
+    await send(refundEvent({ ...result, refund_id: "different" }, eventId), refundNotifyUrl).expect(
+      400,
+    );
+    await send(refundEvent({ ...result, status: "CLOSED" }, eventId), refundNotifyUrl).expect(400);
+    fetchMock.mockResolvedValueOnce(providerResponse({ ...result, status: "PROCESSING" }));
+    await refundRefresh(target.id)
+      .expect(200)
+      .expect((r) => expect(r.body.data.status).toBe("succeeded"));
+    await send(notification(paid)).expect(204);
+    fetchMock.mockResolvedValueOnce(providerResponse({ ...paid, trade_state: "REFUND" }));
+    await request(app.getHttpServer())
+      .post(`/payments/orders/${target.id}/refresh`)
+      .auth(ownerToken, { type: "bearer" })
+      .expect(200)
+      .expect((r) => expect(r.body.data.status).toBe("refunded"));
+    expect(await prisma.orderRefund.findUniqueOrThrow({ where: { id: refund.id } })).toMatchObject({
+      status: "succeeded",
+      payerRefundCents: 1200,
+    });
+    expect((await prisma.order.findUniqueOrThrow({ where: { id: target.id } })).status).toBe(
+      "cancelled",
+    );
+    await request(app.getHttpServer())
+      .post(`/bounties/${target.id}/sop/steps/1/complete`)
+      .auth(providerToken, { type: "bearer" })
+      .expect(409);
+  });
+
+  it("recovers refunds by query, retains abnormal outcomes and rolls back provider refund ID collisions", async () => {
+    const first = await paidCancelledOrder();
+    const second = await paidCancelledOrder();
+    fetchMock.mockRejectedValue(new Error("lost response"));
+    await refundRequest(first.target.id).expect(503);
+    await refundRequest(second.target.id).expect(503);
+    const firstRefund = await prisma.orderRefund.findUniqueOrThrow({
+      where: { paymentId: first.payment.paymentId },
+    });
+    const secondRefund = await prisma.orderRefund.findUniqueOrThrow({
+      where: { paymentId: second.payment.paymentId },
+    });
+    const initial = refundResult(firstRefund.id, first.paid, "ABNORMAL");
+    fetchMock.mockResolvedValueOnce(providerResponse(initial));
+    await refundRefresh(first.target.id)
+      .expect(200)
+      .expect((r) => expect(r.body.data.status).toBe("abnormal"));
+    fetchMock.mockResolvedValueOnce(providerResponse({ ...initial, status: "PROCESSING" }));
+    await refundRefresh(first.target.id)
+      .expect(200)
+      .expect((r) => expect(r.body.data.status).toBe("abnormal"));
+    await send(refundEvent({ ...initial, status: "CLOSED" }), refundNotifyUrl).expect(204);
+    expect(
+      (await prisma.orderPayment.findUniqueOrThrow({ where: { id: first.payment.paymentId } }))
+        .status,
+    ).toBe("refund_pending");
+    const completed = refundResult(firstRefund.id, first.paid, "SUCCESS", initial.refund_id);
+    fetchMock.mockResolvedValueOnce(providerResponse(completed));
+    await refundRefresh(first.target.id)
+      .expect(200)
+      .expect((r) => expect(r.body.data.status).toBe("succeeded"));
+    const collision = refundEvent(
+      refundResult(secondRefund.id, second.paid, "SUCCESS", initial.refund_id),
+    );
+    await send(collision, refundNotifyUrl).expect(503);
+    expect(
+      await prisma.orderRefund.findUniqueOrThrow({ where: { id: secondRefund.id } }),
+    ).toMatchObject({ status: "pending", providerRefundId: null });
+    expect(
+      await prisma.paymentNotification.count({ where: { id: JSON.parse(collision.body).id } }),
+    ).toBe(0);
+    expect(
+      (await prisma.orderPayment.findUniqueOrThrow({ where: { id: second.payment.paymentId } }))
+        .status,
+    ).toBe("refund_pending");
+    const proper = refundResult(secondRefund.id, second.paid, "SUCCESS");
+    fetchMock.mockResolvedValueOnce(providerResponse(proper));
+    await refundRefresh(second.target.id)
+      .expect(200)
+      .expect((r) => expect(r.body.data.status).toBe("succeeded"));
+    await prisma.role.update({ where: { roleName: "super_admin" }, data: { isActive: false } });
+    try {
+      await refundRefresh(second.target.id).expect(403);
+    } finally {
+      await prisma.role.update({ where: { roleName: "super_admin" }, data: { isActive: true } });
+    }
   });
 });

@@ -99,6 +99,8 @@ model User {
   websiteMediaAssetsCreated         WebsiteMediaAsset[]                @relation("WebsiteMediaAssetCreatedBy")
   websitePreviewTokensCreated       WebsitePreviewToken[]              @relation("WebsitePreviewTokenCreatedBy")
   websiteContentAuditLogs           WebsiteContentAuditLog[]           @relation("WebsiteContentAuditOperator")
+  /// 管理员发起的原路退款，保留操作责任。
+  refundRequests                    OrderRefund[]
 
   @@index([phone])
   @@index([userType])
@@ -342,6 +344,7 @@ enum OrderPaymentStatus {
   succeeded
   closed
   refund_pending
+  refunded
 }
 
 model OrderPayment {
@@ -372,6 +375,7 @@ model OrderPayment {
   updatedAt     DateTime              @updatedAt @map("updated_at")
   order         Order                 @relation(fields: [orderId], references: [id], onDelete: Restrict)
   notifications PaymentNotification[]
+  refund        OrderRefund?
 
   @@index([status, createdAt])
   @@map("order_payments")
@@ -388,6 +392,39 @@ model PaymentNotification {
 
   @@index([paymentId])
   @@map("payment_notifications")
+}
+
+enum OrderRefundStatus {
+  pending
+  processing
+  succeeded
+  abnormal
+  closed
+}
+
+model OrderRefund {
+  /// 固定商户退款单号；未知结果重试禁止换号。
+  id               String            @id
+  /// 当前仅支持一次全额退款，数据库约束阻止重复退款单。
+  paymentId        String            @unique @map("payment_id")
+  amountCents      Int               @map("amount_cents")
+  requestedById    String            @map("requested_by_id")
+  /// 首次发起时冻结的操作原因，不得被重试覆盖。
+  reason           String
+  status           OrderRefundStatus @default(pending)
+  /// 微信退款单号不能绑定到多个本地退款单。
+  providerRefundId String?           @unique @map("provider_refund_id")
+  /// 微信确认的现金退款金额，可能因优惠券小于订单退款金额。
+  payerRefundCents Int?              @map("payer_refund_cents")
+  succeededAt      DateTime?         @map("succeeded_at")
+  checkedAt        DateTime?         @map("checked_at")
+  createdAt        DateTime          @default(now()) @map("created_at")
+  updatedAt        DateTime          @updatedAt @map("updated_at")
+  payment          OrderPayment      @relation(fields: [paymentId], references: [id], onDelete: Restrict)
+  requestedBy      User              @relation(fields: [requestedById], references: [id], onDelete: Restrict)
+
+  @@index([status, createdAt])
+  @@map("order_refunds")
 }
 
 model OrderFeeSnapshot {

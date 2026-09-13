@@ -278,11 +278,11 @@ export class PaymentService {
 
         let status = payment.status;
 
-        if (state === "REFUND") {
+        if (state === "REFUND" && status !== "refunded") {
           status = "refund_pending";
         }
 
-        if (state === "SUCCESS" && status !== "refund_pending") {
+        if (state === "SUCCESS" && status !== "refund_pending" && status !== "refunded") {
           status = "succeeded";
         }
 

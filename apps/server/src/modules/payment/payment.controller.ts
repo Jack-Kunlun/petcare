@@ -1,4 +1,5 @@
 import {
+  Body,
   CanActivate,
   Controller,
   Get,
@@ -11,17 +12,52 @@ import {
   Req,
   UseGuards,
 } from "@nestjs/common";
-import type { OrderPaymentSummary, OrderPrepayResponse } from "@petcare/shared-types";
+import type {
+  CreateOrderRefundRequest,
+  OrderPaymentSummary,
+  OrderPrepayResponse,
+  OrderRefundSummary,
+} from "@petcare/shared-types";
+import { IsString, MaxLength, MinLength } from "class-validator";
 import type { Request } from "express";
 import { AccessTokenGuard } from "../../auth/access-token.guard";
 import type { AccessTokenPayload } from "../../auth/auth.types";
+import { PermissionGuard } from "../../auth/permission.guard";
+import { RequirePermissions } from "../../auth/permissions.decorator";
 import { ProfileCompleteGuard } from "../../auth/profile-complete.guard";
 import { ApiException } from "../../common/http/api-exception";
 import { ConfigService } from "../../config/config.service";
 import { RedisService } from "../../config/redis.service";
 import { PaymentService } from "./payment.service";
+import { RefundService } from "./refund.service";
 
 type AuthRequest = Request & { user: AccessTokenPayload };
+
+function notificationHeaders(req: Request): Headers {
+  const headers = new Headers();
+
+  for (const name of [
+    "wechatpay-timestamp",
+    "wechatpay-nonce",
+    "wechatpay-signature",
+    "wechatpay-serial",
+    "wechatpay-signature-type",
+  ]) {
+    const value = req.headers[name];
+
+    if (typeof value === "string") {
+      headers.set(name, value);
+    }
+  }
+
+  return headers;
+}
+
+async function limit(redis: RedisService, userId: string): Promise<void> {
+  if (!(await redis.consumeFixedWindow(`payment:requests:${userId}`, 10, 60))) {
+    throw new ApiException("PAYMENT_RATE_LIMITED", "支付请求过于频繁，请稍后查询", 429);
+  }
+}
 
 @Injectable()
 export class PaymentFeatureGuard implements CanActivate {
@@ -41,6 +77,7 @@ export class PaymentController {
   constructor(
     private readonly payments: PaymentService,
     private readonly redis: RedisService,
+    private readonly refunds: RefundService,
   ) {}
 
   @Post("orders/:orderId/prepay")
@@ -49,7 +86,7 @@ export class PaymentController {
     @Req() req: AuthRequest,
     @Param("orderId", new ParseUUIDPipe({ version: "4" })) orderId: string,
   ): Promise<OrderPrepayResponse> {
-    await this.limit(req.user.sub);
+    await limit(this.redis, req.user.sub);
 
     return this.payments.prepay(req.user.sub, orderId);
   }
@@ -70,36 +107,69 @@ export class PaymentController {
     @Req() req: AuthRequest,
     @Param("orderId", new ParseUUIDPipe({ version: "4" })) orderId: string,
   ): Promise<OrderPaymentSummary> {
-    await this.limit(req.user.sub);
+    await limit(this.redis, req.user.sub);
 
     return this.payments.refresh(req.user.sub, orderId);
   }
 
-  private async limit(userId: string): Promise<void> {
-    if (!(await this.redis.consumeFixedWindow(`payment:requests:${userId}`, 10, 60))) {
-      throw new ApiException("PAYMENT_RATE_LIMITED", "支付请求过于频繁，请稍后查询", 429);
-    }
+  @Get("orders/:orderId/refund")
+  @UseGuards(AccessTokenGuard)
+  refundMine(
+    @Req() req: AuthRequest,
+    @Param("orderId", new ParseUUIDPipe({ version: "4" })) orderId: string,
+  ): Promise<OrderRefundSummary> {
+    return this.refunds.findMine(req.user.sub, orderId);
+  }
+
+  @Post("wechat/refund-notify")
+  @HttpCode(204)
+  async refundNotify(@Req() req: RawBodyRequest<Request>): Promise<void> {
+    await this.refunds.notify(req.rawBody ?? Buffer.alloc(0), notificationHeaders(req));
   }
 
   @Post("wechat/notify")
   @HttpCode(204)
   async notify(@Req() req: RawBodyRequest<Request>): Promise<void> {
-    const headers = new Headers();
+    await this.payments.notify(req.rawBody ?? Buffer.alloc(0), notificationHeaders(req));
+  }
+}
 
-    for (const name of [
-      "wechatpay-timestamp",
-      "wechatpay-nonce",
-      "wechatpay-signature",
-      "wechatpay-serial",
-      "wechatpay-signature-type",
-    ]) {
-      const value = req.headers[name];
+export class CreateOrderRefundDto implements CreateOrderRefundRequest {
+  @IsString()
+  @MinLength(5)
+  @MaxLength(500)
+  reason: string;
+}
 
-      if (typeof value === "string") {
-        headers.set(name, value);
-      }
-    }
+@Controller("admin/payments")
+@UseGuards(PaymentFeatureGuard, AccessTokenGuard, PermissionGuard)
+export class AdminRefundController {
+  constructor(
+    private readonly refunds: RefundService,
+    private readonly redis: RedisService,
+  ) {}
 
-    await this.payments.notify(req.rawBody ?? Buffer.alloc(0), headers);
+  @Post("orders/:orderId/refund")
+  @RequirePermissions("payment.refund_action")
+  async request(
+    @Req() req: AuthRequest,
+    @Param("orderId", new ParseUUIDPipe({ version: "4" })) orderId: string,
+    @Body() input: CreateOrderRefundDto,
+  ): Promise<OrderRefundSummary> {
+    await limit(this.redis, req.user.sub);
+
+    return this.refunds.request(req.user.sub, orderId, input.reason);
+  }
+
+  @Post("orders/:orderId/refund/refresh")
+  @HttpCode(200)
+  @RequirePermissions("payment.refund_read")
+  async refresh(
+    @Req() req: AuthRequest,
+    @Param("orderId", new ParseUUIDPipe({ version: "4" })) orderId: string,
+  ): Promise<OrderRefundSummary> {
+    await limit(this.redis, req.user.sub);
+
+    return this.refunds.refresh(orderId);
   }
 }
