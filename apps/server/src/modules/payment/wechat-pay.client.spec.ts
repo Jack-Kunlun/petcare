@@ -380,12 +380,20 @@ describe("WechatPayClient", () => {
   it.each(["hash", "algorithm", "truncated", "oversized", "malformed", "http-error", "redirect"])(
     "rejects invalid bill %s and does not retry",
     async (scenario) => {
-      const bytes =
-        scenario === "oversized"
-          ? Buffer.alloc(16 * 1024 * 1024 + 1)
-          : scenario === "malformed"
-            ? Buffer.from("private garbage")
-            : billBytes;
+      let bytes = billBytes;
+      let status = 200;
+
+      if (scenario === "oversized") {
+        bytes = Buffer.alloc(16 * 1024 * 1024 + 1);
+      } else if (scenario === "malformed") {
+        bytes = Buffer.from("private garbage");
+      }
+
+      if (scenario === "http-error") {
+        status = 500;
+      } else if (scenario === "redirect") {
+        status = 302;
+      }
 
       fetchMock.mockResolvedValueOnce(
         response({
@@ -397,7 +405,7 @@ describe("WechatPayClient", () => {
       );
       fetchMock.mockResolvedValueOnce(
         new Response(scenario === "truncated" ? bytes.subarray(0, -5) : bytes, {
-          status: scenario === "http-error" ? 500 : scenario === "redirect" ? 302 : 200,
+          status,
         }),
       );
       await expect(client.tradeBill("2026-01-02")).rejects.toMatchObject({
