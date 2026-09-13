@@ -1,4 +1,11 @@
-import { createCipheriv, generateKeyPairSync, randomBytes, sign, verify } from "node:crypto";
+import {
+  createCipheriv,
+  createHash,
+  generateKeyPairSync,
+  randomBytes,
+  sign,
+  verify,
+} from "node:crypto";
 import { readFileSync } from "node:fs";
 import { ConfigService } from "../../config/config.service";
 import { WechatPayClient } from "./wechat-pay.client";
@@ -50,6 +57,15 @@ describe("WechatPayClient", () => {
 
     return new Response(bytes, { status, headers: headers(bytes) });
   }
+
+  const billBytes = Buffer.from(
+    "交易时间,公众账号ID,商户号,特约商户号,设备号,微信订单号,商户订单号,用户标识,交易类型,交易状态,付款银行,货币种类,应结订单金额,代金券金额,微信退款单号,商户退款单号,退款金额,充值券退款金额,退款类型,退款状态,商品名称,商户数据包,手续费,费率,订单金额,申请退款金额,费率备注\n总交易单数,应结订单总金额,退款总金额,充值券退款总金额,手续费总金额,订单总金额,申请退款总金额\n`0,`0.00,`0.00,`0.00,`0.00,`0.00,`0.00\n",
+  );
+  const billMetadata = {
+    hash_type: "SHA1",
+    hash_value: createHash("sha1").update(billBytes).digest("hex"),
+    download_url: "https://api.mch.weixin.qq.com/v3/billdownload/file?token=private%2Ftoken",
+  };
 
   function notification(overrides: Record<string, unknown> = {}) {
     const nonce = "123456789012";
@@ -113,6 +129,9 @@ describe("WechatPayClient", () => {
 
     await expect(disabled.prepay(input)).rejects.toMatchObject({ code: "PAYMENT_DISABLED" });
     await expect(disabled.query(input.orderNumber)).rejects.toMatchObject({
+      code: "PAYMENT_DISABLED",
+    });
+    await expect(disabled.tradeBill("2026-01-02")).rejects.toMatchObject({
       code: "PAYMENT_DISABLED",
     });
     expect(() => disabled.decodeNotification(Buffer.from("{}"), new Headers())).toThrow(
@@ -277,6 +296,117 @@ describe("WechatPayClient", () => {
     });
     expect(fetchMock).toHaveBeenCalledTimes(2);
   });
+
+  it.each(["/v3/billdownload/file", "/v3/bill/downloadurl"])(
+    "verifies bill metadata and signs hash-verified download %s",
+    async (path) => {
+      const downloadUrl = `https://api.mch.weixin.qq.com${path}?token=private%2Ftoken`;
+
+      fetchMock.mockResolvedValueOnce(response({ ...billMetadata, download_url: downloadUrl }));
+      fetchMock.mockResolvedValueOnce(new Response(billBytes));
+      expect(await client.tradeBill("2026-01-02")).toEqual({
+        billDate: "2026-01-02",
+        rowCount: 0,
+        rows: [],
+        sha256: createHash("sha256").update(billBytes).digest("hex"),
+      });
+      expect(fetchMock.mock.calls[0][0]).toBe(
+        "https://api.mch.weixin.qq.com/v3/bill/tradebill?bill_date=2026-01-02&bill_type=ALL",
+      );
+      const [url, options] = fetchMock.mock.calls[1];
+
+      expect(url).toBe(downloadUrl);
+      expect(options).toMatchObject({ method: "GET", redirect: "error" });
+      expect(options).not.toHaveProperty("body");
+      const values = Object.fromEntries(
+        [...options.headers.Authorization.matchAll(/(\w+)="([^"]+)"/g)].map(
+          (match: RegExpMatchArray) => [match[1], match[2]],
+        ),
+      );
+
+      expect(
+        verify(
+          "RSA-SHA256",
+          Buffer.from(
+            `GET\n${path}?token=private%2Ftoken\n${values.timestamp}\n${values.nonce_str}\n\n`,
+          ),
+          merchant.publicKey,
+          Buffer.from(values.signature, "base64"),
+        ),
+      ).toBe(true);
+    },
+  );
+
+  it.each([
+    "http://api.mch.weixin.qq.com/v3/billdownload/file?token=x",
+    "https://api.mch.weixin.qq.com.evil.test/v3/billdownload/file?token=x",
+    "https://127.0.0.1/v3/billdownload/file?token=x",
+    "https://user:secret@api.mch.weixin.qq.com/v3/billdownload/file?token=x",
+    "https://api.mch.weixin.qq.com:444/v3/billdownload/file?token=x",
+    "https://api.mch.weixin.qq.com/v3/refund/domestic/refunds?token=x",
+    "https://api.mch.weixin.qq.com/v3/billdownload/file?token=x#fragment",
+    "https://api.mch.weixin.qq.com/v3/billdownload/file?token=x&token=y",
+    "https://api.mch.weixin.qq.com/v3/billdownload/file?token=x&redirect=other",
+    "https://api.mch.weixin.qq.com/v3/billdownload/file?token=",
+  ])("refuses unsafe bill URL %s without sending merchant credentials", async (url) => {
+    fetchMock.mockResolvedValueOnce(response({ ...billMetadata, download_url: url }));
+    await expect(client.tradeBill("2026-01-02")).rejects.toMatchObject({
+      code: "PAYMENT_BILL_INVALID",
+    });
+    expect(fetchMock).toHaveBeenCalledTimes(1);
+  });
+
+  it("never treats missing, generating or unsigned metadata as an empty bill", async () => {
+    for (const code of ["NO_STATEMENT_EXIST", "STATEMENT_CREATING"]) {
+      fetchMock.mockResolvedValueOnce(
+        response({ code, message: "private provider information" }, 400),
+      );
+      // eslint-disable-next-line no-await-in-loop
+      await expect(client.tradeBill("2026-01-02")).rejects.toMatchObject({
+        code: "PAYMENT_PROVIDER_UNAVAILABLE",
+      });
+    }
+
+    fetchMock.mockResolvedValueOnce(new Response(JSON.stringify(billMetadata)));
+    await expect(client.tradeBill("2026-01-02")).rejects.toMatchObject({
+      code: "PAYMENT_PROVIDER_UNAVAILABLE",
+    });
+    await expect(client.tradeBill("2026-02-30")).rejects.toMatchObject({
+      code: "PAYMENT_BILL_DATE_INVALID",
+    });
+    expect(fetchMock).toHaveBeenCalledTimes(3);
+  });
+
+  it.each(["hash", "algorithm", "truncated", "oversized", "malformed", "http-error", "redirect"])(
+    "rejects invalid bill %s and does not retry",
+    async (scenario) => {
+      const bytes =
+        scenario === "oversized"
+          ? Buffer.alloc(16 * 1024 * 1024 + 1)
+          : scenario === "malformed"
+            ? Buffer.from("private garbage")
+            : billBytes;
+
+      fetchMock.mockResolvedValueOnce(
+        response({
+          ...billMetadata,
+          hash_type: scenario === "algorithm" ? "SHA256" : "SHA1",
+          hash_value:
+            scenario === "hash" ? "0".repeat(40) : createHash("sha1").update(bytes).digest("hex"),
+        }),
+      );
+      fetchMock.mockResolvedValueOnce(
+        new Response(scenario === "truncated" ? bytes.subarray(0, -5) : bytes, {
+          status: scenario === "http-error" ? 500 : scenario === "redirect" ? 302 : 200,
+        }),
+      );
+      await expect(client.tradeBill("2026-01-02")).rejects.toMatchObject({
+        code: "PAYMENT_BILL_INVALID",
+        clientMessage: "交易账单暂不可用或校验失败",
+      });
+      expect(fetchMock).toHaveBeenCalledTimes(scenario === "algorithm" ? 1 : 2);
+    },
+  );
 
   it.each([
     "tampered",

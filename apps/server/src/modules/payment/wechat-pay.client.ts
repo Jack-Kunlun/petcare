@@ -1,5 +1,6 @@
 import {
   createDecipheriv,
+  createHash,
   createPrivateKey,
   createPublicKey,
   randomBytes,
@@ -11,6 +12,7 @@ import { readFileSync } from "node:fs";
 import { Injectable } from "@nestjs/common";
 import { ApiException } from "../../common/http/api-exception";
 import { ConfigService } from "../../config/config.service";
+import { parseWechatTradeBill, validateBillDate, MAX_TRADE_BILL_BYTES } from "./wechat-trade-bill";
 
 const MAX_RESPONSE_BYTES = 1024 * 1024;
 const unavailable = () =>
@@ -201,6 +203,67 @@ export class WechatPayClient {
     return result;
   }
 
+  /** Downloads and validates an ALL bill; no payment, refund or ledger state is changed. */
+  async tradeBill(billDate: string) {
+    const config = this.requiredSettings();
+
+    validateBillDate(billDate);
+    const metadata = await this.request(
+      "GET",
+      `/v3/bill/tradebill?bill_date=${billDate}&bill_type=ALL`,
+    );
+
+    try {
+      if (
+        metadata.hash_type !== "SHA1" ||
+        typeof metadata.hash_value !== "string" ||
+        !/^[a-fA-F0-9]{40}$/.test(metadata.hash_value) ||
+        typeof metadata.download_url !== "string" ||
+        metadata.download_url.length > 2048
+      ) {
+        throw new Error("Invalid bill metadata");
+      }
+
+      const url = new URL(metadata.download_url);
+
+      // Only authenticated provider download paths may receive merchant authorization.
+      if (
+        url.origin !== "https://api.mch.weixin.qq.com" ||
+        url.username ||
+        url.password ||
+        url.hash ||
+        !["/v3/billdownload/file", "/v3/bill/downloadurl"].includes(url.pathname) ||
+        !url.searchParams.get("token") ||
+        [...url.searchParams.keys()].some((key) => key !== "token") ||
+        url.searchParams.getAll("token").length !== 1
+      ) {
+        throw new Error("Invalid bill URL");
+      }
+
+      const { bytes, response } = await this.exchange(
+        "GET",
+        `${url.pathname}${url.search}`,
+        "",
+        MAX_TRADE_BILL_BYTES,
+      );
+
+      // File responses have no RSA signature. Their hash is anchored in the signed metadata above.
+      if (
+        !response.ok ||
+        createHash("sha1").update(bytes).digest("hex") !== metadata.hash_value.toLowerCase()
+      ) {
+        throw new Error("Invalid bill download");
+      }
+
+      return {
+        ...parseWechatTradeBill(bytes, billDate, config.merchantId),
+        sha256: createHash("sha256").update(bytes).digest("hex"),
+      };
+    } catch {
+      throw new ApiException("PAYMENT_BILL_INVALID", "交易账单暂不可用或校验失败", 503);
+    }
+  }
+
   /** Authenticates untouched notification bytes before JSON parsing and AES-GCM decryption. No database side effects. */
   decodeNotification(
     rawBody: Buffer,
@@ -306,8 +369,30 @@ export class WechatPayClient {
     path: string,
     input?: Record<string, unknown>,
   ): Promise<Record<string, unknown>> {
+    this.requiredSettings();
+
+    try {
+      const { bytes, response } = await this.exchange(
+        method,
+        path,
+        input ? JSON.stringify(input) : "",
+        MAX_RESPONSE_BYTES,
+      );
+
+      this.verifyMessage(bytes, response.headers);
+
+      if (!response.ok) {
+        throw new Error("Provider request failed");
+      }
+
+      return record(JSON.parse(bytes.toString("utf8")));
+    } catch {
+      throw unavailable();
+    }
+  }
+
+  private async exchange(method: "GET" | "POST", path: string, body: string, maxBytes: number) {
     const config = this.requiredSettings();
-    const body = input ? JSON.stringify(input) : "";
     const timestamp = Math.floor(Date.now() / 1000).toString();
     const nonce = randomBytes(16).toString("hex");
 
@@ -350,7 +435,7 @@ export class WechatPayClient {
 
           length += value.length;
 
-          if (length > MAX_RESPONSE_BYTES) {
+          if (length > maxBytes) {
             throw new Error("Provider response too large");
           }
 
@@ -360,15 +445,7 @@ export class WechatPayClient {
         await reader.cancel();
       }
 
-      const bytes = Buffer.concat(chunks);
-
-      this.verifyMessage(bytes, response.headers);
-
-      if (!response.ok) {
-        throw new Error("Provider request failed");
-      }
-
-      return record(JSON.parse(bytes.toString("utf8")));
+      return { bytes: Buffer.concat(chunks), response };
     } catch {
       throw unavailable();
     }
