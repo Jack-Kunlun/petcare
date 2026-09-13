@@ -55,11 +55,13 @@ pnpm test:e2e:debug
 ## 资格申请端到端场景
 
 ```bash
-pnpm --filter @petcare/admin test:e2e provider-qualification.spec.ts
+pnpm --filter @petcare/admin test:e2e qualification
 ```
 
 该场景使用真实 Server 与一次性 PostgreSQL Schema，覆盖草稿/提交幂等、材料归属、同意与图片校验、
-独立材料读取权限、读取审计、核验凭证要求、禁止自审、审核资格投影及撤销后的接单门禁。
+独立材料读取权限、读取审计、核验凭证要求、禁止自审、并发审核唯一结果、审核资格投影及撤销后的接单门禁。
+清理场景同样使用真实 PostgreSQL，注入存储响应丢失及部分删除失败，验证上传预留记录保留与重试、过期转换、
+并发清理的单次审计，以及待审核/已通过/保留期内材料不会被清理；不会连接真实 COS。
 账号按重试次数隔离；只上传现有公开 logo，不含个人身份材料。COS 由测试专用本地适配器拦截，
 因此此场景不证明真实 COS 权限、加密或目标环境可用；真实存储需要单独验收。
 资格开关只在 runner 的临时进程环境启用，不修改 `.env` 或生产入口。

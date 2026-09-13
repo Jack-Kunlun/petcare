@@ -181,9 +181,15 @@ test("qualification ownership, private reads, independent review and revocation"
   );
   expect((await eligibility()).eligible).toBe(false);
 
-  const approved = await data<AdminProviderQualificationDetail>(
-    await request.post(`${reviewPath}/review`, { headers: reviewer, data: verifiedApproval }),
+  const reviews = await Promise.all(
+    [reviewer, admin].map((headers) =>
+      request.post(`${reviewPath}/review`, { headers, data: verifiedApproval }),
+    ),
   );
+  const [success, conflict] = reviews.sort((left, right) => left.status() - right.status());
+
+  await failure(conflict, 409, "QUALIFICATION_STATE_CONFLICT");
+  const approved = await data<AdminProviderQualificationDetail>(success);
 
   expect(approved.status).toBe("approved");
   expect(approved.verificationReference).toBe(verifiedApproval.verificationReference);
