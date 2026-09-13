@@ -7,6 +7,7 @@ import { LoggingModule } from "./logging/logging.module";
 import { AdminAccountModule } from "./modules/admin-account/admin-account.module";
 import { BountyModule } from "./modules/bounty/bounty.module";
 import { ContentModule } from "./modules/content/content.module";
+import { PaymentModule } from "./modules/payment/payment.module";
 import { PetModule } from "./modules/pet/pet.module";
 import { ProviderQualificationModule } from "./modules/provider-qualification/provider-qualification.module";
 import { RbacModule } from "./modules/rbac/rbac.module";
@@ -26,6 +27,7 @@ describe("AppModule", () => {
       HealthModule,
       UserModule,
       PetModule,
+      PaymentModule,
       ContentModule,
       RbacModule,
       AdminAccountModule,
@@ -33,5 +35,9 @@ describe("AppModule", () => {
       ProviderQualificationModule,
       WebsiteContentModule,
     ]);
+  });
+
+  it("registers the payment client without exposing HTTP controllers", () => {
+    expect(Reflect.getMetadata(MODULE_METADATA.CONTROLLERS, PaymentModule) ?? []).toEqual([]);
   });
 });
