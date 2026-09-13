@@ -1053,6 +1053,36 @@ async function seedCompiledServer(env) {
         }),
       ]);
     }
+    const qualificationReviewRole = await prisma.role.create({
+      data: { roleName: "qualification_e2e_reviewer" },
+    });
+    for (const permissionCode of [
+      "provider_qualification.read",
+      "provider_qualification.review_action",
+    ]) {
+      const permission = await prisma.permission.findUniqueOrThrow({ where: { permissionCode } });
+      await prisma.rolePermission.create({
+        data: { roleId: qualificationReviewRole.id, permissionId: permission.id },
+      });
+    }
+    // Each Playwright retry owns fresh accounts; no qualification state is pre-approved.
+    for (let retry = 0; retry <= 2; retry += 1) {
+      for (const kind of ["APPLICANT", "REVIEWER"]) {
+        const user = await prisma.user.create({
+          data: {
+            phone: `13988000${retry}${kind === "APPLICANT" ? "01" : "02"}`,
+            nickname: `Qualification E2E ${kind} ${retry}`,
+            status: "active",
+          },
+        });
+        if (kind === "REVIEWER") {
+          await prisma.userRole.create({
+            data: { userId: user.id, roleId: qualificationReviewRole.id },
+          });
+        }
+        env[`QUALIFICATION_E2E_${kind}_TOKEN_${retry}`] = accessToken(user);
+      }
+    }
   } finally {
     await prisma.$disconnect();
   }
@@ -1137,6 +1167,9 @@ async function runMain(playwrightArgs, signal) {
     TENCENT_COS_REGION: "ap-guangzhou",
     TENCENT_COS_PUBLIC_BASE_URL: `http://127.0.0.1:${websitePort}`,
     PUBLIC_MEDIA_STORAGE_PROVIDER: "tencent-cos",
+    QUALIFICATION_STORAGE_PROVIDER: "tencent-cos",
+    QUALIFICATION_WORKFLOW_ENABLED: "true",
+    VITE_QUALIFICATION_WORKFLOW_ENABLED: "true",
     RBAC_E2E_RESTRICTED_USERNAME: rbacRestrictedAdmin.username,
     RBAC_E2E_RESTRICTED_PASSWORD: rbacRestrictedAdmin.password,
     COMMUNITY_POST_MAX_ATTEMPTS: "1",

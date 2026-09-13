@@ -26,9 +26,13 @@ function resolveObjectPath(key) {
 }
 
 function complete(callback, operation) {
+  if (!callback) {
+    return Promise.resolve().then(operation);
+  }
+
   try {
-    operation();
-    setImmediate(() => callback(null, {}));
+    const result = operation();
+    setImmediate(() => callback(null, result ?? {}));
   } catch (error) {
     setImmediate(() => callback(error));
   }
@@ -36,7 +40,7 @@ function complete(callback, operation) {
 
 class FakeCos {
   putObject(params, callback) {
-    complete(callback, () => {
+    return complete(callback, () => {
       const objectPath = resolveObjectPath(params.Key);
       const body = Buffer.isBuffer(params.Body) ? params.Body : Buffer.from(params.Body);
 
@@ -46,11 +50,21 @@ class FakeCos {
   }
 
   headObject(params, callback) {
-    complete(callback, () => fs.accessSync(resolveObjectPath(params.Key), fs.constants.R_OK));
+    return complete(callback, () =>
+      fs.accessSync(resolveObjectPath(params.Key), fs.constants.R_OK),
+    );
+  }
+
+  getObject(params, callback) {
+    return complete(callback, () => {
+      const body = fs.readFileSync(resolveObjectPath(params.Key));
+      params.Output?.end(body);
+      return { Body: body };
+    });
   }
 
   deleteObject(params, callback) {
-    complete(callback, () => fs.rmSync(resolveObjectPath(params.Key), { force: true }));
+    return complete(callback, () => fs.rmSync(resolveObjectPath(params.Key), { force: true }));
   }
 }
 

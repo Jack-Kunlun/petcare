@@ -1,13 +1,18 @@
 import assert from "node:assert/strict";
 import { fork, spawn } from "node:child_process";
 import { once } from "node:events";
-import { readFile } from "node:fs/promises";
+import { mkdtemp, readFile, rm } from "node:fs/promises";
+import Module, { createRequire } from "node:module";
 import { connect } from "node:net";
+import { tmpdir } from "node:os";
 import process from "node:process";
+import { Writable } from "node:stream";
+import { finished } from "node:stream/promises";
 import test from "node:test";
 import { setTimeout } from "node:timers";
 import { fileURLToPath } from "node:url";
 import path from "node:path";
+import { promisify } from "node:util";
 
 /* global AbortController */
 import {
@@ -22,6 +27,46 @@ import {
 
 const repositoryDirectory = path.resolve(path.dirname(fileURLToPath(import.meta.url)), "..");
 const adminDirectory = path.join(repositoryDirectory, "apps", "admin");
+
+test("fake COS supports callback public uploads and promise/stream qualification storage", async () => {
+  const directory = await mkdtemp(path.join(tmpdir(), "petcare-fake-cos-"));
+  const originalRoot = process.env.ADMIN_E2E_MEDIA_DIR;
+  const originalLoad = Module._load;
+  try {
+    process.env.ADMIN_E2E_MEDIA_DIR = directory;
+    await import("../apps/admin/e2e/support/fake-cos.mjs");
+    const FakeCos = createRequire(import.meta.url)("cos-nodejs-sdk-v5");
+    Module._load = originalLoad;
+    const cos = new FakeCos();
+    const bytes = new Uint8Array([1, 2, 3]);
+    const privateKey = "private/provider-qualifications/probe";
+    const publicKey = "public/website-media/probe";
+    await cos.putObject({ Key: privateKey, Body: bytes });
+    await promisify(cos.putObject.bind(cos))({ Key: publicKey, Body: bytes });
+    await promisify(cos.headObject.bind(cos))({ Key: publicKey });
+    const chunks = [];
+    const output = new Writable({
+      write(chunk, _encoding, callback) {
+        chunks.push(...chunk);
+        callback();
+      },
+    });
+    await Promise.all([
+      finished(output),
+      promisify(cos.getObject.bind(cos))({ Key: privateKey, Output: output }),
+    ]);
+    assert.deepEqual(chunks, [...bytes]);
+    await cos.deleteObject({ Key: privateKey });
+    await promisify(cos.deleteObject.bind(cos))({ Key: publicKey });
+    await assert.rejects(cos.getObject({ Key: privateKey }), { code: "ENOENT" });
+    await assert.rejects(cos.putObject({ Key: "../escape", Body: bytes }), /unsafe object key/);
+  } finally {
+    Module._load = originalLoad;
+    if (originalRoot === undefined) delete process.env.ADMIN_E2E_MEDIA_DIR;
+    else process.env.ADMIN_E2E_MEDIA_DIR = originalRoot;
+    await rm(directory, { recursive: true, force: true });
+  }
+});
 const signalFixture = path.join(repositoryDirectory, "scripts", "fixtures", "admin-e2e-signal.mjs");
 const treeFixture = path.join(
   repositoryDirectory,
