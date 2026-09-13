@@ -437,6 +437,8 @@ model OrderRefund {
   providerRefundId String?           @unique @map("provider_refund_id")
   /// 微信确认的现金退款金额，可能因优惠券小于订单退款金额。
   payerRefundCents Int?              @map("payer_refund_cents")
+  /// 微信验签响应中的退款受理时间；未知时为空，禁止用本地或到账时间回填。
+  acceptedAt       DateTime?         @map("accepted_at")
   succeededAt      DateTime?         @map("succeeded_at")
   checkedAt        DateTime?         @map("checked_at")
   createdAt        DateTime          @default(now()) @map("created_at")

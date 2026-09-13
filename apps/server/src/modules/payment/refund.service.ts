@@ -17,6 +17,30 @@ const states = new Map<string, OrderRefundStatus>([
   ["CLOSED", "closed"],
 ]);
 
+function providerTime(value: unknown): Date {
+  if (
+    typeof value !== "string" ||
+    !/^\d{4}-\d{2}-\d{2}T(?:[01]\d|2[0-3]):[0-5]\d:[0-5]\d(?:\.\d{1,3})?(?:Z|[+-](?:[01]\d|2[0-3]):[0-5]\d)$/.test(
+      value,
+    )
+  ) {
+    throw invalid();
+  }
+
+  const date = new Date(value);
+  const calendar = new Date(`${value.slice(0, 19)}Z`);
+
+  if (
+    !Number.isFinite(date.getTime()) ||
+    !Number.isFinite(calendar.getTime()) ||
+    calendar.toISOString().slice(0, 19) !== value.slice(0, 19)
+  ) {
+    throw invalid();
+  }
+
+  return date;
+}
+
 @Injectable()
 export class RefundService {
   constructor(
@@ -220,24 +244,30 @@ export class RefundService {
           throw invalid();
         }
 
+        // Notifications carry creation time for the event, not refund acceptance.
+        const acceptedAt = notificationId ? refund.acceptedAt : providerTime(result.create_time);
+
+        if (
+          acceptedAt &&
+          (acceptedAt.getTime() < refund.createdAt.getTime() - 300_000 ||
+            (payment.paidAt && acceptedAt.getTime() < payment.paidAt.getTime()) ||
+            acceptedAt.getTime() > Date.now() + 300_000 ||
+            (refund.acceptedAt && acceptedAt.getTime() !== refund.acceptedAt.getTime()) ||
+            (refund.succeededAt && acceptedAt.getTime() > refund.succeededAt.getTime()))
+        ) {
+          throw invalid();
+        }
+
         let succeededAt: Date | null = null;
 
         if (next === "succeeded") {
-          if (
-            typeof result.success_time !== "string" ||
-            !/^\d{4}-\d{2}-\d{2}T\d{2}:\d{2}:\d{2}(?:\.\d{1,3})?(?:Z|[+-]\d{2}:\d{2})$/.test(
-              result.success_time,
-            )
-          ) {
-            throw invalid();
-          }
-
-          succeededAt = new Date(result.success_time);
+          succeededAt = providerTime(result.success_time);
 
           if (
             !Number.isFinite(succeededAt.getTime()) ||
             succeededAt.getTime() < refund.createdAt.getTime() - 300_000 ||
             succeededAt.getTime() > Date.now() + 300_000 ||
+            (acceptedAt && succeededAt.getTime() < acceptedAt.getTime()) ||
             (refund.succeededAt && refund.succeededAt.getTime() !== succeededAt.getTime())
           ) {
             throw invalid();
@@ -296,6 +326,7 @@ export class RefundService {
             status,
             providerRefundId: result.refund_id,
             payerRefundCents: amount.payer_refund as number,
+            ...(acceptedAt ? { acceptedAt } : {}),
             checkedAt: new Date(),
             ...(succeededAt ? { succeededAt } : {}),
           },
@@ -306,6 +337,7 @@ export class RefundService {
           data: {
             status: status === "succeeded" ? "refunded" : "refund_pending",
             ...(status === "succeeded" ? { reconcileIssue: null, reconcileFailures: 0 } : {}),
+            ...(status === "succeeded" && !acceptedAt ? { reconcileAfter: new Date() } : {}),
           },
         });
 

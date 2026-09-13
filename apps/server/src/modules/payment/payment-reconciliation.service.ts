@@ -103,7 +103,14 @@ export class PaymentReconciliationService implements OnModuleInit, OnModuleDestr
   private async scan(): Promise<number> {
     const candidates = await this.prisma.orderPayment.findMany({
       where: {
-        status: { in: ["pending", "succeeded", "refund_pending"] },
+        AND: [
+          {
+            OR: [
+              { status: { in: ["pending", "succeeded", "refund_pending"] } },
+              { status: "refunded", refund: { is: { acceptedAt: null } } },
+            ],
+          },
+        ],
         reconcileAfter: { lte: new Date() },
         OR: [{ reconcileLeaseUntil: null }, { reconcileLeaseUntil: { lte: new Date() } }],
       },
@@ -138,7 +145,10 @@ export class PaymentReconciliationService implements OnModuleInit, OnModuleDestr
       UPDATE "order_payments"
       SET "reconcile_lease_token" = ${token}, "reconcile_lease_until" = CURRENT_TIMESTAMP + INTERVAL '2 minutes'
       WHERE "id" = ${paymentId} AND "reconcile_after" <= CURRENT_TIMESTAMP
-        AND "status" IN ('pending', 'succeeded', 'refund_pending')
+        AND ("status" IN ('pending', 'succeeded', 'refund_pending')
+          OR ("status" = 'refunded' AND EXISTS (
+            SELECT 1 FROM "order_refunds" r WHERE r."payment_id" = "order_payments"."id" AND r."accepted_at" IS NULL
+          )))
         AND ("reconcile_lease_until" IS NULL OR "reconcile_lease_until" <= CURRENT_TIMESTAMP)
       RETURNING "id"`;
 
@@ -148,7 +158,7 @@ export class PaymentReconciliationService implements OnModuleInit, OnModuleDestr
 
     const payment = await this.prisma.orderPayment.findUniqueOrThrow({
       where: { id: paymentId },
-      include: { refund: { select: { id: true } } },
+      include: { refund: { select: { id: true, acceptedAt: true } } },
     });
     let errorCode: PaymentReconciliationIssue | null = null;
 
@@ -163,7 +173,10 @@ export class PaymentReconciliationService implements OnModuleInit, OnModuleDestr
         throw new ApiException("PAYMENT_RESULT_INVALID", "支付配置与原交易不匹配", 400);
       }
 
-      if (payment.status !== "closed" && payment.status !== "refunded") {
+      if (
+        payment.status !== "closed" &&
+        (payment.status !== "refunded" || (payment.refund && !payment.refund.acceptedAt))
+      ) {
         if (payment.refund) {
           await this.refunds.refresh(payment.orderId);
         } else {
@@ -190,7 +203,9 @@ export class PaymentReconciliationService implements OnModuleInit, OnModuleDestr
       }
 
       const now = Date.now();
-      const terminal = current.status === "closed" || current.status === "refunded";
+      const terminal =
+        current.status === "closed" ||
+        (current.status === "refunded" && (!current.refund || current.refund.acceptedAt !== null));
       const failures = !terminal && errorCode ? Math.min(current.reconcileFailures + 1, 1000) : 0;
       let issue: PaymentReconciliationIssue | null = null;
       let delay = MINUTE;
@@ -206,7 +221,11 @@ export class PaymentReconciliationService implements OnModuleInit, OnModuleDestr
           issue = "cancelled_payment";
         } else if (errorCode === "result_invalid" || failures >= 3) {
           issue = errorCode;
-        } else if (current.refund && now - current.refund.createdAt.getTime() >= DAY) {
+        } else if (
+          current.refund &&
+          current.refund.status !== "succeeded" &&
+          now - current.refund.createdAt.getTime() >= DAY
+        ) {
           issue = "refund_pending_too_long";
         } else if (current.status === "pending" && now - current.createdAt.getTime() >= DAY) {
           issue = "payment_pending_too_long";

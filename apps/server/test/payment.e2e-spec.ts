@@ -460,6 +460,7 @@ describe("Direct merchant payment persistence (e2e)", () => {
       out_trade_no: paid.out_trade_no,
       transaction_id: paid.transaction_id,
       refund_id: providerId,
+      create_time: paid.success_time,
       status,
       ...(status === "SUCCESS" ? { success_time: new Date().toISOString() } : {}),
       amount: { total: 1234, refund: 1234, payer_total: 1200, payer_refund: 1200, currency: "CNY" },
@@ -467,7 +468,7 @@ describe("Direct merchant payment persistence (e2e)", () => {
   }
 
   function refundEvent(result: ReturnType<typeof refundResult>, id = randomUUID()) {
-    const { status, amount, ...fields } = result;
+    const { status, amount, create_time: _createTime, ...fields } = result;
     const { currency: _currency, ...notificationAmount } = amount;
     return notification(
       { ...fields, mchid: settings.merchantId, refund_status: status, amount: notificationAmount },
@@ -509,6 +510,7 @@ describe("Direct merchant payment persistence (e2e)", () => {
       status: "pending",
       amountCents: 1234,
       requestedById: adminId,
+      acceptedAt: null,
     });
     expect(
       (await prisma.orderPayment.findUniqueOrThrow({ where: { id: payment.paymentId } })).status,
@@ -531,6 +533,9 @@ describe("Direct merchant payment persistence (e2e)", () => {
       ),
     ).toBe(true);
     expect(await prisma.orderRefund.count({ where: { paymentId: payment.paymentId } })).toBe(1);
+    expect(
+      (await prisma.orderRefund.findUniqueOrThrow({ where: { id: original.id } })).acceptedAt,
+    ).toEqual(new Date(result.create_time));
     await refundRequest(target.id, adminToken, { reason: "Different request reason" }).expect(409);
     await request(app.getHttpServer())
       .get(`/payments/orders/${target.id}/refund`)
@@ -686,6 +691,146 @@ describe("Direct merchant payment persistence (e2e)", () => {
       data: { reconcileAfter: new Date(Date.now() - 60_000) },
     });
   }
+
+  it("freezes verified refund acceptance time, rejects invalid dates atomically and preserves it across callbacks", async () => {
+    const { target, payment, paid } = await paidCancelledOrder();
+    fetchMock.mockRejectedValueOnce(new Error("lost response"));
+    await refundRequest(target.id).expect(503);
+    const refund = await prisma.orderRefund.findUniqueOrThrow({
+      where: { paymentId: payment.paymentId },
+    });
+    const result = refundResult(refund.id, paid);
+    const service = app.get(RefundService);
+    for (const createTime of [
+      undefined,
+      null,
+      "invalid",
+      "2026-02-30T00:00:00+08:00",
+      "2026-09-14T24:00:00Z",
+      new Date(new Date(paid.success_time).getTime() - 1).toISOString(),
+      new Date(Date.now() + 600_000).toISOString(),
+      new Date(refund.createdAt.getTime() - 600_000).toISOString(),
+    ]) {
+      fetchMock.mockResolvedValueOnce(providerResponse({ ...result, create_time: createTime }));
+      await expect(service.refresh(target.id)).rejects.toMatchObject({
+        code: "REFUND_RESULT_INVALID",
+      });
+      expect(
+        await prisma.orderRefund.findUniqueOrThrow({ where: { id: refund.id } }),
+      ).toMatchObject({
+        status: "pending",
+        acceptedAt: null,
+        providerRefundId: null,
+        checkedAt: null,
+      });
+    }
+    const accepted = new Date(result.create_time);
+    const offsetTime = new Date(accepted.getTime() + 8 * 60 * 60 * 1000)
+      .toISOString()
+      .replace("Z", "+08:00");
+    fetchMock.mockResolvedValueOnce(providerResponse({ ...result, create_time: offsetTime }));
+    await refundRefresh(target.id).expect(200);
+    expect(
+      (await prisma.orderRefund.findUniqueOrThrow({ where: { id: refund.id } })).acceptedAt,
+    ).toEqual(accepted);
+    fetchMock.mockResolvedValueOnce(
+      providerResponse({
+        ...result,
+        create_time: new Date(accepted.getTime() + 1000).toISOString(),
+      }),
+    );
+    await expect(service.refresh(target.id)).rejects.toMatchObject({
+      code: "REFUND_RESULT_INVALID",
+    });
+    fetchMock.mockResolvedValueOnce(
+      providerResponse({
+        ...result,
+        status: "SUCCESS",
+        success_time: new Date(accepted.getTime() - 1).toISOString(),
+      }),
+    );
+    await expect(service.refresh(target.id)).rejects.toMatchObject({
+      code: "REFUND_RESULT_INVALID",
+    });
+    expect((await prisma.orderRefund.findUniqueOrThrow({ where: { id: refund.id } })).status).toBe(
+      "processing",
+    );
+    const completed = { ...result, status: "SUCCESS", success_time: new Date().toISOString() };
+    await send(refundEvent(completed), refundNotifyUrl).expect(204);
+    fetchMock.mockResolvedValueOnce(providerResponse(result));
+    await refundRefresh(target.id)
+      .expect(200)
+      .expect((r) => expect(r.body.data.status).toBe("succeeded"));
+    expect(await prisma.orderRefund.findUniqueOrThrow({ where: { id: refund.id } })).toMatchObject({
+      acceptedAt: accepted,
+      succeededAt: new Date(completed.success_time),
+    });
+  });
+
+  it("recovers acceptance after a success callback without re-refunding or losing terminal state on query failure", async () => {
+    const { target, payment, paid } = await paidCancelledOrder();
+    fetchMock.mockRejectedValueOnce(new Error("lost response"));
+    await refundRequest(target.id).expect(503);
+    const refund = await prisma.orderRefund.findUniqueOrThrow({
+      where: { paymentId: payment.paymentId },
+    });
+    const result = refundResult(refund.id, paid, "SUCCESS");
+    const callback = refundEvent(result);
+    await send(callback, refundNotifyUrl).expect(204);
+    expect(await prisma.orderRefund.findUniqueOrThrow({ where: { id: refund.id } })).toMatchObject({
+      status: "succeeded",
+      acceptedAt: null,
+    });
+    reconcileEnabled = true;
+    commercial = false;
+    fetchMock.mockReset();
+    for (let attempt = 1; attempt <= 3; attempt++) {
+      await onlyDue(payment.paymentId);
+      fetchMock.mockRejectedValueOnce(new Error("temporary query failure"));
+      expect(await reconciliation.runOnce()).toBe(1);
+      expect(
+        await prisma.orderPayment.findUniqueOrThrow({ where: { id: payment.paymentId } }),
+      ).toMatchObject({ status: "refunded", reconcileFailures: attempt });
+    }
+    expect(
+      (await prisma.orderPayment.findUniqueOrThrow({ where: { id: payment.paymentId } }))
+        .reconcileIssue,
+    ).toBe("query_failed");
+    await onlyDue(payment.paymentId);
+    // An acceptance time after an already recorded payout must not be backfilled.
+    fetchMock.mockResolvedValueOnce(
+      providerResponse({
+        ...result,
+        status: "PROCESSING",
+        create_time: new Date(new Date(result.success_time!).getTime() + 1).toISOString(),
+      }),
+    );
+    expect(await reconciliation.runOnce()).toBe(1);
+    expect(
+      (await prisma.orderRefund.findUniqueOrThrow({ where: { id: refund.id } })).acceptedAt,
+    ).toBeNull();
+    await onlyDue(payment.paymentId);
+    fetchMock.mockResolvedValueOnce(providerResponse({ ...result, status: "PROCESSING" }));
+    expect(await reconciliation.runOnce()).toBe(1);
+    expect(await prisma.orderRefund.findUniqueOrThrow({ where: { id: refund.id } })).toMatchObject({
+      status: "succeeded",
+      acceptedAt: new Date(result.create_time),
+    });
+    expect(
+      await prisma.orderPayment.findUniqueOrThrow({ where: { id: payment.paymentId } }),
+    ).toMatchObject({ status: "refunded", reconcileIssue: null, reconcileFailures: 0 });
+    // Existing callback fingerprints remain valid after the new field is recovered.
+    await send(callback, refundNotifyUrl).expect(204);
+    await onlyDue(payment.paymentId);
+    expect(await reconciliation.runOnce()).toBe(0);
+    expect(fetchMock).toHaveBeenCalledTimes(5);
+    expect(
+      fetchMock.mock.calls.every(
+        ([url, options]) =>
+          options.method === "GET" && String(url).endsWith(`/refunds/${refund.id}`),
+      ),
+    ).toBe(true);
+  });
 
   function anotherReconciler() {
     return new PaymentReconciliationService(
