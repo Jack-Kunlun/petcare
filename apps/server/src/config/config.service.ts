@@ -92,6 +92,7 @@ export class ConfigService {
     check("DEFAULT_ADMIN_PASSWORD", () => this.validateAdminPassword());
     check("ALLOWED_ORIGINS", () => this.validateAllowedOrigins());
     check("WECHAT", () => this.validateWechatConfiguration());
+    check("WECHAT_PAY", () => this.wechatPay);
     check("PUBLIC_MEDIA_STORAGE", () => this.validatePublicMediaStorageConfiguration());
     check("QUALIFICATION_STORAGE", () => this.qualificationStorage);
     check("QUALIFICATION_WORKFLOW_ENABLED", () => this.qualificationWorkflowEnabled);
@@ -585,6 +586,76 @@ export class ConfigService {
 
   get wechatAppSecret(): string {
     return process.env.WECHAT_APP_SECRET || "";
+  }
+
+  /** Direct-merchant API v3 configuration; absence never enables payment implicitly. */
+  get wechatPay() {
+    const enabled = process.env.WECHAT_PAY_ENABLED?.trim().toLowerCase() || "false";
+
+    if (!["true", "false"].includes(enabled)) {
+      throw new Error("WECHAT_PAY_ENABLED must be true or false");
+    }
+
+    if (enabled === "false") {
+      return null;
+    }
+
+    const merchantId = this.getRequiredString("WECHAT_PAY_MERCHANT_ID");
+    const certificateSerial = this.getRequiredString("WECHAT_PAY_CERTIFICATE_SERIAL");
+    const publicKeyId = this.getRequiredString("WECHAT_PAY_PUBLIC_KEY_ID");
+    const apiV3Key = this.getRequiredString("WECHAT_PAY_API_V3_KEY");
+    const privateKeyPath = this.getRequiredString("WECHAT_PAY_PRIVATE_KEY_PATH");
+    const publicKeyPath = this.getRequiredString("WECHAT_PAY_PUBLIC_KEY_PATH");
+    const notifyUrl = this.getRequiredString("WECHAT_PAY_NOTIFY_URL");
+    const refundNotifyUrl = this.getRequiredString("WECHAT_PAY_REFUND_NOTIFY_URL");
+
+    if (!/^\d{8,32}$/.test(merchantId) || !/^wx[a-zA-Z0-9]{16}$/.test(this.wechatAppId)) {
+      throw new Error("WECHAT_PAY requires a valid merchant ID and WECHAT_APP_ID");
+    }
+
+    if (
+      !/^[A-Fa-f0-9]{1,64}$/.test(certificateSerial) ||
+      !/^PUB_KEY_ID_\d{1,64}$/.test(publicKeyId)
+    ) {
+      throw new Error("WECHAT_PAY certificate serial or public key ID is invalid");
+    }
+
+    if (!/^[\x21-\x7e]{32}$/.test(apiV3Key)) {
+      throw new Error("WECHAT_PAY_API_V3_KEY must contain exactly 32 ASCII characters");
+    }
+
+    if (![privateKeyPath, publicKeyPath].every(isAbsolute)) {
+      throw new Error("WECHAT_PAY key paths must be absolute");
+    }
+
+    for (const value of [notifyUrl, refundNotifyUrl]) {
+      const url = URL.parse(value);
+
+      if (
+        !url ||
+        url.protocol !== "https:" ||
+        url.username ||
+        url.password ||
+        url.search ||
+        url.hash
+      ) {
+        throw new Error(
+          "WECHAT_PAY notification URLs must use HTTPS without credentials or parameters",
+        );
+      }
+    }
+
+    return {
+      appId: this.wechatAppId,
+      merchantId,
+      certificateSerial,
+      publicKeyId,
+      apiV3Key,
+      privateKeyPath,
+      publicKeyPath,
+      notifyUrl,
+      refundNotifyUrl,
+    };
   }
 
   get tencentCosSecretId(): string {

@@ -59,6 +59,11 @@ describe("ConfigService", () => {
     delete process.env.COMMUNITY_MEDIA_MAX_ATTEMPTS;
     delete process.env.COMMUNITY_MEDIA_WINDOW_SECONDS;
     delete process.env.COMMERCIAL_SERVICES_ENABLED;
+
+    for (const name of Object.keys(process.env).filter((key) => key.startsWith("WECHAT_PAY_"))) {
+      delete process.env[name];
+    }
+
     delete process.env.DEFAULT_ADMIN_USERNAME;
     delete process.env.DEFAULT_ADMIN_PASSWORD;
     delete process.env.LOG_LEVEL;
@@ -83,6 +88,51 @@ describe("ConfigService", () => {
 
   afterAll(() => {
     process.env = originalEnv;
+  });
+
+  it("keeps WeChat Pay disabled unless explicitly and completely configured", () => {
+    const config = new ConfigService();
+
+    expect(config.wechatPay).toBeNull();
+    process.env.WECHAT_PAY_ENABLED = "yes";
+    expect(() => config.wechatPay).toThrow("WECHAT_PAY_ENABLED");
+    process.env.WECHAT_PAY_ENABLED = "true";
+    expect(() => config.wechatPay).toThrow("WECHAT_PAY_MERCHANT_ID");
+  });
+
+  it("validates direct-merchant key coordinates and HTTPS notifications", () => {
+    Object.assign(process.env, {
+      WECHAT_PAY_ENABLED: "true",
+      WECHAT_APP_ID: "wx1234567890abcdef",
+      WECHAT_PAY_MERCHANT_ID: "1900000001",
+      WECHAT_PAY_CERTIFICATE_SERIAL: "AB1234",
+      WECHAT_PAY_PUBLIC_KEY_ID: "PUB_KEY_ID_1234567890",
+      WECHAT_PAY_API_V3_KEY: "0123456789abcdef0123456789abcdef",
+      WECHAT_PAY_PRIVATE_KEY_PATH: "/test/merchant.pem",
+      WECHAT_PAY_PUBLIC_KEY_PATH: "/test/wechat.pem",
+      WECHAT_PAY_NOTIFY_URL: "https://payments.example.test/notify",
+      WECHAT_PAY_REFUND_NOTIFY_URL: "https://payments.example.test/refund-notify",
+    });
+    const config = new ConfigService();
+
+    expect(config.wechatPay?.merchantId).toBe("1900000001");
+
+    for (const [name, value] of Object.entries({
+      WECHAT_PAY_MERCHANT_ID: "invalid",
+      WECHAT_PAY_CERTIFICATE_SERIAL: "invalid",
+      WECHAT_PAY_PUBLIC_KEY_ID: "unknown",
+      WECHAT_PAY_API_V3_KEY: "短密钥",
+      WECHAT_PAY_PRIVATE_KEY_PATH: "relative.pem",
+      WECHAT_PAY_PUBLIC_KEY_PATH: "relative.pem",
+      WECHAT_PAY_NOTIFY_URL: "http://payments.example.test/notify",
+      WECHAT_PAY_REFUND_NOTIFY_URL: "https://user:secret@payments.example.test/notify?query=1",
+    })) {
+      const original = process.env[name];
+
+      process.env[name] = value;
+      expect(() => config.wechatPay).toThrow();
+      process.env[name] = original;
+    }
   });
 
   it("returns the documented authentication defaults", () => {

@@ -213,6 +213,32 @@ Server 不返回对象键或签名 URL。管理员材料读取有独立的 `prov
 `WECHAT_APP_ID` 和 `WECHAT_APP_SECRET` 只由 Server 使用，任何客户端都不得包含或读取 AppSecret。Miniapp
 业务请求只读取公开的 `VITE_MINIAPP_API_BASE_URL`，不会读取微信或 Server 凭据。
 
+### 微信支付普通商户直连
+
+Cycle 9 使用普通商户直连、小程序支付 API v3，不配置服务商或子商户参数。当前仅提供内部接入层，尚未注册支付/退款或通知 HTTP 路由；配置齐全也不代表支付业务可上线。
+
+| 变量                            | 说明                                                                       |
+| ------------------------------- | -------------------------------------------------------------------------- |
+| `WECHAT_PAY_ENABLED`            | 默认 `false`；关闭时不加载密钥、不访问微信支付，调用失败关闭               |
+| `WECHAT_PAY_MERCHANT_ID`        | 普通商户号，必须与已有 `WECHAT_APP_ID` 完成真实绑定                        |
+| `WECHAT_PAY_CERTIFICATE_SERIAL` | 商户 API 证书序列号，用于请求签名身份                                      |
+| `WECHAT_PAY_PRIVATE_KEY_PATH`   | 商户 RSA-2048 私钥 PEM 的 Server 绝对路径                                  |
+| `WECHAT_PAY_PUBLIC_KEY_ID`      | 微信支付公钥 ID，格式 `PUB_KEY_ID_...`，用于匹配响应/通知验签身份          |
+| `WECHAT_PAY_PUBLIC_KEY_PATH`    | 与该 ID 配套的微信支付 RSA-2048 公钥 PEM 的 Server 绝对路径                |
+| `WECHAT_PAY_API_V3_KEY`         | 32 字节 ASCII API v3 密钥，仅服务端用于解密通知；不是 AppSecret 或商户私钥 |
+| `WECHAT_PAY_NOTIFY_URL`         | 预留支付通知 HTTPS 地址，不允许凭据、查询参数或 fragment                   |
+| `WECHAT_PAY_REFUND_NOTIFY_URL`  | 预留退款通知 HTTPS 地址，限制同上                                          |
+
+启用时配置及密钥文件不完整会阻止 Server 启动。公钥从微信支付商户平台「账户中心 → API 安全」获取，显式配置可信 ID 和文件；不信任报文自行携带的新 ID、不动态下载未知公钥。轮换需要更新配套公钥和 ID 后重启，并验收新旧通知交接；当前不支持多公钥并行过渡。
+
+请求固定访问微信支付官方主域名，原始响应和通知必须先验 RSA 签名，再解析或 AES-GCM 解密，时间戳容差为 5 分钟。预支付成功不表示已支付，退款受理不表示退款完成；网络错误不自动重试资金操作，也不能据此判定业务失败。后续业务层必须以持久支付/退款单号查询确认，核对订单、金额、付款人和最终状态，并事务处理通知幂等；接入层不会自行更新订单。
+
+当前发布流程未转发支付配置、未挂载密钥文件，也未开放生产支付。后续必须补齐商户资质、AppID 授权绑定、支付/退款持久化、回调路由及幂等、订单履约门禁、对账、目标环境验收，再单独接入发布配置。私钥和 API v3 密钥不得进入仓库、镜像、前端环境变量或日志；普通商户技术接口不代表平台代收、分账或服务者结算方案已获确认。
+
+接口依据：[请求签名](https://pay.wechatpay.cn/doc/v3/merchant/4012365336)、[公钥验签](https://pay.wechatpay.cn/doc/v3/merchant/4013053249)、[小程序下单](https://pay.wechatpay.cn/doc/v3/merchant/4012791897)、[通知解密](https://pay.wechatpay.cn/doc/v3/merchant/4012791836)、[申请退款](https://pay.wechatpay.cn/doc/v3/merchant/4012587971)、[查询退款](https://pay.wechatpay.cn/doc/v3/merchant/4012810601)。
+
+### 公开媒体存储
+
 公开媒体采用显式 provider 配置：
 
 - `disabled`：默认值。资料、宠物和内容读取仍可使用已有 URL；新的头像、宠物、社区和官网素材上传返回稳定的
