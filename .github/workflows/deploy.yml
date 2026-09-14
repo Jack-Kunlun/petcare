@@ -189,7 +189,7 @@ jobs:
           set -Eeuo pipefail
           probe_error="$(mktemp)"
           trap 'rm -f -- "$probe_error"' EXIT
-          if docker manifest inspect "$DESTINATION_IMAGE" > /dev/null 2> "$probe_error"; then
+          if docker buildx imagetools inspect --raw "$DESTINATION_IMAGE" > /dev/null 2> "$probe_error"; then
             echo "TCR runtime image already exists; skip overwrite"
           elif grep -Eiq 'manifest unknown|no such manifest|not found' "$probe_error"; then
             docker pull "$SOURCE_IMAGE"

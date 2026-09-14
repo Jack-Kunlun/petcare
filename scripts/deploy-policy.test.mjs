@@ -368,7 +368,7 @@ test("生产部署先准备缺失的固定运行时镜像", async () => {
   for (const image of ["postgres:15-alpine", "redis:7-alpine", "nginx:alpine"]) {
     assert.ok(workflow.includes(image));
   }
-  assert.match(workflow, /docker manifest inspect/);
+  assert.match(workflow, /docker buildx imagetools inspect --raw/);
   assert.match(workflow, /manifest unknown\|no such manifest\|not found/);
   assert.match(workflow, /needs: \[resolve, build, runtime-images\]/);
 });
