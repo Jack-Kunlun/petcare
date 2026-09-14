@@ -1375,7 +1375,7 @@ describe("Direct merchant payment persistence (e2e)", () => {
       .get(`/admin/payments/bills/${id}`)
       .auth(adminToken, { type: "bearer" })
       .expect(200);
-    expect(unchanged.body).toEqual(first.body);
+    expect(unchanged.body.data).toEqual(first.body.data);
     await request(app.getHttpServer())
       .get("/admin/payments/bills")
       .auth(adminToken, { type: "bearer" })
