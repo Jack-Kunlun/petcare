@@ -100,7 +100,11 @@ describe("HttpLoggingMiddleware", () => {
     );
   });
 
-  it("never logs qualification review bodies, even when raw logging is enabled", () => {
+  it.each([
+    "/admin/provider-qualifications/id/review",
+    "/admin/payments/bills/id/differences/1/reviews",
+    "/ADMIN/PAYMENTS/BILLS/id/differences/1/reviews",
+  ])("never logs private review bodies on %s, even when raw logging is enabled", (route) => {
     const rawMiddleware = new HttpLoggingMiddleware(
       logger,
       {
@@ -112,7 +116,7 @@ describe("HttpLoggingMiddleware", () => {
     const request = {
       requestId: "qualification-request",
       method: "POST",
-      path: "/admin/provider-qualifications/id/review",
+      path: route,
       headers: {},
       query: {},
       body: { verificationReference: "sensitive-reference", reason: "private identity" },

@@ -1,5 +1,6 @@
 import { Module } from "@nestjs/common";
 import { AuthModule } from "../../auth/auth.module";
+import { PaymentBillReviewService } from "./payment-bill-review.service";
 import { PaymentBillService } from "./payment-bill.service";
 import { PaymentReconciliationService } from "./payment-reconciliation.service";
 import {
@@ -21,6 +22,7 @@ import { WechatPayClient } from "./wechat-pay.client";
     PaymentFeatureGuard,
     PaymentReconciliationService,
     PaymentBillService,
+    PaymentBillReviewService,
   ],
   exports: [WechatPayClient],
 })

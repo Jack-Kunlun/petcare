@@ -227,3 +227,69 @@ export interface PaymentBillRunDetail {
   /** 下一页 after 参数；最后一页为空。 */
   nextCursor: number | null;
 }
+
+/** 人工处理动作，不执行查单、退款、改账或重写核对结论。 */
+export type PaymentBillReviewAction =
+  /** 追加说明，不改变人工处理状态。 */
+  | "note"
+  /** 记录有依据的处理结论，不代表差异消失或资金匹配。 */
+  | "record_outcome"
+  /** 将已记录结论的差异重新转为待处理。 */
+  | "reopen";
+
+/** 人工处理状态，与日账运行状态严格分离。 */
+export type PaymentBillReviewStatus =
+  /** 尚待处理，或已重新打开。 */
+  | "open"
+  /** 已记录人工处理结论，原差异仍永久保留。 */
+  | "documented";
+
+/** 为一项日账差异追加不可覆盖的处理记录。 */
+export interface CreatePaymentBillReviewRequest {
+  /** 本次操作 UUID v4；网络重试复用，新的操作使用新值。 */
+  idempotencyKey: string;
+  /** 最近读取的处理版本；无历史时为 0，冲突时必须重新读取。 */
+  expectedVersion: number;
+  /** 本次处理动作。 */
+  action: PaymentBillReviewAction;
+  /** 去除首尾空白后 5–1000 字符，不应包含个人资料、凭据或原始账单。 */
+  note: string;
+  /** 可审计工单或文档编号，3–200 位字母、数字及 . _ / -；记录结论时必填，不接受 URL 或密钥。 */
+  evidenceReference?: string | null;
+}
+
+/** 一条只追加的人工处理审计记录。 */
+export interface PaymentBillReviewEntry {
+  /** 操作标识，也是幂等键。 */
+  id: string;
+  /** 所属日账运行标识。 */
+  runId: string;
+  /** 差异顺序号。 */
+  ordinal: number;
+  /** 该差异内从 1 开始递增的处理版本。 */
+  version: number;
+  /** 操作人账号标识。 */
+  actorId: string;
+  /** 操作类型。 */
+  action: PaymentBillReviewAction;
+  /** 本次操作后的人工处理状态，不是财务核对结论。 */
+  status: PaymentBillReviewStatus;
+  /** 操作说明。 */
+  note: string;
+  /** 支撑处理结论的工单或文档编号。 */
+  evidenceReference: string | null;
+  /** 数据库记录的操作时间。 */
+  createdAt: string;
+}
+
+/** 按版本正序读取的处理历史，每页最多 50 条。 */
+export interface PaymentBillReviewHistory {
+  /** 当前可见的最新版本，无记录为 0。 */
+  version: number;
+  /** 当前人工处理状态。 */
+  status: PaymentBillReviewStatus;
+  /** 当前页只追加历史。 */
+  entries: PaymentBillReviewEntry[];
+  /** 下一页 after 参数，末页为空。 */
+  nextCursor: number | null;
+}

@@ -35,9 +35,10 @@ export class HttpLoggingMiddleware implements NestMiddleware {
 
       const production = this.configService.nodeEnv === "production";
       const path = request.path || request.url.split("?", 1)[0];
-      const qualificationRoute =
-        path.startsWith("/provider-qualifications") ||
-        path.startsWith("/admin/provider-qualifications");
+      const privateBodyRoute =
+        path.toLowerCase().startsWith("/provider-qualifications") ||
+        path.toLowerCase().startsWith("/admin/provider-qualifications") ||
+        path.toLowerCase().startsWith("/admin/payments/bills/");
       const common = {
         requestId: request.requestId,
         method: request.method,
@@ -51,12 +52,12 @@ export class HttpLoggingMiddleware implements NestMiddleware {
       this.logger.write(level, "http.request.completed", {
         ...common,
         query: this.sanitizer.prepare(request.query, { production }),
-        body: qualificationRoute
+        body: privateBodyRoute
           ? "[REDACTED]"
           : this.sanitizer.prepare(request.body, { production }),
       });
 
-      if (this.configService.logRawRequestBody && !qualificationRoute) {
+      if (this.configService.logRawRequestBody && !privateBodyRoute) {
         this.logger.write("debug", "http.request.raw", {
           requestId: request.requestId,
           method: request.method,

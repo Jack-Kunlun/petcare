@@ -13,6 +13,7 @@ import path from "node:path";
 import { INestApplication, ValidationPipe } from "@nestjs/common";
 import { JwtService } from "@nestjs/jwt";
 import { Test } from "@nestjs/testing";
+import type { CreatePaymentBillReviewRequest } from "@petcare/shared-types";
 import { Client } from "pg";
 import request from "supertest";
 import { AppModule } from "../src/app.module";
@@ -1421,6 +1422,305 @@ describe("Direct merchant payment persistence (e2e)", () => {
       .expect(201)
       .expect((r) => expect(r.body.data.status).toBe("matched"));
     expect(fetchMock.mock.calls.every(([, options]) => options.method === "GET")).toBe(true);
+  });
+
+  function reviewRequest(
+    runId: string,
+    ordinal: number,
+    input: CreatePaymentBillReviewRequest,
+    token = adminToken,
+  ) {
+    return request(app.getHttpServer())
+      .post(`/admin/payments/bills/${runId}/differences/${ordinal}/reviews`)
+      .auth(token, { type: "bearer" })
+      .send(input);
+  }
+
+  async function reviewRun() {
+    const date = "2026-01-08";
+    serveBill(
+      billFile([
+        billRow(date, "review_external_one", "review_transaction_one"),
+        billRow(date, "review_external_two", "review_transaction_two"),
+      ]),
+    );
+    const response = await billRequest(date).expect(201);
+    expect(response.body.data.status).toBe("differences");
+    return response.body.data.id as string;
+  }
+
+  it("appends auditable difference handling with idempotency, stale-write rejection and no financial mutations", async () => {
+    const runId = await reviewRun();
+    commercial = false;
+    const before = await prisma.paymentBillRun.findUniqueOrThrow({
+      where: { id: runId },
+      include: { differences: true },
+    });
+    const moneyBefore = await prisma.orderPayment.findMany({
+      orderBy: { id: "asc" },
+      include: { refund: true, order: true },
+    });
+    const url = `/admin/payments/bills/${runId}/differences/1/reviews`;
+    await request(app.getHttpServer())
+      .get(url)
+      .auth(adminToken, { type: "bearer" })
+      .expect(200)
+      .expect((r) =>
+        expect(r.body.data).toEqual({ version: 0, status: "open", entries: [], nextCursor: null }),
+      );
+    const input: CreatePaymentBillReviewRequest = {
+      idempotencyKey: randomUUID(),
+      expectedVersion: 0,
+      action: "note",
+      note: "  Checking external merchant record  ",
+    };
+    const responses = await Promise.all([
+      reviewRequest(runId, 1, input),
+      reviewRequest(runId.toUpperCase(), 1, {
+        ...input,
+        idempotencyKey: input.idempotencyKey.toUpperCase(),
+      }),
+    ]);
+    expect(responses.map((r) => r.status)).toEqual([201, 201]);
+    expect(responses[0].body.data).toEqual(responses[1].body.data);
+    expect(responses[0].body.data).toMatchObject({
+      actorId: adminId,
+      version: 1,
+      status: "open",
+      note: input.note.trim(),
+    });
+    await reviewRequest(runId, 1, { ...input, note: "A different operation" }).expect(409);
+    await reviewRequest(runId, 2, input).expect(409);
+    await reviewRequest(runId, 1, { ...input, idempotencyKey: randomUUID() }).expect(409);
+    await reviewRequest(runId, 1, {
+      ...input,
+      idempotencyKey: randomUUID(),
+      expectedVersion: 1,
+      action: "record_outcome",
+    }).expect(400);
+    const outcome: CreatePaymentBillReviewRequest = {
+      ...input,
+      idempotencyKey: randomUUID(),
+      expectedVersion: 1,
+      action: "record_outcome",
+      evidenceReference: "CASE-2026-42",
+      note: "Recorded investigation outcome; not a funds assertion",
+    };
+    const results = await Promise.all([
+      reviewRequest(runId, 1, outcome),
+      reviewRequest(runId, 1, { ...outcome, idempotencyKey: randomUUID() }),
+    ]);
+    expect(results.map((r) => r.status).sort()).toEqual([201, 409]);
+    await reviewRequest(runId, 1, {
+      ...outcome,
+      idempotencyKey: randomUUID(),
+      expectedVersion: 2,
+    }).expect(409);
+    await reviewRequest(runId, 1, {
+      ...input,
+      idempotencyKey: randomUUID(),
+      expectedVersion: 2,
+      action: "reopen",
+    })
+      .expect(201)
+      .expect((r) => expect(r.body.data).toMatchObject({ status: "open", version: 3 }));
+    await reviewRequest(runId, 1, {
+      ...input,
+      idempotencyKey: randomUUID(),
+      expectedVersion: 3,
+      action: "reopen",
+    }).expect(409);
+    await reviewRequest(runId, 1, input)
+      .expect(201)
+      .expect((r) => expect(r.body.data).toEqual(responses[0].body.data));
+    const history = await request(app.getHttpServer())
+      .get(url)
+      .auth(adminToken, { type: "bearer" })
+      .expect(200);
+    expect(history.body.data).toMatchObject({ version: 3, status: "open", nextCursor: null });
+    expect(history.body.data.entries.map((entry) => entry.action)).toEqual([
+      "note",
+      "record_outcome",
+      "reopen",
+    ]);
+    expect(
+      await prisma.paymentBillRun.findUniqueOrThrow({
+        where: { id: runId },
+        include: { differences: true },
+      }),
+    ).toEqual(before);
+    expect(
+      await prisma.orderPayment.findMany({
+        orderBy: { id: "asc" },
+        include: { refund: true, order: true },
+      }),
+    ).toEqual(moneyBefore);
+    expect(fetchMock).toHaveBeenCalledTimes(2);
+  });
+
+  it("isolates bill review permissions, revoked roles, foreign merchants and disabled payment configuration", async () => {
+    const runId = await reviewRun();
+    const url = `/admin/payments/bills/${runId}/differences/1/reviews`;
+    const input: CreatePaymentBillReviewRequest = {
+      idempotencyKey: randomUUID(),
+      expectedVersion: 0,
+      action: "note",
+      note: "Checking the original evidence",
+    };
+    await request(app.getHttpServer()).post(url).send(input).expect(401);
+    await request(app.getHttpServer()).get(url).auth(ownerToken, { type: "bearer" }).expect(403);
+    await reviewRequest(runId, 1, input, ownerToken).expect(403);
+    const permissions = await Promise.all(
+      ["payment.bill_read", "payment.bill_review"].map((code) =>
+        prisma.permission.upsert({
+          where: { permissionCode: code },
+          update: {},
+          create: { permissionCode: code, permissionName: code, module: "payment", type: "api" },
+        }),
+      ),
+    );
+    const role = await prisma.role.create({
+      data: {
+        roleName: `bill_reviewer_${runId}`,
+        permissions: { create: { permissionId: permissions[0].id } },
+      },
+    });
+    const reviewer = await prisma.user.create({
+      data: { nickname: "Isolated bill reviewer", roles: { create: { roleId: role.id } } },
+    });
+    const token = new JwtService({ secret: config.jwtSecret }).sign({
+      sub: reviewer.id,
+      sid: randomUUID(),
+      sessionVersion: 0,
+      type: "access",
+    });
+    await request(app.getHttpServer()).get(url).auth(token, { type: "bearer" }).expect(200);
+    await reviewRequest(runId, 1, input, token).expect(403);
+    await prisma.rolePermission.create({
+      data: { roleId: role.id, permissionId: permissions[1].id },
+    });
+    await reviewRequest(runId, 1, input, token).expect(201);
+    // The same idempotency key cannot be claimed by another authorized operator.
+    await reviewRequest(runId, 1, input).expect(409);
+    await prisma.rolePermission.delete({
+      where: { roleId_permissionId: { roleId: role.id, permissionId: permissions[0].id } },
+    });
+    await reviewRequest(runId, 1, input, token).expect(403);
+    await prisma.rolePermission.create({
+      data: { roleId: role.id, permissionId: permissions[0].id },
+    });
+    await prisma.role.update({ where: { id: role.id }, data: { isActive: false } });
+    await reviewRequest(runId, 1, input, token).expect(403);
+    await request(app.getHttpServer()).get(url).auth(token, { type: "bearer" }).expect(403);
+    const foreign = await prisma.paymentBillRun.create({
+      data: {
+        id: randomUUID(),
+        merchantId: "1900000002",
+        billDate: "2026-01-08",
+        requestedById: adminId,
+        status: "differences",
+        differences: { create: { ordinal: 1, code: "local_missing", fields: [] } },
+      },
+    });
+    await reviewRequest(foreign.id, 1, input).expect(404);
+    await request(app.getHttpServer())
+      .get(`/admin/payments/bills/${foreign.id}/differences/1/reviews`)
+      .auth(adminToken, { type: "bearer" })
+      .expect(404);
+    await reviewRequest(runId, 999, input).expect(404);
+    await reviewRequest(runId, 0, input).expect(400);
+    await reviewRequest(runId, 2_147_483_648, input).expect(400);
+    await request(app.getHttpServer())
+      .get(`${url}?after=-1`)
+      .auth(adminToken, { type: "bearer" })
+      .expect(400);
+    enabled = false;
+    await reviewRequest(runId, 1, input).expect(404);
+    await request(app.getHttpServer()).get(url).auth(adminToken, { type: "bearer" }).expect(404);
+  });
+
+  it("paginates complete review history without overwriting previous events", async () => {
+    const runId = await reviewRun();
+    for (let version = 0; version < 51; version++) {
+      await reviewRequest(runId, 1, {
+        idempotencyKey: randomUUID(),
+        expectedVersion: version,
+        action: "note",
+        note: `Isolated review note ${version}`,
+      }).expect(201);
+    }
+    const url = `/admin/payments/bills/${runId}/differences/1/reviews`;
+    const first = await request(app.getHttpServer())
+      .get(url)
+      .auth(adminToken, { type: "bearer" })
+      .expect(200);
+    expect(first.body.data).toMatchObject({ version: 51, status: "open", nextCursor: 50 });
+    expect(first.body.data.entries).toHaveLength(50);
+    const next = await request(app.getHttpServer())
+      .get(`${url}?after=50`)
+      .auth(adminToken, { type: "bearer" })
+      .expect(200);
+    expect(next.body.data.nextCursor).toBeNull();
+    expect(next.body.data.entries.map((entry) => entry.version)).toEqual([51]);
+    expect(
+      new Set([...first.body.data.entries, ...next.body.data.entries].map((entry) => entry.id))
+        .size,
+    ).toBe(51);
+    expect(fetchMock).toHaveBeenCalledTimes(2);
+  });
+
+  it("rolls back failed review writes and safely replays a committed operation after a lost response", async () => {
+    const runId = await reviewRun();
+    const input: CreatePaymentBillReviewRequest = {
+      idempotencyKey: randomUUID(),
+      expectedVersion: 0,
+      action: "record_outcome",
+      note: "Recorded only after checking evidence",
+      evidenceReference: "CASE-2026-FAILURE",
+    };
+    const original = prisma.$transaction.bind(prisma);
+    const failure = jest.spyOn(prisma, "$transaction").mockImplementationOnce(((
+      operation: (tx: Prisma.TransactionClient) => Promise<unknown>,
+    ) =>
+      original(async (tx) => {
+        await operation(tx);
+        throw new Error("private database failure after review insert");
+      })) as typeof prisma.$transaction);
+    try {
+      await reviewRequest(runId, 1, input)
+        .expect(503)
+        .expect((r) => {
+          expect(r.body.code).toBe("PAYMENT_BILL_REVIEW_UNAVAILABLE");
+          expect(JSON.stringify(r.body)).not.toContain("private database");
+        });
+    } finally {
+      failure.mockRestore();
+    }
+    expect(await prisma.paymentBillReview.count({ where: { runId } })).toBe(0);
+    const lost = jest.spyOn(prisma, "$transaction").mockImplementationOnce((async (
+      operation: (tx: Prisma.TransactionClient) => Promise<unknown>,
+    ): Promise<unknown> => {
+      await original(operation);
+      throw new Error("isolated response lost after commit");
+    }) as typeof prisma.$transaction);
+    try {
+      await reviewRequest(runId, 1, input).expect(503);
+    } finally {
+      lost.mockRestore();
+    }
+    await reviewRequest(runId, 1, input)
+      .expect(201)
+      .expect((r) =>
+        expect(r.body.data).toMatchObject({
+          id: input.idempotencyKey,
+          version: 1,
+          status: "documented",
+        }),
+      );
+    expect(await prisma.paymentBillReview.count({ where: { runId } })).toBe(1);
+    expect((await prisma.paymentBillRun.findUniqueOrThrow({ where: { id: runId } })).status).toBe(
+      "differences",
+    );
   });
 
   it("rolls back inserted differences when finalizing a run fails", async () => {

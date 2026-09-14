@@ -48,6 +48,12 @@
 
 按中国时区支付成功日/退款受理日双向核对，本地候选记录在一致性事务中读取。差异类型为 `local_missing`、`provider_missing`、`fields_mismatch`、`refund_time_unknown`；保留最小双方交易快照和不匹配字段，不暴露 OpenID、原始账单、商品描述或下载令牌。受理日期未知会阻止匹配结论；退款到账时间和账单中的历史退款处理状态不代替受理日期。日账精度为秒，比较时忽略 API 时间的小数秒。
 
+人工处理使用 `POST /admin/payments/bills/:runId/differences/:ordinal/reviews`，同时要求 `payment.bill_read` 和新增独立 `payment.bill_review` 权限，共用每账户每分钟 10 次限流。请求类型 `CreatePaymentBillReviewRequest`：`idempotencyKey` 为 UUID v4，`expectedVersion` 为最近读取的版本（初始 0），`action` 为 `note` / `record_outcome` / `reopen`，`note` 去首尾空白后 5–1000 字符；`record_outcome` 必须提供 `evidenceReference`。依据字段仅接受 3–200 位字母、数字及 `. _ / -` 组成的工单或文档编号，不接受 URL；接口不验证外部编号内容，操作人必须核验依据，不得提交个人资料、凭据、原始账单或下载令牌。
+
+初始人工状态 `open`；`note` 只追加说明，`record_outcome` 从 `open` 转为 `documented`，`reopen` 将 `documented` 转回 `open`。历史不更新或删除；201 返回 `PaymentBillReviewEntry`，包含操作人、数据库时间和递增版本。同一请求标识与原操作者、目标、版本及规范化内容完全一致才返回原记录；同键变更、旧版本或非法状态迁移返回 409，不覆盖已有记录。503 时结果可能未知，应以原请求标识重试，不换新键。支付关闭返回 404；其他商户或不存在的差异不可读写。人工处理不会改变日账快照、运行状态、差异计数、自动查询异常或任何资金状态，`documented` 不能用于收款/退款成功或商业上线判断。
+
+`GET /admin/payments/bills/:runId/differences/:ordinal/reviews?after=0` 要求 `payment.bill_read`，返回 `PaymentBillReviewHistory`：当前处理状态/版本与按版本正序的历史，每页最多 50 条，`nextCursor` 为空才结束。查询元数据与当前页使用一致性快照；并发新操作会提高后续请求的当前版本，之前历史不会被覆盖。只读权限不能写入，权限撤销立即拒绝后续请求。处理备注和依据仅在授权查询中返回，不进入请求正文日志（含调试原始正文日志）。本段不提供资金修正、证据文件上传或外部告警发送入口。
+
 核对仅读取交易状态，不触发预支付、退款、关单或账务调整。账单文件及本地候选记录均有硬上限，超限或校验失败记录 `failed`，不保存部分成功；数据库失败时差异和结果整批回滚。结果只代表当次快照，不是银行、手续费或结算对账；可审计人工处理与外部告警仍待实现。
 
 ## 📋 目录

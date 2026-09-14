@@ -24,8 +24,22 @@ import type {
   CreatePaymentBillRunRequest,
   PaymentBillRunSummary,
   PaymentBillRunDetail,
+  CreatePaymentBillReviewRequest,
+  PaymentBillReviewEntry,
+  PaymentBillReviewHistory,
+  PaymentBillReviewAction,
 } from "@petcare/shared-types";
-import { IsString, IsUUID, MaxLength, MinLength } from "class-validator";
+import {
+  IsIn,
+  IsInt,
+  IsOptional,
+  IsString,
+  IsUUID,
+  Max,
+  Min,
+  MaxLength,
+  MinLength,
+} from "class-validator";
 import type { Request } from "express";
 import { AccessTokenGuard } from "../../auth/access-token.guard";
 import type { AccessTokenPayload } from "../../auth/auth.types";
@@ -35,6 +49,7 @@ import { ProfileCompleteGuard } from "../../auth/profile-complete.guard";
 import { ApiException } from "../../common/http/api-exception";
 import { ConfigService } from "../../config/config.service";
 import { RedisService } from "../../config/redis.service";
+import { PaymentBillReviewService } from "./payment-bill-review.service";
 import { PaymentBillService } from "./payment-bill.service";
 import { PaymentReconciliationService } from "./payment-reconciliation.service";
 import { PaymentService } from "./payment.service";
@@ -160,6 +175,29 @@ export class CreatePaymentBillRunDto implements CreatePaymentBillRunRequest {
   billDate: string;
 }
 
+export class CreatePaymentBillReviewDto implements CreatePaymentBillReviewRequest {
+  @IsUUID("4")
+  idempotencyKey: string;
+
+  @IsInt()
+  @Min(0)
+  @Max(2_147_483_646)
+  expectedVersion: number;
+
+  @IsIn(["note", "record_outcome", "reopen"])
+  action: PaymentBillReviewAction;
+
+  @IsString()
+  @MinLength(5)
+  @MaxLength(1000)
+  note: string;
+
+  @IsOptional()
+  @IsString()
+  @MaxLength(200)
+  evidenceReference?: string | null;
+}
+
 @Controller("admin/payments")
 @UseGuards(PaymentFeatureGuard, AccessTokenGuard, PermissionGuard)
 export class AdminRefundController {
@@ -168,7 +206,31 @@ export class AdminRefundController {
     private readonly redis: RedisService,
     private readonly reconciliation: PaymentReconciliationService,
     private readonly bills: PaymentBillService,
+    private readonly billReviews: PaymentBillReviewService,
   ) {}
+
+  @Post("bills/:runId/differences/:ordinal/reviews")
+  @RequirePermissions("payment.bill_read", "payment.bill_review")
+  async reviewBill(
+    @Req() req: AuthRequest,
+    @Param("runId", new ParseUUIDPipe({ version: "4" })) runId: string,
+    @Param("ordinal", ParseIntPipe) ordinal: number,
+    @Body() input: CreatePaymentBillReviewDto,
+  ): Promise<PaymentBillReviewEntry> {
+    await limit(this.redis, req.user.sub);
+
+    return this.billReviews.append(req.user.sub, runId, ordinal, input);
+  }
+
+  @Get("bills/:runId/differences/:ordinal/reviews")
+  @RequirePermissions("payment.bill_read")
+  billReviewHistory(
+    @Param("runId", new ParseUUIDPipe({ version: "4" })) runId: string,
+    @Param("ordinal", ParseIntPipe) ordinal: number,
+    @Query("after", new DefaultValuePipe(0), ParseIntPipe) after: number,
+  ): Promise<PaymentBillReviewHistory> {
+    return this.billReviews.history(runId, ordinal, after);
+  }
 
   @Post("bills")
   @RequirePermissions("payment.bill_action")
