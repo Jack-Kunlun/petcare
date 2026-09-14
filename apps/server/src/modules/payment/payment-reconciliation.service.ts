@@ -1,6 +1,9 @@
 import { randomUUID } from "node:crypto";
 import { Injectable, Logger, OnModuleDestroy, OnModuleInit } from "@nestjs/common";
-import type { PaymentReconciliationSummary } from "@petcare/shared-types";
+import type {
+  PaymentReconciliationSummary,
+  PaymentReconciliationPage,
+} from "@petcare/shared-types";
 import { ApiException } from "../../common/http/api-exception";
 import { ConfigService } from "../../config/config.service";
 import type { PaymentReconciliationIssue } from "../../generated/prisma/client";
@@ -70,10 +73,21 @@ export class PaymentReconciliationService implements OnModuleInit, OnModuleDestr
 
   /** Permission-checked read of at most 50 outstanding issues; excludes payer and merchant credentials. */
   async issues(): Promise<PaymentReconciliationSummary[]> {
+    return (await this.queue()).list;
+  }
+
+  /** Walk all current issues by immutable ID; callers restart at page one to see newly raised issues. */
+  async queue(after?: string): Promise<PaymentReconciliationPage> {
+    const merchantId = this.config.wechatPay?.merchantId;
+
+    if (!merchantId) {
+      throw new ApiException("PAYMENT_NOT_FOUND", "支付服务未开放", 404);
+    }
+
     const rows = await this.prisma.orderPayment.findMany({
-      where: { reconcileIssue: { not: null } },
-      orderBy: [{ reconcileAfter: "asc" }, { id: "asc" }],
-      take: 50,
+      where: { merchantId, reconcileIssue: { not: null }, ...(after ? { id: { gt: after } } : {}) },
+      orderBy: { id: "asc" },
+      take: 51,
       select: {
         id: true,
         orderId: true,
@@ -87,17 +101,20 @@ export class PaymentReconciliationService implements OnModuleInit, OnModuleDestr
       },
     });
 
-    return rows.map((row) => ({
-      paymentId: row.id,
-      orderId: row.orderId,
-      amountCents: row.amountCents,
-      paymentStatus: row.status,
-      refundStatus: row.refund?.status ?? null,
-      issue: row.reconcileIssue!,
-      consecutiveFailures: row.reconcileFailures,
-      nextCheckAt: row.reconcileAfter.toISOString(),
-      paymentCheckedAt: row.checkedAt?.toISOString() ?? null,
-    }));
+    return {
+      nextCursor: rows.length > 50 ? rows[49].id : null,
+      list: rows.slice(0, 50).map((row) => ({
+        paymentId: row.id,
+        orderId: row.orderId,
+        amountCents: row.amountCents,
+        paymentStatus: row.status,
+        refundStatus: row.refund?.status ?? null,
+        issue: row.reconcileIssue!,
+        consecutiveFailures: row.reconcileFailures,
+        nextCheckAt: row.reconcileAfter.toISOString(),
+        paymentCheckedAt: row.checkedAt?.toISOString() ?? null,
+      })),
+    };
   }
 
   private async scan(): Promise<number> {

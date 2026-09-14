@@ -34,15 +34,18 @@
 
 `GET /admin/payments/reconciliation` 需要 `payment.reconciliation_read` 独立权限（默认仅超管），返回最多 50 条 `PaymentReconciliationSummary`，不含 OpenID、商户凭据或微信原始响应；普通订单主人/服务者不得访问。此接口只读取已记录问题，不触发查询或修改资金；后台轮询关闭时仍可读取存量问题，支付总开关关闭时返回 404。
 
+`GET /admin/payments/reconciliation/queue?after=<paymentId>` 使用相同读取权限，按当前商户的固定支付单号升序每页返回最多 50 条及 `nextCursor`；首次不传 `after`，末页游标为空。异常会随真实核对结果变化，管理员巡检时应从首页重新读取；它不是带送达保证的告警队列，不触发查单或资金操作。
+
 后台状态核对由 `WECHAT_PAY_RECONCILIATION_ENABLED` 独立控制，默认关闭。轮询仅 GET 查询已持久单号并复用原始验签、金额匹配和事务迁移，不开放免鉴权查单或“强制成功”接口。队列分类区分查询失败、结果不匹配、支付/退款长期未决、退款异常/关闭、外部退款、已取消订单收款；查询成功后重新判断，完成核对后清除问题，网络错误不覆盖真实资金状态。已退款但受理时间未知的记录仍需查询补齐；未知时间不影响已验签的退款成功状态，但不能作为日账日期依据。状态核对不能发现全部无本地单的微信交易，不能代替日账单双向对账、人工差异处理或真实资金验收。
 
 ### 微信日账核对
 
-| 方法与路径                                 | 权限和行为                                                                                                                                                |
-| ------------------------------------------ | --------------------------------------------------------------------------------------------------------------------------------------------------------- |
-| `POST /admin/payments/bills`               | `payment.bill_action`；`CreatePaymentBillRunRequest` 包含 `billDate`（历史日期 YYYY-MM-DD）和 `idempotencyKey`（UUID v4），共用支付每账户每分钟 10 次限流 |
-| `GET /admin/payments/bills`                | `payment.bill_read`；读取当前商户最近 20 次 `PaymentBillRunSummary`                                                                                       |
-| `GET /admin/payments/bills/:runId?after=0` | `payment.bill_read`；返回 `PaymentBillRunDetail`，每页最多 50 条，使用 `nextCursor` 继续至空；`differenceCount` 是完整总数                                |
+| 方法与路径                                        | 权限和行为                                                                                                                                                |
+| ------------------------------------------------- | --------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| `POST /admin/payments/bills`                      | `payment.bill_action`；`CreatePaymentBillRunRequest` 包含 `billDate`（历史日期 YYYY-MM-DD）和 `idempotencyKey`（UUID v4），共用支付每账户每分钟 10 次限流 |
+| `GET /admin/payments/bills`                       | `payment.bill_read`；读取当前商户最近 20 次 `PaymentBillRunSummary`                                                                                       |
+| `GET /admin/payments/bills/history?after=<runId>` | `payment.bill_read`；按创建时间及执行标识倒序返回当前商户全部执行历史，每页最多 20 条与 `nextCursor`，包含失败及未结束运行                                |
+| `GET /admin/payments/bills/:runId?after=0`        | `payment.bill_read`；返回 `PaymentBillRunDetail`，每页最多 50 条，使用 `nextCursor` 继续至空；`differenceCount` 是完整总数                                |
 
 两个新增权限默认仅超管，持有状态轮询读取权限不会自动获得日账读取权限。支付配置关闭时所有入口返回 404；商业入口或自动轮询开关关闭不阻止已授权的显式核对。创建请求返回 201 仅表示执行记录已存在，必须读取 `status`：`running` 表示结论未知，`matched` 表示该次快照没有差异，`differences` 表示待核查，`failed` 表示执行失败。相同标识仅返回原执行；同标识变更日期、商户或发起人返回 409。重跑必须使用新标识，旧记录不覆盖；中断的 `running` 不会自动重跑。
 
@@ -54,7 +57,7 @@
 
 `GET /admin/payments/bills/:runId/differences/:ordinal/reviews?after=0` 要求 `payment.bill_read`，返回 `PaymentBillReviewHistory`：当前处理状态/版本与按版本正序的历史，每页最多 50 条，`nextCursor` 为空才结束。查询元数据与当前页使用一致性快照；并发新操作会提高后续请求的当前版本，之前历史不会被覆盖。只读权限不能写入，权限撤销立即拒绝后续请求。处理备注和依据仅在授权查询中返回，不进入请求正文日志（含调试原始正文日志）。本段不提供资金修正、证据文件上传或外部告警发送入口。
 
-核对仅读取交易状态，不触发预支付、退款、关单或账务调整。账单文件及本地候选记录均有硬上限，超限或校验失败记录 `failed`，不保存部分成功；数据库失败时差异和结果整批回滚。结果只代表当次快照，不是银行、手续费或结算对账；可审计人工处理与外部告警仍待实现。
+核对仅读取交易状态，不触发预支付、退款、关单或账务调整。账单文件及本地候选记录均有硬上限，超限或校验失败记录 `failed`，不保存部分成功；数据库失败时差异和结果整批回滚。结果只代表当次快照，不是银行、手续费或结算对账。默认关闭的 Admin 巡检页可读取上述异常、日账和处理历史，并按权限显式写入人工处理；它不会发送外部告警，飞书、钉钉接入与送达验收仍待完成。
 
 ## 📋 目录
 

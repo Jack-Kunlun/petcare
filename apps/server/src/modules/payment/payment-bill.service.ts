@@ -5,6 +5,7 @@ import type {
   PaymentBillEntry,
   PaymentBillRunDetail,
   PaymentBillRunSummary,
+  PaymentBillRunPage,
 } from "@petcare/shared-types";
 import { ApiException } from "../../common/http/api-exception";
 import { ConfigService } from "../../config/config.service";
@@ -308,6 +309,41 @@ export class PaymentBillService {
         take: 20,
       })
     ).map((run) => this.summary(run));
+  }
+
+  /** Complete merchant-scoped history; a cursor never hides older failed or interrupted runs. */
+  async history(after?: string): Promise<PaymentBillRunPage> {
+    const merchantId = this.merchantId();
+    const cursor = after
+      ? await this.prisma.paymentBillRun.findFirst({
+          where: { id: after.toLowerCase(), merchantId },
+        })
+      : null;
+
+    if (after && !cursor) {
+      throw notFound();
+    }
+
+    const rows = await this.prisma.paymentBillRun.findMany({
+      where: {
+        merchantId,
+        ...(cursor
+          ? {
+              OR: [
+                { createdAt: { lt: cursor.createdAt } },
+                { createdAt: cursor.createdAt, id: { lt: cursor.id } },
+              ],
+            }
+          : {}),
+      },
+      orderBy: [{ createdAt: "desc" }, { id: "desc" }],
+      take: 21,
+    });
+
+    return {
+      list: rows.slice(0, 20).map((run) => this.summary(run)),
+      nextCursor: rows.length > 20 ? rows[19].id : null,
+    };
   }
 
   /** Stable cursor pagination over immutable differences; no truncation of the run's total count. */

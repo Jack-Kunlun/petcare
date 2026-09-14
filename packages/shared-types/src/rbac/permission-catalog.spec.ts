@@ -17,6 +17,7 @@ describe("RBAC permission catalog", () => {
     expect(byCode.size).toBe(RBAC_PERMISSION_CATALOG.length);
     expect(new Set(menuPaths).size).toBe(menuPaths.length);
     expect(menuPaths).toEqual([
+      "/payment-operations",
       "/provider-qualifications",
       "/",
       "/users",
@@ -41,6 +42,14 @@ describe("RBAC permission catalog", () => {
     expect(byCode.get("provider_qualification.review")?.impliedApiCodes).not.toContain(
       "provider_qualification.material_read",
     );
+    expect(byCode.get("payment.operations.view")?.impliedApiCodes).toEqual([
+      "payment.bill_read",
+      "payment.reconciliation_read",
+    ]);
+    expect(byCode.get("payment.operations.review")?.impliedApiCodes).toEqual([
+      "payment.bill_review",
+    ]);
+    expect(byCode.get("payment.operations.run")?.impliedApiCodes).toEqual(["payment.bill_action"]);
 
     expect(byCode.get("rbac.view")?.impliedApiCodes).toContain("rbac.permission.read");
     expect(byCode.get("rbac.view")?.parentCode).toBeNull();

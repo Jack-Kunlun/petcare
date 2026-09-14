@@ -28,6 +28,9 @@ import type {
   PaymentBillReviewEntry,
   PaymentBillReviewHistory,
   PaymentBillReviewAction,
+  PaymentOperationsPageQuery,
+  PaymentBillRunPage,
+  PaymentReconciliationPage,
 } from "@petcare/shared-types";
 import {
   IsIn,
@@ -39,6 +42,7 @@ import {
   Min,
   MaxLength,
   MinLength,
+  Matches,
 } from "class-validator";
 import type { Request } from "express";
 import { AccessTokenGuard } from "../../auth/access-token.guard";
@@ -198,6 +202,15 @@ export class CreatePaymentBillReviewDto implements CreatePaymentBillReviewReques
   evidenceReference?: string | null;
 }
 
+export class PaymentOperationsPageDto implements PaymentOperationsPageQuery {
+  @IsOptional()
+  @IsString()
+  @Matches(
+    /^(?:[a-f0-9]{32}|[a-f0-9]{8}-[a-f0-9]{4}-4[a-f0-9]{3}-[89ab][a-f0-9]{3}-[a-f0-9]{12})$/i,
+  )
+  after?: string;
+}
+
 @Controller("admin/payments")
 @UseGuards(PaymentFeatureGuard, AccessTokenGuard, PermissionGuard)
 export class AdminRefundController {
@@ -247,6 +260,20 @@ export class AdminRefundController {
   @RequirePermissions("payment.bill_read")
   recentBills(): Promise<PaymentBillRunSummary[]> {
     return this.bills.recent();
+  }
+
+  @Get("bills/history")
+  @RequirePermissions("payment.bill_read")
+  billHistory(@Query() query: PaymentOperationsPageDto): Promise<PaymentBillRunPage> {
+    return this.bills.history(query.after);
+  }
+
+  @Get("reconciliation/queue")
+  @RequirePermissions("payment.reconciliation_read")
+  reconciliationQueue(
+    @Query() query: PaymentOperationsPageDto,
+  ): Promise<PaymentReconciliationPage> {
+    return this.reconciliation.queue(query.after?.toLowerCase());
   }
 
   @Get("bills/:runId")

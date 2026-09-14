@@ -1763,4 +1763,96 @@ describe("Direct merchant payment persistence (e2e)", () => {
     expect(inserts).toBeGreaterThan(0);
     expect(await prisma.paymentBillDifference.count({ where: { runId: id } })).toBe(0);
   });
+
+  it("pages merchant-scoped admin inspection without bypassing permissions or the payment gate", async () => {
+    enabled = true;
+    const ids = Array.from({ length: 21 }, () => randomUUID());
+    const start = Date.now() + 60_000;
+
+    await prisma.paymentBillRun.createMany({
+      data: ids.map((id, index) => ({
+        id,
+        billDate: "2026-01-02",
+        merchantId: settings.merchantId,
+        requestedById: adminId,
+        createdAt: new Date(start + index * 1000),
+      })),
+    });
+    const foreign = await prisma.paymentBillRun.create({
+      data: {
+        id: randomUUID(),
+        billDate: "2026-01-02",
+        merchantId: "1900000002",
+        requestedById: adminId,
+      },
+    });
+    const first = await request(app.getHttpServer())
+      .get("/admin/payments/bills/history")
+      .auth(adminToken, { type: "bearer" })
+      .expect(200);
+    expect(first.body.data.list).toHaveLength(20);
+    expect(first.body.data.nextCursor).toBeTruthy();
+    const second = await request(app.getHttpServer())
+      .get(`/admin/payments/bills/history?after=${first.body.data.nextCursor}`)
+      .auth(adminToken, { type: "bearer" })
+      .expect(200);
+    const all = [...first.body.data.list, ...second.body.data.list].map((run) => run.id);
+
+    expect(ids.every((id) => all.includes(id))).toBe(true);
+    expect(all).not.toContain(foreign.id);
+    await request(app.getHttpServer())
+      .get(`/admin/payments/bills/history?after=${foreign.id}`)
+      .auth(adminToken, { type: "bearer" })
+      .expect(404);
+    await request(app.getHttpServer())
+      .get("/admin/payments/bills/history?after=invalid")
+      .auth(adminToken, { type: "bearer" })
+      .expect(400);
+    await request(app.getHttpServer())
+      .get("/admin/payments/bills/history")
+      .auth(ownerToken, { type: "bearer" })
+      .expect(403);
+
+    const payment = await prisma.orderPayment.findFirstOrThrow({
+      where: { merchantId: settings.merchantId },
+    });
+    const foreignPayment = await prisma.orderPayment.findFirstOrThrow({
+      where: { id: { not: payment.id }, merchantId: settings.merchantId },
+    });
+
+    await prisma.orderPayment.update({
+      where: { id: payment.id },
+      data: { reconcileIssue: "query_failed", reconcileFailures: 3 },
+    });
+    await prisma.orderPayment.update({
+      where: { id: foreignPayment.id },
+      data: { merchantId: "1900000002", reconcileIssue: "query_failed" },
+    });
+    const queue = await request(app.getHttpServer())
+      .get("/admin/payments/reconciliation/queue")
+      .auth(adminToken, { type: "bearer" })
+      .expect(200);
+
+    expect(queue.body.data.list).toEqual(
+      expect.arrayContaining([expect.objectContaining({ paymentId: payment.id })]),
+    );
+    expect(queue.body.data.list.map((issue) => issue.paymentId)).not.toContain(foreignPayment.id);
+    await request(app.getHttpServer())
+      .get("/admin/payments/reconciliation/queue?after=invalid")
+      .auth(adminToken, { type: "bearer" })
+      .expect(400);
+    await request(app.getHttpServer())
+      .get("/admin/payments/reconciliation/queue")
+      .auth(ownerToken, { type: "bearer" })
+      .expect(403);
+    enabled = false;
+    await request(app.getHttpServer())
+      .get("/admin/payments/bills/history")
+      .auth(adminToken, { type: "bearer" })
+      .expect(404);
+    await request(app.getHttpServer())
+      .get("/admin/payments/reconciliation/queue")
+      .auth(adminToken, { type: "bearer" })
+      .expect(404);
+  });
 });

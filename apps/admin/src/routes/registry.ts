@@ -11,6 +11,10 @@ const ContentPosts = lazy(() => import("../pages/ContentManagement/Posts"));
 const ContentPostDetail = lazy(() => import("../pages/ContentManagement/Posts/Detail"));
 const Dashboard = lazy(() => import("../pages/Dashboard"));
 const ProviderQualifications = lazy(() => import("../pages/ProviderQualifications"));
+const PaymentOperations = lazy(() => import("../pages/PaymentOperations"));
+const PaymentBillDetail = lazy(() => import("../pages/PaymentOperations/Detail"));
+const paymentOperationsEnabled =
+  import.meta.env.VITE_PAYMENT_OPERATIONS_ENABLED?.trim().toLowerCase() === "true";
 const qualificationWorkflowEnabled =
   import.meta.env.VITE_QUALIFICATION_WORKFLOW_ENABLED?.trim().toLowerCase() === "true";
 const Rbac = lazy(() => import("../pages/Rbac"));
@@ -123,6 +127,22 @@ export const ADMIN_ROUTE_REGISTRY: readonly AdminRouteDefinition[] = [
     menuLabel: null,
   },
   catalogMenuRoute("dashboard", "stats.view", Dashboard),
+  ...(paymentOperationsEnabled
+    ? [
+        catalogMenuRoute("payment-operations", "payment.operations.view", PaymentOperations),
+        {
+          id: "payment-bill-detail",
+          path: "/payment-operations/bills/:runId",
+          element: lazyRoute(PaymentBillDetail, "日账核对详情"),
+          menuPermission: null,
+          requiredPermissions: ["payment.operations.view"],
+          parentPath: "/payment-operations",
+          order: 0,
+          icon: null,
+          menuLabel: null,
+        },
+      ]
+    : []),
   catalogMenuRoute("users", "user.view", UserManagement, "用户列表"),
   ...(qualificationWorkflowEnabled
     ? [

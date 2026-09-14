@@ -1,6 +1,6 @@
 import { RBAC_PERMISSION_CATALOG, RBAC_PERMISSION_TYPES } from "@petcare/shared-types";
 import { isValidElement, Suspense, type ReactElement, type ReactNode } from "react";
-import { describe, expect, it } from "vitest";
+import { describe, expect, it, vi } from "vitest";
 import { LazyRouteBoundary } from "../components/LazyRouteBoundary";
 import {
   ADMIN_ROUTE_REGISTRY,
@@ -13,13 +13,41 @@ describe("ADMIN_ROUTE_REGISTRY", () => {
   const menuPermissions = RBAC_PERMISSION_CATALOG.filter(
     (permission) =>
       permission.type === RBAC_PERMISSION_TYPES.MENU &&
-      permission.code !== "provider_qualification.view",
+      !["provider_qualification.view", "payment.operations.view"].includes(permission.code),
   );
 
   it("keeps the qualification route absent in the default-closed build", () => {
     expect(ADMIN_ROUTE_REGISTRY.some((route) => route.path === "/provider-qualifications")).toBe(
       false,
     );
+  });
+
+  it("keeps payment operations menus and deep links absent by default", () => {
+    expect(ADMIN_ROUTE_REGISTRY.some((route) => route.path.startsWith("/payment-operations"))).toBe(
+      false,
+    );
+  });
+
+  it("registers protected inspection and bill-detail routes when explicitly enabled", async () => {
+    vi.stubEnv("VITE_PAYMENT_OPERATIONS_ENABLED", "true");
+    vi.resetModules();
+
+    try {
+      const { ADMIN_ROUTE_REGISTRY: enabledRoutes } = await import("./registry");
+
+      expect(enabledRoutes.find((route) => route.path === "/payment-operations")).toMatchObject({
+        menuPermission: "payment.operations.view",
+        requiredPermissions: ["payment.operations.view"],
+      });
+      expect(
+        enabledRoutes.find((route) => route.path === "/payment-operations/bills/:runId"),
+      ).toMatchObject({
+        menuPermission: null,
+        requiredPermissions: ["payment.operations.view"],
+      });
+    } finally {
+      vi.unstubAllEnvs();
+    }
   });
 
   it("registers every catalog menu path exactly once with its catalog permission", () => {

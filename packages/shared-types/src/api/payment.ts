@@ -293,3 +293,25 @@ export interface PaymentBillReviewHistory {
   /** 下一页 after 参数，末页为空。 */
   nextCursor: number | null;
 }
+
+/** 支付巡检列表的游标；日账使用 UUID，状态队列使用固定支付单号。 */
+export interface PaymentOperationsPageQuery {
+  /** 上一页返回的 nextCursor，首次查询不传。 */
+  after?: string;
+}
+
+/** 当前商户的日账运行历史，按创建时间倒序，每页最多 20 条。 */
+export interface PaymentBillRunPage {
+  /** 本页运行记录，包含失败及未结束记录。 */
+  list: PaymentBillRunSummary[];
+  /** 下一页游标；为空表示本次查询已到末页。 */
+  nextCursor: string | null;
+}
+
+/** 当前商户状态核对异常，按固定支付单号排序，每页最多 50 条。 */
+export interface PaymentReconciliationPage {
+  /** 本页当前异常；队列会随真实查单结果变化。 */
+  list: PaymentReconciliationSummary[];
+  /** 下一页游标；为空表示本次查询已到末页。 */
+  nextCursor: string | null;
+}
