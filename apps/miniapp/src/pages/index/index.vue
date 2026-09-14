@@ -8,7 +8,7 @@ import MainTabLayout from "@/components/MainTabLayout.vue";
 import PcButton from "@/components/PcButton.vue";
 import PcStatePanel from "@/components/PcStatePanel.vue";
 import { MINIAPP_TRUSTED_CARE_HERO } from "@/config/brand-assets";
-import { commercialServicesEnabled } from "@/config/features";
+import { commercialServicesEnabled, demoEnabled } from "@/config/features";
 
 definePage({
   style: {
@@ -43,6 +43,10 @@ function openPetProfiles() {
 
 function openBounties() {
   uni.navigateTo({ url: "/pages-bounty/index" });
+}
+
+function openDemo() {
+  uni.navigateTo({ url: "/pages/demo/index" });
 }
 
 function classroomCategoryLabel(article: PublicClassroomArticleListItem): string {
@@ -181,6 +185,12 @@ onShow(() => void loadHomeClassroom());
           @click="openBounties"
         >
           浏览悬赏服务
+        </PcButton>
+      </view>
+
+      <view v-if="demoEnabled" class="mx-page-horizontal mt-copy">
+        <PcButton block variant="secondary" size="action" @click="openDemo">
+          体验服务流程演示（不收款）
         </PcButton>
       </view>
 

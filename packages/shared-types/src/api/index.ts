@@ -13,3 +13,4 @@ export * from "./website-content";
 export * from "./bounty";
 export * from "./provider-qualification";
 export * from "./payment";
+export * from "./demo";

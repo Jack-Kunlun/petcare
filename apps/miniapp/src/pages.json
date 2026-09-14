@@ -48,7 +48,17 @@
         "navigationBarTextStyle": "black",
         "navigationStyle": "custom"
       }
+    },
+    // #ifdef H5 || MP-WEIXIN
+    {
+      "path": "pages/demo/index",
+      "type": "page",
+      "style": {
+        "navigationBarTextStyle": "black",
+        "navigationStyle": "custom"
+      }
     }
+    // #endif
   ],
   "subPackages": [
     {

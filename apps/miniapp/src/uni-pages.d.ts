@@ -7,6 +7,7 @@ type _LocationUrl =
   "/pages/index/index" |
   "/pages/auth/index" |
   "/pages/community/index" |
+  "/pages/demo/index" |
   "/pages/messages/index" |
   "/pages/profile/index" |
   "/pages-account/pets/index" |

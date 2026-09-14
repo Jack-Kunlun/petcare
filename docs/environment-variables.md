@@ -158,6 +158,7 @@ ALIYUN_SMS_TEMPLATE_CODE=
 | `API_BASE_URL`                     | 否   | -       | Admin API 基础 URL；默认值仅用于本地诊断 `http://localhost:8986/api`  |
 | `VITE_MINIAPP_API_BASE_URL`        | ✅   | -       | UniApp Miniapp API 基础 URL；按构建模式从 `apps/miniapp/.env.*` 加载  |
 | `VITE_COMMERCIAL_SERVICES_ENABLED` | 否   | `false` | 是否显示已验收的 Cycle 5–7 产品入口；必须与 Server 开关及发布门禁同步 |
+| `VITE_DEMO_ENABLED`                | 否   | `false` | 仅在小程序体验版展示隔离流程演示入口；不启用正式商业能力              |
 | ~~`TARO_APP_API_BASE_URL`~~        | -    | -       | ~~Taro Miniapp 请求地址；已随项目删除~~                               |
 
 `VITE_MINIAPP_API_BASE_URL` 会进入客户端构建产物，只能配置公开网关地址，不能包含凭据。生产构建必须使用
@@ -166,6 +167,7 @@ HTTPS API 网关，不能使用本地 HTTP 示例或 Docker 内网服务名。
 `COMMERCIAL_SERVICES_ENABLED`，两个开关都不能替代服务者资质或生产发布验收。
 `VITE_QUALIFICATION_WORKFLOW_ENABLED` 独立决定资格申请页面是否进入小程序构建，以及 Admin
 是否注册资格审核路由，默认 `false`。两个前端分别在构建时显式配置，Server 的资格开关必须另外启用。
+`VITE_DEMO_ENABLED` 仅影响小程序演示入口展示；正式业务、资格、支付和结算开关均不随之改变。
 
 Miniapp 的 Vite 环境根目录是 `apps/miniapp`。仓库内的 `.env.development` 和 `.env.production` 分别提供开发与
 生产构建值；开发者若要覆盖本地开发地址，应创建不提交的 `apps/miniapp/.env.development.local`。Vite 会在

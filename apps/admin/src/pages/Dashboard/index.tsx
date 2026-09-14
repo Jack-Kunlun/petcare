@@ -9,7 +9,9 @@ import {
 } from "lucide-react";
 import type { LucideIcon } from "lucide-react";
 import { Link } from "react-router-dom";
+import { useAuth } from "../../auth/auth.context";
 import { Badge, Button, PageHeader, PageShell, Panel } from "../../components/ui";
+import Demo from "../Demo";
 
 interface ManagementArea {
   title: string;
@@ -58,6 +60,8 @@ const managementAreas: ManagementArea[] = [
 ];
 
 export default function Dashboard() {
+  const { user } = useAuth();
+
   return (
     <PageShell>
       <PageHeader
@@ -70,6 +74,8 @@ export default function Dashboard() {
         eyebrow="管理工作台"
         title="管理概览"
       />
+
+      {user?.roles.includes("super_admin") && <Demo />}
 
       <section
         aria-label="当前管理能力"

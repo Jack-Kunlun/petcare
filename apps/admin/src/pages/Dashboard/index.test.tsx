@@ -1,7 +1,13 @@
 import { render, screen } from "@testing-library/react";
 import { MemoryRouter } from "react-router-dom";
-import { describe, expect, it } from "vitest";
+import { describe, expect, it, vi } from "vitest";
 import Dashboard from ".";
+
+const auth = vi.hoisted(() => ({ roles: [] as string[] }));
+
+vi.mock("../../auth/auth.context", () => ({
+  useAuth: () => ({ user: { roles: auth.roles } }),
+}));
 
 describe("Dashboard", () => {
   it("只展示当前真实管理能力及对应入口", () => {
@@ -34,6 +40,25 @@ describe("Dashboard", () => {
     expect(screen.queryByText("本月成交额")).not.toBeInTheDocument();
     expect(screen.queryByText("待审核宠托师")).not.toBeInTheDocument();
     expect(screen.queryByText(/本地个人版|可本地验证|当前范围已收窄/)).not.toBeInTheDocument();
+    expect(screen.queryByRole("region", { name: "服务流程演示" })).not.toBeInTheDocument();
+  });
+
+  it("shows the demonstration entry only to super administrators", () => {
+    auth.roles = ["super_admin"];
+
+    try {
+      render(
+        <MemoryRouter>
+          <Dashboard />
+        </MemoryRouter>,
+      );
+
+      expect(screen.getByRole("region", { name: "服务流程演示" })).toBeInTheDocument();
+      expect(screen.getByRole("textbox", { name: /小程序演示编号/ })).toBeInTheDocument();
+      expect(screen.getByText(/不产生真实订单、资金、账务或服务约定/)).toBeInTheDocument();
+    } finally {
+      auth.roles = [];
+    }
   });
 
   it("applies keyboard and pointer states to dashboard actions", () => {

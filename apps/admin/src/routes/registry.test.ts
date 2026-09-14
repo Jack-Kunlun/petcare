@@ -28,6 +28,10 @@ describe("ADMIN_ROUTE_REGISTRY", () => {
     );
   });
 
+  it("keeps the process demonstration on the existing dashboard URL", () => {
+    expect(ADMIN_ROUTE_REGISTRY.some((route) => route.path === "/demo")).toBe(false);
+  });
+
   it("registers protected inspection and bill-detail routes when explicitly enabled", async () => {
     vi.stubEnv("VITE_PAYMENT_OPERATIONS_ENABLED", "true");
     vi.resetModules();

@@ -16,6 +16,11 @@ on:
         description: "微信后台版本备注"
         required: true
         default: "GitHub Actions 手动上传"
+      demo:
+        description: "仅体验版构建展示隔离流程演示入口"
+        required: true
+        type: boolean
+        default: false
 
 permissions:
   contents: read
@@ -77,6 +82,7 @@ jobs:
       WECHAT_APP_ID: wx3bdad4ab652f0d1d
       MP_VERSION: ${{ inputs.version }}
       MP_DESC: ${{ inputs.desc }}
+      VITE_DEMO_ENABLED: ${{ inputs.demo }}
     steps:
       - name: 初始化 runner 临时目录
         shell: bash
