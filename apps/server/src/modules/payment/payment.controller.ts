@@ -6,6 +6,9 @@ import {
   HttpCode,
   Injectable,
   Param,
+  Query,
+  DefaultValuePipe,
+  ParseIntPipe,
   ParseUUIDPipe,
   Post,
   RawBodyRequest,
@@ -18,8 +21,11 @@ import type {
   OrderPrepayResponse,
   OrderRefundSummary,
   PaymentReconciliationSummary,
+  CreatePaymentBillRunRequest,
+  PaymentBillRunSummary,
+  PaymentBillRunDetail,
 } from "@petcare/shared-types";
-import { IsString, MaxLength, MinLength } from "class-validator";
+import { IsString, IsUUID, MaxLength, MinLength } from "class-validator";
 import type { Request } from "express";
 import { AccessTokenGuard } from "../../auth/access-token.guard";
 import type { AccessTokenPayload } from "../../auth/auth.types";
@@ -29,6 +35,7 @@ import { ProfileCompleteGuard } from "../../auth/profile-complete.guard";
 import { ApiException } from "../../common/http/api-exception";
 import { ConfigService } from "../../config/config.service";
 import { RedisService } from "../../config/redis.service";
+import { PaymentBillService } from "./payment-bill.service";
 import { PaymentReconciliationService } from "./payment-reconciliation.service";
 import { PaymentService } from "./payment.service";
 import { RefundService } from "./refund.service";
@@ -143,6 +150,16 @@ export class CreateOrderRefundDto implements CreateOrderRefundRequest {
   reason: string;
 }
 
+export class CreatePaymentBillRunDto implements CreatePaymentBillRunRequest {
+  @IsUUID("4")
+  idempotencyKey: string;
+
+  @IsString()
+  @MinLength(10)
+  @MaxLength(10)
+  billDate: string;
+}
+
 @Controller("admin/payments")
 @UseGuards(PaymentFeatureGuard, AccessTokenGuard, PermissionGuard)
 export class AdminRefundController {
@@ -150,7 +167,34 @@ export class AdminRefundController {
     private readonly refunds: RefundService,
     private readonly redis: RedisService,
     private readonly reconciliation: PaymentReconciliationService,
+    private readonly bills: PaymentBillService,
   ) {}
+
+  @Post("bills")
+  @RequirePermissions("payment.bill_action")
+  async runBill(
+    @Req() req: AuthRequest,
+    @Body() input: CreatePaymentBillRunDto,
+  ): Promise<PaymentBillRunSummary> {
+    await limit(this.redis, req.user.sub);
+
+    return this.bills.run(req.user.sub, input);
+  }
+
+  @Get("bills")
+  @RequirePermissions("payment.bill_read")
+  recentBills(): Promise<PaymentBillRunSummary[]> {
+    return this.bills.recent();
+  }
+
+  @Get("bills/:runId")
+  @RequirePermissions("payment.bill_read")
+  bill(
+    @Param("runId", new ParseUUIDPipe({ version: "4" })) id: string,
+    @Query("after", new DefaultValuePipe(0), ParseIntPipe) after: number,
+  ): Promise<PaymentBillRunDetail> {
+    return this.bills.detail(id, after);
+  }
 
   @Get("reconciliation")
   @RequirePermissions("payment.reconciliation_read")

@@ -122,3 +122,108 @@ export interface PaymentReconciliationSummary {
   /** 最近成功核对支付结果的时间，不代表退款查询时间。 */
   paymentCheckedAt: string | null;
 }
+
+/** 显式发起日账核对；重试同一请求不得重复下载或覆盖旧结果。 */
+export interface CreatePaymentBillRunRequest {
+  /** 本次请求的 UUID；重新核对使用新 UUID。 */
+  idempotencyKey: string;
+  /** 微信中国时区账单日期 YYYY-MM-DD，只允许历史日期。 */
+  billDate: string;
+}
+
+/** 核对执行状态；matched 仅表示指定快照与账单匹配，不表示结算完成。 */
+export type PaymentBillRunStatus =
+  /** 正在处理；进程中断也可能保留此状态，不可当成成功。 */
+  | "running"
+  /** 本次快照未发现差异。 */
+  | "matched"
+  /** 存在需核查的差异。 */
+  | "differences"
+  /** 下载、校验或持久化失败，没有成功核对结论。 */
+  | "failed";
+
+/** 只读日账执行摘要。 */
+export interface PaymentBillRunSummary {
+  /** 执行标识，也是原请求幂等键。 */
+  id: string;
+  /** 中国时区账单日期。 */
+  billDate: string;
+  /** 发起核对的管理员标识。 */
+  requestedById: string;
+  /** 本次执行状态。 */
+  status: PaymentBillRunStatus;
+  /** 已校验文件摘要；下载失败时为空。 */
+  fileSha256: string | null;
+  /** 账单明细数；未完成核对时为空。 */
+  rowCount: number | null;
+  /** 本次读取的本地支付单数，含关联退款。 */
+  localCount: number | null;
+  /** 差异总数，不受查询分页影响。 */
+  differenceCount: number;
+  /** 本地一致性快照时间。 */
+  snapshotAt: string | null;
+  /** 固定失败分类，不含提供方原始信息。 */
+  failureCode: string | null;
+  /** 请求持久化时间。 */
+  createdAt: string;
+  /** 执行结束时间；未知时为空。 */
+  finishedAt: string | null;
+}
+
+/** 仅用于差异核查的最小交易快照，不包含付款人账户。 */
+export interface PaymentBillEntry {
+  /** 历史业务事件类型 SUCCESS 或 REFUND，不是当前退款处理状态。 */
+  eventType: string;
+  /** 原交易渠道；当前本地订单固定 JSAPI。 */
+  tradeType: string;
+  /** 子商户号；普通商户本地记录固定 0。 */
+  subMerchantId: string;
+  /** 冻结交易币种。 */
+  currency: string;
+  /** 商户支付单号。 */
+  paymentId: string;
+  /** 商户退款单号；支付行为空。 */
+  refundId: string | null;
+  /** 微信原支付交易号；本地未确认时为空。 */
+  transactionId: string | null;
+  /** 微信退款号；支付行或本地未确认时为空。 */
+  providerRefundId: string | null;
+  /** 该笔交易使用的 AppID。 */
+  appId: string;
+  /** 支付总额或申请退款额，整数分，不是折扣后的应结金额。 */
+  amountCents: number;
+  /** 支付成功或退款受理时刻；本地未知时为空。 */
+  occurredAt: string | null;
+}
+
+/** 日账差异，只供人工核查，不能据此执行资金操作。 */
+export interface PaymentBillDifferenceSummary {
+  /** 执行内从 1 开始的顺序号，用于稳定分页。 */
+  ordinal: number;
+  /** 无本地记录、无账单记录、字段不匹配或退款日期未知。 */
+  code:
+    /** 账单有记录，本地无对应支付或退款单。 */
+    | "local_missing"
+    /** 本地已确认该日事件，账单无对应记录。 */
+    | "provider_missing"
+    /** 双方记录的标识、金额、时间或渠道不匹配。 */
+    | "fields_mismatch"
+    /** 退款受理时间未知，无法确定是否属于该日。 */
+    | "refund_time_unknown";
+  /** 不匹配字段名称；无记录类差异为空数组。 */
+  fields: string[];
+  /** 核对时本地记录的最小快照。 */
+  local: PaymentBillEntry | null;
+  /** 该账单行的最小快照。 */
+  provider: PaymentBillEntry | null;
+}
+
+/** 每页最多 50 项差异。 */
+export interface PaymentBillRunDetail {
+  /** 包含全量计数的执行摘要。 */
+  run: PaymentBillRunSummary;
+  /** 当前页差异。 */
+  differences: PaymentBillDifferenceSummary[];
+  /** 下一页 after 参数；最后一页为空。 */
+  nextCursor: number | null;
+}

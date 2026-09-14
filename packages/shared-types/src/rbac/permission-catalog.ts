@@ -36,6 +36,28 @@ export interface RbacPermissionDefinition {
 /** The code-defined permission catalog enabled by the current personal-version runtime. */
 export const RBAC_PERMISSION_CATALOG: readonly RbacPermissionDefinition[] = [
   {
+    code: "payment.bill_read",
+    type: "api",
+    label: "查看微信日账核对记录",
+    module: "payment",
+    path: null,
+    parentCode: null,
+    order: 50,
+    icon: null,
+    impliedApiCodes: [],
+  },
+  {
+    code: "payment.bill_action",
+    type: "api",
+    label: "发起微信日账核对",
+    module: "payment",
+    path: null,
+    parentCode: null,
+    order: 40,
+    icon: null,
+    impliedApiCodes: [],
+  },
+  {
     code: "payment.reconciliation_read",
     type: "api",
     label: "查看支付状态核对异常",

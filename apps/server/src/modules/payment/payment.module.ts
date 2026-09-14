@@ -1,5 +1,6 @@
 import { Module } from "@nestjs/common";
 import { AuthModule } from "../../auth/auth.module";
+import { PaymentBillService } from "./payment-bill.service";
 import { PaymentReconciliationService } from "./payment-reconciliation.service";
 import {
   AdminRefundController,
@@ -19,6 +20,7 @@ import { WechatPayClient } from "./wechat-pay.client";
     RefundService,
     PaymentFeatureGuard,
     PaymentReconciliationService,
+    PaymentBillService,
   ],
   exports: [WechatPayClient],
 })

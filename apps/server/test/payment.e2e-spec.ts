@@ -1,5 +1,12 @@
 import { spawnSync } from "node:child_process";
-import { createCipheriv, generateKeyPairSync, randomBytes, randomUUID, sign } from "node:crypto";
+import {
+  createCipheriv,
+  createHash,
+  generateKeyPairSync,
+  randomBytes,
+  randomUUID,
+  sign,
+} from "node:crypto";
 import { mkdtempSync, rmSync, writeFileSync } from "node:fs";
 import { tmpdir } from "node:os";
 import path from "node:path";
@@ -12,6 +19,7 @@ import { AppModule } from "../src/app.module";
 import { ConfigService } from "../src/config/config.service";
 import { RedisService } from "../src/config/redis.service";
 import { PrismaService } from "../src/prisma/prisma.service";
+import type { Prisma } from "../src/generated/prisma/client";
 import { PaymentReconciliationService } from "../src/modules/payment/payment-reconciliation.service";
 import { PaymentService } from "../src/modules/payment/payment.service";
 import { RefundService } from "../src/modules/payment/refund.service";
@@ -1062,5 +1070,397 @@ describe("Direct merchant payment persistence (e2e)", () => {
           options.method === "GET" && String(url).endsWith(`/refunds/${refund.id}`),
       ),
     ).toBe(true);
+  });
+  function billRequest(
+    billDate: string,
+    idempotencyKey: string = randomUUID(),
+    token = adminToken,
+  ) {
+    return request(app.getHttpServer())
+      .post("/admin/payments/bills")
+      .auth(token, { type: "bearer" })
+      .send({ billDate, idempotencyKey });
+  }
+
+  function billFile(rows: string[][]) {
+    const header =
+      "交易时间,公众账号ID,商户号,特约商户号,设备号,微信订单号,商户订单号,用户标识,交易类型,交易状态,付款银行,货币种类,应结订单金额,代金券金额,微信退款单号,商户退款单号,退款金额,充值券退款金额,退款类型,退款状态,商品名称,商户数据包,手续费,费率,订单金额,申请退款金额,费率备注";
+    const summary = [
+      String(rows.length),
+      ...[12, 16, 17, 22, 24, 25].map((index) =>
+        (rows.reduce((sum, row) => sum + Math.round(Number(row[index]) * 100), 0) / 100).toFixed(2),
+      ),
+    ];
+    return Buffer.from(
+      [
+        header,
+        ...rows.map((row) => row.map((value) => `\`${value}`).join(",")),
+        "总交易单数,应结订单总金额,退款总金额,充值券退款总金额,手续费总金额,订单总金额,申请退款总金额",
+        summary.map((value) => `\`${value}`).join(","),
+      ].join("\n") + "\n",
+    );
+  }
+
+  function billRow(
+    date: string,
+    paymentId: string,
+    transactionId: string,
+    refundId?: string,
+    providerRefundId?: string,
+  ) {
+    return [
+      `${date} 10:00:00`,
+      settings.appId,
+      settings.merchantId,
+      "0",
+      "",
+      transactionId,
+      paymentId,
+      "private-bill-openid",
+      "JSAPI",
+      refundId ? "REFUND" : "SUCCESS",
+      "OTHERS",
+      "CNY",
+      refundId ? "0.00" : "12.34",
+      "0.00",
+      providerRefundId ?? "0",
+      refundId ?? "0",
+      refundId ? "12.34" : "0.00",
+      "0.00",
+      refundId ? "ORIGINAL" : "",
+      refundId ? "PROCESSING" : "",
+      "private-bill-description",
+      "private-bill-attachment",
+      "0.00",
+      "0.00%",
+      refundId ? "0.00" : "12.34",
+      refundId ? "12.34" : "0.00",
+      "",
+    ];
+  }
+
+  function serveBill(bytes: Buffer, hash = createHash("sha1").update(bytes).digest("hex")) {
+    fetchMock.mockResolvedValueOnce(
+      providerResponse({
+        hash_type: "SHA1",
+        hash_value: hash,
+        download_url: "https://api.mch.weixin.qq.com/v3/billdownload/file?token=private-bill-token",
+      }),
+    );
+    fetchMock.mockResolvedValueOnce(new Response(Buffer.from(bytes)));
+  }
+
+  async function historicBillPayment(date: string) {
+    const value = await paidCancelledOrder();
+    // Historical timestamps exist only in this disposable schema, never in runtime seed data.
+    const payment = await prisma.orderPayment.update({
+      where: { id: value.payment.paymentId },
+      data: { paidAt: new Date(`${date}T10:00:00+08:00`) },
+    });
+    return { ...value, record: payment };
+  }
+
+  it("authorizes explicit bill runs, deduplicates concurrent requests and matches historical refunds without changing money", async () => {
+    const date = "2026-01-02";
+    await request(app.getHttpServer())
+      .post("/admin/payments/bills")
+      .send({ billDate: date, idempotencyKey: randomUUID() })
+      .expect(401);
+    await billRequest(date, randomUUID(), ownerToken).expect(403);
+    await billRequest("2026-02-30").expect(400);
+    await billRequest(date, "not-a-uuid").expect(400);
+    const value = await historicBillPayment(date);
+    const refund = await prisma.orderRefund.create({
+      data: {
+        id: randomBytes(16).toString("hex"),
+        paymentId: value.record.id,
+        amountCents: 1234,
+        requestedById: adminId,
+        reason: "Isolated historical refund",
+        status: "succeeded",
+        providerRefundId: randomBytes(16).toString("hex"),
+        acceptedAt: new Date(`${date}T10:00:00+08:00`),
+        succeededAt: new Date("2026-01-03T10:00:00+08:00"),
+      },
+    });
+    await prisma.orderPayment.update({
+      where: { id: value.record.id },
+      data: { status: "refunded" },
+    });
+    const before = await prisma.orderPayment.findUniqueOrThrow({
+      where: { id: value.record.id },
+      include: { refund: true },
+    });
+    const bytes = billFile([
+      billRow(date, value.record.id, value.record.transactionId!),
+      billRow(
+        date,
+        value.record.id,
+        value.record.transactionId!,
+        refund.id,
+        refund.providerRefundId!,
+      ),
+    ]);
+    fetchMock.mockReset();
+    serveBill(bytes);
+    const id = randomUUID();
+    commercial = false;
+    const attempts = await Promise.all([billRequest(date, id), billRequest(date, id)]);
+    expect(attempts.map((result) => result.status)).toEqual([201, 201]);
+    expect(fetchMock).toHaveBeenCalledTimes(2);
+    await billRequest(date, id)
+      .expect(201)
+      .expect((r) =>
+        expect(r.body.data).toMatchObject({
+          id,
+          status: "matched",
+          rowCount: 2,
+          localCount: 1,
+          differenceCount: 0,
+        }),
+      );
+    await billRequest("2026-01-03", id).expect(409);
+    await request(app.getHttpServer())
+      .get(`/admin/payments/bills/${id}`)
+      .auth(ownerToken, { type: "bearer" })
+      .expect(403);
+    await request(app.getHttpServer())
+      .get(`/admin/payments/bills/${id}`)
+      .auth(adminToken, { type: "bearer" })
+      .expect(200)
+      .expect((r) =>
+        expect(r.body.data).toMatchObject({
+          differences: [],
+          nextCursor: null,
+          run: { status: "matched", fileSha256: createHash("sha256").update(bytes).digest("hex") },
+        }),
+      );
+    expect(
+      await prisma.orderPayment.findUniqueOrThrow({
+        where: { id: value.record.id },
+        include: { refund: true },
+      }),
+    ).toEqual(before);
+    expect(await prisma.paymentBillRun.count({ where: { id } })).toBe(1);
+    const readPermission = await prisma.permission.upsert({
+      where: { permissionCode: "payment.bill_read" },
+      update: {},
+      create: {
+        permissionCode: "payment.bill_read",
+        permissionName: "Bill read",
+        module: "payment",
+        type: "api",
+      },
+    });
+    const reader = await prisma.user.create({
+      data: {
+        nickname: "Isolated bill reader",
+        roles: {
+          create: {
+            role: {
+              create: {
+                roleName: `bill_reader_${id}`,
+                permissions: { create: { permissionId: readPermission.id } },
+              },
+            },
+          },
+        },
+      },
+    });
+    const readerToken = new JwtService({ secret: config.jwtSecret }).sign({
+      sub: reader.id,
+      sid: randomUUID(),
+      sessionVersion: 0,
+      type: "access",
+    });
+    await request(app.getHttpServer())
+      .get(`/admin/payments/bills/${id}`)
+      .auth(readerToken, { type: "bearer" })
+      .expect(200);
+    await billRequest(date, randomUUID(), readerToken).expect(403);
+    await prisma.role.update({
+      where: { roleName: `bill_reader_${id}` },
+      data: { isActive: false },
+    });
+    await request(app.getHttpServer())
+      .get(`/admin/payments/bills/${id}`)
+      .auth(readerToken, { type: "bearer" })
+      .expect(403);
+    const foreign = await prisma.paymentBillRun.create({
+      data: { id: randomUUID(), billDate: date, merchantId: "1900000002", requestedById: adminId },
+    });
+    await request(app.getHttpServer())
+      .get(`/admin/payments/bills/${foreign.id}`)
+      .auth(adminToken, { type: "bearer" })
+      .expect(404);
+    enabled = false;
+    await billRequest(date).expect(404);
+    await request(app.getHttpServer())
+      .get(`/admin/payments/bills/${id}`)
+      .auth(adminToken, { type: "bearer" })
+      .expect(404);
+    expect(fetchMock).toHaveBeenCalledTimes(2);
+  });
+
+  it("persists two-way differences and unknown refund coverage with stable pagination and immutable rerun history", async () => {
+    const date = "2026-01-04";
+    const value = await historicBillPayment(date);
+    const missing = await historicBillPayment(date);
+    await prisma.orderRefund.create({
+      data: {
+        id: randomBytes(16).toString("hex"),
+        paymentId: value.record.id,
+        amountCents: 1234,
+        requestedById: adminId,
+        reason: "Isolated uncertain refund",
+        createdAt: new Date(`${date}T11:00:00+08:00`),
+      },
+    });
+    const mismatched = billRow(date, value.record.id, value.record.transactionId!);
+    mismatched[12] = "13.00";
+    mismatched[24] = "13.00";
+    const external = Array.from({ length: 51 }, (_, index) =>
+      billRow(date, `external_pay_${index}`, `external_tx_${index}`),
+    );
+    const bytes = billFile([mismatched, ...external]);
+    fetchMock.mockReset();
+    serveBill(bytes);
+    const id = randomUUID();
+    await billRequest(date, id)
+      .expect(201)
+      .expect((r) =>
+        expect(r.body.data).toMatchObject({ status: "differences", differenceCount: 54 }),
+      );
+    const first = await request(app.getHttpServer())
+      .get(`/admin/payments/bills/${id}`)
+      .auth(adminToken, { type: "bearer" })
+      .expect(200);
+    expect(first.body.data.differences).toHaveLength(50);
+    expect(first.body.data.nextCursor).toBe(50);
+    const second = await request(app.getHttpServer())
+      .get(`/admin/payments/bills/${id}?after=50`)
+      .auth(adminToken, { type: "bearer" })
+      .expect(200);
+    expect(second.body.data.differences).toHaveLength(4);
+    expect(second.body.data.nextCursor).toBeNull();
+    const all = [...first.body.data.differences, ...second.body.data.differences];
+    expect(all).toEqual(
+      expect.arrayContaining([
+        expect.objectContaining({
+          code: "fields_mismatch",
+          fields: ["amountCents"],
+          local: expect.objectContaining({ amountCents: 1234 }),
+          provider: expect.objectContaining({ amountCents: 1300 }),
+        }),
+        expect.objectContaining({
+          code: "provider_missing",
+          local: expect.objectContaining({ paymentId: missing.record.id }),
+        }),
+        expect.objectContaining({ code: "refund_time_unknown" }),
+      ]),
+    );
+    expect(new Set(all.map((row) => row.ordinal)).size).toBe(54);
+    expect(JSON.stringify(all)).not.toContain("private-bill");
+    await request(app.getHttpServer())
+      .get(`/admin/payments/bills/${id}?after=-1`)
+      .auth(adminToken, { type: "bearer" })
+      .expect(400);
+    await request(app.getHttpServer())
+      .get(`/admin/payments/bills/${id}?after=2147483648`)
+      .auth(adminToken, { type: "bearer" })
+      .expect(400);
+    serveBill(billFile([]));
+    await billRequest(date).expect(201);
+    const unchanged = await request(app.getHttpServer())
+      .get(`/admin/payments/bills/${id}`)
+      .auth(adminToken, { type: "bearer" })
+      .expect(200);
+    expect(unchanged.body).toEqual(first.body);
+    await request(app.getHttpServer())
+      .get("/admin/payments/bills")
+      .auth(adminToken, { type: "bearer" })
+      .expect(200)
+      .expect((r) => expect(r.body.data.some((run) => run.id === id)).toBe(true));
+  });
+
+  it("retains failed and interrupted runs without false matching or silent retries", async () => {
+    const date = "2026-01-01";
+    fetchMock.mockReset();
+    const id = randomUUID();
+    serveBill(billFile([]), "0".repeat(40));
+    await billRequest(date, id)
+      .expect(201)
+      .expect((r) =>
+        expect(r.body.data).toMatchObject({
+          status: "failed",
+          failureCode: "PAYMENT_BILL_UNAVAILABLE",
+          snapshotAt: null,
+          rowCount: null,
+        }),
+      );
+    await billRequest(date, id)
+      .expect(201)
+      .expect((r) => expect(r.body.data.status).toBe("failed"));
+    expect(fetchMock).toHaveBeenCalledTimes(2);
+    expect(await prisma.paymentBillDifference.count({ where: { runId: id } })).toBe(0);
+    const interrupted = randomUUID();
+    await prisma.paymentBillRun.create({
+      data: {
+        id: interrupted,
+        billDate: date,
+        merchantId: settings.merchantId,
+        requestedById: adminId,
+      },
+    });
+    await billRequest(date, interrupted)
+      .expect(201)
+      .expect((r) => expect(r.body.data.status).toBe("running"));
+    expect(fetchMock).toHaveBeenCalledTimes(2);
+    serveBill(billFile([]));
+    await billRequest(date)
+      .expect(201)
+      .expect((r) => expect(r.body.data.status).toBe("matched"));
+    expect(fetchMock.mock.calls.every(([, options]) => options.method === "GET")).toBe(true);
+  });
+
+  it("rolls back inserted differences when finalizing a run fails", async () => {
+    const date = "2026-01-07";
+    const id = randomUUID();
+    fetchMock.mockReset();
+    serveBill(billFile([billRow(date, "atomic_external", "atomic_transaction")]));
+    const original = prisma.$transaction.bind(prisma);
+    let inserts = 0;
+    const transaction = jest.spyOn(prisma, "$transaction").mockImplementationOnce(((
+      operation: (tx: Prisma.TransactionClient) => Promise<unknown>,
+      options: { isolationLevel: "RepeatableRead"; timeout: number },
+    ) =>
+      original(async (tx) => {
+        const createMany = jest.spyOn(tx.paymentBillDifference, "createMany");
+        const finalize = jest
+          .spyOn(tx.paymentBillRun, "update")
+          .mockRejectedValueOnce(new Error("isolated finalization failure"));
+        try {
+          return await operation(tx);
+        } finally {
+          inserts = createMany.mock.calls.length;
+          createMany.mockRestore();
+          finalize.mockRestore();
+        }
+      }, options)) as typeof prisma.$transaction);
+    try {
+      await billRequest(date, id)
+        .expect(201)
+        .expect((r) =>
+          expect(r.body.data).toMatchObject({
+            status: "failed",
+            differenceCount: 0,
+            snapshotAt: null,
+          }),
+        );
+    } finally {
+      transaction.mockRestore();
+    }
+    expect(inserts).toBeGreaterThan(0);
+    expect(await prisma.paymentBillDifference.count({ where: { runId: id } })).toBe(0);
   });
 });

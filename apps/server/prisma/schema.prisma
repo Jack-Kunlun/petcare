@@ -101,6 +101,7 @@ model User {
   websiteContentAuditLogs           WebsiteContentAuditLog[]           @relation("WebsiteContentAuditOperator")
   /// 管理员发起的原路退款，保留操作责任。
   refundRequests                    OrderRefund[]
+  paymentBillRuns                   PaymentBillRun[]
 
   @@index([phone])
   @@index([userType])
@@ -448,6 +449,49 @@ model OrderRefund {
 
   @@index([status, createdAt])
   @@map("order_refunds")
+}
+
+/// 每次日账核对独立保存，旧结果不被重新核对覆盖。
+model PaymentBillRun {
+  id              String                  @id
+  merchantId      String                  @map("merchant_id")
+  billDate        String                  @map("bill_date")
+  requestedById   String                  @map("requested_by_id")
+  status          PaymentBillRunStatus    @default(running)
+  fileSha256      String?                 @map("file_sha256")
+  rowCount        Int?                    @map("row_count")
+  localCount      Int?                    @map("local_count")
+  differenceCount Int                     @default(0) @map("difference_count")
+  snapshotAt      DateTime?               @map("snapshot_at")
+  failureCode     String?                 @map("failure_code")
+  createdAt       DateTime                @default(now()) @map("created_at")
+  finishedAt      DateTime?               @map("finished_at")
+  requestedBy     User                    @relation(fields: [requestedById], references: [id], onDelete: Restrict)
+  differences     PaymentBillDifference[]
+
+  @@index([merchantId, createdAt])
+  @@map("payment_bill_runs")
+}
+
+enum PaymentBillRunStatus {
+  running
+  matched
+  differences
+  failed
+}
+
+/// 不含账户、原始账单或下载令牌的差异快照，仅供核查。
+model PaymentBillDifference {
+  runId    String         @map("run_id")
+  ordinal  Int
+  code     String
+  fields   String[]
+  local    Json?
+  provider Json?
+  run      PaymentBillRun @relation(fields: [runId], references: [id], onDelete: Restrict)
+
+  @@id([runId, ordinal])
+  @@map("payment_bill_differences")
 }
 
 model OrderFeeSnapshot {
