@@ -1,6 +1,9 @@
 # ===== 多阶段构建：后台管理系统 =====
 FROM node:24.19-alpine AS admin-builder
 
+ARG VITE_QUALIFICATION_WORKFLOW_ENABLED=false
+ENV VITE_QUALIFICATION_WORKFLOW_ENABLED=$VITE_QUALIFICATION_WORKFLOW_ENABLED
+
 WORKDIR /app
 
 COPY package.json pnpm-workspace.yaml pnpm-lock.yaml ./

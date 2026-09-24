@@ -131,6 +131,8 @@ jobs:
           tags: ${{ needs.resolve.outputs.registry }}/${{ matrix.service }}:${{ needs.resolve.outputs.image_tag }}
           cache-from: type=gha,scope=${{ matrix.service }}
           cache-to: type=gha,mode=max,scope=${{ matrix.service }}
+          build-args: |
+            VITE_QUALIFICATION_WORKFLOW_ENABLED=true
 
       - name: 打包 ${{ matrix.service }}
         shell: bash
@@ -230,7 +232,7 @@ jobs:
       TENCENT_COS_PUBLIC_BASE_URL: ${{ vars.TENCENT_COS_PUBLIC_BASE_URL }}
       TENCENT_COS_SECRET_ID: ${{ secrets.TENCENT_COS_SECRET_ID }}
       TENCENT_COS_SECRET_KEY: ${{ secrets.TENCENT_COS_SECRET_KEY }}
-      QUALIFICATION_WORKFLOW_ENABLED: "false"
+      QUALIFICATION_WORKFLOW_ENABLED: "true"
       QUALIFICATION_STORAGE_PROVIDER: ${{ vars.QUALIFICATION_STORAGE_PROVIDER || 'disabled' }}
       TARGET: ${{ inputs.target }}
       INITIALIZE_DATA: ${{ inputs.initialize_data }}
@@ -310,8 +312,8 @@ jobs:
           [[ "$TENCENT_COS_PUBLIC_BASE_URL" =~ ^https://[a-zA-Z0-9.-]+(:[0-9]+)?(/[^[:space:]?#]*)?$ ]]
           [[ "$TENCENT_COS_SECRET_ID" =~ ^[a-zA-Z0-9_+/=-]{16,128}$ ]]
           [[ "$TENCENT_COS_SECRET_KEY" =~ ^[a-zA-Z0-9_+/=-]{16,128}$ ]]
-          [[ "$QUALIFICATION_WORKFLOW_ENABLED" == false ]]
-          [[ "$QUALIFICATION_STORAGE_PROVIDER" == disabled || "$QUALIFICATION_STORAGE_PROVIDER" == tencent-cos ]]
+          [[ "$QUALIFICATION_WORKFLOW_ENABLED" == true ]]
+          [[ "$QUALIFICATION_STORAGE_PROVIDER" == tencent-cos ]]
 
           case "$TARGET" in
             all) IMAGE_SERVICES=(server admin website) ;;

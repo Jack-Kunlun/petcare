@@ -83,6 +83,8 @@ jobs:
       MP_VERSION: ${{ inputs.version }}
       MP_DESC: ${{ inputs.desc }}
       VITE_DEMO_ENABLED: ${{ inputs.demo }}
+      VITE_COMMERCIAL_SERVICES_ENABLED: "true"
+      VITE_QUALIFICATION_WORKFLOW_ENABLED: "true"
     steps:
       - name: 初始化 runner 临时目录
         shell: bash

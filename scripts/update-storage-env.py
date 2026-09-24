@@ -75,10 +75,12 @@ def read_updates(path: Path) -> dict[str, str]:
         ):
             fail("TENCENT_COS_PUBLIC_BASE_URL must be a credential-free HTTPS URL")
 
-    if updates["QUALIFICATION_WORKFLOW_ENABLED"] != "false":
-        fail("QUALIFICATION_WORKFLOW_ENABLED must remain false")
     if updates["QUALIFICATION_STORAGE_PROVIDER"] not in ("disabled", "tencent-cos"):
         fail("QUALIFICATION_STORAGE_PROVIDER has an invalid value")
+    if updates["QUALIFICATION_WORKFLOW_ENABLED"] not in ("true", "false"):
+        fail("QUALIFICATION_WORKFLOW_ENABLED must be true or false")
+    if updates["QUALIFICATION_WORKFLOW_ENABLED"] == "true" and updates["QUALIFICATION_STORAGE_PROVIDER"] != "tencent-cos":
+        fail("QUALIFICATION_WORKFLOW_ENABLED=true requires QUALIFICATION_STORAGE_PROVIDER=tencent-cos")
     return updates
 
 
