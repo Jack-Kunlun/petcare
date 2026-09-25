@@ -11,6 +11,8 @@ import { WechatPayClient } from "./wechat-pay.client";
 const conflict = () => new ApiException("PAYMENT_STATE_CONFLICT", "当前订单不允许支付", 409);
 const invalidResult = () => new ApiException("PAYMENT_RESULT_INVALID", "支付结果校验失败", 400);
 const notFound = () => new ApiException("PAYMENT_NOT_FOUND", "支付单不存在", 404);
+const SIMULATED_MERCHANT_ID = "SIMULATED";
+const SIMULATED_APP_ID = "SIMULATED";
 
 @Injectable()
 export class PaymentService {
@@ -28,7 +30,51 @@ export class PaymentService {
       throw notFound();
     }
 
-    const payment = await this.prisma
+    const payment = await this.createPendingPayment(
+      ownerId,
+      orderId,
+      settings.merchantId,
+      settings.appId,
+    );
+
+    // Network I/O must not hold database locks. An uncertain response leaves the payment pending.
+    const parameters = await this.wechat.prepay({
+      orderNumber: payment.id,
+      amountCents: payment.amountCents,
+      openId: payment.payerOpenId,
+      description: "宠伴照护订单",
+    });
+
+    return { payment: this.summary(payment), parameters };
+  }
+
+  /** Marks a public order as simulated without calling a payment provider. */
+  async simulate(ownerId: string, orderId: string): Promise<OrderPaymentSummary> {
+    if (!this.config.paymentSimulationEnabled || this.config.wechatPay) {
+      throw notFound();
+    }
+
+    if (!this.config.commercialServicesEnabled) {
+      throw notFound();
+    }
+
+    const payment = await this.createPendingPayment(
+      ownerId,
+      orderId,
+      SIMULATED_MERCHANT_ID,
+      SIMULATED_APP_ID,
+    );
+
+    return this.summary(await this.applySimulatedResult(payment.id));
+  }
+
+  private async createPendingPayment(
+    ownerId: string,
+    orderId: string,
+    merchantId: string,
+    appId: string,
+  ): Promise<OrderPayment> {
+    return this.prisma
       .$transaction(async (tx) => {
         await this.lockOrder(tx, orderId);
         const order = await tx.order.findUnique({ where: { id: orderId } });
@@ -55,6 +101,8 @@ export class PaymentService {
           where: { id: ownerId },
           select: { openid: true },
         });
+        const payerOpenId =
+          payer?.openid ?? (merchantId === SIMULATED_MERCHANT_ID ? `simulated:${ownerId}` : null);
         const provider = await tx.user.findUnique({
           where: { id: order.providerId },
           include: { provider: true },
@@ -67,7 +115,7 @@ export class PaymentService {
           !owner ||
           owner.status !== "active" ||
           !owner.phone ||
-          !payer?.openid ||
+          !payerOpenId ||
           provider?.status !== "active" ||
           !provider.phone ||
           provider.userType !== "provider" ||
@@ -83,11 +131,12 @@ export class PaymentService {
 
         if (existing) {
           if (
-            existing.status !== "pending" ||
+            (existing.status !== "pending" &&
+              !(merchantId === SIMULATED_MERCHANT_ID && existing.status === "simulated")) ||
             existing.amountCents !== order.amount ||
-            existing.merchantId !== settings.merchantId ||
-            existing.appId !== settings.appId ||
-            existing.payerOpenId !== payer.openid
+            existing.merchantId !== merchantId ||
+            existing.appId !== appId ||
+            existing.payerOpenId !== payerOpenId
           ) {
             throw conflict();
           }
@@ -100,28 +149,46 @@ export class PaymentService {
             id: randomUUID().replaceAll("-", ""),
             orderId,
             amountCents: order.amount,
-            merchantId: settings.merchantId,
-            appId: settings.appId,
-            payerOpenId: payer.openid,
+            merchantId,
+            appId,
+            payerOpenId,
           },
         });
       })
       .catch((error: unknown) => this.databaseError(error));
+  }
 
-    // Network I/O must not hold database locks. An uncertain response leaves the payment pending.
-    const parameters = await this.wechat.prepay({
-      orderNumber: payment.id,
-      amountCents: payment.amountCents,
-      openId: payment.payerOpenId,
-      description: "宠伴照护订单",
-    });
+  private async applySimulatedResult(paymentId: string): Promise<OrderPayment> {
+    return this.prisma
+      .$transaction(async (tx) => {
+        const lookup = await tx.orderPayment.findUnique({ where: { id: paymentId } });
 
-    return { payment: this.summary(payment), parameters };
+        if (!lookup || lookup.merchantId !== SIMULATED_MERCHANT_ID) {
+          throw notFound();
+        }
+
+        await this.lockOrder(tx, lookup.orderId);
+        const payment = await tx.orderPayment.findUniqueOrThrow({ where: { id: paymentId } });
+
+        if (payment.status === "simulated") {
+          return payment;
+        }
+
+        if (payment.status !== "pending") {
+          throw conflict();
+        }
+
+        return tx.orderPayment.update({
+          where: { id: payment.id },
+          data: { status: "simulated" },
+        });
+      })
+      .catch((error: unknown) => this.databaseError(error));
   }
 
   /** Reads only the authenticated owner's persisted payment, without making a provider request. */
   async findMine(ownerId: string, orderId: string): Promise<OrderPaymentSummary> {
-    this.settings();
+    this.paymentFeatureSettings();
     const payment = await this.ownedPayment(ownerId, orderId);
 
     return this.summary(payment);
@@ -129,8 +196,12 @@ export class PaymentService {
 
   /** Reconciles an uncertain result using the original merchant number and the notification transaction. */
   async refresh(ownerId: string, orderId: string): Promise<OrderPaymentSummary> {
-    this.settings();
+    this.paymentFeatureSettings();
     const payment = await this.ownedPayment(ownerId, orderId);
+
+    if (payment.status === "simulated") {
+      return this.summary(payment);
+    }
 
     return this.reconcile(payment.id);
   }
@@ -162,6 +233,16 @@ export class PaymentService {
     const settings = this.config.wechatPay;
 
     if (!settings) {
+      throw notFound();
+    }
+
+    return settings;
+  }
+
+  private paymentFeatureSettings() {
+    const settings = this.config.wechatPay;
+
+    if (!settings && !this.config.paymentSimulationEnabled) {
       throw notFound();
     }
 

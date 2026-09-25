@@ -18,6 +18,8 @@ MANAGED_KEYS = (
     "TENCENT_COS_PUBLIC_BASE_URL",
     "QUALIFICATION_WORKFLOW_ENABLED",
     "QUALIFICATION_STORAGE_PROVIDER",
+    "COMMERCIAL_SERVICES_ENABLED",
+    "PAYMENT_SIMULATION_ENABLED",
 )
 REMOVED_KEYS = {
     "DEFAULT_ADMIN_PHONE",
@@ -81,6 +83,10 @@ def read_updates(path: Path) -> dict[str, str]:
         fail("QUALIFICATION_WORKFLOW_ENABLED must be true or false")
     if updates["QUALIFICATION_WORKFLOW_ENABLED"] == "true" and updates["QUALIFICATION_STORAGE_PROVIDER"] != "tencent-cos":
         fail("QUALIFICATION_WORKFLOW_ENABLED=true requires QUALIFICATION_STORAGE_PROVIDER=tencent-cos")
+    if updates["COMMERCIAL_SERVICES_ENABLED"] not in ("true", "false"):
+        fail("COMMERCIAL_SERVICES_ENABLED must be true or false")
+    if updates["PAYMENT_SIMULATION_ENABLED"] not in ("true", "false"):
+        fail("PAYMENT_SIMULATION_ENABLED must be true or false")
     return updates
 
 

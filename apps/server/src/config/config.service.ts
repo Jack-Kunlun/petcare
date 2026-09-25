@@ -93,6 +93,7 @@ export class ConfigService {
     check("ALLOWED_ORIGINS", () => this.validateAllowedOrigins());
     check("WECHAT", () => this.validateWechatConfiguration());
     check("WECHAT_PAY", () => this.wechatPay);
+    check("PAYMENT_SIMULATION_ENABLED", () => this.paymentSimulationEnabled);
     check("WECHAT_PAY_RECONCILIATION_ENABLED", () => this.paymentReconciliationEnabled);
     check("PUBLIC_MEDIA_STORAGE", () => this.validatePublicMediaStorageConfiguration());
     check("QUALIFICATION_STORAGE", () => this.qualificationStorage);
@@ -575,6 +576,21 @@ export class ConfigService {
 
     if (value !== "true" && value !== "false") {
       throw new Error("COMMERCIAL_SERVICES_ENABLED must be true or false");
+    }
+
+    return value === "true";
+  }
+
+  /** Explicit unpaid-order simulation; never shares a merchant payment identity. */
+  get paymentSimulationEnabled(): boolean {
+    const value = process.env.PAYMENT_SIMULATION_ENABLED?.trim().toLowerCase() || "false";
+
+    if (value !== "true" && value !== "false") {
+      throw new Error("PAYMENT_SIMULATION_ENABLED must be true or false");
+    }
+
+    if (value === "true" && process.env.WECHAT_PAY_ENABLED?.trim().toLowerCase() === "true") {
+      throw new Error("PAYMENT_SIMULATION_ENABLED cannot be combined with WECHAT_PAY_ENABLED");
     }
 
     return value === "true";

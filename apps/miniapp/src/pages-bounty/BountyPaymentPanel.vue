@@ -6,9 +6,15 @@ import type {
   WechatPaymentParameters,
 } from "@petcare/shared-types";
 import { onMounted, ref } from "vue";
-import { getOrderPayment, prepayOrder, refreshOrderPayment } from "@/api/payment";
+import {
+  getOrderPayment,
+  prepayOrder,
+  refreshOrderPayment,
+  simulateOrderPayment,
+} from "@/api/payment";
 import { getSafeRequestErrorMessage, MiniappApiError } from "@/api/request";
 import PcButton from "@/components/PcButton.vue";
+import { paymentSimulationEnabled } from "@/config/features";
 
 const props = defineProps<{
   orderId: string;
@@ -16,7 +22,15 @@ const props = defineProps<{
 }>();
 
 type PanelStatus =
-  "loading" | "ready" | "pending" | "succeeded" | "closed" | "refunded" | "unavailable" | "error";
+  | "loading"
+  | "ready"
+  | "pending"
+  | "succeeded"
+  | "simulated"
+  | "closed"
+  | "refunded"
+  | "unavailable"
+  | "error";
 
 const status = ref<PanelStatus>("loading");
 const payment = ref<OrderPaymentSummary | null>(null);
@@ -38,6 +52,7 @@ function statusLabel(value: PanelStatus): string {
     ready: "待支付",
     pending: "支付结果确认中",
     succeeded: "已支付",
+    simulated: "模拟通过（未收款）",
     closed: "支付已关闭",
     refunded: "已退款",
     unavailable: "支付服务未开放",
@@ -123,6 +138,16 @@ async function pay(): Promise<void> {
   message.value = "";
 
   try {
+    if (paymentSimulationEnabled) {
+      const next = await simulateOrderPayment(props.orderId);
+
+      payment.value = next;
+      status.value = panelStatus(next.status);
+      showMessage("模拟支付已通过，未发生真实收款。", false);
+
+      return;
+    }
+
     const response: OrderPrepayResponse = await prepayOrder(props.orderId);
 
     payment.value = response.payment;
@@ -162,11 +187,16 @@ onMounted(() => void load());
 <template>
   <view class="flex flex-col gap-sm border-t border-divider pt-copy" aria-label="订单支付">
     <view class="flex items-center justify-between gap-copy">
-      <text class="card-heading">订单支付</text>
-      <text class="quiet-text">{{ formatAmount(payment?.amountCents ?? amountCents) }}</text>
+      <text class="card-heading">{{ paymentSimulationEnabled ? "订单模拟支付" : "订单支付" }}</text>
+      <text class="quiet-text"
+        >参考金额 {{ formatAmount(payment?.amountCents ?? amountCents) }}</text
+      >
     </view>
 
     <text class="meta-text">{{ statusLabel(status) }}</text>
+    <text v-if="paymentSimulationEnabled" class="meta-text" role="status">
+      此订单仅模拟支付，不会扣款；完成后仍为未收款订单。
+    </text>
 
     <view
       v-if="message"
@@ -185,10 +215,22 @@ onMounted(() => void load());
       block
       :disabled="busy"
       :loading="busy"
-      :aria-label="status === 'pending' ? '继续支付' : '立即支付'"
+      :aria-label="
+        paymentSimulationEnabled
+          ? '模拟支付（未收款）'
+          : status === 'pending'
+            ? '继续支付'
+            : '立即支付'
+      "
       @click="pay"
     >
-      {{ status === "pending" ? "继续支付" : "立即支付" }}
+      {{
+        paymentSimulationEnabled
+          ? "模拟支付（未收款）"
+          : status === "pending"
+            ? "继续支付"
+            : "立即支付"
+      }}
     </PcButton>
     <PcButton v-else-if="status === 'error'" block variant="secondary" @click="load">
       重试查询

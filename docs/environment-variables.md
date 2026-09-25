@@ -219,18 +219,21 @@ Server 不返回对象键或签名 URL。管理员材料读取有独立的 `prov
 
 Cycle 9 使用普通商户直连、小程序支付 API v3，不配置服务商或子商户参数。支付单持久化、预支付、查单和支付通知路由已实现，统一受默认关闭的支付开关保护；配置齐全也不代表支付业务可上线。
 
-| 变量                                | 说明                                                                                       |
-| ----------------------------------- | ------------------------------------------------------------------------------------------ |
-| `WECHAT_PAY_ENABLED`                | 默认 `false`；关闭时不加载密钥、不访问微信支付，调用失败关闭                               |
-| `WECHAT_PAY_RECONCILIATION_ENABLED` | 默认 `false`；独立开启后台状态查询，要求有效支付配置，不能单独启用；不代表启用生产支付     |
-| `WECHAT_PAY_MERCHANT_ID`            | 普通商户号，必须与已有 `WECHAT_APP_ID` 完成真实绑定                                        |
-| `WECHAT_PAY_CERTIFICATE_SERIAL`     | 商户 API 证书序列号，用于请求签名身份                                                      |
-| `WECHAT_PAY_PRIVATE_KEY_PATH`       | 商户 RSA-2048 私钥 PEM 的 Server 绝对路径                                                  |
-| `WECHAT_PAY_PUBLIC_KEY_ID`          | 微信支付公钥 ID，格式 `PUB_KEY_ID_...`，用于匹配响应/通知验签身份                          |
-| `WECHAT_PAY_PUBLIC_KEY_PATH`        | 与该 ID 配套的微信支付 RSA-2048 公钥 PEM 的 Server 绝对路径                                |
-| `WECHAT_PAY_API_V3_KEY`             | 32 字节 ASCII API v3 密钥，仅服务端用于解密通知；不是 AppSecret 或商户私钥                 |
-| `WECHAT_PAY_NOTIFY_URL`             | 预留支付通知 HTTPS 地址，不允许凭据、查询参数或 fragment                                   |
-| `WECHAT_PAY_REFUND_NOTIFY_URL`      | 退款通知 HTTPS 地址，限制同上；指向 `/payments/wechat/refund-notify`（网关含 `/api` 前缀） |
+| 变量                                | 说明                                                                                               |
+| ----------------------------------- | -------------------------------------------------------------------------------------------------- |
+| `WECHAT_PAY_ENABLED`                | 默认 `false`；关闭时不加载密钥、不访问微信支付，调用失败关闭                                       |
+| `PAYMENT_SIMULATION_ENABLED`        | 默认 `false`；公开订单可显式完成未收款模拟支付，不调用微信支付、退款或结算；不可与真实支付同时开启 |
+| `WECHAT_PAY_RECONCILIATION_ENABLED` | 默认 `false`；独立开启后台状态查询，要求有效支付配置，不能单独启用；不代表启用生产支付             |
+| `WECHAT_PAY_MERCHANT_ID`            | 普通商户号，必须与已有 `WECHAT_APP_ID` 完成真实绑定                                                |
+| `WECHAT_PAY_CERTIFICATE_SERIAL`     | 商户 API 证书序列号，用于请求签名身份                                                              |
+| `WECHAT_PAY_PRIVATE_KEY_PATH`       | 商户 RSA-2048 私钥 PEM 的 Server 绝对路径                                                          |
+| `WECHAT_PAY_PUBLIC_KEY_ID`          | 微信支付公钥 ID，格式 `PUB_KEY_ID_...`，用于匹配响应/通知验签身份                                  |
+| `WECHAT_PAY_PUBLIC_KEY_PATH`        | 与该 ID 配套的微信支付 RSA-2048 公钥 PEM 的 Server 绝对路径                                        |
+| `WECHAT_PAY_API_V3_KEY`             | 32 字节 ASCII API v3 密钥，仅服务端用于解密通知；不是 AppSecret 或商户私钥                         |
+| `WECHAT_PAY_NOTIFY_URL`             | 预留支付通知 HTTPS 地址，不允许凭据、查询参数或 fragment                                           |
+| `WECHAT_PAY_REFUND_NOTIFY_URL`      | 退款通知 HTTPS 地址，限制同上；指向 `/payments/wechat/refund-notify`（网关含 `/api` 前缀）         |
+
+@TODO(REAL-PAYMENT)：营业执照和微信商户资质完成后，补齐上述真实配置并关闭 `PAYMENT_SIMULATION_ENABLED`；模拟支付单不代表收款，也不进入退款或结算。
 
 启用时配置及密钥文件不完整会阻止 Server 启动。公钥从微信支付商户平台「账户中心 → API 安全」获取，显式配置可信 ID 和文件；不信任报文自行携带的新 ID、不动态下载未知公钥。轮换需要更新配套公钥和 ID 后重启，并验收新旧通知交接；当前不支持多公钥并行过渡。
 

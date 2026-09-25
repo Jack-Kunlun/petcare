@@ -871,7 +871,7 @@ export class BountyService {
   }
 
   private assertPaid(payment: { status: string } | null): void {
-    if (payment?.status !== "succeeded") {
+    if (payment?.status !== "succeeded" && payment?.status !== "simulated") {
       throw new ApiException(
         "PAYMENT_REQUIRED",
         "订单尚未确认收款，暂不能履约",
@@ -931,7 +931,7 @@ export class BountyService {
       currentStepNumber: current?.stepNumber ?? null,
       canExecute:
         eligible &&
-        order.payment?.status === "succeeded" &&
+        (order.payment?.status === "succeeded" || order.payment?.status === "simulated") &&
         Boolean(current) &&
         (order.status === BOUNTY_STATUS.CONFIRMED || order.status === BOUNTY_STATUS.IN_PROGRESS),
       steps: order.sops.map((step) => ({

@@ -36,7 +36,7 @@ import { getSafeRequestErrorMessage, MiniappApiError } from "@/api/request";
 import PcButton from "@/components/PcButton.vue";
 import PcStatePanel from "@/components/PcStatePanel.vue";
 import SubPageLayout from "@/components/SubPageLayout.vue";
-import { commercialServicesEnabled } from "@/config/features";
+import { commercialServicesEnabled, paymentSimulationEnabled } from "@/config/features";
 import { formatBountyAmount } from "@/domain/bounty-form";
 import { getDefaultAvatar } from "@/state/default-avatar";
 import {
@@ -686,6 +686,11 @@ watch(
       />
 
       <template v-else>
+        <view v-if="paymentSimulationEnabled" class="main-card p-card-padding" role="status">
+          <text class="text-body text-ink"
+            >当前订单使用模拟支付，未发生收款；请勿视为已付款服务。</text
+          >
+        </view>
         <view class="grid grid-cols-3 rounded-control bg-divider p-caption" role="tablist">
           <button
             class="h-control rounded-control text-body font-medium"

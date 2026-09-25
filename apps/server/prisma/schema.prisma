@@ -344,6 +344,7 @@ model Order {
 enum OrderPaymentStatus {
   pending
   succeeded
+  simulated
   closed
   refund_pending
   refunded

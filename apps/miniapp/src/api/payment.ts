@@ -13,6 +13,13 @@ export function prepayOrder(orderId: string): Promise<OrderPrepayResponse> {
   });
 }
 
+/** Completes the explicit unpaid-order simulation without invoking WeChat Pay. */
+export function simulateOrderPayment(orderId: string): Promise<OrderPaymentSummary> {
+  return authorizedRequest(`/payments/orders/${encodeURIComponent(orderId)}/simulate`, {
+    method: "POST",
+  });
+}
+
 /** Reconciles an uncertain client result through the persisted merchant number. */
 export function refreshOrderPayment(orderId: string): Promise<OrderPaymentSummary> {
   return authorizedRequest(`/payments/orders/${encodeURIComponent(orderId)}/refresh`, {

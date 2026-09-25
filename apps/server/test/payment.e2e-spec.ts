@@ -91,6 +91,7 @@ describe("Direct merchant payment persistence (e2e)", () => {
   let prisma: PrismaService;
   let directory: string;
   let enabled = true;
+  let simulation = false;
   let fetchMock: jest.SpyInstance;
   let ownerId: string;
   let providerId: string;
@@ -161,6 +162,9 @@ describe("Direct merchant payment persistence (e2e)", () => {
         if (property === "commercialServicesEnabled") {
           return commercial;
         }
+        if (property === "paymentSimulationEnabled") {
+          return simulation;
+        }
         if (property === "paymentReconciliationEnabled") {
           return reconcileEnabled;
         }
@@ -225,6 +229,7 @@ describe("Direct merchant payment persistence (e2e)", () => {
   afterAll(async () => lifecycle.teardown());
   beforeEach(() => {
     enabled = true;
+    simulation = false;
     commercial = true;
     reconcileEnabled = false;
     fetchMock.mockReset();
@@ -282,6 +287,42 @@ describe("Direct merchant payment persistence (e2e)", () => {
       payer: { openid: "payment_owner_openid" },
     };
   }
+
+  it("keeps public simulated orders visibly unpaid and out of real payment accounting", async () => {
+    enabled = false;
+    simulation = true;
+    const target = await order();
+    const url = `/payments/orders/${target.id}/simulate`;
+
+    await request(app.getHttpServer())
+      .post(url)
+      .auth(providerToken, { type: "bearer" })
+      .expect(404);
+    const first = await request(app.getHttpServer())
+      .post(url)
+      .auth(ownerToken, { type: "bearer" })
+      .expect(201);
+    expect(first.body.data).toMatchObject({ status: "simulated", paidAt: null });
+    await request(app.getHttpServer())
+      .post(url)
+      .auth(ownerToken, { type: "bearer" })
+      .expect(201)
+      .expect((r) => expect(r.body.data.paymentId).toBe(first.body.data.paymentId));
+    expect(
+      await prisma.orderPayment.findUniqueOrThrow({ where: { orderId: target.id } }),
+    ).toMatchObject({
+      merchantId: "SIMULATED",
+      transactionId: null,
+      paidAt: null,
+    });
+    await request(app.getHttpServer())
+      .get(`/bounties/${target.id}/sop`)
+      .auth(providerToken, { type: "bearer" })
+      .expect(200)
+      .expect((r) => expect(r.body.data.canExecute).toBe(true));
+    await prepay(target.id).expect(404);
+    expect(fetchMock).not.toHaveBeenCalled();
+  });
 
   it("freezes one payment number under concurrent prepay, rejects ownership and retains uncertain submissions", async () => {
     const target = await order();

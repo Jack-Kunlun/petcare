@@ -5,6 +5,7 @@ interface ImportMetaEnv {
   readonly VITE_COMMERCIAL_SERVICES_ENABLED?: string;
   readonly VITE_QUALIFICATION_WORKFLOW_ENABLED?: string;
   readonly VITE_DEMO_ENABLED?: string;
+  readonly VITE_PAYMENT_SIMULATION_ENABLED?: string;
 }
 
 interface ImportMeta {

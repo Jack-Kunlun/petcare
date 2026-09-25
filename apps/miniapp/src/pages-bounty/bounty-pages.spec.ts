@@ -81,10 +81,12 @@ describe("bounty pages", () => {
     expect(index).toContain("<BountyPaymentPanel");
     expect(paymentPanel).toContain("getOrderPayment(props.orderId)");
     expect(paymentPanel).toContain("prepayOrder(props.orderId)");
+    expect(paymentPanel).toContain("simulateOrderPayment(props.orderId)");
     expect(paymentPanel).toContain("refreshOrderPayment(props.orderId)");
     expect(paymentPanel).toContain("requestPayment");
     expect(paymentPanel).toContain('next.status === "succeeded"');
     expect(paymentPanel).toContain('status.value = "unavailable"');
+    expect(paymentPanel).toContain("模拟支付已通过，未发生真实收款。");
     expect(paymentPanel).not.toContain('status.value = "succeeded";');
   });
 

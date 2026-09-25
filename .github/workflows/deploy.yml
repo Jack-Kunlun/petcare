@@ -234,6 +234,8 @@ jobs:
       TENCENT_COS_SECRET_KEY: ${{ secrets.TENCENT_COS_SECRET_KEY }}
       QUALIFICATION_WORKFLOW_ENABLED: "true"
       QUALIFICATION_STORAGE_PROVIDER: ${{ vars.QUALIFICATION_STORAGE_PROVIDER || 'tencent-cos' }}
+      COMMERCIAL_SERVICES_ENABLED: "true"
+      PAYMENT_SIMULATION_ENABLED: "true"
       TARGET: ${{ inputs.target }}
       INITIALIZE_DATA: ${{ inputs.initialize_data }}
       RESET_DATA: ${{ inputs.reset_data_confirmation == 'RESET_PRODUCTION_DATA' }}
@@ -314,6 +316,8 @@ jobs:
           [[ "$TENCENT_COS_SECRET_KEY" =~ ^[a-zA-Z0-9_+/=-]{16,128}$ ]]
           [[ "$QUALIFICATION_WORKFLOW_ENABLED" == true ]]
           [[ "$QUALIFICATION_STORAGE_PROVIDER" == tencent-cos ]]
+          [[ "$COMMERCIAL_SERVICES_ENABLED" == true ]]
+          [[ "$PAYMENT_SIMULATION_ENABLED" == true ]]
 
           case "$TARGET" in
             all) IMAGE_SERVICES=(server admin website) ;;
@@ -374,6 +378,8 @@ jobs:
             printf 'TENCENT_COS_PUBLIC_BASE_URL=%s\n' "$TENCENT_COS_PUBLIC_BASE_URL"
             printf 'QUALIFICATION_WORKFLOW_ENABLED=%s\n' "$QUALIFICATION_WORKFLOW_ENABLED"
             printf 'QUALIFICATION_STORAGE_PROVIDER=%s\n' "$QUALIFICATION_STORAGE_PROVIDER"
+            printf 'COMMERCIAL_SERVICES_ENABLED=%s\n' "$COMMERCIAL_SERVICES_ENABLED"
+            printf 'PAYMENT_SIMULATION_ENABLED=%s\n' "$PAYMENT_SIMULATION_ENABLED"
           } > "$DEPLOY_TMP/petcare-storage.env"
           chmod 600 "$DEPLOY_TMP"/*
 

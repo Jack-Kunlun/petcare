@@ -498,6 +498,8 @@ test(
       "TENCENT_COS_PUBLIC_BASE_URL=",
       "QUALIFICATION_WORKFLOW_ENABLED=true",
       "QUALIFICATION_STORAGE_PROVIDER=disabled",
+      "COMMERCIAL_SERVICES_ENABLED=false",
+      "PAYMENT_SIMULATION_ENABLED=false",
       "QUALIFICATION_COS_KMS_KEY_ID=old-key-id",
       "",
     ].join("\n");
@@ -510,6 +512,8 @@ test(
       "TENCENT_COS_PUBLIC_BASE_URL=https://petcare-1306016679.cos.ap-guangzhou.myqcloud.com",
       "QUALIFICATION_WORKFLOW_ENABLED=true",
       "QUALIFICATION_STORAGE_PROVIDER=tencent-cos",
+      "COMMERCIAL_SERVICES_ENABLED=true",
+      "PAYMENT_SIMULATION_ENABLED=true",
       "",
     ].join("\n");
 

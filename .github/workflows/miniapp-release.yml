@@ -83,6 +83,7 @@ jobs:
       MP_VERSION: ${{ inputs.version }}
       MP_DESC: ${{ inputs.desc }}
       VITE_DEMO_ENABLED: ${{ inputs.demo }}
+      VITE_PAYMENT_SIMULATION_ENABLED: "true"
       VITE_COMMERCIAL_SERVICES_ENABLED: "true"
       VITE_QUALIFICATION_WORKFLOW_ENABLED: "true"
     steps:

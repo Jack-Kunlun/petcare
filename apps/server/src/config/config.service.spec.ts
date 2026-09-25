@@ -59,6 +59,7 @@ describe("ConfigService", () => {
     delete process.env.COMMUNITY_MEDIA_MAX_ATTEMPTS;
     delete process.env.COMMUNITY_MEDIA_WINDOW_SECONDS;
     delete process.env.COMMERCIAL_SERVICES_ENABLED;
+    delete process.env.PAYMENT_SIMULATION_ENABLED;
 
     for (const name of Object.keys(process.env).filter((key) => key.startsWith("WECHAT_PAY_"))) {
       delete process.env[name];
@@ -103,6 +104,16 @@ describe("ConfigService", () => {
     expect(() => config.wechatPay).toThrow("WECHAT_PAY_ENABLED");
     process.env.WECHAT_PAY_ENABLED = "true";
     expect(() => config.wechatPay).toThrow("WECHAT_PAY_MERCHANT_ID");
+  });
+
+  it("allows explicit unpaid payment simulation without merchant credentials", () => {
+    process.env.PAYMENT_SIMULATION_ENABLED = "true";
+
+    const config = new ConfigService();
+
+    expect(config.paymentSimulationEnabled).toBe(true);
+    process.env.WECHAT_PAY_ENABLED = "true";
+    expect(() => config.paymentSimulationEnabled).toThrow("cannot be combined");
   });
 
   it("validates direct-merchant key coordinates and HTTPS notifications", () => {

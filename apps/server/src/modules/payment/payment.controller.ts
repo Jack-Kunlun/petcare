@@ -91,7 +91,7 @@ async function limit(redis: RedisService, userId: string): Promise<void> {
 export class PaymentFeatureGuard implements CanActivate {
   constructor(private readonly config: ConfigService) {}
   canActivate(): boolean {
-    if (!this.config.wechatPay) {
+    if (!this.config.wechatPay && !this.config.paymentSimulationEnabled) {
       throw new ApiException("PAYMENT_NOT_OPEN", "支付服务未开放", 404);
     }
 
@@ -117,6 +117,17 @@ export class PaymentController {
     await limit(this.redis, req.user.sub);
 
     return this.payments.prepay(req.user.sub, orderId);
+  }
+
+  @Post("orders/:orderId/simulate")
+  @UseGuards(AccessTokenGuard, ProfileCompleteGuard)
+  async simulate(
+    @Req() req: AuthRequest,
+    @Param("orderId", new ParseUUIDPipe({ version: "4" })) orderId: string,
+  ): Promise<OrderPaymentSummary> {
+    await limit(this.redis, req.user.sub);
+
+    return this.payments.simulate(req.user.sub, orderId);
   }
 
   @Get("orders/:orderId")
