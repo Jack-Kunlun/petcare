@@ -173,7 +173,7 @@ describe("AuthProvider", () => {
       </AuthProvider>,
     );
     await screen.findByText("系统管理员");
-    expect(onSessionExpired).toHaveBeenCalledOnce();
+    await waitFor(() => expect(onSessionExpired).toHaveBeenCalledOnce());
 
     act(() => authEvents.sessionExpiredListener?.("登录状态已失效"));
 
