@@ -6,6 +6,7 @@ const page = (name: string) => readFileSync(resolve(import.meta.dirname, name), 
 const index = page("index.vue");
 const form = page("form.vue");
 const sopPanel = page("BountySopPanel.vue");
+const paymentPanel = page("BountyPaymentPanel.vue");
 
 describe("bounty pages", () => {
   it("keeps deep links and navigation unavailable when the client boundary is closed", () => {
@@ -73,6 +74,18 @@ describe("bounty pages", () => {
     expect(sopPanel).toContain("BOUNTY_SOP_LIMITS.MAX_PHOTOS_PER_STEP");
     expect(sopPanel).toContain('role="status"');
     expect(sopPanel).toContain(":aria-label");
+  });
+
+  it("uses server-confirmed payment state before exposing the native payment call", () => {
+    expect(index).toContain("bounty.status === BOUNTY_STATUS.CONFIRMED");
+    expect(index).toContain("<BountyPaymentPanel");
+    expect(paymentPanel).toContain("getOrderPayment(props.orderId)");
+    expect(paymentPanel).toContain("prepayOrder(props.orderId)");
+    expect(paymentPanel).toContain("refreshOrderPayment(props.orderId)");
+    expect(paymentPanel).toContain("requestPayment");
+    expect(paymentPanel).toContain('next.status === "succeeded"');
+    expect(paymentPanel).toContain('status.value = "unavailable"');
+    expect(paymentPanel).not.toContain('status.value = "succeeded";');
   });
 
   it("uses visible labels, native pickers, inline errors, and a duplicate-safe submit", () => {

@@ -18,6 +18,7 @@ import type {
   PublicBounty,
 } from "@petcare/shared-types";
 import { computed, ref, watch } from "vue";
+import BountyPaymentPanel from "./BountyPaymentPanel.vue";
 import BountySopPanel from "./BountySopPanel.vue";
 import {
   completeBountySopStep,
@@ -876,6 +877,12 @@ watch(
               <text v-if="bounty.provider" class="meta-text">
                 已确认服务者：{{ bounty.provider.nickname }}
               </text>
+
+              <BountyPaymentPanel
+                v-if="bounty.status === BOUNTY_STATUS.CONFIRMED"
+                :order-id="bounty.id"
+                :amount-cents="bounty.amountCents"
+              />
 
               <view class="mt-sm border-t border-divider pt-copy">
                 <PcButton

@@ -92,7 +92,7 @@ export class PaymentFeatureGuard implements CanActivate {
   constructor(private readonly config: ConfigService) {}
   canActivate(): boolean {
     if (!this.config.wechatPay) {
-      throw new ApiException("PAYMENT_NOT_FOUND", "支付服务未开放", 404);
+      throw new ApiException("PAYMENT_NOT_OPEN", "支付服务未开放", 404);
     }
 
     return true;
