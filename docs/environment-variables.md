@@ -163,7 +163,7 @@ ALIYUN_SMS_TEMPLATE_CODE=
 
 `VITE_MINIAPP_API_BASE_URL` 会进入客户端构建产物，只能配置公开网关地址，不能包含凭据。生产构建必须使用
 HTTPS API 网关，不能使用本地 HTTP 示例或 Docker 内网服务名。
-`VITE_COMMERCIAL_SERVICES_ENABLED` 只控制客户端入口；Server 仍独立校验
+`VITE_COMMERCIAL_SERVICES_ENABLED` 控制 Miniapp 悬赏底部菜单和 Admin 悬赏订单菜单；Server 仍独立校验
 `COMMERCIAL_SERVICES_ENABLED`，两个开关都不能替代服务者资质或生产发布验收。
 `VITE_QUALIFICATION_WORKFLOW_ENABLED` 独立决定资格申请页面是否进入小程序构建，以及 Admin
 是否注册资格审核路由，默认 `false`。两个前端分别在构建时显式配置，Server 的资格开关必须另外启用。
