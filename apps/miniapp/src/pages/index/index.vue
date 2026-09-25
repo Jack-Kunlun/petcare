@@ -8,11 +8,7 @@ import MainTabLayout from "@/components/MainTabLayout.vue";
 import PcButton from "@/components/PcButton.vue";
 import PcStatePanel from "@/components/PcStatePanel.vue";
 import { MINIAPP_TRUSTED_CARE_HERO } from "@/config/brand-assets";
-import {
-  commercialServicesEnabled,
-  demoEnabled,
-  paymentSimulationEnabled,
-} from "@/config/features";
+import { commercialServicesEnabled, demoEnabled } from "@/config/features";
 
 definePage({
   style: {
@@ -188,7 +184,7 @@ onShow(() => void loadHomeClassroom());
           aria-label="浏览悬赏服务"
           @click="openBounties"
         >
-          {{ paymentSimulationEnabled ? "浏览悬赏服务（模拟支付、未收款）" : "浏览悬赏服务" }}
+          浏览悬赏服务
         </PcButton>
       </view>
 

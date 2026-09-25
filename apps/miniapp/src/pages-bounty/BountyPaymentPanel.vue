@@ -52,7 +52,7 @@ function statusLabel(value: PanelStatus): string {
     ready: "待支付",
     pending: "支付结果确认中",
     succeeded: "已支付",
-    simulated: "模拟通过（未收款）",
+    simulated: "模拟通过",
     closed: "支付已关闭",
     refunded: "已退款",
     unavailable: "支付服务未开放",
@@ -216,21 +216,11 @@ onMounted(() => void load());
       :disabled="busy"
       :loading="busy"
       :aria-label="
-        paymentSimulationEnabled
-          ? '模拟支付（未收款）'
-          : status === 'pending'
-            ? '继续支付'
-            : '立即支付'
+        paymentSimulationEnabled ? '模拟支付' : status === 'pending' ? '继续支付' : '立即支付'
       "
       @click="pay"
     >
-      {{
-        paymentSimulationEnabled
-          ? "模拟支付（未收款）"
-          : status === "pending"
-            ? "继续支付"
-            : "立即支付"
-      }}
+      {{ paymentSimulationEnabled ? "模拟支付" : status === "pending" ? "继续支付" : "立即支付" }}
     </PcButton>
     <PcButton v-else-if="status === 'error'" block variant="secondary" @click="load">
       重试查询

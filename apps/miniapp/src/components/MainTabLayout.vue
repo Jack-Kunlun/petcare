@@ -2,7 +2,7 @@
 import { computed } from "vue";
 import { getBottomSafeAreaStyle, usePlatformLayout } from "./platform-layout";
 import { miniappDesignTokens } from "@/config/design-tokens";
-import { commercialServicesEnabled, paymentSimulationEnabled } from "@/config/features";
+import { commercialServicesEnabled } from "@/config/features";
 
 type MainTabKey = "home" | "community" | "bounty" | "messages" | "profile";
 
@@ -44,7 +44,7 @@ const tabs = [
     ? [
         {
           key: "bounty",
-          label: paymentSimulationEnabled ? "悬赏（未收款）" : "悬赏",
+          label: "悬赏",
           route: "/pages-bounty/index",
           icon: "/static/main/customer.svg",
           activeIcon: "/static/main/customer-active.svg",

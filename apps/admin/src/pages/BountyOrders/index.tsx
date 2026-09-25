@@ -23,7 +23,7 @@ function formatDate(value: string): string {
 
 function paymentLabel(status: string | null): string {
   if (status === "simulated") {
-    return "模拟支付·未收款";
+    return "模拟支付";
   }
 
   if (status === "succeeded") {
@@ -55,7 +55,7 @@ export default function BountyOrders() {
       <PageHeader
         eyebrow="悬赏服务"
         title="悬赏订单"
-        description="查看订单状态、服务双方与支付状态。模拟支付订单明确标记为未收款。"
+        description="查看订单状态、服务双方与支付状态。"
         actions={
           <Badge className="h-9 px-3" tone="brand">
             <FileText aria-hidden="true" className="h-4 w-4" />共 {total} 笔订单
