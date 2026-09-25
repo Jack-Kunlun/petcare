@@ -233,7 +233,7 @@ jobs:
       TENCENT_COS_SECRET_ID: ${{ secrets.TENCENT_COS_SECRET_ID }}
       TENCENT_COS_SECRET_KEY: ${{ secrets.TENCENT_COS_SECRET_KEY }}
       QUALIFICATION_WORKFLOW_ENABLED: "true"
-      QUALIFICATION_STORAGE_PROVIDER: ${{ vars.QUALIFICATION_STORAGE_PROVIDER || 'disabled' }}
+      QUALIFICATION_STORAGE_PROVIDER: ${{ vars.QUALIFICATION_STORAGE_PROVIDER || 'tencent-cos' }}
       TARGET: ${{ inputs.target }}
       INITIALIZE_DATA: ${{ inputs.initialize_data }}
       RESET_DATA: ${{ inputs.reset_data_confirmation == 'RESET_PRODUCTION_DATA' }}
