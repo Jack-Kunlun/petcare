@@ -261,6 +261,9 @@ services:
 
   # HTTPS 边缘网关：统一 80/443 入口，双域名 TLS 终结后转发到官网网关与 Admin。
   # 证书挂载自宿主机 ./certs（不入库），文件名约定见 docker/edge-nginx.conf。
+  # extra-confs 是给**其它项目**用的扩展点：宿主 /opt/petcare/extra-confs（不在 releases
+  # 树内，故本项目发版不会覆盖它）→ 容器 /etc/nginx/extra-confs，由 edge-nginx.conf
+  # 尾部的一句 include 引入。目前只有额度重置观测台用它，见 docker/edge-nginx.conf。
   edge-gateway:
     image: ${IMAGE_REGISTRY:-docker.io/library}/nginx:alpine
     container_name: petcare-edge-gateway
@@ -276,6 +279,7 @@ services:
     volumes:
       - ./docker/edge-nginx.conf:/etc/nginx/conf.d/default.conf:ro
       - ./certs:/etc/nginx/certs:ro
+      - /opt/petcare/extra-confs:/etc/nginx/extra-confs:ro
     healthcheck:
       test:
         ["CMD-SHELL", "wget --no-check-certificate -q -O /dev/null https://127.0.0.1/ || exit 1"]

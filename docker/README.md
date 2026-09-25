@@ -19,8 +19,13 @@
 镜像仓库；`postgres`、`redis`、`nginx` 从这里拉取已验证的固定标签。`server`、`admin`、`website` 使用不可变完整 SHA 标签，
 由 GitHub-hosted runner 构建为镜像产物并在 release 切换前传入生产服务器加载。
 
-`/opt/petcare/current` 只指向不可变 release；`.env`、`.deploy-images.env`、`certs`、`logs` 和 PostgreSQL/Redis named volumes
+`/opt/petcare/current` 只指向不可变 release；`.env`、`.deploy-images.env`、`certs`、`logs`、`extra-confs` 和 PostgreSQL/Redis named volumes
 都在 release 外持久保存。发布归档顶层只允许 `docker-compose.yml`、`docker/`、`scripts/`、`deploy/`，不能覆盖持久数据。
+
+`extra-confs` 是给**其它项目**用的网关扩展点：宿主 `/opt/petcare/extra-confs` 只读挂载到 edge-gateway 的
+`/etc/nginx/extra-confs`，由 `docker/edge-nginx.conf` 尾部的一句 `include` 引入。子站配置放这里就不会被本项目发版
+覆盖（此前把子站 server 块直接追加进 `edge-nginx.conf`，切 release 即整体替换，子站随之下线）。本项目只负责长期保留
+那一句 `include`，子站配置本体归各自项目维护。
 
 `scripts/server-init.sh` 只使用服务器已配置的 Ubuntu APT 源，要求 `docker compose version` 成功，创建持久目录和 `.env`，
 不获取仓库也不启动应用。`TCR_PUSH_USERNAME`、`TCR_PUSH_PASSWORD` 仅供 Actions 同步固定运行时镜像；`TCR_PULL_USERNAME`、

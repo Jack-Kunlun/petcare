@@ -35,6 +35,7 @@ install -d -o root -g root -m 755 "$INSTALL_DIR"
 install -d -o root -g root -m 755 "$INSTALL_DIR/releases"
 install -d -o root -g root -m 700 "$INSTALL_DIR/certs"
 install -d -o root -g root -m 755 "$INSTALL_DIR/logs"
+install -d -o root -g root -m 755 "$INSTALL_DIR/extra-confs"
 cd "$INSTALL_DIR"
 
 if [[ -f .env ]]; then
@@ -135,6 +136,7 @@ echo "配置文件：    $INSTALL_DIR/.env（root:root，chmod 600）"
 echo "发布目录：    $INSTALL_DIR/releases"
 echo "证书目录：    $INSTALL_DIR/certs（root:root，chmod 700）"
 echo "日志目录：    $INSTALL_DIR/logs"
+echo "子站扩展点：  $INSTALL_DIR/extra-confs（其它项目的网关配置放这里，本项目发版不会覆盖）"
 echo
 echo "下一步："
 echo "  1. root 安全补全并轮换 .env 中管理员、微信和 Aliyun SMS 配置；不要打印或回传其值"
