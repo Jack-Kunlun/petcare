@@ -37,8 +37,8 @@ describe("main tab layout root header contract", () => {
     expect(layoutSource).not.toContain("uni.switchTab");
     expect(homeSource).toContain("uni.redirectTo");
     expect(homeSource).not.toContain("uni.switchTab");
-    expect(layoutSource).not.toContain('key: "bounty"');
-    expect(layoutSource).not.toContain("badge: 3");
+    expect(layoutSource).toContain('key: "bounty"');
+    expect(layoutSource).toContain("paymentSimulationEnabled");
   });
 
   it.each(rootPagePaths)("moves %s header into the shared root header slot", (pagePath) => {

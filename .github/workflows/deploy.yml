@@ -133,6 +133,7 @@ jobs:
           cache-to: type=gha,mode=max,scope=${{ matrix.service }}
           build-args: |
             VITE_QUALIFICATION_WORKFLOW_ENABLED=true
+            VITE_COMMERCIAL_SERVICES_ENABLED=true
 
       - name: 打包 ${{ matrix.service }}
         shell: bash

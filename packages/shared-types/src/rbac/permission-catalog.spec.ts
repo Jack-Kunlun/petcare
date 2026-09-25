@@ -18,6 +18,7 @@ describe("RBAC permission catalog", () => {
     expect(new Set(menuPaths).size).toBe(menuPaths.length);
     expect(menuPaths).toEqual([
       "/payment-operations",
+      "/bounty-orders",
       "/provider-qualifications",
       "/",
       "/users",

@@ -10,6 +10,7 @@ import {
   MINIAPP_ACCOUNT_ERROR_CODE,
   type BountyIntentStatus,
   type BountyListQuery,
+  type AdminBountyOrderListResponse,
   type BountyProviderEligibility,
   type BountyServiceType,
   type BountySop,
@@ -63,6 +64,18 @@ const publicBountySelect = {
   reward: { select: { expireTime: true } },
   owner: { select: { nickname: true, avatar: true } },
   pet: { select: { name: true, breed: true, photos: true } },
+} satisfies Prisma.OrderSelect;
+
+const adminBountySelect = {
+  id: true,
+  serviceType: true,
+  serviceTime: true,
+  amount: true,
+  status: true,
+  createdAt: true,
+  owner: { select: { nickname: true, avatar: true } },
+  provider: { select: providerSummarySelect },
+  payment: { select: { status: true } },
 } satisfies Prisma.OrderSelect;
 
 const ownerIntentSelect = {
@@ -130,6 +143,7 @@ const sopOrderSelect = {
 
 type PrivateBountyRow = Prisma.OrderGetPayload<{ select: typeof privateBountySelect }>;
 type PublicBountyRow = Prisma.OrderGetPayload<{ select: typeof publicBountySelect }>;
+type AdminBountyRow = Prisma.OrderGetPayload<{ select: typeof adminBountySelect }>;
 type OwnerIntentRow = Prisma.OrderIntentGetPayload<{ select: typeof ownerIntentSelect }>;
 type MyIntentRow = Prisma.OrderIntentGetPayload<{ select: typeof myIntentSelect }>;
 type ProviderEligibilityRow = Prisma.UserGetPayload<{ select: typeof providerEligibilitySelect }>;
@@ -769,6 +783,28 @@ export class BountyService {
     return this.toPublicBounty(order);
   }
 
+  /** Lists reward orders for the protected PC operations console. */
+  async findAdminOrders(query: BountyListQuery): Promise<AdminBountyOrderListResponse> {
+    const where = { orderType: "reward", reward: { isNot: null } } as const;
+    const [list, total] = await Promise.all([
+      this.prisma.order.findMany({
+        where,
+        orderBy: [{ createdAt: "desc" }, { id: "desc" }],
+        skip: (query.page - 1) * query.pageSize,
+        take: query.pageSize,
+        select: adminBountySelect,
+      }),
+      this.prisma.order.count({ where }),
+    ]);
+
+    return {
+      list: list.map((order) => this.toAdminBounty(order)),
+      total,
+      page: query.page,
+      pageSize: query.pageSize,
+    };
+  }
+
   private async getPublishedSop(
     transaction: Pick<Prisma.TransactionClient, "systemConfigPointer">,
     serviceType: BountyServiceType,
@@ -1137,6 +1173,20 @@ export class BountyService {
         breed: order.pet.breed,
         coverImage: order.pet.photos[0] ?? null,
       },
+    };
+  }
+
+  private toAdminBounty(order: AdminBountyRow) {
+    return {
+      id: order.id,
+      serviceType: order.serviceType as BountyServiceType,
+      serviceTime: order.serviceTime.toISOString(),
+      amountCents: order.amount,
+      status: order.status as BountyStatus,
+      owner: order.owner,
+      provider: order.provider,
+      paymentStatus: order.payment?.status ?? null,
+      createdAt: order.createdAt.toISOString(),
     };
   }
 

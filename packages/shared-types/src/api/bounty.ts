@@ -347,6 +347,31 @@ export type PublicBountyListResponse = PaginatedResponse<PublicBounty>;
 /** Paginated owner-only bounty list. */
 export type MyBountyListResponse = PaginatedResponse<MyBounty>;
 
+/** Minimal order projection used by the PC operations console. */
+export interface AdminBountyOrder {
+  /** Bounty order identifier. */
+  id: string;
+  /** Current persisted bounty order state. */
+  status: BountyStatus;
+  /** Requested service category. */
+  serviceType: BountyServiceType;
+  /** Exact order amount in integer cents. */
+  amountCents: number;
+  /** Requested service time. */
+  serviceTime: string;
+  /** Public owner identity. */
+  owner: PublicBountyOwner;
+  /** Confirmed provider identity, or null before confirmation. */
+  provider: BountyProviderSummary | null;
+  /** Payment status, with simulated meaning unpaid. */
+  paymentStatus: string | null;
+  /** Creation time. */
+  createdAt: string;
+}
+
+/** Paginated bounty order projection for the PC operations console. */
+export type AdminBountyOrderListResponse = PaginatedResponse<AdminBountyOrder>;
+
 /** Paginated owner-only provider-intent list for one bounty. */
 export type OwnerBountyIntentListResponse = PaginatedResponse<OwnerBountyIntent>;
 

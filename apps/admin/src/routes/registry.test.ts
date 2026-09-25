@@ -13,7 +13,9 @@ describe("ADMIN_ROUTE_REGISTRY", () => {
   const menuPermissions = RBAC_PERMISSION_CATALOG.filter(
     (permission) =>
       permission.type === RBAC_PERMISSION_TYPES.MENU &&
-      !["provider_qualification.view", "payment.operations.view"].includes(permission.code),
+      !["provider_qualification.view", "payment.operations.view", "bounty.order.view"].includes(
+        permission.code,
+      ),
   );
 
   it("keeps the qualification route absent in the default-closed build", () => {

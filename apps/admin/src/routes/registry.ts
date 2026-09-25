@@ -13,6 +13,9 @@ const Dashboard = lazy(() => import("../pages/Dashboard"));
 const ProviderQualifications = lazy(() => import("../pages/ProviderQualifications"));
 const PaymentOperations = lazy(() => import("../pages/PaymentOperations"));
 const PaymentBillDetail = lazy(() => import("../pages/PaymentOperations/Detail"));
+const BountyOrders = lazy(() => import("../pages/BountyOrders"));
+const commercialServicesEnabled =
+  import.meta.env.VITE_COMMERCIAL_SERVICES_ENABLED?.trim().toLowerCase() === "true";
 const paymentOperationsEnabled =
   import.meta.env.VITE_PAYMENT_OPERATIONS_ENABLED?.trim().toLowerCase() === "true";
 const qualificationWorkflowEnabled =
@@ -127,6 +130,9 @@ export const ADMIN_ROUTE_REGISTRY: readonly AdminRouteDefinition[] = [
     menuLabel: null,
   },
   catalogMenuRoute("dashboard", "stats.view", Dashboard),
+  ...(commercialServicesEnabled
+    ? [catalogMenuRoute("bounty-orders", "bounty.order.view", BountyOrders)]
+    : []),
   ...(paymentOperationsEnabled
     ? [
         catalogMenuRoute("payment-operations", "payment.operations.view", PaymentOperations),
