@@ -9,6 +9,12 @@ const sopPanel = page("BountySopPanel.vue");
 const paymentPanel = page("BountyPaymentPanel.vue");
 
 describe("bounty pages", () => {
+  it("uses the standard bottom navigation layout", () => {
+    expect(index).toContain('import MainTabLayout from "@/components/MainTabLayout.vue";');
+    expect(index).toContain('<MainTabLayout active="bounty">');
+    expect(index).not.toContain("SubPageLayout");
+  });
+
   it("keeps deep links and navigation unavailable when the client boundary is closed", () => {
     expect(index).toContain("!featureAvailable");
     expect(index).toContain("commercialServicesEnabled && !serverUnavailable.value");

@@ -33,9 +33,9 @@ import {
   uploadBountySopEvidence,
 } from "@/api/bounties";
 import { getSafeRequestErrorMessage, MiniappApiError } from "@/api/request";
+import MainTabLayout from "@/components/MainTabLayout.vue";
 import PcButton from "@/components/PcButton.vue";
 import PcStatePanel from "@/components/PcStatePanel.vue";
-import SubPageLayout from "@/components/SubPageLayout.vue";
 import { commercialServicesEnabled, paymentSimulationEnabled } from "@/config/features";
 import { formatBountyAmount } from "@/domain/bounty-form";
 import { getDefaultAvatar } from "@/state/default-avatar";
@@ -676,8 +676,12 @@ watch(
 </script>
 
 <template>
-  <SubPageLayout title="悬赏服务">
-    <view class="flex flex-col gap-copy px-action py-card">
+  <MainTabLayout active="bounty">
+    <template #header>
+      <text class="page-heading">悬赏</text>
+    </template>
+
+    <view class="box-border flex flex-col gap-copy px-action pb-screen pt-card">
       <PcStatePanel
         v-if="!featureAvailable"
         status="unavailable"
@@ -1031,10 +1035,8 @@ watch(
           </view>
         </template>
       </template>
-    </view>
-
-    <template v-if="featureAvailable" #actions>
       <PcButton
+        v-if="featureAvailable"
         block
         size="action"
         :disabled="openingForm"
@@ -1043,6 +1045,6 @@ watch(
       >
         发布悬赏
       </PcButton>
-    </template>
-  </SubPageLayout>
+    </view>
+  </MainTabLayout>
 </template>
