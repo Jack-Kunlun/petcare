@@ -22,14 +22,14 @@ test("超级管理员可以创建并编辑角色，菜单和按钮可选而接�
 
   await login(page, requiredEnv("DEFAULT_ADMIN_USERNAME"), requiredEnv("DEFAULT_ADMIN_PASSWORD"));
   await expect(page.getByRole("heading", { name: "管理概览" })).toBeVisible();
-  await page.getByRole("button", { name: "权限管理菜单" }).click();
+  await page.getByRole("button", { name: "角色权限菜单" }).click();
   await page.getByRole("link", { name: "角色管理" }).click();
   await expect(page.getByRole("heading", { name: "角色管理" })).toBeVisible();
   await page.getByRole("link", { name: "新建角色" }).click();
 
   await page.getByLabel("角色名称").fill(roleName);
   await page.getByLabel("角色说明").fill("Admin RBAC Playwright acceptance role");
-  await page.getByRole("checkbox", { name: "内容管理" }).check();
+  await page.getByRole("checkbox", { name: "内容运营" }).check();
   await page.getByRole("checkbox", { name: "发布页面内容", exact: true }).check();
   await expect(page.getByText("发布页面内容接口")).toBeVisible();
   await expect(page.getByRole("checkbox", { name: "发布页面内容接口" })).toBeDisabled();
