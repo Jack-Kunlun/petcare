@@ -43,6 +43,7 @@ export function createMiniappPagesConfig(
           "pets/detail",
           "profile/info",
           "profile/edit",
+          "income/index",
           "account/settings",
           "account/cancel",
         ].map(createPage),

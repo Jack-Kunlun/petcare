@@ -14,6 +14,7 @@ const ProviderQualifications = lazy(() => import("../pages/ProviderQualification
 const PaymentOperations = lazy(() => import("../pages/PaymentOperations"));
 const PaymentBillDetail = lazy(() => import("../pages/PaymentOperations/Detail"));
 const BountyOrders = lazy(() => import("../pages/BountyOrders"));
+const SettlementOperations = lazy(() => import("../pages/SettlementOperations"));
 const commercialServicesEnabled =
   import.meta.env.VITE_COMMERCIAL_SERVICES_ENABLED?.trim().toLowerCase() === "true";
 const paymentOperationsEnabled =
@@ -133,6 +134,7 @@ export const ADMIN_ROUTE_REGISTRY: readonly AdminRouteDefinition[] = [
   ...(commercialServicesEnabled
     ? [catalogMenuRoute("bounty-orders", "bounty.order.view", BountyOrders)]
     : []),
+  catalogMenuRoute("settlement-operations", "settlement.operations.view", SettlementOperations),
   ...(paymentOperationsEnabled
     ? [
         catalogMenuRoute("payment-operations", "payment.operations.view", PaymentOperations),

@@ -7,6 +7,7 @@ import {
   Settings2,
   ShieldCheck,
   Users,
+  WalletCards,
   X,
   type LucideIcon,
 } from "lucide-react";
@@ -32,6 +33,7 @@ const icons: Record<string, LucideIcon> = {
   Globe2,
   Settings2,
   ShieldCheck,
+  WalletCards,
 };
 
 interface SidebarProps {

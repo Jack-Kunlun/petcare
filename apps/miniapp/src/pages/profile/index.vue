@@ -325,6 +325,28 @@ function addPet(): void {
       </view>
 
       <view class="mt-card px-page-horizontal">
+        <text class="section-heading">服务与收入</text>
+      </view>
+      <view class="mx-page-horizontal mt-copy overflow-hidden main-card">
+        <navigator
+          url="/pages-account/income/index"
+          class="flex items-center gap-copy px-card-padding py-action"
+          hover-class="opacity-80"
+        >
+          <view
+            class="h-icon w-icon flex shrink-0 items-center justify-center rounded-control bg-divider"
+          >
+            <image class="h-glyph w-glyph" src="/static/main/customer.svg" mode="aspectFit" />
+          </view>
+          <view class="min-w-0 flex flex-1 flex-col">
+            <text class="text-body text-ink font-medium leading-label">收入与提现</text>
+            <text class="mt-caption quiet-text">查看服务收入和提现状态</text>
+          </view>
+          <image class="h-icon-xs w-icon-xs" src="/static/main/chevron.svg" mode="aspectFit" />
+        </navigator>
+      </view>
+
+      <view class="mt-card px-page-horizontal">
         <text class="section-heading">帮助与协议</text>
       </view>
       <view

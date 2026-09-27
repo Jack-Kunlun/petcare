@@ -19,6 +19,7 @@ describe("RBAC permission catalog", () => {
     expect(menuPaths).toEqual([
       "/payment-operations",
       "/bounty-orders",
+      "/settlement-operations",
       "/provider-qualifications",
       "/",
       "/users",

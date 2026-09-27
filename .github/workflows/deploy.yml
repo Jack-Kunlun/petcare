@@ -134,6 +134,7 @@ jobs:
           build-args: |
             VITE_QUALIFICATION_WORKFLOW_ENABLED=true
             VITE_COMMERCIAL_SERVICES_ENABLED=true
+            VITE_PAYMENT_OPERATIONS_ENABLED=true
 
       - name: 打包 ${{ matrix.service }}
         shell: bash

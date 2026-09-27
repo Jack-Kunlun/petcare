@@ -58,6 +58,17 @@ export const RBAC_PERMISSION_CATALOG: readonly RbacPermissionDefinition[] = [
     impliedApiCodes: ["bounty.order.read"],
   },
   {
+    code: "settlement.operations.view",
+    type: "menu",
+    label: "结算与提现",
+    module: "settlement",
+    path: "/settlement-operations",
+    parentCode: null,
+    order: 70,
+    icon: "WalletCards",
+    impliedApiCodes: [],
+  },
+  {
     code: "bounty.order.read",
     type: "api",
     label: "查看悬赏订单",
