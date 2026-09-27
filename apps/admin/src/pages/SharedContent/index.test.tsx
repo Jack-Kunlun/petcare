@@ -69,7 +69,7 @@ describe("SharedContent overview", () => {
     renderOverview();
 
     expect(await screen.findByRole("list", { name: "公共内容单元" })).toBeInTheDocument();
-    expect(screen.getByRole("heading", { name: "公共内容配置" })).toBeInTheDocument();
+    expect(screen.getByRole("heading", { name: "客服与协议" })).toBeInTheDocument();
     expect(screen.getAllByRole("listitem")).toHaveLength(4);
     expect(screen.getByRole("heading", { name: "联系客服" })).toBeInTheDocument();
     expect(screen.getByRole("heading", { name: "帮助中心" })).toBeInTheDocument();

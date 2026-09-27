@@ -5,8 +5,8 @@ import { ManagedContentOverview } from "../WebsiteContent/ManagedContentOverview
 export default function SharedContent() {
   return (
     <ManagedContentOverview
-      eyebrow="公共配置"
-      title="公共内容配置"
+      eyebrow="用户支持"
+      title="客服与协议"
       description="集中维护联系客服、帮助中心和协议内容，供小程序及相应公共页面读取。"
       contentKeys={SHARED_CONTENT_KEYS}
       listLabel="公共内容单元"

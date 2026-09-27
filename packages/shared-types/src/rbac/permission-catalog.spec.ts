@@ -18,6 +18,7 @@ describe("RBAC permission catalog", () => {
     expect(new Set(menuPaths).size).toBe(menuPaths.length);
     expect(menuPaths).toEqual([
       "/payment-operations",
+      "/payment-settings",
       "/bounty-orders",
       "/settlement-operations",
       "/provider-qualifications",
@@ -107,7 +108,7 @@ describe("RBAC permission catalog", () => {
 
     expect(byCode.get("website.view")).toMatchObject({
       type: RBAC_PERMISSION_TYPES.MENU,
-      label: "公共内容配置",
+      label: "客服与协议",
       path: "/shared-content",
       parentCode: null,
       impliedApiCodes: ["website.read"],

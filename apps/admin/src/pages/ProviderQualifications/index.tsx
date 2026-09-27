@@ -168,7 +168,7 @@ export default function ProviderQualifications() {
   return (
     <PageShell>
       <PageHeader
-        title="服务者资格审核"
+        title="服务者审核"
         description="只处理已提交申请。身份证与培训证明仅可通过独立授权临时读取，不产生公开链接。"
       />
       <div className="grid min-w-0 gap-6 lg:grid-cols-[minmax(288px,1fr)_minmax(0,2fr)]">

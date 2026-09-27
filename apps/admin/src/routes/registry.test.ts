@@ -167,7 +167,7 @@ describe("ADMIN_ROUTE_REGISTRY", () => {
         menuPermission: "website.view",
         requiredPermissions: ["website.view"],
         parentPath: null,
-        menuLabel: "公共内容配置",
+        menuLabel: "客服与协议",
       },
       {
         path: "/shared-content/:contentKey/edit",
@@ -201,14 +201,14 @@ describe("ADMIN_ROUTE_REGISTRY", () => {
           createElement(Route, { path: editRoute.path, element: editRoute.element }),
           createElement(Route, {
             path: "/shared-content",
-            element: createElement("h1", null, "公共内容配置"),
+            element: createElement("h1", null, "客服与协议"),
           }),
         ),
       ),
     );
 
     await waitFor(() => {
-      expect(screen.getByRole("heading", { name: "公共内容配置" })).toBeInTheDocument();
+      expect(screen.getByRole("heading", { name: "客服与协议" })).toBeInTheDocument();
     });
   });
 

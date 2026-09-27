@@ -26,7 +26,7 @@ export function getContentOverviewPath(_contentKey: CurrentWebsiteContentKey): s
 
 /** Returns the visible name of the Admin area that owns one content key. */
 export function getContentAreaLabel(_contentKey: CurrentWebsiteContentKey): string {
-  return "公共内容配置";
+  return "客服与协议";
 }
 
 /** Returns the editor route for one managed content key. */

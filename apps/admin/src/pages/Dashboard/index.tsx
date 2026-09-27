@@ -43,10 +43,10 @@ const managementAreas: ManagementArea[] = [
     icon: BookOpenText,
   },
   {
-    title: "公共内容",
+    title: "客服与协议",
     description: "维护官网与小程序共用的客服、帮助和协议内容。",
     path: "/shared-content",
-    action: "管理公共内容",
+    action: "管理客服与协议",
     icon: Settings2,
   },
 ];
@@ -62,7 +62,7 @@ export default function Dashboard() {
             <ShieldCheck aria-hidden="true" className="h-4 w-4" />4 个已启用模块
           </Badge>
         }
-        description="集中进入账户、社区、课堂和公共内容管理。"
+        description="集中进入账户、订单、内容、资金和系统配置。"
         eyebrow="管理工作台"
         title="管理概览"
       />

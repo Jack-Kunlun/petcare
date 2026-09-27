@@ -23,7 +23,7 @@ export default function SettlementOperations() {
     <PageShell>
       <PageHeader
         eyebrow="资金运营"
-        title="结算与提现"
+        title="收入与提现"
         description="查看服务收入结算状态。外部结算主体配置完成前，提现不会产生出款。"
       />
       <div className="grid gap-4 md:grid-cols-3">

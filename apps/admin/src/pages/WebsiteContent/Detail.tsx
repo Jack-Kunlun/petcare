@@ -33,7 +33,7 @@ export default function WebsiteContentDetail() {
   const { contentKey: contentKeyParam, versionId } = useParams();
   const contentKey = isCurrentWebsiteContentKey(contentKeyParam) ? contentKeyParam : null;
   const overviewPath = contentKey ? getContentOverviewPath(contentKey) : "/shared-content";
-  const areaLabel = contentKey ? getContentAreaLabel(contentKey) : "公共内容配置";
+  const areaLabel = contentKey ? getContentAreaLabel(contentKey) : "客服与协议";
   const navigate = useNavigate();
   const queryClient = useQueryClient();
   const [dialogOpen, setDialogOpen] = useState(false);
@@ -280,7 +280,7 @@ function Message({
   title,
   message,
   returnPath = "/shared-content",
-  returnLabel = "返回公共内容配置",
+  returnLabel = "返回客服与协议",
 }: {
   title: string;
   message: string;

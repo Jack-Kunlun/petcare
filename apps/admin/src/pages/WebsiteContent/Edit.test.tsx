@@ -280,7 +280,7 @@ describe("WebsiteContentEdit", () => {
     renderEditor(authenticated.user?.permissions, queryClient, "/shared-content/help/edit");
 
     expect(await screen.findAllByRole("textbox", { name: "正文标题" })).toHaveLength(4);
-    expect(screen.getByRole("link", { name: "返回公共内容配置" })).toHaveAttribute(
+    expect(screen.getByRole("link", { name: "返回客服与协议" })).toHaveAttribute(
       "href",
       "/shared-content",
     );
@@ -451,12 +451,12 @@ describe("WebsiteContentEdit", () => {
     expect(header).toBeInTheDocument();
     expect(document.querySelector("div.editor-page__content")).toBeInTheDocument();
     expect(screen.getByRole("heading", { name: "编辑 官网首页" })).toBeInTheDocument();
-    expect(screen.getByRole("link", { name: "返回公共内容配置" })).toBeInTheDocument();
+    expect(screen.getByRole("link", { name: "返回客服与协议" })).toBeInTheDocument();
     expect(screen.getByRole("link", { name: "查看历史" })).toHaveAttribute(
       "href",
       "#website-content-history",
     );
-    expect(within(toolbar!).getByRole("link", { name: "返回公共内容配置" })).toBeInTheDocument();
+    expect(within(toolbar!).getByRole("link", { name: "返回客服与协议" })).toBeInTheDocument();
     expect(within(toolbar!).getByRole("link", { name: "查看历史" })).toBeInTheDocument();
     expect(within(toolbar!).getByRole("button", { name: "保存草稿" })).toHaveAttribute(
       "form",
@@ -495,13 +495,13 @@ describe("WebsiteContentEdit", () => {
     await user.click(screen.getByRole("checkbox", { name: "显示 信任说明网格" }));
     expect(screen.queryByRole("textbox", { name: "区块标题" })).toBeNull();
 
-    await user.click(screen.getByRole("link", { name: "返回公共内容配置" }));
+    await user.click(screen.getByRole("link", { name: "返回客服与协议" }));
     expect(await screen.findByRole("dialog")).toHaveTextContent("放弃未保存的修改？");
     expect(router.state.location.pathname).toBe("/shared-content/home/edit");
 
     await user.click(screen.getByRole("button", { name: "继续编辑" }));
     expect(screen.queryByRole("dialog")).not.toBeInTheDocument();
-    await user.click(screen.getByRole("link", { name: "返回公共内容配置" }));
+    await user.click(screen.getByRole("link", { name: "返回客服与协议" }));
     await user.click(await screen.findByRole("button", { name: "放弃修改" }));
     expect(await screen.findByText("公共内容列表占位")).toBeInTheDocument();
   });
@@ -670,7 +670,7 @@ describe("WebsiteContentEdit", () => {
     await user.click(screen.getAllByRole("button", { name: "保存草稿" })[0]);
     await screen.findByText("草稿已保存，当前修订版为 r3。", { exact: false });
 
-    await user.click(screen.getByRole("link", { name: "返回公共内容配置" }));
+    await user.click(screen.getByRole("link", { name: "返回客服与协议" }));
     expect(await screen.findByText("公共内容列表占位")).toBeInTheDocument();
     expect(screen.queryByRole("dialog")).not.toBeInTheDocument();
   });

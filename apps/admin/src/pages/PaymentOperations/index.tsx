@@ -103,7 +103,7 @@ export default function PaymentOperations() {
   return (
     <PageShell>
       <PageHeader
-        title="支付异常巡检"
+        title="支付巡检"
         description="由超管在后台主动查看与处理，时间均为中国时间。后台展示不代表外部通知已送达。"
         meta={<Badge tone="warning">人工巡检</Badge>}
       />

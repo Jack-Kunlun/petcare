@@ -56,7 +56,7 @@ describe("Sidebar", () => {
     expect(getNavigationHrefs(desktopTree)).toEqual(
       expect.arrayContaining(["/", "/content", "/content/posts", "/content/articles"]),
     );
-    expect(tree.getByRole("button", { name: "内容管理菜单" })).toHaveClass("bg-brand-primary/20");
+    expect(tree.getByRole("button", { name: "内容运营菜单" })).toHaveClass("bg-brand-primary/20");
     expect(tree.getByRole("link", { name: "帖子管理" })).toHaveClass("bg-brand-primary");
     expect(tree.getByRole("link", { name: "帖子管理" })).toHaveAttribute("aria-current", "page");
   });
@@ -70,7 +70,7 @@ describe("Sidebar", () => {
 
     const desktopTree = screen.getByTestId("desktop-menu-tree");
     const tree = within(desktopTree);
-    const toggle = tree.getByRole("button", { name: "内容管理菜单" });
+    const toggle = tree.getByRole("button", { name: "内容运营菜单" });
 
     expect(toggle).toHaveAttribute("aria-expanded", "true");
     expect(toggle).toHaveClass("cursor-pointer");
@@ -85,7 +85,7 @@ describe("Sidebar", () => {
     const collapsedSubmenu = desktopTree.querySelector("#submenu-content");
 
     if (collapsedSubmenu === null) {
-      throw new Error("内容管理子菜单应保持挂载以支持收起动画");
+      throw new Error("内容运营子菜单应保持挂载以支持收起动画");
     }
 
     expect(collapsedSubmenu).toHaveAttribute("aria-hidden", "true");
@@ -122,7 +122,7 @@ describe("Sidebar", () => {
 
     const tree = within(screen.getByTestId("desktop-menu-tree"));
 
-    expect(tree.getByRole("button", { name: "权限管理菜单" })).toHaveAttribute(
+    expect(tree.getByRole("button", { name: "角色权限菜单" })).toHaveAttribute(
       "aria-expanded",
       "true",
     );
@@ -138,11 +138,11 @@ describe("Sidebar", () => {
     );
 
     const tree = within(screen.getByTestId("desktop-menu-tree"));
-    const sharedSettings = tree.getByRole("link", { name: "公共内容配置" });
+    const sharedSettings = tree.getByRole("link", { name: "客服与协议" });
 
     expect(sharedSettings).toHaveAttribute("href", "/shared-content");
     expect(sharedSettings.querySelector(".lucide-settings-2")).toBeInTheDocument();
-    expect(tree.queryByRole("button", { name: "公共内容配置菜单" })).not.toBeInTheDocument();
+    expect(tree.queryByRole("button", { name: "客服与协议菜单" })).not.toBeInTheDocument();
   });
 
   it("keeps mobile navigation flat while desktop uses the current content tree", () => {
@@ -154,7 +154,7 @@ describe("Sidebar", () => {
 
     const mobileMenu = within(screen.getByTestId("mobile-menu"));
 
-    expect(mobileMenu.getByRole("link", { name: "内容管理" })).toHaveAttribute("href", "/content");
+    expect(mobileMenu.getByRole("link", { name: "内容运营" })).toHaveAttribute("href", "/content");
     expect(mobileMenu.queryByRole("link", { name: "帖子管理" })).not.toBeInTheDocument();
   });
 
@@ -165,8 +165,8 @@ describe("Sidebar", () => {
       </MemoryRouter>,
     );
 
-    expect(screen.queryByRole("link", { name: "内容管理" })).not.toBeInTheDocument();
-    expect(screen.queryByRole("link", { name: "权限管理" })).not.toBeInTheDocument();
+    expect(screen.queryByRole("link", { name: "内容运营" })).not.toBeInTheDocument();
+    expect(screen.queryByRole("link", { name: "角色权限" })).not.toBeInTheDocument();
   });
 
   it("does not expose a child route without its parent menu permission", () => {
@@ -177,7 +177,7 @@ describe("Sidebar", () => {
     );
 
     expect(screen.queryByRole("link", { name: "帖子管理" })).not.toBeInTheDocument();
-    expect(screen.queryByRole("link", { name: "内容管理" })).not.toBeInTheDocument();
+    expect(screen.queryByRole("link", { name: "内容运营" })).not.toBeInTheDocument();
   });
 
   it("does not expose paused commercial navigation paths", () => {

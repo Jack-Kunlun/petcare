@@ -15,6 +15,7 @@ const Dashboard = lazy(() => import("../pages/Dashboard"));
 const ProviderQualifications = lazy(() => import("../pages/ProviderQualifications"));
 const PaymentOperations = lazy(() => import("../pages/PaymentOperations"));
 const PaymentBillDetail = lazy(() => import("../pages/PaymentOperations/Detail"));
+const PaymentSettings = lazy(() => import("../pages/PaymentSettings"));
 const BountyOrders = lazy(() => import("../pages/BountyOrders"));
 const SettlementOperations = lazy(() => import("../pages/SettlementOperations"));
 const commercialServicesEnabled =
@@ -178,6 +179,7 @@ export const ADMIN_ROUTE_REGISTRY: readonly AdminRouteDefinition[] = [
         },
       ]
     : []),
+  catalogMenuRoute("payment-settings", "payment.settings.view", PaymentSettings),
   catalogMenuRoute("users", "user.view", UserManagement, "用户列表"),
   ...(qualificationWorkflowEnabled
     ? [
@@ -238,13 +240,13 @@ export const ADMIN_ROUTE_REGISTRY: readonly AdminRouteDefinition[] = [
   {
     id: "shared-content",
     path: "/shared-content",
-    element: lazyRoute(SharedContent, "公共内容配置"),
+    element: lazyRoute(SharedContent, "客服与协议"),
     menuPermission: "website.view",
     requiredPermissions: ["website.view"],
     parentPath: null,
-    order: 55,
+    order: 80,
     icon: "Settings2",
-    menuLabel: "公共内容配置",
+    menuLabel: "客服与协议",
   },
   {
     id: "shared-content-edit",

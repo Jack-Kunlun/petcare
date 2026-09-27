@@ -129,7 +129,7 @@ describe("WebsiteContentDetail", () => {
     const header = within(page?.querySelector("header.editor-page__header") as HTMLElement);
     const content = within(page?.querySelector("div.editor-page__content") as HTMLElement);
 
-    expect(toolbar.getByRole("link", { name: "返回公共内容配置编辑" })).toBeInTheDocument();
+    expect(toolbar.getByRole("link", { name: "返回客服与协议编辑" })).toBeInTheDocument();
     expect(header.getByText("历史版本")).toBeInTheDocument();
     expect(toolbar.getByRole("button", { name: "恢复为新草稿" })).toBeEnabled();
     expect(content.queryByRole("button", { name: "恢复为新草稿" })).not.toBeInTheDocument();
@@ -142,7 +142,7 @@ describe("WebsiteContentDetail", () => {
     renderDetail(auth.user?.permissions, "/shared-content/help/history/version-1");
 
     expect(await screen.findByRole("heading", { name: "历史版本 v2" })).toBeInTheDocument();
-    expect(screen.getByRole("link", { name: "返回公共内容配置编辑" })).toHaveAttribute(
+    expect(screen.getByRole("link", { name: "返回客服与协议编辑" })).toHaveAttribute(
       "href",
       "/shared-content/help/edit",
     );
