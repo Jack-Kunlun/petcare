@@ -8,7 +8,16 @@ export default function SettlementOperations() {
     queryKey: ["admin-settlement-summary"],
     queryFn: fetchAdminSettlementSummary,
   });
+
   const summary = query.data;
+
+  let settlementStatus = "等待配置";
+
+  if (query.isPending) {
+    settlementStatus = "加载中";
+  } else if (summary?.pendingCents) {
+    settlementStatus = "待核查";
+  }
 
   return (
     <PageShell>
@@ -38,9 +47,7 @@ export default function SettlementOperations() {
         </DataPanel>
         <DataPanel className="p-5">
           <p className="text-sm text-text-secondary">结算状态</p>
-          <p className="mt-2 text-lg font-semibold text-text-primary">
-            {query.isPending ? "加载中" : summary?.pendingCents ? "待核查" : "等待配置"}
-          </p>
+          <p className="mt-2 text-lg font-semibold text-text-primary">{settlementStatus}</p>
           <p className="mt-3 text-sm text-text-secondary">
             {summary?.entryCount ?? 0}{" "}
             条不可变收入记录；营业主体、出款账户和手续费规则确定后接入真实出款。
