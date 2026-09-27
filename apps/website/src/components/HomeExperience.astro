@@ -456,7 +456,7 @@ const communityHref = communityAction ? getSafeWebsiteHref(communityAction.href)
     <div class="community-preview__grid">
       {
         communityStories.map((story) => (
-          <article class="community-story">
+          <a class="community-story" href="/articles">
             <img
               src={story.image.src}
               width={story.image.width}
@@ -466,7 +466,7 @@ const communityHref = communityAction ? getSafeWebsiteHref(communityAction.href)
             />
             <p>{story.category}</p>
             <h3>{story.title}</h3>
-          </article>
+          </a>
         ))
       }
     </div>

@@ -31,8 +31,6 @@ import HomeExperience from "./HomeExperience.astro";
   </div>
 </header>
 
-<div class="home-scroll-progress" aria-hidden="true"><span></span></div>
-
 <main id="main-content">
   <section
     class="hero-section hero-section--background home-hero"
@@ -161,25 +159,24 @@ import HomeExperience from "./HomeExperience.astro";
     element.style.setProperty("--reveal-delay", `${Math.min(index % 5, 4) * 70}ms`);
   });
 
-  const observer = new IntersectionObserver(
-    (entries) =>
-      entries.forEach(
-        (entry) => entry.isIntersecting && entry.target.setAttribute("data-visible", "true"),
-      ),
-    { threshold: 0.14, rootMargin: "0px 0px -8%" },
-  );
+  if ("IntersectionObserver" in window) {
+    const observer = new IntersectionObserver(
+      (entries) =>
+        entries.forEach(
+          (entry) => entry.isIntersecting && entry.target.setAttribute("data-visible", "true"),
+        ),
+      { threshold: 0.05, rootMargin: "0px 0px 18% 0px" },
+    );
 
-  revealElements.forEach((element) => observer.observe(element));
+    revealElements.forEach((element) => observer.observe(element));
+  } else {
+    revealElements.forEach((element) => element.setAttribute("data-visible", "true"));
+  }
 
-  const progress = document.querySelector<HTMLElement>(".home-scroll-progress span");
   const hero = document.querySelector<HTMLElement>(".home-hero");
   let frame = 0;
   const updateScroll = () => {
     frame = 0;
-    const maxScroll = document.documentElement.scrollHeight - window.innerHeight;
-    const ratio = maxScroll > 0 ? window.scrollY / maxScroll : 0;
-
-    progress?.style.setProperty("transform", `scaleY(${ratio})`);
     hero?.style.setProperty("--hero-shift", `${Math.min(window.scrollY * 0.08, 48)}px`);
   };
 

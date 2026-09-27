@@ -2459,29 +2459,6 @@ img.hero-section__background-media {
   transition: transform 120ms linear;
 }
 
-.home-scroll-progress {
-  position: fixed;
-  z-index: 50;
-  top: 50%;
-  right: 1.5rem;
-  width: 2px;
-  height: 6rem;
-  border-radius: 999px;
-  background: rgb(74 108 247 / 20%);
-  pointer-events: none;
-  transform: translateY(-50%);
-}
-
-.home-scroll-progress span {
-  display: block;
-  width: 100%;
-  height: 100%;
-  border-radius: inherit;
-  background: var(--brand);
-  transform: scaleY(0);
-  transform-origin: top;
-}
-
 html[data-motion="ready"] [data-scroll-reveal] {
   opacity: 0;
   transform: translate3d(0, 2rem, 0);
@@ -2496,15 +2473,10 @@ html[data-motion="ready"] [data-scroll-reveal][data-visible="true"] {
   transform: translate3d(0, 0, 0);
 }
 
-.service-journey li,
-.service-story,
 .community-story {
-  transition: transform 260ms ease;
-}
-
-.service-story:hover,
-.community-story:hover {
-  transform: translateY(-0.35rem);
+  display: block;
+  color: inherit;
+  text-decoration: none;
 }
 
 .home-download {
@@ -2539,10 +2511,6 @@ html[data-motion="ready"] [data-scroll-reveal][data-visible="true"] {
   .home-hero::after {
     background: linear-gradient(90deg, rgb(10 25 52 / 80%), rgb(10 25 52 / 38%));
   }
-
-  .home-scroll-progress {
-    display: none;
-  }
 }
 
 @media (prefers-reduced-motion: reduce) {
@@ -2557,8 +2525,7 @@ html[data-motion="ready"] [data-scroll-reveal][data-visible="true"] {
     transition: none;
   }
 
-  .service-story:hover,
-  .community-story:hover {
-    transform: none;
+  .community-story img {
+    transition: none;
   }
 }
