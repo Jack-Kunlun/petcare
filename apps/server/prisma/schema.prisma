@@ -84,6 +84,10 @@ model User {
   complaintEvents                   ComplaintEvent[]                   @relation("ComplaintEventActor")
   /// 用户因投诉裁决产生的退款或结算内部账务记录。
   disputeMoneyRecords               DisputeMoneyRecord[]
+  /// 服务者完成订单后生成的不可变收入账务记录。
+  providerLedgerEntries              ProviderLedgerEntry[]
+  /// 服务者发起的提现申请。
+  providerWithdrawals                ProviderWithdrawal[]
   certificationApplications         ProviderCertificationApplication[] @relation("CertificationApplicant")
   reviewedCertificationApplications ProviderCertificationApplication[] @relation("CertificationReviewer")
   /// 该用户创建的系统配置版本。
@@ -330,6 +334,8 @@ model Order {
   feeSnapshot         OrderFeeSnapshot?
   /// 普通商户支付单；未创建或未确认收款时禁止履约。
   payment             OrderPayment?
+  /// 完成订单生成的服务者收入账务记录。
+  providerLedgerEntry ProviderLedgerEntry?
 
   @@index([ownerId])
   @@index([providerId])
@@ -558,6 +564,47 @@ model OrderFeeSnapshot {
 
   @@index([feeConfigVersionId])
   @@map("order_fee_snapshots")
+}
+
+/// One append-only provider earning entry. Simulated payments remain visible but never withdrawable.
+model ProviderLedgerEntry {
+  id                String   @id @default(uuid())
+  providerId        String   @map("provider_id")
+  orderId           String   @unique @map("order_id")
+  amountCents       Int      @map("amount_cents")
+  currency          String   @default("CNY")
+  paymentStatus     String   @map("payment_status")
+  withdrawable      Boolean  @default(false)
+  entryType         String   @map("entry_type")
+  idempotencyKey    String   @unique @map("idempotency_key")
+  createdAt         DateTime @default(now()) @map("created_at")
+
+  provider User  @relation(fields: [providerId], references: [id], onDelete: Restrict)
+  order    Order @relation(fields: [orderId], references: [id], onDelete: Restrict)
+
+  @@index([providerId, createdAt])
+  @@index([providerId, withdrawable, createdAt])
+  @@map("provider_ledger_entries")
+}
+
+/// One idempotent withdrawal command. External payout is intentionally absent until the payout entity is configured.
+model ProviderWithdrawal {
+  id             String   @id @default(uuid())
+  providerId     String   @map("provider_id")
+  amountCents    Int      @map("amount_cents")
+  feeCents       Int      @default(0) @map("fee_cents")
+  status         String   @default("blocked")
+  simulation     Boolean  @default(true)
+  idempotencyKey String   @unique @map("idempotency_key")
+  failureReason  String?  @map("failure_reason")
+  createdAt      DateTime @default(now()) @map("created_at")
+  updatedAt      DateTime @updatedAt @map("updated_at")
+
+  provider User @relation(fields: [providerId], references: [id], onDelete: Restrict)
+
+  @@index([providerId, createdAt])
+  @@index([providerId, status, createdAt])
+  @@map("provider_withdrawals")
 }
 
 model OrderReward {

@@ -10,5 +10,6 @@ import { BountyService } from "./bounty.service";
   imports: [AuthModule, WebsiteContentModule],
   controllers: [BountyController, AdminBountyController],
   providers: [BountyService, BountyFeatureGuard],
+  exports: [BountyFeatureGuard],
 })
 export class BountyModule {}

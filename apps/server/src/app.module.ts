@@ -16,6 +16,7 @@ import { PaymentModule } from "./modules/payment/payment.module";
 import { PetModule } from "./modules/pet/pet.module";
 import { ProviderQualificationModule } from "./modules/provider-qualification/provider-qualification.module";
 import { RbacModule } from "./modules/rbac/rbac.module";
+import { SettlementModule } from "./modules/settlement/settlement.module";
 import { UserModule } from "./modules/user/user.module";
 import { WebsiteContentModule } from "./modules/website-content/website-content.module";
 import { PrismaModule } from "./prisma/prisma.module";
@@ -36,6 +37,7 @@ import { PrismaModule } from "./prisma/prisma.module";
     AdminAccountModule,
     BountyModule,
     ProviderQualificationModule,
+    SettlementModule,
     WebsiteContentModule,
   ],
   providers: [
