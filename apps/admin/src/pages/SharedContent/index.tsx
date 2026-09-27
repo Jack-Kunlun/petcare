@@ -7,7 +7,7 @@ export default function SharedContent() {
     <ManagedContentOverview
       eyebrow="公共配置"
       title="公共内容配置"
-      description="集中维护联系客服、帮助中心和协议内容。发布结果会由官网、小程序或两端共同读取，不再与官网页面编排混在同一列表。"
+      description="集中维护联系客服、帮助中心和协议内容，供小程序及相应公共页面读取。"
       contentKeys={SHARED_CONTENT_KEYS}
       listLabel="公共内容单元"
     />

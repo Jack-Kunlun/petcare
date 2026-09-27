@@ -1,7 +1,9 @@
 import { RBAC_PERMISSION_CATALOG, RBAC_PERMISSION_TYPES } from "@petcare/shared-types";
 import type { ComponentType, LazyExoticComponent, ReactNode } from "react";
 import { createElement, lazy, Suspense } from "react";
+import { Navigate, useParams } from "react-router-dom";
 import { LazyRouteBoundary } from "../components/LazyRouteBoundary";
+import { SHARED_CONTENT_KEYS } from "../pages/WebsiteContent/content-registry";
 
 const Account = lazy(() => import("../pages/Account"));
 const ContentManagement = lazy(() => import("../pages/ContentManagement"));
@@ -32,6 +34,32 @@ const WebsiteContentEdit = lazy(() => import("../pages/WebsiteContent/Edit"));
 const WebsiteContentDetail = lazy(() => import("../pages/WebsiteContent/Detail"));
 
 type LazyRouteComponent = LazyExoticComponent<ComponentType>;
+const sharedContentKeySet = new Set<string>(SHARED_CONTENT_KEYS);
+
+function isSharedContentKey(contentKey: string | undefined): boolean {
+  return contentKey !== undefined && sharedContentKeySet.has(contentKey);
+}
+
+function GuardedWebsiteContentEditPage() {
+  const { contentKey } = useParams();
+
+  return isSharedContentKey(contentKey)
+    ? createElement(WebsiteContentEdit)
+    : createElement(Navigate, { to: "/shared-content", replace: true });
+}
+
+function GuardedWebsiteContentDetailPage() {
+  const { contentKey } = useParams();
+
+  return isSharedContentKey(contentKey)
+    ? createElement(WebsiteContentDetail)
+    : createElement(Navigate, { to: "/shared-content", replace: true });
+}
+
+const GuardedWebsiteContentEdit = lazy(async () => ({ default: GuardedWebsiteContentEditPage }));
+const GuardedWebsiteContentDetail = lazy(async () => ({
+  default: GuardedWebsiteContentDetailPage,
+}));
 
 /** A protected administration route, including its menu metadata when it has a menu entry. */
 export interface AdminRouteDefinition {
@@ -221,7 +249,7 @@ export const ADMIN_ROUTE_REGISTRY: readonly AdminRouteDefinition[] = [
   {
     id: "shared-content-edit",
     path: "/shared-content/:contentKey/edit",
-    element: lazyRoute(WebsiteContentEdit, "公共内容编辑"),
+    element: lazyRoute(GuardedWebsiteContentEdit, "公共内容编辑"),
     menuPermission: null,
     requiredPermissions: ["website.view"],
     parentPath: "/shared-content",
@@ -232,7 +260,7 @@ export const ADMIN_ROUTE_REGISTRY: readonly AdminRouteDefinition[] = [
   {
     id: "shared-content-history",
     path: "/shared-content/:contentKey/history/:versionId",
-    element: lazyRoute(WebsiteContentDetail, "公共内容历史"),
+    element: lazyRoute(GuardedWebsiteContentDetail, "公共内容历史"),
     menuPermission: null,
     requiredPermissions: ["website.view"],
     parentPath: "/shared-content",

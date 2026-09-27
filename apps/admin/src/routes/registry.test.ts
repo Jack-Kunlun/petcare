@@ -1,5 +1,7 @@
 import { RBAC_PERMISSION_CATALOG, RBAC_PERMISSION_TYPES } from "@petcare/shared-types";
-import { isValidElement, Suspense, type ReactElement, type ReactNode } from "react";
+import { render, screen, waitFor } from "@testing-library/react";
+import { createElement, isValidElement, Suspense, type ReactElement, type ReactNode } from "react";
+import { MemoryRouter, Route, Routes } from "react-router-dom";
 import { describe, expect, it, vi } from "vitest";
 import { LazyRouteBoundary } from "../components/LazyRouteBoundary";
 import {
@@ -182,6 +184,32 @@ describe("ADMIN_ROUTE_REGISTRY", () => {
         menuLabel: null,
       },
     ]);
+  });
+
+  it("redirects old website-only editor URLs to shared content", async () => {
+    const editRoute = ADMIN_ROUTE_REGISTRY.find(
+      (route) => route.path === "/shared-content/:contentKey/edit",
+    )!;
+
+    render(
+      createElement(
+        MemoryRouter,
+        { initialEntries: ["/shared-content/home/edit"] },
+        createElement(
+          Routes,
+          null,
+          createElement(Route, { path: editRoute.path, element: editRoute.element }),
+          createElement(Route, {
+            path: "/shared-content",
+            element: createElement("h1", null, "公共内容配置"),
+          }),
+        ),
+      ),
+    );
+
+    await waitFor(() => {
+      expect(screen.getByRole("heading", { name: "公共内容配置" })).toBeInTheDocument();
+    });
   });
 
   it("registers the current content overview with two child pages", () => {
