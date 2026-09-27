@@ -1,11 +1,16 @@
 import { RBAC_PERMISSION_CATALOG, RBAC_PERMISSION_TYPES } from "@petcare/shared-types";
 import {
+  BadgeCheck,
+  ClipboardList,
   ChevronDown,
   FileText,
   Globe2,
+  Headset,
   House,
-  Settings2,
+  Newspaper,
+  ScanSearch,
   ShieldCheck,
+  SlidersHorizontal,
   Users,
   WalletCards,
   X,
@@ -27,12 +32,16 @@ const menuPermissionByCode = new Map(
 );
 const allMenuPermissionCodes = [...menuPermissionByCode.keys()];
 const icons: Record<string, LucideIcon> = {
+  BadgeCheck,
+  ClipboardList,
   House,
   Users,
   FileText,
   Globe2,
-  Settings2,
-  ShieldCheck,
+  Headset,
+  Newspaper,
+  ScanSearch,
+  SlidersHorizontal,
   WalletCards,
 };
 

@@ -43,7 +43,7 @@ export const RBAC_PERMISSION_CATALOG: readonly RbacPermissionDefinition[] = [
     path: "/payment-operations",
     parentCode: null,
     order: 70,
-    icon: "ShieldCheck",
+    icon: "ScanSearch",
     impliedApiCodes: ["payment.bill_read", "payment.reconciliation_read"],
   },
   {
@@ -54,7 +54,7 @@ export const RBAC_PERMISSION_CATALOG: readonly RbacPermissionDefinition[] = [
     path: "/payment-settings",
     parentCode: null,
     order: 75,
-    icon: "Settings2",
+    icon: "SlidersHorizontal",
     impliedApiCodes: [],
   },
   {
@@ -65,7 +65,7 @@ export const RBAC_PERMISSION_CATALOG: readonly RbacPermissionDefinition[] = [
     path: "/bounty-orders",
     parentCode: null,
     order: 30,
-    icon: "FileText",
+    icon: "ClipboardList",
     impliedApiCodes: ["bounty.order.read"],
   },
   {
@@ -186,7 +186,7 @@ export const RBAC_PERMISSION_CATALOG: readonly RbacPermissionDefinition[] = [
     path: "/provider-qualifications",
     parentCode: null,
     order: 50,
-    icon: "ShieldCheck",
+    icon: "BadgeCheck",
     impliedApiCodes: ["provider_qualification.read"],
   },
   {
@@ -347,7 +347,7 @@ export const RBAC_PERMISSION_CATALOG: readonly RbacPermissionDefinition[] = [
     path: "/content",
     parentCode: null,
     order: 40,
-    icon: "FileText",
+    icon: "Newspaper",
     impliedApiCodes: [],
   },
   /** 打开社区帖子管理页面。 */
@@ -495,7 +495,7 @@ export const RBAC_PERMISSION_CATALOG: readonly RbacPermissionDefinition[] = [
     path: "/shared-content",
     parentCode: null,
     order: 80,
-    icon: "Settings2",
+    icon: "Headset",
     impliedApiCodes: ["website.read"],
   },
   /** Allows reading shared support and legal content drafts, history, diffs, and media. */

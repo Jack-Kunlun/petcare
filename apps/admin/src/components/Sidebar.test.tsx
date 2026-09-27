@@ -141,7 +141,7 @@ describe("Sidebar", () => {
     const sharedSettings = tree.getByRole("link", { name: "客服与协议" });
 
     expect(sharedSettings).toHaveAttribute("href", "/shared-content");
-    expect(sharedSettings.querySelector(".lucide-settings-2")).toBeInTheDocument();
+    expect(sharedSettings.querySelector(".lucide-headset")).toBeInTheDocument();
     expect(tree.queryByRole("button", { name: "客服与协议菜单" })).not.toBeInTheDocument();
   });
 

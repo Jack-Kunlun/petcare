@@ -1,4 +1,4 @@
-import { CheckCircle2, ClipboardList, LockKeyhole, Settings2 } from "lucide-react";
+import { CheckCircle2, ClipboardList, LockKeyhole, SlidersHorizontal } from "lucide-react";
 import { Badge, DataPanel, PageHeader, PageShell, Panel } from "../../components/ui";
 
 const merchantItems = [
@@ -37,7 +37,10 @@ export default function PaymentSettings() {
       />
 
       <Panel className="flex items-start gap-3" padding="sm">
-        <Settings2 aria-hidden="true" className="mt-0.5 h-5 w-5 shrink-0 text-brand-primary" />
+        <SlidersHorizontal
+          aria-hidden="true"
+          className="mt-0.5 h-5 w-5 shrink-0 text-brand-primary"
+        />
         <div>
           <h2 className="font-semibold text-text-primary">配置边界</h2>
           <p className="mt-1 text-sm leading-6 text-text-secondary">

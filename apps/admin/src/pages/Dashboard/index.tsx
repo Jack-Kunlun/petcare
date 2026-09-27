@@ -2,7 +2,7 @@ import {
   ArrowRight,
   BookOpenText,
   MessageSquareText,
-  Settings2,
+  Headset,
   ShieldCheck,
   Users,
 } from "lucide-react";
@@ -47,7 +47,7 @@ const managementAreas: ManagementArea[] = [
     description: "维护官网与小程序共用的客服、帮助和协议内容。",
     path: "/shared-content",
     action: "管理客服与协议",
-    icon: Settings2,
+    icon: Headset,
   },
 ];
 

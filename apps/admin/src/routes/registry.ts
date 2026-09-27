@@ -245,7 +245,7 @@ export const ADMIN_ROUTE_REGISTRY: readonly AdminRouteDefinition[] = [
     requiredPermissions: ["website.view"],
     parentPath: null,
     order: 80,
-    icon: "Settings2",
+    icon: "Headset",
     menuLabel: "客服与协议",
   },
   {
