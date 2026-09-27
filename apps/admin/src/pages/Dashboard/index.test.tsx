@@ -28,7 +28,7 @@ describe("Dashboard", () => {
       "href",
       "/content/articles",
     );
-    expect(screen.getByRole("link", { name: "管理公共内容" })).toHaveAttribute(
+    expect(screen.getByRole("link", { name: "管理客服与协议" })).toHaveAttribute(
       "href",
       "/shared-content",
     );
