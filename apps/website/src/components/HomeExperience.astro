@@ -233,7 +233,7 @@ const trustHref = trustAction ? getSafeWebsiteHref(trustAction.href) : null;
 const communityHref = communityAction ? getSafeWebsiteHref(communityAction.href) : null;
 ---
 
-<section class="home-services" aria-labelledby="home-services-title">
+<section id="home-services" class="home-services" aria-labelledby="home-services-title">
   <div class="content-container">
     <header class="section-heading section-heading--split">
       <div>
@@ -279,7 +279,11 @@ const communityHref = communityAction ? getSafeWebsiteHref(communityAction.href)
   </div>
 </section>
 
-<section class="service-journey-section" aria-labelledby="service-journey-title">
+<section
+  id="service-journey"
+  class="service-journey-section"
+  aria-labelledby="service-journey-title"
+>
   <div class="content-container">
     <header class="section-heading">
       <p class="eyebrow">{content?.journey.eyebrow ?? "当前使用路径"}</p>
@@ -312,7 +316,7 @@ const communityHref = communityAction ? getSafeWebsiteHref(communityAction.href)
   </div>
 </section>
 
-<section class="service-record-section" aria-labelledby="service-record-title">
+<section id="service-record" class="service-record-section" aria-labelledby="service-record-title">
   <div class="content-container service-record-section__inner">
     <figure class="service-record-demo" aria-labelledby="service-record-demo-title">
       <div class="service-record-demo__topbar">
@@ -389,7 +393,7 @@ const communityHref = communityAction ? getSafeWebsiteHref(communityAction.href)
   </div>
 </section>
 
-<section class="safety-section" aria-labelledby="safety-title">
+<section id="safety" class="safety-section" aria-labelledby="safety-title">
   <div class="content-container safety-section__inner">
     <header class="section-heading">
       <p class="eyebrow">{content?.trust.eyebrow ?? "范围与数据边界"}</p>
@@ -424,7 +428,7 @@ const communityHref = communityAction ? getSafeWebsiteHref(communityAction.href)
   </div>
 </section>
 
-<section class="community-preview" aria-labelledby="community-preview-title">
+<section id="community-preview" class="community-preview" aria-labelledby="community-preview-title">
   <div class="content-container">
     <header class="section-heading section-heading--split">
       <div>
@@ -469,7 +473,7 @@ const communityHref = communityAction ? getSafeWebsiteHref(communityAction.href)
   </div>
 </section>
 
-<section class="brand-story-section" aria-labelledby="brand-story-title">
+<section id="brand-story" class="brand-story-section" aria-labelledby="brand-story-title">
   <img
     class="brand-story-section__image"
     src={brand.image.src}
