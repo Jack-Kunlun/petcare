@@ -219,7 +219,7 @@ const authenticated: AuthContextValue = {
 function renderEditor(
   permissions = authenticated.user?.permissions ?? [],
   queryClient = new QueryClient({ defaultOptions: { queries: { retry: false } } }),
-  initialEntry = "/website-content/home/edit",
+  initialEntry = "/shared-content/home/edit",
 ) {
   const context: AuthContextValue = {
     ...authenticated,
@@ -228,8 +228,6 @@ function renderEditor(
 
   const router = createMemoryRouter(
     [
-      { path: "/website-content", element: <p>官网内容列表占位</p> },
-      { path: "/website-content/:contentKey/edit", element: <WebsiteContentEdit /> },
       { path: "/shared-content", element: <p>公共内容列表占位</p> },
       { path: "/shared-content/:contentKey/edit", element: <WebsiteContentEdit /> },
     ],
@@ -268,7 +266,7 @@ describe("WebsiteContentEdit", () => {
   });
 
   it("rejects historical commercial content keys before requesting a draft", () => {
-    renderEditor(authenticated.user?.permissions, undefined, "/website-content/services/edit");
+    renderEditor(authenticated.user?.permissions, undefined, "/shared-content/services/edit");
 
     expect(screen.getByRole("heading", { name: "页面内容不存在" })).toBeInTheDocument();
     expect(websiteContentApi.fetchWebsiteContentDraft).not.toHaveBeenCalled();
@@ -453,12 +451,12 @@ describe("WebsiteContentEdit", () => {
     expect(header).toBeInTheDocument();
     expect(document.querySelector("div.editor-page__content")).toBeInTheDocument();
     expect(screen.getByRole("heading", { name: "编辑 官网首页" })).toBeInTheDocument();
-    expect(screen.getByRole("link", { name: "返回官网管理" })).toBeInTheDocument();
+    expect(screen.getByRole("link", { name: "返回公共内容配置" })).toBeInTheDocument();
     expect(screen.getByRole("link", { name: "查看历史" })).toHaveAttribute(
       "href",
       "#website-content-history",
     );
-    expect(within(toolbar!).getByRole("link", { name: "返回官网管理" })).toBeInTheDocument();
+    expect(within(toolbar!).getByRole("link", { name: "返回公共内容配置" })).toBeInTheDocument();
     expect(within(toolbar!).getByRole("link", { name: "查看历史" })).toBeInTheDocument();
     expect(within(toolbar!).getByRole("button", { name: "保存草稿" })).toHaveAttribute(
       "form",
@@ -497,15 +495,15 @@ describe("WebsiteContentEdit", () => {
     await user.click(screen.getByRole("checkbox", { name: "显示 信任说明网格" }));
     expect(screen.queryByRole("textbox", { name: "区块标题" })).toBeNull();
 
-    await user.click(screen.getByRole("link", { name: "返回官网管理" }));
+    await user.click(screen.getByRole("link", { name: "返回公共内容配置" }));
     expect(await screen.findByRole("dialog")).toHaveTextContent("放弃未保存的修改？");
-    expect(router.state.location.pathname).toBe("/website-content/home/edit");
+    expect(router.state.location.pathname).toBe("/shared-content/home/edit");
 
     await user.click(screen.getByRole("button", { name: "继续编辑" }));
     expect(screen.queryByRole("dialog")).not.toBeInTheDocument();
-    await user.click(screen.getByRole("link", { name: "返回官网管理" }));
+    await user.click(screen.getByRole("link", { name: "返回公共内容配置" }));
     await user.click(await screen.findByRole("button", { name: "放弃修改" }));
-    expect(await screen.findByText("官网内容列表占位")).toBeInTheDocument();
+    expect(await screen.findByText("公共内容列表占位")).toBeInTheDocument();
   });
 
   it("retains local work and reports the server revision after an optimistic-lock conflict", async () => {
@@ -672,8 +670,8 @@ describe("WebsiteContentEdit", () => {
     await user.click(screen.getAllByRole("button", { name: "保存草稿" })[0]);
     await screen.findByText("草稿已保存，当前修订版为 r3。", { exact: false });
 
-    await user.click(screen.getByRole("link", { name: "返回官网管理" }));
-    expect(await screen.findByText("官网内容列表占位")).toBeInTheDocument();
+    await user.click(screen.getByRole("link", { name: "返回公共内容配置" }));
+    expect(await screen.findByText("公共内容列表占位")).toBeInTheDocument();
     expect(screen.queryByRole("dialog")).not.toBeInTheDocument();
   });
 

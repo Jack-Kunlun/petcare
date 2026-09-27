@@ -1,12 +1,5 @@
 import { WEBSITE_CONTENT_KEY, type CurrentWebsiteContentKey } from "@petcare/shared-types";
 
-/** Website-only composition units shown in the dedicated website management area. */
-export const WEBSITE_MANAGEMENT_CONTENT_KEYS = [
-  WEBSITE_CONTENT_KEY.SITE_SHELL,
-  WEBSITE_CONTENT_KEY.HOME,
-  WEBSITE_CONTENT_KEY.ABOUT,
-] as const satisfies readonly CurrentWebsiteContentKey[];
-
 /** Support and legal units shared by the Website and Miniapp public experiences. */
 export const SHARED_CONTENT_KEYS = [
   WEBSITE_CONTENT_KEY.CONTACT,
@@ -26,16 +19,14 @@ export const MANAGED_CONTENT_LABELS = {
   terms: "服务条款",
 } satisfies Record<CurrentWebsiteContentKey, string>;
 
-const sharedContentKeySet = new Set<CurrentWebsiteContentKey>(SHARED_CONTENT_KEYS);
-
 /** Returns the overview route that owns one content key in the Admin information architecture. */
-export function getContentOverviewPath(contentKey: CurrentWebsiteContentKey): string {
-  return sharedContentKeySet.has(contentKey) ? "/shared-content" : "/website-content";
+export function getContentOverviewPath(_contentKey: CurrentWebsiteContentKey): string {
+  return "/shared-content";
 }
 
 /** Returns the visible name of the Admin area that owns one content key. */
-export function getContentAreaLabel(contentKey: CurrentWebsiteContentKey): string {
-  return sharedContentKeySet.has(contentKey) ? "公共内容配置" : "官网管理";
+export function getContentAreaLabel(_contentKey: CurrentWebsiteContentKey): string {
+  return "公共内容配置";
 }
 
 /** Returns the editor route for one managed content key. */

@@ -30,7 +30,7 @@ describe("ContentHistory", () => {
 
     const link = screen.getByRole("link", { name: /已发布 v2/ });
 
-    expect(link).toHaveAttribute("href", "/website-content/home/history/version-1");
+    expect(link).toHaveAttribute("href", "/shared-content/home/history/version-1");
     expect(link).toHaveAttribute("aria-current", "page");
     expect(screen.queryByText(/回滚/)).not.toBeInTheDocument();
   });

@@ -32,8 +32,8 @@ function formatDate(value: string | null): string {
 export default function WebsiteContentDetail() {
   const { contentKey: contentKeyParam, versionId } = useParams();
   const contentKey = isCurrentWebsiteContentKey(contentKeyParam) ? contentKeyParam : null;
-  const overviewPath = contentKey ? getContentOverviewPath(contentKey) : "/website-content";
-  const areaLabel = contentKey ? getContentAreaLabel(contentKey) : "官网管理";
+  const overviewPath = contentKey ? getContentOverviewPath(contentKey) : "/shared-content";
+  const areaLabel = contentKey ? getContentAreaLabel(contentKey) : "公共内容配置";
   const navigate = useNavigate();
   const queryClient = useQueryClient();
   const [dialogOpen, setDialogOpen] = useState(false);
@@ -279,8 +279,8 @@ export default function WebsiteContentDetail() {
 function Message({
   title,
   message,
-  returnPath = "/website-content",
-  returnLabel = "返回官网管理",
+  returnPath = "/shared-content",
+  returnLabel = "返回公共内容配置",
 }: {
   title: string;
   message: string;

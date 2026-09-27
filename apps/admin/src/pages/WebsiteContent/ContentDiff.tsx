@@ -44,7 +44,7 @@ export function ContentDiff({ items }: { items: readonly WebsiteContentDiffItem[
   }
 
   return (
-    <ol aria-label="官网内容字段差异" className="space-y-3">
+    <ol aria-label="公共内容字段差异" className="space-y-3">
       {items.map((item) => (
         <li
           key={`${item.path}-${item.changeType}`}

@@ -178,8 +178,8 @@ export default function WebsiteContentEdit() {
   const auth = useAuth();
   const queryClient = useQueryClient();
   const contentKey = isCurrentWebsiteContentKey(contentKeyParam) ? contentKeyParam : null;
-  const overviewPath = contentKey ? getContentOverviewPath(contentKey) : "/website-content";
-  const areaLabel = contentKey ? getContentAreaLabel(contentKey) : "官网管理";
+  const overviewPath = contentKey ? getContentOverviewPath(contentKey) : "/shared-content";
+  const areaLabel = contentKey ? getContentAreaLabel(contentKey) : "公共内容配置";
   const canEdit = auth.user?.permissions.includes("website.edit") ?? false;
   const canPublish = auth.user?.permissions.includes("website.publish") ?? false;
   const canReadDraft = canEdit || canPublish;
@@ -723,10 +723,10 @@ function PageMessage({ title, message }: { title: string; message: string }) {
       <h1 className="text-xl font-bold text-slate-950">{title}</h1>
       <p className="mt-2 text-slate-600">{message}</p>
       <Link
-        to="/website-content"
+        to="/shared-content"
         className="mt-5 inline-flex h-10 cursor-pointer items-center rounded-lg px-3 font-semibold text-blue-800 outline-none hover:bg-blue-50 focus-visible:ring-2 focus-visible:ring-blue-800"
       >
-        返回官网管理
+        返回公共内容配置
       </Link>
     </section>
   );

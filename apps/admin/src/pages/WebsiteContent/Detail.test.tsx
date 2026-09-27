@@ -59,7 +59,7 @@ const auth: AuthContextValue = {
 
 function renderDetail(
   permissions = auth.user?.permissions ?? [],
-  initialEntry = "/website-content/home/history/version-1",
+  initialEntry = "/shared-content/home/history/version-1",
 ) {
   const queryClient = new QueryClient({ defaultOptions: { queries: { retry: false } } });
   const context: AuthContextValue = {
@@ -72,11 +72,6 @@ function renderDetail(
       <QueryClientProvider client={queryClient}>
         <MemoryRouter initialEntries={[initialEntry]}>
           <Routes>
-            <Route
-              path="/website-content/:contentKey/history/:versionId"
-              element={<WebsiteContentDetail />}
-            />
-            <Route path="/website-content/:contentKey/edit" element={<h1>官网内容编辑</h1>} />
             <Route
               path="/shared-content/:contentKey/history/:versionId"
               element={<WebsiteContentDetail />}
@@ -114,7 +109,7 @@ describe("WebsiteContentDetail", () => {
   });
 
   it("rejects historical commercial content keys before requesting history", () => {
-    renderDetail(auth.user?.permissions, "/website-content/trust/history/version-1");
+    renderDetail(auth.user?.permissions, "/shared-content/trust/history/version-1");
 
     expect(screen.getByRole("heading", { name: "历史版本路径无效" })).toBeInTheDocument();
     expect(websiteApi.fetchWebsiteContentHistoryVersion).not.toHaveBeenCalled();
@@ -134,7 +129,7 @@ describe("WebsiteContentDetail", () => {
     const header = within(page?.querySelector("header.editor-page__header") as HTMLElement);
     const content = within(page?.querySelector("div.editor-page__content") as HTMLElement);
 
-    expect(toolbar.getByRole("link", { name: "返回官网管理编辑" })).toBeInTheDocument();
+    expect(toolbar.getByRole("link", { name: "返回公共内容配置编辑" })).toBeInTheDocument();
     expect(header.getByText("历史版本")).toBeInTheDocument();
     expect(toolbar.getByRole("button", { name: "恢复为新草稿" })).toBeEnabled();
     expect(content.queryByRole("button", { name: "恢复为新草稿" })).not.toBeInTheDocument();
@@ -190,6 +185,6 @@ describe("WebsiteContentDetail", () => {
         changeSummary: expect.any(String),
       }),
     );
-    expect(await screen.findByRole("heading", { name: "官网内容编辑" })).toBeInTheDocument();
+    expect(await screen.findByRole("heading", { name: "公共内容编辑" })).toBeInTheDocument();
   });
 });

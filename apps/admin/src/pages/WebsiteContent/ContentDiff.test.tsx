@@ -17,7 +17,7 @@ describe("ContentDiff", () => {
 
     render(<ContentDiff items={items} />);
 
-    expect(screen.getByRole("list", { name: "官网内容字段差异" })).toBeInTheDocument();
+    expect(screen.getByRole("list", { name: "公共内容字段差异" })).toBeInTheDocument();
     expect(screen.getByText("seo.title")).toBeInTheDocument();
     expect(screen.getByText("旧标题")).toBeInTheDocument();
     expect(screen.getByText("新标题")).toBeInTheDocument();
