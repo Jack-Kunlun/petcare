@@ -26,7 +26,7 @@ describe("RBAC permission catalog", () => {
       "/content",
       "/content/posts",
       "/content/articles",
-      "/website-content",
+      "/shared-content",
       "/rbac",
       "/rbac/catalog",
     ]);
@@ -107,8 +107,8 @@ describe("RBAC permission catalog", () => {
 
     expect(byCode.get("website.view")).toMatchObject({
       type: RBAC_PERMISSION_TYPES.MENU,
-      label: "官网管理",
-      path: "/website-content",
+      label: "公共内容配置",
+      path: "/shared-content",
       parentCode: null,
       impliedApiCodes: ["website.read"],
     });

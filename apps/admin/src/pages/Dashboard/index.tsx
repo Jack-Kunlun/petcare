@@ -1,7 +1,6 @@
 import {
   ArrowRight,
   BookOpenText,
-  Globe2,
   MessageSquareText,
   Settings2,
   ShieldCheck,
@@ -44,13 +43,6 @@ const managementAreas: ManagementArea[] = [
     icon: BookOpenText,
   },
   {
-    title: "官网内容",
-    description: "维护官网框架、首页和关于页。",
-    path: "/website-content",
-    action: "管理官网内容",
-    icon: Globe2,
-  },
-  {
     title: "公共内容",
     description: "维护官网与小程序共用的客服、帮助和协议内容。",
     path: "/shared-content",
@@ -67,10 +59,10 @@ export default function Dashboard() {
       <PageHeader
         actions={
           <Badge className="h-9 px-3" tone="success">
-            <ShieldCheck aria-hidden="true" className="h-4 w-4" />5 个已启用模块
+            <ShieldCheck aria-hidden="true" className="h-4 w-4" />4 个已启用模块
           </Badge>
         }
-        description="集中进入账户、社区、课堂、官网和公共内容管理。"
+        description="集中进入账户、社区、课堂和公共内容管理。"
         eyebrow="管理工作台"
         title="管理概览"
       />

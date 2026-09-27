@@ -18,7 +18,7 @@ describe("Dashboard", () => {
     );
 
     expect(screen.getByRole("heading", { name: "管理概览" })).toBeInTheDocument();
-    expect(screen.getByText("5 个已启用模块")).toBeInTheDocument();
+    expect(screen.getByText("4 个已启用模块")).toBeInTheDocument();
     expect(screen.getByRole("link", { name: "查看用户资料" })).toHaveAttribute("href", "/users");
     expect(screen.getByRole("link", { name: "进入社区审核" })).toHaveAttribute(
       "href",
@@ -27,10 +27,6 @@ describe("Dashboard", () => {
     expect(screen.getByRole("link", { name: "管理课堂文章" })).toHaveAttribute(
       "href",
       "/content/articles",
-    );
-    expect(screen.getByRole("link", { name: "管理官网内容" })).toHaveAttribute(
-      "href",
-      "/website-content",
     );
     expect(screen.getByRole("link", { name: "管理公共内容" })).toHaveAttribute(
       "href",

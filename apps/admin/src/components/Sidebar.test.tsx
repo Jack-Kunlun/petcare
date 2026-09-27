@@ -130,22 +130,18 @@ describe("Sidebar", () => {
     expect(tree.getByRole("link", { name: "菜单目录" })).toHaveAttribute("aria-current", "page");
   });
 
-  it("renders Website and shared content as separate leaf menus with the same compatible access", () => {
+  it("renders the shared content menu with compatible access", () => {
     render(
-      <MemoryRouter initialEntries={["/website-content"]}>
+      <MemoryRouter initialEntries={["/shared-content"]}>
         <Sidebar permissions={["website.view"]} />
       </MemoryRouter>,
     );
 
     const tree = within(screen.getByTestId("desktop-menu-tree"));
-    const websiteSettings = tree.getByRole("link", { name: "官网管理" });
     const sharedSettings = tree.getByRole("link", { name: "公共内容配置" });
 
-    expect(websiteSettings).toHaveAttribute("href", "/website-content");
-    expect(websiteSettings.querySelector(".lucide-earth")).toBeInTheDocument();
     expect(sharedSettings).toHaveAttribute("href", "/shared-content");
     expect(sharedSettings.querySelector(".lucide-settings-2")).toBeInTheDocument();
-    expect(tree.queryByRole("button", { name: "官网管理菜单" })).not.toBeInTheDocument();
     expect(tree.queryByRole("button", { name: "公共内容配置菜单" })).not.toBeInTheDocument();
   });
 

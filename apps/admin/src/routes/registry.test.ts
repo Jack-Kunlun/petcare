@@ -126,7 +126,7 @@ describe("ADMIN_ROUTE_REGISTRY", () => {
       getVisibleMenuRoutes(["stats.view", "content.view", "content.post.view", "website.view"]).map(
         (route) => route.path,
       ),
-    ).toEqual(["/", "/content/posts", "/content", "/website-content", "/shared-content"]);
+    ).toEqual(["/", "/content/posts", "/content", "/shared-content"]);
   });
 
   it("returns root and child menu routes in catalog order", () => {
@@ -148,39 +148,7 @@ describe("ADMIN_ROUTE_REGISTRY", () => {
     });
   });
 
-  it("registers Website Content overview, edit, and history behind website.view", () => {
-    expect(
-      ADMIN_ROUTE_REGISTRY.filter((route) => route.path.startsWith("/website-content")).map(
-        (route) => ({
-          path: route.path,
-          menuPermission: route.menuPermission,
-          requiredPermissions: route.requiredPermissions,
-          parentPath: route.parentPath,
-        }),
-      ),
-    ).toEqual([
-      {
-        path: "/website-content",
-        menuPermission: "website.view",
-        requiredPermissions: ["website.view"],
-        parentPath: null,
-      },
-      {
-        path: "/website-content/:contentKey/edit",
-        menuPermission: null,
-        requiredPermissions: ["website.view"],
-        parentPath: "/website-content",
-      },
-      {
-        path: "/website-content/:contentKey/history/:versionId",
-        menuPermission: null,
-        requiredPermissions: ["website.view"],
-        parentPath: "/website-content",
-      },
-    ]);
-  });
-
-  it("registers shared content as a separate navigation and route family", () => {
+  it("registers shared content as the only public content navigation", () => {
     expect(
       ADMIN_ROUTE_REGISTRY.filter((route) => route.path.startsWith("/shared-content")).map(
         (route) => ({

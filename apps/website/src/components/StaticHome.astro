@@ -1,0 +1,173 @@
+---
+const stories = [
+  {
+    image: "/brand/pet-life-playing.jpg",
+    alt: "两只狗在草地上玩耍",
+    title: "一起去看更大的世界",
+  },
+  {
+    image: "/brand/pet-life-grooming.jpg",
+    alt: "主人为猫咪梳理毛发",
+    title: "在阳光下打个盹",
+  },
+  {
+    image: "/brand/pet-life-resting.jpg",
+    alt: "宠物在家中安静休息",
+    title: "温柔的陪伴，从不缺席",
+  },
+];
+---
+
+<header class="marketing-header">
+  <div class="marketing-container marketing-header__inner">
+    <a class="marketing-brand" href="/" aria-label="PetCare 首页">
+      <img src="/brand/petcare-symbol-color.svg" width="40" height="40" alt="" />
+      <span>
+        <strong>PetCare</strong>
+        <small>让爱在生活里更好</small>
+      </span>
+    </a>
+    <nav aria-label="主导航">
+      <a href="/" aria-current="page">首页</a>
+      <a href="#services">附近服务</a>
+      <a href="#stories">宠友社区</a>
+      <a href="/articles">帮助中心</a>
+      <a href="/about">关于我们</a>
+    </nav>
+    <a class="marketing-button marketing-button--compact" href="#download">
+      <span aria-hidden="true">●</span> 打开微信小程序
+    </a>
+  </div>
+</header>
+
+<main>
+  <section class="marketing-hero" aria-labelledby="marketing-hero-title">
+    <img
+      class="marketing-hero__image"
+      src="/brand/hero-community-companion-desktop-v1.webp"
+      alt="猫和狗在明亮的家中相伴"
+      width="1920"
+      height="720"
+      fetchpriority="high"
+    />
+    <div class="marketing-container marketing-hero__inner">
+      <div class="marketing-hero__copy">
+        <p class="marketing-eyebrow">PetCare 宠伴</p>
+        <h1 id="marketing-hero-title">让每一份牵挂，<br /><em>都有回应</em></h1>
+        <p>无论你在何处，<br />总有人在用心照顾你的毛孩子。</p>
+        <a class="marketing-button" href="#download">
+          <span aria-hidden="true">●</span> 打开微信小程序 <span aria-hidden="true">→</span>
+        </a>
+        <a class="marketing-hero__hint" href="#services"
+          ><span aria-hidden="true">⌾</span> 发现身边的宠物帮助</a
+        >
+      </div>
+    </div>
+  </section>
+
+  <section id="services" class="marketing-service" aria-labelledby="service-title">
+    <div class="marketing-container marketing-service__inner">
+      <div class="marketing-service__copy">
+        <p class="marketing-eyebrow">PETCARE</p>
+        <h2 id="service-title">不在身边，<br />也能看见它的日常</h2>
+        <p>实时了解服务进度，照片与动态随时更新，让牵挂变成看得见的安心。</p>
+        <a class="marketing-button marketing-button--outline" href="/about"
+          >了解更多 <span aria-hidden="true">→</span></a
+        >
+      </div>
+      <div class="marketing-service__visual" aria-label="宠物服务记录示意图">
+        <div class="marketing-phone">
+          <div class="marketing-phone__notch"></div>
+          <div class="marketing-phone__topline">
+            <span>‹</span><strong>服务中</strong><span>•••</span>
+          </div>
+          <div class="marketing-phone__pet">
+            <img src="/brand/pet-life-playing.jpg" alt="豆豆的头像" /><div>
+              <strong>豆豆</strong><small>金毛 · 2岁</small>
+            </div>
+          </div>
+          <div class="marketing-phone__steps">
+            <span class="is-done">已接单</span><span class="is-active">服务中</span><span
+              >已完成</span
+            >
+          </div>
+          <div class="marketing-phone__card">
+            <strong>今天一起去了公园</strong><small>豆豆表现得很开心，等你回来</small><div>
+              <img src="/brand/pet-life-playing.jpg" alt="豆豆在公园里玩耍" /><img
+                src="/brand/pet-life-feeding.jpg"
+                alt="宠物的日常照片"
+              />
+            </div>
+          </div>
+        </div>
+        <div class="marketing-photo marketing-photo--top">
+          <img src="/brand/pet-life-playing.jpg" alt="宠物在户外开心玩耍" /><span
+            >开心的陪伴时光 ♡</span
+          >
+        </div>
+        <div class="marketing-photo marketing-photo--bottom">
+          <img src="/brand/pet-life-grooming.jpg" alt="猫咪享受梳毛" /><span>一切都好 ♡</span>
+        </div>
+      </div>
+    </div>
+  </section>
+
+  <section id="stories" class="marketing-stories" aria-labelledby="stories-title">
+    <div class="marketing-container">
+      <div class="marketing-section-heading">
+        <div><h2 id="stories-title">宠友的日常</h2><p>真实的故事，温暖的瞬间。</p></div>
+        <a href="/articles">查看更多 <span aria-hidden="true">→</span></a>
+      </div>
+      <div class="marketing-story-grid">
+        {
+          stories.map((story) => (
+            <a class="marketing-story" href="/articles">
+              <>
+                <img src={story.image} alt={story.alt} loading="lazy" />
+                <strong>{story.title}</strong>
+                <span aria-hidden="true">→</span>
+              </>
+            </a>
+          ))
+        }
+      </div>
+    </div>
+  </section>
+
+  <section id="download" class="marketing-download" aria-labelledby="download-title">
+    <div class="marketing-container marketing-download__inner">
+      <div>
+        <p class="marketing-eyebrow">每一个小生命<br />都值得被温柔以待 ♡</p><h2
+          id="download-title"
+        >
+          从 <em>PetCare</em> 开始
+        </h2><p>打开微信小程序，让身边的宠物帮助触手可及。</p><a
+          class="marketing-button"
+          href="/about">立即体验小程序 <span aria-hidden="true">→</span></a
+        >
+      </div>
+      <div class="marketing-download__qr" aria-label="微信小程序二维码示意">
+        <span class="marketing-download__qr-code">▦</span><strong>微信扫一扫</strong><small
+          >进入 PetCare 小程序</small
+        >
+      </div>
+      <img src="/brand/pet-life-playing.jpg" alt="阳光下的宠物" loading="lazy" />
+    </div>
+  </section>
+</main>
+
+<footer class="marketing-footer">
+  <div class="marketing-container marketing-footer__inner">
+    <a class="marketing-brand" href="/" aria-label="PetCare 首页"
+      ><img src="/brand/petcare-symbol-color.svg" width="36" height="36" alt="" /><span
+        ><strong>PetCare</strong><small>让爱在生活里更好</small></span
+      ></a
+    >
+    <nav aria-label="页脚导航">
+      <a href="/about">关于我们</a><a href="/articles">帮助中心</a><a href="/terms">服务协议</a><a
+        href="/privacy">隐私政策</a
+      ><a href="/contact">联系我们</a>
+    </nav>
+    <p>© 2024 PetCare. 保留所有权利。</p>
+  </div>
+</footer>

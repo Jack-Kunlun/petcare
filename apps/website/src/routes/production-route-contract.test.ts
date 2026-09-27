@@ -36,4 +36,16 @@ describe("production route manifest", () => {
       /\/services|\/trust|\/companions|悬赏|宠托师|服务进行中|身份认证|优惠券|订单/,
     );
   });
+
+  it("renders the homepage from code-owned marketing content", async () => {
+    const [homepage, staticHome] = await Promise.all([
+      readFile(path.join(websiteDirectory, "src/pages/index.astro"), "utf8"),
+      readFile(path.join(websiteDirectory, "src/components/StaticHome.astro"), "utf8"),
+    ]);
+
+    expect(homepage).toContain("StaticHome");
+    expect(homepage).not.toContain("PublishedPage");
+    expect(staticHome).toContain("让每一份牵挂");
+    expect(staticHome).toContain("/brand/hero-community-companion-desktop-v1.webp");
+  });
 });

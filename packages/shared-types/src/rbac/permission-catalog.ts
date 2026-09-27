@@ -475,19 +475,19 @@ export const RBAC_PERMISSION_CATALOG: readonly RbacPermissionDefinition[] = [
     icon: null,
     impliedApiCodes: [],
   },
-  /** Opens the page-content management views and their version history. */
+  /** Opens the shared support and legal content management views. */
   {
     code: "website.view",
     type: "menu",
-    label: "官网管理",
+    label: "公共内容配置",
     module: "website",
-    path: "/website-content",
+    path: "/shared-content",
     parentCode: null,
-    order: 50,
-    icon: "Globe2",
+    order: 55,
+    icon: "Settings2",
     impliedApiCodes: ["website.read"],
   },
-  /** Allows reading managed page-content drafts, history, diffs, and media. */
+  /** Allows reading shared support and legal content drafts, history, diffs, and media. */
   {
     code: "website.read",
     type: "api",
