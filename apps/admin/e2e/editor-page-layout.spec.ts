@@ -245,9 +245,7 @@ async function assertToolbarStaysWhileHeaderLeaves(page: Page): Promise<void> {
 }
 
 for (const viewport of viewports) {
-  test(`编辑页布局在 ${viewport.width}x${viewport.height} 保持桌面契约`, async ({
-    page,
-  }) => {
+  test(`编辑页布局在 ${viewport.width}x${viewport.height} 保持桌面契约`, async ({ page }) => {
     await page.setViewportSize(viewport);
     await loginAsDefaultAdmin(page);
 

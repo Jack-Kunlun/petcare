@@ -1,10 +1,6 @@
 import { expect, test, type Page } from "@playwright/test";
 
-function requiredEnv(
-  name:
-    | "DEFAULT_ADMIN_USERNAME"
-    | "DEFAULT_ADMIN_PASSWORD",
-): string {
+function requiredEnv(name: "DEFAULT_ADMIN_USERNAME" | "DEFAULT_ADMIN_PASSWORD"): string {
   const value = process.env[name]?.trim();
 
   if (!value) {
