@@ -195,7 +195,7 @@ onMounted(() => void load());
 
     <text class="meta-text">{{ statusLabel(status) }}</text>
     <text v-if="paymentSimulationEnabled" class="meta-text" role="status">
-      此订单仅模拟支付，不会扣款；完成后仍为未收款订单。
+      当前使用模拟支付，订单按正常流程处理。
     </text>
 
     <view
