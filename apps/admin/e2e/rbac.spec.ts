@@ -3,9 +3,7 @@ import { expect, test, type Page } from "@playwright/test";
 function requiredEnv(
   name:
     | "DEFAULT_ADMIN_USERNAME"
-    | "DEFAULT_ADMIN_PASSWORD"
-    | "RBAC_E2E_RESTRICTED_USERNAME"
-    | "RBAC_E2E_RESTRICTED_PASSWORD",
+    | "DEFAULT_ADMIN_PASSWORD",
 ): string {
   const value = process.env[name]?.trim();
 
@@ -21,20 +19,6 @@ async function login(page: Page, username: string, password: string): Promise<vo
   await page.getByLabel("手机号或账号").fill(username);
   await page.getByLabel("密码").fill(password);
   await page.getByRole("button", { name: "登录" }).click();
-}
-
-async function openRoute(page: Page, path: string): Promise<void> {
-  await page.evaluate((destination) => {
-    const currentState = globalThis.history.state as { idx?: unknown } | null;
-    const state = {
-      usr: null,
-      key: globalThis.crypto.randomUUID(),
-      idx: (typeof currentState?.idx === "number" ? currentState.idx : 0) + 1,
-    };
-
-    globalThis.history.pushState(state, "", destination);
-    globalThis.dispatchEvent(new PopStateEvent("popstate", { state }));
-  }, path);
 }
 
 test("超级管理员可以创建并编辑角色，菜单和按钮可选而接口权限不渲染", async ({ page }) => {
@@ -86,16 +70,4 @@ test("超级管理员可以创建并编辑角色，菜单和按钮可选而接�
   await page.getByLabel("角色说明").fill("Admin RBAC Playwright acceptance role updated");
   await page.getByRole("button", { name: "保存角色", exact: true }).click();
   await expect(page.getByText("Admin RBAC Playwright acceptance role updated")).toBeVisible();
-});
-
-test("拥有官网编辑权限但没有发布权限的受限会话不显示发布按钮", async ({ page }) => {
-  await login(
-    page,
-    requiredEnv("RBAC_E2E_RESTRICTED_USERNAME"),
-    requiredEnv("RBAC_E2E_RESTRICTED_PASSWORD"),
-  );
-  await expect(page.getByRole("heading", { name: "没有访问权限" })).toBeVisible();
-  await openRoute(page, "/website-content/home/edit");
-  await expect(page.getByRole("heading", { name: "编辑 官网首页" })).toBeVisible();
-  await expect(page.getByRole("button", { name: /发布已保存草稿/u })).toHaveCount(0);
 });

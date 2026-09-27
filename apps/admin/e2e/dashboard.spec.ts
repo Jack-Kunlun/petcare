@@ -22,18 +22,16 @@ test.describe("PetCare Admin Dashboard", () => {
   test("显示当前管理能力", async ({ page }) => {
     await expect(page).toHaveTitle(/PetCare/);
     await expect(page.locator("aside")).toBeVisible();
-    await expect(page.getByText("5 个已启用模块")).toBeVisible();
+    await expect(page.getByText("4 个已启用模块")).toBeVisible();
     await expect(page.getByRole("heading", { name: "用户资料" })).toBeVisible();
     await expect(page.getByRole("heading", { name: "社区审核" })).toBeVisible();
     await expect(page.getByRole("heading", { name: "萌宠课堂" })).toBeVisible();
-    await expect(page.getByRole("heading", { name: "官网内容" })).toBeVisible();
   });
 
   for (const destination of [
     { link: "查看用户资料", path: /\/users$/, heading: "用户资料" },
     { link: "进入社区审核", path: /\/content\/posts$/, heading: "帖子管理" },
     { link: "管理课堂文章", path: /\/content\/articles$/, heading: "文章管理" },
-    { link: "管理官网内容", path: /\/website-content$/, heading: "官网内容" },
   ]) {
     test(`导航到${destination.heading}`, async ({ page }) => {
       await page.getByRole("link", { name: destination.link }).click();

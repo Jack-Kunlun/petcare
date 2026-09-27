@@ -247,7 +247,7 @@ async function assertToolbarStaysWhileHeaderLeaves(page: Page): Promise<void> {
 for (const viewport of viewports) {
   test(`编辑页布局在 ${viewport.width}x${viewport.height} 保持桌面契约`, async ({
     page,
-  }, testInfo) => {
+  }) => {
     await page.setViewportSize(viewport);
     await loginAsDefaultAdmin(page);
 
@@ -256,32 +256,6 @@ for (const viewport of viewports) {
       { path: "/content/articles/new", title: "新建文章", action: "保存草稿" },
       viewport,
     );
-    await openAndAssert(
-      page,
-      {
-        path: "/website-content/home/edit",
-        title: "编辑 官网首页",
-        action: "preview-saved-draft",
-        uniqueAction: "保存草稿",
-      },
-      viewport,
-    );
-
-    if (viewport.width === 1440) {
-      await testInfo.attach("website-editor-top-1440", {
-        body: await page.screenshot({ animations: "disabled", caret: "hide" }),
-        contentType: "image/png",
-      });
-      await page.locator("#main-content").evaluate((element) => {
-        element.scrollTop = element.scrollHeight;
-      });
-      await expect(page.getByRole("button", { name: "保存草稿", exact: true })).toBeVisible();
-      await testInfo.attach("website-editor-bottom-1440", {
-        body: await page.screenshot({ animations: "disabled", caret: "hide" }),
-        contentType: "image/png",
-      });
-    }
-
     await openAndAssert(
       page,
       { path: "/rbac/new", title: "新建角色", action: "顶部保存角色" },

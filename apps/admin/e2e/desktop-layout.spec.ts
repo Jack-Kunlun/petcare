@@ -10,7 +10,6 @@ const shellScenarios = [
   { id: "users", path: "/users", heading: "用户资料" },
   { id: "posts", path: "/content/posts", heading: "帖子管理" },
   { id: "articles", path: "/content/articles", heading: "文章管理" },
-  { id: "website", path: "/website-content", heading: "官网内容" },
   { id: "shared", path: "/shared-content", heading: "公共内容配置" },
   { id: "roles", path: "/rbac", heading: "角色管理" },
   { id: "catalog", path: "/rbac/catalog", heading: "菜单目录" },
@@ -116,7 +115,7 @@ for (const viewport of desktopViewports) {
 
         if (
           viewport.width === 1440 &&
-          ["dashboard", "posts", "website", "roles", "account"].includes(scenario.id)
+          ["dashboard", "posts", "roles", "account"].includes(scenario.id)
         ) {
           await attachViewportScreenshot(page, testInfo, `${scenario.id}-${viewport.width}`);
         }
