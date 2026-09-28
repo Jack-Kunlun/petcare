@@ -1,8 +1,8 @@
 ---
-import type { WebsitePublicContent, WebsitePublicContentSection } from "@petcare/shared-types";
+import type { WebsitePublicContent } from "@petcare/shared-types";
 import PageSections from "../components/PageSections.astro";
-import SectionRenderer from "../components/sections/SectionRenderer.astro";
-import { isRenderablePublicSection } from "./layout-section";
+import SiteFooter from "../components/SiteFooter.astro";
+import SiteHeader from "../components/SiteHeader.astro";
 import "../styles/global.css";
 
 interface Props {
@@ -14,13 +14,10 @@ interface Props {
   publicUrl: string;
 }
 
-const { shell, page, publicUrl } = Astro.props;
-const shellSections: WebsitePublicContentSection[] = (shell.sections as unknown[]).filter(
-  isRenderablePublicSection,
+const { page, publicUrl } = Astro.props;
+const pageSections = page.sections.filter(
+  (section) => section.sectionType !== "site_header" && section.sectionType !== "site_footer",
 );
-const pageSections = page.sections.filter(isRenderablePublicSection);
-const header = shellSections.find((section) => section.sectionType === "site_header");
-const footer = shellSections.find((section) => section.sectionType === "site_footer");
 const canonical = new URL(page.seo.canonicalPath, publicUrl).toString();
 const ogImage = page.seo.image?.asset?.url;
 ---
@@ -44,28 +41,10 @@ const ogImage = page.seo.image?.asset?.url;
   </head>
   <body>
     <a class="skip-link" href="#main-content">Skip to main content</a>
-    {
-      header ? (
-        <SectionRenderer section={header} />
-      ) : (
-        <header class="site-header">
-          <a class="site-header__brand" href="/">
-            PetCare
-          </a>
-        </header>
-      )
-    }
+    {(<SiteHeader static />)}
     <main id="main-content">
       <PageSections contentKey={page.contentKey} sections={pageSections} />
     </main>
-    {
-      footer ? (
-        <SectionRenderer section={footer} />
-      ) : (
-        <footer class="site-footer">
-          <p>PetCare</p>
-        </footer>
-      )
-    }
+    {(<SiteFooter static />)}
   </body>
 </html>

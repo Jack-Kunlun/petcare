@@ -1,7 +1,7 @@
 ---
-import type { WebsitePublicContent, WebsitePublicContentSection } from "@petcare/shared-types";
-import SectionRenderer from "../components/sections/SectionRenderer.astro";
-import { isRenderablePublicSection } from "./layout-section";
+import type { WebsitePublicContent } from "@petcare/shared-types";
+import SiteFooter from "../components/SiteFooter.astro";
+import SiteHeader from "../components/SiteHeader.astro";
 import "../styles/global.css";
 
 interface Props {
@@ -19,12 +19,7 @@ interface Props {
   noindex?: boolean;
 }
 
-const { shell, title, description, canonical, image = null, noindex = false } = Astro.props;
-const shellSections: WebsitePublicContentSection[] = (shell.sections as unknown[]).filter(
-  isRenderablePublicSection,
-);
-const header = shellSections.find((section) => section.sectionType === "site_header");
-const footer = shellSections.find((section) => section.sectionType === "site_footer");
+const { title, description, canonical, image = null, noindex = false } = Astro.props;
 ---
 
 <!doctype html>
@@ -44,26 +39,8 @@ const footer = shellSections.find((section) => section.sectionType === "site_foo
   </head>
   <body>
     <a class="skip-link" href="#main-content">Skip to main content</a>
-    {
-      header ? (
-        <SectionRenderer section={header} />
-      ) : (
-        <header class="site-header">
-          <a class="site-header__brand" href="/">
-            PetCare
-          </a>
-        </header>
-      )
-    }
+    <SiteHeader static />
     <main id="main-content"><slot /></main>
-    {
-      footer ? (
-        <SectionRenderer section={footer} />
-      ) : (
-        <footer class="site-footer">
-          <p>PetCare</p>
-        </footer>
-      )
-    }
+    <SiteFooter static />
   </body>
 </html>

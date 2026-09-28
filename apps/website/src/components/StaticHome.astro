@@ -1,35 +1,10 @@
 ---
 import HomeExperience from "./HomeExperience.astro";
+import SiteFooter from "./SiteFooter.astro";
+import SiteHeader from "./SiteHeader.astro";
 ---
 
-<header class="site-header site-header--sticky" data-site-header>
-  <div class="site-header__inner">
-    <a class="site-header__brand" href="/" aria-label="PetCare 宠伴首页">
-      <img src="/brand/petcare-symbol-color.svg" width="32" height="32" alt="" />
-      <span>PetCare 宠伴</span>
-    </a>
-    <button
-      class="site-header__menu-button"
-      type="button"
-      aria-label="打开导航"
-      aria-expanded="false"
-      aria-controls="site-navigation"
-    >
-      <span class="sr-only">打开导航</span>
-      <span class="site-header__menu-icon" aria-hidden="true"><i></i><i></i><i></i></span>
-    </button>
-    <nav id="site-navigation" class="site-header__navigation" aria-label="主导航">
-      <ul>
-        <li><a href="/" aria-current="page">首页</a></li>
-        <li><a href="#home-services">当前能力</a></li>
-        <li><a href="#service-journey">使用路径</a></li>
-        <li><a href="#community-preview">宠物生活</a></li>
-        <li><a href="/articles">帮助中心</a></li>
-      </ul>
-      <a class="button button--compact" href="#home-download">开始了解</a>
-    </nav>
-  </div>
-</header>
+<SiteHeader static />
 
 <main id="main-content">
   <section
@@ -86,54 +61,9 @@ import HomeExperience from "./HomeExperience.astro";
   </section>
 </main>
 
-<footer class="site-footer">
-  <div class="site-footer__inner">
-    <section class="site-footer__brand" aria-label="PetCare">
-      <img src="/brand/petcare-symbol-reverse.svg" width="40" height="40" alt="" loading="lazy" />
-      <strong>PetCare 宠伴</strong>
-      <p>让爱在生活里更好，记录每一次认真陪伴。</p>
-    </section>
-    <section aria-labelledby="footer-about">
-      <h2 id="footer-about">了解 PetCare</h2>
-      <ul>
-        <li><a href="/about">关于我们</a></li>
-        <li><a href="/contact">联系我们</a></li>
-      </ul>
-    </section>
-    <section aria-labelledby="footer-help">
-      <h2 id="footer-help">帮助与规则</h2>
-      <ul>
-        <li><a href="/articles">帮助中心</a></li>
-        <li><a href="/terms">服务协议</a></li>
-        <li><a href="/privacy">隐私政策</a></li>
-      </ul>
-    </section>
-  </div>
-  <p class="site-footer__copyright">© 2024 PetCare. 保留所有权利。</p>
-</footer>
+<SiteFooter static />
 
 <script>
-  const menuButton = document.querySelector<HTMLButtonElement>(".site-header__menu-button");
-  const navigation = document.querySelector<HTMLElement>(".site-header__navigation");
-  const setMenuOpen = (open: boolean) => {
-    menuButton?.setAttribute("aria-expanded", String(open));
-    menuButton?.setAttribute("aria-label", open ? "关闭导航" : "打开导航");
-    navigation?.toggleAttribute("data-open", open);
-  };
-
-  menuButton?.addEventListener("click", () => {
-    setMenuOpen(menuButton.getAttribute("aria-expanded") !== "true");
-  });
-  navigation
-    ?.querySelectorAll("a")
-    .forEach((link) => link.addEventListener("click", () => setMenuOpen(false)));
-  document.addEventListener("keydown", (event) => {
-    if (event.key === "Escape" && menuButton?.getAttribute("aria-expanded") === "true") {
-      setMenuOpen(false);
-      menuButton.focus();
-    }
-  });
-
   const revealTargets = [
     ".home-hero .hero-section__content > *",
     ".home-services .section-heading",

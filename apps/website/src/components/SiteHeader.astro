@@ -4,14 +4,28 @@ import { getSafeWebsiteHref } from "./sections/safe-rendering";
 
 interface Props {
   /** Validated public site-header section. */
-  section: WebsitePublicSiteHeaderSection;
+  section?: WebsitePublicSiteHeaderSection;
   /** Whether this is a preview render whose navigation should remain visibly scoped. */
   preview?: boolean;
+  /** Uses the code-owned public website navigation instead of managed shell content. */
+  static?: boolean;
 }
 
-const { section, preview = false } = Astro.props;
-const { action, brandLabel, navigation } = section.content;
-const headerClass = section.settings.sticky ? "site-header site-header--sticky" : "site-header";
+const { section, preview = false, static: useStatic = false } = Astro.props;
+const staticNavigation = [
+  { label: "首页", href: "/" },
+  { label: "当前能力", href: "/#home-services" },
+  { label: "使用路径", href: "/#service-journey" },
+  { label: "宠物生活", href: "/#community-preview" },
+  { label: "帮助中心", href: "/articles" },
+];
+const navigation = useStatic ? staticNavigation : (section?.content.navigation ?? []);
+const action = useStatic ? { label: "开始了解", href: "/#home-download" } : section?.content.action;
+const brandLabel = useStatic ? "PetCare 宠伴" : (section?.content.brandLabel ?? "PetCare 宠伴");
+const headerClass =
+  useStatic || !section || section.settings.sticky
+    ? "site-header site-header--sticky"
+    : "site-header";
 const currentPath = Astro.url.pathname;
 const isCurrent = (href: string) =>
   href === "/" ? currentPath === href : currentPath === href || currentPath.startsWith(`${href}/`);
