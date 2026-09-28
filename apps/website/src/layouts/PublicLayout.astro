@@ -3,6 +3,7 @@ import type { WebsitePublicContent } from "@petcare/shared-types";
 import PageSections from "../components/PageSections.astro";
 import SiteFooter from "../components/SiteFooter.astro";
 import SiteHeader from "../components/SiteHeader.astro";
+import { isRenderablePublicSection } from "./layout-section";
 import "../styles/global.css";
 
 interface Props {
@@ -15,9 +16,11 @@ interface Props {
 }
 
 const { page, publicUrl } = Astro.props;
-const pageSections = page.sections.filter(
-  (section) => section.sectionType !== "site_header" && section.sectionType !== "site_footer",
-);
+const pageSections = page.sections
+  .filter(isRenderablePublicSection)
+  .filter(
+    (section) => section.sectionType !== "site_header" && section.sectionType !== "site_footer",
+  );
 const canonical = new URL(page.seo.canonicalPath, publicUrl).toString();
 const ogImage = page.seo.image?.asset?.url;
 ---
