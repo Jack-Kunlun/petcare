@@ -41,15 +41,6 @@ export type MarketingSection =
       items: MarketingItem[];
     }
   | {
-      kind: "faq";
-      id: string;
-      eyebrow: string;
-      title: string;
-      description: string;
-      tone?: "white" | "soft" | "dark";
-      items: MarketingItem[];
-    }
-  | {
       kind: "note";
       id: string;
       eyebrow: string;
@@ -494,67 +485,6 @@ export const marketingPages: Record<string, MarketingPage> = {
         image: careImage,
         action: { label: "阅读平台规则", href: "/platform-rules" },
         tone: "soft",
-      },
-    ],
-  },
-  help: {
-    title: "帮助中心 | PetCare 宠伴",
-    description: "查找 PetCare 账号、宠物档案、订单、支付、资格和隐私相关帮助。",
-    eyebrow: "帮助中心",
-    heroTitle: "遇到问题时，先找到清楚的下一步",
-    heroDescription: "按使用阶段查找答案，了解功能边界、订单状态和需要准备的资料。",
-    heroImage,
-    heroActions: [
-      { label: "打开微信小程序", href: "/miniapp" },
-      { label: "联系我们", href: "/contact", secondary: true },
-    ],
-    sections: [
-      {
-        kind: "faq",
-        id: "help-faq",
-        eyebrow: "常见问题",
-        title: "先看这里，通常可以找到答案",
-        description: "如果仍然无法解决，再通过小程序帮助入口反馈。",
-        tone: "soft",
-        items: [
-          {
-            title: "如何创建宠物档案？",
-            description: "登录后进入宠物管理，填写基础资料并上传本人宠物照片。",
-          },
-          {
-            title: "如何发布悬赏服务？",
-            description: "在悬赏服务中填写服务内容、时间、地点和注意事项。",
-          },
-          {
-            title: "订单状态在哪里查看？",
-            description: "进入订单详情即可查看支付、服务步骤、消息和完成状态。",
-          },
-          {
-            title: "支付和结算什么时候生效？",
-            description: "体验环境支持流程验证，真实收款和出款以主体、账户配置为准。",
-          },
-          {
-            title: "服务者如何申请资格？",
-            description: "提交服务范围和必要资料后，等待平台审核结果。",
-          },
-          {
-            title: "如何处理内容或服务问题？",
-            description: "在对应内容或订单中提交举报、异常说明和相关证据。",
-          },
-        ],
-      },
-      {
-        kind: "cards",
-        id: "help-topics",
-        eyebrow: "帮助主题",
-        title: "按你的使用阶段继续阅读",
-        description: "从第一次使用，到服务完成，都有对应的说明。",
-        items: [
-          { title: "账号与资料", description: "登录、个人资料、宠物档案和隐私设置。" },
-          { title: "内容与社区", description: "文章、动态、互动、举报和审核规则。" },
-          { title: "悬赏与订单", description: "发布需求、确认服务、SOP、异常和评价。" },
-          { title: "支付与收入", description: "支付、退款、账务、结算和提现状态。" },
-        ],
       },
     ],
   },

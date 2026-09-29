@@ -53,7 +53,9 @@ describe("production route manifest", () => {
 
     expect(homepage).toContain("StaticHome");
     expect(homepage).not.toContain("PublishedPage");
-    expect(staticHome).toContain("让每一次照顾都有记录");
+    expect(staticHome).toContain("让每一次照护，都安心可见");
+    expect(staticHome).toContain("查看小程序入口");
     expect(staticHome).toContain("/brand/hero-community-companion-desktop-v1.webp");
+    expect(staticHome).not.toContain("home-page__pillars");
   });
 });

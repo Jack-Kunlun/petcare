@@ -20,7 +20,7 @@ const staticNavigation = [
   { label: "帮助中心", href: "/help" },
 ];
 const navigation = useStatic ? staticNavigation : (section?.content.navigation ?? []);
-const action = useStatic ? { label: "打开微信小程序", href: "/miniapp" } : section?.content.action;
+const action = useStatic ? { label: "查看小程序入口", href: "/miniapp" } : section?.content.action;
 const brandLabel = useStatic ? "PetCare 宠伴" : (section?.content.brandLabel ?? "PetCare 宠伴");
 const headerClass =
   useStatic || !section || section.settings.sticky

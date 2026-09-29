@@ -134,17 +134,6 @@ const heroImage = page.heroImage ?? {
                 </ol>
               ) : null}
 
-              {section.kind === "faq" ? (
-                <div class="marketing-page__faq">
-                  {section.items.map((item) => (
-                    <details data-scroll-reveal>
-                      <summary>{item.title}</summary>
-                      <p>{item.description}</p>
-                    </details>
-                  ))}
-                </div>
-              ) : null}
-
               {section.kind === "note" ? (
                 <aside class="marketing-page__note" data-scroll-reveal>
                   <strong>{section.title}</strong>
