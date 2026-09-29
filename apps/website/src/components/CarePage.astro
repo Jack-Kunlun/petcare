@@ -1,0 +1,86 @@
+---
+import PublicPage from "./PublicPage.astro";
+---
+
+<PublicPage
+  title="照护服务 | PetCare 宠伴"
+  description="了解 PetCare 如何帮助宠物主人说明需求、确认照护、查看过程并完成反馈。"
+>
+  <main id="main-content" class="info-page info-page--care">
+    <section class="info-page__hero" aria-labelledby="care-page-title">
+      <div class="content-container info-page__hero-grid">
+        <div class="info-page__hero-copy" data-scroll-reveal>
+          <p class="eyebrow">照护服务</p>
+          <h1 id="care-page-title">这一次，想为它安排怎样的照护？</h1>
+          <p>把时间、地点和需要说明的事情写清楚，再和照护者一起确认下一步。</p>
+          <a class="button" href="/start">去小程序发布需求 <span aria-hidden="true">→</span></a>
+        </div>
+        <figure class="info-page__hero-image" data-scroll-reveal>
+          <img
+            src="/brand/pet-life-feeding.jpg"
+            width="960"
+            height="720"
+            alt="宠物在家中接受日常照护"
+            fetchpriority="high"
+          />
+          <figcaption>官网负责说明，小程序负责开始。</figcaption>
+        </figure>
+      </div>
+    </section>
+
+    <section class="info-page__section" aria-labelledby="care-scope-title">
+      <div class="content-container info-page__section-grid">
+        <header class="info-page__section-heading" data-scroll-reveal>
+          <p class="eyebrow">先从需求开始</p>
+          <h2 id="care-scope-title">把一次照护说清楚，沟通会更容易。</h2>
+        </header>
+        <div class="info-page__reading" data-scroll-reveal>
+          <p>发布前可以准备这些信息：</p>
+          <ul class="info-page__line-list">
+            <li><strong>时间和地点</strong><span>什么时候需要照护，在哪里完成。</span></li>
+            <li><strong>宠物情况</strong><span>日常习惯、需要留意的事项和相处方式。</span></li>
+            <li><strong>照护内容</strong><span>希望完成什么，以及什么结果可以确认完成。</span></li>
+          </ul>
+          <p class="info-page__note">具体服务范围和费用以小程序内实际发布与双方确认的内容为准。</p>
+        </div>
+      </div>
+    </section>
+
+    <section class="info-page__section info-page__section--soft" aria-labelledby="care-flow-title">
+      <div class="content-container">
+        <header
+          class="info-page__section-heading info-page__section-heading--wide"
+          data-scroll-reveal
+        >
+          <p class="eyebrow">一次照护怎样发生</p>
+          <h2 id="care-flow-title">说清需求 → 沟通确认 → 跟进照护 → 完成反馈</h2>
+          <p>每一步都回答一个实际问题：现在做什么、在哪里做、完成后会留下什么记录。</p>
+        </header>
+        <ol class="info-page__flow" aria-label="照护服务流程">
+          <li data-scroll-reveal>
+            <span>01</span><h3>说清需求</h3><p>在小程序填写时间、地点、宠物情况和照护内容。</p>
+          </li>
+          <li data-scroll-reveal>
+            <span>02</span><h3>沟通确认</h3><p>双方确认服务范围、注意事项和交付边界。</p>
+          </li>
+          <li data-scroll-reveal>
+            <span>03</span><h3>跟进照护</h3><p>按照约定完成照护，并留下必要的过程记录。</p>
+          </li>
+          <li data-scroll-reveal>
+            <span>04</span><h3>完成反馈</h3><p>确认结果，遇到异常时保留说明并完成评价。</p>
+          </li>
+        </ol>
+      </div>
+    </section>
+
+    <section class="info-page__closing" aria-labelledby="care-closing-title">
+      <div class="content-container info-page__closing-inner" data-scroll-reveal>
+        <div>
+          <p class="eyebrow">准备好了？</p>
+          <h2 id="care-closing-title">下一步，在小程序里开始。</h2>
+        </div>
+        <a class="button" href="/start">使用小程序 <span aria-hidden="true">→</span></a>
+      </div>
+    </section>
+  </main>
+</PublicPage>

@@ -20,6 +20,9 @@ describe("production route manifest", () => {
 
     expect(pageEntries).toEqual(
       expect.arrayContaining([
+        "care.astro",
+        "caregivers.astro",
+        "start.astro",
         "product.astro",
         "for-pet-owners.astro",
         "for-providers.astro",
@@ -41,8 +44,8 @@ describe("production route manifest", () => {
       ].map((relativePath) => readFile(path.join(websiteDirectory, relativePath), "utf8")),
     );
 
-    expect(sources.join("\n")).toContain("/rewards");
-    expect(sources.join("\n")).toContain("支付与结算");
+    expect(sources.join("\n")).toContain("/care");
+    expect(sources.join("\n")).toContain("使用小程序");
   });
 
   it("renders the homepage from code-owned marketing content", async () => {
@@ -53,8 +56,9 @@ describe("production route manifest", () => {
 
     expect(homepage).toContain("StaticHome");
     expect(homepage).not.toContain("PublishedPage");
-    expect(staticHome).toContain("让每一次照护，都安心可见");
-    expect(staticHome).toContain("查看小程序入口");
+    expect(staticHome).toContain("忙碌的时候");
+    expect(staticHome).toContain("发布照护需求");
+    expect(staticHome).toContain("/start");
     expect(staticHome).toContain("/brand/hero-community-companion-desktop-v1.webp");
     expect(staticHome).not.toContain("home-page__pillars");
   });

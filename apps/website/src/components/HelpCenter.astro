@@ -1,203 +1,198 @@
 ---
-import MotionEnhancer from "./MotionEnhancer.astro";
-import SiteFooter from "./SiteFooter.astro";
-import SiteHeader from "./SiteHeader.astro";
-import "../styles/global.css";
-
-const faqs = [
-  {
-    title: "如何创建宠物档案？",
-    description: "登录后进入宠物管理，填写基础资料并上传本人宠物照片。",
-    keywords: "账号 资料 宠物 档案 照片",
-  },
-  {
-    title: "如何发布悬赏服务？",
-    description: "在悬赏服务中填写服务内容、时间、地点和注意事项。",
-    keywords: "悬赏 服务 发布 需求 时间 地点",
-  },
-  {
-    title: "订单状态在哪里查看？",
-    description: "进入订单详情即可查看支付、服务步骤、消息和完成状态。",
-    keywords: "订单 状态 支付 步骤 消息 完成",
-  },
-  {
-    title: "支付和结算什么时候生效？",
-    description: "体验环境支持流程验证，真实收款和出款以主体、账户配置为准。",
-    keywords: "支付 退款 结算 收入 提现 配置",
-  },
-  {
-    title: "服务者如何申请资格？",
-    description: "提交服务范围和必要资料后，等待平台审核结果。",
-    keywords: "服务者 资格 申请 审核 资料",
-  },
-  {
-    title: "如何处理内容或服务问题？",
-    description: "在对应内容或订单中提交举报、异常说明和相关证据。",
-    keywords: "内容 服务 问题 举报 异常 证据",
-  },
-];
-
-const topics = [
-  { title: "账号与资料", description: "登录、个人资料、宠物档案和隐私设置。", href: "/privacy" },
-  {
-    title: "服务流程",
-    description: "发布需求、确认服务、查看进度和完成评价。",
-    href: "/service-flow",
-  },
-  { title: "悬赏与订单", description: "查看悬赏、订单、SOP、异常和评价说明。", href: "/rewards" },
-  { title: "支付与收入", description: "了解支付、退款、账务和结算状态。", href: "/payments" },
-];
+import { helpArticles, helpCategories } from "../content/help";
+import PublicPage from "./PublicPage.astro";
 ---
 
-<!doctype html>
-<html lang="zh-CN">
-  <head>
-    <meta charset="utf-8" />
-    <meta name="viewport" content="width=device-width, initial-scale=1" />
-    <meta
-      name="description"
-      content="查找 PetCare 账号、宠物档案、订单、支付和服务流程相关帮助。"
-    />
-    <link rel="canonical" href={new URL("/help", Astro.site ?? Astro.url.origin)} />
-    <link rel="icon" href="/brand/petcare-favicon.svg" type="image/svg+xml" />
-    <meta name="theme-color" content="#ffffff" />
-    <title>帮助中心 | PetCare 宠伴</title>
-  </head>
-  <body>
-    <a class="skip-link" href="#main-content">跳到主要内容</a>
-    <SiteHeader static />
-    <main id="main-content" class="help-center">
-      <section class="help-center__intro" aria-labelledby="help-center-title">
-        <div class="content-container">
-          <p class="eyebrow">帮助中心</p>
-          <h1 id="help-center-title">有什么可以帮到你？</h1>
-          <p>搜索问题，或直接展开下面的常见答案。</p>
-          <form class="help-center__search" role="search" data-help-search-form>
-            <label class="sr-only" for="help-search">搜索帮助内容</label>
-            <span class="help-center__search-icon" aria-hidden="true">⌕</span>
-            <input
-              id="help-search"
-              name="q"
-              type="search"
-              autocomplete="off"
-              placeholder="搜索问题，例如：发布悬赏、查看进度"
-              data-help-search
-            />
-            <button type="button" data-help-clear hidden>清空</button>
-          </form>
-          <p class="help-center__status" aria-live="polite" data-help-status>共 6 个常见问题</p>
-        </div>
-      </section>
+<PublicPage
+  title="帮助中心 | PetCare 宠伴"
+  description="查找 PetCare 发布需求、照护过程、账号、费用和照护者参与相关帮助。"
+>
+  <main id="main-content" class="help-center help-center--task">
+    <section class="help-center__task-intro" aria-labelledby="help-center-title">
+      <div class="content-container">
+        <p class="eyebrow">帮助中心</p>
+        <h1 id="help-center-title">有什么可以帮到你？</h1>
+        <p>搜索具体问题，或从左侧分类进入答案。</p>
+        <form class="help-center__search" role="search" data-help-search-form>
+          <label class="sr-only" for="help-search">搜索帮助内容</label>
+          <span class="help-center__search-icon" aria-hidden="true">⌕</span>
+          <input
+            id="help-search"
+            name="q"
+            type="search"
+            autocomplete="off"
+            placeholder="搜索问题，例如：发布照护、查看进度"
+            data-help-search
+          />
+          <button type="button" data-help-clear hidden>清空</button>
+        </form>
+        <p class="help-center__status" aria-live="polite" data-help-status>
+          共 {helpArticles.length} 个常见问题
+        </p>
+      </div>
+    </section>
 
-      <section class="help-center__faq" aria-labelledby="help-center-faq-title">
-        <div class="content-container">
-          <header class="help-center__heading" data-scroll-reveal>
+    <section class="help-center__task-body" aria-labelledby="help-center-faq-title">
+      <div class="content-container help-center__task-layout">
+        <aside class="help-center__categories" aria-label="帮助分类">
+          <p class="eyebrow">内容分类</p>
+          <label class="sr-only" for="help-category">选择帮助分类</label>
+          <select id="help-category" data-help-category-select>
+            <option value="all">全部问题</option>
+            {
+              helpCategories.map((category) => (
+                <option value={category.id}>{category.label}</option>
+              ))
+            }
+          </select>
+          <nav aria-label="帮助分类导航" data-help-category-nav>
+            <button type="button" class="is-active" data-help-category="all">全部问题</button>
+            {
+              helpCategories.map((category) => (
+                <button type="button" data-help-category={category.id}>
+                  {category.label}
+                </button>
+              ))
+            }
+          </nav>
+        </aside>
+
+        <div class="help-center__task-results">
+          <header class="help-center__task-heading">
             <p class="eyebrow">常见问题</p>
             <h2 id="help-center-faq-title">先看这里，通常可以找到答案</h2>
           </header>
-          <div class="help-center__faq-list" data-help-list>
+          <div class="help-center__faq-list help-center__faq-list--task" data-help-list>
             {
-              faqs.map((faq) => (
-                <details
+              helpArticles.map((article) => (
+                <article
                   data-help-item
-                  data-search-text={`${faq.title} ${faq.description} ${faq.keywords}`}
+                  data-help-article-category={article.category}
+                  data-search-text={`${article.title} ${article.summary} ${article.keywords} ${article.answer}`}
                 >
-                  <summary>{faq.title}</summary>
-                  <p>{faq.description}</p>
-                </details>
+                  <details>
+                    <summary>
+                      <span>{article.title}</span>
+                      <small>{article.category}</small>
+                    </summary>
+                    <p>{article.summary}</p>
+                    <a class="text-link" href={`/help/${article.slug}`}>
+                      查看完整说明 <span aria-hidden="true">→</span>
+                    </a>
+                  </details>
+                </article>
               ))
             }
           </div>
           <div class="help-center__empty" data-help-empty hidden>
             <h3>没有找到相关问题</h3>
-            <p>试试更短的关键词，或查看反馈入口继续说明遇到的情况。</p>
-            <a class="text-link" href="/contact">查看反馈入口 <span aria-hidden="true">→</span></a>
+            <p>试试更短的关键词，或先查看照护服务和小程序入口。</p>
+            <div class="help-center__empty-links">
+              <a class="text-link" href="/care">查看照护服务 <span aria-hidden="true">→</span></a>
+              <a class="text-link" href="/start">使用小程序 <span aria-hidden="true">→</span></a>
+            </div>
           </div>
         </div>
-      </section>
+      </div>
+    </section>
 
-      <section class="help-center__topics" aria-labelledby="help-center-topics-title">
-        <div class="content-container">
-          <header class="help-center__heading" data-scroll-reveal>
-            <p class="eyebrow">帮助主题</p>
-            <h2 id="help-center-topics-title">按使用阶段继续阅读</h2>
-          </header>
-          <div class="help-center__topic-list">
-            {
-              topics.map((topic) => (
-                <a href={topic.href}>
-                  <span>{topic.title}</span>
-                  <p>{topic.description}</p>
-                  <strong aria-hidden="true">→</strong>
-                </a>
-              ))
-            }
-          </div>
-          <aside class="help-center__support">
-            <strong>还没解决？</strong>
-            <p>当前联系入口以小程序帮助中心为主，正式客服渠道配置后会在这里补充。</p>
-            <a class="text-link" href="/contact">查看反馈说明 <span aria-hidden="true">→</span></a>
-          </aside>
-        </div>
-      </section>
-    </main>
-    <SiteFooter static />
-    <MotionEnhancer />
-    <script>
-      const form = document.querySelector<HTMLFormElement>("[data-help-search-form]");
-      const input = document.querySelector<HTMLInputElement>("[data-help-search]");
-      const clear = document.querySelector<HTMLButtonElement>("[data-help-clear]");
-      const status = document.querySelector<HTMLElement>("[data-help-status]");
-      const empty = document.querySelector<HTMLElement>("[data-help-empty]");
-      const items = Array.from(document.querySelectorAll<HTMLElement>("[data-help-item]"));
-      const normalize = (value: string) => value.trim().replace(/\s+/gu, " ").toLocaleLowerCase();
+    <section
+      id="contact"
+      class="help-center__support help-center__support--task"
+      aria-labelledby="help-center-support-title"
+    >
+      <div class="content-container">
+        <p class="eyebrow">还没解决？</p>
+        <h2 id="help-center-support-title">先保留完整的问题上下文。</h2>
+        <p>
+          当前公开页面没有独立客服渠道。请从小程序帮助入口提交问题，并尽量附上页面、订单编号和发生时间。
+        </p>
+      </div>
+    </section>
+  </main>
 
-      const update = () => {
-        const query = normalize(input?.value ?? "");
-        const terms = query.split(" ").filter(Boolean);
-        let visible = 0;
+  <script>
+    const form = document.querySelector<HTMLFormElement>("[data-help-search-form]");
+    const input = document.querySelector<HTMLInputElement>("[data-help-search]");
+    const clear = document.querySelector<HTMLButtonElement>("[data-help-clear]");
+    const status = document.querySelector<HTMLElement>("[data-help-status]");
+    const empty = document.querySelector<HTMLElement>("[data-help-empty]");
+    const select = document.querySelector<HTMLSelectElement>("[data-help-category-select]");
+    const categoryButtons = Array.from(
+      document.querySelectorAll<HTMLButtonElement>("[data-help-category]"),
+    );
+    const items = Array.from(document.querySelectorAll<HTMLElement>("[data-help-item]"));
+    const normalize = (value: string) => value.trim().replace(/\s+/gu, " ").toLocaleLowerCase();
 
-        items.forEach((item) => {
-          const text = normalize(item.dataset.searchText ?? "");
-          const matches = !query || terms.every((term) => text.includes(term));
+    const update = () => {
+      const query = normalize(input?.value ?? "");
+      const terms = query.split(" ").filter(Boolean);
+      const category = select?.value ?? "all";
+      let visible = 0;
 
-          item.hidden = !matches;
+      items.forEach((item) => {
+        const text = normalize(item.dataset.searchText ?? "");
+        const matchesSearch = !query || terms.every((term) => text.includes(term));
+        const matchesCategory = category === "all" || item.dataset.helpArticleCategory === category;
+        const visibleItem = matchesSearch && matchesCategory;
 
-          if (matches) {
-            visible += 1;
-          }
-        });
+        item.hidden = !visibleItem;
 
-        if (clear) {
-          clear.hidden = !query;
+        if (visibleItem) {
+          visible += 1;
         }
+      });
 
-        if (empty) {
-          empty.hidden = visible !== 0;
-        }
+      categoryButtons.forEach((button) =>
+        button.classList.toggle("is-active", button.dataset.helpCategory === category),
+      );
 
-        if (status) {
-          status.textContent = query
+      if (clear) {
+        clear.hidden = !query;
+      }
+
+      if (empty) {
+        empty.hidden = visible !== 0;
+      }
+
+      if (status) {
+        status.textContent =
+          query || category !== "all"
             ? `找到 ${visible} 个相关问题`
             : `共 ${items.length} 个常见问题`;
-        }
-      };
+      }
+    };
 
-      form?.addEventListener("submit", (event) => {
-        event.preventDefault();
-        update();
-        document.querySelector<HTMLElement>("[data-help-item]:not([hidden]) summary")?.focus();
-      });
-      input?.addEventListener("input", update);
-      clear?.addEventListener("click", () => {
-        if (!input) {
+    categoryButtons.forEach((button) => {
+      button.addEventListener("click", () => {
+        if (!select) {
           return;
         }
 
-        input.value = "";
+        select.value = button.dataset.helpCategory ?? "all";
         update();
-        input.focus();
       });
-    </script>
-  </body>
-</html>
+    });
+    select?.addEventListener("change", update);
+    input?.addEventListener("input", update);
+    form?.addEventListener("submit", (event) => {
+      event.preventDefault();
+      update();
+      document.querySelector<HTMLElement>("[data-help-item]:not([hidden]) summary")?.focus();
+    });
+    clear?.addEventListener("click", () => {
+      if (!input) {
+        return;
+      }
+
+      input.value = "";
+
+      if (select) {
+        select.value = "all";
+      }
+
+      update();
+      input.focus();
+    });
+  </script>
+</PublicPage>

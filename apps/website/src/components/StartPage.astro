@@ -1,0 +1,44 @@
+---
+import PublicPage from "./PublicPage.astro";
+---
+
+<PublicPage
+  title="使用小程序 | PetCare 宠伴"
+  description="从微信小程序开始使用 PetCare。正式二维码和入口以发布配置为准。"
+>
+  <main id="main-content" class="start-page">
+    <section class="start-page__hero" aria-labelledby="start-page-title">
+      <div class="content-container start-page__hero-inner" data-scroll-reveal>
+        <p class="eyebrow">使用小程序</p>
+        <h1 id="start-page-title">从一次记录开始，进入 PetCare。</h1>
+        <p>小程序是发布照护需求、沟通服务和查看过程的实际入口。</p>
+      </div>
+    </section>
+
+    <section class="start-page__entry" aria-labelledby="start-entry-title">
+      <div class="content-container start-page__entry-grid">
+        <div class="start-page__entry-copy" data-scroll-reveal>
+          <p class="eyebrow">正式入口</p>
+          <h2 id="start-entry-title">二维码配置完成后，从这里直接开始。</h2>
+          <p>
+            当前官网保留了统一入口页，但正式小程序二维码、主体信息和开放范围仍以发布配置为准。配置完成后，首页、导航和帮助中心会使用同一份入口。
+          </p>
+          <div class="start-page__actions">
+            <a class="text-link" href="/care">先了解照护服务 <span aria-hidden="true">→</span></a>
+            <a class="text-link" href="/help">查看帮助中心 <span aria-hidden="true">→</span></a>
+          </div>
+        </div>
+        <div
+          class="start-page__placeholder"
+          role="status"
+          aria-label="小程序二维码待配置"
+          data-scroll-reveal
+        >
+          <img src="/brand/petcare-placeholder-light.svg" width="176" height="176" alt="" />
+          <strong>小程序入口待配置</strong>
+          <span>正式二维码上线后会在这里展示</span>
+        </div>
+      </div>
+    </section>
+  </main>
+</PublicPage>

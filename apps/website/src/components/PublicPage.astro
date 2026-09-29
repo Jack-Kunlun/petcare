@@ -1,0 +1,35 @@
+---
+import MotionEnhancer from "./MotionEnhancer.astro";
+import SiteFooter from "./SiteFooter.astro";
+import SiteHeader from "./SiteHeader.astro";
+import "../styles/global.css";
+
+interface Props {
+  title: string;
+  description: string;
+  canonical?: string;
+}
+
+const { title, description, canonical = Astro.url.pathname } = Astro.props;
+const canonicalUrl = new URL(canonical, Astro.site ?? Astro.url.origin).toString();
+---
+
+<!doctype html>
+<html lang="zh-CN">
+  <head>
+    <meta charset="utf-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1" />
+    <meta name="description" content={description} />
+    <link rel="canonical" href={canonicalUrl} />
+    <link rel="icon" href="/brand/petcare-favicon.svg" type="image/svg+xml" />
+    <meta name="theme-color" content="#ffffff" />
+    <title>{title}</title>
+  </head>
+  <body>
+    <a class="skip-link" href="#main-content">跳到主要内容</a>
+    <SiteHeader static />
+    <slot />
+    <SiteFooter static />
+    <MotionEnhancer />
+  </body>
+</html>

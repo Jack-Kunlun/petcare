@@ -1,0 +1,46 @@
+---
+import PublicPage from "./PublicPage.astro";
+---
+
+<PublicPage
+  title="关于 PetCare | PetCare 宠伴"
+  description="了解 PetCare 的产品定位、照护边界和建设方向。"
+>
+  <main id="main-content" class="about-page">
+    <section class="about-page__hero" aria-labelledby="about-page-title">
+      <div class="content-container about-page__hero-grid">
+        <div data-scroll-reveal>
+          <p class="eyebrow">关于 PetCare</p>
+          <h1 id="about-page-title">让宠物生活被看见，也让每一次照护有依据。</h1>
+        </div>
+        <figure data-scroll-reveal>
+          <img
+            src="/brand/hero-community-companion-desktop-v1.webp"
+            width="1920"
+            height="720"
+            alt="猫和狗在自然光下相伴"
+            fetchpriority="high"
+          />
+          <figcaption>一款围绕日常照护逐步建设的产品。</figcaption>
+        </figure>
+      </div>
+    </section>
+    <section class="about-page__body" aria-labelledby="about-role-title">
+      <div class="content-container about-page__body-grid">
+        <header data-scroll-reveal>
+          <p class="eyebrow">我们在做什么</p>
+          <h2 id="about-role-title">把需要说明的事情，说清楚；把已经发生的照护，留下记录。</h2>
+        </header>
+        <div class="about-page__copy" data-scroll-reveal>
+          <p>
+            PetCare 是面向宠物主人和照护者的品牌入口，帮助双方理解照护方式、确认过程和使用边界。
+          </p>
+          <p>
+            官网负责介绍产品与规则，小程序负责具体的需求、沟通和服务操作。未配置或未开放的能力会单独说明，不用宣传文案替代真实状态。
+          </p>
+          <a class="text-link" href="/contact">联系与反馈 <span aria-hidden="true">→</span></a>
+        </div>
+      </div>
+    </section>
+  </main>
+</PublicPage>

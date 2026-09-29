@@ -1,0 +1,94 @@
+---
+import PublicPage from "./PublicPage.astro";
+---
+
+<PublicPage
+  title="成为照护者 | PetCare 宠伴"
+  description="了解成为 PetCare 照护者需要准备什么、如何参与以及需要承担的照护责任。"
+>
+  <main id="main-content" class="info-page info-page--caregivers">
+    <section class="info-page__hero" aria-labelledby="caregivers-page-title">
+      <div class="content-container info-page__hero-grid">
+        <div class="info-page__hero-copy" data-scroll-reveal>
+          <p class="eyebrow">成为照护者</p>
+          <h1 id="caregivers-page-title">喜欢宠物，也愿意认真照顾它们。</h1>
+          <p>照护不是一句“喜欢就好”。先了解参与条件、可做的范围，以及一次服务需要承担的责任。</p>
+          <a class="text-link" href="/help#contact"
+            >查看参与帮助 <span aria-hidden="true">→</span></a
+          >
+        </div>
+        <figure class="info-page__hero-image" data-scroll-reveal>
+          <img
+            src="/brand/pet-life-grooming.jpg"
+            width="960"
+            height="720"
+            alt="照护者在家中整理宠物毛发"
+            fetchpriority="high"
+          />
+          <figcaption>画面为生活场景示意，不代表具体服务案例。</figcaption>
+        </figure>
+      </div>
+    </section>
+
+    <section class="info-page__section" aria-labelledby="caregivers-fit-title">
+      <div class="content-container info-page__section-grid">
+        <header class="info-page__section-heading" data-scroll-reveal>
+          <p class="eyebrow">参与前先确认</p>
+          <h2 id="caregivers-fit-title">适合怎样的人参与？</h2>
+        </header>
+        <div class="info-page__reading" data-scroll-reveal>
+          <ul class="info-page__line-list">
+            <li>
+              <strong>愿意按约定沟通</strong><span>及时确认时间、范围和宠物需要留意的事项。</span>
+            </li>
+            <li>
+              <strong>能够稳定完成照护</strong><span>只承接自己能按时、按范围完成的内容。</span>
+            </li>
+            <li>
+              <strong>愿意留下过程记录</strong><span>按实际情况说明进展、异常和完成结果。</span>
+            </li>
+          </ul>
+          <p class="info-page__note">
+            资格、服务范围和申请状态以平台当前配置与审核结果为准；页面不承诺收入或接单数量。
+          </p>
+        </div>
+      </div>
+    </section>
+
+    <section
+      class="info-page__section info-page__section--soft"
+      aria-labelledby="caregivers-steps-title"
+    >
+      <div class="content-container">
+        <header
+          class="info-page__section-heading info-page__section-heading--wide"
+          data-scroll-reveal
+        >
+          <p class="eyebrow">参与之后</p>
+          <h2 id="caregivers-steps-title">从确认资格，到完成一次有记录的照护。</h2>
+        </header>
+        <ol class="info-page__flow info-page__flow--three" aria-label="照护者参与过程">
+          <li data-scroll-reveal>
+            <span>01</span><h3>了解范围</h3><p>确认可参与的服务类型、时间和责任边界。</p>
+          </li>
+          <li data-scroll-reveal>
+            <span>02</span><h3>确认订单</h3><p>查看宠物资料和需求，和主人确认执行方式。</p>
+          </li>
+          <li data-scroll-reveal>
+            <span>03</span><h3>完成交付</h3><p>按约定执行、记录过程，并提交完成反馈。</p>
+          </li>
+        </ol>
+      </div>
+    </section>
+
+    <section class="info-page__closing" aria-labelledby="caregivers-closing-title">
+      <div class="content-container info-page__closing-inner" data-scroll-reveal>
+        <div>
+          <p class="eyebrow">需要更多说明？</p>
+          <h2 id="caregivers-closing-title">先到帮助中心确认当前入口。</h2>
+        </div>
+        <a class="button" href="/help#contact">打开帮助中心 <span aria-hidden="true">→</span></a>
+      </div>
+    </section>
+  </main>
+</PublicPage>

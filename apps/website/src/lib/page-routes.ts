@@ -1,6 +1,9 @@
 /** Code-owned public marketing routes that do not depend on admin website configuration. */
 export const STATIC_MARKETING_PATHS = [
   "/",
+  "/care",
+  "/caregivers",
+  "/start",
   "/product",
   "/for-pet-owners",
   "/for-providers",
