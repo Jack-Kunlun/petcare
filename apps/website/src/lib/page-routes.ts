@@ -1,10 +1,20 @@
-import { WEBSITE_CONTENT_KEY, type WebsiteContentKey } from "@petcare/shared-types";
-
-/** Fixed public routes; content publishing never changes navigation ownership. */
-export const PAGE_CONTENT_BY_PATH = {
-  "/": WEBSITE_CONTENT_KEY.HOME,
-  "/about": WEBSITE_CONTENT_KEY.ABOUT,
-  "/contact": WEBSITE_CONTENT_KEY.CONTACT,
-  "/privacy": WEBSITE_CONTENT_KEY.PRIVACY,
-  "/terms": WEBSITE_CONTENT_KEY.TERMS,
-} as const satisfies Record<string, WebsiteContentKey>;
+/** Code-owned public marketing routes that do not depend on admin website configuration. */
+export const STATIC_MARKETING_PATHS = [
+  "/",
+  "/product",
+  "/for-pet-owners",
+  "/for-providers",
+  "/service-flow",
+  "/rewards",
+  "/payments",
+  "/trust",
+  "/stories",
+  "/help",
+  "/miniapp",
+  "/about",
+  "/contact",
+  "/terms",
+  "/privacy",
+  "/refund-policy",
+  "/platform-rules",
+] as const;

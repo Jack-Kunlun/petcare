@@ -13,28 +13,36 @@ describe("production route manifest", () => {
     expect(pageEntries.filter((entry) => /\.test\.[cm]?[jt]sx?$/u.test(entry))).toEqual([]);
   });
 
-  it("does not publish paused commercial landing pages", async () => {
+  it("publishes the formal product landing pages", async () => {
     const pageEntries = await readdir(path.join(websiteDirectory, "src/pages"), {
       recursive: true,
     });
 
-    expect(pageEntries).not.toContain("services.astro");
-    expect(pageEntries).not.toContain("trust.astro");
-    expect(pageEntries).not.toContain("companions.astro");
+    expect(pageEntries).toEqual(
+      expect.arrayContaining([
+        "product.astro",
+        "for-pet-owners.astro",
+        "for-providers.astro",
+        "rewards.astro",
+        "payments.astro",
+        "trust.astro",
+        "service-flow.astro",
+        "help.astro",
+      ]),
+    );
   });
 
-  it("keeps homepage fallbacks within the current personal-version scope", async () => {
+  it("keeps the formal homepage content code-owned", async () => {
     const sources = await Promise.all(
       [
-        "src/components/HomeExperience.astro",
-        "src/components/sections/HeroSection.astro",
-        "src/components/sections/safe-rendering.ts",
+        "src/components/StaticHome.astro",
+        "src/components/SiteHeader.astro",
+        "src/content/marketing.ts",
       ].map((relativePath) => readFile(path.join(websiteDirectory, relativePath), "utf8")),
     );
 
-    expect(sources.join("\n")).not.toMatch(
-      /\/services|\/trust|\/companions|悬赏|宠托师|服务进行中|身份认证|优惠券|订单/,
-    );
+    expect(sources.join("\n")).toContain("/rewards");
+    expect(sources.join("\n")).toContain("支付与结算");
   });
 
   it("renders the homepage from code-owned marketing content", async () => {
@@ -45,7 +53,7 @@ describe("production route manifest", () => {
 
     expect(homepage).toContain("StaticHome");
     expect(homepage).not.toContain("PublishedPage");
-    expect(staticHome).toContain("让每一份牵挂");
+    expect(staticHome).toContain("让每一次照顾都有记录");
     expect(staticHome).toContain("/brand/hero-community-companion-desktop-v1.webp");
   });
 });

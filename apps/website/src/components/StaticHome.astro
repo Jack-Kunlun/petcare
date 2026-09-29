@@ -1,123 +1,254 @@
 ---
-import HomeExperience from "./HomeExperience.astro";
+import MotionEnhancer from "./MotionEnhancer.astro";
 import SiteFooter from "./SiteFooter.astro";
 import SiteHeader from "./SiteHeader.astro";
+
+const pillars = [
+  { number: "01", title: "宠物档案", description: "基础资料、习惯、照片和健康备注都集中维护。" },
+  { number: "02", title: "宠物课堂", description: "按主题阅读养宠知识、服务指南和平台规则。" },
+  { number: "03", title: "社区互动", description: "分享真实日常，参与审核通过的内容和互动。" },
+  { number: "04", title: "悬赏服务", description: "发布照顾需求，明确时间、范围和交付结果。" },
+  { number: "05", title: "订单与 SOP", description: "把服务步骤、过程记录和完成状态放在一起。" },
+  { number: "06", title: "支付与结算", description: "记录支付、退款、收入和后续结算状态。" },
+];
+
+const journey = [
+  { number: "01", title: "记录宠物", description: "先建立一份清楚、持续可维护的宠物档案。" },
+  { number: "02", title: "发布需求", description: "写清楚服务时间、地点、内容和注意事项。" },
+  { number: "03", title: "确认订单", description: "双方确认范围、费用、步骤和责任边界。" },
+  { number: "04", title: "执行服务", description: "按 SOP 完成照顾，并上传过程记录。" },
+  { number: "05", title: "完成交付", description: "确认结果、处理异常并留下评价记录。" },
+];
+
+const trust = [
+  { title: "资料归属", description: "宠物资料按账户和宠物关系维护，避免跨账户访问。" },
+  { title: "媒体保护", description: "照片和服务文件使用受控地址和访问边界。" },
+  { title: "过程留痕", description: "订单步骤、图片、备注和消息保持关联。" },
+  { title: "内容治理", description: "社区内容支持审核、举报、下架和互动边界。" },
+];
+
+const stories = [
+  {
+    title: "宠物日常",
+    description: "把普通一天里的小事记录下来。",
+    image: "/brand/pet-life-feeding.jpg",
+    alt: "宠物在日常生活中的状态",
+  },
+  {
+    title: "养宠经验",
+    description: "分享照顾宠物时真正有帮助的观察。",
+    image: "/brand/pet-life-grooming.jpg",
+    alt: "主人在家中照顾宠物",
+  },
+  {
+    title: "陪伴故事",
+    description: "留下人与宠物之间值得记住的片段。",
+    image: "/brand/pet-life-playing.jpg",
+    alt: "宠物在户外自在互动",
+  },
+];
 ---
 
 <SiteHeader static />
 
-<main id="main-content">
-  <section
-    class="hero-section hero-section--background home-hero"
-    aria-labelledby="home-hero-title"
-  >
+<main id="main-content" class="home-page">
+  <section class="home-page__hero" data-parallax aria-labelledby="home-page-title">
     <img
-      class="hero-section__background-media"
+      class="home-page__hero-image"
       src="/brand/hero-community-companion-desktop-v1.webp"
       width="1920"
       height="720"
       alt="猫和狗在自然光下安心相伴"
       fetchpriority="high"
     />
-    <div class="hero-section__inner">
-      <div class="hero-section__content">
-        <p class="eyebrow">PetCare 宠伴 · 个人版</p>
-        <h1 id="home-hero-title">让每一份牵挂，<br />都有回应</h1>
-        <p class="hero-section__description">
-          从宠物档案、养宠课堂到受控社区，把每一次照顾和每一个值得记住的瞬间，整理成清楚、可回看的日常。
+    <div class="home-page__hero-overlay"></div>
+    <div class="home-page__hero-inner content-container">
+      <div class="home-page__hero-copy">
+        <p class="eyebrow">PetCare 宠伴</p>
+        <h1 id="home-page-title">让每一次照顾都有记录，<em>让每一次服务都有依据</em></h1>
+        <p>
+          从宠物档案、养宠内容到服务订单，PetCare
+          帮助宠物主人和服务者把每一次陪伴、照顾与交付记录下来。
         </p>
         <div class="section-actions">
-          <a class="button" href="#home-services">查看当前能力</a>
-          <a class="button button--secondary" href="/articles">阅读养宠内容</a>
+          <a class="button" href="/product">了解产品能力</a>
+          <a class="button button--secondary" href="/miniapp">打开微信小程序</a>
         </div>
-        <p class="hero-section__trust-line">
-          <span>本人宠物档案</span>
-          <span>萌宠课堂</span>
-          <span>受控社区</span>
-          <span>真实状态可查</span>
-        </p>
       </div>
     </div>
   </section>
 
-  <HomeExperience />
+  <section
+    id="home-services"
+    class="home-page__section home-page__section--soft"
+    aria-labelledby="home-services-title"
+  >
+    <div class="content-container">
+      <header class="marketing-page__section-heading" data-scroll-reveal>
+        <p class="eyebrow">六项核心能力</p>
+        <h2 id="home-services-title">从记录宠物，到协作完成一次照顾</h2>
+        <p>每一项能力都对应一个真实使用场景，页面状态和下一步操作保持清楚。</p>
+      </header>
+      <div class="home-page__pillars">
+        {
+          pillars.map((pillar, index) => (
+            <article
+              class="home-page__pillar"
+              data-scroll-reveal
+              style={`--reveal-delay: ${index * 45}ms`}
+            >
+              <span>{pillar.number}</span>
+              <h3>{pillar.title}</h3>
+              <p>{pillar.description}</p>
+            </article>
+          ))
+        }
+      </div>
+    </div>
+  </section>
+
+  <section class="home-page__section" aria-labelledby="home-roles-title">
+    <div class="content-container">
+      <header class="marketing-page__section-heading" data-scroll-reveal>
+        <p class="eyebrow">两条使用路径</p>
+        <h2 id="home-roles-title">主人和服务者，都知道下一步该做什么</h2>
+        <p>不同角色使用不同工具，但共享同一条清楚、可回看的订单记录。</p>
+      </header>
+      <div class="home-page__roles">
+        <a class="home-page__role" href="/for-pet-owners" data-scroll-reveal>
+          <div>
+            <p class="eyebrow">宠物主人</p>
+            <h3>把对它的牵挂，变成看得见的日常</h3>
+            <p>建立档案、发布需求、查看服务过程并确认最终结果。</p>
+          </div>
+          <span aria-hidden="true">→</span>
+        </a>
+        <a class="home-page__role home-page__role--dark" href="/for-providers" data-scroll-reveal>
+          <div>
+            <p class="eyebrow">服务者</p>
+            <h3>让每一次服务，都有步骤、有记录、有依据</h3>
+            <p>申请资格、执行 SOP、提交证据并查看只读收入状态。</p>
+          </div>
+          <span aria-hidden="true">→</span>
+        </a>
+      </div>
+    </div>
+  </section>
+
+  <section
+    id="service-journey"
+    class="home-page__section home-page__section--soft"
+    aria-labelledby="home-journey-title"
+  >
+    <div class="content-container">
+      <header class="marketing-page__section-heading" data-scroll-reveal>
+        <p class="eyebrow">服务流程</p>
+        <h2 id="home-journey-title">先把流程说清楚，再开始一次服务</h2>
+        <p>从发布需求到完成交付，每个节点都有状态、记录和下一步操作。</p>
+      </header>
+      <ol class="home-page__journey">
+        {
+          journey.map((item, index) => (
+            <li data-scroll-reveal style={`--reveal-delay: ${index * 45}ms`}>
+              <span>{item.number}</span>
+              <div>
+                <>
+                  <h3>{item.title}</h3>
+                  <p>{item.description}</p>
+                </>
+              </div>
+            </li>
+          ))
+        }
+      </ol>
+      <a class="text-link" href="/service-flow"
+        >查看完整服务流程 <span aria-hidden="true">→</span></a
+      >
+    </div>
+  </section>
+
+  <section class="home-page__section home-page__record" aria-labelledby="home-record-title">
+    <div class="content-container home-page__record-inner">
+      <div data-scroll-reveal>
+        <p class="eyebrow">宠物档案与服务记录</p>
+        <h2 id="home-record-title">重要的资料，不再散落在聊天记录里</h2>
+        <p>宠物资料、服务图片、SOP 步骤和消息通知按宠物与订单归档，之后查看时能快速找到上下文。</p>
+        <a class="button" href="/for-pet-owners">了解主人端</a>
+      </div>
+      <figure class="home-page__record-visual" data-scroll-reveal>
+        <img src="/brand/pet-life-feeding.jpg" alt="宠物档案照片示例" loading="lazy" />
+        <figcaption>
+          <strong>豆豆 · 宠物档案</strong>
+          <span>基本资料 · 日常习惯 · 服务记录</span>
+        </figcaption>
+      </figure>
+    </div>
+  </section>
+
+  <section
+    id="safety"
+    class="home-page__section home-page__section--dark"
+    aria-labelledby="home-trust-title"
+  >
+    <div class="content-container">
+      <header class="marketing-page__section-heading" data-scroll-reveal>
+        <p class="eyebrow">安全与保障</p>
+        <h2 id="home-trust-title">把安全写进每个流程节点</h2>
+        <p>安全不是一句口号，而是权限、记录、审核和异常处理的组合。</p>
+      </header>
+      <div class="home-page__trust-grid">
+        {
+          trust.map((item, index) => (
+            <article data-scroll-reveal style={`--reveal-delay: ${index * 45}ms`}>
+              <h3>{item.title}</h3>
+              <p>{item.description}</p>
+            </article>
+          ))
+        }
+      </div>
+    </div>
+  </section>
+
+  <section id="community-preview" class="home-page__section" aria-labelledby="home-stories-title">
+    <div class="content-container">
+      <header class="marketing-page__section-heading" data-scroll-reveal>
+        <p class="eyebrow">宠物生活</p>
+        <h2 id="home-stories-title">普通的一天，也值得被认真记录</h2>
+        <p>从一张照片、一段文字和一次互动开始，留下属于宠物和家人的生活片段。</p>
+      </header>
+      <div class="home-page__stories">
+        {
+          stories.map((story, index) => (
+            <a
+              class="home-page__story"
+              href="/stories"
+              data-scroll-reveal
+              style={`--reveal-delay: ${index * 45}ms`}
+            >
+              <img src={story.image} alt={story.alt} loading="lazy" />
+              <span>{story.title}</span>
+              <strong>{story.description}</strong>
+            </a>
+          ))
+        }
+      </div>
+    </div>
+  </section>
 
   <section
     id="home-download"
-    class="cta-section home-download"
+    class="home-page__cta"
+    data-scroll-reveal
     aria-labelledby="home-download-title"
   >
     <div class="content-container">
       <p class="eyebrow">从一次记录开始</p>
-      <h2 id="home-download-title">把对它的牵挂，变成看得见的日常。</h2>
-      <p>
-        先从宠物档案开始，记录基本资料、日常习惯和照片；再去阅读可靠内容，慢慢建立属于你和它的生活记录。
-      </p>
-      <div class="section-actions">
-        <a class="button" href="/about">了解 PetCare</a>
-        <a class="button button--secondary" href="/contact">联系我们</a>
-      </div>
+      <h2 id="home-download-title">打开 PetCare，开始记录它的日常。</h2>
+      <p>先建立宠物档案，再逐步使用课堂、社区和服务流程。</p>
+      <a class="button" href="/miniapp">打开微信小程序</a>
     </div>
   </section>
 </main>
 
 <SiteFooter static />
-
-<script>
-  const revealTargets = [
-    ".home-hero .hero-section__content > *",
-    ".home-services .section-heading",
-    ".service-story",
-    ".service-journey-section .section-heading",
-    ".service-journey li",
-    ".service-record-demo",
-    ".service-record-section__copy",
-    ".safety-section .section-heading",
-    ".safety-details li",
-    ".community-preview .section-heading",
-    ".community-story",
-    ".brand-story-section__inner > div",
-    ".home-download .content-container > *",
-  ];
-  const revealElements = revealTargets.flatMap((selector) =>
-    Array.from(document.querySelectorAll<HTMLElement>(selector)),
-  );
-
-  document.documentElement.dataset.motion = "ready";
-  revealElements.forEach((element, index) => {
-    element.setAttribute("data-scroll-reveal", "");
-    element.style.setProperty("--reveal-delay", `${Math.min(index % 5, 4) * 70}ms`);
-  });
-
-  if ("IntersectionObserver" in window) {
-    const observer = new IntersectionObserver(
-      (entries) =>
-        entries.forEach(
-          (entry) => entry.isIntersecting && entry.target.setAttribute("data-visible", "true"),
-        ),
-      { threshold: 0.05, rootMargin: "0px 0px 18% 0px" },
-    );
-
-    revealElements.forEach((element) => observer.observe(element));
-  } else {
-    revealElements.forEach((element) => element.setAttribute("data-visible", "true"));
-  }
-
-  const hero = document.querySelector<HTMLElement>(".home-hero");
-  let frame = 0;
-  const updateScroll = () => {
-    frame = 0;
-    hero?.style.setProperty("--hero-shift", `${Math.min(window.scrollY * 0.08, 48)}px`);
-  };
-
-  window.addEventListener(
-    "scroll",
-    () => {
-      if (!frame) {
-        frame = window.requestAnimationFrame(updateScroll);
-      }
-    },
-    { passive: true },
-  );
-  updateScroll();
-</script>
+<MotionEnhancer />

@@ -1,0 +1,37 @@
+---
+import MarketingPage from "../components/MarketingPage.astro";
+---
+
+<MarketingPage
+  page={{
+    title: "退款规则 | PetCare 宠伴",
+    description: "了解 PetCare 订单支付、退款和异常处理的基本规则。",
+    eyebrow: "退款规则",
+    heroTitle: "退款有条件，状态有记录",
+    heroDescription: "退款结果会与原订单和账务状态保持关联，具体以订单规则和实际配置为准。",
+    heroActions: [{ label: "查看支付与结算", href: "/payments" }],
+    sections: [
+      {
+        kind: "cards",
+        id: "refund-rules",
+        eyebrow: "基本规则",
+        title: "先确认订单状态，再处理退款",
+        description: "退款、取消和异常处理按照订单状态分别记录。",
+        items: [
+          { title: "未开始服务", description: "根据订单约定和当前支付状态提交取消或退款申请。" },
+          { title: "服务进行中", description: "需要结合已完成步骤、服务记录和双方说明处理。" },
+          { title: "服务已完成", description: "完成后的争议进入平台规则和证据核对流程。" },
+          { title: "异常订单", description: "保留订单、消息、图片和处理结果，便于后续核对。" },
+        ],
+      },
+      {
+        kind: "note",
+        id: "refund-status",
+        eyebrow: "当前状态",
+        title: "体验环境用于验证流程，真实退款以商户配置为准",
+        description: "真实退款渠道、时效和责任主体将在经营主体与商户配置完成后补充。",
+        tone: "dark",
+      },
+    ],
+  }}
+/>

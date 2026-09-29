@@ -9,13 +9,14 @@ const healthPath = new URL("../pages/healthz.ts", import.meta.url);
 const unavailablePath = new URL("../pages/503.astro", import.meta.url);
 
 describe("public article and operational route contracts", () => {
-  it("renders only the Server-cleaned article HTML as trusted markup", async () => {
+  it("keeps the classroom landing code-owned and server-cleans article detail HTML", async () => {
     const [listSource, detailSource] = await Promise.all([
       readFile(articleListPath, "utf8"),
       readFile(articleDetailPath, "utf8"),
     ]);
 
     expect(listSource).toContain("getArticles");
+    expect(listSource).toContain("marketingPages.articles");
     expect(detailSource).toContain("getArticle");
     expect(detailSource).toContain("<article");
     expect(detailSource).toContain("<time");

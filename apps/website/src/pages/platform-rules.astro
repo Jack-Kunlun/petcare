@@ -1,0 +1,40 @@
+---
+import MarketingPage from "../components/MarketingPage.astro";
+---
+
+<MarketingPage
+  page={{
+    title: "平台规则 | PetCare 宠伴",
+    description: "了解 PetCare 的社区、服务者、订单和内容治理规则。",
+    eyebrow: "平台规则",
+    heroTitle: "清楚的规则，才能保护每一次服务",
+    heroDescription: "平台规则用于说明内容边界、服务责任、订单记录和异常处理方式。",
+    heroActions: [
+      { label: "查看安全与保障", href: "/trust" },
+      { label: "阅读帮助中心", href: "/help", secondary: true },
+    ],
+    sections: [
+      {
+        kind: "cards",
+        id: "rule-groups",
+        eyebrow: "规则范围",
+        title: "四类规则共同组成平台边界",
+        description: "规则会随着正式主体、服务类型和支付配置进一步补充。",
+        items: [
+          { title: "内容规则", description: "尊重他人隐私，不发布违法、误导或侵害他人的内容。" },
+          { title: "社区规则", description: "保持友善交流，接受审核、举报和必要的内容处理。" },
+          { title: "服务规则", description: "按确认的范围和 SOP 执行服务，及时记录异常。" },
+          { title: "订单规则", description: "支付、取消、退款、完成和评价以订单状态为准。" },
+        ],
+      },
+      {
+        kind: "note",
+        id: "rule-status",
+        eyebrow: "规则状态",
+        title: "正式商业规则将在主体和服务配置完成后补充",
+        description: "当前页面用于说明产品边界和体验流程，不替代正式法律协议或合同。",
+        tone: "dark",
+      },
+    ],
+  }}
+/>

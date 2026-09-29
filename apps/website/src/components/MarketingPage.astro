@@ -1,0 +1,181 @@
+---
+import type { MarketingPage as MarketingPageContent } from "../content/marketing";
+import MotionEnhancer from "./MotionEnhancer.astro";
+import SiteFooter from "./SiteFooter.astro";
+import SiteHeader from "./SiteHeader.astro";
+import "../styles/global.css";
+
+interface Props {
+  page: MarketingPageContent;
+}
+
+const { page } = Astro.props;
+const heroImage = page.heroImage ?? {
+  src: "/brand/hero-community-companion-desktop-v1.webp",
+  alt: "猫和狗在自然光下安心相伴",
+};
+---
+
+<!doctype html>
+<html lang="zh-CN">
+  <head>
+    <meta charset="utf-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1" />
+    <meta name="description" content={page.description} />
+    <link rel="canonical" href={new URL(Astro.url.pathname, Astro.site ?? Astro.url.origin)} />
+    <link rel="icon" href="/brand/petcare-favicon.svg" type="image/svg+xml" />
+    <meta name="theme-color" content="#ffffff" />
+    <title>{page.title}</title>
+  </head>
+  <body>
+    <a class="skip-link" href="#main-content">跳到主要内容</a>
+    <SiteHeader static />
+    <main id="main-content" class="marketing-page">
+      <section class="marketing-page__hero" data-parallax aria-labelledby="marketing-page-title">
+        <img
+          class="marketing-page__hero-image"
+          src={heroImage.src}
+          alt={heroImage.alt}
+          fetchpriority="high"
+        />
+        <div class="marketing-page__hero-overlay"></div>
+        <div class="marketing-page__hero-inner content-container">
+          <div class="marketing-page__hero-copy">
+            <p class="eyebrow">{page.eyebrow}</p>
+            <h1 id="marketing-page-title">{page.heroTitle}</h1>
+            <p>{page.heroDescription}</p>
+            {
+              page.heroActions?.length ? (
+                <div class="section-actions">
+                  {page.heroActions.map((action) => (
+                    <a
+                      class:list={["button", action.secondary && "button--secondary"]}
+                      href={action.href}
+                    >
+                      {action.label}
+                    </a>
+                  ))}
+                </div>
+              ) : null
+            }
+          </div>
+        </div>
+      </section>
+
+      {
+        page.sections.map((section) => (
+          <section
+            id={section.id}
+            class:list={[
+              "marketing-page__section",
+              `marketing-page__section--${section.tone ?? "white"}`,
+            ]}
+            aria-labelledby={`${section.id}-title`}
+          >
+            <div class="content-container">
+              <header class="marketing-page__section-heading" data-scroll-reveal>
+                <p class="eyebrow">{section.eyebrow}</p>
+                <h2 id={`${section.id}-title`}>{section.title}</h2>
+                <p>{section.description}</p>
+              </header>
+
+              {section.kind === "cards" ? (
+                <div class="marketing-page__cards">
+                  {section.items.map((item, index) => (
+                    <article
+                      class="marketing-page__card"
+                      data-scroll-reveal
+                      style={`--reveal-delay: ${Math.min(index, 5) * 45}ms`}
+                    >
+                      {item.image ? (
+                        <img src={item.image.src} alt={item.image.alt} loading="lazy" />
+                      ) : null}
+                      {item.label ? (
+                        <span class="marketing-page__card-label">{item.label}</span>
+                      ) : null}
+                      <h3>{item.title}</h3>
+                      <p>{item.description}</p>
+                      {item.href ? (
+                        <a class="text-link" href={item.href}>
+                          了解更多 <span aria-hidden="true">→</span>
+                        </a>
+                      ) : null}
+                    </article>
+                  ))}
+                </div>
+              ) : null}
+
+              {section.kind === "split" ? (
+                <div class="marketing-page__split" data-scroll-reveal>
+                  <div class="marketing-page__split-copy">
+                    <h3>{section.title}</h3>
+                    <p>{section.description}</p>
+                    {section.action ? (
+                      <a class="button" href={section.action.href}>
+                        {section.action.label}
+                      </a>
+                    ) : null}
+                  </div>
+                  <img src={section.image.src} alt={section.image.alt} loading="lazy" />
+                </div>
+              ) : null}
+
+              {section.kind === "timeline" ? (
+                <ol class="marketing-page__timeline">
+                  {section.items.map((item, index) => (
+                    <li data-scroll-reveal style={`--reveal-delay: ${Math.min(index, 6) * 45}ms`}>
+                      <span>{String(index + 1).padStart(2, "0")}</span>
+                      <div>
+                        <h3>{item.title}</h3>
+                        <p>{item.description}</p>
+                      </div>
+                    </li>
+                  ))}
+                </ol>
+              ) : null}
+
+              {section.kind === "faq" ? (
+                <div class="marketing-page__faq">
+                  {section.items.map((item) => (
+                    <details data-scroll-reveal>
+                      <summary>{item.title}</summary>
+                      <p>{item.description}</p>
+                    </details>
+                  ))}
+                </div>
+              ) : null}
+
+              {section.kind === "note" ? (
+                <aside class="marketing-page__note" data-scroll-reveal>
+                  <strong>{section.title}</strong>
+                  <p>{section.description}</p>
+                </aside>
+              ) : null}
+            </div>
+          </section>
+        ))
+      }
+
+      {
+        page.cta ? (
+          <section
+            class="marketing-page__cta"
+            data-scroll-reveal
+            aria-labelledby="marketing-page-cta-title"
+          >
+            <div class="content-container">
+              <p class="eyebrow">{page.cta.eyebrow}</p>
+              <h2 id="marketing-page-cta-title">{page.cta.title}</h2>
+              <p>{page.cta.description}</p>
+              <a class="button" href={page.cta.href}>
+                {page.cta.label}
+              </a>
+            </div>
+          </section>
+        ) : null
+      }
+    </main>
+    <SiteFooter static />
+    <MotionEnhancer />
+  </body>
+</html>

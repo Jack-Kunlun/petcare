@@ -1,6 +1,6 @@
 import { WEBSITE_CONTENT_KEY, type CurrentWebsiteContentKey } from "@petcare/shared-types";
 
-/** Support and legal units shared by the Website and Miniapp public experiences. */
+/** Support and legal units kept for the Miniapp public experience. */
 export const SHARED_CONTENT_KEYS = [
   WEBSITE_CONTENT_KEY.CONTACT,
   WEBSITE_CONTENT_KEY.HELP,
@@ -10,13 +10,13 @@ export const SHARED_CONTENT_KEYS = [
 
 /** Human-readable labels for every managed content unit. */
 export const MANAGED_CONTENT_LABELS = {
-  site_shell: "全站导航与页脚",
-  home: "官网首页",
-  about: "关于我们",
-  contact: "联系客服",
-  help: "帮助中心",
-  privacy: "隐私协议",
-  terms: "服务条款",
+  site_shell: "历史公共壳层（不再驱动官网）",
+  home: "历史首页内容（不再驱动官网）",
+  about: "历史关于内容（不再驱动官网）",
+  contact: "小程序联系客服",
+  help: "小程序帮助中心",
+  privacy: "小程序隐私协议",
+  terms: "小程序服务条款",
 } satisfies Record<CurrentWebsiteContentKey, string>;
 
 /** Returns the overview route that owns one content key in the Admin information architecture. */

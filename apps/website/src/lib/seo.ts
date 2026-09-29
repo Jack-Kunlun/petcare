@@ -1,11 +1,7 @@
-import { PAGE_CONTENT_BY_PATH } from "./page-routes";
+import { STATIC_MARKETING_PATHS } from "./page-routes";
 
 /** Minimal published-content reader required to build a current public sitemap. */
 export interface WebsiteSitemapReader {
-  /** Verifies that a code-owned public page currently has a published snapshot. */
-  getPublished(
-    contentKey: (typeof PAGE_CONTENT_BY_PATH)[keyof typeof PAGE_CONTENT_BY_PATH],
-  ): Promise<unknown>;
   /** Reads a bounded public page of already-published classroom articles. */
   getArticles(query: { page: number; pageSize: number }): Promise<{
     list: Array<{ slug: string }>;
@@ -30,25 +26,16 @@ export function createRobotsText(publicUrl: string): string {
   return `User-agent: *\nDisallow: /preview\nSitemap: ${new URL("/sitemap.xml", publicUrl).toString()}\n`;
 }
 
-/** Reads every current published fixed page and article route for one sitemap response. */
+/** Reads code-owned marketing paths and any currently published article routes for the sitemap. */
 export async function loadPublishedSitemapPaths(reader: WebsiteSitemapReader): Promise<string[]> {
-  const fixedRoutes = Object.entries(PAGE_CONTENT_BY_PATH).map(async ([path, contentKey]) => {
-    try {
-      await reader.getPublished(contentKey);
+  let firstPage: Awaited<ReturnType<WebsiteSitemapReader["getArticles"]>>;
 
-      return path;
-    } catch (error) {
-      if (isNotFound(error)) {
-        return null;
-      }
+  try {
+    firstPage = await reader.getArticles({ page: 1, pageSize: SITEMAP_ARTICLE_PAGE_SIZE });
+  } catch {
+    return [...STATIC_MARKETING_PATHS, "/articles"];
+  }
 
-      throw error;
-    }
-  });
-  const publishedPagePaths = (await Promise.all(fixedRoutes)).filter(
-    (path): path is string => path !== null,
-  );
-  const firstPage = await reader.getArticles({ page: 1, pageSize: SITEMAP_ARTICLE_PAGE_SIZE });
   const remainingPageCount = Math.max(0, Math.ceil(firstPage.total / firstPage.pageSize) - 1);
   const remainingPages = await Promise.all(
     Array.from({ length: remainingPageCount }, (_, index) =>
@@ -59,7 +46,7 @@ export async function loadPublishedSitemapPaths(reader: WebsiteSitemapReader): P
     page.list.map((article) => `/articles/${encodeURIComponent(article.slug)}`),
   );
 
-  return [...publishedPagePaths, "/articles", ...articlePaths];
+  return [...STATIC_MARKETING_PATHS, "/articles", ...articlePaths];
 }
 
 function escapeXml(value: string): string {
@@ -74,8 +61,4 @@ function escapeXml(value: string): string {
       }[character] ?? character
     );
   });
-}
-
-function isNotFound(error: unknown): error is { status: number } {
-  return typeof error === "object" && error !== null && "status" in error && error.status === 404;
 }

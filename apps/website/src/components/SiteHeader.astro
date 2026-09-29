@@ -14,13 +14,13 @@ interface Props {
 const { section, preview = false, static: useStatic = false } = Astro.props;
 const staticNavigation = [
   { label: "首页", href: "/" },
-  { label: "当前能力", href: "/#home-services" },
-  { label: "使用路径", href: "/#service-journey" },
-  { label: "宠物生活", href: "/#community-preview" },
-  { label: "帮助中心", href: "/articles" },
+  { label: "产品能力", href: "/product" },
+  { label: "服务流程", href: "/service-flow" },
+  { label: "宠物课堂", href: "/articles" },
+  { label: "帮助中心", href: "/help" },
 ];
 const navigation = useStatic ? staticNavigation : (section?.content.navigation ?? []);
-const action = useStatic ? { label: "开始了解", href: "/#home-download" } : section?.content.action;
+const action = useStatic ? { label: "打开微信小程序", href: "/miniapp" } : section?.content.action;
 const brandLabel = useStatic ? "PetCare 宠伴" : (section?.content.brandLabel ?? "PetCare 宠伴");
 const headerClass =
   useStatic || !section || section.settings.sticky

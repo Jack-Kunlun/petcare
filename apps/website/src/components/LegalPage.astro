@@ -1,0 +1,63 @@
+---
+import MotionEnhancer from "./MotionEnhancer.astro";
+import SiteFooter from "./SiteFooter.astro";
+import SiteHeader from "./SiteHeader.astro";
+import "../styles/global.css";
+
+interface LegalSection {
+  title: string;
+  paragraphs: string[];
+}
+
+interface Props {
+  title: string;
+  description: string;
+  eyebrow: string;
+  heading: string;
+  intro: string;
+  sections: LegalSection[];
+}
+
+const { title, description, eyebrow, heading, intro, sections } = Astro.props;
+---
+
+<!doctype html>
+<html lang="zh-CN">
+  <head>
+    <meta charset="utf-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1" />
+    <meta name="description" content={description} />
+    <link rel="canonical" href={new URL(Astro.url.pathname, Astro.site ?? Astro.url.origin)} />
+    <link rel="icon" href="/brand/petcare-favicon.svg" type="image/svg+xml" />
+    <title>{title}</title>
+  </head>
+  <body>
+    <a class="skip-link" href="#main-content">跳到主要内容</a>
+    <SiteHeader static />
+    <main id="main-content" class="legal-page">
+      <section class="legal-page__hero">
+        <div class="content-container" data-scroll-reveal>
+          <p class="eyebrow">{eyebrow}</p>
+          <h1>{heading}</h1>
+          <p>{intro}</p>
+        </div>
+      </section>
+      <section class="legal-page__body">
+        <div class="content-container">
+          {
+            sections.map((section) => (
+              <article data-scroll-reveal>
+                <h2>{section.title}</h2>
+                {section.paragraphs.map((paragraph) => (
+                  <p>{paragraph}</p>
+                ))}
+              </article>
+            ))
+          }
+        </div>
+      </section>
+    </main>
+    <SiteFooter static />
+    <MotionEnhancer />
+  </body>
+</html>

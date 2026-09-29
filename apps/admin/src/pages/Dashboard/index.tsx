@@ -44,7 +44,7 @@ const managementAreas: ManagementArea[] = [
   },
   {
     title: "客服与协议",
-    description: "维护官网与小程序共用的客服、帮助和协议内容。",
+    description: "维护小程序客服、帮助和协议内容。官网页面由产品代码统一维护。",
     path: "/shared-content",
     action: "管理客服与协议",
     icon: Headset,

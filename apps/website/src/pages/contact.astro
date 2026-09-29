@@ -1,6 +1,6 @@
 ---
-import PublishedPage from "../components/PublishedPage.astro";
-import { PAGE_CONTENT_BY_PATH } from "../lib/page-routes";
+import MarketingPage from "../components/MarketingPage.astro";
+import { marketingPages } from "../content/marketing";
 ---
 
-<PublishedPage contentKey={PAGE_CONTENT_BY_PATH["/contact"]} />
+<MarketingPage page={marketingPages.contact} />

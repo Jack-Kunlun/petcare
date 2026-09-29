@@ -3,7 +3,7 @@ import { createWebsiteContentApi } from "../lib/api";
 import { getWebsiteRuntimeConfig } from "../lib/runtime-config";
 import { createSitemapXml, loadPublishedSitemapPaths } from "../lib/seo";
 
-/** Sitemap entries depend on currently published server-side content, never build-time paths. */
+/** Keep the sitemap server-rendered so newly published classroom articles can appear. */
 export const prerender = false;
 
 /** Produces the public Website sitemap without publishing preview or draft routes. */

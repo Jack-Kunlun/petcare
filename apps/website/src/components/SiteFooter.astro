@@ -12,20 +12,37 @@ interface Props {
 const { section, static: useStatic = false } = Astro.props;
 const staticGroups = [
   {
+    title: "产品能力",
+    groupKey: "product",
+    links: [
+      { label: "产品能力", href: "/product" },
+      { label: "宠物主人", href: "/for-pet-owners" },
+      { label: "服务者", href: "/for-providers" },
+      { label: "悬赏服务", href: "/rewards" },
+      { label: "支付与结算", href: "/payments" },
+    ],
+  },
+  {
     title: "了解 PetCare",
-    groupKey: "about",
+    groupKey: "learn",
     links: [
       { label: "关于我们", href: "/about" },
       { label: "联系我们", href: "/contact" },
+      { label: "安全与保障", href: "/trust" },
+      { label: "社区故事", href: "/stories" },
     ],
   },
   {
     title: "帮助与规则",
     groupKey: "help",
     links: [
-      { label: "帮助中心", href: "/articles" },
+      { label: "帮助中心", href: "/help" },
+      { label: "宠物课堂", href: "/articles" },
+      { label: "服务流程", href: "/service-flow" },
       { label: "服务协议", href: "/terms" },
       { label: "隐私政策", href: "/privacy" },
+      { label: "退款规则", href: "/refund-policy" },
+      { label: "平台规则", href: "/platform-rules" },
     ],
   },
 ];

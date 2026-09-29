@@ -1,0 +1,49 @@
+<script>
+  const root = document.documentElement;
+  const reduceMotion = window.matchMedia("(prefers-reduced-motion: reduce)");
+  const revealElements = Array.from(document.querySelectorAll<HTMLElement>("[data-scroll-reveal]"));
+  const header = document.querySelector<HTMLElement>("[data-site-header]");
+  const parallax = document.querySelector<HTMLElement>("[data-parallax]");
+
+  root.dataset.motion = reduceMotion.matches ? "reduced" : "ready";
+
+  const reveal = (element: HTMLElement) => element.setAttribute("data-visible", "true");
+
+  if (reduceMotion.matches || !("IntersectionObserver" in window)) {
+    revealElements.forEach(reveal);
+  } else {
+    const observer = new IntersectionObserver(
+      (entries) =>
+        entries.forEach((entry) => {
+          if (entry.isIntersecting) {
+            reveal(entry.target as HTMLElement);
+            observer.unobserve(entry.target);
+          }
+        }),
+      { threshold: 0.08, rootMargin: "0px 0px 12% 0px" },
+    );
+
+    revealElements.forEach((element) => observer.observe(element));
+  }
+
+  let frame = 0;
+  const updateScrollState = () => {
+    frame = 0;
+    header?.toggleAttribute("data-scrolled", window.scrollY > 8);
+
+    if (parallax && !reduceMotion.matches) {
+      parallax.style.setProperty("--hero-shift", `${Math.min(window.scrollY * 0.06, 32)}px`);
+    }
+  };
+
+  window.addEventListener(
+    "scroll",
+    () => {
+      if (!frame) {
+        frame = window.requestAnimationFrame(updateScrollState);
+      }
+    },
+    { passive: true },
+  );
+  updateScrollState();
+</script>

@@ -1,6 +1,50 @@
 ---
-import PublishedPage from "../components/PublishedPage.astro";
-import { PAGE_CONTENT_BY_PATH } from "../lib/page-routes";
+import LegalPage from "../components/LegalPage.astro";
 ---
 
-<PublishedPage contentKey={PAGE_CONTENT_BY_PATH["/terms"]} />
+<LegalPage
+  title="服务协议 | PetCare 宠伴"
+  description="PetCare 宠伴服务协议和平台使用边界。"
+  eyebrow="服务协议"
+  heading="在使用服务前，先了解彼此的责任边界"
+  intro="本页面说明 PetCare 账号、内容、社区、订单和服务流程的基本使用规则。"
+  sections={[
+    {
+      title: "一、服务范围",
+      paragraphs: [
+        "PetCare 提供宠物档案、内容、社区和服务流程工具。具体功能以页面实际展示和当前配置为准。",
+      ],
+    },
+    {
+      title: "二、账号与资料",
+      paragraphs: [
+        "用户应使用真实、合法的信息维护账号和宠物资料，并对账号下的操作负责。",
+        "未经授权不得访问、修改或删除其他用户的资料。",
+      ],
+    },
+    {
+      title: "三、内容与社区",
+      paragraphs: [
+        "用户发布的文字、图片和互动内容应合法、真实并尊重他人隐私。平台可以按照社区规则审核、限制或下架违规内容。",
+      ],
+    },
+    {
+      title: "四、订单与服务",
+      paragraphs: [
+        "服务范围、时间、记录和结果以订单确认内容为准。平台提供记录和协作工具，双方仍需按照确认的服务边界履行责任。",
+      ],
+    },
+    {
+      title: "五、支付与结算",
+      paragraphs: [
+        "体验环境可能使用模拟支付回调。真实收款、退款、结算与提现需在经营主体、商户账户及相关配置完成后启用。",
+      ],
+    },
+    {
+      title: "六、协议更新",
+      paragraphs: [
+        "当产品能力、主体或服务规则发生变化时，平台会更新本协议页面，并以页面公布的版本为准。",
+      ],
+    },
+  ]}
+/>
