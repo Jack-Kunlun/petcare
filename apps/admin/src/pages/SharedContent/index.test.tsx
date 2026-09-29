@@ -71,10 +71,10 @@ describe("SharedContent overview", () => {
     expect(await screen.findByRole("list", { name: "公共内容单元" })).toBeInTheDocument();
     expect(screen.getByRole("heading", { name: "客服与协议" })).toBeInTheDocument();
     expect(screen.getAllByRole("listitem")).toHaveLength(4);
-    expect(screen.getByRole("heading", { name: "联系客服" })).toBeInTheDocument();
-    expect(screen.getByRole("heading", { name: "帮助中心" })).toBeInTheDocument();
+    expect(screen.getByRole("heading", { name: "小程序联系客服" })).toBeInTheDocument();
+    expect(screen.getByRole("heading", { name: "小程序帮助中心" })).toBeInTheDocument();
     expect(screen.queryByRole("heading", { name: "官网首页" })).not.toBeInTheDocument();
-    expect(screen.getByRole("link", { name: "编辑帮助中心草稿" })).toHaveAttribute(
+    expect(screen.getByRole("link", { name: "编辑小程序帮助中心草稿" })).toHaveAttribute(
       "href",
       "/shared-content/help/edit",
     );

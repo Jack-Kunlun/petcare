@@ -450,7 +450,9 @@ describe("WebsiteContentEdit", () => {
     expect(toolbar).toBeInTheDocument();
     expect(header).toBeInTheDocument();
     expect(document.querySelector("div.editor-page__content")).toBeInTheDocument();
-    expect(screen.getByRole("heading", { name: "编辑 官网首页" })).toBeInTheDocument();
+    expect(
+      screen.getByRole("heading", { name: "编辑 历史首页内容（不再驱动官网）" }),
+    ).toBeInTheDocument();
     expect(screen.getByRole("link", { name: "返回客服与协议" })).toBeInTheDocument();
     expect(screen.getByRole("link", { name: "查看历史" })).toHaveAttribute(
       "href",
