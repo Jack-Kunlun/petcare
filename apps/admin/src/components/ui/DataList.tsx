@@ -96,7 +96,10 @@ export function DataTableBody({ className, ...props }: HTMLAttributes<HTMLTableS
 export function DataTableRow({ className, ...props }: HTMLAttributes<HTMLTableRowElement>) {
   return (
     <tr
-      className={cn("align-top transition-colors duration-150 hover:bg-page-background", className)}
+      className={cn(
+        "align-middle transition-colors duration-150 hover:bg-page-background",
+        className,
+      )}
       {...props}
     />
   );

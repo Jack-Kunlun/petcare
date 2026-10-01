@@ -166,6 +166,7 @@ describe("Admin UI foundation", () => {
     expect(screen.getByRole("form", { name: "内容筛选" })).toBeInTheDocument();
     expect(screen.getByRole("region", { name: "内容列表" })).toHaveClass("shadow-panel");
     expect(screen.getByRole("table")).toHaveClass("min-w-[760px]");
+    expect(screen.getByText("示例内容").closest("tr")).toHaveClass("align-middle");
     await user.click(screen.getByRole("button", { name: "下一页" }));
     expect(onPageChange).toHaveBeenCalledWith(2);
   });
