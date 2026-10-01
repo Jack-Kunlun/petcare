@@ -19,7 +19,7 @@ import { getSafeRequestErrorMessage } from "@/api/request";
 import PcButton from "@/components/PcButton.vue";
 import PcStatePanel from "@/components/PcStatePanel.vue";
 import SubPageLayout from "@/components/SubPageLayout.vue";
-import { qualificationWorkflowEnabled } from "@/config/features";
+import { commercialServicesEnabled, qualificationWorkflowEnabled } from "@/config/features";
 import {
   captureSessionUserRevision,
   isSessionUserRevisionCurrent,
@@ -55,6 +55,12 @@ const allMaterials = computed(
   () => draft.value && kinds.every(({ kind }) => draft.value?.materialKinds.includes(kind)),
 );
 const canSubmit = computed(() => Boolean(allMaterials.value && consent.value && !busy.value));
+
+function openBounties(): void {
+  if (commercialServicesEnabled) {
+    uni.navigateTo({ url: "/pages-bounty/index" });
+  }
+}
 
 function updateApplication(application: ProviderQualificationSummary) {
   applications.value = [
@@ -259,8 +265,17 @@ onShow(() => {
             >当前申请：{{ current.status === "pending" ? "审核中" : "已通过" }}</text
           >
           <text class="mt-copy block text-body text-muted leading-body"
-            >审核结果由管理员核验写入；通过后仍须等待服务入口开放。</text
+            >审核结果由管理员核验写入；审核通过后可直接进入悬赏服务。</text
           >
+          <PcButton
+            v-if="current.status === 'approved' && commercialServicesEnabled"
+            class="mt-copy"
+            block
+            variant="secondary"
+            @click="openBounties"
+          >
+            进入悬赏服务
+          </PcButton>
         </view>
         <view v-else class="main-card p-action">
           <text class="section-heading">上传资格材料</text>

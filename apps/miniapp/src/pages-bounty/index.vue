@@ -36,7 +36,11 @@ import { getSafeRequestErrorMessage, MiniappApiError } from "@/api/request";
 import MainTabLayout from "@/components/MainTabLayout.vue";
 import PcButton from "@/components/PcButton.vue";
 import PcStatePanel from "@/components/PcStatePanel.vue";
-import { commercialServicesEnabled, paymentSimulationEnabled } from "@/config/features";
+import {
+  commercialServicesEnabled,
+  paymentSimulationEnabled,
+  qualificationWorkflowEnabled,
+} from "@/config/features";
 import { formatBountyAmount } from "@/domain/bounty-form";
 import { getDefaultAvatar } from "@/state/default-avatar";
 import {
@@ -265,6 +269,12 @@ function openLogin(): void {
   uni.navigateTo({ url: "/pages/auth/index" });
 }
 
+function openQualification(): void {
+  if (qualificationWorkflowEnabled) {
+    uni.navigateTo({ url: "/pages-qualification/index" });
+  }
+}
+
 async function openForm(): Promise<void> {
   if (!featureAvailable.value || openingForm.value) {
     return;
@@ -297,7 +307,7 @@ function intentButtonLabel(bountyId: string): string {
   }
 
   if (!eligibility.value?.eligible) {
-    return "暂无接单资格";
+    return qualificationWorkflowEnabled ? "补充服务者资格" : "暂无接单资格";
   }
 
   if (intent) {
@@ -315,7 +325,7 @@ function intentButtonDisabled(bountyId: string): boolean {
   return (
     applyingBountyId.value !== null ||
     providerContextStatus.value !== "ready" ||
-    !eligibility.value?.eligible ||
+    (!eligibility.value?.eligible && !qualificationWorkflowEnabled) ||
     intentByBountyId.value.has(bountyId)
   );
 }
@@ -328,6 +338,12 @@ async function submitIntent(bountyId: string): Promise<void> {
   }
 
   if (intentButtonDisabled(bountyId)) {
+    return;
+  }
+
+  if (!eligibility.value?.eligible) {
+    openQualification();
+
     return;
   }
 
@@ -691,9 +707,7 @@ watch(
 
       <template v-else>
         <view v-if="paymentSimulationEnabled" class="main-card p-card-padding" role="status">
-          <text class="text-body text-ink"
-            >当前订单使用模拟支付，未发生收款；请勿视为已付款服务。</text
-          >
+          <text class="text-body text-ink">当前订单不会发生真实扣款，完成后仍保持未收款状态。</text>
         </view>
         <view class="grid grid-cols-3 rounded-control bg-divider p-caption" role="tablist">
           <button
@@ -783,8 +797,16 @@ watch(
           >
             <text class="card-heading">当前账号暂无接单资格</text>
             <text class="meta-text">
-              接单要求服务者账号、有效手机号及完整身份、培训和服务者认证记录；资质外部接入尚未开放。
+              请先补充并提交身份、培训和服务者认证材料；审核通过后即可继续接单。
             </text>
+            <PcButton
+              v-if="qualificationWorkflowEnabled"
+              block
+              variant="secondary"
+              @click="openQualification"
+            >
+              补充服务者资格
+            </PcButton>
           </view>
 
           <view

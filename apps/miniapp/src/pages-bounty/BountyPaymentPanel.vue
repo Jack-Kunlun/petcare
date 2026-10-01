@@ -52,7 +52,7 @@ function statusLabel(value: PanelStatus): string {
     ready: "待支付",
     pending: "支付结果确认中",
     succeeded: "已支付",
-    simulated: "模拟通过",
+    simulated: "已记录（未收款）",
     closed: "支付已关闭",
     refunded: "已退款",
     unavailable: "支付服务未开放",
@@ -143,7 +143,7 @@ async function pay(): Promise<void> {
 
       payment.value = next;
       status.value = panelStatus(next.status);
-      showMessage("模拟支付已通过，未发生真实收款。", false);
+      showMessage("订单状态已记录，尚未发生真实收款。", false);
 
       return;
     }
@@ -187,7 +187,9 @@ onMounted(() => void load());
 <template>
   <view class="flex flex-col gap-sm border-t border-divider pt-copy" aria-label="订单支付">
     <view class="flex items-center justify-between gap-copy">
-      <text class="card-heading">{{ paymentSimulationEnabled ? "订单模拟支付" : "订单支付" }}</text>
+      <text class="card-heading">{{
+        paymentSimulationEnabled ? "订单支付（未收款）" : "订单支付"
+      }}</text>
       <text class="quiet-text"
         >参考金额 {{ formatAmount(payment?.amountCents ?? amountCents) }}</text
       >
@@ -195,7 +197,7 @@ onMounted(() => void load());
 
     <text class="meta-text">{{ statusLabel(status) }}</text>
     <text v-if="paymentSimulationEnabled" class="meta-text" role="status">
-      当前使用模拟支付，订单按正常流程处理。
+      当前订单不会发生真实扣款，支付完成后仍保持未收款状态。
     </text>
 
     <view
@@ -216,11 +218,13 @@ onMounted(() => void load());
       :disabled="busy"
       :loading="busy"
       :aria-label="
-        paymentSimulationEnabled ? '模拟支付' : status === 'pending' ? '继续支付' : '立即支付'
+        paymentSimulationEnabled ? '记录未收款状态' : status === 'pending' ? '继续支付' : '立即支付'
       "
       @click="pay"
     >
-      {{ paymentSimulationEnabled ? "模拟支付" : status === "pending" ? "继续支付" : "立即支付" }}
+      {{
+        paymentSimulationEnabled ? "记录未收款状态" : status === "pending" ? "继续支付" : "立即支付"
+      }}
     </PcButton>
     <PcButton v-else-if="status === 'error'" block variant="secondary" @click="load">
       重试查询

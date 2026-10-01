@@ -87,7 +87,7 @@ onShow(() => void loadIncome());
           >
             <text class="text-body text-ink leading-body">暂无可结算收入</text>
             <text class="mt-caption block text-caption text-muted leading-caption">
-              模拟支付订单可正常完成服务流程，但不会形成可提现余额。
+              未收款订单可正常完成服务流程，但不会形成可提现余额。
             </text>
           </view>
           <view v-else class="mt-copy flex flex-col gap-sm">

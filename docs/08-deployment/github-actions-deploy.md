@@ -95,8 +95,9 @@ TENCENT_COS_PUBLIC_BASE_URL=<公开素材 HTTPS 基础 URL>
 ```
 
 资格材料使用同一 Bucket 的 `private/provider-qualifications/` 前缀，以 SSE-COS 加密而不使用 KMS 密钥。
-完成 Bucket 策略、匿名拒绝、加密回执和真实读写删验收后，可另设 `QUALIFICATION_STORAGE_PROVIDER=tencent-cos`；当前生产发布流程仍强制
-`QUALIFICATION_WORKFLOW_ENABLED=false`，配置存储不等于开放资格申请。
+完成 Bucket 策略、匿名拒绝、加密回执和真实读写删验收后，配置
+`QUALIFICATION_STORAGE_PROVIDER=tencent-cos`；当前生产发布流程会在这些变量通过门禁后写入
+`QUALIFICATION_WORKFLOW_ENABLED=true`，从而开放资格申请与审核入口。
 
 保留 `DEPLOY_PORT=22` 和 production required reviewers。`deploy.yml` 接受分支、标签或 commit SHA/ref，并在构建/发布前将其
 解析为不可变 40 字符完整 SHA。所选提交必须既通过 `ci.yml`，又包含内容严格为单行 `source-free-public-media-v2` 的

@@ -71,7 +71,7 @@ REDIS_PASSWORD=
 | `WORKER_CONCURRENCY`          | 否   | `5`         | 单个 Worker 的并发任务数，必须为正整数                    |
 | `OUTBOX_POLL_INTERVAL_MS`     | 否   | `1000`      | Transactional Outbox 轮询间隔（毫秒），必须为正整数       |
 | `ORDER_TIMEOUT_DELAY_MS`      | 否   | `172800000` | 悬赏订单超时关闭延迟（48 小时，毫秒），必须为正整数       |
-| `COMMERCIAL_SERVICES_ENABLED` | 否   | `false`     | Cycle 5–7 Server 总开关；资质与发布门禁完成前必须保持关闭 |
+| `COMMERCIAL_SERVICES_ENABLED` | 否   | `false`     | Cycle 5–11 Server 总开关；真实依赖与发布门禁完成前必须保持关闭 |
 
 API 和独立 Worker 必须使用相同的 `QUEUE_PREFIX`；生产、预发和开发环境必须使用不同前缀，避免任务串扰。
 `COMMERCIAL_SERVICES_ENABLED=true` 只授权已进入路线图且完成纵向验收的能力；它不会替代服务者资质、支付或生产发布条件。
@@ -157,8 +157,7 @@ ALIYUN_SMS_TEMPLATE_CODE=
 | ---------------------------------- | ---- | ------- | --------------------------------------------------------------------- |
 | `API_BASE_URL`                     | 否   | -       | Admin API 基础 URL；默认值仅用于本地诊断 `http://localhost:8986/api`  |
 | `VITE_MINIAPP_API_BASE_URL`        | ✅   | -       | UniApp Miniapp API 基础 URL；按构建模式从 `apps/miniapp/.env.*` 加载  |
-| `VITE_COMMERCIAL_SERVICES_ENABLED` | 否   | `false` | 是否显示已验收的 Cycle 5–7 产品入口；必须与 Server 开关及发布门禁同步 |
-| `VITE_DEMO_ENABLED`                | 否   | `false` | 仅在小程序体验版展示隔离流程演示入口；不启用正式商业能力              |
+| `VITE_COMMERCIAL_SERVICES_ENABLED` | 否   | `false` | 是否显示已验收的 Cycle 5–11 产品入口；必须与 Server 开关及发布门禁同步 |
 | ~~`TARO_APP_API_BASE_URL`~~        | -    | -       | ~~Taro Miniapp 请求地址；已随项目删除~~                               |
 
 `VITE_MINIAPP_API_BASE_URL` 会进入客户端构建产物，只能配置公开网关地址，不能包含凭据。生产构建必须使用
@@ -167,7 +166,6 @@ HTTPS API 网关，不能使用本地 HTTP 示例或 Docker 内网服务名。
 `COMMERCIAL_SERVICES_ENABLED`，两个开关都不能替代服务者资质或生产发布验收。
 `VITE_QUALIFICATION_WORKFLOW_ENABLED` 独立决定资格申请页面是否进入小程序构建，以及 Admin
 是否注册资格审核路由，默认 `false`。两个前端分别在构建时显式配置，Server 的资格开关必须另外启用。
-`VITE_DEMO_ENABLED` 仅影响小程序演示入口展示；正式业务、资格、支付和结算开关均不随之改变。
 
 Miniapp 的 Vite 环境根目录是 `apps/miniapp`。仓库内的 `.env.development` 和 `.env.production` 分别提供开发与
 生产构建值；开发者若要覆盖本地开发地址，应创建不提交的 `apps/miniapp/.env.development.local`。Vite 会在
@@ -195,8 +193,8 @@ Miniapp 的 Vite 环境根目录是 `apps/miniapp`。仓库内的 `.env.developm
 资格材料与公开素材共用 `TENCENT_COS_*` Bucket 和凭据，使用固定的
 `private/provider-qualifications/` 前缀区分，不复用备份存储配置。
 `QUALIFICATION_STORAGE_PROVIDER` 默认 `disabled`；设为 `tencent-cos` 时复用现有 COS 配置，
-不需要 KMS 密钥。生产部署始终写入 `QUALIFICATION_WORKFLOW_ENABLED=false`，
-开门须在独立验收后另行变更。前缀不是安全边界：Bucket 公开读取策略只能覆盖公开对象前缀，
+不需要 KMS 密钥。生产发布工作流在目标环境 COS、最小权限和纵向验收通过后写入
+`QUALIFICATION_WORKFLOW_ENABLED=true`；其他环境保持默认关闭。前缀不是安全边界：Bucket 公开读取策略只能覆盖公开对象前缀，
 私有前缀必须拒绝匿名读取，共用子账号仅授予业务所需前缀权限。
 对象以私有 ACL 和 COS SSE-COS（AES-256）写入；SSE-COS 不提供独立 KMS 密钥级权限，
 Server 不返回对象键或签名 URL。管理员材料读取有独立的 `provider_qualification.material_read` 权限与审计。

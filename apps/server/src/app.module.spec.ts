@@ -7,7 +7,6 @@ import { LoggingModule } from "./logging/logging.module";
 import { AdminAccountModule } from "./modules/admin-account/admin-account.module";
 import { BountyModule } from "./modules/bounty/bounty.module";
 import { ContentModule } from "./modules/content/content.module";
-import { DemoModule } from "./modules/demo/demo.module";
 import {
   AdminRefundController,
   PaymentController,
@@ -36,7 +35,6 @@ describe("AppModule", () => {
       PetModule,
       PaymentModule,
       ContentModule,
-      DemoModule,
       RbacModule,
       AdminAccountModule,
       BountyModule,

@@ -240,7 +240,7 @@ function HomeRecordEditor({ record, disabled, onChange }: HomeRecordEditorProps)
         />
         <div className="grid gap-4 sm:grid-cols-2">
           <TextField
-            label="记录演示标题"
+            label="记录标题"
             value={record.demoTitle}
             disabled={disabled}
             required

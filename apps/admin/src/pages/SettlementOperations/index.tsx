@@ -37,7 +37,7 @@ export default function SettlementOperations() {
           </Badge>
         </DataPanel>
         <DataPanel className="p-5">
-          <p className="text-sm text-text-secondary">模拟或阻断收入</p>
+          <p className="text-sm text-text-secondary">未收款或阻断收入</p>
           <p className="mt-2 text-2xl font-semibold text-text-primary">
             ¥{((summary?.blockedCents ?? 0) / 100).toFixed(2)}
           </p>
@@ -57,7 +57,7 @@ export default function SettlementOperations() {
       <DataPanel className="mt-4 p-5">
         <h2 className="font-semibold text-text-primary">收入记录</h2>
         <p className="mt-2 text-sm text-text-secondary">
-          模拟支付订单只用于公开业务流程，不生成可兑付余额；真实收款缺少费用快照时会保留在待核查金额。
+          未收款订单只用于公开业务流程，不生成可兑付余额；真实收款缺少费用快照时会保留在待核查金额。
         </p>
       </DataPanel>
     </PageShell>

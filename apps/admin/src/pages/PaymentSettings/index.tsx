@@ -106,11 +106,11 @@ export default function PaymentSettings() {
           <div>
             <h2 className="font-semibold text-text-primary">当前可用状态</h2>
             <p className="mt-1 text-sm leading-6 text-text-secondary">
-              模拟支付可用于公开订单流程，但只产生不可提现的模拟收入；真实支付、退款、对账和出款仍需完成资质、商户配置及目标环境验收。
+              未收款流程可用于公开订单验证，但只产生不可提现的收入记录；真实支付、退款、对账和出款仍需完成资质、商户配置及目标环境验收。
             </p>
             <p className="mt-2 text-xs text-text-muted">
               @TODO(REAL-PAYMENT)：营业执照、经营主体、微信商户号、AppID 绑定、API v3
-              密钥、证书、通知地址和真实资金验收完成后，补充安全配置并关闭模拟支付。
+              密钥、证书、通知地址和真实资金验收完成后，补充安全配置并关闭未收款流程。
             </p>
           </div>
         </div>

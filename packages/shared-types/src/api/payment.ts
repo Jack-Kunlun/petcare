@@ -4,7 +4,7 @@ export type OrderPaymentStatus =
   | "pending"
   /** 已验证微信收款成功。 */
   | "succeeded"
-  /** 模拟流程已完成；没有发生收款，不可退款或结算。 */
+  /** 未收款流程已完成；没有发生收款，不可退款或结算。 */
   | "simulated"
   /** 微信已确认关闭未支付交易。 */
   | "closed"

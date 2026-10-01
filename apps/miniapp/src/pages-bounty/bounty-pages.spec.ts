@@ -46,6 +46,8 @@ describe("bounty pages", () => {
     expect(index).toContain("getBountyProviderEligibility()");
     expect(index).toContain("!eligibility.value?.eligible");
     expect(index).toContain("暂无接单资格");
+    expect(index).toContain("补充服务者资格");
+    expect(index).toContain('uni.navigateTo({ url: "/pages-qualification/index" })');
     expect(index).toContain(':disabled="intentButtonDisabled(bounty.id)"');
     expect(index).toContain(':loading="applyingBountyId === bounty.id"');
     expect(index).toContain("getBountyIntents(bountyId, { page: 1, pageSize: 50 })");
@@ -92,7 +94,7 @@ describe("bounty pages", () => {
     expect(paymentPanel).toContain("requestPayment");
     expect(paymentPanel).toContain('next.status === "succeeded"');
     expect(paymentPanel).toContain('status.value = "unavailable"');
-    expect(paymentPanel).toContain("模拟支付已通过，未发生真实收款。");
+    expect(paymentPanel).toContain("订单状态已记录，尚未发生真实收款。");
     expect(paymentPanel).not.toContain('status.value = "succeeded";');
   });
 

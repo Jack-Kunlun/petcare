@@ -23,7 +23,7 @@ function formatDate(value: string): string {
 
 function paymentLabel(status: string | null): string {
   if (status === "simulated") {
-    return "模拟支付";
+    return "已记录（未收款）";
   }
 
   if (status === "succeeded") {

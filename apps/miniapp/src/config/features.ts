@@ -6,9 +6,6 @@ export const commercialServicesEnabled =
 export const qualificationWorkflowEnabled =
   import.meta.env.VITE_QUALIFICATION_WORKFLOW_ENABLED?.trim().toLowerCase() === "true";
 
-/** Shows only the non-financial experience-version flow demonstration. */
-export const demoEnabled = import.meta.env.VITE_DEMO_ENABLED?.trim().toLowerCase() === "true";
-
 /** Explicit unpaid-order simulation for the public experience build. */
 export const paymentSimulationEnabled =
   import.meta.env.VITE_PAYMENT_SIMULATION_ENABLED?.trim().toLowerCase() === "true";

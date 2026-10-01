@@ -408,7 +408,7 @@ function validateHomeRecord(value: unknown, path: string, issues: ValidationIssu
   validateText(value.statusLabel, `${path}.statusLabel`, issues);
 
   if (!Array.isArray(value.steps) || value.steps.length !== 5) {
-    issues.push(issue(`${path}.steps`, "必须包含 5 个演示步骤"));
+    issues.push(issue(`${path}.steps`, "必须包含 5 个记录步骤"));
   } else {
     value.steps.forEach((step, index) =>
       validateHomeRecordStep(step, `${path}.steps[${index}]`, issues),
@@ -421,7 +421,7 @@ function validateHomeRecord(value: unknown, path: string, issues: ValidationIssu
   }
 
   if (!Array.isArray(value.images) || value.images.length !== 2) {
-    issues.push(issue(`${path}.images`, "必须包含 2 张演示图片"));
+    issues.push(issue(`${path}.images`, "必须包含 2 张记录图片"));
   } else {
     value.images.forEach((image, index) =>
       validateImageReference(image, `${path}.images[${index}]`, issues),

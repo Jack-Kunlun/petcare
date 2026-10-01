@@ -261,12 +261,12 @@ export const WEBSITE_CONTENT_SEED_TEMPLATES: readonly WebsiteSeedTemplate[] = [
             ],
           },
           record: {
-            eyebrow: "宠物档案示例",
+            eyebrow: "宠物档案",
             title: "把重要资料整理在一个地方",
             description:
               "从基本信息、日常习惯到照片管理，PetCare 让本人宠物资料保持清楚，并在删除时保护仍有关联的记录。",
             action: action("了解当前范围", "/about"),
-            demoTitle: "宠物档案示例",
+            demoTitle: "宠物照护记录",
             statusLabel: "资料维护中",
             steps: [
               { itemKey: "basics", time: "01", label: "基本资料", state: "complete" },
@@ -316,7 +316,7 @@ export const WEBSITE_CONTENT_SEED_TEMPLATES: readonly WebsiteSeedTemplate[] = [
               {
                 itemKey: "local",
                 title: "本地验收",
-                description: "当前版本用于本地开发与演示，所有能力以可运行链路为准。",
+                description: "当前版本以可运行链路和已发布说明为准。",
               },
             ],
           },
@@ -716,7 +716,7 @@ export const WEBSITE_CONTENT_SEED_TEMPLATES: readonly WebsiteSeedTemplate[] = [
               partKey: "availability",
               heading: "四、可用性与限制",
               paragraphs: [
-                "PetCare 当前用于个人开发、本地演示和功能验证，不承诺持续可用或对外运营。实际能力以当前界面和已发布说明为准。",
+                "PetCare 当前用于个人开发和功能验证，不承诺持续可用或对外运营。实际能力以当前界面和已发布说明为准。",
               ],
             },
             {
