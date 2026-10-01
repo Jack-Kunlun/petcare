@@ -1,5 +1,6 @@
 ---
 import type { WebsitePublicContent } from "@petcare/shared-types";
+import MotionEnhancer from "../components/MotionEnhancer.astro";
 import SiteFooter from "../components/SiteFooter.astro";
 import SiteHeader from "../components/SiteHeader.astro";
 import "../styles/global.css";
@@ -42,5 +43,6 @@ const { title, description, canonical, image = null, noindex = false } = Astro.p
     <SiteHeader static />
     <main id="main-content"><slot /></main>
     <SiteFooter static />
+    <MotionEnhancer />
   </body>
 </html>

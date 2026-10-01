@@ -1,6 +1,7 @@
 ---
 import type { WebsitePublicContent } from "@petcare/shared-types";
 import PageSections from "../components/PageSections.astro";
+import MotionEnhancer from "../components/MotionEnhancer.astro";
 import SiteFooter from "../components/SiteFooter.astro";
 import SiteHeader from "../components/SiteHeader.astro";
 import { isRenderablePublicSection } from "./layout-section";
@@ -49,5 +50,6 @@ const ogImage = page.seo.image?.asset?.url;
       <PageSections contentKey={page.contentKey} sections={pageSections} />
     </main>
     {(<SiteFooter static />)}
+    <MotionEnhancer />
   </body>
 </html>

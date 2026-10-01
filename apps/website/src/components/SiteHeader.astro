@@ -78,7 +78,7 @@ const isCurrent = (href: string) =>
                   href={href}
                   aria-current={isCurrent(href) ? "page" : undefined}
                 >
-                  {action.label}
+                  {action.label} <span class="icon-arrow" aria-hidden="true" />
                 </a>
               ) : null;
             })()

@@ -30,7 +30,7 @@ const href = section.content.action ? getSafeWebsiteHref(section.content.action.
       {
         href ? (
           <a class="button button--secondary" href={href}>
-            {section.content.action?.label}
+            {section.content.action?.label} <span class="icon-arrow" aria-hidden="true" />
           </a>
         ) : null
       }

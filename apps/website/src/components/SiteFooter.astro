@@ -47,7 +47,7 @@ const groups = useStatic ? staticGroups : (section?.content.groups ?? []);
 const description = useStatic
   ? "让爱在生活里更好，记录每一次认真陪伴。"
   : (section?.content.description ?? "");
-const copyright = useStatic ? "© 2024 PetCare. 保留所有权利。" : (section?.content.copyright ?? "");
+const copyright = useStatic ? "© 2026 PetCare. 保留所有权利。" : (section?.content.copyright ?? "");
 const showLogo = useStatic || section?.settings.showLogo === true;
 ---
 
@@ -87,18 +87,20 @@ const showLogo = useStatic || section?.settings.showLogo === true;
       ))
     }
   </div>
-  <p class="site-footer__copyright">{copyright}</p>
-  <p class="site-footer__icp">
-    <a href="https://beian.miit.gov.cn/" target="_blank" rel="noopener noreferrer"
-      >赣ICP备2025073600号-2</a
-    >
-    <a
-      href="https://beian.mps.gov.cn/#/query/webSearch?code=44010602016832"
-      target="_blank"
-      rel="noopener noreferrer"
-    >
-      <img src="/brand/beian.png" width="14" height="14" alt="" loading="lazy" />
-      粤公网安备44010602016832号
-    </a>
-  </p>
+  <div class="site-footer__legal">
+    <p class="site-footer__copyright">{copyright}</p>
+    <p class="site-footer__icp">
+      <a href="https://beian.miit.gov.cn/" target="_blank" rel="noopener noreferrer"
+        >赣ICP备2025073600号-2</a
+      >
+      <a
+        href="https://beian.mps.gov.cn/#/query/webSearch?code=44010602016832"
+        target="_blank"
+        rel="noopener noreferrer"
+      >
+        <img src="/brand/beian.png" width="14" height="14" alt="" loading="lazy" />
+        粤公网安备44010602016832号
+      </a>
+    </p>
+  </div>
 </footer>

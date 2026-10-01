@@ -29,14 +29,14 @@ const secondaryHref = section.content.secondaryAction
       {
         primaryHref ? (
           <a class="button" href={primaryHref}>
-            {section.content.primaryAction.label}
+            {section.content.primaryAction.label} <span class="icon-arrow" aria-hidden="true" />
           </a>
         ) : null
       }
       {
         secondaryHref && section.content.secondaryAction ? (
           <a class="button button--secondary" href={secondaryHref}>
-            {section.content.secondaryAction.label}
+            {section.content.secondaryAction.label} <span class="icon-arrow" aria-hidden="true" />
           </a>
         ) : null
       }

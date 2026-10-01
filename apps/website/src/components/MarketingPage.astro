@@ -52,7 +52,7 @@ const heroImage = page.heroImage ?? {
                       class:list={["button", action.secondary && "button--secondary"]}
                       href={action.href}
                     >
-                      {action.label}
+                      {action.label} <span class="icon-arrow" aria-hidden="true" />
                     </a>
                   ))}
                 </div>
@@ -97,7 +97,7 @@ const heroImage = page.heroImage ?? {
                       <p>{item.description}</p>
                       {item.href ? (
                         <a class="text-link" href={item.href}>
-                          了解更多 <span aria-hidden="true">→</span>
+                          了解更多 <span class="icon-arrow" aria-hidden="true" />
                         </a>
                       ) : null}
                     </article>
@@ -112,7 +112,7 @@ const heroImage = page.heroImage ?? {
                     <p>{section.description}</p>
                     {section.action ? (
                       <a class="button" href={section.action.href}>
-                        {section.action.label}
+                        {section.action.label} <span class="icon-arrow" aria-hidden="true" />
                       </a>
                     ) : null}
                   </div>
@@ -157,7 +157,7 @@ const heroImage = page.heroImage ?? {
               <h2 id="marketing-page-cta-title">{page.cta.title}</h2>
               <p>{page.cta.description}</p>
               <a class="button" href={page.cta.href}>
-                {page.cta.label}
+                {page.cta.label} <span class="icon-arrow" aria-hidden="true" />
               </a>
             </div>
           </section>
