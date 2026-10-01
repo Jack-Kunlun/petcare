@@ -6,23 +6,26 @@ import { describe, expect, it } from "vitest";
 
 describe("miniapp mode environment", () => {
   it.each([
-    ["development", ".env.development", "http://localhost:3000"],
-    ["production", ".env.production", "https://admin.petcare-home.com/api"],
-  ])("loads the native API base URL in %s mode", (mode, sourceFile, expectedBaseUrl) => {
-    const isolatedEnvDirectory = mkdtempSync(join(tmpdir(), "petcare-miniapp-env-"));
+    ["development", ".env.development", "http://localhost:3000", "false"],
+    ["production", ".env.production", "https://admin.petcare-home.com/api", "true"],
+  ])(
+    "loads the native API base URL in %s mode",
+    (mode, sourceFile, expectedBaseUrl, expectedCommercialServicesEnabled) => {
+      const isolatedEnvDirectory = mkdtempSync(join(tmpdir(), "petcare-miniapp-env-"));
 
-    try {
-      copyFileSync(
-        resolve(import.meta.dirname, sourceFile),
-        resolve(isolatedEnvDirectory, sourceFile),
-      );
+      try {
+        copyFileSync(
+          resolve(import.meta.dirname, sourceFile),
+          resolve(isolatedEnvDirectory, sourceFile),
+        );
 
-      const env = loadEnv(mode, isolatedEnvDirectory, "VITE_");
+        const env = loadEnv(mode, isolatedEnvDirectory, "VITE_");
 
-      expect(env.VITE_MINIAPP_API_BASE_URL).toBe(expectedBaseUrl);
-      expect(env.VITE_COMMERCIAL_SERVICES_ENABLED).toBe("false");
-    } finally {
-      rmSync(isolatedEnvDirectory, { force: true, recursive: true });
-    }
-  });
+        expect(env.VITE_MINIAPP_API_BASE_URL).toBe(expectedBaseUrl);
+        expect(env.VITE_COMMERCIAL_SERVICES_ENABLED).toBe(expectedCommercialServicesEnabled);
+      } finally {
+        rmSync(isolatedEnvDirectory, { force: true, recursive: true });
+      }
+    },
+  );
 });
