@@ -5248,3 +5248,152 @@ html[data-motion="ready"] .help-detail [data-scroll-reveal][data-visible="true"]
     animation: none;
   }
 }
+
+/* Keep interior pages compact and aligned at wide desktop widths. */
+.info-page .content-container,
+.start-page .content-container,
+.about-page .content-container,
+.help-center--task .content-container {
+  max-width: 84rem;
+}
+
+.info-page__hero-grid {
+  min-height: 0;
+  grid-template-columns: minmax(0, 0.95fr) minmax(0, 1.05fr);
+  gap: clamp(2rem, 5vw, 5rem);
+  padding-block: clamp(3.5rem, 6vw, 5.5rem);
+}
+
+.info-page__hero-copy h1 {
+  max-width: 42rem;
+  font-size: clamp(2.5rem, 4.2vw, 4rem);
+  line-height: 1.1;
+  letter-spacing: -0.055em;
+}
+
+.info-page__section {
+  padding-block: clamp(3.5rem, 6vw, 5.5rem);
+}
+
+.info-page__section-grid {
+  grid-template-columns: minmax(0, 0.95fr) minmax(0, 1.05fr);
+  gap: clamp(2rem, 5vw, 5rem);
+}
+
+.info-page__section-heading h2,
+.info-page__closing h2 {
+  max-width: 42rem;
+  font-size: clamp(2rem, 3.2vw, 3.25rem);
+  line-height: 1.15;
+  letter-spacing: -0.055em;
+}
+
+.info-page__section-heading--wide {
+  max-width: 62rem;
+}
+
+.info-page__flow {
+  margin-top: 2.75rem;
+}
+
+.info-page__closing {
+  padding-block: clamp(3rem, 5vw, 4.5rem);
+}
+
+.start-page__hero,
+.about-page__hero {
+  padding-block: clamp(3.5rem, 6vw, 5.5rem);
+}
+
+.start-page__hero h1,
+.about-page__hero h1 {
+  max-width: 60rem;
+  font-size: clamp(2.5rem, 4.5vw, 4.25rem);
+  line-height: 1.08;
+  letter-spacing: -0.055em;
+}
+
+.start-page__entry,
+.about-page__body {
+  padding-block: clamp(3.5rem, 6vw, 5.5rem);
+}
+
+.start-page__entry-grid {
+  grid-template-columns: minmax(0, 1.1fr) minmax(15rem, 0.55fr);
+  gap: clamp(2rem, 5vw, 5rem);
+}
+
+.start-page__entry-copy h2,
+.about-page__body h2 {
+  font-size: clamp(2rem, 3.2vw, 3.25rem);
+  line-height: 1.15;
+  letter-spacing: -0.055em;
+}
+
+.about-page__hero-grid,
+.about-page__body-grid {
+  gap: clamp(2rem, 5vw, 5rem);
+}
+
+.help-center__task-intro {
+  padding-block: clamp(3.5rem, 6vw, 5rem) clamp(2.5rem, 4vw, 3.5rem);
+}
+
+.help-center__task-intro h1 {
+  max-width: 52rem;
+  font-size: clamp(2.5rem, 4.5vw, 4.25rem);
+  line-height: 1.08;
+  letter-spacing: -0.055em;
+}
+
+.help-center__task-body {
+  padding-block: clamp(3.5rem, 6vw, 5rem);
+}
+
+.help-center__task-layout {
+  grid-template-columns: minmax(10rem, 13rem) minmax(0, 1fr);
+  gap: clamp(2rem, 5vw, 5rem);
+}
+
+.help-center__categories {
+  position: static;
+  top: auto;
+}
+
+.help-center__task-heading h2 {
+  max-width: 54rem;
+  font-size: clamp(2rem, 3.2vw, 3.25rem);
+  line-height: 1.15;
+  letter-spacing: -0.055em;
+}
+
+.help-center__faq-list--task {
+  max-width: none;
+  margin-top: 2rem;
+}
+
+.help-center__support--task {
+  width: 100%;
+  max-width: none;
+  padding-block: clamp(3rem, 5vw, 4.5rem);
+  margin-top: 0;
+  border-top: 0;
+}
+
+.help-center__support--task h2 {
+  font-size: clamp(2rem, 3.2vw, 3.25rem);
+  line-height: 1.15;
+}
+
+@media (max-width: 48rem) {
+  .info-page__hero-copy h1,
+  .start-page__hero h1,
+  .about-page__hero h1,
+  .help-center__task-intro h1 {
+    font-size: clamp(2.5rem, 12vw, 4rem);
+  }
+
+  .help-center__task-layout {
+    gap: 2rem;
+  }
+}
