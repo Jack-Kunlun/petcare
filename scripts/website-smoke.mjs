@@ -95,6 +95,7 @@ try {
             photoX: photo.x,
             photoWidth: photo.width,
             photoHeight: photo.height,
+            photoMask: getComputedStyle(hero.querySelector(".interior-page__hero-scene")).maskImage,
             washX: wash.x,
             washWidth: wash.width,
             transition: getComputedStyle(
@@ -116,24 +117,30 @@ try {
             ) < 1,
             `${route}@${width}: desktop photo width`,
           );
-          assert.equal(
-            background.photoX,
-            route === "care" ? background.heroRight - background.photoWidth : background.heroLeft,
-          );
-          assert(
-            Math.abs(background.washWidth - background.photoWidth * 1.44) < 1,
-            `${route}@${width}: transition follows photo width`,
-          );
+          const canvasGutter = Math.max(0, (width - 1440) / 2);
           assert(
             Math.abs(
-              background.washX -
+              background.photoX -
                 (route === "care"
-                  ? background.heroRight - background.washWidth
-                  : background.heroLeft),
+                  ? background.heroRight - canvasGutter - background.photoWidth
+                  : background.heroLeft + canvasGutter),
             ) < 1,
-            `${route}@${width}: transition follows photo edge`,
+            `${route}@${width}: photo follows centered content`,
+          );
+          assert(
+            Math.abs(background.washWidth - Math.min(1440, width)) < 1,
+            `${route}@${width}: transition covers the composition`,
+          );
+          assert(
+            Math.abs(background.washX - (background.heroLeft + canvasGutter)) < 1,
+            `${route}@${width}: transition shares the centered canvas`,
+          );
+          assert(
+            background.photoMask.includes("linear-gradient"),
+            `${route}: softened photo edges`,
           );
         } else {
+          assert.equal(background.photoMask, "none", `${route}: full narrow photo`);
           assert.equal(background.photoWidth, width, `${route}: narrow photo width`);
           assert.equal(
             background.photoHeight,
