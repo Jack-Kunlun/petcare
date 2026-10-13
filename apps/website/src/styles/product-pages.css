@@ -1095,3 +1095,95 @@
     line-height: 26px;
   }
 }
+
+.interior-site :is(.care-page__hero, .about-page__hero) {
+  justify-content: flex-start;
+  padding: 0;
+  background: var(--interior-air);
+}
+
+.interior-site .care-page__hero .interior-page__hero-scene {
+  left: auto;
+  width: min(1000px, 72%);
+}
+
+.interior-site .care-page__hero .interior-page__hero-wash {
+  background:
+    linear-gradient(0deg, #edf6ff, transparent 116px),
+    linear-gradient(180deg, rgb(237 246 255 / 92%), rgb(237 246 255 / 12%) 88px, transparent 88px),
+    linear-gradient(
+      90deg,
+      #edf6ff 0%,
+      rgb(237 246 255 / 99%) 30%,
+      rgb(237 246 255 / 24%) 54%,
+      transparent 72%
+    );
+}
+
+.interior-site .about-page__hero .interior-page__hero-wash {
+  background:
+    linear-gradient(0deg, #edf6ff, transparent 116px),
+    linear-gradient(180deg, rgb(237 246 255 / 92%), rgb(237 246 255 / 12%) 88px, transparent 88px),
+    linear-gradient(90deg, transparent 46%, rgb(237 246 255 / 93%) 65%, #edf6ff);
+}
+
+.interior-site :is(.care-page__hero, .about-page__hero) .interior-page__hero-inner {
+  padding-block: 152px 0;
+}
+
+.interior-site .about-page__hero .interior-page__hero-copy {
+  width: 480px;
+}
+
+.interior-site :is(.care-page__hero, .about-page__hero) .interior-page__hero-wave {
+  top: calc(100% - 40px);
+  bottom: auto;
+}
+
+@media (max-width: 1199px) {
+  .interior-site :is(.care-page__hero, .about-page__hero) .interior-page__hero-scene {
+    right: auto;
+    left: auto;
+    width: 100%;
+    margin-top: 24px;
+  }
+
+  .interior-site .care-page__hero .interior-page__hero-scene {
+    height: auto;
+    aspect-ratio: 3 / 2;
+  }
+
+  .interior-site .about-page__hero .interior-page__hero-scene {
+    height: 360px;
+  }
+
+  .interior-site :is(.care-page__hero, .about-page__hero) .interior-page__hero-scene::after {
+    position: absolute;
+    inset: 0;
+    background:
+      linear-gradient(180deg, #edf6ff, transparent 50px),
+      linear-gradient(0deg, #edf6ff, transparent 64px);
+    content: "";
+    pointer-events: none;
+  }
+
+  .interior-site :is(.care-page__hero, .about-page__hero) .interior-page__hero-wash,
+  .interior-site :is(.care-page__hero, .about-page__hero) .interior-page__hero-wave {
+    display: none;
+  }
+
+  .interior-site :is(.care-page__hero, .about-page__hero) .interior-page__hero-inner {
+    padding-block: 100px 0;
+  }
+
+  .interior-site :is(.care-page__hero, .about-page__hero) .interior-page__hero-copy {
+    width: 100%;
+  }
+}
+
+@media (max-width: 729px) {
+  .interior-site :is(.care-page__hero, .about-page__hero) .interior-page__hero-scene {
+    height: 260px;
+    aspect-ratio: auto;
+  }
+}

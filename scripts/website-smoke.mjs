@@ -81,6 +81,47 @@ try {
       );
       assert.deepEqual(geometry.brokenImages, [], `${route}@${width}: broken images`);
       assert.deepEqual(geometry.brokenAnchors, [], `${route}@${width}: broken anchors`);
+      if (route === "care" || route === "about") {
+        const background = await page.locator(".interior-page__hero").evaluate((hero) => {
+          const photo = hero.querySelector(".interior-page__hero-scene").getBoundingClientRect();
+          const heroRect = hero.getBoundingClientRect();
+          return {
+            padding: getComputedStyle(hero).paddingTop,
+            color: getComputedStyle(hero).backgroundColor,
+            heroHeight: heroRect.height,
+            heroLeft: heroRect.left,
+            heroRight: heroRect.right,
+            photoX: photo.x,
+            photoWidth: photo.width,
+            photoHeight: photo.height,
+            transition: getComputedStyle(
+              hero.querySelector(".interior-page__hero-scene"),
+              "::after",
+            ).backgroundImage,
+            wash: getComputedStyle(hero.querySelector(".interior-page__hero-wash")).display,
+            wave: getComputedStyle(hero.querySelector(".interior-page__hero-wave")).display,
+          };
+        });
+        assert.equal(background.padding, "0px", `${route}: no legacy hero padding`);
+        assert.equal(background.color, "rgb(237, 246, 255)", `${route}: blue canvas`);
+        if (width === 1440) {
+          assert.equal(background.heroHeight, 552, `${route}: desktop scene height`);
+          assert.equal(background.photoWidth, 1000, `${route}: desktop photo width`);
+          assert.equal(
+            background.photoX,
+            route === "care" ? background.heroRight - background.photoWidth : background.heroLeft,
+          );
+        } else {
+          assert.equal(background.photoWidth, width, `${route}: narrow photo width`);
+          assert.equal(
+            background.photoHeight,
+            width === 768 ? (route === "care" ? 512 : 360) : 260,
+          );
+          assert(background.transition.includes("50px") && background.transition.includes("64px"));
+          assert.equal(background.wash, "none", `${route}: no horizontal mobile wash`);
+          assert.equal(background.wave, "none", `${route}: no mobile curve`);
+        }
+      }
       if (route === "stories" || route === "trust") {
         const opening = await page.locator(".marketing-page__hero .eyebrow").evaluate((label) => ({
           top: label.getBoundingClientRect().top,
