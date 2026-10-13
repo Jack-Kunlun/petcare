@@ -7,9 +7,11 @@ interface Props {
   section?: WebsitePublicSiteFooterSection;
   /** Uses the code-owned public website footer instead of managed shell content. */
   static?: boolean;
+  /** Uses the homepage footer design and navigation. */
+  home?: boolean;
 }
 
-const { section, static: useStatic = false } = Astro.props;
+const { section, static: useStatic = false, home = false } = Astro.props;
 const staticGroups = [
   {
     title: "开始使用",
@@ -47,46 +49,74 @@ const groups = useStatic ? staticGroups : (section?.content.groups ?? []);
 const description = useStatic
   ? "让爱在生活里更好，记录每一次认真陪伴。"
   : (section?.content.description ?? "");
-const copyright = useStatic ? "© 2026 PetCare. 保留所有权利。" : (section?.content.copyright ?? "");
+const copyright = home
+  ? "© 2026 PetCare · 陪伴每一次托付"
+  : useStatic
+    ? "© 2026 PetCare. 保留所有权利。"
+    : (section?.content.copyright ?? "");
 const showLogo = useStatic || section?.settings.showLogo === true;
+const homeLinks = [
+  { label: "照护服务", href: "/care" },
+  { label: "帮助中心", href: "/help" },
+  { label: "联系与反馈", href: "/contact" },
+  { label: "服务协议", href: "/terms" },
+  { label: "隐私政策", href: "/privacy" },
+  { label: "平台规则", href: "/platform-rules" },
+];
 ---
 
-<footer class="site-footer">
-  <div class="site-footer__inner">
-    <section class="site-footer__brand" aria-label="PetCare">
-      {
-        showLogo ? (
-          <img
-            src="/brand/petcare-symbol-reverse.svg"
-            width="40"
-            height="40"
-            alt=""
-            loading="lazy"
-          />
-        ) : null
-      }
-      <strong>PetCare 宠伴</strong>
-      <p>{description}</p>
-    </section>
-    {
-      groups.map((group) => (
-        <section aria-labelledby={`footer-${group.groupKey}`}>
-          <h2 id={`footer-${group.groupKey}`}>{group.title}</h2>
+<footer class:list={["site-footer", home && "site-footer--home"]}>
+  {
+    home ? (
+      <div class="site-footer__inner site-footer__inner--home">
+        <a class="site-footer__brand" href="/" aria-label="PetCare 宠伴">
+          <img src="/brand/home/symbol.svg" alt="" loading="lazy" />
+          <strong>PetCare 宠伴</strong>
+        </a>
+        <nav class="site-footer__navigation" aria-label="页脚导航">
           <ul>
-            {group.links.map((item) => {
-              const href = getSafeWebsiteHref(item.href);
-
-              return href ? (
-                <li>
-                  <a href={href}>{item.label}</a>
-                </li>
-              ) : null;
-            })}
+            {homeLinks.map((item) => (
+              <li>
+                <a href={item.href}>{item.label}</a>
+              </li>
+            ))}
           </ul>
+        </nav>
+      </div>
+    ) : (
+      <div class="site-footer__inner">
+        <section class="site-footer__brand" aria-label="PetCare">
+          {showLogo ? (
+            <img
+              src="/brand/petcare-symbol-reverse.svg"
+              width="40"
+              height="40"
+              alt=""
+              loading="lazy"
+            />
+          ) : null}
+          <strong>PetCare 宠伴</strong>
+          <p>{description}</p>
         </section>
-      ))
-    }
-  </div>
+        {groups.map((group) => (
+          <section aria-labelledby={`footer-${group.groupKey}`}>
+            <h2 id={`footer-${group.groupKey}`}>{group.title}</h2>
+            <ul>
+              {group.links.map((item) => {
+                const href = getSafeWebsiteHref(item.href);
+
+                return href ? (
+                  <li>
+                    <a href={href}>{item.label}</a>
+                  </li>
+                ) : null;
+              })}
+            </ul>
+          </section>
+        ))}
+      </div>
+    )
+  }
   <div class="site-footer__legal">
     <p class="site-footer__copyright">{copyright}</p>
     <p class="site-footer__icp">

@@ -56,10 +56,15 @@ describe("production route manifest", () => {
 
     expect(homepage).toContain("StaticHome");
     expect(homepage).not.toContain("PublishedPage");
-    expect(staticHome).toContain("忙碌的时候");
-    expect(staticHome).toContain("发布照护需求");
-    expect(staticHome).toContain("/start");
-    expect(staticHome).toContain("/brand/hero-community-companion-desktop-v1.webp");
+    expect(staticHome).toContain("放心出发");
+    expect(staticHome).toContain("探索产品体验");
+    expect(staticHome).toContain('href="#product-experience"');
+    expect(staticHome).toContain('href="#pet-profile"');
+    expect(staticHome).toContain("/brand/home/hero.png");
+    expect(staticHome).toContain('role="tablist"');
+    expect(staticHome).toContain('role="tabpanel"');
+    expect(staticHome).toContain("回看整个流程");
+    expect(staticHome).not.toContain("figma.com");
     expect(staticHome).not.toContain("home-page__pillars");
   });
 });

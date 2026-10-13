@@ -9,19 +9,38 @@ interface Props {
   preview?: boolean;
   /** Uses the code-owned public website navigation instead of managed shell content. */
   static?: boolean;
+  /** Uses the homepage header design and navigation. */
+  home?: boolean;
 }
 
-const { section, preview = false, static: useStatic = false } = Astro.props;
+const { section, preview = false, static: useStatic = false, home = false } = Astro.props;
 const staticNavigation = [
   { label: "照护服务", href: "/care" },
   { label: "成为照护者", href: "/caregivers" },
   { label: "帮助中心", href: "/help" },
 ];
-const navigation = useStatic ? staticNavigation : (section?.content.navigation ?? []);
-const action = useStatic ? { label: "使用小程序", href: "/start" } : section?.content.action;
-const brandLabel = useStatic ? "PetCare 宠伴" : (section?.content.brandLabel ?? "PetCare 宠伴");
-const headerClass =
-  useStatic || !section || section.settings.sticky
+const homeNavigation = [
+  { label: "产品体验", href: "/product" },
+  { label: "照护服务", href: "/care" },
+  { label: "生活阅读", href: "/articles" },
+  { label: "帮助中心", href: "/help" },
+  { label: "关于宠伴", href: "/about" },
+];
+const navigation = home
+  ? homeNavigation
+  : useStatic
+    ? staticNavigation
+    : (section?.content.navigation ?? []);
+const action = home
+  ? { label: "探索产品体验", href: "#product-experience" }
+  : useStatic
+    ? { label: "使用小程序", href: "/start" }
+    : section?.content.action;
+const brandLabel =
+  home || useStatic ? "PetCare 宠伴" : (section?.content.brandLabel ?? "PetCare 宠伴");
+const headerClass = home
+  ? "site-header site-header--home"
+  : useStatic || !section || section.settings.sticky
     ? "site-header site-header--sticky"
     : "site-header";
 const currentPath = Astro.url.pathname;
@@ -32,7 +51,13 @@ const isCurrent = (href: string) =>
 <header class={headerClass} data-preview={preview ? "true" : undefined} data-site-header>
   <div class="site-header__inner">
     <a class="site-header__brand" href="/" aria-label={brandLabel}>
-      <img src="/brand/petcare-symbol-color.svg" width="32" height="32" alt="" />
+      {
+        home ? (
+          <img src="/brand/home/symbol.svg" alt="" />
+        ) : (
+          <img src="/brand/petcare-symbol-color.svg" width="32" height="32" alt="" />
+        )
+      }
       <span>{brandLabel}</span>
     </a>
     <button
@@ -44,7 +69,19 @@ const isCurrent = (href: string) =>
       data-site-menu-button
     >
       <span class="sr-only" data-site-menu-label>打开导航</span>
-      <span class="site-header__menu-icon" aria-hidden="true"><i></i><i></i><i></i></span>
+      {
+        home ? (
+          <img class="site-header__home-menu-icon" src="/brand/home/menu.svg" alt="" />
+        ) : (
+          <span class="site-header__menu-icon" aria-hidden="true">
+            <>
+              <i />
+              <i />
+              <i />
+            </>
+          </span>
+        )
+      }
     </button>
     <nav
       id="site-navigation"
@@ -52,10 +89,18 @@ const isCurrent = (href: string) =>
       aria-label="主导航"
       data-site-navigation
     >
+      {
+        home ? (
+          <div class="site-header__home-menu-heading">
+            <h2>探索宠伴</h2>
+          </div>
+        ) : null
+      }
       <ul>
         {
           navigation.map((item) => {
-            const href = getSafeWebsiteHref(item.href);
+            const href =
+              home && item.href.startsWith("#") ? item.href : getSafeWebsiteHref(item.href);
 
             return href ? (
               <li>
@@ -68,9 +113,17 @@ const isCurrent = (href: string) =>
         }
       </ul>
       {
+        home && (
+          <button class="site-header__home-menu-close" type="button" data-site-menu-close>
+            关闭菜单 <span aria-hidden="true">×</span>
+          </button>
+        )
+      }
+      {
         action
           ? (() => {
-              const href = getSafeWebsiteHref(action.href);
+              const href =
+                home && action.href.startsWith("#") ? action.href : getSafeWebsiteHref(action.href);
 
               return href ? (
                 <a
@@ -78,7 +131,8 @@ const isCurrent = (href: string) =>
                   href={href}
                   aria-current={isCurrent(href) ? "page" : undefined}
                 >
-                  {action.label} <span class="icon-arrow" aria-hidden="true" />
+                  {action.label}
+                  {!home ? <span class="icon-arrow" aria-hidden="true" /> : null}
                 </a>
               ) : null;
             })()
@@ -91,6 +145,7 @@ const isCurrent = (href: string) =>
 <script>
   const button = document.querySelector<HTMLButtonElement>("[data-site-menu-button]");
   const navigation = document.querySelector<HTMLElement>("[data-site-navigation]");
+  const closeButton = document.querySelector<HTMLButtonElement>("[data-site-menu-close]");
   const label = button?.querySelector<HTMLElement>("[data-site-menu-label]");
 
   const setOpen = (open: boolean) => {
@@ -106,6 +161,11 @@ const isCurrent = (href: string) =>
 
   button?.addEventListener("click", () => {
     setOpen(button.getAttribute("aria-expanded") !== "true");
+  });
+
+  closeButton?.addEventListener("click", () => {
+    setOpen(false);
+    button?.focus();
   });
 
   navigation?.querySelectorAll("a").forEach((link) => {
