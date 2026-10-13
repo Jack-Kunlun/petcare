@@ -4,6 +4,9 @@ import MotionEnhancer from "../components/MotionEnhancer.astro";
 import SiteFooter from "../components/SiteFooter.astro";
 import SiteHeader from "../components/SiteHeader.astro";
 import "../styles/global.css";
+import "../styles/home-shell.css";
+import "../styles/interior.css";
+import "../styles/reading-pages.css";
 
 interface Props {
   /** Published shell snapshot, or the code-owned fallback used when it is temporarily unavailable. */
@@ -36,10 +39,11 @@ const { title, description, canonical, image = null, noindex = false } = Astro.p
     <meta property="og:description" content={description} />
     <meta property="og:url" content={canonical} />
     {image ? <meta property="og:image" content={image} /> : null}
+    <meta name="theme-color" content="#edf6ff" />
     <title>{title}</title>
   </head>
-  <body>
-    <a class="skip-link" href="#main-content">Skip to main content</a>
+  <body class="interior-site interior-site--article">
+    <a class="skip-link" href="#main-content">跳到主要内容</a>
     <SiteHeader static />
     <main id="main-content"><slot /></main>
     <SiteFooter static />

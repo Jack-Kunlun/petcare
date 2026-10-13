@@ -38,6 +38,7 @@ export type MarketingSection =
       title: string;
       description: string;
       tone?: "white" | "soft" | "dark";
+      roleLabel?: string;
       items: MarketingItem[];
     }
   | {
@@ -50,6 +51,7 @@ export type MarketingSection =
     };
 
 export type MarketingPage = {
+  layout?: "stories" | "support" | "safety" | "payments" | "classroom";
   title: string;
   description: string;
   eyebrow: string;
@@ -312,92 +314,122 @@ export const marketingPages: Record<string, MarketingPage> = {
     ],
   },
   payments: {
+    layout: "payments",
     title: "支付与结算 | PetCare 宠伴",
     description: "了解 PetCare 的支付、退款、账务、结算和提现状态。",
-    eyebrow: "支付与结算",
-    heroTitle: "每一笔订单，都有清楚的账务状态",
-    heroDescription: "支付、退款、收入和结算分别记录，订单状态与账务状态不会混在一起。",
-    heroImage: petRecordImage,
-    heroActions: [
-      { label: "查看悬赏服务", href: "/rewards" },
-      { label: "查看安全保障", href: "/trust", secondary: true },
-    ],
+    eyebrow: "费用与规则 · 产品规则",
+    heroTitle: "先确认每一笔，\n再安心开始照护。",
+    heroDescription:
+      "按宠物主人与照护者的任务，了解服务金额、付款、退款和结算记录。具体金额与条件以本次服务确认的约定为准。",
     sections: [
       {
-        kind: "cards",
-        id: "payment-states",
-        eyebrow: "账务能力",
-        title: "从订单支付，到只读收入记录",
-        description: "用户看到的是清楚的状态，后台保留完整的审计关系。",
+        kind: "timeline",
+        id: "payment-owner",
+        eyebrow: "费用与规则",
+        title: "宠物主人费用核对步骤",
+        description: "",
+        roleLabel: "宠物主人",
         items: [
-          { title: "订单支付", description: "支付请求与订单绑定，记录订单应付状态。" },
-          { title: "回调处理", description: "支付结果通过回调进入订单和账务状态。" },
-          { title: "退款处理", description: "退款申请、结果和订单状态保持关联。" },
-          { title: "不可变账务", description: "收入和账务记录保留变更关系，方便核对。" },
-          { title: "只读收入", description: "服务者可以查看收入来源和当前可结算状态。" },
-          { title: "结算准备", description: "主体、账户和手续费规则配置后再启用真实出款。" },
+          {
+            title: "确认服务与金额",
+            description: "如页面展示服务安排，先核对服务内容、时间、范围与显示的金额。",
+          },
+          {
+            title: "按订单指引付款",
+            description: "如订单提供付款入口，仅按页面指引核对当前状态与记录。",
+          },
+          {
+            title: "变更、取消与退款",
+            description: "发生变化时，保留双方沟通和已完成内容，按订单约定核对处理方式。",
+          },
         ],
-        tone: "soft",
       },
       {
-        kind: "split",
-        id: "payment-boundary",
-        eyebrow: "边界清楚",
-        title: "体验流程和真实资金流分开管理",
-        description:
-          "体验环境可以验证订单、回调和账务展示；真实资金流需要经营主体、商户账户、退款责任和出款渠道全部配置完成。",
-        image: careImage,
-        action: { label: "查看平台规则", href: "/platform-rules" },
+        kind: "timeline",
+        id: "payment-provider",
+        eyebrow: "费用与规则",
+        title: "照护者费用核对步骤",
+        description: "",
+        roleLabel: "照护者",
+        items: [
+          {
+            title: "核对服务约定",
+            description: "确认服务内容、金额与双方责任范围；以双方确认的约定为准。",
+          },
+          {
+            title: "查看服务结算",
+            description: "若当前配置提供收入记录，核对对应状态与订单关联信息。",
+          },
+          {
+            title: "按适用规则处理",
+            description: "结算与提现条件、时间和处理方式以实际配置与订单约定为准。",
+          },
+        ],
+      },
+    ],
+    cta: {
+      eyebrow: "",
+      title: "",
+      description: "",
+      href: "/refund-policy",
+      label: "阅读退款与订单规则",
+    },
+  },
+  trust: {
+    layout: "safety",
+    title: "安全与保障 | PetCare 宠伴",
+    description: "了解 PetCare 如何管理宠物资料、图片、资格、服务记录和社区内容。",
+    eyebrow: "安全与保障 · 产品体验",
+    heroTitle: "信任，来自看得见的过程。",
+    heroDescription: "用资料核对、共同确认与照护记录，让安排更清楚，让照护进展有迹可循。",
+    heroActions: [{ label: "了解照护服务", href: "/care" }],
+    heroImage: {
+      src: "/brand/home/closing.png",
+      alt: "自然光下安静看向窗外的金毛犬",
+    },
+    sections: [
+      {
+        kind: "timeline",
+        id: "trust-steps",
+        eyebrow: "安全与保障",
+        title: "让每一次确认，都有依据。",
+        description: "安全保障来自资料核对、共同约定和可回看的过程记录。",
+        items: [
+          {
+            title: "身份与资格资料",
+            description:
+              "服务资格信息以页面实际核验状态为准；安排确认前，先核对身份、经验和服务范围。",
+          },
+          {
+            title: "服务前共同确认",
+            description: "确认照护内容、时间、费用与责任范围，避免双方对安排理解不同。",
+          },
+          {
+            title: "过程记录可回看",
+            description: "如有服务安排，记录状态、照片与备注，方便了解已确认的事项。",
+          },
+          {
+            title: "异常说明有依据",
+            description: "发生分歧时，结合已确认的约定和现有记录说明情况。",
+          },
+        ],
       },
       {
         kind: "note",
-        id: "payment-status",
-        eyebrow: "当前状态",
-        title: "真实收款和提现不会被体验状态伪装",
-        description:
-          "页面保持正常的订单展示，但真实收款、退款、结算与提现仍以平台主体、商户和出款配置为准。",
-        tone: "dark",
-      },
-    ],
-  },
-  trust: {
-    title: "安全与保障 | PetCare 宠伴",
-    description: "了解 PetCare 如何管理宠物资料、图片、资格、服务记录和社区内容。",
-    eyebrow: "安全与保障",
-    heroTitle: "让每一次记录，都有清楚的归属和边界",
-    heroDescription: "从资料权限到服务证据，PetCare 用可追溯的状态和明确的责任边界保护日常记录。",
-    heroImage: careImage,
-    heroActions: [
-      { label: "查看隐私政策", href: "/privacy" },
-      { label: "阅读帮助中心", href: "/help", secondary: true },
-    ],
-    sections: [
-      {
-        kind: "cards",
-        id: "trust-pillars",
-        eyebrow: "五个保障层次",
-        title: "把安全写进每个流程节点",
-        description: "安全不是一个口号，而是权限、记录和异常处理的组合。",
-        items: [
-          { title: "资料归属", description: "宠物资料按账户和宠物关系维护，避免跨账户访问。" },
-          { title: "媒体保护", description: "照片和服务文件使用受控地址和访问边界。" },
-          { title: "资格审核", description: "服务者资格与可承接范围有明确审核状态。" },
-          { title: "过程记录", description: "订单步骤、图片、备注和消息保持关联。" },
-          { title: "内容治理", description: "社区内容支持审核、举报、下架和互动边界。" },
-        ],
-      },
-      {
-        kind: "split",
         id: "trust-records",
-        eyebrow: "可追溯",
-        title: "重要操作都有上下文",
+        eyebrow: "过程记录",
+        title: "记录帮助回看过程。",
         description:
-          "删除、修改、审核和订单状态变化都与对应的账户、宠物或订单关联，便于核对问题发生在哪里。",
-        image: petRecordImage,
-        action: { label: "阅读隐私政策", href: "/privacy" },
-        tone: "soft",
+          "具体服务责任，仍以双方确认的约定为准。\n费用、取消与退款条件，请在每次服务确认前查看对应规则。",
       },
     ],
+    cta: {
+      eyebrow: "规则与说明",
+      title: "服务约定与处理方式，以当前页面说明为准。",
+      description: "查看服务范围、取消与退款相关规则。",
+      href: "/platform-rules",
+      label: "阅读平台规则",
+    },
   },
   "service-flow": {
     title: "服务流程 | PetCare 宠伴",
@@ -440,53 +472,56 @@ export const marketingPages: Record<string, MarketingPage> = {
     ],
   },
   stories: {
+    layout: "stories",
     title: "社区故事 | PetCare 宠伴",
-    description: "看看宠物日常、养宠经验和陪伴故事如何被记录下来。",
-    eyebrow: "社区故事",
-    heroTitle: "普通的一天，也值得被认真记录",
-    heroDescription: "从一张照片、一段文字和一次互动开始，留下属于宠物和家人的生活片段。",
-    heroImage: storiesImage,
-    heroActions: [
-      { label: "阅读宠物课堂", href: "/articles" },
-      { label: "了解平台规则", href: "/platform-rules", secondary: true },
-    ],
+    description: "从日常照护与相处细节中，发现人与宠物之间的陪伴灵感。",
+    eyebrow: "PETCARE · 社区与生活",
+    heroTitle: "陪伴，发生在每个寻常的瞬间。",
+    heroDescription: "阅读生活里的观察与经验，为人与宠物之间的相处留一点空间。",
+    heroImage: {
+      src: "/brand/home/together.png",
+      alt: "人与金毛犬并肩坐在湖边欣赏风景",
+    },
+    heroActions: [{ label: "走进宠物课堂", href: "/articles" }],
     sections: [
       {
         kind: "cards",
         id: "story-types",
-        eyebrow: "内容方向",
-        title: "记录生活，也分享有用的经验",
-        description: "社区内容以真实、尊重和可回看为基础。",
+        eyebrow: "PETCARE · 社区与生活",
+        title: "陪伴日常与生活观察",
+        description: "",
         items: [
           {
-            title: "宠物日常",
-            description: "记录吃饭、散步、休息和成长中的小事。",
-            image: petRecordImage,
+            label: "陪伴日常",
+            title: "把早晨留给熟悉的节奏",
+            description:
+              "一天的安心，常从几件微小而熟悉的事开始：一碗水、窗边的光、出门前的一次回头。为宠物留住节奏，也为自己留一点从容。",
+            image: { src: "/brand/home/home.png", alt: "主人在窗边轻抚休息中的橘猫" },
           },
           {
-            title: "养宠经验",
-            description: "分享照顾宠物时真正有帮助的方法和观察。",
-            image: careImage,
+            label: "照护准备",
+            title: "出门前的一张纸",
+            description:
+              "出差或短途旅行前，除了收拾行李，也可以花几分钟整理宠物的日常：时间、习惯、喜欢和需要避开的事。清楚的安排，让托付更轻松。",
+            image: { src: "/brand/home/care-record.png", alt: "照护者为宠物梳理毛发" },
           },
           {
-            title: "陪伴故事",
-            description: "留下人与宠物之间值得记住的相处片段。",
-            image: storiesImage,
+            label: "陪伴日常",
+            title: "散步以后，生活继续向前",
+            description:
+              "散步是一段属于人与宠物的共同时间，也是一种观察日常的方法。回到家，擦拭、喝水、休息，平凡的收尾让陪伴变得完整。",
+            image: { src: "/brand/home/walk.png", alt: "主人牵着金毛犬在绿荫步道散步" },
           },
         ],
       },
-      {
-        kind: "split",
-        id: "story-governance",
-        eyebrow: "社区边界",
-        title: "真实内容，也需要明确的社区规则",
-        description:
-          "公开内容会经过审核，用户可以举报不合适的内容；图片、文字和互动都遵守平台规则与隐私边界。",
-        image: careImage,
-        action: { label: "阅读平台规则", href: "/platform-rules" },
-        tone: "soft",
-      },
     ],
+    cta: {
+      eyebrow: "",
+      title: "把理解带回日常。",
+      description: "",
+      href: "/articles",
+      label: "继续阅读",
+    },
   },
   miniapp: {
     title: "微信小程序 | PetCare 宠伴",
@@ -562,75 +597,61 @@ export const marketingPages: Record<string, MarketingPage> = {
     ],
   },
   contact: {
+    layout: "support",
     title: "联系我们 | PetCare 宠伴",
-    description: "向 PetCare 提交产品反馈、服务问题和合作咨询。",
-    eyebrow: "联系我们",
-    heroTitle: "把问题和建议，交给我们继续改进",
-    heroDescription: "你可以通过小程序帮助入口反馈使用问题，也可以了解产品和服务边界。",
-    heroImage: storiesImage,
-    heroActions: [
-      { label: "打开帮助中心", href: "/help" },
-      { label: "打开微信小程序", href: "/miniapp", secondary: true },
-    ],
+    description: "通过 PetCare 帮助中心查找使用指南、照护说明与平台规则。",
+    eyebrow: "联系与反馈",
+    heroTitle: "需要帮助，从这里开始",
+    heroDescription: "选择你关心的内容，前往对应指南。",
     sections: [
       {
         kind: "cards",
         id: "contact-topics",
-        eyebrow: "反馈类型",
-        title: "告诉我们你遇到了什么",
-        description: "清楚的问题描述和相关订单信息，有助于更快定位问题。",
+        eyebrow: "帮助主题",
+        title: "选择你关心的内容",
+        description: "",
         items: [
-          { title: "产品反馈", description: "页面、功能、操作路径和使用体验建议。" },
-          { title: "订单问题", description: "悬赏、服务、SOP、评价和异常处理问题。" },
-          { title: "内容与隐私", description: "文章、社区内容、图片和隐私相关反馈。" },
-          { title: "合作咨询", description: "服务合作、平台合作和产品方向咨询。" },
+          {
+            title: "宠物资料与账号",
+            description: "整理宠物档案、生活习惯与账号资料，再查看对应使用指南。",
+          },
+          {
+            title: "照护服务安排",
+            description: "回看服务内容、时间确认与交接前需要说明的事项。",
+          },
+          {
+            title: "费用与规则",
+            description: "查看费用确认、付款、结算、取消与退款相关说明。",
+          },
+          {
+            title: "照护记录与进度",
+            description: "了解照护进度、完成事项、照片与备注的查看方式。",
+          },
         ],
       },
       {
         kind: "note",
         id: "contact-entry",
-        eyebrow: "当前联系入口",
-        title: "优先通过小程序帮助中心提交问题",
-        description:
-          "正式客服渠道和合作邮箱将在平台配置完成后补充。提交问题时请尽量说明页面、订单编号和发生时间。",
-        tone: "dark",
+        eyebrow: "反馈状态",
+        title: "官网反馈状态",
+        description: "目前无法通过官网提交反馈。",
       },
     ],
+    cta: {
+      eyebrow: "",
+      title: "",
+      description: "",
+      href: "/help",
+      label: "查看帮助指南",
+    },
   },
   articles: {
+    layout: "classroom",
     title: "宠物课堂 | PetCare 宠伴",
-    description: "阅读 PetCare 的养宠知识、服务指南和平台规则。",
-    eyebrow: "宠物课堂",
-    heroTitle: "把有用的养宠知识，放在需要的时候",
-    heroDescription: "从日常照顾、行为观察到服务流程，按主题找到更清楚的说明。",
-    heroImage: careImage,
-    heroActions: [
-      { label: "查看帮助中心", href: "/help" },
-      { label: "了解产品能力", href: "/product", secondary: true },
-    ],
-    sections: [
-      {
-        kind: "cards",
-        id: "classroom-topics",
-        eyebrow: "内容方向",
-        title: "四类内容，覆盖从日常到服务的使用场景",
-        description: "正式文章上线后会按主题持续补充，页面结构保持不变。",
-        items: [
-          { title: "日常照顾", description: "饮食、清洁、休息和日常状态观察。" },
-          { title: "行为与健康", description: "用更容易理解的方式认识宠物行为和健康信号。" },
-          { title: "服务指南", description: "了解悬赏、订单、SOP 和服务记录的使用方法。" },
-          { title: "平台规则", description: "阅读社区、服务、支付和隐私相关的公开说明。" },
-        ],
-        tone: "soft",
-      },
-      {
-        kind: "note",
-        id: "classroom-publishing",
-        eyebrow: "内容状态",
-        title: "文章内容会独立更新，不影响官网主结构",
-        description: "官网导航和页面布局由代码维护，文章正文可以按发布流程逐步补充。",
-        tone: "dark",
-      },
-    ],
+    description: "阅读已发布的 PetCare 养宠文章与实用指南。",
+    eyebrow: "PETCARE · 生活阅读",
+    heroTitle: "宠物课堂",
+    heroDescription: "把照护知识放进生活，把日常观察慢慢留下。",
+    sections: [],
   },
 };

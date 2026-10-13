@@ -2,16 +2,22 @@
 import MotionEnhancer from "./MotionEnhancer.astro";
 import SiteFooter from "./SiteFooter.astro";
 import SiteHeader from "./SiteHeader.astro";
+import { getWebsiteRuntimeConfig } from "../lib/runtime-config";
 import "../styles/global.css";
+import "../styles/home-shell.css";
+import "../styles/interior.css";
+import "../styles/help-pages.css";
+import "../styles/product-pages.css";
 
 interface Props {
   title: string;
   description: string;
   canonical?: string;
+  overlayHeader?: boolean;
 }
 
-const { title, description, canonical = Astro.url.pathname } = Astro.props;
-const canonicalUrl = new URL(canonical, Astro.site ?? Astro.url.origin).toString();
+const { title, description, canonical = Astro.url.pathname, overlayHeader = false } = Astro.props;
+const canonicalUrl = new URL(canonical, getWebsiteRuntimeConfig().publicUrl).toString();
 ---
 
 <!doctype html>
@@ -22,10 +28,10 @@ const canonicalUrl = new URL(canonical, Astro.site ?? Astro.url.origin).toString
     <meta name="description" content={description} />
     <link rel="canonical" href={canonicalUrl} />
     <link rel="icon" href="/brand/petcare-favicon.svg" type="image/svg+xml" />
-    <meta name="theme-color" content="#ffffff" />
+    <meta name="theme-color" content="#edf6ff" />
     <title>{title}</title>
   </head>
-  <body>
+  <body class:list={["interior-site", overlayHeader && "interior-site--visual"]}>
     <a class="skip-link" href="#main-content">跳到主要内容</a>
     <SiteHeader static />
     <slot />

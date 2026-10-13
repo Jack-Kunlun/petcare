@@ -14,11 +14,7 @@ interface Props {
 }
 
 const { section, preview = false, static: useStatic = false, home = false } = Astro.props;
-const staticNavigation = [
-  { label: "照护服务", href: "/care" },
-  { label: "成为照护者", href: "/caregivers" },
-  { label: "帮助中心", href: "/help" },
-];
+const designShell = home || useStatic;
 const homeNavigation = [
   { label: "产品体验", href: "/product" },
   { label: "照护服务", href: "/care" },
@@ -26,20 +22,22 @@ const homeNavigation = [
   { label: "帮助中心", href: "/help" },
   { label: "关于宠伴", href: "/about" },
 ];
-const navigation = home
+const navigation: { label: string; href: string; mobileOnly?: boolean }[] = designShell
   ? homeNavigation
-  : useStatic
-    ? staticNavigation
-    : (section?.content.navigation ?? []);
-const action = home
-  ? { label: "探索产品体验", href: "#product-experience" }
-  : useStatic
-    ? { label: "使用小程序", href: "/start" }
-    : section?.content.action;
+      .flatMap((item) =>
+        !home && item.href === "/articles"
+          ? [item, { label: "社区故事", href: "/stories", mobileOnly: true }]
+          : [item],
+      )
+      .concat(home ? [] : [{ label: "成为宠托师", href: "/caregivers", mobileOnly: true }])
+  : (section?.content.navigation ?? []);
+const action = designShell
+  ? { label: "探索产品体验", href: home ? "#product-experience" : "/product" }
+  : section?.content.action;
 const brandLabel =
   home || useStatic ? "PetCare 宠伴" : (section?.content.brandLabel ?? "PetCare 宠伴");
-const headerClass = home
-  ? "site-header site-header--home"
+const headerClass = designShell
+  ? `site-header site-header--home${home ? "" : " site-header--interior"}`
   : useStatic || !section || section.settings.sticky
     ? "site-header site-header--sticky"
     : "site-header";
@@ -52,7 +50,7 @@ const isCurrent = (href: string) =>
   <div class="site-header__inner">
     <a class="site-header__brand" href="/" aria-label={brandLabel}>
       {
-        home ? (
+        designShell ? (
           <img src="/brand/home/symbol.svg" alt="" />
         ) : (
           <img src="/brand/petcare-symbol-color.svg" width="32" height="32" alt="" />
@@ -70,7 +68,7 @@ const isCurrent = (href: string) =>
     >
       <span class="sr-only" data-site-menu-label>打开导航</span>
       {
-        home ? (
+        designShell ? (
           <img class="site-header__home-menu-icon" src="/brand/home/menu.svg" alt="" />
         ) : (
           <span class="site-header__menu-icon" aria-hidden="true">
@@ -90,9 +88,19 @@ const isCurrent = (href: string) =>
       data-site-navigation
     >
       {
-        home ? (
+        designShell ? (
           <div class="site-header__home-menu-heading">
-            <h2>探索宠伴</h2>
+            <h2>{home ? "探索宠伴" : "PetCare 宠伴"}</h2>
+            {!home && (
+              <button
+                class="site-header__interior-menu-close"
+                type="button"
+                aria-label="关闭导航"
+                data-site-menu-close
+              >
+                ×
+              </button>
+            )}
           </div>
         ) : null
       }
@@ -103,9 +111,16 @@ const isCurrent = (href: string) =>
               home && item.href.startsWith("#") ? item.href : getSafeWebsiteHref(item.href);
 
             return href ? (
-              <li>
+              <li class:list={[item.mobileOnly && "site-header__mobile-link"]}>
                 <a href={href} aria-current={isCurrent(href) ? "page" : undefined}>
-                  {item.label}
+                  {useStatic && !home && item.href === "/articles" ? (
+                    <>
+                      <span class="site-header__desktop-label">生活阅读</span>
+                      <span class="site-header__mobile-label">宠物课堂</span>
+                    </>
+                  ) : (
+                    item.label
+                  )}
                 </a>
               </li>
             ) : null;
@@ -132,7 +147,7 @@ const isCurrent = (href: string) =>
                   aria-current={isCurrent(href) ? "page" : undefined}
                 >
                   {action.label}
-                  {!home ? <span class="icon-arrow" aria-hidden="true" /> : null}
+                  {!designShell ? <span class="icon-arrow" aria-hidden="true" /> : null}
                 </a>
               ) : null;
             })()

@@ -45,13 +45,14 @@ describe("production route manifest", () => {
     );
 
     expect(sources.join("\n")).toContain("/care");
-    expect(sources.join("\n")).toContain("使用小程序");
+    expect(sources.join("\n")).toContain("产品体验");
   });
 
   it("renders the homepage from code-owned marketing content", async () => {
-    const [homepage, staticHome] = await Promise.all([
+    const [homepage, staticHome, carePreview] = await Promise.all([
       readFile(path.join(websiteDirectory, "src/pages/index.astro"), "utf8"),
       readFile(path.join(websiteDirectory, "src/components/StaticHome.astro"), "utf8"),
+      readFile(path.join(websiteDirectory, "src/components/CarePreview.astro"), "utf8"),
     ]);
 
     expect(homepage).toContain("StaticHome");
@@ -61,9 +62,10 @@ describe("production route manifest", () => {
     expect(staticHome).toContain('href="#product-experience"');
     expect(staticHome).toContain('href="#pet-profile"');
     expect(staticHome).toContain("/brand/home/hero.png");
-    expect(staticHome).toContain('role="tablist"');
-    expect(staticHome).toContain('role="tabpanel"');
-    expect(staticHome).toContain("回看整个流程");
+    expect(staticHome).toContain("<CarePreview");
+    expect(carePreview).toContain('role="tablist"');
+    expect(carePreview).toContain('role="tabpanel"');
+    expect(carePreview).toContain("回看整个流程");
     expect(staticHome).not.toContain("figma.com");
     expect(staticHome).not.toContain("home-page__pillars");
   });

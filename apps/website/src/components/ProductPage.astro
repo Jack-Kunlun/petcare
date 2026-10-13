@@ -1,0 +1,125 @@
+---
+import PublicPage from "./PublicPage.astro";
+import CarePreview from "./CarePreview.astro";
+
+const careStages = ["发布需求", "沟通确认", "跟进照护", "完成反馈"];
+---
+
+<PublicPage
+  overlayHeader
+  title="产品体验 | PetCare 宠伴"
+  description="从宠物日常与档案，到照护安排和过程记录，了解 PetCare 的产品体验。"
+>
+  <main id="main-content" class="interior-page interior-page--product product-page">
+    <section class="interior-page__hero product-page__hero" aria-labelledby="product-title">
+      <div class="interior-page__hero-scene">
+        <img src="/brand/home/hero.png" alt="" aria-hidden="true" fetchpriority="high" />
+      </div>
+      <div class="interior-page__hero-wash" aria-hidden="true"></div>
+      <div class="interior-page__hero-inner content-container">
+        <div class="interior-page__hero-copy">
+          <p class="interior-page__eyebrow">PETCARE · 产品体验</p>
+          <h1 id="product-title">从认识它，<br />到<span>认真</span>照顾它。</h1>
+          <p class="interior-page__hero-description">
+            宠物档案、照护安排与过程记录，连成一条清楚的路径，让牵挂有处安放。
+          </p>
+          <a class="interior-page__button" href="/care">了解照护服务</a>
+        </div>
+      </div>
+      <img
+        class="interior-page__hero-wave"
+        src="/brand/interior/product-wave.svg"
+        alt=""
+        aria-hidden="true"
+      />
+    </section>
+
+    <section
+      id="product-experience"
+      class="interior-page__section content-container product-page__profile"
+      aria-labelledby="product-profile-title"
+    >
+      <div class="product-page__daily">
+        <h2 id="product-profile-title">先了解它的日常。</h2>
+        <p>
+          名字、照片、饮食与相处习惯，让零散的提醒成为一份清楚的宠物档案。每一次交接，都从了解它开始。
+        </p>
+        <figure class="interior-page__photo product-page__daily-photo">
+          <img src="/brand/home/home.png" alt="橘猫在桌边陪着主人记录日常" loading="lazy" />
+          <figcaption>生活里的样子，值得被记住。</figcaption>
+        </figure>
+      </div>
+
+      <article class="interior-page__profile-card" aria-label="宠物档案内容示例">
+        <header>
+          <div>
+            <p class="interior-page__card-label">宠物档案</p>
+            <h3>团子的日常</h3>
+          </div>
+          <span class="interior-page__profile-hint">生活习惯</span>
+        </header>
+        <div class="interior-page__profile-content">
+          <img src="/brand/home/care-record.png" alt="金毛犬在家中与照护者相处" loading="lazy" />
+          <dl>
+            <div><dt>饮食习惯</dt><dd>吃饭慢一些，使用熟悉的食盆。</dd></div>
+            <div><dt>喜欢的日常</dt><dd>在窗边休息，也喜欢有人陪玩。</dd></div>
+            <div><dt>照护备注</dt><dd>先安静靠近，再逐渐互动。</dd></div>
+          </dl>
+        </div>
+        <p class="interior-page__sample-note">档案内容为示例，不代表真实用户资料。</p>
+      </article>
+    </section>
+
+    <section
+      class="interior-page__section content-container product-page__arrangements"
+      aria-labelledby="product-arrangements-title"
+    >
+      <div class="product-page__arrangement-intro">
+        <h2 id="product-arrangements-title">了解它，再安排照护。</h2>
+        <p>开始前，一起确认服务内容、时间、费用与责任。</p>
+        <a class="interior-page__text-link" href="/care">查看照护方式说明 →</a>
+      </div>
+      <div class="product-page__arrangement-list">
+        <article>
+          <h3>按需求沟通</h3>
+          <p>说明照护事项、时间与预算，再围绕本次安排确认需要。</p>
+        </article>
+        <article>
+          <h3>按方案了解</h3>
+          <p>阅读服务内容、范围与费用说明，在确认前核对包含事项。</p>
+        </article>
+        <p class="interior-page__sample-note">
+          查看从需求沟通到照护记录的产品界面；服务与订单入口以平台当前实际开放状态为准。
+        </p>
+      </div>
+    </section>
+
+    <section
+      class="interior-page__section content-container product-page__records"
+      aria-labelledby="product-records-title"
+    >
+      <div class="product-page__records-copy">
+        <h2 id="product-records-title">照护进展，随时可见。</h2>
+        <p class="interior-page__stage-line">{careStages.join(" → ")}</p>
+        <p>说明习惯与照护事项，确认安排，再查看完成状态、照片和备注。结束后，记录仍可回看。</p>
+        <a class="interior-page__text-link" href="/trust">了解照护保障 →</a>
+      </div>
+      <div class="product-page__record-showcase">
+        <figure class="interior-page__photo product-page__walk-photo">
+          <img src="/brand/home/walk.png" alt="主人牵着金毛在熟悉的花园小路上散步" loading="lazy" />
+        </figure>
+        <div class="product-page__phone">
+          <CarePreview initialStep={2} id="product-care" class="product-page__phone-card" />
+        </div>
+      </div>
+    </section>
+
+    <section class="interior-page__closing content-container product-page__closing">
+      <div>
+        <h2>把知识带回日常，也把陪伴慢慢留下。</h2>
+        <a class="interior-page__text-link" href="/articles">阅读宠物课堂 →</a>
+        <a class="interior-page__text-link" href="/stories">走进社区与生活 →</a>
+      </div>
+    </section>
+  </main>
+</PublicPage>

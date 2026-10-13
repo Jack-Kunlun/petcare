@@ -30,10 +30,6 @@ if (failureStatus) {
 const canonical = slug
   ? new URL(`/articles/${encodeURIComponent(slug)}`, runtimeConfig.publicUrl).toString()
   : new URL("/articles", runtimeConfig.publicUrl).toString();
-
-function formatDate(value: string): string {
-  return new Intl.DateTimeFormat("zh-CN", { dateStyle: "long" }).format(new Date(value));
-}
 ---
 
 {
@@ -46,44 +42,53 @@ function formatDate(value: string): string {
       image={article.coverUrl}
     >
       <article class="article-detail content-container">
-        <header>
-          <p class="eyebrow">PetCare Classroom</p>
+        <header class="article-detail__header">
+          <p class="eyebrow">PETCARE · 生活阅读</p>
           <h1>{article.title}</h1>
           <p class="section-description">{article.summary}</p>
           {article.publishedAt ? (
-            <p class="article-meta">
-              <time datetime={article.publishedAt}>{formatDate(article.publishedAt)}</time>
-              {article.author ? ` · ${article.author.displayName}` : ""}
-            </p>
+            <time class="sr-only" datetime={article.publishedAt}>
+              发布时间：{article.publishedAt.slice(0, 10)}
+            </time>
           ) : null}
         </header>
         {article.coverUrl ? (
-          <img src={article.coverUrl} alt={article.title} loading="lazy" />
+          <img
+            class="article-detail__cover"
+            src={article.coverUrl}
+            alt={article.title}
+            loading="lazy"
+          />
         ) : null}
         <div class="article-detail__body" set:html={article.bodyHtml} />
+        <a class="article-detail__back" href="/articles">
+          返回宠物课堂 <span aria-hidden="true">→</span>
+        </a>
       </article>
     </ArticleLayout>
   ) : (
-    <html lang="zh-CN">
-      <head>
-        <meta charset="utf-8" />
-        <meta name="viewport" content="width=device-width, initial-scale=1" />
-        <meta name="robots" content="noindex" />
-        <title>
-          {failureStatus === 404
-            ? "Article not found | PetCare"
-            : "Service temporarily unavailable | PetCare"}
-        </title>
-      </head>
-      <body>
-        <main class="failure-page">
-          <h1>{failureStatus === 404 ? "Article not found" : "Service temporarily unavailable"}</h1>
-          <p>{failureStatus === 404 ? "该文章不存在或已下线。" : "请稍后再试。"}</p>
-          <a class="button" href="/articles">
-            返回宠物课堂 <span class="icon-arrow" aria-hidden="true" />
-          </a>
-        </main>
-      </body>
-    </html>
+    <ArticleLayout
+      shell={shell}
+      title={
+        failureStatus === 404
+          ? "Article not found | PetCare"
+          : "Service temporarily unavailable | PetCare"
+      }
+      description={
+        failureStatus === 404 ? "该文章不存在或已下线。" : "文章服务暂时不可用，请稍后再试。"
+      }
+      canonical={canonical}
+      noindex
+    >
+      <section class="failure-page" aria-labelledby="article-error-title">
+        <h1 id="article-error-title">
+          {failureStatus === 404 ? "Article not found" : "Service temporarily unavailable"}
+        </h1>
+        <p>{failureStatus === 404 ? "该文章不存在或已下线。" : "请稍后再试。"}</p>
+        <a class="button" href="/articles">
+          返回宠物课堂 <span class="icon-arrow" aria-hidden="true" />
+        </a>
+      </section>
+    </ArticleLayout>
   )
 }

@@ -12,49 +12,13 @@ interface Props {
 }
 
 const { section, static: useStatic = false, home = false } = Astro.props;
-const staticGroups = [
-  {
-    title: "开始使用",
-    groupKey: "start",
-    links: [
-      { label: "照护服务", href: "/care" },
-      { label: "成为照护者", href: "/caregivers" },
-      { label: "使用小程序", href: "/start" },
-      { label: "宠物课堂", href: "/articles" },
-    ],
-  },
-  {
-    title: "了解 PetCare",
-    groupKey: "learn",
-    links: [
-      { label: "关于我们", href: "/about" },
-      { label: "联系与反馈", href: "/contact" },
-      { label: "帮助中心", href: "/help" },
-      { label: "服务流程", href: "/service-flow" },
-    ],
-  },
-  {
-    title: "规则与隐私",
-    groupKey: "help",
-    links: [
-      { label: "服务协议", href: "/terms" },
-      { label: "隐私政策", href: "/privacy" },
-      { label: "退款规则", href: "/refund-policy" },
-      { label: "平台规则", href: "/platform-rules" },
-      { label: "支付与结算", href: "/payments" },
-    ],
-  },
-];
-const groups = useStatic ? staticGroups : (section?.content.groups ?? []);
-const description = useStatic
-  ? "让爱在生活里更好，记录每一次认真陪伴。"
-  : (section?.content.description ?? "");
-const copyright = home
+const designShell = home || useStatic;
+const groups = section?.content.groups ?? [];
+const description = section?.content.description ?? "";
+const copyright = designShell
   ? "© 2026 PetCare · 陪伴每一次托付"
-  : useStatic
-    ? "© 2026 PetCare. 保留所有权利。"
-    : (section?.content.copyright ?? "");
-const showLogo = useStatic || section?.settings.showLogo === true;
+  : (section?.content.copyright ?? "");
+const showLogo = section?.settings.showLogo === true;
 const homeLinks = [
   { label: "照护服务", href: "/care" },
   { label: "帮助中心", href: "/help" },
@@ -65,9 +29,9 @@ const homeLinks = [
 ];
 ---
 
-<footer class:list={["site-footer", home && "site-footer--home"]}>
+<footer class:list={["site-footer", designShell && "site-footer--home"]}>
   {
-    home ? (
+    designShell ? (
       <div class="site-footer__inner site-footer__inner--home">
         <a class="site-footer__brand" href="/" aria-label="PetCare 宠伴">
           <img src="/brand/home/symbol.svg" alt="" loading="lazy" />

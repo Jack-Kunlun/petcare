@@ -1,0 +1,176 @@
+---
+import "../styles/care-preview.css";
+
+interface Props {
+  initialStep?: 0 | 1 | 2 | 3;
+  id?: string;
+  class?: string;
+}
+
+const { initialStep = 2, id = "care", class: className } = Astro.props;
+const steps = [
+  {
+    label: "发布需求",
+    title: "先把需要说清楚",
+    fields: [
+      ["照护安排", "上门喂养与陪玩"],
+      ["时间与备注", "按日常习惯确认"],
+    ],
+  },
+  {
+    label: "沟通确认",
+    title: "把照顾逐项确认",
+    fields: [
+      ["沟通确认", "照护时间与具体事项"],
+      ["交接重点", "饮食、相处与注意事项"],
+    ],
+  },
+  {
+    label: "跟进照护",
+    title: "照护进展，随时可见",
+    status: "照护进行中",
+    updated: "更新时间 14:30",
+    fields: [
+      ["已完成", "查看状态 · 喂食 · 换水"],
+      ["照护备注", "在熟悉的位置休息，饮水已更换。"],
+    ],
+  },
+  {
+    label: "完成反馈",
+    title: "把这次陪伴留下来",
+    status: "照护已完成",
+    fields: [
+      ["完成事项", "照护事项已回看"],
+      ["照护记录", "照片与备注一起留存"],
+    ],
+  },
+];
+---
+
+<div class:list={["home-phone", className]} aria-label="照护流程界面示例" data-care-preview>
+  <div class="home-phone__status" aria-hidden="true">
+    <span>9:41</span><span>● ▰ ●</span>
+  </div>
+  <div class="home-care-preview">
+    <h3 class="home-care-preview__heading">照护手记</h3>
+    <div class="home-care-preview__pet">
+      <img src="/brand/home/walk.png" width="132" height="88" alt="" loading="lazy" />
+      <div><strong>团子</strong><span>宠物档案</span></div>
+    </div>
+    <div class="home-care-tabs" role="tablist" aria-label="照护阶段">
+      {
+        steps.map((step, index) => (
+          <button
+            id={`${id}-tab-${index}`}
+            type="button"
+            role="tab"
+            aria-selected={index === initialStep ? "true" : "false"}
+            aria-controls={`${id}-panel-${index}`}
+            tabindex={index === initialStep ? 0 : -1}
+            data-care-tab
+            data-complete={index < initialStep ? "true" : undefined}
+          >
+            <>
+              <span>{step.label}</span>
+              <small aria-hidden="true">{index < initialStep ? "✓" : ""}</small>
+            </>
+          </button>
+        ))
+      }
+    </div>
+    {
+      steps.map((step, index) => (
+        <div
+          class="home-care-panel"
+          id={`${id}-panel-${index}`}
+          role="tabpanel"
+          aria-labelledby={`${id}-tab-${index}`}
+          hidden={index !== initialStep}
+          data-care-panel
+        >
+          <h4>{step.title}</h4>
+          <img
+            class="home-care-panel__photo"
+            src="/brand/home/care-record.png"
+            width="1536"
+            height="1024"
+            alt="主人在家中照顾金毛"
+            loading="lazy"
+          />
+          <div class="home-care-detail">
+            {step.status && (
+              <div class="home-care-detail__status">
+                <span>{step.status}</span>
+                <small>{step.updated ?? ""}</small>
+              </div>
+            )}
+            {step.fields.map(([label, value]) => (
+              <div class="home-care-detail__field">
+                <span>{label}</span>
+                <p>{value}</p>
+              </div>
+            ))}
+          </div>
+        </div>
+      ))
+    }
+    <button class="home-care-next" type="button" data-care-next>
+      {initialStep === 3 ? "回看整个流程" : "接着看下一步"}</button
+    >
+  </div>
+</div>
+
+<script>
+  document.querySelectorAll<HTMLElement>("[data-care-preview]").forEach((preview) => {
+    const tabs = Array.from(preview?.querySelectorAll<HTMLButtonElement>("[data-care-tab]") ?? []);
+    const panels = Array.from(preview?.querySelectorAll<HTMLElement>("[data-care-panel]") ?? []);
+    const next = preview?.querySelector<HTMLButtonElement>("[data-care-next]");
+    let current = tabs.findIndex((tab) => tab.getAttribute("aria-selected") === "true");
+
+    const selectStep = (index: number, focus = false) => {
+      current = (index + tabs.length) % tabs.length;
+      tabs.forEach((tab, position) => {
+        tab.setAttribute("aria-selected", String(position === current));
+        tab.tabIndex = position === current ? 0 : -1;
+        tab.toggleAttribute("data-complete", position < current);
+        const completion = tab.querySelector("small");
+
+        if (completion) {
+          completion.textContent = position < current ? "✓" : "";
+        }
+      });
+      panels.forEach((panel, position) => {
+        panel.hidden = position !== current;
+      });
+
+      if (next) {
+        next.textContent = current === tabs.length - 1 ? "回看整个流程" : "接着看下一步";
+      }
+
+      if (focus) {
+        tabs[current]?.focus();
+      }
+    };
+
+    tabs.forEach((tab, index) => {
+      tab.addEventListener("click", () => selectStep(index));
+      tab.addEventListener("keydown", (event) => {
+        if (!["ArrowLeft", "ArrowRight", "Home", "End"].includes(event.key)) {
+          return;
+        }
+
+        event.preventDefault();
+        let target = index + (event.key === "ArrowRight" ? 1 : -1);
+
+        if (event.key === "Home") {
+          target = 0;
+        } else if (event.key === "End") {
+          target = tabs.length - 1;
+        }
+
+        selectStep(target, true);
+      });
+    });
+    next?.addEventListener("click", () => selectStep(current + 1));
+  });
+</script>

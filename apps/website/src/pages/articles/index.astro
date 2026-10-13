@@ -4,6 +4,7 @@ import MarketingPage from "../../components/MarketingPage.astro";
 import { marketingPages } from "../../content/marketing";
 import { createWebsiteContentApi } from "../../lib/api";
 import { getWebsiteRuntimeConfig } from "../../lib/runtime-config";
+import { CLASSROOM_ARTICLE_CATEGORY_LABELS } from "@petcare/shared-types";
 
 const runtimeConfig = getWebsiteRuntimeConfig();
 const api = createWebsiteContentApi({ baseUrl: runtimeConfig.contentApiBaseUrl });
@@ -21,9 +22,28 @@ try {
   articles = null;
 }
 
-function formatDate(value: string): string {
-  return new Intl.DateTimeFormat("zh-CN", { dateStyle: "long" }).format(new Date(value));
-}
+const categories = [
+  ...new Set(
+    articles?.list.flatMap((article) => (article.category ? [article.category] : [])) ?? [],
+  ),
+];
+const articleGroups = [
+  ...categories.map((category) => ({
+    id: `category-${category}`,
+    label: CLASSROOM_ARTICLE_CATEGORY_LABELS[category],
+    items: articles?.list.filter((article) => article.category === category) ?? [],
+  })),
+  ...(articles?.list.some((article) => article.category === null)
+    ? [
+        {
+          id: "category-other",
+          label: "更多文章",
+          items: articles?.list.filter((article) => article.category === null) ?? [],
+        },
+      ]
+    : []),
+];
+const emptyMessage = articles ? "目前还没有已发布的文章。" : "文章列表暂时无法加载，请稍后再试。";
 ---
 
 {
@@ -34,31 +54,59 @@ function formatDate(value: string): string {
       description="PetCare 宠物课堂的已发布养宠知识与实用指南。"
       canonical={new URL("/articles", runtimeConfig.publicUrl).toString()}
     >
-      <section class="article-list content-container" aria-labelledby="article-list-title">
-        <p class="eyebrow">PetCare Classroom</p>
-        <h1 id="article-list-title">宠物课堂</h1>
-        <p class="section-description">已发布的养宠知识与实用指南。</p>
-        <ol class="article-list__items">
-          {articles.list.map((article) => (
-            <li>
-              <article>
-                <h2>
-                  <a href={`/articles/${encodeURIComponent(article.slug)}`}>{article.title}</a>
-                </h2>
-                <p>{article.summary}</p>
-                {article.publishedAt ? (
-                  <p class="article-meta">
-                    <time datetime={article.publishedAt}>{formatDate(article.publishedAt)}</time>
-                    {article.author ? ` · ${article.author.displayName}` : ""}
-                  </p>
-                ) : null}
-              </article>
-            </li>
-          ))}
-        </ol>
+      <section
+        id="article-list-all"
+        class="article-list content-container"
+        aria-labelledby="article-list-title"
+      >
+        <header class="article-list__intro">
+          <p class="eyebrow">PETCARE · 生活阅读</p>
+          <h1 id="article-list-title">宠物课堂</h1>
+          <p>把照护知识放进生活，把日常观察慢慢留下。</p>
+          {articleGroups.length > 0 ? (
+            <nav class="article-list__categories" aria-label="文章分类目录">
+              <a href="#article-list-all" aria-current="page">
+                全部
+              </a>
+              {articleGroups.map((group) => (
+                <a href={`#${group.id}`}>{group.label}</a>
+              ))}
+            </nav>
+          ) : null}
+        </header>
+        {articleGroups.map((group) => (
+          <section id={group.id} class="article-list__category-section" aria-label={group.label}>
+            <h2 class="sr-only">{group.label}</h2>
+            <ol class="article-list__items">
+              {group.items.map((article) => (
+                <li>
+                  <article>
+                    {article.coverUrl ? <img src={article.coverUrl} alt="" loading="lazy" /> : null}
+                    <div>
+                      {article.category ? (
+                        <span class="marketing-page__card-label">
+                          {CLASSROOM_ARTICLE_CATEGORY_LABELS[article.category]}
+                        </span>
+                      ) : null}
+                      <h3>
+                        <a href={`/articles/${encodeURIComponent(article.slug)}`}>
+                          {article.title}
+                        </a>
+                      </h3>
+                      <p>{article.summary}</p>
+                      <a class="text-link" href={`/articles/${encodeURIComponent(article.slug)}`}>
+                        阅读全文 <span class="icon-arrow" aria-hidden="true" />
+                      </a>
+                    </div>
+                  </article>
+                </li>
+              ))}
+            </ol>
+          </section>
+        ))}
       </section>
     </ArticleLayout>
   ) : (
-    <MarketingPage page={marketingPages.articles} />
+    <MarketingPage page={marketingPages.articles} emptyMessage={emptyMessage} />
   )
 }

@@ -2,7 +2,11 @@
 import MotionEnhancer from "./MotionEnhancer.astro";
 import SiteFooter from "./SiteFooter.astro";
 import SiteHeader from "./SiteHeader.astro";
+import { getWebsiteRuntimeConfig } from "../lib/runtime-config";
 import "../styles/global.css";
+import "../styles/home-shell.css";
+import "../styles/interior.css";
+import "../styles/reading-pages.css";
 
 interface LegalSection {
   title: string;
@@ -19,6 +23,7 @@ interface Props {
 }
 
 const { title, description, eyebrow, heading, intro, sections } = Astro.props;
+const publicUrl = getWebsiteRuntimeConfig().publicUrl;
 ---
 
 <!doctype html>
@@ -27,33 +32,53 @@ const { title, description, eyebrow, heading, intro, sections } = Astro.props;
     <meta charset="utf-8" />
     <meta name="viewport" content="width=device-width, initial-scale=1" />
     <meta name="description" content={description} />
-    <link rel="canonical" href={new URL(Astro.url.pathname, Astro.site ?? Astro.url.origin)} />
+    <link rel="canonical" href={new URL(Astro.url.pathname, publicUrl)} />
     <link rel="icon" href="/brand/petcare-favicon.svg" type="image/svg+xml" />
+    <meta name="theme-color" content="#edf6ff" />
     <title>{title}</title>
   </head>
-  <body>
+  <body class="interior-site interior-site--legal">
     <a class="skip-link" href="#main-content">跳到主要内容</a>
     <SiteHeader static />
     <main id="main-content" class="legal-page">
-      <section class="legal-page__hero">
+      <section class="legal-page__hero" aria-labelledby="legal-page-title">
         <div class="content-container" data-scroll-reveal>
           <p class="eyebrow">{eyebrow}</p>
-          <h1>{heading}</h1>
+          <h1 id="legal-page-title">{heading}</h1>
           <p>{intro}</p>
         </div>
       </section>
-      <section class="legal-page__body">
-        <div class="content-container">
-          {
-            sections.map((section) => (
-              <article data-scroll-reveal>
-                <h2>{section.title}</h2>
-                {section.paragraphs.map((paragraph) => (
-                  <p>{paragraph}</p>
-                ))}
-              </article>
-            ))
-          }
+      <section class="legal-page__body" aria-label="正文">
+        <div class="content-container legal-page__layout">
+          <nav class="legal-page__toc" aria-label="页面目录">
+            <p>本页内容</p>
+            <ol>
+              {
+                sections.map((section, index) => (
+                  <li>
+                    <a href={`#legal-section-${index + 1}`}>{section.title}</a>
+                  </li>
+                ))
+              }
+            </ol>
+          </nav>
+          <div class="legal-page__content">
+            {
+              sections.map((section, index) => (
+                <article id={`legal-section-${index + 1}`} data-scroll-reveal>
+                  <h2>{section.title}</h2>
+                  {section.paragraphs.map((paragraph) => (
+                    <p>{paragraph}</p>
+                  ))}
+                </article>
+              ))
+            }
+            <aside class="legal-page__contact">
+              <a class="text-link" href="/contact">
+                查看联系与反馈 <span class="icon-arrow" aria-hidden="true"></span>
+              </a>
+            </aside>
+          </div>
         </div>
       </section>
     </main>
