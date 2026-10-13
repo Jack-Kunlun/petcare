@@ -1102,35 +1102,44 @@
   background: var(--interior-air);
 }
 
-.interior-site .care-page__hero .interior-page__hero-scene {
-  right: max(0px, calc(50% - 720px));
-  left: auto;
-  width: min(1000px, 72%);
+.interior-site .about-page__hero {
+  --hero-wash-direction: 270deg;
 }
 
-.interior-site .about-page__hero .interior-page__hero-scene {
-  left: max(0px, calc(50% - 720px));
-}
+@media (min-width: 1200px) {
+  .interior-site :is(.care-page, .about-page) {
+    --scene-height: max(720px, 40vw);
+    position: relative;
+    isolation: isolate;
+    overflow: clip;
+  }
 
-.interior-site :is(.care-page__hero, .about-page__hero) .interior-page__hero-scene {
-  mask-image: linear-gradient(
-    var(--hero-wash-direction, 90deg),
-    transparent,
-    #000 16%,
-    #000 calc(100% - clamp(0px, calc(50vw - 720px), 120px)),
-    transparent
-  );
-}
+  .interior-site :is(.care-page__hero, .about-page__hero) {
+    position: static;
+    height: calc(var(--scene-height) - 92px);
+    min-height: 0;
+    isolation: auto;
+    overflow: visible;
+    background: transparent;
+  }
 
-.interior-site :is(.care-page__hero, .about-page__hero) .interior-page__hero-wash {
-  right: auto;
-  left: 50%;
-  width: min(1440px, 100%);
-  transform: translateX(-50%);
-  background:
-    linear-gradient(0deg, #edf6ff, transparent 116px),
-    linear-gradient(180deg, rgb(237 246 255 / 92%), transparent 88px),
-    linear-gradient(
+  .interior-site :is(.care-page__hero, .about-page__hero) .interior-page__hero-scene,
+  .interior-site :is(.care-page__hero, .about-page__hero) .interior-page__hero-wash {
+    inset: 0 0 auto;
+    width: 100%;
+    height: var(--scene-height);
+  }
+
+  .interior-site :is(.care-page__hero, .about-page__hero) .interior-page__hero-scene {
+    overflow: hidden;
+  }
+
+  .interior-site :is(.care-page__hero, .about-page__hero) .interior-page__hero-scene img {
+    object-position: center top;
+  }
+
+  .interior-site :is(.care-page__hero, .about-page__hero) .interior-page__hero-wash {
+    background: linear-gradient(
       var(--hero-wash-direction, 90deg),
       rgb(237 246 255 / 98%),
       rgb(237 246 255 / 90%) 28%,
@@ -1138,23 +1147,37 @@
       rgb(237 246 255 / 6%) 82%,
       transparent
     );
-}
+  }
 
-.interior-site .about-page__hero {
-  --hero-wash-direction: 270deg;
-}
+  .interior-site :is(.care-page__hero, .about-page__hero) .interior-page__hero-inner {
+    padding-block: 128px 0;
+  }
 
-.interior-site :is(.care-page__hero, .about-page__hero) .interior-page__hero-inner {
-  padding-block: 152px 0;
-}
+  .interior-site :is(.care-page__hero, .about-page__hero) .interior-page__hero-copy {
+    width: 548px;
+  }
 
-.interior-site .about-page__hero .interior-page__hero-copy {
-  width: 480px;
-}
+  .interior-site :is(.care-page__hero, .about-page__hero) h1 {
+    font-size: 56px;
+    letter-spacing: 0;
+    line-height: 68px;
+  }
 
-.interior-site :is(.care-page__hero, .about-page__hero) .interior-page__hero-wave {
-  top: calc(100% - 40px);
-  bottom: auto;
+  .interior-site :is(.care-page__hero, .about-page__hero) p.interior-page__hero-description {
+    max-width: 548px;
+    font-size: 18px;
+    line-height: 30px;
+  }
+
+  .interior-site :is(.care-page__hero, .about-page__hero) .interior-page__button {
+    min-height: 48px;
+  }
+
+  .interior-site :is(.care-page__hero, .about-page__hero) .interior-page__hero-wave {
+    top: calc(var(--scene-height) - 120px);
+    bottom: auto;
+    height: 240px;
+  }
 }
 
 @media (max-width: 1199px) {

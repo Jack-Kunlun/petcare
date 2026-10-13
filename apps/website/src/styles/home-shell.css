@@ -64,6 +64,12 @@
   white-space: nowrap;
 }
 
+.site-header--home
+  .site-header__navigation
+  a:not(.button):is([aria-current="page"], [data-current="true"]) {
+  color: var(--home-action, #3552c8);
+}
+
 .site-header--home .site-header__navigation .button {
   width: 204px;
   height: 56px;

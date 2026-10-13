@@ -109,10 +109,16 @@ const isCurrent = (href: string) =>
           navigation.map((item) => {
             const href =
               home && item.href.startsWith("#") ? item.href : getSafeWebsiteHref(item.href);
+            const current = href ? isCurrent(href) : false;
+            const homeExperienceSelected = home && currentPath === "/" && item.href === "/product";
 
             return href ? (
               <li class:list={[item.mobileOnly && "site-header__mobile-link"]}>
-                <a href={href} aria-current={isCurrent(href) ? "page" : undefined}>
+                <a
+                  href={href}
+                  aria-current={current ? "page" : undefined}
+                  data-current={current || homeExperienceSelected ? "true" : undefined}
+                >
                   {useStatic && !home && item.href === "/articles" ? (
                     <>
                       <span class="site-header__desktop-label">生活阅读</span>
