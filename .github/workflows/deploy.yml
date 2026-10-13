@@ -450,7 +450,9 @@ jobs:
           fi
           chmod 600 "$DEPLOY_TMP/known_hosts"
 
-          ssh -o StrictHostKeyChecking=yes \
+          # 当前部署链路无法完成默认的混合密钥交换，使用 Curve25519 并限制握手等待。
+          ssh -o BatchMode=yes -o ConnectTimeout=15 -o KexAlgorithms=curve25519-sha256 \
+            -o StrictHostKeyChecking=yes \
             -o UserKnownHostsFile="$DEPLOY_TMP/known_hosts" \
             -i "$DEPLOY_TMP/deploy_key" -p "$DEPLOY_PORT" \
             "$DEPLOY_USER@$DEPLOY_HOST" true
@@ -466,7 +468,8 @@ jobs:
           cleanup_remote() {
             local status=$?
             if [[ "$remote_ready" == true ]]; then
-              ssh -o StrictHostKeyChecking=yes \
+              ssh -o BatchMode=yes -o ConnectTimeout=15 -o KexAlgorithms=curve25519-sha256 \
+                -o StrictHostKeyChecking=yes \
                 -o UserKnownHostsFile="$DEPLOY_TMP/known_hosts" \
                 -i "$DEPLOY_TMP/deploy_key" -p "$DEPLOY_PORT" \
                 "$destination" "sudo rm -rf -- '$REMOTE_TMP'" \
@@ -476,13 +479,15 @@ jobs:
           }
           trap cleanup_remote EXIT
 
-          ssh -o StrictHostKeyChecking=yes \
+          ssh -o BatchMode=yes -o ConnectTimeout=15 -o KexAlgorithms=curve25519-sha256 \
+            -o StrictHostKeyChecking=yes \
             -o UserKnownHostsFile="$DEPLOY_TMP/known_hosts" \
             -i "$DEPLOY_TMP/deploy_key" -p "$DEPLOY_PORT" \
             "$destination" "install -d -m 700 '$REMOTE_TMP'"
           remote_ready=true
 
-          scp -o StrictHostKeyChecking=yes \
+          scp -o BatchMode=yes -o ConnectTimeout=15 -o KexAlgorithms=curve25519-sha256 \
+            -o StrictHostKeyChecking=yes \
             -o UserKnownHostsFile="$DEPLOY_TMP/known_hosts" \
             -i "$DEPLOY_TMP/deploy_key" -P "$DEPLOY_PORT" \
             "$DEPLOY_TMP/release.tar" \
@@ -496,7 +501,8 @@ jobs:
             "$DEPLOY_TMP"/petcare-image-*.tar.gz \
             "$destination:$REMOTE_TMP/"
 
-          ssh -o StrictHostKeyChecking=yes \
+          ssh -o BatchMode=yes -o ConnectTimeout=15 -o KexAlgorithms=curve25519-sha256 \
+            -o StrictHostKeyChecking=yes \
             -o UserKnownHostsFile="$DEPLOY_TMP/known_hosts" \
             -i "$DEPLOY_TMP/deploy_key" -p "$DEPLOY_PORT" \
             "$destination" bash -s -- \

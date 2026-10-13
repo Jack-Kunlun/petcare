@@ -431,6 +431,21 @@ test("部署工作流先在受保护 runner 临时目录验证 SSH 与 TLS", asy
   assert.doesNotMatch(workflow, /prisma:push|sync_schema/);
 });
 
+test("部署工作流的 SSH/SCP 命令固定握手算法与超时", async () => {
+  const workflow = await readFile(resolve(root, ".github/workflows/deploy.yml"), "utf8");
+  const deployJob = workflowJobBlock(workflow, "deploy");
+  const commands = [...deployJob.matchAll(/^[ \t]*(ssh|scp)(?=[ \t])([^\r\n]*)/gm)];
+
+  assert.equal(commands.filter(([, command]) => command === "ssh").length, 4);
+  assert.equal(commands.filter(([, command]) => command === "scp").length, 1);
+
+  for (const [, , options] of commands) {
+    assert.match(options, /(?:^|\s)-o BatchMode=yes(?:\s|$)/);
+    assert.match(options, /(?:^|\s)-o ConnectTimeout=15(?:\s|$)/);
+    assert.match(options, /(?:^|\s)-o KexAlgorithms=curve25519-sha256(?:\s|$)/);
+  }
+});
+
 test("存储配置由 production Environment 原子写入且失败时恢复", async () => {
   const [workflow, releaseScript, updater] = await Promise.all([
     readFile(resolve(root, ".github/workflows/deploy.yml"), "utf8"),
