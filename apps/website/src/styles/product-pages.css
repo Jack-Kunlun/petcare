@@ -1113,7 +1113,13 @@
 }
 
 .interior-site :is(.care-page__hero, .about-page__hero) .interior-page__hero-scene {
-  mask-image: linear-gradient(90deg, transparent, #000 16%, #000 88%, transparent);
+  mask-image: linear-gradient(
+    var(--hero-wash-direction, 90deg),
+    transparent,
+    #000 16%,
+    #000 calc(100% - clamp(0px, calc(50vw - 720px), 120px)),
+    transparent
+  );
 }
 
 .interior-site :is(.care-page__hero, .about-page__hero) .interior-page__hero-wash {
@@ -1122,7 +1128,7 @@
   width: min(1440px, 100%);
   transform: translateX(-50%);
   background:
-    linear-gradient(0deg, #edf6ff, transparent 180px),
+    linear-gradient(0deg, #edf6ff, transparent 116px),
     linear-gradient(180deg, rgb(237 246 255 / 92%), transparent 88px),
     linear-gradient(
       var(--hero-wash-direction, 90deg),
@@ -1134,7 +1140,7 @@
     );
 }
 
-.interior-site .about-page__hero .interior-page__hero-wash {
+.interior-site .about-page__hero {
   --hero-wash-direction: 270deg;
 }
 
