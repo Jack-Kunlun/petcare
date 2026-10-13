@@ -35,9 +35,9 @@ page.on("pageerror", (error) => errors.push(error.message));
 
 try {
   if (output) await mkdir(output, { recursive: true });
-  for (const width of [1440, 768, 390, 320]) {
+  for (const width of [2560, 1920, 1440, 1280, 768, 390, 320]) {
     await page.setViewportSize({ width, height: 900 });
-    for (const route of routes) {
+    for (const route of width === 1440 || width < 1200 ? routes : ["care", "about"]) {
       const response = await page.goto(new URL(route, origin).toString(), {
         waitUntil: "domcontentloaded",
         timeout: 60000,
@@ -84,6 +84,7 @@ try {
       if (route === "care" || route === "about") {
         const background = await page.locator(".interior-page__hero").evaluate((hero) => {
           const photo = hero.querySelector(".interior-page__hero-scene").getBoundingClientRect();
+          const wash = hero.querySelector(".interior-page__hero-wash").getBoundingClientRect();
           const heroRect = hero.getBoundingClientRect();
           return {
             padding: getComputedStyle(hero).paddingTop,
@@ -94,6 +95,8 @@ try {
             photoX: photo.x,
             photoWidth: photo.width,
             photoHeight: photo.height,
+            washX: wash.x,
+            washWidth: wash.width,
             transition: getComputedStyle(
               hero.querySelector(".interior-page__hero-scene"),
               "::after",
@@ -104,12 +107,31 @@ try {
         });
         assert.equal(background.padding, "0px", `${route}: no legacy hero padding`);
         assert.equal(background.color, "rgb(237, 246, 255)", `${route}: blue canvas`);
-        if (width === 1440) {
+        if (width >= 1200) {
           assert.equal(background.heroHeight, 552, `${route}: desktop scene height`);
-          assert.equal(background.photoWidth, 1000, `${route}: desktop photo width`);
+          assert(
+            Math.abs(
+              background.photoWidth -
+                Math.min(1000, (background.heroRight - background.heroLeft) * 0.72),
+            ) < 1,
+            `${route}@${width}: desktop photo width`,
+          );
           assert.equal(
             background.photoX,
             route === "care" ? background.heroRight - background.photoWidth : background.heroLeft,
+          );
+          assert(
+            Math.abs(background.washWidth - background.photoWidth * 1.44) < 1,
+            `${route}@${width}: transition follows photo width`,
+          );
+          assert(
+            Math.abs(
+              background.washX -
+                (route === "care"
+                  ? background.heroRight - background.washWidth
+                  : background.heroLeft),
+            ) < 1,
+            `${route}@${width}: transition follows photo edge`,
           );
         } else {
           assert.equal(background.photoWidth, width, `${route}: narrow photo width`);

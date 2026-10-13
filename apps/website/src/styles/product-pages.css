@@ -1107,7 +1107,13 @@
   width: min(1000px, 72%);
 }
 
+.interior-site :is(.care-page__hero, .about-page__hero) .interior-page__hero-wash {
+  /* Keep the transition at 1.44 times the photo width on every desktop canvas. */
+  width: min(1440px, 103.68%);
+}
+
 .interior-site .care-page__hero .interior-page__hero-wash {
+  left: auto;
   background:
     linear-gradient(0deg, #edf6ff, transparent 116px),
     linear-gradient(180deg, rgb(237 246 255 / 92%), rgb(237 246 255 / 12%) 88px, transparent 88px),
@@ -1121,6 +1127,7 @@
 }
 
 .interior-site .about-page__hero .interior-page__hero-wash {
+  right: auto;
   background:
     linear-gradient(0deg, #edf6ff, transparent 116px),
     linear-gradient(180deg, rgb(237 246 255 / 92%), rgb(237 246 255 / 12%) 88px, transparent 88px),
