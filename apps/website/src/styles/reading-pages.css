@@ -93,10 +93,12 @@
   background-image: url("/brand/interior/safety-wave.svg");
 }
 
+.marketing-page--stories .marketing-page__hero-image,
 .marketing-page--safety .marketing-page__hero-image {
   width: 100%;
 }
 
+.marketing-page--stories .marketing-page__hero .eyebrow,
 .marketing-page--safety .marketing-page__hero .eyebrow {
   margin: 0 0 16px;
   color: #3552c8;
@@ -106,6 +108,7 @@
   letter-spacing: 0;
 }
 
+.marketing-page--stories .marketing-page__hero .section-actions,
 .marketing-page--safety .marketing-page__hero .section-actions {
   margin-top: 16px;
 }
@@ -122,10 +125,12 @@
   padding-block: 0;
 }
 
+.marketing-page--stories .marketing-page__hero-inner,
 .marketing-page--safety .marketing-page__hero-inner {
   align-items: start;
 }
 
+.marketing-page--stories .marketing-page__hero-copy,
 .marketing-page--safety .marketing-page__hero-copy {
   padding-top: 152px;
 }
@@ -684,6 +689,12 @@
 
 .marketing-page--stories .marketing-page__cta {
   padding-block: 0 56px;
+  text-align: left;
+}
+
+.marketing-page--stories .marketing-page__cta .content-container {
+  justify-items: start;
+  gap: 16px;
 }
 
 .marketing-page--stories .marketing-page__cta h2 {
@@ -711,6 +722,7 @@
 
 .marketing-page--payments .marketing-page__cta .text-link {
   display: inline-flex;
+  margin: 0;
   padding: 0;
   color: #3552c8;
   background: transparent;
@@ -1104,6 +1116,7 @@
     gap: 36px;
   }
 
+  .marketing-page--stories .marketing-page__hero-copy,
   .marketing-page--safety .marketing-page__hero-copy {
     padding-top: 124px;
   }
@@ -1220,7 +1233,19 @@
   }
 
   .marketing-page__cards--stories {
-    gap: 40px;
+    gap: 36px;
+  }
+
+  .marketing-page--stories .marketing-page__section {
+    padding-block: 24px 64px;
+  }
+
+  .marketing-page--stories .marketing-page__cta {
+    padding-bottom: 48px;
+  }
+
+  .marketing-page__cards--stories .marketing-page__card:first-child > img {
+    aspect-ratio: 171 / 125;
   }
 
   .marketing-page__cards--stories .marketing-page__card:first-child,
@@ -1240,14 +1265,6 @@
 
   .marketing-page__cards--stories .marketing-page__card:nth-child(3) .marketing-page__card-copy {
     grid-column: auto;
-    grid-row: 2;
-  }
-
-  .marketing-page__cards--stories .marketing-page__card:nth-child(2) .marketing-page__card-copy {
-    grid-row: 1;
-  }
-
-  .marketing-page__cards--stories .marketing-page__card:nth-child(2) > img {
     grid-row: 2;
   }
 
@@ -1289,39 +1306,52 @@
     padding-block: 64px 48px;
   }
 
+  .marketing-page--stories .marketing-page__hero,
   .marketing-page--safety .marketing-page__hero,
+  .marketing-page--stories .marketing-page__hero-inner,
   .marketing-page--safety .marketing-page__hero-inner {
     min-height: 0;
   }
 
+  .marketing-page--stories .marketing-page__hero-copy,
   .marketing-page--safety .marketing-page__hero-copy {
     padding-block: 100px 284px;
   }
 
+  .marketing-page--stories .marketing-page__hero h1,
   .marketing-page--safety .marketing-page__hero h1 {
     font-size: 34px;
     line-height: 44px;
   }
 
+  .marketing-page--stories .marketing-page__hero .eyebrow,
   .marketing-page--safety .marketing-page__hero .eyebrow {
     margin-bottom: 14px;
   }
 
+  .marketing-page--stories .marketing-page__hero-copy > p:last-of-type,
   .marketing-page--safety .marketing-page__hero-copy > p:last-of-type {
     margin-top: 14px;
     font-size: 16px;
     line-height: 28px;
   }
 
+  .marketing-page--stories .marketing-page__hero .section-actions,
   .marketing-page--safety .marketing-page__hero .section-actions {
     margin-top: 14px;
   }
 
+  .marketing-page--stories .marketing-page__hero-image,
   .marketing-page--safety .marketing-page__hero-image {
     height: 260px;
     object-position: right center;
   }
 
+  .marketing-page--stories .marketing-page__hero-image {
+    object-position: center;
+  }
+
+  .marketing-page--stories .marketing-page__hero-overlay,
   .marketing-page--safety .marketing-page__hero-overlay {
     background:
       linear-gradient(180deg, #edf6ff 0%, rgb(237 246 255 / 0%) 20%),
@@ -1330,6 +1360,7 @@
     height: 260px;
   }
 
+  .marketing-page--stories .marketing-page__hero::after,
   .marketing-page--safety .marketing-page__hero::after {
     display: none;
   }

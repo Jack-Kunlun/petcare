@@ -81,6 +81,18 @@ try {
       );
       assert.deepEqual(geometry.brokenImages, [], `${route}@${width}: broken images`);
       assert.deepEqual(geometry.brokenAnchors, [], `${route}@${width}: broken anchors`);
+      if (route === "stories" || route === "trust") {
+        const opening = await page.locator(".marketing-page__hero .eyebrow").evaluate((label) => ({
+          top: label.getBoundingClientRect().top,
+          headerBottom: document.querySelector(".site-header").getBoundingClientRect().bottom,
+          fontSize: getComputedStyle(document.querySelector("#marketing-page-title")).fontSize,
+        }));
+        assert(opening.top >= opening.headerBottom, `${route}: opening clears navigation`);
+        if (width <= 680) assert.equal(opening.fontSize, "34px", `${route}: mobile heading`);
+      }
+      if (route === "payments") {
+        assert.equal(await page.locator(".marketing-page__cta .button").count(), 0);
+      }
       if (route === "help") {
         const searchStyle = await page.locator("[data-help-search]").evaluate((input) => ({
           padding: getComputedStyle(input).paddingRight,
@@ -100,6 +112,8 @@ try {
       for (const preview of await page.locator("[data-care-preview]").all()) {
         const tabs = preview.getByRole("tab");
         assert.equal(await tabs.count(), 4, `${route}: care stages`);
+        if (route === "trust")
+          assert.equal(await tabs.nth(2).getAttribute("aria-selected"), "true");
         await tabs.nth(0).click();
         await tabs.nth(0).press("End");
         assert.equal(await tabs.nth(3).getAttribute("aria-selected"), "true");

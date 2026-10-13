@@ -304,7 +304,7 @@ const layout = page.layout ?? "marketing";
               {page.cta.eyebrow ? <p class="eyebrow">{page.cta.eyebrow}</p> : null}
               {page.cta.title ? <h2 id="marketing-page-cta-title">{page.cta.title}</h2> : null}
               {page.cta.description ? <p>{page.cta.description}</p> : null}
-              <a class:list={["button", layout === "payments" && "text-link"]} href={page.cta.href}>
+              <a class={layout === "payments" ? "text-link" : "button"} href={page.cta.href}>
                 {page.cta.label} <span class="icon-arrow" aria-hidden="true" />
               </a>
             </div>
