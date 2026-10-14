@@ -647,8 +647,8 @@ export const marketingPages: Record<string, MarketingPage> = {
   },
   articles: {
     layout: "classroom",
-    title: "宠物课堂 | PetCare 宠伴",
-    description: "阅读已发布的 PetCare 养宠文章与实用指南。",
+    title: "生活阅读 | PetCare 宠伴",
+    description: "从陪伴日常与照护准备中，读懂宠物的生活。",
     eyebrow: "PETCARE · 生活阅读",
     heroTitle: "宠物课堂",
     heroDescription: "把照护知识放进生活，把日常观察慢慢留下。",

@@ -1,3 +1,4 @@
+import { readingArticles } from "../content/reading";
 import { STATIC_MARKETING_PATHS } from "./page-routes";
 
 /** Minimal published-content reader required to build a current public sitemap. */
@@ -28,12 +29,17 @@ export function createRobotsText(publicUrl: string): string {
 
 /** Reads code-owned marketing paths and any currently published article routes for the sitemap. */
 export async function loadPublishedSitemapPaths(reader: WebsiteSitemapReader): Promise<string[]> {
+  const staticPaths = [
+    ...STATIC_MARKETING_PATHS,
+    "/articles",
+    ...readingArticles.map((article) => `/articles/${article.slug}`),
+  ];
   let firstPage: Awaited<ReturnType<WebsiteSitemapReader["getArticles"]>>;
 
   try {
     firstPage = await reader.getArticles({ page: 1, pageSize: SITEMAP_ARTICLE_PAGE_SIZE });
   } catch {
-    return [...STATIC_MARKETING_PATHS, "/articles"];
+    return staticPaths;
   }
 
   const remainingPageCount = Math.max(0, Math.ceil(firstPage.total / firstPage.pageSize) - 1);
@@ -46,7 +52,7 @@ export async function loadPublishedSitemapPaths(reader: WebsiteSitemapReader): P
     page.list.map((article) => `/articles/${encodeURIComponent(article.slug)}`),
   );
 
-  return [...STATIC_MARKETING_PATHS, "/articles", ...articlePaths];
+  return [...new Set([...staticPaths, ...articlePaths])];
 }
 
 function escapeXml(value: string): string {

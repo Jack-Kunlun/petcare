@@ -1,10 +1,10 @@
 ---
+import { CLASSROOM_ARTICLE_CATEGORY_LABELS } from "@petcare/shared-types";
 import ArticleLayout from "../../layouts/ArticleLayout.astro";
-import MarketingPage from "../../components/MarketingPage.astro";
 import { marketingPages } from "../../content/marketing";
+import { readingArticles } from "../../content/reading";
 import { createWebsiteContentApi } from "../../lib/api";
 import { getWebsiteRuntimeConfig } from "../../lib/runtime-config";
-import { CLASSROOM_ARTICLE_CATEGORY_LABELS } from "@petcare/shared-types";
 
 const runtimeConfig = getWebsiteRuntimeConfig();
 const api = createWebsiteContentApi({ baseUrl: runtimeConfig.contentApiBaseUrl });
@@ -22,91 +22,142 @@ try {
   articles = null;
 }
 
+const cards = [
+  ...readingArticles,
+  ...(articles?.list ?? [])
+    .filter((article) => !readingArticles.some((reading) => reading.slug === article.slug))
+    .map((article) => ({
+      ...article,
+      category: article.category ?? "other",
+      categoryLabel: article.category
+        ? CLASSROOM_ARTICLE_CATEGORY_LABELS[article.category]
+        : "更多文章",
+      displayTitle: article.title,
+      mobileSummary: article.summary,
+      imageAlt: article.title,
+    })),
+];
 const categories = [
-  ...new Set(
-    articles?.list.flatMap((article) => (article.category ? [article.category] : [])) ?? [],
+  { id: "all", label: "全部" },
+  ...Array.from(new Map(cards.map((article) => [article.category, article.categoryLabel]))).map(
+    ([id, label]) => ({ id, label }),
   ),
 ];
-const articleGroups = [
-  ...categories.map((category) => ({
-    id: `category-${category}`,
-    label: CLASSROOM_ARTICLE_CATEGORY_LABELS[category],
-    items: articles?.list.filter((article) => article.category === category) ?? [],
-  })),
-  ...(articles?.list.some((article) => article.category === null)
-    ? [
-        {
-          id: "category-other",
-          label: "更多文章",
-          items: articles?.list.filter((article) => article.category === null) ?? [],
-        },
-      ]
-    : []),
-];
-const emptyMessage = articles ? "目前还没有已发布的文章。" : "文章列表暂时无法加载，请稍后再试。";
+const requestedCategory = Astro.url.searchParams.get("category") ?? "all";
+const category = categories.some((item) => item.id === requestedCategory)
+  ? requestedCategory
+  : "all";
+const visible = cards.filter((article) => category === "all" || article.category === category);
+const [featured, ...remaining] = visible;
 ---
 
-{
-  articles && articles.list.length > 0 ? (
-    <ArticleLayout
-      shell={shell}
-      title="宠物课堂 | PetCare 宠伴"
-      description="PetCare 宠物课堂的已发布养宠知识与实用指南。"
-      canonical={new URL("/articles", runtimeConfig.publicUrl).toString()}
-    >
-      <section
-        id="article-list-all"
-        class="article-list content-container"
-        aria-labelledby="article-list-title"
-      >
-        <header class="article-list__intro">
-          <p class="eyebrow">PETCARE · 生活阅读</p>
-          <h1 id="article-list-title">宠物课堂</h1>
-          <p>把照护知识放进生活，把日常观察慢慢留下。</p>
-          {articleGroups.length > 0 ? (
-            <nav class="article-list__categories" aria-label="文章分类目录">
-              <a href="#article-list-all" aria-current="page">
-                全部
+<ArticleLayout
+  shell={shell}
+  title={marketingPages.articles.title}
+  description={marketingPages.articles.description}
+  canonical={new URL("/articles", runtimeConfig.publicUrl).toString()}
+>
+  <section
+    id="article-list-all"
+    class="reading-page"
+    data-category={category}
+    aria-labelledby="reading-title"
+  >
+    <div class="reading-page__inner content-container">
+      <header class="reading-page__masthead">
+        <div class="reading-page__opening">
+          <div class="reading-page__brand">
+            <p class="reading-page__label">PETCARE · 生活阅读</p>
+            <h1 id="reading-title"><span>陪伴</span>，有迹可读。</h1>
+          </div>
+          <p class="reading-page__purpose">把照护知识放进生活，<br />把日常观察慢慢留下。</p>
+        </div>
+        <nav class="reading-page__categories" aria-label="阅读分类">
+          {
+            categories.map((item) => (
+              <a
+                href={
+                  item.id === "all"
+                    ? "/articles"
+                    : `/articles?category=${encodeURIComponent(item.id)}`
+                }
+                aria-current={category === item.id ? "true" : undefined}
+              >
+                {item.label}
               </a>
-              {articleGroups.map((group) => (
-                <a href={`#${group.id}`}>{group.label}</a>
+            ))
+          }
+        </nav>
+      </header>
+
+      {
+        featured ? (
+          <article
+            class:list={[
+              "reading-page__featured",
+              !featured.coverUrl && "reading-page__featured--text",
+            ]}
+          >
+            {featured.coverUrl ? (
+              <img src={featured.coverUrl} alt={featured.imageAlt} fetchpriority="high" />
+            ) : null}
+            <div class="reading-page__featured-copy">
+              <p class="reading-page__label">精选阅读 · {featured.categoryLabel}</p>
+              <h2>{featured.displayTitle}</h2>
+              <p class="reading-page__summary">
+                <span class="reading-page__desktop-summary">{featured.summary}</span>
+                <span class="reading-page__mobile-summary">
+                  {featured.mobileSummary ?? featured.summary}
+                </span>
+              </p>
+              <a class="reading-page__link" href={`/articles/${encodeURIComponent(featured.slug)}`}>
+                阅读全文<span class="sr-only">：{featured.title}</span>
+              </a>
+            </div>
+          </article>
+        ) : null
+      }
+
+      {
+        remaining.length > 0 ? (
+          <section class="reading-page__continuation" aria-labelledby="reading-more-title">
+            <header class="reading-page__section-heading">
+              <h2 id="reading-more-title">生活里的细节，值得留下。</h2>
+              <p>照护准备与陪伴日常，读过之后带回生活。</p>
+            </header>
+            <div
+              class:list={[
+                "reading-page__spread",
+                remaining.length === 1 && "reading-page__spread--single",
+              ]}
+            >
+              {remaining.map((article) => (
+                <article class="reading-page__story">
+                  {article.coverUrl ? (
+                    <img src={article.coverUrl} alt={article.imageAlt} loading="lazy" />
+                  ) : null}
+                  <div class="reading-page__story-copy">
+                    <p class="reading-page__label">{article.categoryLabel}</p>
+                    <h3>{article.title}</h3>
+                    <p class="reading-page__summary">{article.summary}</p>
+                    <a
+                      class="reading-page__link"
+                      href={`/articles/${encodeURIComponent(article.slug)}`}
+                    >
+                      阅读全文<span class="sr-only">：{article.title}</span>
+                    </a>
+                  </div>
+                </article>
               ))}
-            </nav>
-          ) : null}
-        </header>
-        {articleGroups.map((group) => (
-          <section id={group.id} class="article-list__category-section" aria-label={group.label}>
-            <h2 class="sr-only">{group.label}</h2>
-            <ol class="article-list__items">
-              {group.items.map((article) => (
-                <li>
-                  <article>
-                    {article.coverUrl ? <img src={article.coverUrl} alt="" loading="lazy" /> : null}
-                    <div>
-                      {article.category ? (
-                        <span class="marketing-page__card-label">
-                          {CLASSROOM_ARTICLE_CATEGORY_LABELS[article.category]}
-                        </span>
-                      ) : null}
-                      <h3>
-                        <a href={`/articles/${encodeURIComponent(article.slug)}`}>
-                          {article.title}
-                        </a>
-                      </h3>
-                      <p>{article.summary}</p>
-                      <a class="text-link" href={`/articles/${encodeURIComponent(article.slug)}`}>
-                        阅读全文 <span class="icon-arrow" aria-hidden="true" />
-                      </a>
-                    </div>
-                  </article>
-                </li>
-              ))}
-            </ol>
+            </div>
           </section>
-        ))}
-      </section>
-    </ArticleLayout>
-  ) : (
-    <MarketingPage page={marketingPages.articles} emptyMessage={emptyMessage} />
-  )
-}
+        ) : null
+      }
+
+      <footer class="reading-page__closing">
+        <h2>从理解它，开始照顾它。</h2>
+        <a class="reading-page__link" href="/care">了解照护服务 →</a>
+      </footer>
+    </div>
+  </section>
+</ArticleLayout>

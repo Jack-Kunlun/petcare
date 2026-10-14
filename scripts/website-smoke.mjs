@@ -65,6 +65,7 @@ try {
         timeout: 60000,
       });
       assert.equal(response.status(), 200, `${route}: HTTP ${response.status()}`);
+      await page.mouse.move(0, 0);
       await page.evaluate(async () => {
         document.querySelector("astro-dev-toolbar")?.remove();
         document.querySelectorAll('img[loading="lazy"]').forEach((img) => (img.loading = "eager"));
@@ -110,6 +111,148 @@ try {
       );
       assert.deepEqual(geometry.brokenImages, [], `${route}@${width}: broken images`);
       assert.deepEqual(geometry.brokenAnchors, [], `${route}@${width}: broken anchors`);
+      if (route === "articles") {
+        const reading = await page.locator(".reading-page").evaluate((section) => {
+          const featured = section.querySelector(".reading-page__featured");
+          const image = featured.querySelector(":scope > img");
+          const spread = section.querySelector(".reading-page__spread");
+          const featuredRect = featured.getBoundingClientRect();
+          const imageRect = image?.getBoundingClientRect();
+          return {
+            category: section.dataset.category,
+            headingFontSize: getComputedStyle(section.querySelector("h1")).fontSize,
+            headingLineHeight: getComputedStyle(section.querySelector("h1")).lineHeight,
+            featuredWidth: featuredRect.width,
+            featuredGrid: getComputedStyle(featured).gridTemplateColumns,
+            featuredImageWidth: imageRect?.width,
+            featuredImageHeight: imageRect?.height,
+            featuredImageSrc: image?.getAttribute("src"),
+            featuredHref: featured.querySelector(".reading-page__link")?.getAttribute("href"),
+            storyGrid: spread && getComputedStyle(spread).gridTemplateColumns,
+            storySlots: Array.from(section.querySelectorAll(".reading-page__story")).map(
+              (story) => ({
+                href: story.querySelector(".reading-page__link")?.getAttribute("href"),
+                image: story.querySelector("img")?.getAttribute("src"),
+              }),
+            ),
+            currentCategories: Array.from(
+              section.querySelectorAll('.reading-page__categories a[aria-current="true"]'),
+            ).map((link) => link.getAttribute("href")),
+          };
+        });
+        const storySlots = new Map(reading.storySlots.map((story) => [story.href, story.image]));
+        assert.equal(reading.category, "all");
+        assert.equal(reading.featuredHref, "/articles/morning-rhythm");
+        assert.equal(reading.featuredImageSrc, "/brand/home/home.png");
+        assert.equal(reading.currentCategories.length, 1);
+        assert.deepEqual(reading.currentCategories, ["/articles"]);
+        assert.equal(
+          storySlots.get("/articles/before-leaving-note"),
+          "/brand/home/care-record.png",
+        );
+        assert.equal(storySlots.get("/articles/after-the-walk"), "/brand/home/walk.png");
+        assert(reading.storyGrid, `${route}@${width}: story continuation`);
+        assert.equal(reading.storyGrid.trim().split(/\s+/u).length, width <= 729 ? 1 : 2);
+        if (width >= 1200) {
+          assert(Math.abs(reading.featuredWidth - 1200) < 1);
+          assert(Math.abs(reading.featuredImageWidth - reading.featuredWidth * 0.64) < 1);
+          assert.equal(reading.featuredImageHeight, 464);
+          assert.equal(reading.headingFontSize, "40px");
+          assert.equal(reading.headingLineHeight, "52px");
+        } else if (width <= 729) {
+          assert(Math.abs(reading.featuredImageWidth - reading.featuredWidth) < 1);
+          assert(Math.abs(reading.featuredImageWidth / reading.featuredImageHeight - 1.5) < 0.01);
+          assert.equal(reading.headingFontSize, "34px");
+          assert.equal(reading.headingLineHeight, "44px");
+          if (width === 390) {
+            assert.equal(reading.featuredImageWidth, 342);
+            assert.equal(reading.featuredImageHeight, 228);
+          }
+        } else {
+          assert.equal(reading.featuredImageHeight, 400);
+          assert.equal(reading.featuredGrid.trim().split(/\s+/u).length, 1);
+        }
+        if (width === 1440) {
+          for (const href of [
+            "/articles",
+            "/articles?category=companionship",
+            "/articles?category=preparation",
+          ]) {
+            assert.equal(
+              await page.locator(`.reading-page__categories a[href="${href}"]`).count(),
+              1,
+              `reading category link ${href}`,
+            );
+          }
+          await page
+            .locator('.reading-page__categories a[href="/articles?category=companionship"]')
+            .click();
+          assert.equal(
+            await page.locator(".reading-page").getAttribute("data-category"),
+            "companionship",
+          );
+          assert.equal(
+            await page
+              .locator('.reading-page__categories a[aria-current="true"]')
+              .getAttribute("href"),
+            "/articles?category=companionship",
+          );
+          assert.equal(
+            await page
+              .locator(
+                '.reading-page__featured .reading-page__link[href="/articles/morning-rhythm"]',
+              )
+              .count(),
+            1,
+          );
+          assert.equal(
+            await page.locator('.reading-page__featured img[src="/brand/home/home.png"]').count(),
+            1,
+          );
+          assert.equal(
+            await page
+              .locator('.reading-page__story .reading-page__link[href="/articles/after-the-walk"]')
+              .count(),
+            1,
+          );
+          await page
+            .locator('.reading-page__categories a[href="/articles?category=preparation"]')
+            .click();
+          assert.equal(
+            await page.locator(".reading-page").getAttribute("data-category"),
+            "preparation",
+          );
+          assert.equal(
+            await page
+              .locator('.reading-page__categories a[aria-current="true"]')
+              .getAttribute("href"),
+            "/articles?category=preparation",
+          );
+          assert.equal(
+            await page
+              .locator(
+                '.reading-page__featured .reading-page__link[href="/articles/before-leaving-note"]',
+              )
+              .count(),
+            1,
+          );
+          assert.equal(
+            await page
+              .locator('.reading-page__featured img[src="/brand/home/care-record.png"]')
+              .count(),
+            1,
+          );
+          assert.equal(await page.locator(".reading-page__continuation").count(), 0);
+          await page.locator('.reading-page__categories a[href="/articles"]').click();
+          assert.equal(await page.locator(".reading-page").getAttribute("data-category"), "all");
+          assert.equal(
+            await page
+              .locator('.reading-page__categories a[aria-current="true"]')
+              .getAttribute("href"),
+            "/articles",
+          );
+        }
+      }
       if (route === "care" || route === "about") {
         const background = await page.locator(".interior-page__hero").evaluate((hero) => {
           const scene = hero.querySelector(".interior-page__hero-scene");
@@ -200,18 +343,79 @@ try {
       if (route === "payments") {
         assert.equal(await page.locator(".marketing-page__cta .button").count(), 0);
       }
-      if (route === "help") {
-        const searchStyle = await page.locator("[data-help-search]").evaluate((input) => ({
-          padding: getComputedStyle(input).paddingRight,
-          height: input.parentElement.getBoundingClientRect().height,
-          icon: getComputedStyle(document.querySelector(".help-center__search-icon")).position,
-          introMargin: getComputedStyle(document.querySelector(".help-center__intro-copy"))
-            .marginTop,
-        }));
-        assert.equal(searchStyle.padding, "92px", "Help search reserves space for controls");
-        assert.equal(searchStyle.height, 56, "Help search height");
-        assert.equal(searchStyle.icon, "absolute", "Help search icon position");
-        assert.equal(searchStyle.introMargin, "0px", "Help description spacing");
+      if (route === "help" && [1440, 768, 390].includes(width)) {
+        const layout = await page.locator(".help-center--task").evaluate((main) => {
+          const rect = (element) => {
+            const { x, y, width, height, right, bottom } = element.getBoundingClientRect();
+            return { x, y, width, height, right, bottom };
+          };
+          const openingCopy = main.querySelector(".help-center__opening-copy");
+          const heroPhoto = main.querySelector(".help-center__hero-photo");
+          const heroImage = heroPhoto.querySelector("img");
+          const search = main.querySelector(".help-center__search");
+          const searchInput = main.querySelector("[data-help-search]");
+          const clear = main.querySelector("[data-help-clear]");
+          const submit = main.querySelector(".help-center__search-submit");
+          const submitImage = main.querySelector(".help-center__search-submit img");
+          const answers = main.querySelector(".help-center__answers-layout");
+          const card = main.querySelector(".help-center__faq-card");
+          const faqList = main.querySelector(".help-center__faq-list--task");
+          const sidebar = main.querySelector(".help-center__sidebar");
+          const sidebarImage = main.querySelector(".help-center__sidebar-photo");
+          return {
+            searchHeight: rect(search).height,
+            searchMinHeight: getComputedStyle(search).minHeight,
+            searchInputPaddingRight: getComputedStyle(searchInput).paddingRight,
+            clearPosition: getComputedStyle(clear).position,
+            clearRight: getComputedStyle(clear).right,
+            submit: rect(submit),
+            submitImageSrc: submitImage.getAttribute("src"),
+            submitImageWidth: rect(submitImage).width,
+            submitImageHeight: rect(submitImage).height,
+            heroDisplay: getComputedStyle(heroPhoto).display,
+            heroImage: rect(heroImage),
+            heroImageSrc: heroImage.getAttribute("src"),
+            openingCopy: rect(openingCopy),
+            answersColumns: getComputedStyle(answers).gridTemplateColumns,
+            cardColor: getComputedStyle(card).backgroundColor,
+            faqListBorderTopWidth: getComputedStyle(faqList).borderTopWidth,
+            sidebar: rect(sidebar),
+            sidebarImageDisplay: getComputedStyle(sidebarImage).display,
+            sidebarImage: rect(sidebarImage),
+            sidebarImageSrc: sidebarImage.getAttribute("src"),
+          };
+        });
+        assert.equal(await page.locator("[data-help-category]").count(), 3);
+        assert.equal(layout.searchHeight, 62, `help@${width}: search height`);
+        assert.equal(layout.searchMinHeight, "62px");
+        assert.equal(layout.searchInputPaddingRight, "44px");
+        assert.equal(layout.clearPosition, "absolute");
+        assert.equal(layout.clearRight, "62px");
+        assert.equal(layout.submit.width, 44);
+        assert.equal(layout.submit.height, 44);
+        assert.equal(layout.submitImageSrc, "/brand/help/search.svg");
+        assert.equal(layout.submitImageWidth, 24);
+        assert.equal(layout.submitImageHeight, 24);
+        assert.equal(layout.cardColor, "rgb(255, 255, 255)");
+        assert.equal(layout.faqListBorderTopWidth, "0px");
+        if (width === 1440) {
+          assert.equal(layout.heroDisplay, "flex");
+          assert.equal(layout.heroImageSrc, "/brand/home/home.png");
+          assert.equal(layout.heroImage.width, 384);
+          assert.equal(layout.heroImage.height, 216);
+          assert(Math.abs(layout.heroImage.x - layout.openingCopy.right - 48) < 1);
+          assert.equal(layout.answersColumns.trim().split(/\s+/u).length, 2);
+        } else {
+          assert.equal(layout.heroDisplay, "none");
+          assert.equal(layout.sidebarImageDisplay, width === 390 ? "block" : "none");
+          assert.equal(layout.answersColumns.trim().split(/\s+/u).length, 1);
+          if (width === 390) {
+            assert.equal(layout.sidebarImageSrc, "/brand/home/home.png");
+            assert.equal(layout.sidebarImage.width, 342);
+            assert.equal(layout.sidebarImage.height, 192);
+            assert(Math.abs(layout.sidebarImage.y - layout.sidebar.y) < 1);
+          }
+        }
       }
       if (output && width !== 320) {
         await page.screenshot({ path: path.join(output, `${route}-${width}.png`), fullPage: true });
@@ -242,15 +446,138 @@ try {
     }
     log(`Public routes passed at ${width}px.`);
   }
-  await page.goto(new URL("help", origin).toString(), { waitUntil: "domcontentloaded" });
+  for (const [slug, cover] of [
+    ["morning-rhythm", "/brand/home/home.png"],
+    ["before-leaving-note", "/brand/home/care-record.png"],
+    ["after-the-walk", "/brand/home/walk.png"],
+  ]) {
+    const response = await page.goto(new URL(`/articles/${slug}`, origin).toString(), {
+      waitUntil: "domcontentloaded",
+    });
+    assert.equal(response.status(), 200, `${slug}: article detail`);
+    assert.equal(
+      await page.locator(".article-detail--reading").count(),
+      1,
+      `${slug}: reading detail`,
+    );
+    assert.equal(await page.locator(".article-detail__cover").getAttribute("src"), cover);
+    const paragraphs = await page.locator(".article-detail__body section p").allTextContents();
+    assert.equal(paragraphs.length, 4, `${slug}: four article sections`);
+    assert(
+      paragraphs.every((paragraph) => paragraph.trim().length > 40),
+      `${slug}: readable content`,
+    );
+  }
+
+  const helpResponse = await page.goto(new URL("help", origin).toString(), {
+    waitUntil: "domcontentloaded",
+  });
+  assert.equal(helpResponse.status(), 200, "Help center landing page");
   const search = page.locator("[data-help-search]");
+  const items = page.locator("[data-help-item]");
+  const visibleItems = page.locator("[data-help-item]:visible");
+  const categories = page.locator("[data-help-category]");
+  const firstSummary = items.first().locator("summary");
+  assert.equal(await items.count(), 8, "Help landing questions");
+  assert.equal(await categories.count(), 3, "Help categories");
+  assert.equal(
+    await items.first().locator("details[open]").count(),
+    0,
+    "First answer starts collapsed",
+  );
+  assert.equal(await firstSummary.locator("img").count(), 2);
+  assert.deepEqual(
+    await firstSummary
+      .locator("img")
+      .evaluateAll((images) => images.map((image) => image.getAttribute("src"))),
+    ["/brand/help/plus.svg", "/brand/help/minus.svg"],
+  );
+  assert.deepEqual(
+    await firstSummary
+      .locator("img")
+      .evaluateAll((images) => images.map((image) => getComputedStyle(image).display)),
+    ["block", "none"],
+  );
+  assert.equal(await firstSummary.locator("img:visible").count(), 1);
+  assert.equal(
+    await firstSummary.evaluate((summary) => getComputedStyle(summary, "::after").content),
+    "none",
+  );
+  const directQuestions = page.locator("[data-help-item] .help-center__question-link");
+  assert.equal(await directQuestions.count(), 7);
+  assert(
+    await directQuestions.evaluateAll((links) =>
+      links.every((link) => link.getAttribute("href")?.startsWith("/help/")),
+    ),
+    "Remaining questions link to full guides",
+  );
+  await firstSummary.press("Enter");
+  assert.equal(await items.first().locator("details[open]").count(), 1);
+  assert.deepEqual(
+    await firstSummary
+      .locator("img")
+      .evaluateAll((images) => images.map((image) => getComputedStyle(image).display)),
+    ["none", "block"],
+  );
+  assert.equal(await firstSummary.locator("img:visible").count(), 1);
+  assert.equal(
+    await firstSummary.evaluate((summary) => getComputedStyle(summary, "::after").content),
+    "none",
+  );
+  await firstSummary.press("Enter");
+  assert.equal(await items.first().locator("details[open]").count(), 0);
+
+  for (const [category, count] of [
+    ["all", 8],
+    ["care", 4],
+    ["rules", 3],
+    ["all", 8],
+  ]) {
+    const button = page.locator(`[data-help-category="${category}"]`);
+    if (category === "care") {
+      await button.focus();
+      await button.press("Enter");
+      assert(await button.evaluate((element) => element === document.activeElement));
+    } else {
+      await button.click();
+    }
+    assert.equal(await button.getAttribute("aria-pressed"), "true");
+    assert.equal(await visibleItems.count(), count, `${category}: visible questions`);
+  }
+
+  await search.fill("档案");
+  assert((await visibleItems.count()) > 0, "Help search filters as text changes");
+  assert(await search.evaluate((input) => input === document.activeElement));
+  await search.press("Enter");
+  const firstMatch = page
+    .locator(
+      "[data-help-item]:not([hidden]) summary, [data-help-item]:not([hidden]) .help-center__question-link",
+    )
+    .first();
+  assert(await firstMatch.evaluate((element) => element === document.activeElement));
+  await page.locator('[data-help-category="rules"]').click();
+  assert.equal(
+    await page.locator('[data-help-category="rules"]').getAttribute("aria-pressed"),
+    "true",
+  );
   await search.fill("没有这个问题123456");
+  assert.equal(await visibleItems.count(), 0);
   await page.locator("[data-help-empty]").waitFor({ state: "visible" });
-  assert.equal(await page.locator("[data-help-item]:visible").count(), 0);
-  await page.locator("[data-help-clear]").click();
-  assert((await page.locator("[data-help-item]:visible").count()) > 0);
+  const clear = page.locator("[data-help-clear]");
+  assert(await clear.isVisible());
+  await clear.focus();
+  assert(await clear.evaluate((button) => button === document.activeElement));
+  await clear.press("Enter");
+  assert.equal(await search.inputValue(), "");
+  assert(await search.evaluate((input) => input === document.activeElement));
+  assert.equal(
+    await page.locator('[data-help-category="all"]').getAttribute("aria-pressed"),
+    "true",
+  );
+  assert.equal(await visibleItems.count(), 8, "Clearing search restores all questions");
+  assert.equal(await page.locator("[data-help-empty]:visible").count(), 0);
   const detailHref = await page
-    .locator('[data-help-item] a[href^="/help/"]')
+    .locator("[data-help-item] .help-center__question-link")
     .first()
     .getAttribute("href");
   const detailResponse = await page.goto(new URL(detailHref, origin).toString(), {
