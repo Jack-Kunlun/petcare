@@ -1,16 +1,16 @@
 <script setup lang="ts">
 import { onShow } from "@dcloudio/uni-app";
 import type { ProviderIncomeSummary } from "@petcare/shared-types";
-import { ref } from "vue";
+import { ref, watch } from "vue";
 import { MiniappApiError } from "@/api/request";
 import { getProviderIncome } from "@/api/settlement";
-import PcButton from "@/components/PcButton.vue";
 import PcStatePanel from "@/components/PcStatePanel.vue";
 import SubPageLayout from "@/components/SubPageLayout.vue";
-import { session } from "@/state/session";
+import { captureSessionUserRevision, isSessionUserRevisionCurrent, session } from "@/state/session";
 
 const status = ref<"loading" | "ready" | "error">("loading");
 const income = ref<ProviderIncomeSummary | null>(null);
+const loading = ref(false);
 
 function formatAmount(cents: number): string {
   return `¥${(cents / 100).toFixed(2)}`;
@@ -21,28 +21,55 @@ function openLogin(): void {
 }
 
 async function loadIncome(): Promise<void> {
+  if (loading.value) {
+    return;
+  }
+
   if (!session.user) {
-    status.value = "ready";
+    status.value = session.bootstrapped ? "ready" : "loading";
     income.value = null;
 
     return;
   }
 
   status.value = "loading";
+  loading.value = true;
+  const revision = captureSessionUserRevision();
 
   try {
-    income.value = await getProviderIncome();
+    const response = await getProviderIncome();
+
+    if (!isSessionUserRevisionCurrent(revision)) {
+      return;
+    }
+
+    income.value = response;
     status.value = "ready";
   } catch (error) {
+    if (!isSessionUserRevisionCurrent(revision)) {
+      return;
+    }
+
+    income.value = null;
     status.value = error instanceof MiniappApiError && error.statusCode === 401 ? "ready" : "error";
+  } finally {
+    loading.value = false;
   }
 }
 
 onShow(() => void loadIncome());
+watch(
+  () => session.bootstrapped,
+  (ready) => {
+    if (ready) {
+      void loadIncome();
+    }
+  },
+);
 </script>
 
 <template>
-  <SubPageLayout title="收入与提现">
+  <SubPageLayout title="我的钱包">
     <view class="flex flex-col gap-copy px-action py-card">
       <PcStatePanel
         v-if="!session.user"
@@ -64,23 +91,22 @@ onShow(() => void loadIncome());
       />
 
       <template v-else-if="income">
-        <view class="main-card p-card-padding">
-          <text class="meta-text">可提现余额</text>
-          <text class="mt-caption block text-amount text-ink font-semibold leading-section">
+        <view class="wallet-balance rounded-surface bg-brand p-screen text-surface">
+          <text class="text-body leading-body">可提现余额</text>
+          <text class="wallet-amount mt-copy block font-medium">
             {{ formatAmount(income.availableCents) }}
           </text>
-          <text class="mt-caption block text-caption text-muted leading-caption">
+          <text class="mt-copy block text-caption leading-caption opacity-80">
             {{
               income.availableCents > 0
                 ? "提现主体配置完成后可申请出款"
                 : "当前没有已完成真实收款的可提现订单"
             }}
           </text>
-          <PcButton class="mt-copy" variant="secondary" disabled block> 提现 </PcButton>
         </view>
 
+        <text class="mb-copy mt-section section-heading">账单明细</text>
         <view class="main-card p-card-padding">
-          <text class="card-heading">收入记录</text>
           <view
             v-if="income.entries.length === 0"
             class="mt-copy rounded-control bg-divider p-copy"
@@ -94,7 +120,7 @@ onShow(() => void loadIncome());
             <view
               v-for="entry in income.entries"
               :key="entry.id"
-              class="rounded-control bg-divider p-copy"
+              class="border-b border-divider py-copy"
             >
               <view class="flex items-center justify-between gap-copy">
                 <text class="text-body text-ink leading-body">{{
@@ -104,7 +130,7 @@ onShow(() => void loadIncome());
                   class="text-caption leading-caption"
                   :class="entry.withdrawable ? 'text-success' : 'text-muted'"
                 >
-                  {{ entry.withdrawable ? "可提现" : "待配置结算" }}
+                  {{ entry.withdrawable ? "可提现" : "不可提现" }}
                 </text>
               </view>
               <text class="mt-caption block text-caption text-muted leading-caption">
@@ -117,3 +143,14 @@ onShow(() => void loadIncome());
     </view>
   </SubPageLayout>
 </template>
+
+<style scoped>
+.wallet-balance {
+  box-sizing: border-box;
+  min-height: 184px;
+}
+.wallet-amount {
+  font-size: 32px;
+  line-height: 48px;
+}
+</style>

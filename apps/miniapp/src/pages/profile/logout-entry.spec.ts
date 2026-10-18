@@ -25,13 +25,14 @@ function deferred<T>(): {
 }
 
 describe("profile logout control", () => {
-  it("keeps the personal center within account, pet, and support capabilities", () => {
+  it("links account, pet, support and the static social pages", () => {
     expect(profileSource).toContain("我的宠物");
     expect(profileSource).toContain("帮助与协议");
     expect(profileSource).not.toContain("pages-care");
-    expect(profileSource).not.toContain("优惠券");
+    expect(profileSource).toContain("优惠券");
     expect(profileSource).not.toContain("余额收入");
-    expect(profileSource).not.toContain("我的评价");
+    expect(profileSource).toContain("我的评价");
+    expect(profileSource).toContain("/pages-account/social/favorites");
   });
 
   it("gives anonymous profile and pet content distinct visual states", () => {

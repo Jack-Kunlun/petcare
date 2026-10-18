@@ -13,6 +13,7 @@ import { commercialServicesEnabled } from "@/config/features";
 import {
   BOUNTY_SERVICE_OPTIONS,
   createEmptyBountyForm,
+  formatBountyAmount,
   validateBountyForm,
 } from "@/domain/bounty-form";
 import type { BountyFormField } from "@/domain/bounty-form";
@@ -25,11 +26,13 @@ interface PickerChangeEvent {
 type FormStatus = "loading" | "ready" | "error" | "unavailable" | "unauthenticated";
 
 const form = reactive(createEmptyBountyForm());
+const step = ref(1);
 const pets = ref<MyPetListItem[]>([]);
 const status = ref<FormStatus>(commercialServicesEnabled ? "loading" : "unavailable");
 const busy = ref<"load" | "save" | null>(null);
 const loadError = ref("");
 const saveError = ref("");
+const createdBountyId = ref<string | null>(null);
 const featureUnavailable = ref(!commercialServicesEnabled);
 const validationField = ref<BountyFormField | null>(null);
 const validationMessage = ref("");
@@ -39,7 +42,9 @@ const minimumDate = [
   (today.getMonth() + 1).toString().padStart(2, "0"),
   today.getDate().toString().padStart(2, "0"),
 ].join("-");
-const controlsDisabled = computed(() => busy.value !== null || status.value !== "ready");
+const controlsDisabled = computed(
+  () => busy.value !== null || status.value !== "ready" || createdBountyId.value !== null,
+);
 const selectedPetLabel = computed(
   () => pets.value.find((pet) => pet.id === form.petId)?.name ?? "请选择宠物",
 );
@@ -54,6 +59,35 @@ function clearValidation(field?: BountyFormField): void {
     validationField.value = null;
     validationMessage.value = "";
   }
+}
+
+function goNextStep(): void {
+  clearValidation();
+
+  if (step.value === 1 && !form.serviceType) {
+    validationField.value = "serviceType";
+    validationMessage.value = "请选择服务类型";
+
+    return;
+  }
+
+  if (step.value === 2) {
+    const validation = validateBountyForm(form);
+
+    if (!validation.ok) {
+      validationField.value = validation.field;
+      validationMessage.value = validation.message;
+
+      return;
+    }
+  }
+
+  step.value = Math.min(step.value + 1, 3);
+}
+
+function goPreviousStep(): void {
+  clearValidation();
+  step.value = Math.max(step.value - 1, 1);
 }
 
 function openLogin(): void {
@@ -74,21 +108,22 @@ function returnToBounties(): void {
   uni.redirectTo({ url: "/pages-bounty/index?tab=mine" });
 }
 
+async function openCreatedBounty(): Promise<void> {
+  if (!createdBountyId.value) {
+    return;
+  }
+
+  await uni.redirectTo({
+    url: `/pages-bounty/success?bountyId=${encodeURIComponent(createdBountyId.value)}`,
+  });
+}
+
 function handlePetChange(event: PickerChangeEvent): void {
   const pet = pets.value[Number(event.detail?.value)];
 
   if (pet) {
     form.petId = pet.id;
     clearValidation("petId");
-  }
-}
-
-function handleServiceChange(event: PickerChangeEvent): void {
-  const option = BOUNTY_SERVICE_OPTIONS[Number(event.detail?.value)];
-
-  if (option) {
-    form.serviceType = option.value;
-    clearValidation("serviceType");
   }
 }
 
@@ -104,6 +139,12 @@ function handleTimeChange(event: PickerChangeEvent): void {
     form.serviceClock = event.detail.value;
     clearValidation("serviceDate");
   }
+}
+
+function formatAmountForReview(): string {
+  const validation = validateBountyForm(form);
+
+  return validation.ok ? formatBountyAmount(validation.request.amountCents) : "金额待完善";
 }
 
 async function loadPets(): Promise<void> {
@@ -175,7 +216,7 @@ async function loadPets(): Promise<void> {
 }
 
 async function save(): Promise<void> {
-  if (controlsDisabled.value || pets.value.length === 0) {
+  if (controlsDisabled.value || pets.value.length === 0 || step.value !== 3) {
     return;
   }
 
@@ -195,7 +236,7 @@ async function save(): Promise<void> {
   let completed = false;
 
   try {
-    await createBounty(validation.request);
+    const created = await createBounty(validation.request);
 
     if (!isSessionUserRevisionCurrent(startedAt)) {
       status.value = "unavailable";
@@ -203,6 +244,7 @@ async function save(): Promise<void> {
       return;
     }
 
+    createdBountyId.value = created.id;
     completed = true;
   } catch (error) {
     if (isSessionUserRevisionCurrent(startedAt)) {
@@ -230,9 +272,9 @@ async function save(): Promise<void> {
   await uni.showToast({ title: "悬赏已发布", icon: "success" }).catch(() => undefined);
 
   try {
-    await uni.redirectTo({ url: "/pages-bounty/index?tab=mine" });
+    await openCreatedBounty();
   } catch {
-    saveError.value = "悬赏已发布，请手动返回我的悬赏";
+    saveError.value = "悬赏已发布，请在我的悬赏中查看";
   }
 }
 
@@ -307,6 +349,19 @@ watch(
       </template>
 
       <template v-else>
+        <view class="publish-stepper" aria-label="发布流程">
+          <view
+            v-for="number in 3"
+            :key="number"
+            class="publish-stepper__item"
+            :class="step === number ? 'is-current' : step > number ? 'is-done' : ''"
+          >
+            <view class="publish-stepper__number">{{ step > number ? "✓" : `0${number}` }}</view>
+            <text>{{ ["服务类型", "服务详情", "确认发布"][number - 1] }}</text>
+            <view v-if="number < 3" class="publish-stepper__line" />
+          </view>
+        </view>
+
         <view
           v-if="saveError"
           class="rounded-control bg-danger-soft px-action py-copy text-body text-danger leading-body"
@@ -315,8 +370,51 @@ watch(
           {{ saveError }}
         </view>
 
-        <view class="flex flex-col gap-card main-card p-card-padding">
-          <view class="flex flex-col gap-sm">
+        <view v-if="step === 1" class="publish-section main-card">
+          <text class="publish-section__title">需要什么服务？</text>
+          <text class="meta-text">选择适合你和宠物的服务类型</text>
+          <view class="publish-service-grid">
+            <button
+              v-for="option in BOUNTY_SERVICE_OPTIONS"
+              :key="option.value"
+              class="publish-service-option"
+              :class="form.serviceType === option.value ? 'is-selected' : ''"
+              :disabled="controlsDisabled"
+              :aria-pressed="form.serviceType === option.value"
+              @click="
+                form.serviceType = option.value;
+                clearValidation('serviceType');
+              "
+            >
+              <image
+                :src="
+                  option.value === 'feeding'
+                    ? '/static/main/heart.svg'
+                    : '/static/main/profile-location.svg'
+                "
+                mode="aspectFit"
+                aria-hidden="true"
+              />
+              <text>{{ option.label }}</text>
+            </button>
+          </view>
+          <text
+            v-if="validationField === 'serviceType'"
+            class="text-caption text-danger"
+            role="alert"
+          >
+            {{ validationMessage }}
+          </text>
+          <view class="publish-note" role="status">
+            当前仅支持上门喂养、遛狗和陪玩。紧急程度设置暂未开放。
+          </view>
+        </view>
+
+        <view v-else-if="step === 2" class="publish-section main-card">
+          <text class="publish-section__title">填写服务详情</text>
+          <text class="meta-text">补充必要信息，让照护者更了解你的需求</text>
+
+          <view class="publish-field">
             <text class="text-body text-ink font-medium leading-label">照护宠物（必填）</text>
             <picker
               :range="pets"
@@ -325,19 +423,9 @@ watch(
               aria-label="选择照护宠物"
               @change="handlePetChange"
             >
-              <view
-                class="h-control flex items-center justify-between border border-border rounded-control px-action"
-                :class="controlsDisabled ? 'opacity-50' : ''"
-              >
-                <text :class="form.petId ? 'text-ink' : 'text-subtle'">
-                  {{ selectedPetLabel }}
-                </text>
-                <image
-                  class="h-icon-xs w-icon-xs"
-                  src="/static/main/chevron.svg"
-                  mode="aspectFit"
-                  aria-hidden="true"
-                />
+              <view class="publish-picker" :class="controlsDisabled ? 'opacity-50' : ''">
+                <text :class="form.petId ? 'text-ink' : 'text-subtle'">{{ selectedPetLabel }}</text>
+                <image src="/static/main/chevron.svg" mode="aspectFit" aria-hidden="true" />
               </view>
             </picker>
             <text v-if="validationField === 'petId'" class="text-caption text-danger" role="alert">
@@ -345,40 +433,7 @@ watch(
             </text>
           </view>
 
-          <view class="flex flex-col gap-sm">
-            <text class="text-body text-ink font-medium leading-label">服务类型（必填）</text>
-            <picker
-              :range="BOUNTY_SERVICE_OPTIONS"
-              range-key="label"
-              :disabled="controlsDisabled"
-              aria-label="选择服务类型"
-              @change="handleServiceChange"
-            >
-              <view
-                class="h-control flex items-center justify-between border border-border rounded-control px-action"
-                :class="controlsDisabled ? 'opacity-50' : ''"
-              >
-                <text :class="form.serviceType ? 'text-ink' : 'text-subtle'">
-                  {{ selectedServiceLabel }}
-                </text>
-                <image
-                  class="h-icon-xs w-icon-xs"
-                  src="/static/main/chevron.svg"
-                  mode="aspectFit"
-                  aria-hidden="true"
-                />
-              </view>
-            </picker>
-            <text
-              v-if="validationField === 'serviceType'"
-              class="text-caption text-danger"
-              role="alert"
-            >
-              {{ validationMessage }}
-            </text>
-          </view>
-
-          <view class="flex flex-col gap-sm">
+          <view class="publish-field">
             <text class="text-body text-ink font-medium leading-label">服务时间（必填）</text>
             <view class="grid grid-cols-2 gap-sm">
               <picker
@@ -389,13 +444,8 @@ watch(
                 aria-label="选择服务日期"
                 @change="handleDateChange"
               >
-                <view
-                  class="h-control flex items-center border border-border rounded-control px-action"
-                  :class="controlsDisabled ? 'opacity-50' : ''"
-                >
-                  <text :class="form.serviceDate ? 'text-ink' : 'text-subtle'">
-                    {{ form.serviceDate || "选择日期" }}
-                  </text>
+                <view class="publish-picker" :class="controlsDisabled ? 'opacity-50' : ''">
+                  {{ form.serviceDate || "选择日期" }}
                 </view>
               </picker>
               <picker
@@ -405,13 +455,8 @@ watch(
                 aria-label="选择服务时间"
                 @change="handleTimeChange"
               >
-                <view
-                  class="h-control flex items-center border border-border rounded-control px-action"
-                  :class="controlsDisabled ? 'opacity-50' : ''"
-                >
-                  <text :class="form.serviceClock ? 'text-ink' : 'text-subtle'">
-                    {{ form.serviceClock || "选择时间" }}
-                  </text>
+                <view class="publish-picker" :class="controlsDisabled ? 'opacity-50' : ''">
+                  {{ form.serviceClock || "选择时间" }}
                 </view>
               </picker>
             </view>
@@ -424,11 +469,11 @@ watch(
             </text>
           </view>
 
-          <view class="flex flex-col gap-sm">
+          <view class="publish-field">
             <text class="text-body text-ink font-medium leading-label">悬赏金额（元，必填）</text>
             <input
               v-model="form.amountYuan"
-              class="box-border h-control border border-border rounded-control px-action text-body text-ink"
+              class="publish-input"
               type="digit"
               :disabled="controlsDisabled"
               :maxlength="8"
@@ -436,7 +481,7 @@ watch(
               aria-label="悬赏金额"
               @input="clearValidation('amountYuan')"
             />
-            <text class="quiet-text">金额按整数分保存，本阶段不发起真实支付。</text>
+            <text class="quiet-text">填写本次服务的固定金额，发布后不会发起扣款。</text>
             <text
               v-if="validationField === 'amountYuan'"
               class="text-caption text-danger"
@@ -446,14 +491,14 @@ watch(
             </text>
           </view>
 
-          <view class="flex flex-col gap-sm">
+          <view class="publish-field">
             <text class="text-body text-ink font-medium leading-label">服务地址（必填）</text>
             <textarea
               v-model="form.address"
-              class="min-h-actions box-border w-full border border-border rounded-control px-action py-copy text-body text-ink leading-body"
+              class="publish-textarea"
               :disabled="controlsDisabled"
               :maxlength="BOUNTY_LIMITS.ADDRESS_MAX_LENGTH"
-              placeholder="仅在我的悬赏中显示，不进入公开列表"
+              placeholder="仅对订单主人和确认后的服务者开放"
               aria-label="服务地址"
               @input="clearValidation('address')"
             />
@@ -466,11 +511,11 @@ watch(
             </text>
           </view>
 
-          <view class="flex flex-col gap-sm">
+          <view class="publish-field">
             <text class="text-body text-ink font-medium leading-label">备注（选填）</text>
             <textarea
               v-model="form.remark"
-              class="min-h-actions box-border w-full border border-border rounded-control px-action py-copy text-body text-ink leading-body"
+              class="publish-textarea"
               :disabled="controlsDisabled"
               :maxlength="BOUNTY_LIMITS.REMARK_MAX_LENGTH"
               placeholder="填写照护要求；不会公开展示"
@@ -482,19 +527,272 @@ watch(
             </text>
           </view>
         </view>
+
+        <view v-else class="publish-section main-card">
+          <text class="publish-section__title">确认发布信息</text>
+          <text class="meta-text">确认无误后即可发布悬赏</text>
+          <view class="publish-summary">
+            <view class="publish-summary__row">
+              <text class="quiet-text">宠物</text>
+              <text class="text-body text-ink">{{ selectedPetLabel }}</text>
+            </view>
+            <view class="publish-summary__row">
+              <text class="quiet-text">服务类型</text>
+              <text class="text-body text-ink">{{ selectedServiceLabel }}</text>
+            </view>
+            <view class="publish-summary__row">
+              <text class="quiet-text">服务时间</text>
+              <text class="text-body text-ink">{{ form.serviceDate }} {{ form.serviceClock }}</text>
+            </view>
+            <view class="publish-summary__row">
+              <text class="quiet-text">服务地址</text>
+              <text class="text-body text-ink">{{ form.address }}</text>
+            </view>
+            <view v-if="form.remark" class="publish-summary__row">
+              <text class="quiet-text">照护备注</text>
+              <text class="text-body text-ink">{{ form.remark }}</text>
+            </view>
+            <view class="publish-summary__amount">
+              <text class="quiet-text">悬赏金额</text>
+              <text>{{ formatAmountForReview() }}</text>
+            </view>
+          </view>
+          <view class="publish-note" role="status">
+            当前仅支持固定金额发布；保险、议价和实时定位选项暂未开放。本步骤只创建悬赏，不会触发收款。
+          </view>
+        </view>
       </template>
     </view>
 
     <template v-if="status === 'ready' && pets.length > 0" #actions>
-      <PcButton
-        block
-        size="action"
-        :disabled="controlsDisabled"
-        :loading="busy === 'save'"
-        @click="save"
-      >
-        {{ busy === "save" ? "发布中…" : "确认发布" }}
-      </PcButton>
+      <view class="publish-actions">
+        <PcButton
+          v-if="createdBountyId"
+          class="flex-1"
+          block
+          size="action"
+          @click="openCreatedBounty"
+        >
+          查看发布结果
+        </PcButton>
+        <template v-else>
+          <PcButton v-if="step > 1" variant="secondary" @click="goPreviousStep">上一步</PcButton>
+          <PcButton
+            v-if="step < 3"
+            class="flex-1"
+            block
+            size="action"
+            :disabled="controlsDisabled"
+            @click="goNextStep"
+          >
+            下一步
+          </PcButton>
+          <PcButton
+            v-else
+            class="flex-1"
+            block
+            size="action"
+            :disabled="controlsDisabled"
+            :loading="busy === 'save'"
+            @click="save"
+          >
+            {{ busy === "save" ? "发布中…" : "确认发布" }}
+          </PcButton>
+        </template>
+      </view>
     </template>
   </SubPageLayout>
 </template>
+
+<style scoped lang="scss">
+.publish-stepper {
+  display: flex;
+  align-items: flex-start;
+  margin: 0 4px 16px;
+
+  &__item {
+    position: relative;
+    display: flex;
+    width: 33.333%;
+    flex-direction: column;
+    align-items: center;
+    gap: 6px;
+    color: #667085;
+    font-size: 12px;
+    line-height: 18px;
+
+    &.is-current,
+    &.is-done {
+      color: #4a6cf7;
+    }
+  }
+
+  &__number {
+    display: flex;
+    width: 28px;
+    height: 28px;
+    align-items: center;
+    justify-content: center;
+    border-radius: 50%;
+    background: #f2f4f7;
+    color: #667085;
+    font-size: 12px;
+  }
+
+  .is-current &__number,
+  .is-done &__number {
+    background: #4a6cf7;
+    color: #fff;
+  }
+
+  &__line {
+    position: absolute;
+    top: 13px;
+    left: calc(50% + 22px);
+    width: calc(100% - 44px);
+    height: 2px;
+    background: #e7ebf3;
+  }
+
+  .is-done &__line {
+    background: #4a6cf7;
+  }
+}
+
+.publish-section {
+  display: flex;
+  flex-direction: column;
+  gap: 16px;
+  padding: 18px 16px;
+}
+
+.publish-section__title {
+  color: #1f2937;
+  font-size: 20px;
+  font-weight: 600;
+  line-height: 28px;
+}
+
+.publish-service-grid {
+  display: grid;
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+  gap: 12px;
+}
+
+.publish-service-option {
+  display: flex;
+  min-height: 92px;
+  flex-direction: column;
+  align-items: flex-start;
+  justify-content: center;
+  gap: 8px;
+  padding: 14px;
+  border: 1px solid #e3e8f2;
+  border-radius: 16px;
+  background: #fff;
+  color: #1f2937;
+  font-size: 14px;
+  text-align: left;
+
+  image {
+    width: 24px;
+    height: 24px;
+  }
+
+  &.is-selected {
+    border-color: #4a6cf7;
+    background: #eef2ff;
+  }
+}
+
+.publish-note {
+  padding: 12px;
+  border-radius: 12px;
+  background: #eef2ff;
+  color: #53638a;
+  font-size: 12px;
+  line-height: 18px;
+}
+
+.publish-field {
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+}
+
+.publish-picker,
+.publish-input {
+  box-sizing: border-box;
+  display: flex;
+  width: 100%;
+  min-height: 48px;
+  align-items: center;
+  justify-content: space-between;
+  padding: 0 12px;
+  border: 1px solid #e3e8f2;
+  border-radius: 12px;
+  background: #fff;
+  color: #1f2937;
+  font-size: 14px;
+
+  image {
+    width: 16px;
+    height: 16px;
+  }
+}
+
+.publish-textarea {
+  box-sizing: border-box;
+  width: 100%;
+  min-height: 88px;
+  padding: 12px;
+  border: 1px solid #e3e8f2;
+  border-radius: 12px;
+  background: #fff;
+  color: #1f2937;
+  font-size: 14px;
+  line-height: 22px;
+}
+
+.publish-summary {
+  display: flex;
+  flex-direction: column;
+  gap: 14px;
+  padding: 16px;
+  border: 1px solid #eaecf0;
+  border-radius: 16px;
+  background: #fff;
+
+  &__row,
+  &__amount {
+    display: flex;
+    align-items: flex-start;
+    justify-content: space-between;
+    gap: 16px;
+  }
+
+  &__row > .text-body {
+    max-width: 72%;
+    text-align: right;
+    overflow-wrap: anywhere;
+  }
+
+  &__row > .quiet-text {
+    flex-shrink: 0;
+  }
+
+  &__amount {
+    padding-top: 12px;
+    border-top: 1px solid #f2f4f7;
+    color: #b54708;
+    font-size: 20px;
+    font-weight: 600;
+  }
+}
+
+.publish-actions {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+}
+</style>

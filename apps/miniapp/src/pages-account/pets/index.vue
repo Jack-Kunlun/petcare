@@ -96,6 +96,13 @@ watch(
 
 <template>
   <SubPageLayout title="我的宠物">
+    <template #header-right
+      ><PcButton variant="ghost" aria-label="添加宠物" :disabled="!canAdd" @click="addPet"
+        ><image
+          class="h-glyph w-glyph"
+          src="/static/content/chat-plus.svg"
+          mode="aspectFit" /></PcButton
+    ></template>
     <view class="flex flex-col gap-copy px-action py-card">
       <PcStatePanel v-if="status === 'loading'" status="loading" title="宠物档案加载中…" />
 
@@ -152,7 +159,7 @@ watch(
             @click="openPet(pet.id)"
           >
             <image
-              class="h-card-cover w-full rounded-control bg-divider"
+              class="pet-grid-photo w-full rounded-control bg-divider"
               :src="petCoverImage(pet)"
               mode="aspectFill"
             />
@@ -174,3 +181,9 @@ watch(
     </template>
   </SubPageLayout>
 </template>
+
+<style scoped>
+.pet-grid-photo {
+  height: 142px;
+}
+</style>

@@ -7,6 +7,8 @@ export {}
 
 declare module 'vue' {
   export interface GlobalComponents {
+    BountyPaymentPanel: typeof import('./components/bounty/BountyPaymentPanel.vue')['default']
+    BountySopPanel: typeof import('./components/bounty/BountySopPanel.vue')['default']
     MainTabLayout: typeof import('./components/MainTabLayout.vue')['default']
     PcButton: typeof import('./components/PcButton.vue')['default']
     PcStatePanel: typeof import('./components/PcStatePanel.vue')['default']

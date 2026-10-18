@@ -15,10 +15,12 @@ export function removeGeneratedSubPackage(source: string, root: string): string 
 
   const escapedRoot = root.replace(/[.*+?^${}()|[\]\\]/gu, "\\$&");
   const generatedBlock = new RegExp(
-    `,?\\r?\\n\\s{4}\\{\\r?\\n\\s{6}"root"\\s*:\\s*"${escapedRoot}"\\s*,[\\s\\S]*?\\r?\\n\\s{4}\\}(?=\\r?\\n\\s{2}\\]\\r?\\n\\})`,
+    `(,?\\r?\\n {4}\\{\\r?\\n {6}"root"\\s*:\\s*"${escapedRoot}"\\s*,[\\s\\S]*?\\r?\\n {4}\\})(,?)(?=\\r?\\n {4}\\{|\\r?\\n {2}\\])`,
     "u",
   );
-  const cleaned = source.replace(generatedBlock, "");
+  const cleaned = source.replace(generatedBlock, (_match, block: string, comma: string) =>
+    block.trimStart().startsWith(",") ? comma : "",
+  );
 
   if (cleaned === source) {
     throw new Error(`Cannot safely remove stale ${root} routes from pages.json`);
@@ -44,6 +46,15 @@ export function createMiniappPagesConfig(
           "profile/info",
           "profile/edit",
           "income/index",
+          "social/favorites",
+          "social/follows",
+          "social/reviews",
+          "social/review-form",
+          "discover/service",
+          "discover/caregiver",
+          "discover/store",
+          "discover/creator",
+          "coupons/index",
           "account/settings",
           "account/cancel",
         ].map(createPage),
@@ -57,13 +68,19 @@ export function createMiniappPagesConfig(
           "help/index",
           "contact/index",
           "legal/index",
+          "about/index",
+          "chat/index",
         ].map(createPage),
       },
       ...(commercialServicesEnabled
         ? [
             {
               root: "pages-bounty",
-              pages: ["index", "form"].map(createPage),
+              pages: ["index", "form", "detail", "map", "success"].map(createPage),
+            },
+            {
+              root: "pages-orders",
+              pages: ["index", "detail", "monitor"].map(createPage),
             },
           ]
         : []),

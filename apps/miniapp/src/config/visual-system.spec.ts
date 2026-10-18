@@ -16,7 +16,7 @@ const profileInfo = source("../pages-account/profile/info.vue");
 
 describe("miniapp visual system", () => {
   it("centers native button labels and removes the platform pseudo border", () => {
-    expect(app).toMatch(/button,\s*uni-button\s*\{[\s\S]*display: flex !important;/u);
+    expect(app).toMatch(/button,\s*uni-button\s*\{[\s\S]*display: flex;/u);
     expect(app).toMatch(/button,\s*uni-button\s*\{[\s\S]*align-items: center;/u);
     expect(app).toMatch(/button,\s*uni-button\s*\{[\s\S]*justify-content: center;/u);
     expect(app).toMatch(/button::after,\s*uni-button::after\s*\{[\s\S]*border: 0 !important;/u);

@@ -19,7 +19,7 @@ const rootHeaderRightInset = computed(() =>
 const tabbarStyle = [
   `--wot-tabbar-height: ${sizes.tabbar}`,
   `--wot-tabbar-bg: ${colors.surface}`,
-  `--wot-tabbar-item-title-font-size: ${fontSizes.caption}`,
+  `--wot-tabbar-item-title-font-size: ${fontSizes.body}`,
   `--wot-tabbar-item-title-line-height: ${lineHeights.caption}`,
 ].join("; ");
 
@@ -32,6 +32,18 @@ const tabs = [
     activeIcon: "/static/main/tab-home-active.svg",
     badge: undefined,
   },
+  ...(commercialServicesEnabled
+    ? [
+        {
+          key: "bounty",
+          label: "悬赏大厅",
+          route: "/pages-bounty/index",
+          icon: "/static/home/tab-bounty.svg",
+          activeIcon: "/static/home/tab-bounty-active.svg",
+          badge: undefined,
+        },
+      ]
+    : []),
   {
     key: "community",
     label: "社区",
@@ -40,18 +52,6 @@ const tabs = [
     activeIcon: "/static/main/tab-community-active.svg",
     badge: undefined,
   },
-  ...(commercialServicesEnabled
-    ? [
-        {
-          key: "bounty",
-          label: "悬赏",
-          route: "/pages-bounty/index",
-          icon: "/static/main/customer.svg",
-          activeIcon: "/static/main/customer-active.svg",
-          badge: undefined,
-        },
-      ]
-    : []),
   {
     key: "messages",
     label: "消息",

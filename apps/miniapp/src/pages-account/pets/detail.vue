@@ -102,6 +102,12 @@ function editPet(): void {
   }
 }
 
+function previewPhotos(current: string): void {
+  if (pet.value?.photoUrls.length) {
+    uni.previewImage({ current, urls: pet.value.photoUrls });
+  }
+}
+
 async function removePet(): Promise<void> {
   const value = pet.value;
 
@@ -184,7 +190,7 @@ onShow(() => {
 </script>
 
 <template>
-  <SubPageLayout title="宠物档案">
+  <SubPageLayout title="宠物详情">
     <view class="flex flex-col gap-card px-action py-card">
       <PcStatePanel v-if="status === 'loading'" status="loading" title="宠物档案加载中…" />
 
@@ -224,13 +230,13 @@ onShow(() => {
             mode="aspectFill"
           />
           <text class="mt-copy page-heading">{{ pet.name }}</text>
-          <text class="mt-caption meta-text">{{ pet.breed }}</text>
+          <text class="pet-detail__breed mt-caption meta-text">{{ pet.breed }}</text>
         </view>
 
-        <view class="main-card p-action">
-          <text class="card-heading">基本信息</text>
-          <view class="grid grid-cols-2 mt-copy gap-copy">
-            <view v-for="fact in facts" :key="fact.label" class="rounded-control bg-divider p-copy">
+        <view>
+          <text class="section-heading">基础信息</text>
+          <view class="grid grid-cols-2 mt-action gap-action main-card p-action">
+            <view v-for="fact in facts" :key="fact.label" class="p-sm">
               <text class="quiet-text">{{ fact.label }}</text>
               <text class="mt-caption block text-body text-ink font-medium leading-label">
                 {{ fact.value }}
@@ -252,6 +258,11 @@ onShow(() => {
         </view>
 
         <view class="main-card p-action">
+          <text class="card-heading">疫苗记录</text>
+          <text class="mt-copy block meta-text">暂未提供疫苗记录</text>
+        </view>
+
+        <view class="main-card p-action">
           <view class="flex items-center justify-between">
             <text class="card-heading">宠物照片</text>
             <text class="quiet-text">{{ pet.photoUrls.length }} 张</text>
@@ -268,6 +279,9 @@ onShow(() => {
               class="mr-copy h-card-cover w-card-cover rounded-control bg-divider"
               :src="url"
               mode="aspectFill"
+              role="button"
+              :aria-label="`预览${pet.name}的照片`"
+              @click="previewPhotos(url)"
             />
           </scroll-view>
           <text v-else class="mt-copy block meta-text">暂未上传宠物照片</text>
@@ -281,7 +295,6 @@ onShow(() => {
 
     <template v-if="status === 'ready' && pet" #actions>
       <view class="flex gap-copy">
-        <PcButton block class="flex-[2]" :disabled="deleting" @click="editPet"> 编辑档案 </PcButton>
         <PcButton
           block
           class="flex-1"
@@ -292,7 +305,16 @@ onShow(() => {
         >
           {{ deleting ? "删除中…" : "删除档案" }}
         </PcButton>
+        <PcButton block class="flex-[2]" :disabled="deleting" @click="editPet"> 编辑资料 </PcButton>
       </view>
     </template>
   </SubPageLayout>
 </template>
+
+<style scoped>
+.pet-detail__breed {
+  max-width: 100%;
+  overflow-wrap: anywhere;
+  text-align: center;
+}
+</style>

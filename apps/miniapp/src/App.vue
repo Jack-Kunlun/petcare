@@ -17,7 +17,7 @@ onLaunch(() => {
 button,
 uni-button {
   box-sizing: border-box;
-  display: flex !important;
+  display: flex;
   align-items: center;
   justify-content: center;
   min-height: 44px;

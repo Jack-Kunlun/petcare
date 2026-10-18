@@ -13,21 +13,24 @@ describe("home classroom section", () => {
   });
 
   it("uses the approved full-width brand hero instead of a community feed photo", () => {
-    expect(home).toContain(':src="MINIAPP_TRUSTED_CARE_HERO"');
+    expect(home).toContain("image: MINIAPP_TRUSTED_CARE_HERO");
+    expect(home).toContain(':src="slide.image"');
     expect(home).toContain("absolute inset-0 h-full w-full");
     expect(home).not.toContain("/static/main/community-pet-5.jpg");
   });
 
   it("keeps the real bounty entry behind the explicit client feature boundary", () => {
-    expect(home).toContain("管理宠物档案");
-    expect(home).toContain("管理档案，发现养宠内容");
     expect(home).toContain('v-if="commercialServicesEnabled"');
     expect(home).toContain('url: "/pages-bounty/index"');
     expect(home).toContain('aria-label="浏览悬赏服务"');
     expect(home).not.toContain("pages-care");
-    expect(home).not.toContain("服务进行中");
+    expect(home).toContain("getBountySop(service.value.id)");
     expect(home).not.toContain("附近热门悬赏");
     expect(home).not.toContain("¥68/次");
+  });
+
+  it("opens a home bounty with the detail page's bountyId query parameter", () => {
+    expect(home).toMatch(/pages-bounty\/detail\?bountyId=\$\{encodeURIComponent\(bounty\.id\)\}/u);
   });
 
   it("renders the latest published articles and routes to real list and detail pages", () => {

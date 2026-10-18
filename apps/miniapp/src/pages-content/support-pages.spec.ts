@@ -36,7 +36,9 @@ describe("published support pages", () => {
     expect(contact).toContain(':disabled="actionPending !== null"');
     expect(actionButton).toContain('@click="activateChannel(channel)"');
     expect(contact.match(/@click="activateChannel\(channel\)"/gu)).toHaveLength(1);
-    expect(contact).toContain("text-section text-ink font-semibold");
+    expect(contact).toContain("text-card text-ink font-semibold leading-card");
+    expect(contact).toContain("聊天界面预览");
+    expect(contact).toContain("静态页面，不提供实时客服");
     expect(contact).toContain('title="客服信息加载失败"');
     expect(contact).toContain('title="暂无联系方式"');
     expect(contact).toContain("PcStatePanel");

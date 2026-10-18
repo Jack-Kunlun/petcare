@@ -8,6 +8,15 @@ const expectedSubPages = [
   "pages-account/profile/info",
   "pages-account/profile/edit",
   "pages-account/income/index",
+  "pages-account/social/favorites",
+  "pages-account/social/follows",
+  "pages-account/social/reviews",
+  "pages-account/social/review-form",
+  "pages-account/discover/service",
+  "pages-account/discover/caregiver",
+  "pages-account/discover/store",
+  "pages-account/discover/creator",
+  "pages-account/coupons/index",
   "pages-account/account/settings",
   "pages-account/account/cancel",
   "pages-content/classroom/article",
@@ -16,6 +25,8 @@ const expectedSubPages = [
   "pages-content/help/index",
   "pages-content/contact/index",
   "pages-content/legal/index",
+  "pages-content/about/index",
+  "pages-content/chat/index",
 ] as const;
 
 describe("miniapp page contract", () => {
@@ -39,7 +50,7 @@ describe("miniapp page contract", () => {
     expect(registered).not.toContain("pages-qualification");
     expect(registered).not.toContain("pages-care");
     expect(registered).not.toContain("wallet");
-    expect(registered).not.toContain("coupons");
+    expect(registered).not.toContain("pages-orders");
   });
 
   it("registers qualification independently from commercial routes", () => {
@@ -50,7 +61,7 @@ describe("miniapp page contract", () => {
     expect(registered).not.toContain("pages-bounty");
   });
 
-  it("registers only the Cycle 5 bounty pages when the build explicitly enables them", () => {
+  it("registers bounty and related order views only when the build enables them", () => {
     const enabled = createMiniappPagesConfig(true);
     const registered = (enabled.subPackages ?? []).flatMap(({ root, pages }) =>
       pages.map(({ path }) => `${root}/${path}`),
@@ -58,8 +69,35 @@ describe("miniapp page contract", () => {
 
     expect(registered).toContain("pages-bounty/index");
     expect(registered).toContain("pages-bounty/form");
+    expect(registered).toContain("pages-bounty/map");
+    expect(registered).toContain("pages-bounty/detail");
+    expect(registered).toContain("pages-orders/monitor");
     expect(registered).not.toContain("pages-care");
     expect(registered).not.toContain("wallet");
+  });
+
+  it("removes a middle generated package while preserving later packages", () => {
+    const source = JSON.stringify(
+      {
+        subPackages: [
+          { root: "pages-account", pages: [] },
+          { root: "pages-bounty", pages: [] },
+          { root: "pages-orders", pages: [] },
+          { root: "pages-qualification", pages: [] },
+        ],
+      },
+      null,
+      2,
+    );
+    const cleaned = removeGeneratedSubPackage(
+      removeGeneratedSubPackage(source, "pages-bounty"),
+      "pages-orders",
+    );
+
+    expect(JSON.parse(cleaned).subPackages.map((entry: { root: string }) => entry.root)).toEqual([
+      "pages-account",
+      "pages-qualification",
+    ]);
   });
 
   it("removes a stale generated bounty package without corrupting neighboring routes", () => {

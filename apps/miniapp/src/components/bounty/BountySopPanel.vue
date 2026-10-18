@@ -103,14 +103,19 @@ function stepState(step: BountySopStep): string {
         </text>
 
         <view v-if="step.photos.length > 0" class="grid grid-cols-3 gap-sm">
-          <image
+          <view
             v-for="(photo, index) in step.photos"
             :key="photo"
-            class="aspect-square w-full rounded-control bg-divider"
-            :src="photo"
-            mode="aspectFill"
-            :aria-label="`${step.stepName}证据照片${index + 1}`"
-          />
+            class="relative w-full overflow-hidden rounded-control bg-divider"
+            style="padding-top: 100%"
+          >
+            <image
+              class="absolute inset-0 h-full w-full"
+              :src="photo"
+              mode="aspectFill"
+              :aria-label="`${step.stepName}证据照片${index + 1}`"
+            />
+          </view>
         </view>
 
         <video

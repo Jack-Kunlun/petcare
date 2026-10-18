@@ -3,7 +3,7 @@ import { computed, useSlots } from "vue";
 import { getBottomSafeAreaStyle, usePlatformLayout } from "./platform-layout";
 import { miniappDesignTokens } from "@/config/design-tokens";
 
-defineProps<{ title: string }>();
+const props = defineProps<{ title: string }>();
 
 const slots = useSlots();
 const { layout } = usePlatformLayout();
@@ -11,6 +11,7 @@ const navigationHorizontalGap = Number.parseFloat(
   miniappDesignTokens.spacing["navigation-horizontal"],
 );
 const navigationControlSize = Number.parseFloat(miniappDesignTokens.sizes.control);
+const titleFontSize = Number.parseFloat(miniappDesignTokens.fontSizes.card);
 const actionPadding = Number.parseFloat(miniappDesignTokens.spacing.copy);
 const rightControlOffset = computed(() =>
   Math.max(navigationHorizontalGap, layout.value.capsuleReservedWidth),
@@ -20,6 +21,12 @@ const titleInset = computed(() =>
     navigationHorizontalGap + navigationControlSize,
     rightControlOffset.value + (slots["header-right"] ? navigationControlSize : 0),
   ),
+);
+const titleLeftInset = computed(() =>
+  layout.value.windowWidth - titleInset.value * 2 <
+  Math.max(navigationControlSize * 2, props.title.length * titleFontSize)
+    ? navigationHorizontalGap + navigationControlSize
+    : titleInset.value,
 );
 
 function goBack() {
@@ -45,16 +52,17 @@ function goBack() {
       class="relative flex shrink-0 items-center bg-surface"
       :style="{ height: `${layout.navigationContentHeight}px` }"
     >
-      <view
-        class="absolute left-0 box-border h-control w-control flex items-center justify-start pl-navigation-horizontal"
+      <button
+        class="absolute left-0 box-border h-control w-control flex items-center justify-start bg-transparent pl-navigation-horizontal"
         aria-label="返回"
+        hover-class="opacity-70"
         @click="goBack"
       >
         <image class="h-icon-sm w-icon-sm" src="/static/main/chevron-left.svg" mode="aspectFit" />
-      </view>
+      </button>
       <text
         class="absolute truncate text-center card-heading"
-        :style="{ left: `${titleInset}px`, right: `${titleInset}px` }"
+        :style="{ left: `${titleLeftInset}px`, right: `${titleInset}px` }"
       >
         {{ title }}
       </text>

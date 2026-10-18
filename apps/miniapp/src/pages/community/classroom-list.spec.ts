@@ -15,14 +15,17 @@ describe("community classroom list", () => {
     expect(community).toContain("openClassroomArticle(article.slug)");
   });
 
-  it("keeps list states explicit without advertising unavailable channels", () => {
+  it("keeps list states explicit and separates the static nearby preview", () => {
     expect(community).toContain("classroomStatus === 'loading'");
     expect(community).toContain("classroomStatus === 'error'");
     expect(community).toContain("classroomArticles.length === 0");
     expect(community).toContain("classroomLoadMoreError");
     expect(community).toContain(':disabled="classroomLoading"');
     expect(community).toContain(':aria-disabled="classroomLoading"');
-    expect(community).not.toContain("附近动态");
+    expect(community).toContain('value: "nearby", label: "附近动态"');
+    expect(community).toContain("静态页面预览，附近动态服务尚未接入。");
+    expect(community).toContain('if (query.tab === "nearby")');
+    expect(community).not.toContain("getNearbyPosts");
     expect(community).not.toContain("tab.disabled");
   });
 });

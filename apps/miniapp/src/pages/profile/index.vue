@@ -8,7 +8,7 @@ import { getProfile } from "@/api/user";
 import MainTabLayout from "@/components/MainTabLayout.vue";
 import PcButton from "@/components/PcButton.vue";
 import PcStatePanel from "@/components/PcStatePanel.vue";
-import { qualificationWorkflowEnabled } from "@/config/features";
+import { commercialServicesEnabled, qualificationWorkflowEnabled } from "@/config/features";
 import { formatPetSummary, petCoverImage } from "@/domain/pet-display";
 import { getDefaultAvatar } from "@/state/default-avatar";
 import {
@@ -27,6 +27,12 @@ definePage({
 
 const supportItems = [
   {
+    icon: "/static/main/about.svg",
+    label: "关于我们",
+    detail: "了解 PetCare 宠伴",
+    route: "/pages-content/about/index",
+  },
+  {
     icon: "/static/main/help.svg",
     label: "帮助中心",
     detail: "常见问题与使用指南",
@@ -44,6 +50,16 @@ const supportItems = [
     detail: "查看已发布隐私内容",
     route: "/pages-content/legal/index?key=privacy",
   },
+] as const;
+
+const contentItems = [
+  {
+    icon: "/static/profile/favorite.svg",
+    label: "我的收藏",
+    route: "/pages-account/social/favorites",
+  },
+  { icon: "/static/profile/follow.svg", label: "我的关注", route: "/pages-account/social/follows" },
+  { icon: "/static/profile/review.svg", label: "我的评价", route: "/pages-account/social/reviews" },
 ] as const;
 
 const loadingProfile = ref(false);
@@ -228,6 +244,43 @@ function addPet(): void {
         </view>
       </view>
 
+      <view class="grid grid-cols-4 mx-page-horizontal mt-action rounded-card bg-surface py-action">
+        <button
+          class="min-w-0 w-full flex flex-col gap-sm bg-transparent p-0"
+          :disabled="!commercialServicesEnabled"
+          :aria-disabled="!commercialServicesEnabled"
+          @click="openPage('/pages-orders/index')"
+        >
+          <text class="text-card text-ink font-medium">{{
+            commercialServicesEnabled ? "查看" : "—"
+          }}</text
+          ><text class="quiet-text">我的订单</text>
+        </button>
+        <button
+          class="min-w-0 w-full flex flex-col gap-sm bg-transparent p-0"
+          @click="openPage('/pages-account/pets/index')"
+        >
+          <text class="text-card text-ink font-medium">{{
+            petStatus === "ready" ? `${pets.length}只` : "—"
+          }}</text
+          ><text class="quiet-text">我的宠物</text>
+        </button>
+        <button
+          class="min-w-0 w-full flex flex-col gap-sm bg-transparent p-0"
+          @click="openPage('/pages-account/coupons/index')"
+        >
+          <text class="text-card text-ink font-medium">查看</text
+          ><text class="quiet-text">优惠券</text>
+        </button>
+        <button
+          class="min-w-0 w-full flex flex-col gap-sm bg-transparent p-0"
+          @click="openPage('/pages-account/income/index')"
+        >
+          <text class="text-card text-ink font-medium">查看</text
+          ><text class="quiet-text">余额 / 收入</text>
+        </button>
+      </view>
+
       <view class="mt-card flex items-center justify-between px-page-horizontal">
         <text class="section-heading">我的宠物</text>
         <view
@@ -287,41 +340,59 @@ function addPet(): void {
           @primary="addPet"
         />
 
-        <view v-else class="flex items-stretch gap-sm">
-          <view
-            v-for="pet in featuredPets"
-            :key="pet.id"
-            class="min-w-0 flex flex-1 flex-col items-center gap-caption main-card p-sm"
-            hover-class="opacity-80"
-            :aria-label="`查看${pet.name}的宠物档案`"
-            @click="openPet(pet.id)"
-          >
-            <image
-              class="h-avatar-lg w-avatar-lg shrink-0 rounded-control bg-divider"
-              :src="petCoverImage(pet)"
-              mode="aspectFill"
-            />
-            <view class="min-w-0 w-full flex flex-col items-center gap-caption">
-              <text class="w-full truncate text-center card-heading">{{ pet.name }}</text>
-              <text class="w-full truncate text-center meta-text">
-                {{ pet.breed }} · {{ formatPetSummary(pet) }}
+        <scroll-view v-else class="w-full whitespace-nowrap" scroll-x :show-scrollbar="false">
+          <view class="inline-flex items-stretch gap-copy">
+            <view
+              v-for="pet in featuredPets"
+              :key="pet.id"
+              class="profile-pet-card flex shrink-0 items-center gap-copy main-card p-copy"
+              hover-class="opacity-80"
+              :aria-label="`查看${pet.name}的宠物档案`"
+              @click="openPet(pet.id)"
+            >
+              <image
+                class="h-avatar-lg w-avatar-lg shrink-0 rounded-full bg-divider"
+                :src="petCoverImage(pet)"
+                mode="aspectFill"
+              />
+              <view class="min-w-0 flex flex-1 flex-col gap-caption">
+                <text class="w-full truncate card-heading">{{ pet.name }}</text>
+                <text class="w-full truncate meta-text">
+                  {{ pet.breed }} · {{ formatPetSummary(pet) }}
+                </text>
+              </view>
+            </view>
+
+            <view
+              v-if="pets.length < PET_PROFILE_LIMITS.MAX_PETS_PER_OWNER"
+              class="w-pet flex shrink-0 flex-col items-center justify-center gap-caption border border-border rounded-card border-dashed bg-surface"
+              hover-class="opacity-80"
+              aria-label="添加宠物"
+              @click="addPet"
+            >
+              <text class="text-page text-brand font-medium leading-page">+</text>
+              <text class="text-caption text-muted leading-caption">
+                {{ pets.length === 0 ? "添加宠物" : "添加" }}
               </text>
             </view>
           </view>
+        </scroll-view>
+      </view>
 
-          <view
-            v-if="pets.length < PET_PROFILE_LIMITS.MAX_PETS_PER_OWNER"
-            class="w-pet flex shrink-0 flex-col items-center justify-center gap-caption border border-border rounded-card border-dashed bg-surface"
-            hover-class="opacity-80"
-            aria-label="添加宠物"
-            @click="addPet"
-          >
-            <text class="text-page text-brand font-medium leading-page">+</text>
-            <text class="text-caption text-muted leading-caption">
-              {{ pets.length === 0 ? "添加宠物" : "添加" }}
-            </text>
-          </view>
-        </view>
+      <view class="mt-card px-page-horizontal"><text class="section-heading">我的内容</text></view>
+      <view class="mx-page-horizontal mt-copy overflow-hidden main-card">
+        <navigator
+          v-for="item in contentItems"
+          :key="item.route"
+          :url="item.route"
+          class="flex items-center gap-copy border-b border-divider px-card-padding py-action"
+          hover-class="opacity-80"
+        >
+          <image class="h-icon-sm w-icon-sm" :src="item.icon" mode="aspectFit" /><text
+            class="flex-1 text-body text-ink"
+            >{{ item.label }}</text
+          ><image class="h-icon-xs w-icon-xs" src="/static/main/chevron.svg" mode="aspectFit" />
+        </navigator>
       </view>
 
       <view class="mt-card px-page-horizontal">
@@ -339,7 +410,7 @@ function addPet(): void {
             <image class="h-glyph w-glyph" src="/static/main/customer.svg" mode="aspectFit" />
           </view>
           <view class="min-w-0 flex flex-1 flex-col">
-            <text class="text-body text-ink font-medium leading-label">收入与提现</text>
+            <text class="text-body text-ink font-medium leading-label">收入记录</text>
             <text class="mt-caption quiet-text">查看服务收入和提现状态</text>
           </view>
           <image class="h-icon-xs w-icon-xs" src="/static/main/chevron.svg" mode="aspectFit" />
@@ -386,3 +457,11 @@ function addPet(): void {
     </view>
   </MainTabLayout>
 </template>
+
+<style scoped>
+.profile-pet-card {
+  box-sizing: border-box;
+  width: 272px;
+  white-space: normal;
+}
+</style>

@@ -20,9 +20,10 @@ describe("sub page navigation contract", () => {
     expect(source).not.toMatch(/:style="\{ left: `\$\{navigationHorizontalGap\}px` \}"/);
   });
 
-  it("keeps the navigation title symmetrically centered", () => {
+  it("centers titles when space permits and reserves title width on narrow screens", () => {
     const source = readFileSync(new URL("./SubPageLayout.vue", import.meta.url), "utf8");
 
-    expect(source).toMatch(/left: `\$\{titleInset\}px`, right: `\$\{titleInset\}px`/);
+    expect(source).toMatch(/left: `\$\{titleLeftInset\}px`, right: `\$\{titleInset\}px`/);
+    expect(source).toContain("layout.value.windowWidth - titleInset.value * 2");
   });
 });

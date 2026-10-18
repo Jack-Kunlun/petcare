@@ -1,5 +1,6 @@
 <script setup lang="ts">
 import { computed } from "vue";
+import { miniappDesignTokens } from "@/config/design-tokens";
 
 type PcButtonVariant = "primary" | "secondary" | "ghost" | "danger";
 type PcButtonSize = "control" | "action";
@@ -35,6 +36,14 @@ const emit = defineEmits<{
 }>();
 
 const isDisabled = computed(() => props.disabled || props.loading);
+const colors = miniappDesignTokens.colors;
+const palette = {
+  "--pc-button-brand": colors.brand,
+  "--pc-button-active": colors["brand-active"],
+  "--pc-button-soft": colors.soft,
+  "--pc-button-disabled": colors["brand-disabled"],
+  "--pc-button-danger": colors.danger,
+};
 
 function handleClick(event: Event): void {
   if (!isDisabled.value) {
@@ -46,6 +55,7 @@ function handleClick(event: Event): void {
 <template>
   <button
     class="pc-button"
+    :style="palette"
     :class="[
       `pc-button--${variant}`,
       `pc-button--${size}`,
@@ -79,6 +89,7 @@ function handleClick(event: Event): void {
   font-weight: 500;
   line-height: 22px;
   text-align: center;
+  cursor: pointer;
   transition:
     background-color 120ms ease,
     border-color 120ms ease,
@@ -102,36 +113,37 @@ function handleClick(event: Event): void {
   }
 
   &--primary {
-    background: #2563eb;
+    background: var(--pc-button-brand);
     color: #ffffff;
 
     &:active {
-      background: #1d4ed8;
+      background: var(--pc-button-active);
     }
   }
 
   &--secondary {
-    background: #eff6ff;
-    color: #2563eb;
+    border-color: #f2f4f7;
+    background: #ffffff;
+    color: #1f2937;
 
     &:active {
-      background: #dbeafe;
+      background: var(--pc-button-soft);
     }
   }
 
   &--ghost {
     background: transparent;
-    color: #2563eb;
+    color: var(--pc-button-brand);
 
     &:active {
-      background: #eff6ff;
+      background: var(--pc-button-soft);
     }
   }
 
   &--danger {
-    border-color: #f2b8b5;
-    background: #fef3f2;
-    color: #b42318;
+    border-color: var(--pc-button-danger);
+    background: #ffffff;
+    color: var(--pc-button-danger);
 
     &:active {
       background: #fddbd8;
@@ -140,7 +152,9 @@ function handleClick(event: Event): void {
 
   &--disabled {
     cursor: not-allowed;
-    opacity: 0.5;
+    background: var(--pc-button-disabled);
+    border-color: transparent;
+    color: #ffffff;
   }
 
   &__spinner {
@@ -150,6 +164,12 @@ function handleClick(event: Event): void {
     border-right-color: transparent;
     border-radius: 999px;
     animation: pc-button-spin 700ms linear infinite;
+  }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .pc-button {
+    transition: none;
   }
 }
 

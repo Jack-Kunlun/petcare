@@ -5,7 +5,7 @@ import type {
   OrderPrepayResponse,
   WechatPaymentParameters,
 } from "@petcare/shared-types";
-import { onMounted, ref } from "vue";
+import { onMounted, onUnmounted, ref, watch } from "vue";
 import {
   getOrderPayment,
   prepayOrder,
@@ -15,6 +15,7 @@ import {
 import { getSafeRequestErrorMessage, MiniappApiError } from "@/api/request";
 import PcButton from "@/components/PcButton.vue";
 import { paymentSimulationEnabled } from "@/config/features";
+import { captureSessionUserRevision, isSessionUserRevisionCurrent, session } from "@/state/session";
 
 const props = defineProps<{
   orderId: string;
@@ -37,6 +38,24 @@ const payment = ref<OrderPaymentSummary | null>(null);
 const busy = ref(false);
 const message = ref("");
 const failed = ref(false);
+const loading = ref(false);
+let active = true;
+let contextVersion = 0;
+
+function captureContext() {
+  const revision = captureSessionUserRevision();
+  const orderId = props.orderId;
+  const version = contextVersion;
+
+  return {
+    orderId,
+    current: () =>
+      active &&
+      version === contextVersion &&
+      orderId === props.orderId &&
+      isSessionUserRevisionCurrent(revision),
+  };
+}
 
 function formatAmount(amountCents: number): string {
   return `¥${(amountCents / 100).toFixed(2)}`;
@@ -74,15 +93,30 @@ function isPaymentUnavailable(error: unknown): boolean {
 }
 
 async function load(): Promise<void> {
+  if (loading.value || !session.user) {
+    return;
+  }
+
+  const context = captureContext();
+
+  loading.value = true;
   status.value = "loading";
   message.value = "";
 
   try {
-    const next = await getOrderPayment(props.orderId);
+    const next = await getOrderPayment(context.orderId);
+
+    if (!context.current()) {
+      return;
+    }
 
     payment.value = next;
     status.value = panelStatus(next.status);
   } catch (error) {
+    if (!context.current()) {
+      return;
+    }
+
     payment.value = null;
 
     if (isPaymentNotFound(error)) {
@@ -97,6 +131,10 @@ async function load(): Promise<void> {
       showMessage(getSafeRequestErrorMessage(error, "支付状态读取失败，请重试。"), true);
     } else if (isPaymentUnavailable(error)) {
       showMessage("当前仅可查看订单，支付服务尚未开放。", false);
+    }
+  } finally {
+    if (context.current()) {
+      loading.value = false;
     }
   }
 }
@@ -130,16 +168,27 @@ function requestWechatPayment(parameters: WechatPaymentParameters): Promise<"suc
 }
 
 async function pay(): Promise<void> {
-  if (busy.value || (status.value !== "ready" && status.value !== "pending")) {
+  if (
+    !session.user ||
+    loading.value ||
+    busy.value ||
+    (status.value !== "ready" && status.value !== "pending")
+  ) {
     return;
   }
 
   busy.value = true;
+  const context = captureContext();
+
   message.value = "";
 
   try {
     if (paymentSimulationEnabled) {
-      const next = await simulateOrderPayment(props.orderId);
+      const next = await simulateOrderPayment(context.orderId);
+
+      if (!context.current()) {
+        return;
+      }
 
       payment.value = next;
       status.value = panelStatus(next.status);
@@ -148,11 +197,19 @@ async function pay(): Promise<void> {
       return;
     }
 
-    const response: OrderPrepayResponse = await prepayOrder(props.orderId);
+    const response: OrderPrepayResponse = await prepayOrder(context.orderId);
+
+    if (!context.current()) {
+      return;
+    }
 
     payment.value = response.payment;
     status.value = "pending";
     const result = await requestWechatPayment(response.parameters);
+
+    if (!context.current()) {
+      return;
+    }
 
     if (result === "cancel") {
       showMessage("支付未完成，可稍后重试。", false);
@@ -160,7 +217,11 @@ async function pay(): Promise<void> {
       return;
     }
 
-    const next = await refreshOrderPayment(props.orderId);
+    const next = await refreshOrderPayment(context.orderId);
+
+    if (!context.current()) {
+      return;
+    }
 
     payment.value = next;
     status.value = panelStatus(next.status);
@@ -169,6 +230,10 @@ async function pay(): Promise<void> {
       false,
     );
   } catch (error) {
+    if (!context.current()) {
+      return;
+    }
+
     if (isPaymentUnavailable(error)) {
       status.value = "unavailable";
       showMessage("当前仅可查看订单，支付服务尚未开放。", false);
@@ -177,11 +242,33 @@ async function pay(): Promise<void> {
       await load();
     }
   } finally {
-    busy.value = false;
+    if (context.current()) {
+      busy.value = false;
+    }
   }
 }
 
 onMounted(() => void load());
+onUnmounted(() => {
+  active = false;
+  contextVersion += 1;
+});
+watch(
+  () => [props.orderId, session.user?.id],
+  () => {
+    contextVersion += 1;
+    payment.value = null;
+    status.value = session.user ? "loading" : "unavailable";
+    message.value = "";
+    busy.value = false;
+    loading.value = false;
+
+    if (session.user) {
+      void load();
+    }
+  },
+  { flush: "sync" },
+);
 </script>
 
 <template>

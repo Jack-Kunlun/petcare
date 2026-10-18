@@ -10,6 +10,7 @@ import {
 } from "@petcare/shared-types";
 import type {
   BountyProviderEligibility,
+  BountyServiceType,
   BountySop,
   BountySopEvidenceKind,
   MyBounty,
@@ -18,8 +19,6 @@ import type {
   PublicBounty,
 } from "@petcare/shared-types";
 import { computed, ref, watch } from "vue";
-import BountyPaymentPanel from "./BountyPaymentPanel.vue";
-import BountySopPanel from "./BountySopPanel.vue";
 import {
   completeBountySopStep,
   confirmBountyIntent,
@@ -33,6 +32,8 @@ import {
   uploadBountySopEvidence,
 } from "@/api/bounties";
 import { getSafeRequestErrorMessage, MiniappApiError } from "@/api/request";
+import BountyPaymentPanel from "@/components/bounty/BountyPaymentPanel.vue";
+import BountySopPanel from "@/components/bounty/BountySopPanel.vue";
 import MainTabLayout from "@/components/MainTabLayout.vue";
 import PcButton from "@/components/PcButton.vue";
 import PcStatePanel from "@/components/PcStatePanel.vue";
@@ -54,12 +55,17 @@ type BountyView = "public" | "mine" | "intents";
 type PageStatus = "loading" | "ready" | "error" | "unauthenticated";
 type CandidateStatus = "idle" | "loading" | "ready" | "error";
 type SopStatus = "idle" | "loading" | "ready" | "error";
+type PublicBountyFilter = "all" | BountyServiceType;
+type PublicBountySort = "recommended" | "time" | "price";
 
 function padDatePart(part: number): string {
   return part.toString().padStart(2, "0");
 }
 
 const activeView = ref<BountyView>("public");
+const searchKeyword = ref("");
+const serviceFilter = ref<PublicBountyFilter>("all");
+const sortBy = ref<PublicBountySort>("recommended");
 const publicBounties = ref<PublicBounty[]>([]);
 const myBounties = ref<MyBounty[]>([]);
 const myIntents = ref<MyBountyIntent[]>([]);
@@ -96,6 +102,45 @@ const activeStatus = computed(() => {
 const intentByBountyId = computed(
   () => new Map(myIntents.value.map((intent) => [intent.bounty.id, intent])),
 );
+const serviceFilters: Array<{ value: PublicBountyFilter; label: string }> = [
+  { value: "all", label: "全部" },
+  { value: "feeding", label: "上门喂养" },
+  { value: "walking", label: "遛狗" },
+  { value: "playing", label: "陪玩" },
+];
+const publicSorts: Array<{ value: PublicBountySort; label: string }> = [
+  { value: "recommended", label: "综合排序" },
+  { value: "time", label: "时间最近" },
+  { value: "price", label: "价格最低" },
+];
+const visiblePublicBounties = computed(() => {
+  const keyword = searchKeyword.value.trim().toLocaleLowerCase();
+  const filtered = publicBounties.value.filter((bounty) => {
+    const matchesType = serviceFilter.value === "all" || bounty.serviceType === serviceFilter.value;
+    const searchable = [
+      bounty.pet.name,
+      bounty.pet.breed,
+      bounty.owner.nickname,
+      BOUNTY_SERVICE_TYPE_LABELS[bounty.serviceType],
+    ]
+      .join(" ")
+      .toLocaleLowerCase();
+
+    return matchesType && (!keyword || searchable.includes(keyword));
+  });
+
+  if (sortBy.value === "time") {
+    return [...filtered].sort(
+      (left, right) => Date.parse(left.serviceTime) - Date.parse(right.serviceTime),
+    );
+  }
+
+  if (sortBy.value === "price") {
+    return [...filtered].sort((left, right) => left.amountCents - right.amountCents);
+  }
+
+  return filtered;
+});
 
 function formatServiceTime(value: string): string {
   const date = new Date(value);
@@ -267,6 +312,20 @@ function selectView(view: BountyView): void {
 
 function openLogin(): void {
   uni.navigateTo({ url: "/pages/auth/index" });
+}
+
+function openMap(): void {
+  uni.navigateTo({ url: "/pages-bounty/map" });
+}
+
+function openBountyDetail(bountyId: string): void {
+  uni.navigateTo({ url: `/pages-bounty/detail?bountyId=${encodeURIComponent(bountyId)}` });
+}
+
+function openOrderDetail(bountyId: string, role: "owner" | "provider"): void {
+  uni.navigateTo({
+    url: `/pages-orders/detail?bountyId=${encodeURIComponent(bountyId)}&role=${role}`,
+  });
 }
 
 function openQualification(): void {
@@ -694,10 +753,10 @@ watch(
 <template>
   <MainTabLayout active="bounty">
     <template #header>
-      <text class="page-heading">悬赏</text>
+      <text class="page-heading">悬赏大厅</text>
     </template>
 
-    <view class="box-border flex flex-col gap-copy px-action pb-screen pt-card">
+    <view class="bounty-index box-border flex flex-col gap-copy px-action pb-screen pt-card">
       <PcStatePanel
         v-if="!featureAvailable"
         status="unavailable"
@@ -752,6 +811,61 @@ watch(
           >
             我的意向
           </button>
+        </view>
+
+        <view v-if="activeView === 'public'" class="bounty-market-tools">
+          <view class="bounty-search">
+            <image class="h-icon-sm w-icon-sm" src="/static/main/search.svg" mode="aspectFit" />
+            <input
+              v-model="searchKeyword"
+              class="bounty-search__input"
+              type="text"
+              placeholder="搜索服务、宠物或发布者"
+              aria-label="搜索公开悬赏"
+            />
+          </view>
+
+          <view class="bounty-mode-switch" role="tablist" aria-label="悬赏展示模式">
+            <button class="bounty-mode-switch__item is-active" role="tab" aria-selected="true">
+              列表模式
+            </button>
+            <button
+              class="bounty-mode-switch__item"
+              role="tab"
+              aria-selected="false"
+              @click="openMap"
+            >
+              地图模式
+            </button>
+          </view>
+
+          <scroll-view class="bounty-chip-row" scroll-x :show-scrollbar="false" role="tablist">
+            <button
+              v-for="filter in serviceFilters"
+              :key="filter.value"
+              class="bounty-chip"
+              :class="serviceFilter === filter.value ? 'is-active' : ''"
+              role="tab"
+              :aria-selected="serviceFilter === filter.value"
+              @click="serviceFilter = filter.value"
+            >
+              {{ filter.label }}
+            </button>
+          </scroll-view>
+
+          <scroll-view class="bounty-sort-row" scroll-x :show-scrollbar="false" role="tablist">
+            <button
+              v-for="sort in publicSorts"
+              :key="sort.value"
+              class="bounty-sort"
+              :class="sortBy === sort.value ? 'is-active' : ''"
+              role="tab"
+              :aria-selected="sortBy === sort.value"
+              @click="sortBy = sort.value"
+            >
+              {{ sort.label }}
+            </button>
+          </scroll-view>
         </view>
 
         <view
@@ -827,52 +941,74 @@ watch(
           </view>
 
           <PcStatePanel
-            v-if="publicBounties.length === 0"
+            v-if="publicBounties.length === 0 || visiblePublicBounties.length === 0"
             status="empty"
-            title="暂无公开悬赏"
-            description="有新的有效悬赏时会在这里展示。"
+            :title="publicBounties.length === 0 ? '暂无公开悬赏' : '没有匹配的悬赏'"
+            :description="
+              publicBounties.length === 0
+                ? '有新的有效悬赏时会在这里展示。'
+                : '调整搜索词或服务类型，查看其他公开需求。'
+            "
           />
 
           <view v-else class="flex flex-col gap-copy">
             <view
-              v-for="bounty in publicBounties"
+              v-for="bounty in visiblePublicBounties"
               :key="bounty.id"
-              class="flex flex-col gap-copy main-card p-card-padding"
+              class="bounty-card main-card"
             >
-              <view class="flex items-start justify-between gap-copy">
-                <view class="min-w-0 flex flex-col gap-caption">
-                  <text class="card-heading">
-                    {{ BOUNTY_SERVICE_TYPE_LABELS[bounty.serviceType] }} · {{ bounty.pet.name }}
-                  </text>
-                  <text class="meta-text">{{ bounty.pet.breed }}</text>
-                </view>
-                <text class="shrink-0 text-amount text-brand font-semibold leading-section">
-                  {{ formatBountyAmount(bounty.amountCents) }}
-                </text>
-              </view>
-              <view class="flex items-center gap-sm">
+              <view class="bounty-card__cover">
                 <image
-                  class="h-avatar-sm w-avatar-sm rounded-full bg-divider"
+                  class="bounty-card__image"
                   :src="bounty.pet.coverImage || '/static/main/petcare-placeholder-light.svg'"
                   mode="aspectFill"
                   :aria-label="`${bounty.pet.name}的照片`"
                 />
-                <view class="min-w-0 flex flex-1 flex-col gap-caption">
-                  <text class="meta-text"
-                    >服务时间 {{ formatServiceTime(bounty.serviceTime) }}</text
-                  >
-                  <text class="quiet-text">发布者 {{ bounty.owner.nickname }} · 待确认服务者</text>
+                <view class="bounty-card__cover-caption">
+                  <text>{{ bounty.pet.name }} · {{ bounty.pet.breed || "宠物" }}</text>
                 </view>
               </view>
-              <PcButton
-                block
-                variant="secondary"
-                :disabled="intentButtonDisabled(bounty.id)"
-                :loading="applyingBountyId === bounty.id"
-                @click="submitIntent(bounty.id)"
-              >
-                {{ intentButtonLabel(bounty.id) }}
-              </PcButton>
+              <view class="bounty-card__body">
+                <view class="bounty-card__heading">
+                  <text class="card-heading">
+                    {{ BOUNTY_SERVICE_TYPE_LABELS[bounty.serviceType] }}
+                  </text>
+                  <view>
+                    <text class="bounty-card__price">{{
+                      formatBountyAmount(bounty.amountCents)
+                    }}</text>
+                    <text class="quiet-text"> / 单</text>
+                  </view>
+                </view>
+                <view class="bounty-card__meta">
+                  <image src="/static/main/profile-location.svg" mode="aspectFit" />
+                  <text>{{ formatServiceTime(bounty.serviceTime) }}</text>
+                </view>
+                <text class="quiet-text">服务地址将在主人确认服务者后提供</text>
+                <view class="bounty-card__footer">
+                  <view class="bounty-owner">
+                    <view class="bounty-owner__avatar" aria-hidden="true">
+                      {{ bounty.owner.nickname.slice(0, 1) || "?" }}
+                    </view>
+                    <view class="bounty-owner__copy">
+                      <text class="text-body text-ink">{{ bounty.owner.nickname }}</text>
+                      <text class="quiet-text">公开需求 · 等待确认服务者</text>
+                    </view>
+                  </view>
+                  <PcButton variant="ghost" @click="openBountyDetail(bounty.id)">
+                    查看详情
+                  </PcButton>
+                </view>
+                <PcButton
+                  block
+                  variant="secondary"
+                  :disabled="intentButtonDisabled(bounty.id)"
+                  :loading="applyingBountyId === bounty.id"
+                  @click="submitIntent(bounty.id)"
+                >
+                  {{ intentButtonLabel(bounty.id) }}
+                </PcButton>
+              </view>
             </view>
           </view>
         </template>
@@ -908,6 +1044,9 @@ watch(
               <text v-if="bounty.provider" class="meta-text">
                 已确认服务者：{{ bounty.provider.nickname }}
               </text>
+              <PcButton block variant="ghost" @click="openOrderDetail(bounty.id, 'owner')">
+                查看订单详情
+              </PcButton>
 
               <BountyPaymentPanel
                 v-if="bounty.status === BOUNTY_STATUS.CONFIRMED"
@@ -1039,6 +1178,14 @@ watch(
                   备注：{{ intent.bounty.remark }}
                 </text>
               </view>
+              <PcButton
+                v-if="intent.status === BOUNTY_INTENT_STATUS.CONFIRMED"
+                block
+                variant="ghost"
+                @click="openOrderDetail(intent.bounty.id, 'provider')"
+              >
+                查看服务订单
+              </PcButton>
               <BountySopPanel
                 v-if="
                   intent.status === BOUNTY_INTENT_STATUS.CONFIRMED && hasSop(intent.bounty.status)
@@ -1057,16 +1204,237 @@ watch(
           </view>
         </template>
       </template>
-      <PcButton
-        v-if="featureAvailable"
-        block
-        size="action"
-        :disabled="openingForm"
-        :loading="openingForm"
+    </view>
+
+    <template #floating>
+      <button
+        class="bounty-index__fab"
+        :disabled="!featureAvailable || openingForm"
+        :aria-disabled="!featureAvailable || openingForm"
+        aria-label="发布悬赏"
         @click="openForm"
       >
-        发布悬赏
-      </PcButton>
-    </view>
+        <image src="/static/main/plus.svg" mode="aspectFit" aria-hidden="true" />
+      </button>
+    </template>
   </MainTabLayout>
 </template>
+
+<style scoped lang="scss">
+.bounty-index {
+  padding-bottom: 24px;
+}
+
+.bounty-market-tools {
+  display: flex;
+  flex-direction: column;
+  gap: 12px;
+  padding: 12px;
+  border: 1px solid #eaecf0;
+  border-radius: 18px;
+  background: #fff;
+}
+
+.bounty-search {
+  display: flex;
+  height: 44px;
+  align-items: center;
+  gap: 8px;
+  padding: 0 12px;
+  border: 1px solid #eaecf0;
+  border-radius: 12px;
+  background: #fff;
+
+  image {
+    flex: none;
+  }
+
+  &__input {
+    min-width: 0;
+    flex: 1;
+    color: #1f2937;
+    font-size: 14px;
+    line-height: 22px;
+  }
+}
+
+.bounty-mode-switch {
+  display: flex;
+  height: 40px;
+  align-items: center;
+  gap: 4px;
+  padding: 4px;
+  border-radius: 999px;
+  background: #f6f7fb;
+
+  &__item {
+    flex: 1;
+    height: 32px;
+    border: 0;
+    border-radius: 999px;
+    background: transparent;
+    color: #667085;
+    font-size: 14px;
+    line-height: 32px;
+
+    &.is-active {
+      background: #fff;
+      color: #4a6cf7;
+    }
+  }
+}
+
+.bounty-chip-row,
+.bounty-sort-row {
+  width: 100%;
+  white-space: nowrap;
+}
+
+.bounty-chip {
+  display: inline-flex;
+  height: 32px;
+  margin-right: 8px;
+  padding: 0 12px;
+  border: 1px solid #e3e8f2;
+  border-radius: 999px;
+  background: #fff;
+  color: #667085;
+  font-size: 12px;
+  line-height: 30px;
+
+  &.is-active {
+    border-color: #eef2ff;
+    background: #eef2ff;
+    color: #4a6cf7;
+  }
+}
+
+.bounty-sort {
+  display: inline-flex;
+  margin-right: 20px;
+  padding: 4px 0;
+  border: 0;
+  background: transparent;
+  color: #667085;
+  font-size: 12px;
+
+  &.is-active {
+    color: #4a6cf7;
+  }
+}
+
+.bounty-card {
+  overflow: hidden;
+  border: 1px solid #eaecf0;
+  border-radius: 18px;
+  background: #fff;
+
+  &__cover {
+    position: relative;
+    height: 136px;
+    background: #eef2f6;
+  }
+
+  &__image {
+    width: 100%;
+    height: 100%;
+  }
+
+  &__cover-caption {
+    position: absolute;
+    right: 0;
+    bottom: 0;
+    left: 0;
+    padding: 20px 16px 10px;
+    background: linear-gradient(transparent, rgba(17, 24, 39, 0.72));
+    color: #fff;
+    font-size: 12px;
+    line-height: 18px;
+  }
+
+  &__body {
+    display: flex;
+    flex-direction: column;
+    gap: 10px;
+    padding: 14px 16px 16px;
+  }
+
+  &__heading,
+  &__footer {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    gap: 8px;
+  }
+
+  &__price {
+    color: #b54708;
+    font-size: 20px;
+    font-weight: 600;
+    line-height: 28px;
+  }
+
+  &__meta {
+    display: flex;
+    align-items: center;
+    gap: 6px;
+    color: #667085;
+    font-size: 12px;
+    line-height: 18px;
+
+    image {
+      width: 16px;
+      height: 16px;
+    }
+  }
+}
+
+.bounty-owner {
+  display: flex;
+  min-width: 0;
+  align-items: center;
+  gap: 8px;
+
+  &__avatar {
+    display: flex;
+    width: 34px;
+    height: 34px;
+    flex: none;
+    align-items: center;
+    justify-content: center;
+    border-radius: 50%;
+    background: #eefbf7;
+    color: #11957a;
+    font-size: 14px;
+  }
+
+  &__copy {
+    display: flex;
+    min-width: 0;
+    flex-direction: column;
+    gap: 2px;
+  }
+}
+
+.bounty-index__fab {
+  display: flex;
+  width: 56px;
+  height: 56px;
+  align-items: center;
+  justify-content: center;
+  border: 0;
+  border-radius: 50%;
+  background: #4a6cf7;
+  box-shadow: 0 8px 20px rgba(74, 108, 247, 0.24);
+
+  image {
+    width: 24px;
+    height: 24px;
+  }
+
+  &:disabled {
+    cursor: not-allowed;
+    opacity: 0.5;
+  }
+}
+</style>

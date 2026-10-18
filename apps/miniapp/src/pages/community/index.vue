@@ -31,6 +31,7 @@ const COMMUNITY_PAGE_SIZE = 10;
 const channelTabs = [
   { value: "featured", label: "社区精选" },
   { value: "classroom", label: "萌宠课堂" },
+  { value: "nearby", label: "附近动态" },
 ] as const;
 const categoryOptions = Object.values(CLASSROOM_ARTICLE_CATEGORY).map((value) => ({
   value,
@@ -45,6 +46,10 @@ const contentTypeOptions: ReadonlyArray<{
 ];
 
 const activeChannel = ref<(typeof channelTabs)[number]["value"]>("featured");
+const followedAuthors = ref<string[]>([]);
+const nearbyFollowed = ref(false);
+const nearbyLiked = ref(false);
+const sharePost = ref<PublicCommunityPostListItem | null>(null);
 const classroomArticles = ref<PublicClassroomArticleListItem[]>([]);
 const classroomKeyword = ref("");
 const classroomAppliedKeyword = ref("");
@@ -72,10 +77,24 @@ const featuredHasMore = computed(() => featuredPosts.value.length < featuredTota
 const featuredHasFilters = computed(
   () => Boolean(featuredAppliedKeyword.value) || featuredContentType.value !== null,
 );
-const shareTitle = computed(() =>
-  activeChannel.value === "classroom" ? "PetCare 萌宠课堂" : "PetCare 社区｜真实养宠日常",
-);
-const shareQuery = computed(() => (activeChannel.value === "classroom" ? "tab=classroom" : ""));
+const shareTitle = computed(() => {
+  if (activeChannel.value === "classroom") {
+    return "PetCare 萌宠课堂";
+  }
+
+  if (activeChannel.value === "nearby") {
+    return "PetCare 附近动态";
+  }
+
+  return "PetCare 社区｜真实养宠日常";
+});
+const shareQuery = computed(() => {
+  if (activeChannel.value === "classroom") {
+    return "tab=classroom";
+  }
+
+  return activeChannel.value === "nearby" ? "tab=nearby" : "";
+});
 
 async function loadFeatured(reset = true): Promise<void> {
   if (featuredLoading.value) {
@@ -251,6 +270,20 @@ function communityAvatar(post: PublicCommunityPostListItem): string {
   return post.author.avatar ?? getDefaultAvatar(post.id);
 }
 
+function toggleFollow(authorId: string): void {
+  followedAuthors.value = followedAuthors.value.includes(authorId)
+    ? followedAuthors.value.filter((id) => id !== authorId)
+    : [...followedAuthors.value, authorId];
+}
+
+function previewMedia(urls: string[], current: string): void {
+  uni.previewImage({ urls, current });
+}
+
+function preparePostShare(post: PublicCommunityPostListItem): void {
+  sharePost.value = post;
+}
+
 function openClassroomArticle(slug: string): void {
   uni.navigateTo({ url: `/pages-content/classroom/article?id=${encodeURIComponent(slug)}` });
 }
@@ -263,13 +296,33 @@ function openCommunityPublisher(): void {
   void openCommunityPublishEntry(publishPending);
 }
 
-onShareAppMessage(() => ({
-  title: shareTitle.value,
-  path: `/pages/community/index${shareQuery.value ? `?${shareQuery.value}` : ""}`,
-}));
+onShareAppMessage(() => {
+  if (sharePost.value) {
+    const post = sharePost.value;
+
+    sharePost.value = null;
+
+    return {
+      title: post.content.trim().replace(/\s+/gu, " ").slice(0, 28) || "PetCare 社区动态",
+      path: `/pages-content/community/article?id=${encodeURIComponent(post.id)}`,
+      ...(post.mediaUrls[0] ? { imageUrl: post.mediaUrls[0] } : {}),
+    };
+  }
+
+  return {
+    title: shareTitle.value,
+    path: `/pages/community/index${shareQuery.value ? `?${shareQuery.value}` : ""}`,
+  };
+});
 onShareTimeline(() => ({ title: shareTitle.value, query: shareQuery.value }));
 
 onLoad((query = {}) => {
+  if (query.tab === "nearby") {
+    activeChannel.value = "nearby";
+
+    return;
+  }
+
   if (query.tab === "classroom") {
     activeChannel.value = "classroom";
     void loadClassroom();
@@ -474,6 +527,99 @@ onLoad((query = {}) => {
         </view>
       </template>
 
+      <template v-else-if="activeChannel === 'nearby'">
+        <view
+          class="mx-page-horizontal mt-copy flex items-center justify-between rounded-card bg-[#f0faf8] p-card-padding"
+        >
+          <view class="flex flex-col">
+            <text class="text-body text-ink font-medium leading-label">附近宠友</text>
+            <text class="mt-caption text-section text-ink font-semibold leading-section"
+              >86 位</text
+            >
+          </view>
+          <view class="flex gap-action text-center">
+            <view class="flex flex-col">
+              <text class="text-card text-muted leading-card">12</text>
+              <text class="quiet-text">今日动态</text>
+            </view>
+            <view class="flex flex-col">
+              <text class="text-card text-muted leading-card">3.2k</text>
+              <text class="quiet-text">1km 内</text>
+            </view>
+          </view>
+        </view>
+
+        <text class="mx-page-horizontal mt-copy block text-caption text-muted leading-caption">
+          静态页面预览，附近动态服务尚未接入。
+        </text>
+
+        <view class="mx-page-horizontal mt-copy overflow-hidden main-card">
+          <view class="flex items-center justify-between p-card-padding pb-copy">
+            <view class="flex items-center gap-copy">
+              <image
+                class="h-avatar w-avatar rounded-full"
+                src="/static/content/nearby-author.webp"
+                mode="aspectFill"
+              />
+              <view class="flex flex-col">
+                <text class="text-body text-ink font-semibold leading-label">小萌</text>
+                <text class="quiet-text">2 小时前 · 静安区</text>
+              </view>
+            </view>
+            <button
+              class="h-control rounded-pill bg-soft px-copy text-caption text-brand-active font-medium"
+              :aria-pressed="nearbyFollowed"
+              @click="nearbyFollowed = !nearbyFollowed"
+            >
+              {{ nearbyFollowed ? "已关注" : "关注" }}
+            </button>
+          </view>
+          <text class="block px-card-padding text-body text-ink leading-body">
+            静安公园今天下午有宠友散步，欢迎一起。
+          </text>
+          <view class="mt-copy px-card-padding">
+            <image
+              class="h-[233px] w-full rounded-control"
+              src="/static/content/nearby-cat.webp"
+              mode="aspectFill"
+            />
+          </view>
+          <view class="mt-copy flex items-center gap-action px-card-padding pb-copy">
+            <button
+              class="flex items-center gap-compact border-0 bg-transparent p-0 text-caption text-muted"
+              :aria-pressed="nearbyLiked"
+              @click="nearbyLiked = !nearbyLiked"
+            >
+              <image
+                class="h-icon-sm w-icon-sm"
+                src="/static/content/interaction-heart.svg"
+                mode="aspectFit"
+              />
+              <text>{{ nearbyLiked ? 129 : 128 }}</text>
+            </button>
+            <text class="flex items-center gap-compact text-caption text-muted">
+              <image
+                class="h-icon-sm w-icon-sm"
+                src="/static/content/interaction-comment.svg"
+                mode="aspectFit"
+              />
+              36
+            </text>
+            <button
+              open-type="share"
+              class="h-control w-control flex items-center justify-center border-0 bg-transparent p-0"
+              aria-label="分享附近动态预览"
+            >
+              <image
+                class="h-icon-sm w-icon-sm"
+                src="/static/content/interaction-share.svg"
+                mode="aspectFit"
+              />
+            </button>
+          </view>
+        </view>
+      </template>
+
       <template v-else>
         <view
           class="mx-page-horizontal mt-copy border border-border rounded-card bg-surface p-card-padding shadow-card"
@@ -616,6 +762,13 @@ onLoad((query = {}) => {
                   <text class="quiet-text">{{ communityDate(post.createdAt) }}</text>
                 </view>
               </view>
+              <button
+                class="h-control rounded-pill bg-soft px-copy text-caption text-brand-active font-medium"
+                :aria-pressed="followedAuthors.includes(post.author.displayName)"
+                @click="toggleFollow(post.author.displayName)"
+              >
+                {{ followedAuthors.includes(post.author.displayName) ? "已关注" : "关注" }}
+              </button>
             </view>
 
             <view
@@ -638,13 +791,44 @@ onLoad((query = {}) => {
                 class="h-card-cover w-full rounded-control"
                 :src="url"
                 mode="aspectFill"
+                @click.stop="previewMedia(post.mediaUrls, url)"
               />
             </view>
 
             <view class="mt-copy border-t border-divider px-card-padding py-copy">
               <view class="flex items-center gap-action">
-                <text class="quiet-text">赞 {{ post.likesCount }}</text>
-                <text class="quiet-text">评论 {{ post.commentsCount }}</text>
+                <view class="flex items-center gap-compact" aria-label="点赞数">
+                  <image
+                    class="h-icon-sm w-icon-sm"
+                    src="/static/content/interaction-heart.svg"
+                    mode="aspectFit"
+                  />
+                  <text class="quiet-text">{{ post.likesCount }}</text>
+                </view>
+                <view
+                  class="flex items-center gap-compact"
+                  aria-label="评论数"
+                  @click="openCommunityArticle(post.id)"
+                >
+                  <image
+                    class="h-icon-sm w-icon-sm"
+                    src="/static/content/interaction-comment.svg"
+                    mode="aspectFit"
+                  />
+                  <text class="quiet-text">{{ post.commentsCount }}</text>
+                </view>
+                <button
+                  open-type="share"
+                  class="h-control w-control flex items-center justify-center border-0 bg-transparent p-0"
+                  aria-label="分享动态"
+                  @click="preparePostShare(post)"
+                >
+                  <image
+                    class="h-icon-sm w-icon-sm"
+                    src="/static/content/interaction-share.svg"
+                    mode="aspectFit"
+                  />
+                </button>
               </view>
             </view>
           </view>
@@ -677,7 +861,7 @@ onLoad((query = {}) => {
       </template>
     </view>
 
-    <template v-if="activeChannel === 'featured'" #floating>
+    <template #floating>
       <button
         class="pointer-events-auto h-fab w-fab flex items-center justify-center rounded-full bg-brand p-0 shadow-float"
         :class="publishPending ? 'opacity-50' : ''"

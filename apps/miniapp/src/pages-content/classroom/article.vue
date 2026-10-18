@@ -1,7 +1,9 @@
 <script setup lang="ts">
 import { onLoad, onShareAppMessage, onShareTimeline } from "@dcloudio/uni-app";
 import type { PublicClassroomArticleDetail } from "@petcare/shared-types";
+import { CLASSROOM_ARTICLE_CATEGORY_LABELS } from "@petcare/shared-types";
 import { computed, ref } from "vue";
+import { fitArticleImages } from "./article-content";
 import { getClassroomArticle } from "@/api/content";
 import { MiniappApiError } from "@/api/request";
 import PcStatePanel from "@/components/PcStatePanel.vue";
@@ -11,7 +13,11 @@ const articleSlug = ref("");
 const article = ref<PublicClassroomArticleDetail | null>(null);
 const status = ref<"loading" | "ready" | "error" | "unavailable">("loading");
 const loading = ref(false);
+const articleBody = computed(() => fitArticleImages(article.value?.bodyHtml ?? ""));
 const shareTitle = computed(() => article.value?.title ?? "PetCare 萌宠课堂");
+const categoryLabel = computed(() =>
+  article.value?.category ? CLASSROOM_ARTICLE_CATEGORY_LABELS[article.value.category] : "养宠知识",
+);
 const byline = computed(() => {
   if (!article.value) {
     return "";
@@ -74,7 +80,21 @@ onLoad((query = {}) => {
 
 <template>
   <SubPageLayout title="萌宠课堂">
-    <view class="flex flex-col gap-card px-action py-card">
+    <template #header-right>
+      <button
+        class="h-control w-control flex items-center justify-center border-0 bg-transparent p-0"
+        open-type="share"
+        aria-label="分享文章"
+      >
+        <image
+          style="width: 40px; height: 40px"
+          src="/static/content/article-share.svg"
+          mode="aspectFit"
+        />
+      </button>
+    </template>
+
+    <view class="classroom-article flex flex-col gap-card px-action py-card">
       <PcStatePanel v-if="status === 'loading'" status="loading" title="文章加载中…" />
 
       <PcStatePanel
@@ -105,6 +125,11 @@ onLoad((query = {}) => {
         />
 
         <view class="flex flex-col gap-copy">
+          <view class="self-start rounded-pill bg-[#ecfbf8] px-copy py-caption">
+            <text class="text-caption text-brand font-medium leading-caption">{{
+              categoryLabel
+            }}</text>
+          </view>
           <text class="page-heading">{{ article.title }}</text>
           <view class="flex items-center gap-copy">
             <image
@@ -126,9 +151,15 @@ onLoad((query = {}) => {
         </view>
 
         <view class="main-card p-action">
-          <rich-text class="text-body text-ink leading-body" :nodes="article.bodyHtml" />
+          <rich-text class="text-body text-ink leading-body" :nodes="articleBody" />
         </view>
       </template>
     </view>
   </SubPageLayout>
 </template>
+
+<style scoped>
+.classroom-article {
+  overflow-wrap: anywhere;
+}
+</style>

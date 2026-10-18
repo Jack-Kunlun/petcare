@@ -27,17 +27,24 @@ import PcButton from "@/components/PcButton.vue";
 import PcStatePanel from "@/components/PcStatePanel.vue";
 import SubPageLayout from "@/components/SubPageLayout.vue";
 import { getDefaultAvatar } from "@/state/default-avatar";
-import { requireProfile, session } from "@/state/session";
+import {
+  captureSessionUserRevision,
+  isSessionUserRevisionCurrent,
+  requireProfile,
+  session,
+} from "@/state/session";
 
 const COMMENT_PAGE_SIZE = 20;
 
 const postId = ref("");
 const post = ref<PublicCommunityPostDetail | null>(null);
+const authorFollowed = ref(false);
 const status = ref<"loading" | "ready" | "error" | "unavailable">("loading");
 const loading = ref(false);
 const checkingProfile = ref(false);
 const liked = ref(false);
 const likeStateStatus = ref<"idle" | "loading" | "ready" | "error">("idle");
+const likeViewer = ref<{ userId: string; revision: number } | null>(null);
 const likePending = ref(false);
 const likeError = ref("");
 const reportVisible = ref(false);
@@ -51,7 +58,11 @@ const commentsStatus = ref<"idle" | "loading" | "ready" | "error">("idle");
 const commentsLoading = ref(false);
 const commentsPage = ref(1);
 const commentsTotal = ref(0);
-const commentsViewerId = ref<string | null>(null);
+const commentsViewer = ref<{
+  userId: string | null;
+  profileComplete: boolean;
+  revision: number;
+} | null>(null);
 const commentLoadMoreError = ref("");
 const commentContent = ref("");
 const commentCheckingProfile = ref(false);
@@ -90,6 +101,12 @@ function returnToCommunity(): void {
   uni.redirectTo({ url: "/pages/community/index" });
 }
 
+function previewMedia(current: string): void {
+  if (post.value) {
+    uni.previewImage({ urls: post.value.mediaUrls, current });
+  }
+}
+
 function applyLikeState(state: CommunityPostLikeState): void {
   liked.value = state.liked;
   likeStateStatus.value = "ready";
@@ -112,7 +129,7 @@ function likeButtonLabel(): string {
     return "读取点赞状态";
   }
 
-  if (likeStateStatus.value === "error" && session.user) {
+  if (likeStateStatus.value === "error" && session.user?.profileComplete) {
     return "重试点赞";
   }
 
@@ -121,23 +138,65 @@ function likeButtonLabel(): string {
 
 async function loadLikeState(): Promise<boolean> {
   if (
-    !session.user ||
+    !session.user?.profileComplete ||
     !post.value ||
     !postId.value ||
     likePending.value ||
     likeStateStatus.value === "loading"
   ) {
+    if (!session.user?.profileComplete) {
+      liked.value = false;
+      likeStateStatus.value = "idle";
+      likeViewer.value = null;
+      likeError.value = "";
+    }
+
     return false;
   }
+
+  const viewer = session.user;
+  const viewerRevision = captureSessionUserRevision();
+  const isCurrentViewer = () =>
+    session.user === viewer &&
+    isSessionUserRevisionCurrent(viewerRevision) &&
+    session.user?.profileComplete === true;
 
   likeStateStatus.value = "loading";
   likeError.value = "";
 
   try {
-    applyLikeState(await getCommunityPostLikeState(postId.value));
+    const state = await getCommunityPostLikeState(postId.value);
+
+    if (!isCurrentViewer()) {
+      liked.value = false;
+      likeStateStatus.value = "idle";
+      likeViewer.value = null;
+
+      if (session.user?.profileComplete) {
+        void loadLikeState();
+      }
+
+      return false;
+    }
+
+    applyLikeState(state);
+    likeViewer.value = { userId: viewer.id, revision: viewerRevision.revision };
 
     return true;
   } catch (error) {
+    if (!isCurrentViewer()) {
+      liked.value = false;
+      likeStateStatus.value = "idle";
+      likeViewer.value = null;
+
+      if (session.user?.profileComplete) {
+        void loadLikeState();
+      }
+
+      return false;
+    }
+
+    likeViewer.value = { userId: viewer.id, revision: viewerRevision.revision };
     likeStateStatus.value = "error";
     likeError.value = errorMessage(error, "点赞状态加载失败，请重试");
 
@@ -158,9 +217,10 @@ async function loadPost(): Promise<void> {
     status.value = "ready";
     liked.value = false;
     likeStateStatus.value = "idle";
+    likeViewer.value = null;
     likeError.value = "";
 
-    if (session.user) {
+    if (session.user?.profileComplete) {
       void loadLikeState();
     }
 
@@ -182,6 +242,14 @@ async function loadComments(reset: boolean): Promise<void> {
   }
 
   const page = reset ? 1 : commentsPage.value + 1;
+  const viewer = session.user;
+  const viewerRevision = captureSessionUserRevision();
+  const canReadOwnerComments = viewer?.profileComplete === true;
+  const isCurrentViewer = () =>
+    captureSessionUserRevision().revision === viewerRevision.revision &&
+    session.user === viewer &&
+    (!viewer || isSessionUserRevisionCurrent(viewerRevision)) &&
+    (session.user?.profileComplete === true) === canReadOwnerComments;
 
   commentsLoading.value = true;
   commentLoadMoreError.value = "";
@@ -191,18 +259,46 @@ async function loadComments(reset: boolean): Promise<void> {
     commentError.value = "";
   }
 
+  let reloadForChangedViewer = false;
+
   try {
     const query = { page, pageSize: COMMENT_PAGE_SIZE };
-    const response = session.user
+    const response = canReadOwnerComments
       ? await getMyCommunityPostComments(postId.value, query)
       : await getCommunityPostComments(postId.value, query);
+
+    if (!isCurrentViewer()) {
+      reloadForChangedViewer = true;
+      comments.value = [];
+      commentsPage.value = 1;
+      commentsTotal.value = 0;
+      commentsViewer.value = null;
+      commentsStatus.value = "idle";
+
+      return;
+    }
 
     comments.value = reset ? response.list : [...comments.value, ...response.list];
     commentsPage.value = response.page;
     commentsTotal.value = response.total;
-    commentsViewerId.value = session.user?.id ?? null;
+    commentsViewer.value = {
+      userId: viewer?.id ?? null,
+      profileComplete: canReadOwnerComments,
+      revision: viewerRevision.revision,
+    };
     commentsStatus.value = "ready";
   } catch (error) {
+    if (!isCurrentViewer()) {
+      reloadForChangedViewer = true;
+      comments.value = [];
+      commentsPage.value = 1;
+      commentsTotal.value = 0;
+      commentsViewer.value = null;
+      commentsStatus.value = "idle";
+
+      return;
+    }
+
     const message = errorMessage(error, "评论加载失败，请重试");
 
     if (reset) {
@@ -214,6 +310,10 @@ async function loadComments(reset: boolean): Promise<void> {
     }
   } finally {
     commentsLoading.value = false;
+
+    if (reloadForChangedViewer && post.value && postId.value) {
+      void loadComments(true);
+    }
   }
 }
 
@@ -240,7 +340,14 @@ async function submitComment(): Promise<void> {
 
     comments.value = [created, ...comments.value];
     commentsTotal.value += 1;
-    commentsViewerId.value = session.user?.id ?? null;
+
+    const viewerRevision = captureSessionUserRevision();
+
+    commentsViewer.value = {
+      userId: session.user?.id ?? null,
+      profileComplete: session.user?.profileComplete === true,
+      revision: viewerRevision.revision,
+    };
     commentsStatus.value = "ready";
     post.value = { ...post.value, commentsCount: post.value.commentsCount + 1 };
     commentContent.value = "";
@@ -408,17 +515,34 @@ onLoad((query = {}) => {
 });
 
 onShow(() => {
-  if (!session.user) {
+  if (!session.user?.profileComplete) {
     liked.value = false;
     likeStateStatus.value = "idle";
-  } else if (post.value && likeStateStatus.value === "idle") {
-    void loadLikeState();
+    likeViewer.value = null;
+    likeError.value = "";
+  } else if (post.value && likeStateStatus.value !== "loading" && !likePending.value) {
+    const viewerRevision = captureSessionUserRevision();
+    const likeStateIsCurrent =
+      likeViewer.value?.userId === session.user.id &&
+      likeViewer.value.revision === viewerRevision.revision;
+
+    if (likeStateStatus.value === "idle" || !likeStateIsCurrent) {
+      liked.value = false;
+      likeStateStatus.value = "idle";
+      likeViewer.value = null;
+      likeError.value = "";
+      void loadLikeState();
+    }
   }
+
+  const viewerRevision = captureSessionUserRevision();
 
   if (
     post.value &&
     commentsStatus.value !== "loading" &&
-    commentsViewerId.value !== (session.user?.id ?? null)
+    (commentsViewer.value?.userId !== (session.user?.id ?? null) ||
+      commentsViewer.value?.profileComplete !== (session.user?.profileComplete === true) ||
+      commentsViewer.value?.revision !== viewerRevision.revision)
   ) {
     void loadComments(true);
   }
@@ -426,7 +550,17 @@ onShow(() => {
 </script>
 
 <template>
-  <SubPageLayout title="社区动态">
+  <SubPageLayout title="动态详情">
+    <template #header-right>
+      <button
+        class="h-control w-control flex items-center justify-center border-0 bg-transparent p-0"
+        open-type="share"
+        aria-label="分享动态"
+      >
+        <image class="h-control w-control" src="/static/content/post-share.svg" mode="aspectFit" />
+      </button>
+    </template>
+
     <view class="px-action py-card">
       <PcStatePanel v-if="status === 'loading'" status="loading" title="社区动态加载中…" />
 
@@ -450,24 +584,34 @@ onShow(() => {
       />
 
       <view v-else-if="post" class="main-card p-action">
-        <view class="flex items-center gap-copy">
-          <image class="h-avatar w-avatar rounded-full" :src="avatar" mode="aspectFill" />
-          <view class="min-w-0 flex flex-1 flex-col">
-            <text class="text-body text-ink font-semibold leading-label">
-              {{ post.author.displayName }}
-            </text>
-            <text class="quiet-text">{{ formatDate(post.createdAt) }}</text>
+        <view class="flex items-center justify-between gap-copy">
+          <view class="min-w-0 flex flex-1 items-center gap-copy">
+            <image class="h-avatar w-avatar rounded-full" :src="avatar" mode="aspectFill" />
+            <view class="min-w-0 flex flex-1 flex-col">
+              <text class="text-body text-ink font-semibold leading-label">
+                {{ post.author.displayName }}
+              </text>
+              <text class="quiet-text">{{ formatDate(post.createdAt) }}</text>
+            </view>
           </view>
+          <button
+            class="h-control border-0 rounded-pill bg-soft px-copy text-caption text-brand-active font-medium"
+            :aria-pressed="authorFollowed"
+            @click="authorFollowed = !authorFollowed"
+          >
+            {{ authorFollowed ? "已关注" : "关注" }}
+          </button>
         </view>
 
         <text class="mt-action block text-body text-ink leading-body">{{ post.content }}</text>
-        <view v-if="post.mediaUrls.length > 0" class="grid grid-cols-2 mt-action gap-copy">
+        <view v-if="post.mediaUrls.length > 0" class="grid grid-cols-3 mt-action gap-sm">
           <image
             v-for="url in post.mediaUrls"
             :key="url"
-            class="h-hero-main w-full rounded-control"
+            class="h-card-cover w-full rounded-control"
             :src="url"
             mode="aspectFill"
+            @click="previewMedia(url)"
           />
         </view>
 
@@ -484,7 +628,14 @@ onShow(() => {
             >
               {{ likeButtonLabel() }} · {{ post.likesCount }}
             </PcButton>
-            <text class="quiet-text">评论 {{ post.commentsCount }}</text>
+            <view class="flex items-center gap-compact">
+              <image
+                class="h-icon-sm w-icon-sm"
+                src="/static/content/interaction-comment.svg"
+                mode="aspectFit"
+              />
+              <text class="quiet-text">{{ post.commentsCount }}</text>
+            </view>
           </view>
           <text v-if="likeError" class="mt-copy block text-small text-danger" role="alert">
             {{ likeError }}

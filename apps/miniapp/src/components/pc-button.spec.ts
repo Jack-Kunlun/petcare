@@ -23,7 +23,7 @@ describe("pc button contract", () => {
     expect(source).toContain("<slot />");
     expect(source).toContain('<slot name="suffix" />');
     expect(source).toContain('emit("click", event)');
-    expect(source).toContain("background: #1d4ed8");
+    expect(source).toContain("background: var(--pc-button-active)");
     expect(source).toContain("&--danger");
   });
 });

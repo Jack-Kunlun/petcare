@@ -1,6 +1,7 @@
 import { readFileSync } from "node:fs";
 import { resolve } from "node:path";
 import { describe, expect, it } from "vitest";
+import { fitArticleImages } from "./article-content";
 
 const article = readFileSync(resolve(import.meta.dirname, "article.vue"), "utf8");
 
@@ -21,7 +22,7 @@ describe("published classroom article page", () => {
     expect(article).toContain(':src="article.coverUrl"');
     expect(article).toContain("{{ article.title }}");
     expect(article).toContain("{{ article.summary }}");
-    expect(article).toContain(':nodes="article.bodyHtml"');
+    expect(article).toContain(':nodes="articleBody"');
     expect(article).not.toContain("const sections");
     expect(article).not.toContain("const checklist");
     expect(article).not.toContain("const related");
@@ -29,5 +30,16 @@ describe("published classroom article page", () => {
     expect(article).not.toContain("v-html");
     expect(article).not.toContain("articleActions");
     expect(article).not.toContain("<template #actions>");
+  });
+
+  it("fits every managed image without changing its source or article text", () => {
+    expect(
+      fitArticleImages(
+        '<p>正文 PetCareGateAccess2026</p><img src="/one.jpg" alt="猫"><img src="/two.jpg">',
+      ),
+    ).toBe(
+      '<p>正文 PetCareGateAccess2026</p><img style="max-width:100%;height:auto;" src="/one.jpg" alt="猫"><img style="max-width:100%;height:auto;" src="/two.jpg">',
+    );
+    expect(fitArticleImages("<p>纯文字正文</p>")).toBe("<p>纯文字正文</p>");
   });
 });

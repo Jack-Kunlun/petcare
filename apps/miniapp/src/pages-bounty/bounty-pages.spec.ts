@@ -5,8 +5,14 @@ import { describe, expect, it } from "vitest";
 const page = (name: string) => readFileSync(resolve(import.meta.dirname, name), "utf8");
 const index = page("index.vue");
 const form = page("form.vue");
-const sopPanel = page("BountySopPanel.vue");
-const paymentPanel = page("BountyPaymentPanel.vue");
+const sopPanel = readFileSync(
+  resolve(import.meta.dirname, "../components/bounty/BountySopPanel.vue"),
+  "utf8",
+);
+const paymentPanel = readFileSync(
+  resolve(import.meta.dirname, "../components/bounty/BountyPaymentPanel.vue"),
+  "utf8",
+);
 
 describe("bounty pages", () => {
   it("uses the standard bottom navigation layout", () => {
@@ -19,8 +25,8 @@ describe("bounty pages", () => {
     expect(index).toContain("!featureAvailable");
     expect(index).toContain("commercialServicesEnabled && !serverUnavailable.value");
     expect(form).toContain('commercialServicesEnabled ? "loading" : "unavailable"');
-    expect(index).toContain(':disabled="openingForm"');
-    expect(index).toContain(':loading="openingForm"');
+    expect(index).toContain(':disabled="!featureAvailable || openingForm"');
+    expect(index).toContain(":aria-disabled=");
   });
 
   it("renders mutually exclusive loading, empty, error, and authentication states", () => {
@@ -87,10 +93,10 @@ describe("bounty pages", () => {
   it("uses server-confirmed payment state before exposing the native payment call", () => {
     expect(index).toContain("bounty.status === BOUNTY_STATUS.CONFIRMED");
     expect(index).toContain("<BountyPaymentPanel");
-    expect(paymentPanel).toContain("getOrderPayment(props.orderId)");
-    expect(paymentPanel).toContain("prepayOrder(props.orderId)");
-    expect(paymentPanel).toContain("simulateOrderPayment(props.orderId)");
-    expect(paymentPanel).toContain("refreshOrderPayment(props.orderId)");
+    expect(paymentPanel).toContain("getOrderPayment(context.orderId)");
+    expect(paymentPanel).toContain("prepayOrder(context.orderId)");
+    expect(paymentPanel).toContain("simulateOrderPayment(context.orderId)");
+    expect(paymentPanel).toContain("refreshOrderPayment(context.orderId)");
     expect(paymentPanel).toContain("requestPayment");
     expect(paymentPanel).toContain('next.status === "succeeded"');
     expect(paymentPanel).toContain('status.value = "unavailable"');

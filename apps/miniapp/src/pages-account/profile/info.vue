@@ -32,6 +32,8 @@ const fields = computed(() => {
     ? [
         { label: "昵称", value: user.nickname },
         { label: "手机号", value: user.phoneMasked ?? "未绑定" },
+        { label: "性别", value: "暂无资料" },
+        { label: "生日", value: "暂无资料" },
         { label: "所在地区", value: user.region ?? "未填写" },
         { label: "个人简介", value: user.bio ?? "未填写" },
       ]
@@ -108,6 +110,15 @@ function openLogin(): void {
 
 <template>
   <SubPageLayout title="个人信息">
+    <template #header-right
+      ><button
+        class="h-control w-control bg-transparent p-0 text-body text-link"
+        :disabled="status !== 'ready'"
+        @click="editProfile"
+      >
+        编辑
+      </button></template
+    >
     <view class="flex flex-col gap-copy px-action py-card">
       <PcStatePanel v-if="status === 'loading'" status="loading" title="个人资料加载中…" />
 
@@ -132,8 +143,11 @@ function openLogin(): void {
 
       <template v-else-if="status === 'ready' && profile">
         <view class="flex flex-col items-center main-card p-card">
-          <image class="h-avatar-lg w-avatar-lg rounded-full" :src="avatarUrl" mode="aspectFill" />
-          <text class="mt-copy card-heading">{{ profile.nickname }}</text>
+          <image class="h-avatar-xl w-avatar-xl rounded-full" :src="avatarUrl" mode="aspectFill" />
+          <text class="mt-copy text-amount text-ink font-medium leading-section">{{
+            profile.nickname
+          }}</text>
+          <text class="mt-caption meta-text">{{ profile.region || "未填写所在地区" }}</text>
           <text
             class="mt-caption text-caption leading-caption"
             :class="profile.profileComplete ? 'text-success' : 'text-muted'"
@@ -142,15 +156,16 @@ function openLogin(): void {
           </text>
         </view>
 
+        <text class="mt-action section-heading">基础资料</text>
         <view class="overflow-hidden main-card">
           <view
             v-for="(field, index) in fields"
             :key="field.label"
-            class="flex items-start gap-action px-action py-action"
+            class="flex items-center gap-action px-action py-action"
             :class="index < fields.length - 1 ? 'border-b border-divider' : ''"
           >
-            <text class="w-pet shrink-0 text-body text-muted leading-label">{{ field.label }}</text>
-            <text class="min-w-0 flex-1 text-right text-body text-ink leading-body">
+            <text class="w-pet shrink-0 text-body text-ink leading-label">{{ field.label }}</text>
+            <text class="min-w-0 flex-1 text-right text-body text-muted leading-body">
               {{ field.value }}
             </text>
           </view>

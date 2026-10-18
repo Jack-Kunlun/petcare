@@ -24,14 +24,16 @@ definePage({
 const PAGE_SIZE = 20;
 const categoryTabs: ReadonlyArray<{
   label: string;
-  value: NotificationCategory;
+  value: NotificationCategory | null;
 }> = [
+  { label: "全部", value: null },
   { label: "系统通知", value: NOTIFICATION_CATEGORY.SYSTEM },
+  { label: "订单消息", value: NOTIFICATION_CATEGORY.ORDER },
   { label: "互动消息", value: NOTIFICATION_CATEGORY.INTERACTION },
 ];
 
 const notifications = ref<UserNotification[]>([]);
-const activeCategory = ref<NotificationCategory>(NOTIFICATION_CATEGORY.INTERACTION);
+const activeCategory = ref<NotificationCategory | null>(null);
 const status = ref<"loading" | "ready" | "error" | "unauthenticated">("loading");
 const loading = ref(false);
 const loadMoreError = ref(false);
@@ -48,11 +50,15 @@ function notificationIcon(item: UserNotification): string {
     return "/static/main/heart.svg";
   }
 
+  if (item.category === NOTIFICATION_CATEGORY.ORDER) {
+    return "/static/auth/check.svg";
+  }
+
   return "/static/main/bell.svg";
 }
 
 function notificationTone(item: UserNotification): string {
-  if (item.type === NOTIFICATION_TYPE.COMMUNITY_LIKE) {
+  if (item.category === NOTIFICATION_CATEGORY.INTERACTION) {
     return "bg-danger-soft";
   }
 
@@ -98,7 +104,7 @@ async function loadNotifications(reset = true): Promise<void> {
     const response = await getNotifications({
       page: nextPage,
       pageSize: PAGE_SIZE,
-      category: activeCategory.value,
+      category: activeCategory.value ?? undefined,
     });
 
     if (!isSessionUserRevisionCurrent(startedAt)) {
@@ -134,7 +140,7 @@ async function loadNotifications(reset = true): Promise<void> {
   }
 }
 
-function selectCategory(category: NotificationCategory): void {
+function selectCategory(category: NotificationCategory | null): void {
   if (loading.value || activeCategory.value === category) {
     return;
   }
@@ -233,15 +239,12 @@ watch(
     </template>
 
     <view class="box-border flex flex-col pb-screen">
-      <view class="mx-page-horizontal h-control flex rounded-pill bg-surface p-caption">
+      <view class="mx-page-horizontal h-segment flex bg-surface">
         <view
           v-for="tab in categoryTabs"
           :key="tab.label"
-          class="min-w-0 flex flex-1 items-center justify-center rounded-pill"
-          :class="[
-            activeCategory === tab.value ? 'bg-brand' : 'bg-surface',
-            loading ? 'opacity-50' : '',
-          ]"
+          class="relative min-w-0 flex flex-1 items-center justify-center"
+          :class="loading ? 'opacity-50' : ''"
           role="button"
           :aria-pressed="activeCategory === tab.value"
           :aria-disabled="loading"
@@ -249,10 +252,15 @@ watch(
         >
           <text
             class="whitespace-nowrap text-caption font-medium leading-caption"
-            :class="activeCategory === tab.value ? 'text-surface' : 'text-muted'"
+            :class="activeCategory === tab.value ? 'text-brand' : 'text-muted'"
           >
             {{ tab.label }}
           </text>
+          <view
+            v-if="activeCategory === tab.value"
+            class="absolute bottom-0 h-tab-indicator w-[24px] rounded-full bg-brand"
+            aria-hidden="true"
+          />
         </view>
       </view>
 

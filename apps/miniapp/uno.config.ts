@@ -34,7 +34,7 @@ export default defineConfig({
     boxShadow: miniappDesignTokens.shadows,
   },
   shortcuts: {
-    "main-card": "rounded-card bg-surface shadow-card",
+    "main-card": "border border-divider rounded-card bg-surface",
     "page-heading": "text-page text-ink font-semibold leading-page",
     "section-heading": "text-section text-ink font-semibold leading-section",
     "card-heading": "text-card text-ink font-semibold leading-card",

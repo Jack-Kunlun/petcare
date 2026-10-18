@@ -55,6 +55,16 @@ async function activateChannel(channel: WebsiteContactChannel): Promise<void> {
   }
 }
 
+function contactIcon(channel: WebsiteContactChannel): string {
+  return getContactAction(channel.href).kind === "phone"
+    ? "/static/content/contact-phone.svg"
+    : "/static/content/contact-chat.svg";
+}
+
+function openChatPreview(): void {
+  uni.navigateTo({ url: "/pages-content/chat/index?mode=preview" });
+}
+
 onLoad(() => {
   void load();
 });
@@ -83,9 +93,9 @@ onLoad(() => {
       />
 
       <template v-else>
-        <view class="border border-border rounded-card bg-surface p-card">
-          <text class="text-page text-ink font-semibold leading-page">{{ panel.title }}</text>
-          <text v-if="panel.description" class="mt-sm block text-body text-muted leading-body">
+        <view class="rounded-card bg-soft p-card">
+          <text class="text-card text-ink font-semibold leading-card">{{ panel.title }}</text>
+          <text v-if="panel.description" class="mt-sm block meta-text">
             {{ panel.description }}
           </text>
         </view>
@@ -100,26 +110,56 @@ onLoad(() => {
         <view
           v-for="channel in panel.channels"
           :key="channel.channelKey"
-          class="main-card p-action"
+          class="flex items-center gap-copy main-card p-action"
         >
-          <text class="card-heading">{{ channel.label }}</text>
-          <text class="mt-copy block text-section text-ink font-semibold leading-section">
-            {{ channel.value }}
-          </text>
-          <text v-if="channel.availability" class="mt-sm block meta-text">
-            {{ channel.availability }}
-          </text>
+          <view class="h-control w-control flex shrink-0 items-center justify-center">
+            <image
+              class="h-glyph w-glyph"
+              :src="contactIcon(channel)"
+              mode="aspectFit"
+              aria-hidden="true"
+            />
+          </view>
+          <view class="min-w-0 flex flex-1 flex-col">
+            <text class="card-heading">{{ channel.label }}</text>
+            <text class="mt-caption block meta-text">{{ channel.value }}</text>
+            <text v-if="channel.availability" class="mt-caption block quiet-text">
+              {{ channel.availability }}
+            </text>
+          </view>
           <PcButton
             v-if="getContactAction(channel.href).kind !== 'none'"
-            class="mt-action"
-            block
+            variant="secondary"
             :disabled="actionPending !== null"
             :loading="actionPending === channel.channelKey"
             :aria-label="`${getContactAction(channel.href).kind === 'phone' ? '拨打' : '复制'}${channel.label}`"
             @click="activateChannel(channel)"
           >
-            {{ getContactAction(channel.href).kind === "phone" ? "拨打电话" : "复制邮箱" }}
+            {{ getContactAction(channel.href).kind === "phone" ? "拨打" : "复制" }}
           </PcButton>
+        </view>
+
+        <view class="flex items-center gap-copy main-card p-action">
+          <view class="h-control w-control flex shrink-0 items-center justify-center">
+            <image
+              class="h-glyph w-glyph"
+              src="/static/content/contact-chat.svg"
+              mode="aspectFit"
+              aria-hidden="true"
+            />
+          </view>
+          <view class="min-w-0 flex flex-1 flex-col">
+            <text class="card-heading">聊天界面预览</text>
+            <text class="mt-caption block meta-text">静态页面，不提供实时客服</text>
+          </view>
+          <PcButton variant="secondary" @click="openChatPreview">查看</PcButton>
+        </view>
+
+        <view class="mt-section">
+          <text class="section-heading">服务说明</text>
+          <text class="mt-copy block meta-text">
+            咨询订单、账号与宠物资料问题时，请准备相关页面信息。可用联系方式以本页已发布内容为准。
+          </text>
         </view>
       </template>
     </view>

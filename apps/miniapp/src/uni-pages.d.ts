@@ -14,6 +14,16 @@ type _LocationUrl =
   "/pages-account/pets/detail" |
   "/pages-account/profile/info" |
   "/pages-account/profile/edit" |
+  "/pages-account/income/index" |
+  "/pages-account/social/favorites" |
+  "/pages-account/social/follows" |
+  "/pages-account/social/reviews" |
+  "/pages-account/social/review-form" |
+  "/pages-account/discover/service" |
+  "/pages-account/discover/caregiver" |
+  "/pages-account/discover/store" |
+  "/pages-account/discover/creator" |
+  "/pages-account/coupons/index" |
   "/pages-account/account/settings" |
   "/pages-account/account/cancel" |
   "/pages-content/classroom/article" |
@@ -21,14 +31,27 @@ type _LocationUrl =
   "/pages-content/community/publish" |
   "/pages-content/help/index" |
   "/pages-content/contact/index" |
-  "/pages-content/legal/index";
+  "/pages-content/legal/index" |
+  "/pages-content/about/index" |
+  "/pages-content/chat/index" |
+  "/pages-bounty/index" |
+  "/pages-bounty/form" |
+  "/pages-bounty/detail" |
+  "/pages-bounty/map" |
+  "/pages-bounty/success" |
+  "/pages-orders/index" |
+  "/pages-orders/detail" |
+  "/pages-orders/monitor" |
+  "/pages-qualification/index";
 
 interface NavigateToOptions {
   url: _LocationUrl;
 }
 interface RedirectToOptions extends NavigateToOptions {}
 
-interface SwitchTabOptions {}
+interface SwitchTabOptions {
+
+}
 
 type ReLaunchOptions = NavigateToOptions | SwitchTabOptions;
 

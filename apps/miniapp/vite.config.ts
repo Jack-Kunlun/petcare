@@ -45,6 +45,7 @@ export default defineConfig(({ mode }) => {
         onBeforeLoadUserConfig(context) {
           if (!commercialServicesEnabled) {
             removeSubPackage(context.resolvedPagesJSONPath, "pages-bounty");
+            removeSubPackage(context.resolvedPagesJSONPath, "pages-orders");
           }
 
           if (!qualificationWorkflowEnabled) {

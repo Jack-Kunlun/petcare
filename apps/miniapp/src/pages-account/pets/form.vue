@@ -524,7 +524,7 @@ watch(
           class="main-card p-action"
         >
           <text class="card-heading">宠物照片</text>
-          <view class="grid grid-cols-3 mt-copy gap-copy">
+          <view class="grid grid-cols-2 mt-copy gap-copy">
             <view
               v-for="(photo, index) in existingPhotos"
               :key="`${photo.url}-${index}`"

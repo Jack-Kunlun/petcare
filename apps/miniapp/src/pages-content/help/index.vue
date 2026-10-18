@@ -12,6 +12,7 @@ const query = ref("");
 const categories = ref<HelpCategory[]>([]);
 const status = ref<"loading" | "ready" | "error">("loading");
 const loading = ref(false);
+const expandedQuestion = ref<string | null>(null);
 const filtered = computed(() => filterHelpCategories(categories.value, query.value));
 
 async function load(): Promise<void> {
@@ -34,6 +35,11 @@ async function load(): Promise<void> {
 
 function clearQuery(): void {
   query.value = "";
+  expandedQuestion.value = null;
+}
+
+function toggleQuestion(key: string): void {
+  expandedQuestion.value = expandedQuestion.value === key ? null : key;
 }
 
 onLoad(() => {
@@ -93,14 +99,35 @@ onLoad(() => {
         />
 
         <view v-else class="flex flex-col gap-card">
-          <view v-for="category in filtered" :key="category.key" class="main-card p-action">
+          <view v-for="category in filtered" :key="category.key">
             <text class="section-heading">{{ category.title }}</text>
-            <view class="mt-copy flex flex-col gap-action">
-              <view v-for="question in category.questions" :key="question.key">
-                <text class="text-body text-ink font-semibold leading-label">
-                  {{ question.question }}
-                </text>
-                <text class="mt-sm block whitespace-pre-line meta-text">
+            <view class="mt-copy overflow-hidden main-card">
+              <view
+                v-for="(question, index) in category.questions"
+                :key="question.key"
+                class="px-action py-copy"
+                :class="index < category.questions.length - 1 ? 'border-b border-divider' : ''"
+              >
+                <view
+                  class="flex items-center justify-between gap-copy"
+                  role="button"
+                  :aria-expanded="expandedQuestion === `${category.key}:${question.key}`"
+                  @click="toggleQuestion(`${category.key}:${question.key}`)"
+                >
+                  <text class="min-w-0 flex-1 text-body text-ink font-medium leading-label">
+                    {{ question.question }}
+                  </text>
+                  <image
+                    class="h-icon-sm w-icon-sm shrink-0"
+                    src="/static/main/chevron.svg"
+                    mode="aspectFit"
+                    aria-hidden="true"
+                  />
+                </view>
+                <text
+                  v-if="expandedQuestion === `${category.key}:${question.key}`"
+                  class="mt-copy block whitespace-pre-line meta-text"
+                >
                   {{ question.answer }}
                 </text>
               </view>

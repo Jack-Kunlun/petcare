@@ -42,7 +42,7 @@ onLoad((query = {}) => {
 
 <template>
   <SubPageLayout :title="title">
-    <view class="flex flex-col gap-card px-action py-card">
+    <view class="flex flex-col gap-section px-action py-card">
       <PcStatePanel v-if="status === 'loading'" status="loading" title="协议内容加载中…" />
 
       <PcStatePanel
@@ -62,29 +62,26 @@ onLoad((query = {}) => {
         description="请稍后返回查看。"
       />
 
-      <view v-else class="flex flex-col gap-card">
+      <view v-else class="flex flex-col gap-section">
         <view
           v-for="(section, sectionIndex) in sections"
           :key="`${section.title}-${sectionIndex}`"
-          class="main-card p-action"
+          class="flex flex-col gap-action"
         >
-          <text class="section-heading">{{ section.title }}</text>
-          <text v-if="section.effectiveDate" class="mt-sm block meta-text">
-            {{ section.effectiveDate }}
+          <text v-if="section.effectiveDate" class="quiet-text">
+            生效日期：{{ section.effectiveDate }}
           </text>
-          <view class="mt-action flex flex-col gap-action">
-            <view v-for="part in section.parts" :key="part.partKey">
-              <text class="text-body text-ink font-semibold leading-label">
-                {{ part.heading }}
-              </text>
-              <text
-                v-for="(paragraph, paragraphIndex) in part.paragraphs"
-                :key="`${part.partKey}-${paragraphIndex}`"
-                class="mt-sm block text-body text-ink leading-body"
-              >
-                {{ paragraph }}
-              </text>
-            </view>
+          <view v-for="part in section.parts" :key="part.partKey">
+            <text class="text-card text-ink font-semibold leading-card">
+              {{ part.heading }}
+            </text>
+            <text
+              v-for="(paragraph, paragraphIndex) in part.paragraphs"
+              :key="`${part.partKey}-${paragraphIndex}`"
+              class="mt-copy block text-body text-ink leading-body"
+            >
+              {{ paragraph }}
+            </text>
           </view>
         </view>
       </view>
