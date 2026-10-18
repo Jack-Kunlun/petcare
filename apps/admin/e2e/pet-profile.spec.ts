@@ -3,6 +3,7 @@ import path from "node:path";
 import {
   PET_ERROR_CODE,
   PET_GENDER,
+  PET_PROFILE_LIMITS,
   PET_SPECIES,
   type ApiErrorResponse,
   type CreatePetRequest,
@@ -171,83 +172,98 @@ test("本人宠物档案在隔离环境完成管理、权限与图片清理闭�
       await page.request.get("/api/pets", { headers: { Authorization: otherAuthorization } }),
     ),
   ).resolves.toEqual([]);
-
-  const created = await responseData<MyPetDetail>(
-    await page.request.post("/api/pets", {
-      headers: { Authorization: ownerAuthorization },
-      data: input,
-    }),
+  const initialOwnerPets = await responseData<MyPetListResponse>(
+    await page.request.get("/api/pets", { headers: { Authorization: ownerAuthorization } }),
   );
 
-  expect(created).toMatchObject({
-    ...input,
-    id: expect.any(String),
-    photoAssets: [],
-    photoUrls: [],
-  });
+  expect(initialOwnerPets.length).toBeLessThan(PET_PROFILE_LIMITS.MAX_PETS_PER_OWNER);
 
-  const firstPhoto = await uploadPhoto(page, created.id, ownerAuthorization, "pet-first.png");
-  const secondPhoto = await uploadPhoto(page, created.id, ownerAuthorization, "pet-second.png");
-  const firstPhotoPath = storedPhotoPath(firstPhoto);
-  const secondPhotoPath = storedPhotoPath(secondPhoto);
-
-  expect(firstPhoto).toMatchObject({ mimeType: "image/png", width: 32, height: 32 });
-  expect(secondPhoto).toMatchObject({ mimeType: "image/png", width: 32, height: 32 });
-  expect(existsSync(firstPhotoPath)).toBe(true);
-  expect(existsSync(secondPhotoPath)).toBe(true);
-
-  await expectFailure(
-    await page.request.get(`/api/pets/${created.id}`, {
-      headers: { Authorization: otherAuthorization },
-    }),
-    404,
-    PET_ERROR_CODE.NOT_FOUND,
-  );
-  await expectFailure(
-    await page.request.put(`/api/pets/${created.id}`, {
-      headers: { Authorization: otherAuthorization },
-      data: { ...input, name: "越权修改" },
-    }),
-    404,
-    PET_ERROR_CODE.NOT_FOUND,
-  );
-  await expectFailure(
-    await page.request.post(`/api/pets/${created.id}/media-assets`, {
-      headers: { Authorization: otherAuthorization },
-      multipart: {
-        file: { name: "foreign.png", mimeType: "image/png", buffer: PET_PHOTO },
-      },
-    }),
-    404,
-    PET_ERROR_CODE.NOT_FOUND,
-  );
-  await expectFailure(
-    await page.request.delete(`/api/pets/${created.id}/media-assets/${firstPhoto.id}`, {
-      headers: { Authorization: otherAuthorization },
-    }),
-    404,
-    PET_ERROR_CODE.NOT_FOUND,
-  );
-  await expectFailure(
-    await page.request.delete(`/api/pets/${created.id}`, {
-      headers: { Authorization: otherAuthorization },
-    }),
-    404,
-    PET_ERROR_CODE.NOT_FOUND,
-  );
-  expect(existsSync(firstPhotoPath)).toBe(true);
-  expect(existsSync(secondPhotoPath)).toBe(true);
-
-  const miniappContext = await browser.newContext({ viewport: { width: 375, height: 812 } });
-  const miniappPage = await miniappContext.newPage();
-  const miniappUrl = requiredEnv("ADMIN_E2E_MINIAPP_URL");
+  let createdPetId = "";
+  let miniappContext: Awaited<ReturnType<typeof browser.newContext>> | null = null;
 
   try {
+    const created = await responseData<MyPetDetail>(
+      await page.request.post("/api/pets", {
+        headers: { Authorization: ownerAuthorization },
+        data: input,
+      }),
+    );
+
+    createdPetId = created.id;
+
+    expect(created).toMatchObject({
+      ...input,
+      id: expect.any(String),
+      photoAssets: [],
+      photoUrls: [],
+    });
+
+    const firstPhoto = await uploadPhoto(page, created.id, ownerAuthorization, "pet-first.png");
+    const secondPhoto = await uploadPhoto(page, created.id, ownerAuthorization, "pet-second.png");
+    const firstPhotoPath = storedPhotoPath(firstPhoto);
+    const secondPhotoPath = storedPhotoPath(secondPhoto);
+
+    expect(firstPhoto).toMatchObject({ mimeType: "image/png", width: 32, height: 32 });
+    expect(secondPhoto).toMatchObject({ mimeType: "image/png", width: 32, height: 32 });
+    expect(existsSync(firstPhotoPath)).toBe(true);
+    expect(existsSync(secondPhotoPath)).toBe(true);
+
+    await expectFailure(
+      await page.request.get(`/api/pets/${created.id}`, {
+        headers: { Authorization: otherAuthorization },
+      }),
+      404,
+      PET_ERROR_CODE.NOT_FOUND,
+    );
+    await expectFailure(
+      await page.request.put(`/api/pets/${created.id}`, {
+        headers: { Authorization: otherAuthorization },
+        data: { ...input, name: "越权修改" },
+      }),
+      404,
+      PET_ERROR_CODE.NOT_FOUND,
+    );
+    await expectFailure(
+      await page.request.post(`/api/pets/${created.id}/media-assets`, {
+        headers: { Authorization: otherAuthorization },
+        multipart: {
+          file: { name: "foreign.png", mimeType: "image/png", buffer: PET_PHOTO },
+        },
+      }),
+      404,
+      PET_ERROR_CODE.NOT_FOUND,
+    );
+    await expectFailure(
+      await page.request.delete(`/api/pets/${created.id}/media-assets/${firstPhoto.id}`, {
+        headers: { Authorization: otherAuthorization },
+      }),
+      404,
+      PET_ERROR_CODE.NOT_FOUND,
+    );
+    await expectFailure(
+      await page.request.delete(`/api/pets/${created.id}`, {
+        headers: { Authorization: otherAuthorization },
+      }),
+      404,
+      PET_ERROR_CODE.NOT_FOUND,
+    );
+    expect(existsSync(firstPhotoPath)).toBe(true);
+    expect(existsSync(secondPhotoPath)).toBe(true);
+
+    miniappContext = await browser.newContext({ viewport: { width: 375, height: 812 } });
+    const miniappPage = await miniappContext.newPage();
+    const miniappUrl = requiredEnv("ADMIN_E2E_MINIAPP_URL");
+
     await miniappPage.goto(`${miniappUrl}/#/pages/community/index`);
     await seedMiniappSession(miniappPage, requiredEnv("PET_E2E_OWNER_TOKEN"));
     await miniappPage.goto(`${miniappUrl}/#/pages-account/pets/index`);
     await expect(miniappPage.getByText(originalName, { exact: true })).toBeVisible();
-    await expect(miniappPage.getByText("1/5 只", { exact: true })).toBeVisible();
+    await expect(
+      miniappPage.getByText(
+        `${initialOwnerPets.length + 1}/${PET_PROFILE_LIMITS.MAX_PETS_PER_OWNER} 只`,
+        { exact: true },
+      ),
+    ).toBeVisible();
     await miniappPage.getByLabel(`查看${originalName}的宠物档案`).click();
     await expect(miniappPage).toHaveURL(
       new RegExp(`/pages-account/pets/detail[?]id=${created.id}$`, "u"),
@@ -255,7 +271,7 @@ test("本人宠物档案在隔离环境完成管理、权限与图片清理闭�
     await expect(miniappPage.getByText(originalName, { exact: true })).toBeVisible();
     await expect(miniappPage.getByText("2 张", { exact: true })).toBeVisible();
     await expect(miniappPage.getByText(initialNotes, { exact: true })).toBeVisible();
-    await miniappPage.getByText("编辑档案", { exact: true }).click();
+    await miniappPage.getByText("编辑资料", { exact: true }).click();
     await expect(miniappPage).toHaveURL(
       new RegExp(`/pages-account/pets/form[?]mode=edit&id=${created.id}$`, "u"),
     );
@@ -330,16 +346,63 @@ test("本人宠物档案在隔离环境完成管理、权限与图片清理闭�
       404,
       PET_ERROR_CODE.NOT_FOUND,
     );
-    await expect(
-      responseData<MyPetListResponse>(
-        await page.request.get("/api/pets", { headers: { Authorization: ownerAuthorization } }),
-      ),
-    ).resolves.toEqual([]);
+    const remainingPets = await responseData<MyPetListResponse>(
+      await page.request.get("/api/pets", { headers: { Authorization: ownerAuthorization } }),
+    );
+
+    expect(remainingPets.map(({ id }) => id).sort()).toEqual(
+      initialOwnerPets.map(({ id }) => id).sort(),
+    );
 
     await miniappPage.goto(`${miniappUrl}/#/pages-account/pets/index`);
-    await expect(miniappPage.getByText("还没有宠物档案", { exact: true })).toBeVisible();
-    await expect(miniappPage.getByText("0/5 只", { exact: true })).toBeVisible();
+    await expect(miniappPage.getByLabel(`查看${originalName}的宠物档案`)).toHaveCount(0);
+    await expect(
+      miniappPage.getByText(
+        `${initialOwnerPets.length}/${PET_PROFILE_LIMITS.MAX_PETS_PER_OWNER} 只`,
+        { exact: true },
+      ),
+    ).toBeVisible();
+
+    if (initialOwnerPets.length === 0) {
+      await expect(miniappPage.getByText("还没有宠物档案", { exact: true })).toBeVisible();
+    } else {
+      await Promise.all(
+        initialOwnerPets.map((pet) =>
+          expect(miniappPage.getByLabel(`查看${pet.name}的宠物档案`)).toBeVisible(),
+        ),
+      );
+    }
   } finally {
-    await miniappContext.close();
+    if (createdPetId) {
+      try {
+        const cleanupResponse = await page.request.get(`/api/pets/${createdPetId}`, {
+          headers: { Authorization: ownerAuthorization },
+        });
+
+        if (cleanupResponse.ok()) {
+          const cleanupPet = await responseData<MyPetDetail>(cleanupResponse);
+
+          await Promise.all(
+            cleanupPet.photoAssets.map((asset) =>
+              page.request
+                .delete(`/api/pets/${createdPetId}/media-assets/${asset.id}`, {
+                  headers: { Authorization: ownerAuthorization },
+                })
+                .catch(() => undefined),
+            ),
+          );
+
+          await page.request
+            .delete(`/api/pets/${createdPetId}`, {
+              headers: { Authorization: ownerAuthorization },
+            })
+            .catch(() => undefined);
+        }
+      } catch {
+        // Preserve the original assertion failure if best-effort cleanup also fails.
+      }
+    }
+
+    await miniappContext?.close();
   }
 });

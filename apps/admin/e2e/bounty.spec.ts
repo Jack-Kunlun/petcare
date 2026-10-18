@@ -308,14 +308,14 @@ test("悬赏在隔离环境完成资格门禁、幂等意向、唯一确认与�
       userType: "pet_owner",
     });
     await miniappPage.goto(`${miniappUrl}/#/pages-bounty/form?petId=${pet.id}`);
-    await expect(
-      miniappPage.getByLabel("选择照护宠物").locator("span", { hasText: pet.name }),
-    ).toBeVisible();
+    const feedingOption = miniappPage.getByRole("button", { name: "上门喂养" });
 
-    const serviceTypePicker = await openPicker(miniappPage, "选择服务类型");
-
-    await setPickerColumn(serviceTypePicker.locator("uni-picker-view-column"), 0);
-    await confirmPicker(serviceTypePicker);
+    await expect(feedingOption).toHaveAttribute("aria-pressed", "false");
+    await feedingOption.click();
+    await expect(feedingOption).toHaveAttribute("aria-pressed", "true");
+    await miniappPage.locator(".publish-actions").getByText("下一步", { exact: true }).click();
+    await expect(miniappPage.getByText("填写服务详情", { exact: true })).toBeVisible();
+    await expect(miniappPage.getByLabel("选择照护宠物")).toContainText(pet.name);
 
     const [year, month, day] = service.date.split("-").map(Number);
     const datePicker = await openPicker(miniappPage, "选择服务日期");
@@ -350,12 +350,18 @@ test("悬赏在隔离环境完成资格门禁、幂等意向、唯一确认与�
       .getByLabel("悬赏备注")
       .locator("textarea")
       .fill(request.remark ?? "");
+    await miniappPage.locator(".publish-actions").getByText("下一步", { exact: true }).click();
+    await expect(miniappPage.getByText("确认发布信息", { exact: true })).toBeVisible();
+    await expect(miniappPage.getByText(request.address, { exact: true })).toBeVisible();
+    await expect(miniappPage.getByText("照护备注", { exact: true })).toBeVisible();
+    await expect(miniappPage.getByText(request.remark ?? "", { exact: true })).toBeVisible();
+    await expect(miniappPage.getByText("¥50.25", { exact: true })).toBeVisible();
 
     const createdResponse = miniappPage.waitForResponse(
       (response) => response.request().method() === "POST" && response.url().endsWith("/bounties"),
     );
 
-    await miniappPage.getByText("确认发布", { exact: true }).click();
+    await miniappPage.locator(".publish-actions").getByText("确认发布", { exact: true }).click();
     const created = await responseData<MyBounty>(await createdResponse);
 
     expect(created).toMatchObject({
@@ -365,6 +371,12 @@ test("悬赏在隔离环境完成资格门禁、幂等意向、唯一确认与�
       address: request.address,
       remark: request.remark,
     });
+    await expect(miniappPage).toHaveURL(
+      new RegExp(`/pages-bounty/success[?]bountyId=${created.id}$`),
+    );
+    await expect(miniappPage.getByText("悬赏已发布", { exact: true })).toBeVisible();
+    await expect(miniappPage.getByText(created.id, { exact: true })).toBeVisible();
+    await miniappPage.getByText("查看我的悬赏", { exact: true }).click();
     await expect(miniappPage).toHaveURL(/\/pages-bounty\/index[?]tab=mine$/u);
     const ownerBountyCard = miniappPage.locator(".main-card", {
       has: miniappPage.getByText(request.address, { exact: true }),
@@ -374,6 +386,19 @@ test("悬赏在隔离环境完成资格门禁、幂等意向、唯一确认与�
     await expect(
       ownerBountyCard.getByText(`备注：${request.remark}`, { exact: true }),
     ).toBeVisible();
+    await ownerBountyCard.getByText("查看订单详情", { exact: true }).click();
+    await expect(miniappPage).toHaveURL(
+      new RegExp(`/pages-orders/detail[?]bountyId=${created.id}&role=owner$`),
+    );
+    const orderDetail = miniappPage.locator(".order-detail");
+
+    await expect(orderDetail.getByText("待确认服务者", { exact: true })).toBeVisible();
+    await expect(orderDetail.getByText(`订单编号：${created.id}`, { exact: true })).toBeVisible();
+    await expect(orderDetail.getByText(request.address, { exact: true })).toBeVisible();
+    await expect(orderDetail.getByText(`备注：${request.remark}`, { exact: true })).toBeVisible();
+    await expect(orderDetail.getByText("¥50.25", { exact: true })).toBeVisible();
+    await miniappPage.getByLabel("返回", { exact: true }).click();
+    await expect(miniappPage).toHaveURL(/\/pages-bounty\/index[?]tab=mine$/u);
 
     const mine = await responseData<MyBountyListResponse>(
       await page.request.get("/api/bounties/mine?page=1&pageSize=20", {
