@@ -308,7 +308,9 @@ test("悬赏在隔离环境完成资格门禁、幂等意向、唯一确认与�
       userType: "pet_owner",
     });
     await miniappPage.goto(`${miniappUrl}/#/pages-bounty/form?petId=${pet.id}`);
-    const feedingOption = miniappPage.getByRole("button", { name: "上门喂养" });
+    const feedingOption = miniappPage
+      .locator(".publish-service-option")
+      .filter({ hasText: "上门喂养" });
 
     await expect(feedingOption).toHaveAttribute("aria-pressed", "false");
     await feedingOption.click();
